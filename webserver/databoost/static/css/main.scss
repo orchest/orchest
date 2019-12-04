@@ -1,3 +1,11 @@
+// My main SCSS file.
+$mdc-theme-primary: #000000;
+$mdc-theme-secondary: #0a6df7;
+$mdc-theme-background: #fff;
+
+
+@import "../node_modules/material-components-web/material-components-web";
+
 * {
   margin: 0;
   padding: 0;
@@ -6,21 +14,28 @@
 *:focus {
   outline: none;
 }
+
 html,
 body {
   font-size: 17px;
   font-family: "Avenir", sans-serif;
   height: 100%;
 }
+
 h1 {
   font-family: "Sofia Pro", sans-serif;
   font-weight: 400;
 }
+
+.view-page {
+  padding: 30px;
+}
+
 aside.mdc-drawer {
-  max-width: 325px;
-  width: 20%;
+  //max-width: 325px;
+  //width: 20%;
+  @include mdc-drawer-width(325px);
   padding: 20px;
   height: 100%;
   text-align: center;
 }
-/*# sourceMappingURL=style.css.map */
