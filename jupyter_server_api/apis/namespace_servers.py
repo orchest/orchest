@@ -9,7 +9,7 @@ from flask_restplus import Namespace, Resource, fields
 
 api = Namespace('servers', description='Start and stop Jupyter servers')
 
-server = api.model('Launch', {
+server = api.model('Server', {
     'url': fields.String(required=True, description='URL of the server'),
     'hostname': fields.String(required=True, default='localhost', description='Hostname'),
     'port': fields.Integer(required=True, description='Port to access the server'),
@@ -25,7 +25,7 @@ SERVER = None
 
 
 @api.route('/')
-@api.response(404, 'Launch not found')
+@api.response(404, 'Server not found')
 class Server(Resource):
     @api.doc('get_launch')
     @api.marshal_with(server)
@@ -62,7 +62,7 @@ class Server(Resource):
         global SERVER
         SERVER = info
 
-        return {'message': 'successful launch', 'info': info}
+        return SERVER
 
     @api.doc('shutdown_server')
     def delete(self):

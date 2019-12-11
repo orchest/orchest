@@ -13,6 +13,8 @@ def main():
 
     sys.argv.append('--notebook-dir=/Users/yannick/Documents/projects/databoost')
     sys.argv.append('--no-browser')
+    sys.argv.append('--port=8889')
+    sys.argv.append('--gateway-url=http://127.0.0.1:8888')
 
     la = LabApp()
     la.initialize()
