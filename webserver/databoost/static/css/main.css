@@ -808,7 +808,7 @@ svg.mdc-button__icon {
   background-color: var(--mdc-theme-secondary, #0a6df7);
 }
 
-@keyframes mdc-checkbox-fade-in-background-uhy3gx8 {
+@keyframes mdc-checkbox-fade-in-background-ugy9yp5 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent;
@@ -822,7 +822,7 @@ svg.mdc-button__icon {
     background-color: var(--mdc-theme-secondary, #0a6df7);
   }
 }
-@keyframes mdc-checkbox-fade-out-background-uhy3gx8 {
+@keyframes mdc-checkbox-fade-out-background-ugy9yp5 {
   0%, 80% {
     border-color: #0a6df7;
     /* @alternate */
@@ -837,10 +837,10 @@ svg.mdc-button__icon {
   }
 }
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-uhy3gx8;
+  animation-name: mdc-checkbox-fade-in-background-ugy9yp5;
 }
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-uhy3gx8;
+  animation-name: mdc-checkbox-fade-out-background-ugy9yp5;
 }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
@@ -1734,7 +1734,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000);
 }
-@keyframes mdc-checkbox-fade-in-background-uhy3gy4 {
+@keyframes mdc-checkbox-fade-in-background-ugy9yp8 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent;
@@ -1748,7 +1748,7 @@ svg.mdc-button__icon {
     background-color: var(--mdc-theme-primary, #000000);
   }
 }
-@keyframes mdc-checkbox-fade-out-background-uhy3gy4 {
+@keyframes mdc-checkbox-fade-out-background-ugy9yp8 {
   0%, 80% {
     border-color: #000000;
     /* @alternate */
@@ -1765,12 +1765,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-uhy3gy4;
+  animation-name: mdc-checkbox-fade-in-background-ugy9yp8;
 }
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-uhy3gy4;
+  animation-name: mdc-checkbox-fade-out-background-ugy9yp8;
 }
 
 .mdc-dialog,
@@ -8933,6 +8933,69 @@ aside.mdc-drawer.mdc-drawer--open:not(.mdc-drawer--closing) + .mdc-drawer-app-co
   margin-left: 0;
   /* @noflip */
   margin-right: 325px;
+}
+
+.pipeline-view {
+  position: relative;
+  height: 100%;
+}
+.pipeline-view .pipeline-details {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  padding: 20px;
+  border-left: 1px solid rgba(0, 0, 0, 0.12);
+}
+.pipeline-view .pipeline-details button.save-button {
+  position: absolute;
+  bottom: 20px;
+}
+.pipeline-view .pipeline-details h3 {
+  margin-bottom: 20px;
+  font-weight: 400;
+  font-size: 21px;
+}
+.pipeline-view .pipeline-details .multi-field-input {
+  padding-bottom: 20px;
+}
+.pipeline-view .pipeline-details .mdc-select {
+  margin-bottom: 20px;
+}
+
+.multi-field-input > div {
+  float: left;
+  width: 50%;
+}
+.multi-field-input > div:nth-child(2) {
+  width: 50%;
+}
+
+.clear {
+  clear: both;
+  display: block;
+}
+
+.mdc-drawer-app-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.main-content .mdc-top-app-bar--fixed-adjust {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.main-content .mdc-top-app-bar--fixed-adjust .react-view-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /*# sourceMappingURL=main.css.map */

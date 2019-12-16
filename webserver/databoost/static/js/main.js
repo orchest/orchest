@@ -5,10 +5,17 @@ import PipelinesView from "./views/PipelinesView";
 import DataSourcesView from "./views/DataSourcesView";
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PipelineView from "./views/PipelineView";
 
-(function(){
+function Databoost() {
 
-    let reactRoot = document.querySelector(".react-view-root");
+    this.reactRoot = document.querySelector(".react-view-root");
+
+    this.Components = {
+        "PipelinesView": PipelinesView,
+        "DataSourcesView": DataSourcesView,
+        "PipelineView": PipelineView
+    };
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
 
@@ -19,16 +26,12 @@ import ReactDOM from 'react-dom';
 
         let viewName = listElement.attributes.getNamedItem("data-react-view").value;
 
-        switch(viewName) {
-            case "PipelinesView":
-                ReactDOM.render(<PipelinesView />, reactRoot);
-                break;
-            case "DataSourcesView":
-                ReactDOM.render(<DataSourcesView />, reactRoot);
-                break;
-        }
-
+        this.loadView(this.Components[viewName]);
     });
+
+    this.loadView = function(TagName, dynamicProps){
+        ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
+    };
 
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));
     topAppBar.setScrollTarget(document.getElementById('main-content'));
@@ -36,12 +39,7 @@ import ReactDOM from 'react-dom';
       drawer.open = !drawer.open;
     });
 
+}
 
+window.databoost = new Databoost();
 
-
-
-
-
-
-
-})();

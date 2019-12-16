@@ -31,6 +31,8 @@ h1 {
   padding: 30px;
 }
 
+$generalPadding: 20px;
+
 aside.mdc-drawer {
   //max-width: 325px;
   //width: 20%;
@@ -39,3 +41,77 @@ aside.mdc-drawer {
   height: 100%;
   text-align: center;
 }
+
+.pipeline-view {
+  position: relative;
+  height: 100%;
+
+
+  .pipeline-details {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    padding: $generalPadding;
+    border-left: 1px solid rgba(0, 0, 0, 0.12);
+
+    button.save-button {
+      position: absolute;
+      bottom: $generalPadding;  
+    }
+
+    h3 {
+      margin-bottom: 20px;
+      font-weight: 400;
+      font-size: 21px;
+    }
+
+    .multi-field-input {
+      padding-bottom: 20px;
+    }
+
+    .mdc-select {
+      margin-bottom: 20px;
+    }
+  }
+}
+
+.multi-field-input {
+  > div {
+    float: left;
+    width: 50%;
+    &:nth-child(2){
+      width: 50%;
+    }
+  }
+}
+
+.clear {
+  clear: both;
+  display: block;
+}
+
+.mdc-drawer-app-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  .mdc-top-app-bar--fixed-adjust {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .react-view-root {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+}
+
