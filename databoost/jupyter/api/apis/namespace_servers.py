@@ -82,6 +82,10 @@ class Server(Resource):
         # kernels.
         requests.post(url, headers=headers)
 
+        # TODO: probably have to check whether the subprocess has indeed been
+        #       killed. Although it is not super important as the server will
+        #       be running in a docker container which is killed after as well.
+
         # There no longer is a running server.
         SERVER = None
 

@@ -1,9 +1,7 @@
-import json
 import requests
 
+from flask import request
 from flask_restplus import Namespace, Resource, fields
-
-from jupyterlab.labapp import LabApp
 
 
 # Set namespace.
@@ -24,7 +22,7 @@ server = api.model('Server', {
 
 launch = api.model('Launch', {
     'uuid': fields.Integer(required=True, description='UUID for Pipeline'),
-    'pipeline-id': fields.Integer(required=True, description='Name of Pipeline'),
+    'pipeline-uuid': fields.Integer(required=True, description='Name of Pipeline'),
     'server-info': fields.Nested(server, required=True)
 })
 
@@ -32,7 +30,11 @@ launches = api.model('Launches', {
     'launches': fields.List(fields.Nested(launch), description='Currently running launches')
 })
 
-# Launch instances.
+pipeline = api.model('Pipeline', {
+    'uuid': fields.Integer(required=True, default=1, description='UUID of pipeline to start')
+})
+
+# Memory store of launch instances.
 LAUNCHES = []
 
 
@@ -45,8 +47,11 @@ class LaunchList(Resource):
 
     @api.doc('launch_pipeline')
     @api.marshal_with(launch)
+    @api.expect(pipeline)
     def post(self):
         """Launch a pipeline for development."""
+        json_data = request.get_json()
+
         # --no-browser
         # --ip
         # --port
@@ -58,9 +63,12 @@ class LaunchList(Resource):
         # * Enterprise Gateway if one does not already exist
 
         r = requests.post('http://localhost:5000/api/servers/')
-        print(r.json())
 
-        launch = {'uuid': 1, 'pipeline-id': 11, 'server-info': r.json()}
+        launch = {
+            'uuid': 1,
+            'pipeline-uuid': json_data['uuid'],
+            'server-info': r.json()
+        }
         LAUNCHES.append(launch)
 
         return launch
