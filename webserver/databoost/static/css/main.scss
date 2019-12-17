@@ -32,6 +32,7 @@ h1 {
 }
 
 $generalPadding: 20px;
+$borderColor: rgba(0, 0, 0, 0.12);
 
 aside.mdc-drawer {
   //max-width: 325px;
@@ -47,13 +48,31 @@ aside.mdc-drawer {
   height: 100%;
 
 
+  .pipeline-steps-holder {
+    height: 100%;
+
+    .pipeline-step {
+      position: absolute;
+      background: #fff;
+      padding: $generalPadding;
+      border: 1px solid $borderColor;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+  }
+
+
+
+
   .pipeline-details {
     position: absolute;
     right: 0;
     top: 0;
     height: 100%;
     padding: $generalPadding;
-    border-left: 1px solid rgba(0, 0, 0, 0.12);
+    border-left: 1px solid $borderColor;
 
     button.save-button {
       position: absolute;

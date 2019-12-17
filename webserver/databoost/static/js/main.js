@@ -33,6 +33,8 @@ function Databoost() {
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
     };
 
+    this.loadView(PipelineView);
+
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));
     topAppBar.setScrollTarget(document.getElementById('main-content'));
     topAppBar.listen('MDCTopAppBar:nav', () => {

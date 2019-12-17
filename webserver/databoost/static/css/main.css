@@ -664,7 +664,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-ud7328909 {
+@keyframes mdc-checkbox-fade-in-background-uf96683e5 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -676,7 +676,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-ud7328909 {
+@keyframes mdc-checkbox-fade-out-background-uf96683e5 {
   0%,
   80% {
     border-color: #0a6df7;
@@ -690,10 +690,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-ud7328909; }
+  animation-name: mdc-checkbox-fade-in-background-uf96683e5; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-ud7328909; }
+  animation-name: mdc-checkbox-fade-out-background-uf96683e5; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1439,7 +1439,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-ubb61ad05 {
+@keyframes mdc-checkbox-fade-in-background-ud6f1d57e {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1451,7 +1451,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-ubb61ad05 {
+@keyframes mdc-checkbox-fade-out-background-ud6f1d57e {
   0%,
   80% {
     border-color: #000000;
@@ -1467,12 +1467,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-ubb61ad05; }
+  animation-name: mdc-checkbox-fade-in-background-ud6f1d57e; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-ubb61ad05; }
+  animation-name: mdc-checkbox-fade-out-background-ud6f1d57e; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7375,6 +7375,16 @@ aside.mdc-drawer {
 .pipeline-view {
   position: relative;
   height: 100%; }
+  .pipeline-view .pipeline-steps-holder {
+    height: 100%; }
+    .pipeline-view .pipeline-steps-holder .pipeline-step {
+      position: absolute;
+      background: #fff;
+      padding: 20px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none; }
   .pipeline-view .pipeline-details {
     position: absolute;
     right: 0;

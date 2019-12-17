@@ -4,7 +4,7 @@ import {MDCRipple} from '@material/ripple';
 
 class PipelineStep extends React.Component {
     render() {
-        return <div onClick={this.props.onClick.bind(undefined, this)} className={"pipeline-step"}>{this.props.name}</div>
+        return <div data-guid={this.props.guid} ref={"container"} className={"pipeline-step"}>{this.props.name}</div>
     }
 }
 
@@ -151,6 +151,35 @@ class PipelineDetails extends React.Component {
     }
 }
 
+
+function PipelineStepDOMWrapper(el, guid, reactRef){
+    this.el = $(el);
+    this.guid = guid;
+    this.reactRef = reactRef;
+    this.x = 0;
+    this.y = 0;
+    this.dragged = false;
+
+    this.restore = function () {
+        let ls = localStorage.getItem("PipelineStepDOMWrapper"+guid);
+        if(ls != null){
+            let xy = JSON.parse(ls);
+            this.x = xy[0];
+            this.y = xy[1];
+        }
+    };
+
+    this.render = function(){
+        this.el.css('transform', "translateX("+this.x+"px) translateY("+this.y+"px)");
+    };
+
+    this.save = function () {
+        localStorage.setItem("PipelineStepDOMWrapper"+guid, JSON.stringify([this.x, this.y]));
+    }
+}
+
+
+
 class PipelineView extends React.Component {
 
     componentWillUnmount() {
@@ -165,6 +194,61 @@ class PipelineView extends React.Component {
     }
 
     componentDidMount() {
+
+        // get object positions from localStorage
+        // TODO: serialize object positions
+
+        let selectedItem = undefined;
+
+        let pipelineSteps = {};
+
+        let pipelineRefs = [this.refs.ps1, this.refs.ps2, this.refs.ps3];
+
+        for(let x = 0; x < pipelineRefs.length; x++){
+            let el = pipelineRefs[x].refs.container;
+            let psdw = new PipelineStepDOMWrapper(el, $(el).attr('data-guid'), pipelineRefs[x]);
+            pipelineSteps[$(el).attr('data-guid')] = psdw;
+            psdw.restore();
+            psdw.render();
+        }
+
+        // listener on items
+        let prevPosition = [];
+        $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step", function (e) {
+            selectedItem = pipelineSteps[$(e.target).attr('data-guid')];
+            prevPosition = [e.clientX, e.clientY];
+        });
+
+        $(document).on("mouseup", ".pipeline-step", function (e) {
+            if(selectedItem){
+                // check if click should be triggered
+                selectedItem.save();
+
+                if(!selectedItem.dragged){
+                    selectedItem.reactRef.props.onClick(selectedItem.reactRef);
+                }
+
+                selectedItem.dragged = false;
+            }
+            selectedItem = undefined;
+        });
+
+        $(this.refs.pipelineStepsHolder).on('mousemove', function(e){
+            if(selectedItem){
+
+                selectedItem.dragged = true;
+
+                let delta = [e.clientX - prevPosition[0], e.clientY - prevPosition[1]];
+
+                selectedItem.x += delta[0];
+                selectedItem.y += delta[1];
+
+                selectedItem.render();
+
+                prevPosition = [e.clientX, e.clientY];
+            }
+        });
+
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
@@ -182,10 +266,10 @@ class PipelineView extends React.Component {
         return <div className={"pipeline-view"}>
             <div className={"pipeline-name"}>{this.props.name}</div>
 
-            <div className={"pipeline-steps-holder"}>
-                <PipelineStep name={"Preprocessing"} onClick={this.selectStep.bind(this)} />
-                <PipelineStep name={"Modeling"} onClick={this.selectStep.bind(this)} />
-                <PipelineStep name={"Visualization"} onClick={this.selectStep.bind(this)} />
+            <div className={"pipeline-steps-holder"} ref={"pipelineStepsHolder"}>
+                <PipelineStep ref={"ps1"} guid={"iahijijaij"} name={"Preprocessing"} onClick={this.selectStep.bind(this)} />
+                <PipelineStep ref={"ps2"} guid={"9f98jafjie"} name={"Modeling"} onClick={this.selectStep.bind(this)} />
+                <PipelineStep ref={"ps3"} guid={"oji3fao9j3"} name={"Visualization"} onClick={this.selectStep.bind(this)} />
 
                 { (() => {
                     if (this.state.selectedStep){
