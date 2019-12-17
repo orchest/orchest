@@ -64,7 +64,7 @@ db.sqlite3-journal
 .idea/
 
 # Flask stuff:
-instance/
+# instance/
 .webassets-cache
 
 # NPM node_modules for web
