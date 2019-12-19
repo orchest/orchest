@@ -69,8 +69,8 @@ class LaunchList(Resource):
                 # Starts the Juptyer server and connects it to the given
                 # Enterprise Gateway.
                 r = requests.post(
-                        f'{IP.server}:80/api/servers/',
-                        params={'gateway-url': f'{IP.EG}:8888'}
+                        f'http://{IP.server}:80/api/servers/',
+                        json={'gateway-url': f'http://{IP.EG}:8888'}
                 )
             except requests.ConnectionError:
                 time.sleep(0.5)
@@ -82,7 +82,6 @@ class LaunchList(Resource):
             'server_ip': IP.server,
             'server_info': r.json()
         }
-        # TODO: not sure whether this will work. See main.py
         db.session.add(models.Launch(**launch))
         db.session.commit()
 
@@ -119,12 +118,15 @@ class Launch(Resource):
         # Jupyter server to shut the server down and clean all running
         # kernels that are associated with the server.
         # TODO: possibly has to be preceded with http://
-        requests.delete(f'{launch.server_ip}:80/api/servers/')
+        requests.delete(f'http://{launch.server_ip}:80/api/servers/')
 
         jdm = JupyterDockerManager(docker_client, network='databoost')
         response = jdm.shutdown_pipeline(pipeline_uuid)
 
         if response is not None:
             api.abort(404)
+
+        db.session.delete(launch)
+        db.session.commit()
 
         return {'message': 'successful shutdown'}
