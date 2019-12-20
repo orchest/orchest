@@ -7,4 +7,4 @@ DEBUG = False
 HOST = 'localhost'
 PORT = 80
 if DEBUG:
-	SERVER_NAME = f'{HOST}:{PORT}'
+    SERVER_NAME = f'{HOST}:{PORT}'

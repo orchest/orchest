@@ -10,6 +10,7 @@ from flask_restplus import Namespace, Resource, fields
 
 api = Namespace('servers', description='Start and stop Jupyter servers')
 
+# Server information to connect to JupyterLab instance.
 server = api.model('Server', {
     'url': fields.String(required=True, description='URL of the server'),
     'hostname': fields.String(required=True, default='localhost', description='Hostname'),
@@ -35,7 +36,6 @@ jupyter_config = api.model('Jupyter Config', {
 
 @api.route('/')
 class Server(Resource):
-    # TODO: abs path feels a bit hacky to do.
     abs_path = os.path.dirname(os.path.abspath(__file__))
     connection_file = os.path.join(abs_path, '../tmp/server_info.json')
 
@@ -86,8 +86,8 @@ class Server(Resource):
         return server_info, 201
 
     @api.doc('shutdown_server')
-    @api.response(404, 'Server not found')
     @api.response(200, 'Server stopped')
+    @api.response(404, 'Server not found')
     def delete(self):
         """Shuts down running Jupyter server.
 

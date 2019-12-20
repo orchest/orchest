@@ -1,16 +1,16 @@
-"""Sets up databoost containers etc.
+"""Installation script for databoost.
 
-* Create network for jupyter and others.
+Sets up the following
+* Docker
+* ...
 
-https://docker-py.readthedocs.io/en/stable/networks.html
 """
 import docker
 from docker.client import DockerClient
 
 
 # TODO: Create some settings file somewhere, including:
-#       * port specification
-#       * databoost docker network subnet
+#       * port specification: what ports for Jupyter
 #       * image names in ENV variables
 
 
