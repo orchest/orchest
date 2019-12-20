@@ -1,6 +1,5 @@
 import React from 'react';
 
-import {MDCList} from '@material/list';
 import {MDCIconButtonToggle} from '@material/icon-button';
 import PipelineView from "./PipelineView";
 

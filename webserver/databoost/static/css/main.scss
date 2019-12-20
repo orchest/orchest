@@ -47,9 +47,64 @@ aside.mdc-drawer {
   position: relative;
   height: 100%;
 
+  .pipeline-name {
+    position: absolute;
+    padding: $generalPadding;
+    font-size: 21px;
+  }
+
+  .pipeline-actions {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 9;
+    padding: $generalPadding;
+
+    button {
+      margin-left: $generalPadding;
+    }
+  }
+
 
   .pipeline-steps-holder {
     height: 100%;
+
+    .connection {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: -1;
+
+      &:after {
+        position: absolute;
+        content: " ";
+        display: block;
+        width: 15px;
+        height: 15px;
+        background-image: url("../image/arrow-head.svg");
+        background-size: contain;
+        background-repeat: no-repeat;
+        right: 7px;
+        bottom: -2px;
+        transition: 0.3s opacity ease;
+      }
+      &.flipped {
+        &:after {
+          bottom: auto;
+          top: -3px;
+        }
+      }
+      &.flipped-horizontal {
+        &:after {
+          opacity: 0;
+        }
+      }
+
+
+      svg {
+        float: left;
+      }
+    }
 
     .pipeline-step {
       position: absolute;
@@ -59,7 +114,26 @@ aside.mdc-drawer {
       border-radius: 6px;
       cursor: pointer;
       user-select: none;
+
+      .connection-point {
+        display: block;
+        width: 10px;
+        height: 10px;
+        background: black;
+        border-radius: 10px;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        left: -5px;
+
+        &.outgoing-connections {
+          right: -5px;
+          left: auto;
+        }
+      }
     }
+
+
 
   }
 
@@ -72,7 +146,9 @@ aside.mdc-drawer {
     top: 0;
     height: 100%;
     padding: $generalPadding;
+    background: #fff;
     border-left: 1px solid $borderColor;
+    z-index: 12;
 
     button.save-button {
       position: absolute;

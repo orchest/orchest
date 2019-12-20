@@ -33,7 +33,7 @@ function Databoost() {
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
     };
 
-    this.loadView(PipelineView);
+    this.loadView(PipelineView, {"name": "My first pipeline", "uuid": "07612719-7e95-4fbd-be73-37fb428fdcb6" });
 
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));
     topAppBar.setScrollTarget(document.getElementById('main-content'));
