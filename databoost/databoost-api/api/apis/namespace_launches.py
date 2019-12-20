@@ -108,6 +108,8 @@ class Launch(Resource):
         return launch.as_dict()
 
     @api.doc('shutdown_launch')
+    @api.response(200, 'Launch stopped')
+    @api.response(404, 'Launch not found')
     def delete(self, pipeline_uuid):
         """Shutdown launch"""
         launch = models.Launch.query.filter_by(pipeline_uuid=pipeline_uuid).first_or_404(
@@ -117,7 +119,6 @@ class Launch(Resource):
         # Uses the API inside the container that is also running the
         # Jupyter server to shut the server down and clean all running
         # kernels that are associated with the server.
-        # TODO: possibly has to be preceded with http://
         requests.delete(f'http://{launch.server_ip}:80/api/servers/')
 
         jdm = JupyterDockerManager(docker_client, network='databoost')
@@ -129,4 +130,4 @@ class Launch(Resource):
         db.session.delete(launch)
         db.session.commit()
 
-        return {'message': 'successful shutdown'}
+        return {'message': 'Server shutdown was successful'}, 200

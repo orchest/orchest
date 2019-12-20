@@ -89,7 +89,7 @@ class JupyterDockerManager(DockerManager):
         return IP(self._get_container_ip(EG_container), self._get_container_ip(server_container))
 
     def shutdown_pipeline(self, uuid):
-        """Shuts down launched pipeline by uuid.
+        """Shuts down launched pipeline with given UUID.
 
         Stops and removes containers. Containers are removed such that
         the same container name can be used when the pipeline is

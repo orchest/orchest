@@ -2,7 +2,7 @@ from docker.client import DockerClient
 from flask_sqlalchemy import SQLAlchemy
 
 
-# Maintain state.
+# Stores running recourses information.
 db = SQLAlchemy()
 
 # Manage docker containers.
