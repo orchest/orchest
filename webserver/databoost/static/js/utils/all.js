@@ -11,3 +11,7 @@ export function handleErrors(response) {
     }
     return response;
 }
+
+export function nameToFilename(name){
+    return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+}

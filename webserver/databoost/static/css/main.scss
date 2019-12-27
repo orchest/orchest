@@ -7,8 +7,6 @@ $mdc-theme-background: #fff;
 @import "../node_modules/material-components-web/material-components-web";
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 *:focus {
@@ -20,6 +18,8 @@ body {
   font-size: 17px;
   font-family: "Avenir", sans-serif;
   height: 100%;
+  padding: 0;
+  margin: 0;
 }
 
 h1 {
@@ -41,6 +41,10 @@ aside.mdc-drawer {
   padding: 20px;
   height: 100%;
   text-align: center;
+}
+
+.push-down {
+  margin-bottom: $generalPadding;
 }
 
 .pipeline-view {
@@ -73,7 +77,14 @@ aside.mdc-drawer {
       position: absolute;
       left: 0;
       top: 0;
-      z-index: -1;
+
+      &.selected {
+
+        &:after {
+          background-image: url("../image/arrow-head-blue.svg");
+        }
+
+      }
 
       &:after {
         position: absolute;
@@ -100,20 +111,51 @@ aside.mdc-drawer {
         }
       }
 
+      pointer-events: none;
 
       svg {
         float: left;
+        pointer-events: none;
+        path {
+          cursor: pointer;
+          pointer-events: all;
+        }
       }
     }
 
     .pipeline-step {
+
+      $pipelineHeight: 80px;
+      $pipelineWidth: 160px;
+
       position: absolute;
       background: #fff;
-      padding: $generalPadding;
+      padding: $generalPadding/2 $generalPadding;
       border: 1px solid $borderColor;
       border-radius: 6px;
       cursor: pointer;
       user-select: none;
+      width: $pipelineWidth;
+      height: $pipelineHeight;
+      text-align: center;
+      z-index: 1;
+
+      .step-label-holder {
+        display: block;
+        height: 100%;
+        overflow: hidden;
+      }
+      .step-label {
+        text-overflow: ellipsis;
+        height: $pipelineHeight - $generalPadding;
+        max-height: $pipelineHeight - $generalPadding;
+        width: $pipelineWidth - $generalPadding * 2;
+        max-width: $pipelineWidth - $generalPadding * 2;
+        display: table-cell;
+        vertical-align: middle;
+        overflow: hidden;
+        font-size: 15px;
+      }
 
       .connection-point {
         display: block;
@@ -149,10 +191,20 @@ aside.mdc-drawer {
     background: #fff;
     border-left: 1px solid $borderColor;
     z-index: 12;
+    width: 50%;
+    max-width: 450px;
 
-    button.save-button {
+    .fullwidth {
+      width: 100%;
+    }
+
+    .action-buttons-bottom {
       position: absolute;
-      bottom: $generalPadding;  
+      bottom: $generalPadding;
+      left: $generalPadding;
+      button {
+        margin-right: $generalPadding;
+      }
     }
 
     h3 {
