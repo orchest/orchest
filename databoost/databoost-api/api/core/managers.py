@@ -61,21 +61,28 @@ class JupyterDockerManager(DockerManager):
                 source=source_kernels,
                 type='bind'
         )
+
+        # Run Jupyter server container.
+        pipeline_dir_target_path = "/notebooks"
+
+        pipeline_dir_mount = Mount(
+            target=pipeline_dir_target_path,
+            source=pipeline_dir,
+            type='bind'
+        )
+
         EG_container = self.client.containers.run(
                 image='elyra/enterprise-gateway:dev',  # TODO: make not static.
                 detach=True,
                 mounts=[docker_sock_mount, kernelspec_mount],
                 name=f'jupyter-EG-{uuid}',
-                environment=['EG_DOCKER_NETWORK=databoost'],
+                environment=[
+                    'EG_DOCKER_NETWORK=databoost',
+                    'EG_MIRROR_WORKING_DIRS=True'
+                ],
                 network=self.network
         )
 
-        # Run Jupyter server container.
-        pipeline_dir_mount = Mount(
-                target='/notebooks',
-                source=pipeline_dir,
-                type='bind'
-        )
         server_container = self.client.containers.run(
                 image='jupyter-server:latest',  # TODO: make not static. Some config.
                 detach=True,

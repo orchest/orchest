@@ -53,6 +53,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
 
     client = DockerClient.from_env()
     if swarm_mode:
+        print("Started Jupyter kernel in swarm-mode")
         networks = list()
         networks.append(docker_network)
         mounts = list()
@@ -73,7 +74,14 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         # print("service args: {}".format(kwargs))  # useful for debug
         kernel_service = client.services.create(image_name, **kwargs)
     else:
-        volumes = {'/usr/local/share/jupyter/kernels': {'bind': '/usr/local/share/jupyter/kernels', 'mode': 'ro'}}
+        print("Started Jupyter kernel in normal docker mode")
+
+        # Note: seems to me that the kernels don't need to be mounted on a container that runs a single kernel
+        # volumes = {'/usr/local/share/jupyter/kernels': {'bind': '/usr/local/share/jupyter/kernels', 'mode': 'ro'}}
+
+        # mount the kernel working directory from EG to kernel container
+        # TODO: mount pipeline directory
+        # volumes = {param_env.get('KERNEL_WORKING_DIR'): {'bind': param_env.get('KERNEL_HOST_PIPELINE_DIR'), 'mode': 'rw'}}
 
         # finish args setup
         kwargs['hostname'] = container_name
