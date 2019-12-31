@@ -7,6 +7,8 @@ experiment = api.model('Experiment', {
     'id': fields.Integer(required=True, description='UUID for Experiment')
 })
 
+# TODO: everything. Currently just a placeholder for the api namespace.
+
 
 @api.route('/')
 class ExperimentList(Resource):
@@ -26,5 +28,4 @@ class Experiment(Resource):
     @api.doc('get_experiment')
     def get(self, uuid):
         """Fetch an experiment given its UUID."""
-        # This contains results if they exist?
         pass
