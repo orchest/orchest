@@ -124,8 +124,6 @@ venv.bak/
 # mkdocs documentation
 /site
 
-userdir/pipelines/
-
 # mypy
 .mypy_cache/
 .dmypy.json
