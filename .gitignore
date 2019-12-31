@@ -64,7 +64,6 @@ db.sqlite3-journal
 .idea/
 
 # Flask stuff:
-# instance/
 .webassets-cache
 
 # NPM node_modules for web
@@ -134,3 +133,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Mac files
+.DS_Store
