@@ -11,6 +11,8 @@ urllib3.disable_warnings()
 remove_container = bool(os.getenv('EG_REMOVE_CONTAINER', 'True').lower() == 'true')
 swarm_mode = bool(os.getenv('EG_DOCKER_MODE', 'swarm').lower() == 'swarm')
 
+from docker.types import Mount
+
 
 def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     # Launches a containerized kernel.
@@ -77,11 +79,9 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         print("Started Jupyter kernel in normal docker mode")
 
         # Note: seems to me that the kernels don't need to be mounted on a container that runs a single kernel
-        # volumes = {'/usr/local/share/jupyter/kernels': {'bind': '/usr/local/share/jupyter/kernels', 'mode': 'ro'}}
 
         # mount the kernel working directory from EG to kernel container
         # TODO: mount pipeline directory
-        # volumes = {param_env.get('KERNEL_WORKING_DIR'): {'bind': param_env.get('KERNEL_HOST_PIPELINE_DIR'), 'mode': 'rw'}}
 
         # finish args setup
         kwargs['hostname'] = container_name
@@ -92,9 +92,15 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         kwargs['detach'] = True
         if param_env.get('KERNEL_WORKING_DIR'):
             kwargs['working_dir'] = param_env.get('KERNEL_WORKING_DIR')
-        # kwargs['volumes'] = volumes   # Enable if necessary
+
+        pipeline_dir_mount = Mount(
+            target=param_env.get('KERNEL_WORKING_DIR'),
+            source=param_env.get('HOST_PIPELINE_DIR'),
+            type='bind'
+        )
+
         # print("container args: {}".format(kwargs))  # useful for debug
-        kernel_container = client.containers.run(image_name, **kwargs)
+        kernel_container = client.containers.run(image_name, mounts=[pipeline_dir_mount], **kwargs)
 
 
 if __name__ == '__main__':
