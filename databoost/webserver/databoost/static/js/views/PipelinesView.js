@@ -14,7 +14,7 @@ class PipelineListItem extends React.Component {
 
     pipelineClick(){
         // load pipeline view
-        databoost.loadView(PipelineView, {"name": this.props.name})
+        databoost.loadView(PipelineView, {"name": this.props.pipeline.name, "uuid": this.props.pipeline.uuid})
     }
 
     getChecked(){
@@ -38,7 +38,7 @@ class PipelineListItem extends React.Component {
     }
 
     render() {
-        return <li onClick={this.pipelineClick.bind(this) } className="mdc-list-item" data-pipeline-id={this.props.pipeline_id} role="checkbox" aria-checked="false">
+        return <li onClick={this.pipelineClick.bind(this) } className="mdc-list-item" data-pipeline-id={this.props.pipeline.id} role="checkbox" aria-checked="false">
           <span className="mdc-list-item__graphic">
             <div className="mdc-checkbox" >
               <input type="checkbox" onClick={this.checkboxClick.bind(this)} onChange={this.checkboxChange.bind(this)} checked={this.getChecked() ? "checked": false}
@@ -55,7 +55,7 @@ class PipelineListItem extends React.Component {
               </div>
             </div>
           </span>
-            <label className="mdc-list-item__text" htmlFor="demo-list-checkbox-item-1">{this.props.name}</label>
+            <label className="mdc-list-item__text" htmlFor="demo-list-checkbox-item-1">{this.props.pipeline.name}</label>
         </li>;
     }
 }
@@ -84,7 +84,7 @@ class PipelinesListView extends React.Component {
     render() {
 
         this.listItems = this.props.listData.map((item, key) => (
-            <PipelineListItem name={ item.name } ref={"listItem" + key} pipeline_id={item.id} key={key} />
+            <PipelineListItem pipeline={item} ref={"listItem" + key} key={key} />
         ));
 
         return <ul className="mdc-list" ref={"mdcList"} role="group" aria-label="List with checkbox items">

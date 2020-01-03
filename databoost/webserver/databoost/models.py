@@ -1,5 +1,15 @@
 from sqlalchemy.ext.declarative import DeclarativeMeta
+from databoost import db
 import json
+
+
+class Pipeline(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=False, nullable=False)
+    uuid = db.Column(db.String(255), unique=False, nullable=False)
+
+    def __repr__(self):
+        return "<Pipeline %r>" % self.name
 
 
 class AlchemyEncoder(json.JSONEncoder):

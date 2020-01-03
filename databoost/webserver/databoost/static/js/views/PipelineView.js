@@ -52,6 +52,10 @@ class PipelineDetails extends React.Component {
         this.props.onSave(this);
     }
 
+    onOpenNotebook(){
+        this.props.onOpenNotebook(this);
+    }
+
     componentDidMount() {
 
         this.selectFileType = new MDCSelect(this.refs.selectFile);
@@ -155,11 +159,11 @@ class PipelineDetails extends React.Component {
 
                 <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
                     <ul className="mdc-list">
-                        <li className="mdc-list-item" data-value="kernel-python-36-tensorflow-20">
-                            Python 3.6, TensorFlow 2.0
+                        <li className="mdc-list-item" data-value="python_docker">
+                            Python on Docker
                         </li>
                         <li className="mdc-list-item" data-value="kernel-r-331">
-                            R 3.3.1
+                            R 3.3.1 (not working)
                         </li>
                     </ul>
                 </div>
@@ -201,16 +205,27 @@ class PipelineDetails extends React.Component {
 
             <div className={"action-buttons-bottom"}>
 
-                <button ref={"saveButton"} onClick={this.onSave.bind(this)} className="mdc-button mdc-button--raised save-button">
-                    <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label">Save</span>
-                </button>
+                <div className={"notebook-actions"}>
+                    <button ref={"launchNotebook"} onClick={this.onOpenNotebook.bind(this)} className="mdc-button mdc-button--raised save-button">
+                        <div className="mdc-button__ripple"></div>
+                        <i className="material-icons mdc-button__icon" aria-hidden="true">launch</i>
+                        <span className="mdc-button__label">Open notebook</span>
+                    </button>
+                </div>
 
-                <button ref={"deleteButton"} className="mdc-button mdc-button--raised" onClick={this.props.onDelete.bind(this)}>
-                    <div className="mdc-button__ripple"></div>
-                    <i className="material-icons mdc-button__icon" aria-hidden="true">delete</i>
-                    <span className="mdc-button__label">Delete</span>
-                </button>
+                <div className={"general-actions"}>
+                    <button ref={"saveButton"} onClick={this.onSave.bind(this)} className="mdc-button mdc-button--raised save-button">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label">Save</span>
+                    </button>
+
+                    <button ref={"deleteButton"} className="mdc-button mdc-button--raised" onClick={this.props.onDelete.bind(this)}>
+                        <div className="mdc-button__ripple"></div>
+                        <i className="material-icons mdc-button__icon" aria-hidden="true">delete</i>
+                        <span className="mdc-button__label">Delete</span>
+                    </button>
+                </div>
+
             </div>
 
         </div>
@@ -481,7 +496,12 @@ class PipelineView extends React.Component {
            referrer: "no-referrer"
         }).then(handleErrors).then((response) => {
             response.json().then((result) => {
-                this.decodeJSON(JSON.parse(result['pipeline_json']));
+                if(result.success){
+                    this.decodeJSON(JSON.parse(result['pipeline_json']));
+                }else{
+                    console.warn("Could not load pipeline.json");
+                    console.log(result);
+                }
             })
         });
 
@@ -594,6 +614,15 @@ class PipelineView extends React.Component {
             // create connection
             _this.createConnection($(e.target));
 
+        });
+
+        $(this.refs.pipelineStepsHolder).on("mousedown", (e) => {
+            if(e.target === this.refs.pipelineStepsHolder){
+                if(this.selectedConnection){
+                    this.selectedConnection.deselectState();
+                    this.selectedConnection = undefined;
+                }
+            }
         });
 
         $(this.refs.pipelineStepsHolder).on("mousedown", "#path", function(e) {
@@ -796,6 +825,12 @@ class PipelineView extends React.Component {
         this.setState({"steps": this.state.steps, "selectedStep": undefined });
     }
 
+    onOpenNotebook(pipelineDetailsComponent){
+        databoost.jupyter.navigateTo(this.state.steps[this.state.selectedStep].file_path);
+        databoost.showJupyter();
+        databoost.headerBarComponent.setPipeline(this.props);
+    }
+
     onSaveDetails(pipelineDetailsComponent){
 
         // update step state based on latest state of pipelineDetails component
@@ -847,7 +882,12 @@ class PipelineView extends React.Component {
 
                 { (() => {
                     if (this.state.selectedStep){
-                        return <PipelineDetails onDelete={this.onDetailsDelete.bind(this)} onNameUpdate={this.stepNameUpdate.bind(this)} onSave={this.onSaveDetails.bind(this)} step={this.state.steps[this.state.selectedStep]} />
+                        return <PipelineDetails
+                            onDelete={this.onDetailsDelete.bind(this)}
+                            onNameUpdate={this.stepNameUpdate.bind(this)}
+                            onSave={this.onSaveDetails.bind(this)}
+                            onOpenNotebook={this.onOpenNotebook.bind(this)}
+                            step={this.state.steps[this.state.selectedStep]} />
                     }
                 })() }
             </div>

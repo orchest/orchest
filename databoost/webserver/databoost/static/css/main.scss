@@ -9,6 +9,7 @@ $mdc-theme-background: #fff;
 * {
   box-sizing: border-box;
 }
+
 *:focus {
   outline: none;
 }
@@ -32,7 +33,7 @@ h1 {
 }
 
 $generalPadding: 20px;
-$borderColor: rgba(0, 0, 0, 0.12);
+$borderColor: rgba(0, 0, 0, 0.15);
 
 aside.mdc-drawer {
   //max-width: 325px;
@@ -45,6 +46,30 @@ aside.mdc-drawer {
 
 .push-down {
   margin-bottom: $generalPadding;
+}
+
+.persistent-view {
+  flex: 1;
+  display: flex;
+
+  &.hidden {
+    display: none;
+  }
+
+  &.jupyter {
+    iframe {
+      border: 0;
+    }
+  }
+}
+
+.header-bar-interactive {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  position: absolute;
+  width: 50%;
+  left: 25%;
 }
 
 .pipeline-view {
@@ -72,6 +97,9 @@ aside.mdc-drawer {
 
   .pipeline-steps-holder {
     height: 100%;
+    background-image: url("../image/cross-fill.svg");
+    background-repeat: repeat;
+
 
     .connection {
       position: absolute;
@@ -99,12 +127,14 @@ aside.mdc-drawer {
         bottom: -2px;
         transition: 0.3s opacity ease;
       }
+
       &.flipped {
         &:after {
           bottom: auto;
           top: -3px;
         }
       }
+
       &.flipped-horizontal {
         &:after {
           opacity: 0;
@@ -116,6 +146,7 @@ aside.mdc-drawer {
       svg {
         float: left;
         pointer-events: none;
+
         path {
           cursor: pointer;
           pointer-events: all;
@@ -140,11 +171,14 @@ aside.mdc-drawer {
       text-align: center;
       z-index: 1;
 
+      box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
+
       .step-label-holder {
         display: block;
         height: 100%;
         overflow: hidden;
       }
+
       .step-label {
         text-overflow: ellipsis;
         height: $pipelineHeight - $generalPadding;
@@ -176,10 +210,7 @@ aside.mdc-drawer {
     }
 
 
-
   }
-
-
 
 
   .pipeline-details {
@@ -202,6 +233,15 @@ aside.mdc-drawer {
       position: absolute;
       bottom: $generalPadding;
       left: $generalPadding;
+
+      .notebook-actions {
+        margin-bottom: $generalPadding;
+
+        button {
+          background-color: $mdc-theme-secondary;
+        }
+      }
+
       button {
         margin-right: $generalPadding;
       }
@@ -227,7 +267,8 @@ aside.mdc-drawer {
   > div {
     float: left;
     width: 50%;
-    &:nth-child(2){
+
+    &:nth-child(2) {
       width: 50%;
     }
   }
@@ -239,9 +280,9 @@ aside.mdc-drawer {
 }
 
 .mdc-drawer-app-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content {
@@ -253,11 +294,16 @@ aside.mdc-drawer {
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
 
     .react-view-root {
       flex: 1;
       display: flex;
       flex-direction: column;
+
+      &.hidden {
+        display: none;
+      }
     }
   }
 }
