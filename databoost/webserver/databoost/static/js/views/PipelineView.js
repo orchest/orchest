@@ -4,6 +4,7 @@ import {MDCRipple} from '@material/ripple';
 import {MDCTextField} from '@material/textfield';
 
 import {handleErrors, uuidv4, nameToFilename} from "../utils/all";
+import PipelineSettingsView from "./PipelineSettingsView";
 
 class PipelineStep extends React.Component {
     render() {
@@ -427,7 +428,6 @@ class PipelineView extends React.Component {
             }
         }
 
-        console.log(pipelineJSON);
         console.log(JSON.stringify(pipelineJSON));
 
         let formData = new FormData();
@@ -480,8 +480,16 @@ class PipelineView extends React.Component {
 
         this.state = {
             selectedStep: undefined,
-            steps: {}
+            steps: {},
+            backend: {
+                running: false,
+                booting: false
+            }
         }
+    }
+
+    openSettings(){
+        databoost.loadView(PipelineSettingsView, {"name": this.props.name, "uuid": this.props.uuid});
     }
 
     componentDidMount() {
@@ -505,9 +513,40 @@ class PipelineView extends React.Component {
             })
         });
 
+        // get backend status
+        fetch("http://localhost:5000/api/launches/" + this.props.uuid, {
+           method: "GET",
+           cache: "no-cache",
+           redirect: "follow",
+           referrer: "no-referrer"
+        }).then((response) => {
+            if(response.status === 200){
+                this.state.backend.running = true;
+                this.setState({"backend": this.state.backend });
+
+                return response
+            }else{
+                console.warn("Pipeline back-end is not live");
+            }
+        }).then((response) => {
+            if(response){
+                response.json().then((json) => {
+                    console.log(json);
+
+                    this.state.backend.server_ip = json.server_ip;
+                    this.state.backend.server_info = json.server_info;
+
+                    this.setState({"backend": this.state.backend});
+                    this.updateJupyterInstance();
+                })
+            }
+        });
+
         // new pipelineStep listener
         const newStepButtonMDC = new MDCRipple(this.refs.newStepButton);
         const encodeButton = new MDCRipple(this.refs.encodeButton);
+        const settingsButtonRipple = new MDCRipple(this.refs.settingsButton);
+        const powerButtonRipple = new MDCRipple(this.refs.powerButton);
 
     }
 
@@ -733,6 +772,88 @@ class PipelineView extends React.Component {
 
     }
 
+    updateJupyterInstance(){
+        let baseAddress = "http://" + this.state.backend.server_ip + ":" + this.state.backend.server_info.port + "/";
+        let token = this.state.backend.server_info.token;
+        databoost.jupyter.updateJupyterInstance(baseAddress, token);
+    }
+
+    launchPipeline(){
+
+        if(this.state.backend.booting){
+            alert("Please wait, the pipeline is still booting");
+            return
+        }
+
+        if(!this.state.backend.running){
+
+            // send launch request to API
+
+            // perform POST to save
+            // TODO: replace hardcoded URL
+            // TODO: replace hardcoded pipeline directory
+            let userdir_pipeline = "/home/rick/workspace/databoost/databoost/userdir/pipelines/";
+
+            let data = {
+                "pipeline_uuid": this.props.uuid,
+                "pipeline_dir": userdir_pipeline + this.props.uuid + "/"
+            };
+
+            this.state.backend.booting = true;
+            this.setState({"backend": this.state.backend});
+
+            fetch("http://localhost:5000/api/launches/", {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'same-origin',
+                redirect: 'follow', // manual, *follow, error
+                referrer: 'no-referrer', // no-referrer, *client
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            }).then(handleErrors).then((response) => {
+                response.json().then((json) => {
+                    console.log("API launch result");
+                    console.log(json);
+
+                    this.state.backend.running = true;
+                    this.state.backend.booting = false;
+
+                    this.state.backend.server_ip = json.server_ip;
+                    this.state.backend.server_info = json.server_info;
+
+                    this.setState({"backend": this.state.backend});
+
+                    this.updateJupyterInstance();
+                })
+            });
+
+        }else{
+
+            fetch("http://localhost:5000/api/launches/" + this.props.uuid, {
+                method: 'DELETE',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'same-origin',
+                redirect: 'follow', // manual, *follow, error
+                referrer: 'no-referrer', // no-referrer, *client
+            }).then(handleErrors).then((response) => {
+                response.json().then((result) => {
+                    console.log("API delete result");
+                    console.log(result);
+
+                    this.state.backend.running = false;
+                    this.state.backend.booting = false;
+                    this.setState({"backend": this.state.backend});
+                })
+            });
+
+        }
+
+    }
+
     newStep(){
 
         let pipelineStepsHolderJEl = $(this.refs.pipelineStepsHolder);
@@ -851,6 +972,19 @@ class PipelineView extends React.Component {
         this.setState({"selectedStep": undefined, "steps": this.state.steps});
     }
 
+    getPowerButtonClasses(){
+        let classes = ["mdc-button", "mdc-button--raised"];
+
+        if(this.state.backend.running){
+            classes.push("active");
+        }
+        if(this.state.backend.booting){
+            classes.push("booting");
+        }
+
+        return classes.join(" ");
+    }
+
     render() {
         
         let pipelineSteps = [];
@@ -858,22 +992,43 @@ class PipelineView extends React.Component {
         for(let key in this.state.steps){
             if(this.state.steps.hasOwnProperty(key)){
                 let step = this.state.steps[key];
-                pipelineSteps.push(<PipelineStep key={step.uuid} step={step} ref={step.uuid} onConnect={this.makeConnection.bind(this)} onMove={this.moveStep.bind(this)} onClick={this.selectStep.bind(this)} />);
+                pipelineSteps.push(<PipelineStep
+                    key={step.uuid}
+                    step={step}
+                    ref={step.uuid}
+                    onConnect={this.makeConnection.bind(this)}
+                    onMove={this.moveStep.bind(this)}
+                    onClick={this.selectStep.bind(this)} />);
             }
         }
 
         return <div className={"pipeline-view"}>
             <div className={"pipeline-name"}>{this.props.name}</div>
             <div className={"pipeline-actions"}>
+
+                <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
+                    <div className="mdc-button__ripple"></div>
+                    <i className="material-icons">power_settings_new</i>
+                </button>
+
+
+
                 <button ref={"newStepButton"} onClick={this.newStep.bind(this)} className="mdc-button mdc-button--raised">
                     <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i> NEW STEP</span>
+                    <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i>NEW STEP</span>
                 </button>
 
                 <button ref={"encodeButton"} onClick={this.encodeJSON.bind(this)} className="mdc-button mdc-button--raised">
                     <div className="mdc-button__ripple"></div>
                     <span className="mdc-button__label">SAVE</span>
                 </button>
+
+
+                <button ref={"settingsButton"} onClick={this.openSettings.bind(this)} className="mdc-button mdc-button--raised">
+                    <div className="mdc-button__ripple"></div>
+                    <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>settings_applications</i>Settings</span>
+                </button>
+
             </div>
 
             <div className={"pipeline-steps-holder"} ref={"pipelineStepsHolder"}>

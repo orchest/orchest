@@ -72,6 +72,53 @@ aside.mdc-drawer {
   left: 25%;
 }
 
+.view-pipeline-settings {
+
+  .close-button {
+    position: absolute;
+    top: $generalPadding;
+    right: $generalPadding;
+  }
+
+  .tab-content {
+    padding: $generalPadding 0;
+  }
+
+  form {
+    div.mdc-text-field {
+      width: 100%;
+    }
+    button {
+      margin-top: $generalPadding;
+    }
+  }
+
+  .snapshot-list  {
+    .snapshot-item {
+      padding: $generalPadding;
+
+      i {
+        float: left;
+        margin-right: 10px;
+        margin-top: -3px;
+      }
+
+      button {
+        background-color: $mdc-theme-secondary;
+        float: right;
+      }
+
+      .details {
+        float: left;
+
+        h4 {
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
 .pipeline-view {
   position: relative;
   height: 100%;
@@ -91,6 +138,15 @@ aside.mdc-drawer {
 
     button {
       margin-left: $generalPadding;
+      min-width: 0;
+      i {
+        transition: color 0.3s ease;
+      }
+      &.active {
+        i {
+          color: #00FF00;
+        }
+      }
     }
   }
 
@@ -308,3 +364,9 @@ aside.mdc-drawer {
   }
 }
 
+.mdc-top-app-bar {
+    position: relative;
+}
+.mdc-top-app-bar--fixed-adjust {
+    padding-top: 0;
+}

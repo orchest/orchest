@@ -2,11 +2,14 @@ from flask import Flask
 
 from apis import blueprint as api
 from connections import db
-
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config.from_object('config')
 app.register_blueprint(api, url_prefix='/api')
+
+CORS(app, resources={r'/*': {'origins': '*'}})
+
 
 # Initialize the database and create the database file.
 db.init_app(app)

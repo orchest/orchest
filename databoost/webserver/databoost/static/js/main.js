@@ -8,6 +8,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import Jupyter from "./jupyter/Jupyter";
+import PipelineSettingsView from "./views/PipelineSettingsView";
+import {handleErrors} from "./utils/all";
 
 function Databoost() {
 
@@ -46,7 +48,25 @@ function Databoost() {
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
     };
 
-    this.loadView(PipelineView, {"name": "My first pipeline", "uuid": "07612719-7e95-4fbd-be73-37fb428fdcb6" });
+
+    // load first pipeline
+    fetch("/async/pipelines", {
+       method: "GET",
+       cache: "no-cache",
+       redirect: "follow",
+       referrer: "no-referrer"
+    }).then(handleErrors).then((response) => {
+        response.json().then((result) => {
+            if(result.success && result.result.length > 0){
+                let firstPipeline = result.result[0];
+                this.loadView(PipelineView, {"name": firstPipeline.name, "uuid": firstPipeline.uuid });
+            }else{
+                console.warn("Could not load a first pipeline");
+                console.log(result);
+            }
+        })
+    });
+
 
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));
     topAppBar.setScrollTarget(document.getElementById('main-content'));

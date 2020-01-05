@@ -30,15 +30,60 @@ def pipelines_create():
     db.session.add(pipeline)
     db.session.commit()
 
+    # create dirs
+    pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
+    os.makedirs(pipeline_dir, exist_ok=True)
+
     return jsonify({"success": True})
 
 
-@app.route("/async/pipelines/get", methods=["GET"])
+@app.route("/async/pipelines/rename/<string:url_uuid>", methods=["POST"])
+def pipelines_rename(url_uuid):
+
+    pipeline = Pipeline.query.filter_by(uuid=url_uuid).first()
+
+    if pipeline:
+
+        # rename pipeline in DB
+        pipeline.name = request.form.get("name")
+        db.session.commit()
+
+        # rename pipeline in JSON file
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
+        pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
+
+        with open(pipeline_json_path, 'r') as json_file:
+            pipeline_json = json.load(json_file)
+
+        pipeline_json["name"] = pipeline.name
+
+        with open(pipeline_json_path, 'w') as json_file:
+            json_file.write(json.dumps(pipeline_json))
+
+        json_string = json.dumps({"success": True}, cls=AlchemyEncoder)
+        return json_string, 200, {'content-type': 'application/json'}
+    else:
+        return "", 404
+
+
+@app.route("/async/pipelines/get/<string:url_uuid>", methods=["GET"])
+def pipelines_get_single(url_uuid):
+
+    pipeline = Pipeline.query.filter_by(uuid=url_uuid).first()
+
+    if pipeline:
+        json_string = json.dumps({"success": True, "result": pipeline}, cls=AlchemyEncoder)
+        return json_string, 200, {'content-type': 'application/json'}
+    else:
+        return "", 404
+
+
+@app.route("/async/pipelines", methods=["GET"])
 def pipelines_get():
 
     pipelines = Pipeline.query.all()
 
-    json_string = json.dumps({"success:": True, "result": pipelines}, cls=AlchemyEncoder)
+    json_string = json.dumps({"success": True, "result": pipelines}, cls=AlchemyEncoder)
     return json_string, 200, {'content-type': 'application/json'}
 
 

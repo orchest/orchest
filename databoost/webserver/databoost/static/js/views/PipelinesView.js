@@ -116,7 +116,7 @@ class PipelinesView extends React.Component {
 
     fetchList(){
         // initialize REST call for pipelines
-        fetch('async/pipelines/get').then((response) => {
+        fetch('async/pipelines').then((response) => {
             response.json().then((data) => {
                 this.setState({loaded: true, listData: data.result})
             })
