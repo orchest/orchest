@@ -13,7 +13,7 @@
   },
   "argv": [
     "python",
-    "/home/yannick/Documents/databoost/venv/share/jupyter/kernels/python_docker/scripts/launch_docker.py",
+    "/home/yannick/Documents/orkest/venv/share/jupyter/kernels/python_docker/scripts/launch_docker.py",
     "--RemoteProcessProxy.kernel-id",
     "{kernel_id}",
     "--RemoteProcessProxy.response-address",
