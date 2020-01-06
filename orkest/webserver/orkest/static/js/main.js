@@ -7,6 +7,7 @@ import HeaderButtons from "./views/HeaderButtons";
 import React from 'react';
 import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
+import ExperimentsView from "./views/ExperimentsView";
 import Jupyter from "./jupyter/Jupyter";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import {handleErrors} from "./utils/all";
@@ -18,7 +19,8 @@ function Orkest() {
     this.Components = {
         "PipelinesView": PipelinesView,
         "DataSourcesView": DataSourcesView,
-        "PipelineView": PipelineView
+        "PipelineView": PipelineView,
+        "ExperimentsView": ExperimentsView
     };
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
@@ -59,7 +61,8 @@ function Orkest() {
         response.json().then((result) => {
             if(result.success && result.result.length > 0){
                 let firstPipeline = result.result[0];
-                this.loadView(PipelineView, {"name": firstPipeline.name, "uuid": firstPipeline.uuid });
+                // this.loadView(PipelineView, {"name": firstPipeline.name, "uuid": firstPipeline.uuid });
+                this.loadView(PipelinesView);
             }else{
                 console.warn("Could not load a first pipeline");
                 console.log(result);

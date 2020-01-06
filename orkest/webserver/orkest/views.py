@@ -155,6 +155,41 @@ def pipelines_json_save():
     return jsonify({"success": True})
 
 
+def get_experiment_args_from_pipeline_json(pipeline_json):
+    experiment_args = {}
+
+    for key in pipeline_json['steps'].keys():
+        step = pipeline_json['steps'][key]
+
+        if len(step['experiment_json'].strip()) > 0:
+            experiment_json = json.loads(step['experiment_json'])
+
+            experiment_args[step['uuid']] = {
+                "name": step['name'],
+                "experiment_json": experiment_json
+            }
+
+    return experiment_args
+
+
+@app.route("/async/pipelines/json/experiments/<pipeline_uuid>", methods=["GET"])
+def pipelines_json_experiments_get(pipeline_uuid):
+
+    pipeline_directory = get_pipeline_directory_by_uuid(pipeline_uuid)
+
+    pipeline_json_path = os.path.join(pipeline_directory, "pipeline.json")
+    if not os.path.isfile(pipeline_json_path):
+        return jsonify({"success": False, "reason": "pipeline.json doesn't exist"})
+    else:
+        with open(pipeline_json_path) as json_file:
+
+            pipeline_json = json.load(json_file)
+
+            experiment_args = get_experiment_args_from_pipeline_json(pipeline_json)
+
+            return jsonify({"success": True, "experiment_args": experiment_args})
+
+
 @app.route("/async/pipelines/json/get/<pipeline_uuid>", methods=["GET"])
 def pipelines_json_get(pipeline_uuid):
 

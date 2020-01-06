@@ -88,6 +88,9 @@ class PipelineDetails extends React.Component {
         this.selectVCPU = new MDCSelect(this.refs.selectVCPU);
         this.selectVCPU.value = this.props.step.vcpus;
 
+        this.selectGPU = new MDCSelect(this.refs.selectGPU);
+        this.selectGPU.value = this.props.step.gpus;
+
         // this.selectVCPU.listen('MDCSelect:change', () => {
         //   // alert(`Selected option at index ${selectVCPU.selectedIndex} with value "${selectVCPU.value}"`);
         // });
@@ -97,6 +100,8 @@ class PipelineDetails extends React.Component {
 
         this.inputName.focus();
 
+        this.experimentJSON = new MDCTextField(this.refs.experimentJSON);
+        this.experimentJSON.value = this.props.step.experiment_json;
     }
 
 
@@ -172,7 +177,7 @@ class PipelineDetails extends React.Component {
 
             <h3>Compute resources</h3>
 
-            <div className="mdc-select" ref={"selectVCPU"}>
+            <div className="mdc-select push-down" ref={"selectVCPU"}>
                 <div className="mdc-select__anchor demo-width-class">
                     <i className="mdc-select__dropdown-icon"></i>
                     <div className="mdc-select__selected-text"></div>
@@ -186,10 +191,40 @@ class PipelineDetails extends React.Component {
                             1 vCPU
                         </li>
                         <li className="mdc-list-item" data-value="2">
-                            2 vCPU
+                            2 vCPUs
                         </li>
                         <li className="mdc-list-item" data-value="4">
-                            4 vCPU
+                            4 vCPUs
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+
+            <div className="mdc-select push-down" ref={"selectGPU"}>
+                <div className="mdc-select__anchor demo-width-class">
+                    <i className="mdc-select__dropdown-icon"></i>
+                    <div className="mdc-select__selected-text"></div>
+                    <span className="mdc-floating-label">Number of GPUs</span>
+                    <div className="mdc-line-ripple"></div>
+                </div>
+
+                <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
+                    <ul className="mdc-list">
+                        <li className="mdc-list-item" data-value="0">
+                            No GPU
+                        </li>
+                        <li className="mdc-list-item" data-value="1">
+                            1 GPU
+                        </li>
+                        <li className="mdc-list-item" data-value="2">
+                            2 GPUs
+                        </li>
+                        <li className="mdc-list-item" data-value="3">
+                            3 GPUs
+                        </li>
+                        <li className="mdc-list-item" data-value="4">
+                            4 GPUs
                         </li>
                     </ul>
                 </div>
@@ -204,6 +239,19 @@ class PipelineDetails extends React.Component {
                 </div>
             </label>
 
+            <h3>Experiment</h3>
+
+            <div className="mdc-text-field mdc-text-field--textarea" ref="experimentJSON">
+                <textarea className="mdc-text-field__input" rows="5"></textarea>
+                <div className="mdc-notched-outline">
+                    <div className="mdc-notched-outline__leading"></div>
+                    <div className="mdc-notched-outline__notch">
+                        <label htmlFor="textarea" className="mdc-floating-label">JSON argument description</label>
+                    </div>
+                    <div className="mdc-notched-outline__trailing"></div>
+                </div>
+            </div>
+
             <div className={"action-buttons-bottom"}>
 
                 <div className={"notebook-actions"}>
@@ -211,6 +259,12 @@ class PipelineDetails extends React.Component {
                         <div className="mdc-button__ripple"></div>
                         <i className="material-icons mdc-button__icon" aria-hidden="true">launch</i>
                         <span className="mdc-button__label">Open notebook</span>
+                    </button>
+
+                    <button ref={"launchNotebook"} onClick={this.onOpenNotebook.bind(this)} className="mdc-button mdc-button--raised save-button">
+                        <div className="mdc-button__ripple"></div>
+                        <i className="material-icons mdc-button__icon" aria-hidden="true">replay</i>
+                        <span className="mdc-button__label">Rerun incoming steps</span>
                     </button>
                 </div>
 
@@ -869,6 +923,8 @@ class PipelineView extends React.Component {
             },
             "memory": "1024",
             "vcpus": "1",
+            "gpus": "0",
+            "experiment_json": "",
             "meta_data": {
                 "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height()/2]
             }
@@ -965,6 +1021,8 @@ class PipelineView extends React.Component {
         step.image.display_name = $(pipelineDetailsComponent.selectKernel.selectedText_).text();
         step.memory = pipelineDetailsComponent.inputMemory.value;
         step.vcpus = pipelineDetailsComponent.selectVCPU.value;
+        step.gpus = pipelineDetailsComponent.selectGPU.value;
+        step.experiment_json = pipelineDetailsComponent.experimentJSON.value;
 
         // update steps in setState even though reference objects are directly modified - this propagates state updates
         // properly
@@ -1010,8 +1068,6 @@ class PipelineView extends React.Component {
                     <div className="mdc-button__ripple"></div>
                     <i className="material-icons">power_settings_new</i>
                 </button>
-
-
 
                 <button ref={"newStepButton"} onClick={this.newStep.bind(this)} className="mdc-button mdc-button--raised">
                     <div className="mdc-button__ripple"></div>

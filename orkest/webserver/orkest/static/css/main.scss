@@ -119,6 +119,82 @@ aside.mdc-drawer {
   }
 }
 
+h2.header {
+  padding: $generalPadding;
+  background: #f5f5f5;
+  font-weight: normal;
+}
+
+
+.new-experiment {
+
+  b {
+    display: inline-block;
+  }
+
+  .steps {
+    padding: $generalPadding;
+  }
+
+  .step {
+    margin-bottom: $generalPadding;
+  }
+
+  .argument-set {
+    margin-bottom: 5px;
+  }
+
+
+
+  .argument-label {
+    display: inline-block;
+  }
+
+  .argument-values {
+    display: inline-block;
+
+    span {
+      display: inline-block;
+      padding: 5px;
+      background: $borderColor;
+      margin-left: 10px;
+      cursor: pointer;
+      opacity: .5;
+      transition: 0.3s ease all;
+
+      &.selected {
+        opacity: 1;
+      }
+    }
+  }
+
+}
+
+.mdc-data-table__header-cell {
+  font-weight: 800;
+}
+
+.experiment-list {
+  .mdc-data-table {
+    width: 100%;
+  }
+}
+
+.experiment-list, .new-experiment {
+
+  h2 {
+    button {
+      &.experiment-button {
+        &.mdc-button--raised:not(:disabled) {
+          background-color: $mdc-theme-secondary;
+        }
+      }
+      float: right;
+    }
+  }
+
+}
+
 .pipeline-view {
   position: relative;
   height: 100%;
@@ -265,7 +341,6 @@ aside.mdc-drawer {
       }
     }
 
-
   }
 
 
@@ -281,6 +356,15 @@ aside.mdc-drawer {
     width: 50%;
     max-width: 450px;
 
+    .mdc-text-field--textarea {
+      textarea {
+        font: inherit;
+        font-family: monospace;
+        font-size: 15px;
+      }
+      width: 100%;
+    }
+
     .fullwidth {
       width: 100%;
     }
@@ -295,6 +379,8 @@ aside.mdc-drawer {
 
         button {
           background-color: $mdc-theme-secondary;
+          margin-bottom: $generalPadding;
+          margin-right: $generalPadding;
         }
       }
 
@@ -314,7 +400,6 @@ aside.mdc-drawer {
     }
 
     .mdc-select {
-      margin-bottom: 20px;
     }
   }
 }

@@ -664,7 +664,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-u03dd2be1 {
+@keyframes mdc-checkbox-fade-in-background-u59be5a68 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -676,7 +676,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-u03dd2be1 {
+@keyframes mdc-checkbox-fade-out-background-u59be5a68 {
   0%,
   80% {
     border-color: #0a6df7;
@@ -690,10 +690,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u03dd2be1; }
+  animation-name: mdc-checkbox-fade-in-background-u59be5a68; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u03dd2be1; }
+  animation-name: mdc-checkbox-fade-out-background-u59be5a68; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1439,7 +1439,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-u7c122706 {
+@keyframes mdc-checkbox-fade-in-background-u4e1486a2 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1451,7 +1451,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-u7c122706 {
+@keyframes mdc-checkbox-fade-out-background-u4e1486a2 {
   0%,
   80% {
     border-color: #000000;
@@ -1467,12 +1467,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u7c122706; }
+  animation-name: mdc-checkbox-fade-in-background-u4e1486a2; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u7c122706; }
+  animation-name: mdc-checkbox-fade-out-background-u4e1486a2; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7419,6 +7419,50 @@ aside.mdc-drawer {
     .view-pipeline-settings .snapshot-list .snapshot-item .details h4 {
       margin: 0; }
 
+h2.header {
+  padding: 20px;
+  background: #f5f5f5;
+  font-weight: normal; }
+
+.new-experiment b {
+  display: inline-block; }
+
+.new-experiment .steps {
+  padding: 20px; }
+
+.new-experiment .step {
+  margin-bottom: 20px; }
+
+.new-experiment .argument-set {
+  margin-bottom: 5px; }
+
+.new-experiment .argument-label {
+  display: inline-block; }
+
+.new-experiment .argument-values {
+  display: inline-block; }
+  .new-experiment .argument-values span {
+    display: inline-block;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.15);
+    margin-left: 10px;
+    cursor: pointer;
+    opacity: .5;
+    transition: 0.3s ease all; }
+    .new-experiment .argument-values span.selected {
+      opacity: 1; }
+
+.mdc-data-table__header-cell {
+  font-weight: 800; }
+
+.experiment-list .mdc-data-table {
+  width: 100%; }
+
+.experiment-list h2 button, .new-experiment h2 button {
+  float: right; }
+  .experiment-list h2 button.experiment-button.mdc-button--raised:not(:disabled), .new-experiment h2 button.experiment-button.mdc-button--raised:not(:disabled) {
+    background-color: #0a6df7; }
+
 .pipeline-view {
   position: relative;
   height: 100%; }
@@ -7524,6 +7568,12 @@ aside.mdc-drawer {
     z-index: 12;
     width: 50%;
     max-width: 450px; }
+    .pipeline-view .pipeline-details .mdc-text-field--textarea {
+      width: 100%; }
+      .pipeline-view .pipeline-details .mdc-text-field--textarea textarea {
+        font: inherit;
+        font-family: monospace;
+        font-size: 15px; }
     .pipeline-view .pipeline-details .fullwidth {
       width: 100%; }
     .pipeline-view .pipeline-details .action-buttons-bottom {
@@ -7533,7 +7583,9 @@ aside.mdc-drawer {
       .pipeline-view .pipeline-details .action-buttons-bottom .notebook-actions {
         margin-bottom: 20px; }
         .pipeline-view .pipeline-details .action-buttons-bottom .notebook-actions button {
-          background-color: #0a6df7; }
+          background-color: #0a6df7;
+          margin-bottom: 20px;
+          margin-right: 20px; }
       .pipeline-view .pipeline-details .action-buttons-bottom button {
         margin-right: 20px; }
     .pipeline-view .pipeline-details h3 {
@@ -7542,8 +7594,6 @@ aside.mdc-drawer {
       font-size: 21px; }
     .pipeline-view .pipeline-details .multi-field-input {
       padding-bottom: 20px; }
-    .pipeline-view .pipeline-details .mdc-select {
-      margin-bottom: 20px; }
 
 .multi-field-input > div {
   float: left;
