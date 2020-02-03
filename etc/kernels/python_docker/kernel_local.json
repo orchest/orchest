@@ -1,0 +1,22 @@
+{
+  "language": "python",
+  "display_name": "Python on Docker",
+  "metadata": {
+    "process_proxy": {
+      "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",
+      "config": {
+        "image_name": "elyra/kernel-py:2.0.0"
+      }
+    }
+  },
+  "env": {
+  },
+  "argv": [
+    "python",
+    "/home/yannick/Documents/orchest/venv/share/jupyter/kernels/python_docker/scripts/launch_docker.py",
+    "--RemoteProcessProxy.kernel-id",
+    "{kernel_id}",
+    "--RemoteProcessProxy.response-address",
+    "{response_address}"
+  ]
+}

@@ -1,0 +1,455 @@
+// My main SCSS file.
+$mdc-theme-primary: #000000;
+$mdc-theme-secondary: #0a6df7;
+$mdc-theme-background: #fff;7
+@import "../node_modules/material-components-web/material-components-web";
+
+* {
+  box-sizing: border-box;
+}
+
+*:focus {
+  outline: none;
+}
+
+html,
+body {
+  font-size: 17px;
+  font-family: "Avenir", sans-serif;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+h1 {
+  font-family: "Sofia Pro", sans-serif;
+  font-weight: 400;
+}
+
+.view-page {
+  padding: 30px;
+}
+
+$generalPadding: 20px;
+$borderColor: rgba(0, 0, 0, 0.15);
+
+aside.mdc-drawer {
+  //max-width: 325px;
+  //width: 20%;
+  @include mdc-drawer-width(325px);
+  padding: 20px;
+  height: 100%;
+  text-align: center;
+}
+
+.push-down {
+  margin-bottom: $generalPadding;
+}
+
+.persistent-view {
+  flex: 1;
+  display: flex;
+
+  &.hidden {
+    display: none;
+  }
+
+  &.jupyter {
+    iframe {
+      border: 0;
+    }
+  }
+}
+
+.header-bar-interactive {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  position: absolute;
+  width: 50%;
+  left: 25%;
+}
+
+.view-pipeline-settings {
+
+  .close-button {
+    position: absolute;
+    top: $generalPadding;
+    right: $generalPadding;
+  }
+
+  .tab-content {
+    padding: $generalPadding 0;
+  }
+
+  form {
+    div.mdc-text-field {
+      width: 100%;
+    }
+    button {
+      margin-top: $generalPadding;
+    }
+  }
+
+  .snapshot-list  {
+    .snapshot-item {
+      padding: $generalPadding;
+
+      i {
+        float: left;
+        margin-right: 10px;
+        margin-top: -3px;
+      }
+
+      button {
+        background-color: $mdc-theme-secondary;
+        float: right;
+      }
+
+      .details {
+        float: left;
+
+        h4 {
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+h2.header {
+  padding: $generalPadding;
+  background: #f5f5f5;
+  font-weight: normal;
+}
+
+
+.new-experiment {
+
+  b {
+    display: inline-block;
+  }
+
+  .steps {
+    padding: $generalPadding;
+  }
+
+  .step {
+    margin-bottom: $generalPadding;
+  }
+
+  .argument-set {
+    margin-bottom: 5px;
+  }
+
+
+
+  .argument-label {
+    display: inline-block;
+  }
+
+  .argument-values {
+    display: inline-block;
+
+    span {
+      display: inline-block;
+      padding: 5px;
+      background: $borderColor;
+      margin-left: 10px;
+      cursor: pointer;
+      opacity: .5;
+      transition: 0.3s ease all;
+
+      &.selected {
+        opacity: 1;
+      }
+    }
+  }
+
+}
+
+.mdc-data-table__header-cell {
+  font-weight: 800;
+}
+
+.experiment-list {
+  .mdc-data-table {
+    width: 100%;
+  }
+}
+
+.experiment-list, .new-experiment {
+
+  h2 {
+    button {
+      &.experiment-button {
+        &.mdc-button--raised:not(:disabled) {
+          background-color: $mdc-theme-secondary;
+        }
+      }
+      float: right;
+    }
+  }
+
+}
+
+.pipeline-view {
+  position: relative;
+  height: 100%;
+
+  .pipeline-name {
+    position: absolute;
+    padding: $generalPadding;
+    font-size: 21px;
+  }
+
+  .pipeline-actions {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 9;
+    padding: $generalPadding;
+
+    button {
+      margin-left: $generalPadding;
+      min-width: 0;
+      i {
+        transition: color 0.3s ease;
+      }
+      &.active {
+        i {
+          color: #00FF00;
+        }
+      }
+    }
+  }
+
+
+  .pipeline-steps-holder {
+    height: 100%;
+    background-image: url("../image/cross-fill.svg");
+    background-repeat: repeat;
+
+
+    .connection {
+      position: absolute;
+      left: 0;
+      top: 0;
+
+      &.selected {
+
+        &:after {
+          background-image: url("../image/arrow-head-blue.svg");
+        }
+
+      }
+
+      &:after {
+        position: absolute;
+        content: " ";
+        display: block;
+        width: 15px;
+        height: 15px;
+        background-image: url("../image/arrow-head.svg");
+        background-size: contain;
+        background-repeat: no-repeat;
+        right: 7px;
+        bottom: -2px;
+        transition: 0.3s opacity ease;
+      }
+
+      &.flipped {
+        &:after {
+          bottom: auto;
+          top: -3px;
+        }
+      }
+
+      &.flipped-horizontal {
+        &:after {
+          opacity: 0;
+        }
+      }
+
+      pointer-events: none;
+
+      svg {
+        float: left;
+        pointer-events: none;
+
+        path {
+          cursor: pointer;
+          pointer-events: all;
+        }
+      }
+    }
+
+    .pipeline-step {
+
+      $pipelineHeight: 80px;
+      $pipelineWidth: 160px;
+
+      position: absolute;
+      background: #fff;
+      padding: $generalPadding/2 $generalPadding;
+      border: 1px solid $borderColor;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      width: $pipelineWidth;
+      height: $pipelineHeight;
+      text-align: center;
+      z-index: 1;
+
+      box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
+
+      .step-label-holder {
+        display: block;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .step-label {
+        text-overflow: ellipsis;
+        height: $pipelineHeight - $generalPadding;
+        max-height: $pipelineHeight - $generalPadding;
+        width: $pipelineWidth - $generalPadding * 2;
+        max-width: $pipelineWidth - $generalPadding * 2;
+        display: table-cell;
+        vertical-align: middle;
+        overflow: hidden;
+        font-size: 15px;
+      }
+
+      .connection-point {
+        display: block;
+        width: 10px;
+        height: 10px;
+        background: black;
+        border-radius: 10px;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        left: -5px;
+
+        &.outgoing-connections {
+          right: -5px;
+          left: auto;
+        }
+      }
+    }
+
+  }
+
+
+  .pipeline-details {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    padding: $generalPadding;
+    background: #fff;
+    border-left: 1px solid $borderColor;
+    z-index: 12;
+    width: 50%;
+    max-width: 450px;
+
+    .mdc-text-field--textarea {
+      textarea {
+        font: inherit;
+        font-family: monospace;
+        font-size: 15px;
+      }
+      width: 100%;
+    }
+
+    .fullwidth {
+      width: 100%;
+    }
+
+    .action-buttons-bottom {
+      position: absolute;
+      bottom: $generalPadding;
+      left: $generalPadding;
+
+      .notebook-actions {
+        margin-bottom: $generalPadding;
+
+        button {
+          background-color: $mdc-theme-secondary;
+          margin-bottom: $generalPadding;
+          margin-right: $generalPadding;
+        }
+      }
+
+      button {
+        margin-right: $generalPadding;
+      }
+    }
+
+    h3 {
+      margin-bottom: 20px;
+      font-weight: 400;
+      font-size: 21px;
+    }
+
+    .multi-field-input {
+      padding-bottom: 20px;
+    }
+
+    .mdc-select {
+    }
+  }
+}
+
+.multi-field-input {
+  > div {
+    float: left;
+    width: 50%;
+
+    &:nth-child(2) {
+      width: 50%;
+    }
+  }
+}
+
+.clear {
+  clear: both;
+  display: block;
+}
+
+.mdc-drawer-app-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  .mdc-top-app-bar--fixed-adjust {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+
+    .react-view-root {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+
+      &.hidden {
+        display: none;
+      }
+    }
+  }
+}
+
+.mdc-top-app-bar {
+    position: relative;
+}
+.mdc-top-app-bar--fixed-adjust {
+    padding-top: 0;
+}

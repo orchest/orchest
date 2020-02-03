@@ -1,0 +1,3 @@
+Flask
+flask_sqlalchemy
+Flask-Migrate
