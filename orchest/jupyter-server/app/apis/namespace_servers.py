@@ -28,9 +28,6 @@ server = api.model('Server', {
 # as command line arguments to the subprocess.
 jupyter_config = api.model('Jupyter Config', {
     'gateway-url': fields.String(required=True, description='URL of the EG'),
-    # 'ip': fields.String(required=True, description='IP to run the server on'),
-    # 'notebook-dir': fields.String(required=True, description='Notebook directory'),
-    # 'port': fields.String(required=True, description='Port for the server'),
 })
 
 

@@ -1,12 +1,12 @@
 # jupyter-server
 Naming convention
-* The container running the Jupyter server process (the JupyterLab instance) is called "jupyter-server".
+* The container running the Jupyter server process (the JupyterLab instance) is called `jupyter-server`.
 
 Inside the docker container there are two potential running processes
 * Flask API (at port 80). This API is always running.
 * Jupyter server process (at port 8888). Only runs when started via a POST request to the Flask API.
 
-Example POST request to the jupyter-server API
+Example POST request to the `jupyter-server` API
 ```
 {
   "gateway-url": "http://0.0.0.0:8888",
@@ -14,16 +14,26 @@ Example POST request to the jupyter-server API
 ```
 
 Commands to build and run the docker container
-```
+```bash
+# Build the container from the Dockerfile
 docker build -t "jupyter-server" .
-docker rm $(docker ps -a -q)  # Makes sure the name "mytest" can be used
+
+# Remove containers such that the name "mytest" can be used
+docker rm $(docker ps -a -q) 
+
+# Run the container and publish the ports for the API and JupyterLab instance
 docker run --name mytest -p 8888:8888 -p 80:80 -v /Users/yannick/Documents/projects/Orchest/notebooks:/notebooks jupyter-server:latest
 ```
 
+## Dockerfile
+Note that the `jupyter_notebook_config.py` is copied into the container. This overwrites the
+configuration used by the Jupyter server.
+
 
 ## Implementation details
-Connecting to a JupyterLab instance requires to know its token, which can be found in the `server_info`
-```
+Connecting to a JupyterLab instance requires to know its networking information and secret token,
+which can be found in the `server_info`, e.g.:
+```json
 {
     'base_url': '/',
     'hostname': 'localhost',
@@ -36,12 +46,15 @@ Connecting to a JupyterLab instance requires to know its token, which can be fou
     'url': 'http://localhost:8888/'
 }
 ```
-and the networking information. That is `IP:port` where `IP` is the IP address of the docker container on which the process is running.
+Connect using `IP:port` where `IP` is the IP address of the docker container on which the process is
+running.
 
-To achieve this, we run an extra Flask API inside the container that has the task to start the Jupyter server in a subprocess and
-return its `server_info` to the process outside of the jupyter-server container. Additionally, the API is used to shutdown the
-Jupyter server process such that it shuts down running kernels before it shuts down the Jupyter server itself. This is done by
-sending a POST request to `http:localhost:8888/api/shutdown/`. An alternative way is to shut down the subprocess with a `SIGTERM`
+To retrieve the connection information and achieve a graceful shutdown of the server and its running
+kernels, we run an extra Flask API inside the container. This API starts the Jupyter server in a
+subprocess and returns its `server_info` to the process outside of the `jupyter-server` container.
+Additionally, the API gracefully shuts down the Jupyter sending by sending a POST request to
+Jupyter server process at `http:localhost:8888/api/shutdown`. An alternative way to gracefully shut
+down the subprocess is with a `SIGTERM`, see the example below.
 ```python
 import os
 import signal
@@ -52,9 +65,15 @@ proc = Popen(args=['jupyter', 'lab'])
 os.kill(proc.pid, signal.SIGTERM)
 ```
 
-When starting the Jupyter server process the following settings are used
-* `--ip=0.0.0.0`
-* `--port=8888`
-* `--notebook-dir=/notebooks` The directory with files is always mounted at this path inside the container.
-* `--gateway-url` is given via the API as it depends on the IP address of the running docker container that runs the gateway.
-And the Flask API is running on port 80.
+When starting the Jupyter server process the following (hard-coded) settings are used
+* `--ip=0.0.0.0`: Allow other containers to access the Jupyter server.
+* `--port=8888`: The port at which the Jupyter server can be reached inside the container (note that
+    this port is published using docker).
+* `--notebook-dir=/notebooks`: The path were the directory with files is mounted.
+
+Additionally, `--gateway-url` is given via the API as it depends on the IP address of the running docker
+container that runs the gateway.
+
+
+## TODO
+- [ ] Since this will be running inside a docker container we need a good stacktrace.
