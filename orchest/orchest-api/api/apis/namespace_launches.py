@@ -73,6 +73,10 @@ class LaunchList(Resource):
                         json={'gateway-url': f'http://{IP.EG}:8888'}
                 )
             except requests.ConnectionError:
+                # TODO: there is probably a robuster way than a sleep.
+                #       Does the EG url have to given at startup? Because
+                #       else we don't need a time-out and simply give it
+                #       later.
                 time.sleep(0.5)
             else:
                 break
