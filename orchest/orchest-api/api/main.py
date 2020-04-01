@@ -5,7 +5,7 @@ from apis import blueprint as api
 from connections import db
 
 app = Flask(__name__)
-app.config.from_object('config')
+app.config.from_pyfile('config.py')  # TODO: changed from from_object
 app.register_blueprint(api, url_prefix='/api')
 
 # TODO: check whether all browsers support CORS.
