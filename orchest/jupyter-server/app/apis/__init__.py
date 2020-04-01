@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restplus import Api
 
-from .namespace_servers import api as ns_servers
+from apis.namespace_servers import api as ns_servers
 
 
 blueprint = Blueprint('api', __name__)
