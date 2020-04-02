@@ -25,6 +25,8 @@ def format_arguments(args: argparse.Namespace) -> List[str]:
 
 
 def _write_server_info_to_file(server_info, file_name, respective_path='../tmp/'):
+    # Write the server information to the "respective_path" with respect
+    # to the current file.
     abs_path = os.path.dirname(os.path.abspath(__file__))
     full_name = os.path.join(abs_path, respective_path, file_name)
     with open(full_name, 'w') as f:

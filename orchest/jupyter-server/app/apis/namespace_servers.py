@@ -56,7 +56,9 @@ class Server(Resource):
         """Starts a Jupyter server."""
         post_data = request.get_json()
 
-        # Parse arguments to pass to the subprocess.
+        # Parse arguments to pass to the subprocess. The "args" should be
+        # a sequence of program arguments. Because if it is a string, then
+        # the interpretation is platform-dependent (see python docs).
         start_script = os.path.join(self.abs_path, '../core/start_server.py')
         args = ['python', '-u', start_script]
         args.extend([f'--{arg}={value}' for arg, value in post_data.items()])
