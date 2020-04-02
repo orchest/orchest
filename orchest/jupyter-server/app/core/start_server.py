@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+from typing import List
 
 from jupyterlab.labapp import LabApp
 
@@ -14,13 +15,20 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def format_arguments(args):
+def format_arguments(args: argparse.Namespace) -> List[str]:
     """Replaces underscores with minusses."""
     formatted_args = []
     for arg, value in vars(args).items():
         formatted_args.append(f'--{arg.replace("_", "-")}={value}')
 
     return formatted_args
+
+
+def _write_server_info_to_file(server_info, file_name, respective_path='../tmp/'):
+    abs_path = os.path.dirname(os.path.abspath(__file__))
+    full_name = os.path.join(abs_path, respective_path, file_name)
+    with open(full_name, 'w') as f:
+        json.dump(server_info, f)
 
 
 def main():
@@ -49,10 +57,7 @@ def main():
     la = LabApp()
     la.initialize()
 
-    abs_path = os.path.dirname(os.path.abspath(__file__))
-    fname = os.path.join(abs_path, '../tmp/server_info.json')
-    with open(fname, 'w') as f:
-        json.dump(la.server_info(), f)
+    _write_server_info_to_file(la.server_info(), 'server_info.json')
 
     # This print is mandatory. The message can be changed, but the
     # subprocess is piping this output to stdout to confirm that
