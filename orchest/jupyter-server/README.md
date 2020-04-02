@@ -77,3 +77,16 @@ container that runs the gateway.
 
 ## TODO
 - [ ] Since this will be running inside a docker container we need a good stacktrace.
+- [ ] Currently, the `connection_file` is stored at a hardcoded location. Put this location in a
+    config.
+- [ ] When it comes to the loading the `config.py` in the `main.py` it should use the `from_pyfile`
+    instead. Additionally, it could load `from_envvar("SOME_VAR_TO_DISABLE_DEBUG")` which is only
+    set in the Dockerfile. This way, when building the Dockerfile, DEBUG is always set to False and
+    during development always to True. Have a look https://flask.palletsprojects.com/en/1.1.x/config/
+- [ ] How exactly does everything work with the `__init__.py` file. When is it called and where
+    should it be placed? 
+    Pytest wants a certain structure https://docs.pytest.org/en/latest/goodpractices.html 
+    Python docs: https://packaging.python.org/guides/packaging-namespace-packages/
+    Then what is this: https://github.com/timbrel/GitSavvy/issues/626
+    https://stackoverflow.com/questions/50796370/pytest-how-to-work-around-missing-init-py-in-the-tests-folder
+
