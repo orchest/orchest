@@ -8,7 +8,7 @@ TODO:
 """
 from argparse import Namespace
 
-from app.core.start_server import format_arguments, main
+from app.core.start_server import format_arguments
 
 
 def test_format_arguments():
