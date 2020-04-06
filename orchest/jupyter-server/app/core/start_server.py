@@ -49,7 +49,8 @@ def main():
         '--no-browser',
         '--ip=0.0.0.0',
         '--port=8888',
-        '--notebook-dir=/notebooks'
+        # '--notebook-dir=/notebooks'  # TODO: make difference for when run inside docker and outside
+        '--notebook-dir=/home/yannick/Documents/experiments'
     ])
     sys.argv.extend(formatted_args)
 
