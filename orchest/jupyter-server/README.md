@@ -27,12 +27,12 @@ docker build -t "jupyter-server" .
 docker rm $(docker ps -a -q) 
 
 # Run the container and publish the ports for the API and JupyterLab instance
-docker run --name mytest -p 8888:8888 -p 80:80 -v /Users/yannick/Documents/projects/Orchest/notebooks:/notebooks jupyter-server:latest
+docker run --name mytest -p 8888:8888 -p 80:80 -v /Users/yannick/Documents/experiments:/notebooks jupyter-server:latest
 ```
 
 
 ## Explanation of project structure
-The structure is as follows
+The structure is as follows (generated using `tree -A -I "venv|__pycache__"`)
 ```bash
 .
 ├── app
