@@ -17,6 +17,8 @@ def client():
     # # TODO: obviously this "None" should become the app
     # with None.app.test_client() as client:
     #     yield client
+    #
+    # or maybe do from app import app. and use app.test_client()
     pass
 
 

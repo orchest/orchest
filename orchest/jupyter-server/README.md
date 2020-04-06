@@ -83,10 +83,24 @@ container that runs the gateway.
     instead. Additionally, it could load `from_envvar("SOME_VAR_TO_DISABLE_DEBUG")` which is only
     set in the Dockerfile. This way, when building the Dockerfile, DEBUG is always set to False and
     during development always to True. Have a look https://flask.palletsprojects.com/en/1.1.x/config/
-- [ ] How exactly does everything work with the `__init__.py` file. When is it called and where
+- [X] How exactly does everything work with the `__init__.py` file. When is it called and where
     should it be placed? 
-    Pytest wants a certain structure https://docs.pytest.org/en/latest/goodpractices.html 
-    Python docs: https://packaging.python.org/guides/packaging-namespace-packages/
     Then what is this: https://github.com/timbrel/GitSavvy/issues/626
-    https://stackoverflow.com/questions/50796370/pytest-how-to-work-around-missing-init-py-in-the-tests-folder
+- [ ] Maybe it is possible to set an ENV variable to determine where the Jupyter `connection_file`
+    is written instead of using their internal functions. The latter is more susceptible to erros in
+    the future if their internal framework changes. Although for now this does not seem that
+    important. I don't thinkt the Jupyter ecosystem will change this much that (ever possibly).
+- [ ] I should put environment variables into the docker container. For example the notebook
+    directory. Then I can set one for testing (without docker) and one for inside the container
+    (which can be hardcoded to "/notebooks", since the files are always mounted there)
+- [ ] Logging
+- [ ] Create `/app/errors/` with `__init__.py` and `handlers.py` to create the blueprints and handle
+    the errors respectively. See this one https://flask-restplus.readthedocs.io/en/stable/errors.html
+    for examples of handlers.
+- [ ] Testing with Flask https://flask.palletsprojects.com/en/1.1.x/testing/ I think it is best to
+    create the factory application. Then call the `create_app` and then do `app.test_client()`
 
+
+## Temporary fixes
+`flask-restplus` is broken by `Werkzeug 1.0.0`. Thus make sure to `pip install Werkzeug=0.16.1`.
+This is currently an [open github issue](https://github.com/noirbizarre/flask-restplus/issues/777)

@@ -54,6 +54,7 @@ class Server(Resource):
     @api.marshal_with(server, code=201, description='Server started')
     def post(self):
         """Starts a Jupyter server."""
+        # Use the flask "request context".
         post_data = request.get_json()
 
         # Parse arguments to pass to the subprocess. The "args" should be
