@@ -2,7 +2,7 @@ import os
 
 
 # ---- CONFIGURATIONS ----
-PRODUCTION = True
+PRODUCTION = False
 
 
 # Static configurations, please do not change these.

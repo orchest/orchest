@@ -10,37 +10,52 @@ Difficulties:
     * Cleanup is harder due to the subprocess.
 """
 import pytest
+import requests
+
+from app import create_app
+from config import TestingConfig
 
 
 @pytest.fixture
 def client():
-    # # TODO: obviously this "None" should become the app
-    # with None.app.test_client() as client:
-    #     yield client
-    #
-    # or maybe do from app import app. and use app.test_client()
-    pass
+    app = create_app(config_class=TestingConfig)
+
+    with app.test_client() as client:
+        yield client
+
+    # Teardown code.
+    # TODO: cleanup the connection_file if it exists.
+    #       Make sure the server is no longer running
 
 
-def test_get_no_server(client):
-    pass
+def test_start_and_shutdown_server(client):
+    # TODO: note that this only works if indeed nothing is already running
+    #       at the IPs and PORTs below.
 
+    # No running server.
+    response = client.get('/api/servers/')
+    assert response.status_code == 404
+    assert response.json == {'message': 'No running server'}
 
-def test_get_running_server(client):
-    # First run the server using the post request.
-    pass
+    # TODO: This post uses a the flask "request" context. So not sure
+    #       whether the test_request_context has to be used. See:
+    #       https://stackoverflow.com/questions/17375340/testing-code-that-requires-a-flask-app-or-request-context
 
+    # Start the Jupyter server and check whether it is indeed running.
+    response_post = client.post('/api/servers/', json={'gateway-url': 'http://0.0.0.0:8765'})
+    assert response_post.status_code == 201
 
-def test_post(client):
-    # Check whether the Jupyter server was indeed started. Use the Jupyter
-    # API and poll whether it is alive.
-    pass
+    r = requests.get('http://127.0.0.1:8888/api')
+    assert r.status_code == 200
+    assert r.json().get('version') is not None
 
+    # Check whether the server can be found.
+    response = client.get('/api/servers/')
+    assert response.status_code == 200
 
-def test_delete_no_server(client):
-    pass
+    # Shut down the server and whether it no longer exists.
+    response_delete = client.delete('/api/servers/')
+    assert response_delete.status_code == 200
 
-
-def test_delete_running_server(client):
-    pass
-
+    r = requests.get('http://127.0.0.1:8888/api')
+    assert r.status_code == 404

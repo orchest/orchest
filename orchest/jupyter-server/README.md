@@ -79,7 +79,19 @@ A short explanation of certain directories and files:
     possible without side effects).
 
 ## TODO
+- [ ] Fix the tests! They should be cleaner than they are now. Also make sure the comments and
+    documentation are on point. Add things to the `tests/README.md`.
+- [ ] Create `/app/errors/` with `__init__.py` and `handlers.py` to create the blueprints and handle
+    the errors respectively. See this one https://flask-restplus.readthedocs.io/en/stable/errors.html
+    for examples of handlers.
 - [ ] Since this will be running inside a docker container we need a good stacktrace.
+- [ ] Logging
+- [ ] Currently, the `connection_file` is stored at a hardcoded location. Put this location in a
+    config.
+- [ ] Maybe it is possible to set an ENV variable to determine where the Jupyter `connection_file`
+    is written instead of using their internal functions. The latter is more susceptible to erros in
+    the future if their internal framework changes. Although for now this does not seem that
+    important. I don't thinkt the Jupyter ecosystem will change this much that (ever possibly).
 - [X] When it comes to the loading the `config.py` in the `main.py` it should use the `from_pyfile`
     instead. Additionally, it could load `from_envvar("SOME_VAR_TO_DISABLE_DEBUG")` which is only
     set in the Dockerfile. This way, when building the Dockerfile, DEBUG is always set to False and
@@ -87,20 +99,10 @@ A short explanation of certain directories and files:
 - [X] How exactly does everything work with the `__init__.py` file. When is it called and where
     should it be placed? 
     Then what is this: https://github.com/timbrel/GitSavvy/issues/626
-- [ ] Currently, the `connection_file` is stored at a hardcoded location. Put this location in a
-    config.
-- [ ] Maybe it is possible to set an ENV variable to determine where the Jupyter `connection_file`
-    is written instead of using their internal functions. The latter is more susceptible to erros in
-    the future if their internal framework changes. Although for now this does not seem that
-    important. I don't thinkt the Jupyter ecosystem will change this much that (ever possibly).
 - [X] I should put environment variables into the docker container. For example the notebook
     directory. Then I can set one for testing (without docker) and one for inside the container
     (which can be hardcoded to "/notebooks", since the files are always mounted there)
-- [ ] Logging
-- [ ] Create `/app/errors/` with `__init__.py` and `handlers.py` to create the blueprints and handle
-    the errors respectively. See this one https://flask-restplus.readthedocs.io/en/stable/errors.html
-    for examples of handlers.
-- [ ] Testing with Flask https://flask.palletsprojects.com/en/1.1.x/testing/ I think it is best to
+- [X] Testing with Flask https://flask.palletsprojects.com/en/1.1.x/testing/ I think it is best to
     create the factory application. Then call the `create_app` and then do `app.test_client()`
 - [X] Exclude the `app/tests` directory in the Dockerfile, because this is not perse needed to run
     the application inside a container. This is so lightweight. I think I can just leave it there

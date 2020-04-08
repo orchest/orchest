@@ -30,25 +30,35 @@ jupyter_config = api.model('Jupyter Config', {
     'gateway-url': fields.String(required=True, description='URL of the EG'),
 })
 
+message = api.model('Message', {
+    'message': fields.String(required=True, description='Message clarifying response')
+})
+
 
 @api.route('/')
 class Server(Resource):
     abs_path = os.path.dirname(os.path.abspath(__file__))
     connection_file = os.path.join(abs_path, '../tmp/server_info.json')
 
+    # TODO: 404 is not the correct error code, yet the flask-restplus
+    #       framework does not allow multiple @api.response for the same
+    #       error code.
     @api.doc('get_launch')
-    @api.response(404, 'Server not found')
-    @api.marshal_with(server, code=200, description='Server fetched')
+    @api.response(model=message, code=404, description='Server not found')
+    @api.response(model=server, code=200, description='Server fetched')
     def get(self):
         """Fetch the server information if it is running."""
         if not os.path.exists(self.connection_file):
-            return {'message': 'No running server'}, 404
+            return api.marshal(fields=message, data={'message': 'No running server'}), 404
 
         with open(self.connection_file, 'r') as f:
             server_info = json.load(f)
 
-        return server_info, 200
+        return api.marshal(fields=server, data=server_info), 200
 
+    # TODO: super stricly there can only be one running server at any
+    #       moment. Thus another POST request when a server is already
+    #       running should just return the existing server.
     @api.doc('start_server')
     @api.expect(jupyter_config)
     @api.marshal_with(server, code=201, description='Server started')
