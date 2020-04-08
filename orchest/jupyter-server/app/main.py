@@ -1,10 +1,10 @@
 from flask_socketio import SocketIO
 
 from app import create_app
-from config import Config
+from config import CONFIG_CLASS
 
 
-app = create_app(config_class=Config)
+app = create_app(config_class=CONFIG_CLASS)
 
 # Use SocketIO to be able to start Jupyter server in a subprocess.
 socketio = SocketIO(app)

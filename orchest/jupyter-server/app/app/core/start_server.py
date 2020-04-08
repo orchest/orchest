@@ -34,6 +34,10 @@ def _write_server_info_to_file(server_info, file_name, respective_path='../tmp/'
 
 
 def main():
+    # This import should not be done w.r.t. the package. Instead this file
+    # is run as a module, since it is executed in a subprocess.
+    from config import NOTEBOOK_DIR
+
     # Formats the passed command line arguments to start the JupyterLab
     # instance. When passing command line arguments they have to be with
     # minusses "-" instead of the underscores "_" the python argparse
@@ -49,7 +53,8 @@ def main():
         '--no-browser',
         '--ip=0.0.0.0',
         '--port=8888',
-        '--notebook-dir=/notebooks'  # TODO: make difference for when run inside docker and outside
+        # '--notebook-dir=/notebooks'  # TODO: make difference for when run inside docker and outside
+        f'--notebook-dir={NOTEBOOK_DIR}'
     ])
     sys.argv.extend(formatted_args)
 
