@@ -8,6 +8,11 @@ process_ids=$(docker ps -a -q --filter ancestor=jupyter-server:latest --format="
 
 if [ ! -z "$process_ids" ]
 then
+  docker kill $(docker stop $process_ids)
+fi
+
+if [ ! -z "$process_ids" ]
+then
   docker rm $(docker stop $process_ids)
 fi
 
@@ -15,8 +20,14 @@ process_ids=$(docker ps -a -q --filter ancestor=elyra/enterprise-gateway:dev --f
 
 if [ ! -z "$process_ids" ]
 then
+  docker kill $(docker stop $process_ids)
+fi
+
+if [ ! -z "$process_ids" ]
+then
   docker rm $(docker stop $process_ids)
 fi
+
 
 docker container prune -f
 

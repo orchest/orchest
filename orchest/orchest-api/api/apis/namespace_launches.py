@@ -66,7 +66,7 @@ class LaunchList(Resource):
         # API to be running after container launch.
         for i in range(5):
             try:
-                # Starts the Juptyer server and connects it to the given
+                # Starts the Jupyter server and connects it to the given
                 # Enterprise Gateway.
                 r = requests.post(
                         f'http://{IP.server}:80/api/servers/',
