@@ -1,10 +1,13 @@
 from orchest import app, db
 from flask import render_template, request, jsonify
 from .models import AlchemyEncoder, Pipeline
+from distutils.dir_util import copy_tree
+
+import shutil
 import json
 import os
 import uuid
-
+import pdb
 
 @app.route("/", methods=["GET"])
 def index():
@@ -16,6 +19,10 @@ def pipelines_delete(pipeline_id):
 
     Pipeline.query.filter(Pipeline.id == int(pipeline_id)).delete()
     db.session.commit()
+
+    # also delete directory
+    pipeline_dir = get_pipeline_directory_by_uuid(pipeline_id)
+    shutil.rmtree(pipeline_dir, ignore_errors=False)
 
     return jsonify({"success": True})
 
@@ -33,6 +40,26 @@ def pipelines_create():
     # create dirs
     pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
     os.makedirs(pipeline_dir, exist_ok=True)
+
+    # populate pipeline directory with kernels
+
+    ## copy directories
+    fromDirectory = os.path.join(app.config['RESOURCE_DIR'], "kernels/")
+    toDirectory = os.path.join(pipeline_dir, ".kernels/")
+
+    copy_tree(fromDirectory, toDirectory)
+
+    ## replace variables in kernel.json files
+    kernel_folders = [ f.path for f in os.scandir(toDirectory) if f.is_dir() ]
+
+    for kernel_folder in kernel_folders:
+        kernel_json_file = os.path.join(kernel_folder, "kernel.json")
+        if os.path.isfile(kernel_json_file):
+            with open(kernel_json_file, 'r') as file:
+                data = file.read().replace('{host_pipeline_dir}', pipeline_dir)
+
+            with open(kernel_json_file, 'w') as file:
+                file.write(data)
 
     return jsonify({"success": True})
 

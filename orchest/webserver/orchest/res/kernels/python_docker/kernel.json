@@ -10,7 +10,7 @@
     }
   },
   "env": {
-    "HOST_PIPELINE_DIR": "/home/rick/workspace/orchest/orchest/userdir/pipelines/07612719-7e95-4fbd-be73-37fb428fdcb6"
+    "HOST_PIPELINE_DIR": "{host_pipeline_dir}"
   },
   "argv": [
     "python",
