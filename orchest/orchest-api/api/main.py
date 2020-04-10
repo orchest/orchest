@@ -1,13 +1,14 @@
 from flask import Flask
+from flask_cors import CORS
 
 from apis import blueprint as api
 from connections import db
-from flask_cors import CORS
 
 app = Flask(__name__)
-app.config.from_object('config')
+app.config.from_pyfile('config.py')  # TODO: changed from from_object
 app.register_blueprint(api, url_prefix='/api')
 
+# TODO: check whether all browsers support CORS.
 CORS(app, resources={r'/*': {'origins': '*'}})
 
 

@@ -44,13 +44,6 @@ class JupyterDockerManager(DockerManager):
         # TODO: Do we want a restart_policy when containers die
         #       "on_failure"?
 
-        # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
-        # started by the EG are also on the orchest network.
-        docker_sock_mount = Mount(
-                target='/var/run/docker.sock',
-                source='/var/run/docker.sock',
-                type='bind'
-        )
         # TODO: the kernelspec should be put inside the image for the EG
         #       but for now this is fine as at allows easy development
         #       and addition of new kernels on the fly.
@@ -61,27 +54,36 @@ class JupyterDockerManager(DockerManager):
                 type='bind'
         )
 
-        # Run Jupyter server container.
-        pipeline_dir_target_path = "/notebooks"
+        # By mounting the docker sock it becomes possible for containers
+        # to be spawned from inside another container.
+        docker_sock_mount = Mount(
+                target='/var/run/docker.sock',
+                source='/var/run/docker.sock',
+                type='bind'
+        )
 
+        pipeline_dir_target_path = "/notebooks"
         pipeline_dir_mount = Mount(
             target=pipeline_dir_target_path,
             source=pipeline_dir,
             type='bind'
         )
 
+        # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
+        # started by the EG are on the same docker network as the EG.
         EG_container = self.client.containers.run(
                 image='elyra/enterprise-gateway:dev',  # TODO: make not static.
                 detach=True,
                 mounts=[docker_sock_mount, kernelspec_mount],
                 name=f'jupyter-EG-{uuid}',
                 environment=[
-                    'EG_DOCKER_NETWORK=orchest',
+                    f'EG_DOCKER_NETWORK={self.network}',
                     'EG_MIRROR_WORKING_DIRS=True'
                 ],
                 network=self.network
         )
 
+        # Run Jupyter server container.
         server_container = self.client.containers.run(
                 image='jupyter-server:latest',  # TODO: make not static. Some config.
                 detach=True,
@@ -103,6 +105,13 @@ class JupyterDockerManager(DockerManager):
 
         Args:
             uuid (str): pipeline uuid.
+
+        Raises:
+            ...
+
+        Returns:
+            None. If no error is raised, then it means the pipeline was
+            shut down successfully.
 
         """
         pattern = f'jupyter-(EG|server)-{uuid}'

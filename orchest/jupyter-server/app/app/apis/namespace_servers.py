@@ -7,6 +7,8 @@ import subprocess
 from flask import request
 from flask_restplus import Namespace, Resource, fields
 
+from app.utils import shutdown_jupyter_server
+
 
 api = Namespace('servers', description='Start and stop Jupyter servers')
 
@@ -28,9 +30,10 @@ server = api.model('Server', {
 # as command line arguments to the subprocess.
 jupyter_config = api.model('Jupyter Config', {
     'gateway-url': fields.String(required=True, description='URL of the EG'),
-    # 'ip': fields.String(required=True, description='IP to run the server on'),
-    # 'notebook-dir': fields.String(required=True, description='Notebook directory'),
-    # 'port': fields.String(required=True, description='Port for the server'),
+})
+
+message = api.model('Message', {
+    'message': fields.String(required=True, description='Message clarifying response')
 })
 
 
@@ -39,27 +42,36 @@ class Server(Resource):
     abs_path = os.path.dirname(os.path.abspath(__file__))
     connection_file = os.path.join(abs_path, '../tmp/server_info.json')
 
+    # TODO: 404 is not the correct error code, yet the flask-restplus
+    #       framework does not allow multiple @api.response for the same
+    #       error code.
     @api.doc('get_launch')
-    @api.response(404, 'Server not found')
-    @api.marshal_with(server, code=200, description='Server fetched')
+    @api.response(model=message, code=404, description='Server not found')
+    @api.response(model=server, code=200, description='Server fetched')
     def get(self):
         """Fetch the server information if it is running."""
         if not os.path.exists(self.connection_file):
-            return {'message': 'No running server'}, 404
+            return api.marshal(fields=message, data={'message': 'No running server'}), 404
 
         with open(self.connection_file, 'r') as f:
             server_info = json.load(f)
 
-        return server_info, 200
+        return api.marshal(fields=server, data=server_info), 200
 
+    # TODO: super stricly there can only be one running server at any
+    #       moment. Thus another POST request when a server is already
+    #       running should just return the existing server.
     @api.doc('start_server')
     @api.expect(jupyter_config)
     @api.marshal_with(server, code=201, description='Server started')
     def post(self):
         """Starts a Jupyter server."""
+        # Use the flask "request context".
         post_data = request.get_json()
 
-        # Parse arguments to pass to the subprocess.
+        # Parse arguments to pass to the subprocess. The "args" should be
+        # a sequence of program arguments. Because if it is a string, then
+        # the interpretation is platform-dependent (see python docs).
         start_script = os.path.join(self.abs_path, '../core/start_server.py')
         args = ['python', '-u', start_script]
         args.extend([f'--{arg}={value}' for arg, value in post_data.items()])
@@ -93,23 +105,10 @@ class Server(Resource):
 
         Sends an authenticated POST request to "localhost:<port>/api/shutdown".
         """
-        if not os.path.exists(self.connection_file):
+        r = shutdown_jupyter_server(self.connection_file)
+
+        if r is None:
             return {'message': 'No running server'}, 404
-
-        with open(self.connection_file, 'r') as f:
-            server_info = json.load(f)
-
-        # Authentication is done via the token of the server.
-        headers = {'Authorization': f'Token {server_info["token"]}'}
-
-        # Shutdown the server, such that it also shuts down all related
-        # kernels.
-        requests.post('http://localhost:8888/api/shutdown', headers=headers)
-
-        # TODO: probably have to check whether the subprocess has indeed
-        #       been killed. Although it is not super important as the
-        #       server will be running in a docker container which is
-        #       killed after as well. Or check the status of the request
 
         # There no longer is a running server, so clean up the file.
         os.remove(self.connection_file)

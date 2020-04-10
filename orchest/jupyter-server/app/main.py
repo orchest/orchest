@@ -1,12 +1,10 @@
-from flask import Flask
 from flask_socketio import SocketIO
 
-from apis import blueprint as api
+from app import create_app
+from config import CONFIG_CLASS
 
 
-app = Flask(__name__)
-app.config.from_object('config')
-app.register_blueprint(api, url_prefix='/api')
+app = create_app(config_class=CONFIG_CLASS)
 
 # Use SocketIO to be able to start Jupyter server in a subprocess.
 socketio = SocketIO(app)
