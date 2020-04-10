@@ -36,10 +36,10 @@ respective configuration files:
 * `app/config.py`: Set `CONFIG_CLASS = DevelopmentConfig`.
 * `app/app/core/config.py`: Set `PRODUCTION = False`.
 
-Next it is advised to create a virtualenv at the root directory `jupyter-server/`, because otherwise
-the virtualenvironment will be copied into the docker container when building the Dockerfile. Use
-the `app/requirements.txt` like so `pip install -r app/requirements.txt` (after activating your
-virtualenv).
+Next it is advised to create a virtualenv at the root directory `jupyter-server/` called `venv` (to
+be ignored by the `.gitignore`), because otherwise the virtualenvironment will be copied into the
+docker container when building the Dockerfile. Use the `app/requirements.txt` like so `pip install
+-r app/requirements.txt` (after activating your virtualenv).
 
 Test can be run inside `app/` using `python -m pytest`.
 
@@ -78,7 +78,20 @@ A short explanation of certain directories and files:
     this entire structure was chosen, because without the application factory pattern this is not
     possible without side effects).
 
+
 ## TODO
+- [ ] Remove  hardcoded location w.r.t. filesystem of the local user. For example the docker section
+    in this README includes the `/home/yannick/...` which simply is not true for other users.
+- [ ] Rework the `app/apis/namespace_servers.py`. The flask-restplus framework does not allow for
+    certain configurations (take for example multiple `@api.response` on the same error code). Down
+    the line this should be fixed, but for now things are tested and seem to run "fine". Another
+    thing to rework or better said to add, is error handling. But since this code is only called
+    internally, we can (for now) assume that everything is called properly.
+- [ ] (Keep in mind the `:ALEInfo` obtion in Vim with the ALE plugin. This helped them tremendously!)
+- [ ] Explain logic between Jupyter server and connection file. Similarly other things.
+- [ ] Naming should be more clear. Now we have Jupyter server and jupyter-server. This is fine in
+    text but when talking to people it just totally isn't.
+- [ ] Shouldn't the testing environment be equal to the production environment?
 - [ ] Fix the tests! They should be cleaner than they are now. Also make sure the comments and
     documentation are on point. Add things to the `tests/README.md`.
 - [ ] Create `/app/errors/` with `__init__.py` and `handlers.py` to create the blueprints and handle

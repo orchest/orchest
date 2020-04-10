@@ -1,18 +1,20 @@
-"""Tests for the server namespace API.
+"""Tests for the servers namespace of the API.
 
 Difficulties:
-    * The Server.connection_file can be mocked, but the path in the
-      core.start_server._write_server_info_to_file then also needs to be
-      called accordingly (which is called in a subprocess). The mock is
-      done to ensure the server information is written in a test directory
-      to have a clean beginning of the test.
+    * Hardcoded paths. Take for example the `_write_server_info_to_file`
+      functin in `/core/start_server.py`
 
-    * Cleanup is harder due to the subprocess.
+    * The Jupyter server is started in a subprocess.
+
+    * The tests are not actually run inside the docker container.
 """
+import os
+
 import pytest
 import requests
 
 from app import create_app
+from app.utils import shutdown_jupyter_server
 from config import TestingConfig
 
 
@@ -21,41 +23,47 @@ def client():
     app = create_app(config_class=TestingConfig)
 
     with app.test_client() as client:
+        # Yielding allows for teardown code.
         yield client
 
-    # Teardown code.
-    # TODO: cleanup the connection_file if it exists.
-    #       Make sure the server is no longer running
+    # ---- Teardown code. ----
+    # Shutdown the Jupyter server and clear its connection file, if it is
+    # still running.
+    abs_path = os.path.dirname(os.path.abspath(__file__))
+    connection_file = os.path.join(abs_path, '../app/tmp/server_info.json')
+
+    r = shutdown_jupyter_server(connection_file)
+
+    if r is not None:
+        os.remove(connection_file)
 
 
-def test_start_and_shutdown_server(client):
-    # TODO: note that this only works if indeed nothing is already running
-    #       at the IPs and PORTs below.
-
-    # No running server.
+# TODO: Note that test tests significant logic. This is a temporary
+#       solution due to the difficulties stated in this modules docstring.
+def test_api_start_and_shutdown_server(client):
+    # Can't get server information if no server is running.
     response = client.get('/api/servers/')
     assert response.status_code == 404
     assert response.json == {'message': 'No running server'}
 
-    # TODO: This post uses a the flask "request" context. So not sure
-    #       whether the test_request_context has to be used. See:
-    #       https://stackoverflow.com/questions/17375340/testing-code-that-requires-a-flask-app-or-request-context
-
-    # Start the Jupyter server and check whether it is indeed running.
-    response_post = client.post('/api/servers/', json={'gateway-url': 'http://0.0.0.0:8765'})
+    # A POST request to the Flask API should start the Jupyter server.
+    some_gateway_url = 'http://0.0.0.0:8765'
+    response_post = client.post('/api/servers/', json={'gateway-url': some_gateway_url})
     assert response_post.status_code == 201
 
+    # A user should be able to interact with the start Jupyter server.
     r = requests.get('http://127.0.0.1:8888/api')
     assert r.status_code == 200
     assert r.json().get('version') is not None
 
-    # Check whether the server can be found.
+    # The Flask API should not be able to check for the running server.
     response = client.get('/api/servers/')
     assert response.status_code == 200
 
-    # Shut down the server and whether it no longer exists.
+    # Shut down the server.
     response_delete = client.delete('/api/servers/')
     assert response_delete.status_code == 200
 
-    r = requests.get('http://127.0.0.1:8888/api')
-    assert r.status_code == 404
+    # Final check for the server to be dead.
+    response = client.get('/api/servers/')
+    assert response.status_code == 404

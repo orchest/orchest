@@ -7,6 +7,8 @@ import subprocess
 from flask import request
 from flask_restplus import Namespace, Resource, fields
 
+from app.utils import shutdown_jupyter_server
+
 
 api = Namespace('servers', description='Start and stop Jupyter servers')
 
@@ -103,23 +105,10 @@ class Server(Resource):
 
         Sends an authenticated POST request to "localhost:<port>/api/shutdown".
         """
-        if not os.path.exists(self.connection_file):
+        r = shutdown_jupyter_server(self.connection_file)
+
+        if r is None:
             return {'message': 'No running server'}, 404
-
-        with open(self.connection_file, 'r') as f:
-            server_info = json.load(f)
-
-        # Authentication is done via the token of the server.
-        headers = {'Authorization': f'Token {server_info["token"]}'}
-
-        # Shutdown the server, such that it also shuts down all related
-        # kernels.
-        requests.post('http://localhost:8888/api/shutdown', headers=headers)
-
-        # TODO: probably have to check whether the subprocess has indeed
-        #       been killed. Although it is not super important as the
-        #       server will be running in a docker container which is
-        #       killed after as well. Or check the status of the request
 
         # There no longer is a running server, so clean up the file.
         os.remove(self.connection_file)
