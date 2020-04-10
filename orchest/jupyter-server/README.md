@@ -92,8 +92,6 @@ A short explanation of certain directories and files:
 - [ ] Naming should be more clear. Now we have Jupyter server and jupyter-server. This is fine in
     text but when talking to people it just totally isn't.
 - [ ] Shouldn't the testing environment be equal to the production environment?
-- [ ] Fix the tests! They should be cleaner than they are now. Also make sure the comments and
-    documentation are on point. Add things to the `tests/README.md`.
 - [ ] Create `/app/errors/` with `__init__.py` and `handlers.py` to create the blueprints and handle
     the errors respectively. See this one https://flask-restplus.readthedocs.io/en/stable/errors.html
     for examples of handlers.
@@ -105,6 +103,8 @@ A short explanation of certain directories and files:
     is written instead of using their internal functions. The latter is more susceptible to erros in
     the future if their internal framework changes. Although for now this does not seem that
     important. I don't thinkt the Jupyter ecosystem will change this much that (ever possibly).
+- [X] Fix the tests! They should be cleaner than they are now. Also make sure the comments and
+    documentation are on point. Add things to the `tests/README.md`.
 - [X] When it comes to the loading the `config.py` in the `main.py` it should use the `from_pyfile`
     instead. Additionally, it could load `from_envvar("SOME_VAR_TO_DISABLE_DEBUG")` which is only
     set in the Dockerfile. This way, when building the Dockerfile, DEBUG is always set to False and
