@@ -7,7 +7,10 @@ from flask_restplus import Namespace, Resource, fields
 from connections import db, docker_client
 from core.managers import JupyterDockerManager
 import models
+import logging
+import sys
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 # Set namespace.
 api = Namespace('launches', description='Launches of pipelines for development')
@@ -64,10 +67,13 @@ class LaunchList(Resource):
         # and waits for instructions before the Jupyter server is
         # started. Tries to start the Jupyter server, by waiting for the
         # API to be running after container launch.
-        for i in range(5):
+        for i in range(10):
             try:
                 # Starts the Jupyter server and connects it to the given
                 # Enterprise Gateway.
+
+                logging.info("Starting Jupyter Server on %s with Enterprise Gateway on %s" % (IP.server,IP.EG))
+                
                 r = requests.post(
                         f'http://{IP.server}:80/api/servers/',
                         json={'gateway-url': f'http://{IP.EG}:8888'}

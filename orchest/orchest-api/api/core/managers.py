@@ -54,8 +54,7 @@ class JupyterDockerManager(DockerManager):
         # TODO: the kernelspec should be put inside the image for the EG
         #       but for now this is fine as at allows easy development
         #       and addition of new kernels on the fly.
-        abs_path = os.path.dirname(os.path.abspath(__file__))
-        source_kernels = os.path.join(abs_path, '../../../../etc/kernels')
+        source_kernels = os.path.join(pipeline_dir, '.kernels')
         kernelspec_mount = Mount(
                 target='/usr/local/share/jupyter/kernels',
                 source=source_kernels,
