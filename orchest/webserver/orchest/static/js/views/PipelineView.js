@@ -35,7 +35,7 @@ class PipelineDetails extends React.Component {
     }
 
     changeVCPU(){
-        
+
     }
 
     changeMemory(){
@@ -356,7 +356,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
     this.el.append(this.svgEl);
 
     this.render = function(){
-        
+
         let startNodePosition = nodeCenter(this.startNode);
         startNodePosition = correctedPosition(startNodePosition.x, startNodePosition.y, $('.pipeline-view'));
         this.x = startNodePosition.x;
@@ -525,7 +525,7 @@ class PipelineView extends React.Component {
 
         // newConnection is for creating a new connection
         this.newConnection = undefined;
-        
+
         this.connections = [];
         this.pipelineSteps = {};
         this.pipelineRefs = [];
@@ -846,7 +846,7 @@ class PipelineView extends React.Component {
             // perform POST to save
             // TODO: replace hardcoded URL
             // TODO: replace hardcoded pipeline directory
-            let userdir_pipeline = "/home/rick/workspace/orchest/orchest/userdir/pipelines/";
+            let userdir_pipeline = "/home/yannick/Documents/Orchest/orchest/orchest/userdir/pipelines/";
 
             let data = {
                 "pipeline_uuid": this.props.uuid,
@@ -1044,7 +1044,7 @@ class PipelineView extends React.Component {
     }
 
     render() {
-        
+
         let pipelineSteps = [];
 
         for(let key in this.state.steps){

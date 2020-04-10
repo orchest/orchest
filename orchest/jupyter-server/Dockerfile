@@ -8,3 +8,4 @@ RUN mkdir /root/.jupyter/
 COPY jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 
 COPY ./app /app
+

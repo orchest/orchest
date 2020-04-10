@@ -88,7 +88,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         kwargs['environment'] = param_env
         kwargs['remove'] = remove_container
         kwargs['network'] = docker_network
-        kwargs['group_add'] = [group, '100']
+        kwargs['group_add'] = [group, '100']  # NOTE: "group_add" for newer versions of docker
         kwargs['detach'] = True
         if param_env.get('KERNEL_WORKING_DIR'):
             kwargs['working_dir'] = param_env.get('KERNEL_WORKING_DIR')
@@ -105,7 +105,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
 
 if __name__ == '__main__':
     """
-        Usage: launch_docker_kernel 
+        Usage: launch_docker_kernel
                     [--RemoteProcessProxy.kernel-id <kernel_id>]
                     [--RemoteProcessProxy.response-address <response_addr>]
                     [--RemoteProcessProxy.spark-context-initialization-mode <mode>]
