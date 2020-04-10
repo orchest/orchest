@@ -38,7 +38,7 @@ def client():
         os.remove(connection_file)
 
 
-# TODO: Note that test tests significant logic. This is a temporary
+# TODO: Note that this test tests significant logic. This is a temporary
 #       solution due to the difficulties stated in this modules docstring.
 def test_api_start_and_shutdown_server(client):
     # Can't get server information if no server is running.
