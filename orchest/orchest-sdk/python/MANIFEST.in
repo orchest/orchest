@@ -1,0 +1,2 @@
+include LICENSE
+recursive-include src *.py

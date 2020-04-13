@@ -6,7 +6,7 @@ class DataSourcesView extends React.Component {
   render() {
     return <div className={"view-page"}>
       <h2>Data Sources</h2>
-      <p>Select which data sources are available to the pipeline.</p>
+      <i>Not yet implemented.</i>
     </div>;
   }
 }

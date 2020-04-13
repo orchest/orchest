@@ -17,12 +17,14 @@ def index():
 @app.route("/async/pipelines/delete/<pipeline_id>", methods=["POST"])
 def pipelines_delete(pipeline_id):
 
-    Pipeline.query.filter(Pipeline.id == int(pipeline_id)).delete()
-    db.session.commit()
+    pipeline = Pipeline.query.filter_by(id=pipeline_id).first()
 
     # also delete directory
-    pipeline_dir = get_pipeline_directory_by_uuid(pipeline_id)
-    shutil.rmtree(pipeline_dir, ignore_errors=False)
+    pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
+    shutil.rmtree(pipeline_dir)
+
+    db.session.delete(pipeline)
+    db.session.commit()
 
     return jsonify({"success": True})
 
@@ -103,6 +105,12 @@ def pipelines_get_single(url_uuid):
         return json_string, 200, {'content-type': 'application/json'}
     else:
         return "", 404
+
+
+@app.route("/async/pipelines/get_directory/<string:url_uuid>", methods=["GET"])
+def pipelines_get_directory(url_uuid):
+    json_string = json.dumps({"success": True, "result": get_pipeline_directory_by_uuid(url_uuid)}, cls=AlchemyEncoder)
+    return json_string, 200, {'content-type': 'application/json'}
 
 
 @app.route("/async/pipelines", methods=["GET"])

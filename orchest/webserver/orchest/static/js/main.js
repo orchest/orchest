@@ -2,6 +2,7 @@ import {MDCTopAppBar} from "@material/top-app-bar";
 import {MDCDrawer} from "@material/drawer";
 
 import PipelinesView from "./views/PipelinesView";
+import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
 import HeaderButtons from "./views/HeaderButtons";
 import React from 'react';
@@ -20,7 +21,8 @@ function Orchest() {
         "PipelinesView": PipelinesView,
         "DataSourcesView": DataSourcesView,
         "PipelineView": PipelineView,
-        "ExperimentsView": ExperimentsView
+        "ExperimentsView": ExperimentsView,
+        "SettingsView": SettingsView,
     };
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
@@ -61,7 +63,7 @@ function Orchest() {
         response.json().then((result) => {
             if(result.success && result.result.length > 0){
                 let firstPipeline = result.result[0];
-                // this.loadView(PipelineView, {"name": firstPipeline.name, "uuid": firstPipeline.uuid });
+                // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
                 this.loadView(PipelinesView);
             }else{
                 console.warn("Could not load a first pipeline");

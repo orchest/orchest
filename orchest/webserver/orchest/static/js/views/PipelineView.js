@@ -467,26 +467,13 @@ class PipelineView extends React.Component {
     componentWillUnmount() {
     }
 
-    encodeJSON(){
-        // generate JSON representation using the internal state of React components describing the pipeline
-        let pipelineJSON = {
-            "name": this.props.name,
-            "uuid": this.props.uuid,
-            "steps": {}
-        };
+    savePipeline(){
+        
+        let pipelineJSON = this.encodeJSON();
 
-        for(let key in this.state.steps){
-            if(this.state.steps.hasOwnProperty(key)){
-                let step = this.state.steps[key];
-                pipelineJSON["steps"][step.uuid] = step;
-            }
-        }
-
-        console.log(JSON.stringify(pipelineJSON));
-
+        // store pipeline.json
         let formData = new FormData();
         formData.append("pipeline_json", JSON.stringify(pipelineJSON));
-
         formData.append("pipeline_uuid", pipelineJSON.uuid);
 
         // perform POST to save
@@ -499,22 +486,41 @@ class PipelineView extends React.Component {
             referrer: 'no-referrer', // no-referrer, *client
             body: formData
         });
+
     }
 
-    decodeJSON(jsonPipeline){
+    encodeJSON(){
+        // generate JSON representation using the internal state of React components describing the pipeline
+        let pipelineJSON = {
+            "name": this.state.pipelineJson.name,
+            "uuid": this.props.uuid,
+            "steps": {}
+        };
+
+        for(let key in this.state.steps){
+            if(this.state.steps.hasOwnProperty(key)){
+                let step = this.state.steps[key];
+                pipelineJSON["steps"][step.uuid] = step;
+            }
+        }
+
+        return pipelineJSON;
+    }
+
+    decodeJSON(pipelineJson){
         // initialize React components based on incoming JSON description of the pipeline
-        console.log(jsonPipeline);
 
         // add steps to the state
         let steps = this.state.steps;
 
-        for(let key in jsonPipeline.steps){
-            if(jsonPipeline.steps.hasOwnProperty(key)){
-                steps[key] = jsonPipeline.steps[key];
+        for(let key in pipelineJson.steps){
+            if(pipelineJson.steps.hasOwnProperty(key)){
+                steps[key] = pipelineJson.steps[key];
             }
         }
 
-        this.setState({"steps": steps});
+        // in addition to creating steps explicitly in the React state, also attach full pipelineJson
+        this.setState({"steps": steps, "pipelineJson": pipelineJson});
     }
 
     constructor(props) {
@@ -537,13 +543,13 @@ class PipelineView extends React.Component {
             steps: {},
             backend: {
                 running: false,
-                booting: false
+                working: false
             }
         }
     }
 
     openSettings(){
-        orchest.loadView(PipelineSettingsView, {"name": this.props.name, "uuid": this.props.uuid});
+        orchest.loadView(PipelineSettingsView, {"uuid": this.props.uuid});
     }
 
     componentDidMount() {
@@ -834,8 +840,8 @@ class PipelineView extends React.Component {
 
     launchPipeline(){
 
-        if(this.state.backend.booting){
-            alert("Please wait, the pipeline is still booting");
+        if(this.state.backend.working){
+            alert("Please wait, the pipeline is still busy.");
             return
         }
 
@@ -844,20 +850,10 @@ class PipelineView extends React.Component {
             // send launch request to API
 
             // perform POST to save
-            // TODO: replace hardcoded URL
-            // TODO: replace hardcoded pipeline directory
-            let userdir_pipeline = "/home/yannick/Documents/Orchest/orchest/orchest/userdir/pipelines/";
 
-            let data = {
-                "pipeline_uuid": this.props.uuid,
-                "pipeline_dir": userdir_pipeline + this.props.uuid + "/"
-            };
-
-            this.state.backend.booting = true;
-            this.setState({"backend": this.state.backend});
-
-            fetch("http://localhost:5000/api/launches/", {
-                method: 'POST',
+            // get pipeline dir from webserver
+            fetch("/async/pipelines/get_directory/" + this.props.uuid, {
+                method: 'GET',
                 mode: 'cors',
                 cache: 'no-cache',
                 credentials: 'same-origin',
@@ -866,25 +862,55 @@ class PipelineView extends React.Component {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
             }).then(handleErrors).then((response) => {
                 response.json().then((json) => {
-                    console.log("API launch result");
-                    console.log(json);
-
-                    this.state.backend.running = true;
-                    this.state.backend.booting = false;
-
-                    this.state.backend.server_ip = json.server_ip;
-                    this.state.backend.server_info = json.server_info;
+                    let userdir_pipeline = json.result;
+                    
+                    let data = {
+                        "pipeline_uuid": this.props.uuid,
+                        "pipeline_dir": userdir_pipeline
+                    };
+        
+                    this.state.backend.working = true;
 
                     this.setState({"backend": this.state.backend});
+        
+                    fetch("http://localhost:5000/api/launches/", {
+                        method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
+                        credentials: 'same-origin',
+                        redirect: 'follow', // manual, *follow, error
+                        referrer: 'no-referrer', // no-referrer, *client
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    }).then(handleErrors).then((response) => {
+                        response.json().then((json) => {
+                            console.log("API launch result");
+                            console.log(json);
+        
+                            this.state.backend.running = true;
+                            this.state.backend.working = false;
+        
+                            this.state.backend.server_ip = json.server_ip;
+                            this.state.backend.server_info = json.server_info;
+        
+                            this.setState({"backend": this.state.backend});
+        
+                            this.updateJupyterInstance();
+                        })
+                    });
 
-                    this.updateJupyterInstance();
                 })
-            });
+            })
+
+            
 
         }else{
+
+            this.state.backend.working = true;
 
             fetch("http://localhost:5000/api/launches/" + this.props.uuid, {
                 method: 'DELETE',
@@ -899,7 +925,7 @@ class PipelineView extends React.Component {
                     console.log(result);
 
                     this.state.backend.running = false;
-                    this.state.backend.booting = false;
+                    this.state.backend.working = false;
                     this.setState({"backend": this.state.backend});
                 })
             });
@@ -1024,6 +1050,8 @@ class PipelineView extends React.Component {
         step.gpus = pipelineDetailsComponent.selectGPU.value;
         step.experiment_json = pipelineDetailsComponent.experimentJSON.value;
 
+        
+
         // update steps in setState even though reference objects are directly modified - this propagates state updates
         // properly
 
@@ -1036,12 +1064,13 @@ class PipelineView extends React.Component {
         if(this.state.backend.running){
             classes.push("active");
         }
-        if(this.state.backend.booting){
-            classes.push("booting");
+        if(this.state.backend.working){
+            classes.push("working");
         }
 
         return classes.join(" ");
     }
+
 
     render() {
 
@@ -1060,8 +1089,13 @@ class PipelineView extends React.Component {
             }
         }
 
+        let pipelineName = "";
+        if(this.state.pipelineJson){
+            pipelineName = this.state.pipelineJson.name;
+        }
+
         return <div className={"pipeline-view"}>
-            <div className={"pipeline-name"}>{this.props.name}</div>
+            <div className={"pipeline-name"}>{pipelineName}</div>
             <div className={"pipeline-actions"}>
 
                 <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
@@ -1074,7 +1108,7 @@ class PipelineView extends React.Component {
                     <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i>NEW STEP</span>
                 </button>
 
-                <button ref={"encodeButton"} onClick={this.encodeJSON.bind(this)} className="mdc-button mdc-button--raised">
+                <button ref={"encodeButton"} onClick={this.savePipeline.bind(this)} className="mdc-button mdc-button--raised">
                     <div className="mdc-button__ripple"></div>
                     <span className="mdc-button__label">SAVE</span>
                 </button>

@@ -4,7 +4,7 @@ module.exports = {
     entry: './js/main.js',
     mode: 'development',
     watch: true,
-    devtool: "eval",
+    devtool: "eval-cheap-source-map",
     output: {
         path: path.resolve(__dirname, 'js/dist'),
         filename: 'main.bundle.js'

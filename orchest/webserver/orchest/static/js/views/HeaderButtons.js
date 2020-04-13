@@ -26,7 +26,7 @@ class HeaderButtons extends React.Component {
     }
 
     openView() {
-        orchest.loadView(PipelineView, {"name": this.state.pipeline.name, "uuid": this.state.pipeline.uuid});
+        orchest.loadView(PipelineView, {"uuid": this.state.pipeline.uuid});
 
         this.setState({
             "pipeline": undefined

@@ -14,7 +14,7 @@ class PipelineListItem extends React.Component {
 
     pipelineClick(){
         // load pipeline view
-        orchest.loadView(PipelineView, {"name": this.props.pipeline.name, "uuid": this.props.pipeline.uuid})
+        orchest.loadView(PipelineView, {"uuid": this.props.pipeline.uuid})
     }
 
     getChecked(){
