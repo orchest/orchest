@@ -5,9 +5,32 @@ import os
 
 
 PIPELINE_UUID = "f514b6ab-c590-4900-aa5f-ed0a1f29f95c"
+SDK_DIR = "orchest/orchest-sdk/python/src/orchest/"
+SDK_TARGET_DIR = "orchest/userdir/pipelines/" + PIPELINE_UUID + "/orchest/"
 
-# copy files
-os.system("rm -rf orchest/userdir/pipelines/" + PIPELINE_UUID + "/orchest/")
-os.system("cp -r orchest/orchest-sdk/python/src/orchest/ orchest/userdir/pipelines/" + PIPELINE_UUID + "/")
+import pyinotify
+
+wm = pyinotify.WatchManager()
+mask = pyinotify.IN_DELETE | pyinotify.IN_CREATE | pyinotify.IN_MODIFY
+
+class EventHandler(pyinotify.ProcessEvent):
+
+    def process_IN_CREATE(self, event):
+        print("Creating: ", event.pathname)
+
+    def process_IN_DELETE(self, event):
+        print("Removing: ", event.pathname)
+
+    def process_IN_MODIFY(self, event):
+        print("Modified: ", event.pathname)
+
+        # copy SDK on write
+        os.system("rm -rf " + SDK_TARGET_DIR)
+        os.system("cp -r " + SDK_DIR + " " + SDK_TARGET_DIR)
 
 
+handler = EventHandler()
+notifier = pyinotify.Notifier(wm, handler)
+wdd = wm.add_watch(SDK_DIR, mask, rec=True)
+
+notifier.loop()
