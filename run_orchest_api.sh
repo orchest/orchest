@@ -16,7 +16,7 @@ then
   docker rm $(docker stop $process_ids)
 fi
 
-process_ids=$(docker ps -a -q --filter ancestor=elyra/enterprise-gateway:dev --format="{{.ID}}")
+process_ids=$(docker ps -a -q --filter ancestor=elyra/enterprise-gateway:2.1.0 --format="{{.ID}}")
 
 if [ ! -z "$process_ids" ]
 then

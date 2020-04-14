@@ -63,6 +63,17 @@ def pipelines_create():
             with open(kernel_json_file, 'w') as file:
                 file.write(data)
 
+
+    # generate clean pipeline.json
+
+    pipeline_json = {
+        "name": pipeline.name,
+        "uuid": pipeline.uuid
+    }
+
+    with open(os.path.join(pipeline_dir, "pipeline.json"), 'w') as pipeline_json_file:
+        pipeline_json_file.write(json.dumps(pipeline_json))
+
     return jsonify({"success": True})
 
 
@@ -133,11 +144,15 @@ def get_pipeline_directory_by_uuid(uuid):
 
 
 def generate_ipynb_from_template(step):
-    template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
 
-    # TODO: support additional languages to Python
-    template_json["metadata"]["kernelspec"]["display_name"] = step["image"]["image_name"]
-    template_json["metadata"]["kernelspec"]["name"] = step["image"]["display_name"]
+    # TODO: support additional languages to Python and R
+    if "python" in step["image"]["image_name"].lower():
+        template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
+    else:
+        template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template_r.json"), "r"))
+
+    template_json["metadata"]["kernelspec"]["display_name"] = step["image"]["display_name"]
+    template_json["metadata"]["kernelspec"]["name"] = step["image"]["image_name"]
 
     return json.dumps(template_json)
 

@@ -664,7 +664,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-ucad56708 {
+@keyframes mdc-checkbox-fade-in-background-uf90ba3ae {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -676,7 +676,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-ucad56708 {
+@keyframes mdc-checkbox-fade-out-background-uf90ba3ae {
   0%,
   80% {
     border-color: #0a6df7;
@@ -690,10 +690,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-ucad56708; }
+  animation-name: mdc-checkbox-fade-in-background-uf90ba3ae; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-ucad56708; }
+  animation-name: mdc-checkbox-fade-out-background-uf90ba3ae; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1439,7 +1439,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-u36bdc8ac {
+@keyframes mdc-checkbox-fade-in-background-uc2e53b43 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1451,7 +1451,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-u36bdc8ac {
+@keyframes mdc-checkbox-fade-out-background-uc2e53b43 {
   0%,
   80% {
     border-color: #000000;
@@ -1467,12 +1467,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u36bdc8ac; }
+  animation-name: mdc-checkbox-fade-in-background-uc2e53b43; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u36bdc8ac; }
+  animation-name: mdc-checkbox-fade-out-background-uc2e53b43; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7568,6 +7568,23 @@ h2.header {
     z-index: 12;
     width: 50%;
     max-width: 450px; }
+    .pipeline-view .pipeline-details .connection-list.dragging .connection-item {
+      transition: transform 0.3s ease; }
+    .pipeline-view .pipeline-details .connection-list .connection-item {
+      overflow: auto;
+      padding: 10px 0;
+      cursor: pointer;
+      user-select: none; }
+      .pipeline-view .pipeline-details .connection-list .connection-item.swapped-up {
+        transform: translateY(-100%); }
+      .pipeline-view .pipeline-details .connection-list .connection-item.swapped-down {
+        transform: translateY(100%); }
+      .pipeline-view .pipeline-details .connection-list .connection-item.selected {
+        transition: none; }
+      .pipeline-view .pipeline-details .connection-list .connection-item i.material-icons {
+        float: left;
+        padding-right: 10px;
+        margin-top: -2px; }
     .pipeline-view .pipeline-details .mdc-text-field--textarea {
       width: 100%; }
       .pipeline-view .pipeline-details .mdc-text-field--textarea textarea {

@@ -1,7 +1,8 @@
 // My main SCSS file.
 $mdc-theme-primary: #000000;
 $mdc-theme-secondary: #0a6df7;
-$mdc-theme-background: #fff;7
+$mdc-theme-background: #fff;
+
 @import "../node_modules/material-components-web/material-components-web";
 
 * {
@@ -11,7 +12,7 @@ $mdc-theme-background: #fff;7
 *:focus {
   outline: none;
 }
-
+ 
 html,
 body {
   font-size: 17px;
@@ -353,6 +354,41 @@ h2.header {
     z-index: 12;
     width: 50%;
     max-width: 450px;
+
+    .connection-list {
+
+      &.dragging {
+        .connection-item {
+          transition: transform 0.3s ease;
+        }
+      }
+
+      .connection-item {
+        overflow: auto;
+        padding: 10px 0;
+        cursor: pointer;
+        user-select: none;
+
+        &.swapped-up {
+          transform: translateY(-100%);
+        }
+        &.swapped-down {
+          transform: translateY(100%);
+        }
+
+        &.selected {
+          transition: none;
+        }
+  
+        i.material-icons {
+          float: left;
+          padding-right: 10px;
+          margin-top: -2px;
+        }
+      }
+    }
+
+    
 
     .mdc-text-field--textarea {
       textarea {
