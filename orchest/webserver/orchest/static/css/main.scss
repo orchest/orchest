@@ -1,9 +1,7 @@
-// My main SCSS file.
-$mdc-theme-primary: #000000;
-$mdc-theme-secondary: #0a6df7;
-$mdc-theme-background: #fff;
+@import "vars";
 
 @import "../node_modules/material-components-web/material-components-web";
+
 
 * {
   box-sizing: border-box;
@@ -202,6 +200,7 @@ h2.header {
     position: absolute;
     padding: $generalPadding;
     font-size: 21px;
+    z-index: 3;
   }
 
   .pipeline-actions {
@@ -230,12 +229,21 @@ h2.header {
     height: 100%;
     background-image: url("../image/cross-fill.svg");
     background-repeat: repeat;
+    position: relative;
+    user-select: none;
 
+    .step-selector {
+      position: absolute;
+      z-index:  0;
+      background: rgba(0,0,0,.1);
+    }
 
     .connection {
       position: absolute;
       left: 0;
       top: 0;
+
+      z-index: 1;
 
       &.selected {
 
@@ -256,7 +264,7 @@ h2.header {
         background-repeat: no-repeat;
         right: 7px;
         bottom: -2px;
-        transition: 0.3s opacity ease;
+        transition: 0s opacity ease;
       }
 
       &.flipped {
@@ -287,8 +295,8 @@ h2.header {
 
     .pipeline-step {
 
-      $pipelineHeight: 80px;
-      $pipelineWidth: 160px;
+      $pipelineHeight: 84px;
+      $pipelineWidth: 170px;
 
       position: absolute;
       background: #fff;
@@ -300,9 +308,28 @@ h2.header {
       width: $pipelineWidth;
       height: $pipelineHeight;
       text-align: center;
-      z-index: 1;
+      z-index: 2;
+
+
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
+
+      transition: border 0.3s ease;
+      transition-property: border, background;
+
+      &.selected {
+        border-color: $mdc-theme-secondary;
+        background: rgb(245, 245, 255);
+        // border-width: 2px;
+
+        // .connection-point {
+        //   left: -6px; 
+
+        //   &.outgoing-connections {
+        //     right: -6px;
+        //   }
+        // }
+      }
 
       .step-label-holder {
         display: block;
@@ -321,6 +348,14 @@ h2.header {
         overflow: hidden;
         font-size: 15px;
       }
+      span.filename {
+        display: block;
+        font-size: 14px;
+        padding-top: 4px;
+        color: #555;
+      }
+
+      
 
       .connection-point {
         display: block;
@@ -332,6 +367,8 @@ h2.header {
         top: 50%;
         transform: translateY(-50%);
         left: -5px;
+
+        transition: left 0.3s ease;
 
         &.outgoing-connections {
           right: -5px;
@@ -368,6 +405,11 @@ h2.header {
         padding: 10px 0;
         cursor: pointer;
         user-select: none;
+
+        span.filename {
+          color: #555;
+          display: inline-block;
+        }
 
         &.swapped-up {
           transform: translateY(-100%);

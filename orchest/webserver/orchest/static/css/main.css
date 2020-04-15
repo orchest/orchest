@@ -1,3 +1,8 @@
+:export {
+  mdcthemeprimary: #000000;
+  mdcthemesecondary: #0a6df7;
+  mdcthemebackground: #fff; }
+
 .mdc-touch-target-wrapper {
   display: inline; }
 
@@ -664,7 +669,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-uf90ba3ae {
+@keyframes mdc-checkbox-fade-in-background-u4b6ce8e8 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -676,7 +681,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-uf90ba3ae {
+@keyframes mdc-checkbox-fade-out-background-u4b6ce8e8 {
   0%,
   80% {
     border-color: #0a6df7;
@@ -690,10 +695,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-uf90ba3ae; }
+  animation-name: mdc-checkbox-fade-in-background-u4b6ce8e8; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-uf90ba3ae; }
+  animation-name: mdc-checkbox-fade-out-background-u4b6ce8e8; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1439,7 +1444,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-uc2e53b43 {
+@keyframes mdc-checkbox-fade-in-background-u7a95ac04 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1451,7 +1456,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-uc2e53b43 {
+@keyframes mdc-checkbox-fade-out-background-u7a95ac04 {
   0%,
   80% {
     border-color: #000000;
@@ -1467,12 +1472,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-uc2e53b43; }
+  animation-name: mdc-checkbox-fade-in-background-u7a95ac04; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-uc2e53b43; }
+  animation-name: mdc-checkbox-fade-out-background-u7a95ac04; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7469,7 +7474,8 @@ h2.header {
   .pipeline-view .pipeline-name {
     position: absolute;
     padding: 20px;
-    font-size: 21px; }
+    font-size: 21px;
+    z-index: 3; }
   .pipeline-view .pipeline-actions {
     position: absolute;
     right: 0;
@@ -7486,11 +7492,18 @@ h2.header {
   .pipeline-view .pipeline-steps-holder {
     height: 100%;
     background-image: url("../image/cross-fill.svg");
-    background-repeat: repeat; }
+    background-repeat: repeat;
+    position: relative;
+    user-select: none; }
+    .pipeline-view .pipeline-steps-holder .step-selector {
+      position: absolute;
+      z-index: 0;
+      background: rgba(0, 0, 0, 0.1); }
     .pipeline-view .pipeline-steps-holder .connection {
       position: absolute;
       left: 0;
       top: 0;
+      z-index: 1;
       pointer-events: none; }
       .pipeline-view .pipeline-steps-holder .connection.selected:after {
         background-image: url("../image/arrow-head-blue.svg"); }
@@ -7505,7 +7518,7 @@ h2.header {
         background-repeat: no-repeat;
         right: 7px;
         bottom: -2px;
-        transition: 0.3s opacity ease; }
+        transition: 0s opacity ease; }
       .pipeline-view .pipeline-steps-holder .connection.flipped:after {
         bottom: auto;
         top: -3px; }
@@ -7525,25 +7538,35 @@ h2.header {
       border-radius: 6px;
       cursor: pointer;
       user-select: none;
-      width: 160px;
-      height: 80px;
+      width: 170px;
+      height: 84px;
       text-align: center;
-      z-index: 1;
-      box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1); }
+      z-index: 2;
+      box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
+      transition: border 0.3s ease;
+      transition-property: border, background; }
+      .pipeline-view .pipeline-steps-holder .pipeline-step.selected {
+        border-color: #0a6df7;
+        background: #f5f5ff; }
       .pipeline-view .pipeline-steps-holder .pipeline-step .step-label-holder {
         display: block;
         height: 100%;
         overflow: hidden; }
       .pipeline-view .pipeline-steps-holder .pipeline-step .step-label {
         text-overflow: ellipsis;
-        height: 60px;
-        max-height: 60px;
-        width: 120px;
-        max-width: 120px;
+        height: 64px;
+        max-height: 64px;
+        width: 130px;
+        max-width: 130px;
         display: table-cell;
         vertical-align: middle;
         overflow: hidden;
         font-size: 15px; }
+      .pipeline-view .pipeline-steps-holder .pipeline-step span.filename {
+        display: block;
+        font-size: 14px;
+        padding-top: 4px;
+        color: #555; }
       .pipeline-view .pipeline-steps-holder .pipeline-step .connection-point {
         display: block;
         width: 10px;
@@ -7553,7 +7576,8 @@ h2.header {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        left: -5px; }
+        left: -5px;
+        transition: left 0.3s ease; }
         .pipeline-view .pipeline-steps-holder .pipeline-step .connection-point.outgoing-connections {
           right: -5px;
           left: auto; }
@@ -7575,6 +7599,9 @@ h2.header {
       padding: 10px 0;
       cursor: pointer;
       user-select: none; }
+      .pipeline-view .pipeline-details .connection-list .connection-item span.filename {
+        color: #555;
+        display: inline-block; }
       .pipeline-view .pipeline-details .connection-list .connection-item.swapped-up {
         transform: translateY(-100%); }
       .pipeline-view .pipeline-details .connection-list .connection-item.swapped-down {

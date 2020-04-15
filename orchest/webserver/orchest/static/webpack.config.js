@@ -19,13 +19,24 @@ module.exports = {
             {
                 use: [{
                     loader: "cache-loader"
-                }, {
+                },
+                {
                     loader: "babel-loader",
                     query: {
                         presets: ['@babel/preset-env'],
                     },
                 }],
                 include: path.resolve(__dirname, 'js'),
+            },
+            {
+                test: /\.scss$/,
+                use: [{
+                    loader: "style-loader" // creates style nodes from JS strings
+                }, {
+                    loader: "css-loader" // translates CSS into CommonJS
+                }, {
+                    loader: "sass-loader" // compiles Sass to CSS
+                }]
             }
         ]
     },

@@ -10,7 +10,6 @@ import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import ExperimentsView from "./views/ExperimentsView";
 import Jupyter from "./jupyter/Jupyter";
-import PipelineSettingsView from "./views/PipelineSettingsView";
 import {handleErrors} from "./utils/all";
 
 function Orchest() {
@@ -26,7 +25,6 @@ function Orchest() {
     };
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
-
 
     // mount titlebare componenet
     this.headerBar = document.querySelector(".header-bar-interactive");
@@ -76,8 +74,20 @@ function Orchest() {
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));
     topAppBar.setScrollTarget(document.getElementById('main-content'));
     topAppBar.listen('MDCTopAppBar:nav', () => {
+
+      window.localStorage.setItem("topAppBar.open", "" + !drawer.open);
+
       drawer.open = !drawer.open;
     });
+
+    // persist nav menu to localStorage
+    if(window.localStorage.getItem("topAppBar.open") !== null){
+        if(window.localStorage.getItem("topAppBar.open") === "true"){
+            drawer.open = true;
+        }else{
+            drawer.open = false;
+        }
+    }
 
     // to embed an <iframe> in the main application as a first class citizen (with state) there needs to be a
     // persistent element on the page. It will only be created when the JupyterLab UI is first requested.

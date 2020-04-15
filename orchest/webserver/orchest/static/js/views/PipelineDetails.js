@@ -10,7 +10,7 @@ class ConnectionItem extends React.Component {
     }
 
     render(){
-        return <div className="connection-item" data-uuid={this.props.connection.uuid}><i className="material-icons">drag_indicator</i> {this.props.connection.name}</div>
+        return <div className="connection-item" data-uuid={this.props.connection.uuid}><i className="material-icons">drag_indicator</i> <span>{this.props.connection.name[0]}</span> <span className="filename">({this.props.connection.name[1]})</span></div>
     }
 }
 
@@ -68,8 +68,8 @@ class PipelineDetails extends React.Component {
         this.inputFileName = new MDCTextField(this.refs.inputFileName);
         this.inputFileName.value = filepath;
 
-        this.inputName = new MDCTextField(this.refs.inputName);
-        this.inputName.value = this.props.step.name;
+        this.inputTitle = new MDCTextField(this.refs.inputTitle);
+        this.inputTitle.value = this.props.step.title;
 
         this.inputMemory = new MDCTextField(this.refs.inputMemory);
         this.inputMemory.value = this.props.step.memory;
@@ -99,7 +99,7 @@ class PipelineDetails extends React.Component {
         this.saveButtonRipple = new MDCRipple(this.refs.saveButton);
         this.deleteButtonRipple = new MDCRipple(this.refs.deleteButton);
 
-        this.inputName.focus();
+        this.inputTitle.focus();
 
         this.experimentJSON = new MDCTextField(this.refs.experimentJSON);
         this.experimentJSON.value = this.props.step.experiment_json;
@@ -251,11 +251,11 @@ class PipelineDetails extends React.Component {
         return <div className={"pipeline-details"}>
             <h3>Pipeline step</h3>
 
-            <div ref={"inputName"} className="mdc-text-field fullwidth push-down">
+            <div ref={"inputTitle"} className="mdc-text-field fullwidth push-down">
                 <input onChange={this.changeName.bind(this)} className="mdc-text-field__input"
                        type="text"
                        id="step-input-name" />
-                <label className="mdc-floating-label" htmlFor="step-input-name">Pipeline step name</label>
+                <label className="mdc-floating-label" htmlFor="step-input-name">Title</label>
                 <div className="mdc-line-ripple"></div>
             </div>
 
