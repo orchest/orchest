@@ -2,9 +2,12 @@
 
 @import "../node_modules/material-components-web/material-components-web";
 
+@import "scrollbar";
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0
 }
 
 *:focus {
@@ -392,6 +395,10 @@ h2.header {
     width: 50%;
     max-width: 450px;
 
+    .input-group {
+      margin-bottom: $generalPadding;
+    }
+
     .connection-list {
 
       &.dragging {
@@ -445,10 +452,22 @@ h2.header {
       width: 100%;
     }
 
+    display: flex;
+    flex-direction: column;
+
+    .overflowable {
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 1;
+
+      &.overflown {
+        padding-right: $generalPadding;
+      }
+    }
+
     .action-buttons-bottom {
-      position: absolute;
-      bottom: $generalPadding;
-      left: $generalPadding;
+
+      padding-top: $generalPadding;
 
       .notebook-actions {
         margin-bottom: $generalPadding;

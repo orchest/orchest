@@ -12,6 +12,8 @@ import ExperimentsView from "./views/ExperimentsView";
 import Jupyter from "./jupyter/Jupyter";
 import {handleErrors} from "./utils/all";
 
+import './lib/overflowing';
+
 function Orchest() {
 
     this.reactRoot = document.querySelector(".react-view-root");

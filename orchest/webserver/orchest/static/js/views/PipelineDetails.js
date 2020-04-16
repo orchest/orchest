@@ -1,6 +1,8 @@
 import {MDCTextField} from '@material/textfield';
 import {MDCSelect} from '@material/select';
 import {MDCRipple} from '@material/ripple';
+import {nameToFilename} from "../utils/all";
+
 
 import React from 'react';
 
@@ -18,7 +20,7 @@ class ConnectionItem extends React.Component {
 class PipelineDetails extends React.Component {
 
     changeFileName(){
-
+        this.props.onNameUpdate(this.props.step.uuid, this.inputTitle.value, this.inputFileName.value + this.selectFileType.value);
     }
 
     changeImage(){
@@ -43,21 +45,30 @@ class PipelineDetails extends React.Component {
     }
 
     changeName(e){
-        this.inputFileName.value = nameToFilename(e.target.value);
-
         // send name update to React state
-        this.props.onNameUpdate(this.props.step.uuid, e.target.value);
+        this.props.onNameUpdate(this.props.step.uuid, this.inputTitle.value, this.inputFileName.value + this.selectFileType.value);
     }
 
     onSave(){
         this.props.onSave(this);
     }
 
+    onCancel(){
+        this.props.onNameUpdate(this.props.step.uuid, this.initialTitle, this.initialFilePath);
+        this.props.onCancel(this);
+    }
+
+
     onOpenNotebook(){
         this.props.onOpenNotebook(this);
     }
 
     componentDidMount() {
+
+        // store initial filename and for restore on cancel
+        this.initialFilePath = this.props.step.file_path;
+        this.initialTitle = this.props.step.title;
+
 
         this.selectFileType = new MDCSelect(this.refs.selectFile);
         let split_file_path = this.props.step.file_path.split(".");
@@ -97,6 +108,7 @@ class PipelineDetails extends React.Component {
         // });
 
         this.saveButtonRipple = new MDCRipple(this.refs.saveButton);
+        this.cancelButtonRipple = new MDCRipple(this.refs.cancelButton);
         this.deleteButtonRipple = new MDCRipple(this.refs.deleteButton);
 
         this.inputTitle.focus();
@@ -209,6 +221,20 @@ class PipelineDetails extends React.Component {
                 _this.swapConnectionOrder(oldConnectionIndex, newConnectionIndex);
             }
         });
+
+        // overflow checks
+        $(window).on("resize.pipelineDetails", this.overflowChecks.bind(this))
+        this.overflowChecks();
+    }
+
+    overflowChecks(){
+        $('.overflowable').each(function(){
+            if($(this).overflowing()){
+                $(this).addClass("overflown");
+            }else{
+                $(this).removeClass("overflown");
+            }
+        })
     }
 
     swapConnectionOrder(oldConnectionIndex, newConnectionIndex){
@@ -235,6 +261,7 @@ class PipelineDetails extends React.Component {
     componentWillUnmount(){
         $(document).off("mouseup.connectionList");
         $(document).off("mousemove.connectionList");
+        $(window).off("resize.pipelineDetails");
     }
 
     render() {
@@ -249,153 +276,164 @@ class PipelineDetails extends React.Component {
         ));
 
         return <div className={"pipeline-details"}>
-            <h3>Pipeline step</h3>
+            <div className={"overflowable"}>
+                <div className="input-group">
+                    <h3>Pipeline step</h3>
 
-            <div ref={"inputTitle"} className="mdc-text-field fullwidth push-down">
-                <input onChange={this.changeName.bind(this)} className="mdc-text-field__input"
-                       type="text"
-                       id="step-input-name" />
-                <label className="mdc-floating-label" htmlFor="step-input-name">Title</label>
-                <div className="mdc-line-ripple"></div>
-            </div>
-
-            <div className={"multi-field-input"}>
-                <div ref={"inputFileName"} className="mdc-text-field">
-                    <input onChange={this.changeFileName.bind(this)} className="mdc-text-field__input"
-                           type="text"
-                           id="step-input-file_name" />
-                    <label className="mdc-floating-label" htmlFor="step-input-file_name">File name</label>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-                <div className="mdc-select" ref={"selectFile"}>
-                    <div className="mdc-select__anchor fullwidth">
-                        <i className="mdc-select__dropdown-icon"></i>
-                        <div className="mdc-select__selected-text"></div>
-                        <span className="mdc-floating-label">File extension</span>
+                    <div ref={"inputTitle"} className="mdc-text-field fullwidth push-down">
+                        <input onChange={this.changeName.bind(this)} className="mdc-text-field__input"
+                            type="text"
+                            id="step-input-name" />
+                        <label className="mdc-floating-label" htmlFor="step-input-name">Title</label>
                         <div className="mdc-line-ripple"></div>
                     </div>
 
-                    <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                        <ul className="mdc-list">
+                    <div className={"multi-field-input"}>
+                        <div ref={"inputFileName"} className="mdc-text-field">
+                            <input onChange={this.changeFileName.bind(this)} className="mdc-text-field__input"
+                                type="text"
+                                id="step-input-file_name" />
+                            <label className="mdc-floating-label" htmlFor="step-input-file_name">File name</label>
+                            <div className="mdc-line-ripple"></div>
+                        </div>
+                        <div className="mdc-select" ref={"selectFile"}>
+                            <div className="mdc-select__anchor fullwidth">
+                                <i className="mdc-select__dropdown-icon"></i>
+                                <div className="mdc-select__selected-text"></div>
+                                <span className="mdc-floating-label">File extension</span>
+                                <div className="mdc-line-ripple"></div>
+                            </div>
 
-                            <li className="mdc-list-item" data-value=".ipynb">
-                                .ipynb
-                            </li>
-                            <li className="mdc-list-item" data-value=".py">
-                                .py
-                            </li>
-                            <li className="mdc-list-item" data-value=".R">
-                                .R
-                            </li>
-                            <li className="mdc-list-item" data-value=".sh">
-                                .sh
-                            </li>
-                        </ul>
+                            <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
+                                <ul className="mdc-list">
+
+                                    <li className="mdc-list-item" data-value=".ipynb">
+                                        .ipynb
+                                    </li>
+                                    <li className="mdc-list-item" data-value=".py">
+                                        .py
+                                    </li>
+                                    <li className="mdc-list-item" data-value=".R">
+                                        .R
+                                    </li>
+                                    <li className="mdc-list-item" data-value=".sh">
+                                        .sh
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <span className={'clear'}></span>
+                    </div>
+
+                    <div className="mdc-select" ref={"selectKernel"}>
+                        <div className="mdc-select__anchor demo-width-class">
+                            <i className="mdc-select__dropdown-icon"></i>
+                            <div className="mdc-select__selected-text"></div>
+                            <span className="mdc-floating-label">Kernel image</span>
+                            <div className="mdc-line-ripple"></div>
+                        </div>
+
+                        <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
+                            <ul className="mdc-list">
+                                <li className="mdc-list-item" data-value="python_docker">
+                                    Python on Docker
+                                </li>
+                                <li className="mdc-list-item" data-value="r_docker">
+                                    R on Docker
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-                <span className={'clear'}></span>
-            </div>
 
-            <div className="mdc-select" ref={"selectKernel"}>
-                <div className="mdc-select__anchor demo-width-class">
-                    <i className="mdc-select__dropdown-icon"></i>
-                    <div className="mdc-select__selected-text"></div>
-                    <span className="mdc-floating-label">Kernel image</span>
-                    <div className="mdc-line-ripple"></div>
-                </div>
+                <div className="input-group">
+                    <h3>Compute resources</h3>
 
-                <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                    <ul className="mdc-list">
-                        <li className="mdc-list-item" data-value="python_docker">
-                            Python on Docker
-                        </li>
-                        <li className="mdc-list-item" data-value="r_docker">
-                            R on Docker
-                        </li>
-                    </ul>
-                </div>
-            </div>
+                    <div className="mdc-select push-down" ref={"selectVCPU"}>
+                        <div className="mdc-select__anchor demo-width-class">
+                            <i className="mdc-select__dropdown-icon"></i>
+                            <div className="mdc-select__selected-text"></div>
+                            <span className="mdc-floating-label">Number of vCPUs</span>
+                            <div className="mdc-line-ripple"></div>
+                        </div>
 
-            <h3>Compute resources</h3>
-
-            <div className="mdc-select push-down" ref={"selectVCPU"}>
-                <div className="mdc-select__anchor demo-width-class">
-                    <i className="mdc-select__dropdown-icon"></i>
-                    <div className="mdc-select__selected-text"></div>
-                    <span className="mdc-floating-label">Number of vCPUs</span>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-
-                <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                    <ul className="mdc-list">
-                        <li className="mdc-list-item" data-value="1">
-                            1 vCPU
-                        </li>
-                        <li className="mdc-list-item" data-value="2">
-                            2 vCPUs
-                        </li>
-                        <li className="mdc-list-item" data-value="4">
-                            4 vCPUs
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div className="mdc-select push-down" ref={"selectGPU"}>
-                <div className="mdc-select__anchor demo-width-class">
-                    <i className="mdc-select__dropdown-icon"></i>
-                    <div className="mdc-select__selected-text"></div>
-                    <span className="mdc-floating-label">Number of GPUs</span>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-
-                <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                    <ul className="mdc-list">
-                        <li className="mdc-list-item" data-value="0">
-                            No GPU
-                        </li>
-                        <li className="mdc-list-item" data-value="1">
-                            1 GPU
-                        </li>
-                        <li className="mdc-list-item" data-value="2">
-                            2 GPUs
-                        </li>
-                        <li className="mdc-list-item" data-value="3">
-                            3 GPUs
-                        </li>
-                        <li className="mdc-list-item" data-value="4">
-                            4 GPUs
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <label>
-                <div ref={"inputMemory"} className="mdc-text-field">
-                    <input id="step-input-memory" onChange={this.changeMemory.bind(this)}  className="mdc-text-field__input"
-                       type="number" />
-                    <label className="mdc-floating-label" htmlFor="step-input-memory">Memory (in MiB)</label>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-            </label>
-
-            <h3>Experiment</h3>
-
-            <div className="mdc-text-field mdc-text-field--textarea" ref="experimentJSON">
-                <textarea className="mdc-text-field__input" rows="5"></textarea>
-                <div className="mdc-notched-outline">
-                    <div className="mdc-notched-outline__leading"></div>
-                    <div className="mdc-notched-outline__notch">
-                        <label htmlFor="textarea" className="mdc-floating-label">JSON argument description</label>
+                        <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
+                            <ul className="mdc-list">
+                                <li className="mdc-list-item" data-value="1">
+                                    1 vCPU
+                                </li>
+                                <li className="mdc-list-item" data-value="2">
+                                    2 vCPUs
+                                </li>
+                                <li className="mdc-list-item" data-value="4">
+                                    4 vCPUs
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                    <div className="mdc-notched-outline__trailing"></div>
+
+                    <div className="mdc-select push-down" ref={"selectGPU"}>
+                        <div className="mdc-select__anchor demo-width-class">
+                            <i className="mdc-select__dropdown-icon"></i>
+                            <div className="mdc-select__selected-text"></div>
+                            <span className="mdc-floating-label">Number of GPUs</span>
+                            <div className="mdc-line-ripple"></div>
+                        </div>
+
+                        <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
+                            <ul className="mdc-list">
+                                <li className="mdc-list-item" data-value="0">
+                                    No GPU
+                                </li>
+                                <li className="mdc-list-item" data-value="1">
+                                    1 GPU
+                                </li>
+                                <li className="mdc-list-item" data-value="2">
+                                    2 GPUs
+                                </li>
+                                <li className="mdc-list-item" data-value="3">
+                                    3 GPUs
+                                </li>
+                                <li className="mdc-list-item" data-value="4">
+                                    4 GPUs
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <label>
+                        <div ref={"inputMemory"} className="mdc-text-field">
+                            <input id="step-input-memory" onChange={this.changeMemory.bind(this)}  className="mdc-text-field__input"
+                            type="number" />
+                            <label className="mdc-floating-label" htmlFor="step-input-memory">Memory (in MiB)</label>
+                            <div className="mdc-line-ripple"></div>
+                        </div>
+                    </label>
                 </div>
-            </div>
 
-            <h3>Connections</h3>
+                <div className="input-group">
+                    <h3>Experiment</h3>
 
-            <div className="connection-list" ref="connectionList">
-                { connections }
+                    <div className="mdc-text-field mdc-text-field--textarea" ref="experimentJSON">
+                        <textarea className="mdc-text-field__input" rows="5"></textarea>
+                        <div className="mdc-notched-outline">
+                            <div className="mdc-notched-outline__leading"></div>
+                            <div className="mdc-notched-outline__notch">
+                                <label htmlFor="textarea" className="mdc-floating-label">JSON argument description</label>
+                            </div>
+                            <div className="mdc-notched-outline__trailing"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="input-group">
+                    <h3>Connections</h3>
+
+                    <div className="connection-list" ref="connectionList">
+                        { connections }
+                    </div>
+                </div>
+
             </div>
 
             <div className={"action-buttons-bottom"}>
@@ -418,6 +456,11 @@ class PipelineDetails extends React.Component {
                     <button ref={"saveButton"} onClick={this.onSave.bind(this)} className="mdc-button mdc-button--raised save-button">
                         <div className="mdc-button__ripple"></div>
                         <span className="mdc-button__label">Save</span>
+                    </button>
+
+                    <button ref={"cancelButton"} onClick={this.onCancel.bind(this)} className="mdc-button mdc-button--raised save-button">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label">Cancel</span>
                     </button>
 
                     <button ref={"deleteButton"} className="mdc-button mdc-button--raised" onClick={this.props.onDelete.bind(this)}>

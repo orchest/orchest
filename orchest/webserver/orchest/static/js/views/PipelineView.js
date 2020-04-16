@@ -395,10 +395,16 @@ class PipelineView extends React.Component {
         let _this = this;
 
         $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step", function(e) {
-            if(!$(e.target).hasClass('connection-point')){
-                _this.selectedItem = _this.pipelineSteps[$(e.currentTarget).attr('data-uuid')];
+
+            if(e.button === 0){
+
+                if(!$(e.target).hasClass('connection-point')){
+                    _this.selectedItem = _this.pipelineSteps[$(e.currentTarget).attr('data-uuid')];
+                }
+                _this.prevPosition = [e.clientX, e.clientY];
+
             }
-            _this.prevPosition = [e.clientX, e.clientY];
+            
         });
 
         $(document).on("mouseup.initializePipeline", function(e){
@@ -428,13 +434,22 @@ class PipelineView extends React.Component {
             _this.selectedItem = undefined;
 
             if(_this.newConnection){
-                if($(e.target).hasClass("incoming-connections")){
+
+                // check whether there already exists a connection
+                let endNodeUUID = $(e.target).parents(".pipeline-step").attr('data-uuid');
+                let startNodeUUID = _this.newConnection.startNode.parents(".pipeline-step").attr('data-uuid');
+
+                let dragEndedInIcomingConnectionsElement = $(e.target).hasClass("incoming-connections");
+                let noConnectionExists = true;
+
+                if(dragEndedInIcomingConnectionsElement){
+                    noConnectionExists = _this.refs[endNodeUUID].props.step.incoming_connections.indexOf(startNodeUUID) === -1;
+                }
+
+                if(dragEndedInIcomingConnectionsElement && noConnectionExists){
+
                     // newConnection
                     _this.newConnection.setEndNode($(e.target));
-
-                    let startNodeUUID = _this.newConnection.startNode.parents(".pipeline-step").attr('data-uuid');
-                    let endNodeUUID = $(e.target).parents(".pipeline-step").attr('data-uuid');
-
                     _this.refs[endNodeUUID].props.onConnect(startNodeUUID, endNodeUUID);
                     _this.newConnection.render();
 
@@ -458,34 +473,45 @@ class PipelineView extends React.Component {
 
         $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step .outgoing-connections", function(e) {
 
-            // create connection
-            _this.createConnection($(e.target));
+            if(e.button === 0){
+
+                // create connection
+                _this.createConnection($(e.target));
+
+            }
+            
 
         });
 
         $(this.refs.pipelineStepsHolder).on("mousedown", (e) => {
-            if(e.target === this.refs.pipelineStepsHolder){
-                if(this.selectedConnection){
-                    this.deselectConnection();
-                }
 
-                this.deselectSteps();
+            if(e.button === 0){
+                if(e.target === this.refs.pipelineStepsHolder){
+                    if(this.selectedConnection){
+                        this.deselectConnection();
+                    }
+    
+                    this.deselectSteps();
+                }
             }
+            
         });
 
         $(this.refs.pipelineStepsHolder).on("mousedown", "#path", function(e) {
 
-            if(_this.selectedConnection){
-                _this.selectedConnection.deselectState();
+            if(e.button === 0){
+                if(_this.selectedConnection){
+                    _this.selectedConnection.deselectState();
+                }
+    
+                let connection = $(this).parents("svg").parents(".connection");
+                let startNodeUUID = connection.attr("data-start-uuid");
+                let endNodeUUID = connection.attr("data-end-uuid");
+    
+                _this.selectedConnection = _this.getConnectionByUUIDs(startNodeUUID, endNodeUUID);
+    
+                _this.selectedConnection.selectState();
             }
-
-            let connection = $(this).parents("svg").parents(".connection");
-            let startNodeUUID = connection.attr("data-start-uuid");
-            let endNodeUUID = connection.attr("data-end-uuid");
-
-            _this.selectedConnection = _this.getConnectionByUUIDs(startNodeUUID, endNodeUUID);
-
-            _this.selectedConnection.selectState();
 
         });
 
@@ -756,11 +782,11 @@ class PipelineView extends React.Component {
         this.state.steps[pipelineStepUUID].meta_data.position = [x, y];
     }
 
-    stepNameUpdate(pipelineStepUUID, name){
-        this.state.steps[pipelineStepUUID].name = name;
+    stepNameUpdate(pipelineStepUUID, title, file_path){
+        this.state.steps[pipelineStepUUID].title = title;
+        this.state.steps[pipelineStepUUID].file_path = file_path;
         this.setState({"steps": this.state.steps});
     }
-
 
     makeConnection(sourcePipelineStepUUID, targetPipelineStepUUID){
         if(this.state.steps[targetPipelineStepUUID].incoming_connections.indexOf(sourcePipelineStepUUID) === -1){
@@ -819,6 +845,10 @@ class PipelineView extends React.Component {
         orchest.headerBarComponent.setPipeline(this.props);
     }
 
+    onCancelDetails(pipelineDetailsComponent){
+        this.setState({"openedStep": undefined});
+    }
+
     onSaveDetails(pipelineDetailsComponent){
 
         // update step state based on latest state of pipelineDetails component
@@ -857,7 +887,7 @@ class PipelineView extends React.Component {
 
     pipelineStepsHolderDown(e){
 
-        if($(e.target).hasClass('pipeline-steps-holder')){
+        if($(e.target).hasClass('pipeline-steps-holder') && e.button === 0){
 
             let pipelineStepHolderOffset = $(e.target).offset();
 
@@ -1039,6 +1069,7 @@ class PipelineView extends React.Component {
                             onDelete={this.onDetailsDelete.bind(this)}
                             onNameUpdate={this.stepNameUpdate.bind(this)}
                             onSave={this.onSaveDetails.bind(this)}
+                            onCancel={this.onCancelDetails.bind(this)}
                             onOpenNotebook={this.onOpenNotebook.bind(this)}
                             connections={connections_list}
                             step={this.state.steps[this.state.openedStep]} />

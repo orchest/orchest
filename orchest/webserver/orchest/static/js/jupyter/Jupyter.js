@@ -20,6 +20,8 @@ class Jupyter {
         this.jupyterHolder.removeClass("hidden");
     }
     hide(){
+        // unload JupyterLab page on hide to avoid background activity
+        this.iframe.src = "about:blank";
         this.jupyterHolder.addClass("hidden");
     }
 
