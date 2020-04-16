@@ -5,6 +5,10 @@ class Config:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///resources.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # Celery configurations. Note that they have to be lowercase.
+    broker_url = None
+    imports = ['app.core.tasks', ]
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
