@@ -30,7 +30,7 @@ def run_partial(uuids, type_of_run, pipeline_description):
 
 def get_pipeline_to_execute(uuids, type_of_run, pipeline_description):
     if type_of_run == 'full':
-        return Pipeline.initialize_from_file(pipeline_description)
+        return Pipeline.from_json(pipeline_description)
 
     if type_of_run == 'selection':
         # Remove all steps from the pipeline, that are not including in
@@ -39,25 +39,33 @@ def get_pipeline_to_execute(uuids, type_of_run, pipeline_description):
         # It is done like this because if a--> b is selected then the
         # order should be kept in mind. We cannot simply execute a and
         # b as if they are independent.
-        return Pipeline.initialize_from_file(pipeline_description).keep(uuids)
+        return Pipeline.from_json(pipeline_description).keep(uuids)
 
     if type_of_run == 'incoming':
-        return Pipeline.initialize_from_file(pipeline_description).incoming(uuids)
+        return Pipeline.from_json(pipeline_description).incoming(uuids)
 
 
 # OUTSIDE: allows for a selection of one step, to create the step and
 # execute it.
-class Step:
-    def __init__(self):
-        self.parents = []
-        self.container_image: str = None
+class PipelineStep:
+    def __init__(self, properties: dict, parents: list = None):
+        self.properties = properties
+        self.parents = parents if parents is not None else []
 
-    async def execute_single(self, docker, wait=True):
-        config = {'Image': self.container_image}
+        self._children = []
+
+    def __hash__(self):
+        return hash(self.properties['uuid'])
+
+    def __repr__(self):
+        return f'<PipelineStep: {self.properties["name"]}>'
+
+    async def execute_single(self, docker, wait_on_completion=True):
+        config = {'Image': self.properties['image']['image_name']}
 
         container = await docker.containers.run(config=config)
 
-        if wait:
+        if wait_on_completion:
             await container.wait()
 
     async def execute(self, docker):
@@ -68,45 +76,74 @@ class Step:
 
 
 class Pipeline:
-    def __init__(self, nodes=None):
-        self.nodes = nodes
+    def __init__(self, steps=None):
+        self.steps = steps
 
         # TODO: when initializing from file, set the sentinel.
-        self._sentinel: Step = None
+        self._sentinel: PipelineStep = None
 
     @classmethod
-    def initialize_from_file(cls, json):
+    def from_json(cls, description):
+        """
+        Args:
+            description (dict): json description of Pipeline.
+        """
         # Can be thought of as an alternative constructor
-        nodes = [Step()]
-        # TODO: set the sentinel.
-        return cls(nodes)
+        steps = {uuid: PipelineStep(properties) for uuid, properties in description['steps'].items()}
+
+        for _, step in steps.items():
+            step.parents = [steps[uuid] for uuid in step.properties['incoming_connections']]
+
+            for uuid in step.properties['incoming_connections']:
+                step.parents.append(steps[uuid])
+                steps[uuid]._children.append(step)
+
+        return cls(list(steps.values()))
+
+    @property
+    def sentinel(self):
+        if self._sentinel is None:
+            self._sentinel = PipelineStep(None)
+            self._sentinel.parents = [step for step in self.steps if not step._children]
+
+        return self._sentinel
 
     def keep(self, nodes):
         # Modifies inplace!
 
         # TODO: the connection from nodes to non-existing nodes should be
         #       removed.
-        self.nodes = [node for node in self.nodes if node in nodes]
+        self.steps = [step for step in self.steps if step in steps]
 
-    def get_subgraph(self, nodes):
-        return Pipeline(nodes=[node for node in self.nodes if node in nodes])
+    def get_subgraph(self, steps):
+        # Same as .keep() but returns new Pipeline object.
+        return Pipeline(steps=[step for step in self.steps if step in steps])
 
     def incoming(self, selection):
-        nodes = set()
+        # TODO: take a--> b --> c where selection=[b, c]. Then b would
+        #       also be in the steps to be executed. Do we want this?
 
-        queue = selection[:]
-        while queue:
-            node = queue.pop()
-            if node in nodes:
+        # Traverses the Pipeline starting at the nodes given by selection.
+        # BFS starting at multiple nodes.
+
+        steps = set()
+
+        # Get steps that are given by the selection.
+        stack = [step for step in self.steps if step.properties['uuid'] in selection]
+
+        # Get all the parents of all the steps in the selection.
+        while stack:
+            step = stack.pop()
+            if step in steps:
                 continue
 
-            nodes.add(node)
-            queue.extend(node.parents)
+            steps.add(step)
+            stack.extend(step.parents)
 
         # Note that the nodes in the selection are now also run.
-        return Pipeline(nodes=list(nodes))
+        return Pipeline(steps=list(steps))
 
     async def execute(self):
         docker = aiodocker.Docker()
-        await self._sentinel.execute(docker)
+        await self.sentinel.execute(docker)
         await docker.close()
