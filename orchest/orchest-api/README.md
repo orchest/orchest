@@ -60,3 +60,8 @@ The key configurations are: `metadata.process_proxy.class_name` and
 respectively.
 * More on process proxy class can be found at the [jupyter enterprise gateway documentation](https://jupyter-enterprise-gateway.readthedocs.io/en/latest/system-architecture.html#process-proxy). In short it defines what class manages the kernel.
 * The image describes the container that the EG will start when the "Python on Docker" (`display_name`) kernel is chosen to be launched.
+
+
+## Partial runs
+
+`orchest/orchest/orchest-api$ celery worker -A app.celery -l INFO`
