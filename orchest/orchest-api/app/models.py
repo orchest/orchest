@@ -1,4 +1,4 @@
-from connections import db
+from app.connections import db
 
 
 class Launch(db.Model):

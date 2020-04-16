@@ -1,8 +1,8 @@
 from flask import Blueprint
 from flask_restplus import Api
 
-from apis.namespace_experiments import api as ns_experiments
-from apis.namespace_launches import api as ns_launches
+from app.apis.namespace_experiments import api as ns_experiments
+from app.apis.namespace_launches import api as ns_launches
 
 
 blueprint = Blueprint('api', __name__)
