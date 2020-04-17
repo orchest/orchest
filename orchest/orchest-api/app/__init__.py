@@ -22,7 +22,8 @@ def create_app(config_class=None):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Something
+    # Cross-origin resource sharing. Allow API to be requested from the
+    # webserver front-end.
     CORS(app, resources={r'/*': {'origins': '*'}})
 
     # Initialize the database and create the database file.

@@ -2,15 +2,15 @@ import asyncio
 
 import aiodocker
 
-from app import celery
+# from app import celery
 
 
-@celery.task
+# @celery.task
 def add(x, y):
     return x + y
 
 
-@celery.task
+# @celery.task
 def run_partial(uuids, type_of_run, pipeline_description):
     """Runs a pipeline partially.
 
@@ -29,6 +29,10 @@ def run_partial(uuids, type_of_run, pipeline_description):
 
 
 def get_pipeline_to_execute(uuids, type_of_run, pipeline_description):
+    # Idea: use getattr to call the function we want.
+    # pipeline = Pipeline.from_json(pipeline_description)
+    # sub_pipeline = getattr(pipeline, type_of_run)(pipeline, uuids)
+
     if type_of_run == 'full':
         return Pipeline.from_json(pipeline_description)
 
@@ -54,13 +58,27 @@ class PipelineStep:
 
         self._children = []
 
+    def __eg__(self, other):
+        return self.properties['uuid'] == other.properties['uuid']
+
     def __hash__(self):
         return hash(self.properties['uuid'])
 
-    def __repr__(self):
-        return f'<PipelineStep: {self.properties["name"]}>'
+    def __str__(self):
+        if self.properties is not None:
+            return f'<PipelineStep: {self.properties["name"]}>'
 
-    async def execute_single(self, docker, wait_on_completion=True):
+        return f'<Pipelinestep: None>'
+
+    def __repr__(self):
+        # TODO: This is actually not correct: it should be self.properties.
+        #       But this just look ugly as hell (so maybe for later)
+        if self.properties is not None:
+            return f'PipelineStep({self.properties["name"]!r})'
+
+        return f'Pipelinestep(None)'
+
+    async def execute_self(self, docker, wait_on_completion=True):
         config = {'Image': self.properties['image']['image_name']}
 
         container = await docker.containers.run(config=config)
@@ -72,7 +90,7 @@ class PipelineStep:
         tasks = [asyncio.create_task(parent.execute()) for parent in self.parents]
         await asyncio.gather(*tasks)
 
-        await self.execute_single(docker)
+        await self.execute_self(docker)
 
 
 class Pipeline:
@@ -108,16 +126,30 @@ class Pipeline:
 
         return self._sentinel
 
-    def keep(self, nodes):
-        # Modifies inplace!
+    def keep(self, selection):
+        # NOTE: Modifies inplace!
 
         # TODO: the connection from nodes to non-existing nodes should be
         #       removed.
-        self.steps = [step for step in self.steps if step in steps]
+        keep_steps = [step for step in self.steps if step.properties['uuid'] in selection]
+        for step in keep_steps:
+            step.parents = [s for s in step.parents if s in keep_steps]
+            step._children = [s for s in step._children if s in keep_steps]
 
-    def get_subgraph(self, steps):
-        # Same as .keep() but returns new Pipeline object.
-        return Pipeline(steps=[step for step in self.steps if step in steps])
+        self.steps = keep_steps
+
+    def get_subgraph(self, selection):
+        # NOTE: Same as .keep() but returns new Pipeline object.
+        keep_steps = [step for step in self.steps if step.properties['uuid'] in selection]
+        new_steps = []
+        for step in keep_steps:
+            # TODO: I guess these properties point to the same object now.
+            new_step = PipelineStep(step.propeties)
+            new_step.parents = [s for s in step.parents if s in keep_steps]
+            new_step._children = [s for s in step._children if s in keep_steps]
+            new_steps.append(new_step)
+
+        return Pipeline(steps=new_steps)
 
     def incoming(self, selection):
         # TODO: take a--> b --> c where selection=[b, c]. Then b would
@@ -144,6 +176,11 @@ class Pipeline:
         return Pipeline(steps=list(steps))
 
     async def execute(self):
+        # TODO: do we want to put this docker instance also inside the
+        #       connections file? Similar to the standard sdk instance?
         docker = aiodocker.Docker()
         await self.sentinel.execute(docker)
         await docker.close()
+
+    def __repr__(self):
+        return f'Pipeline({self.steps!r})'
