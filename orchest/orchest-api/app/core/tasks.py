@@ -2,15 +2,15 @@ import asyncio
 
 import aiodocker
 
-# from app import celery
+from app import celery
 
 
-# @celery.task
+@celery.task
 def add(x, y):
     return x + y
 
 
-# @celery.task
+@celery.task
 def run_partial(uuids, run_type, pipeline_description):
     """Runs a pipeline partially.
 
@@ -83,7 +83,7 @@ class PipelineStep:
 
         await self.run_self(docker)
 
-    def __eg__(self, other):
+    def __eq__(self, other):
         return self.properties['uuid'] == other.properties['uuid']
 
     def __hash__(self):
@@ -179,6 +179,7 @@ class Pipeline:
             Exactly the same as convert_to_subgraph except that it returns
             a new pipeline object instead of modifying it inplace.
         """
+        # TODO: keep_steps = set(self.steps) & set(selection)
         keep_steps = [step for step in self.steps if step.properties['uuid'] in selection]
 
         # Only keep connection to parents and children if these steps are
@@ -187,7 +188,8 @@ class Pipeline:
         for step in keep_steps:
             # TODO: I guess these properties point to the same object now.
             #       This should be fine since the properties itself do not
-            #       get changed.
+            #       get changed. Although the incoming_connections property
+            #       is no longer correct.
             new_step = PipelineStep(step.properties)
             new_step.parents = [s for s in step.parents if s in keep_steps]
             new_step._children = [s for s in step._children if s in keep_steps]
