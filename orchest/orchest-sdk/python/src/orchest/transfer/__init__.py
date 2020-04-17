@@ -3,6 +3,11 @@ import pickle
 import os
 
 
+# Idea for solution:
+# - find kernel_id from ENV["KERNEL_ID"] that's populated by enterprise gateway
+# - find kernel_id --> notebook filename through JupyterLab session
+# - get JupyterLab /api/sessions access through orchest-api (:5000/launches)
+
 def get_step_uuid():
     pipeline = Pipeline()
 
