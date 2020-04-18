@@ -7,12 +7,13 @@ The pipeline looks as follows:
 
                step 6
 """
+import asyncio
 import json
 import unittest
 
 import pytest
 
-from app.core.tasks import Pipeline
+from app.core.tasks import Pipeline, run_partial
 
 
 @pytest.fixture
@@ -21,6 +22,14 @@ def description():
         description = json.load(f)
 
     return description
+
+
+@pytest.fixture
+def description_straight():
+    with open('tests/pipeline-straight.json', 'r') as f:
+        description_straight = json.load(f)
+
+    return description_straight
 
 
 def test_pipeline_from_json(description):
@@ -56,10 +65,10 @@ def test_pipeline_sentinel(description):
     case.assertCountEqual(pipeline.sentinel.parents, correct_parents)
 
 
-def test_pipeline_get_subgraph(description):
+def test_pipeline_get_induced_subgraph(description):
     pipeline = Pipeline.from_json(description)
 
-    subgraph = pipeline.get_subgraph(['uuid-2', 'uuid-4', 'uuid-6'])
+    subgraph = pipeline.get_induced_subgraph(['uuid-2', 'uuid-4', 'uuid-6'])
     steps = {step.properties['name']: step for step in subgraph.steps}
 
     assert len(steps) == 3
@@ -108,5 +117,25 @@ def test_pipeline_incoming(description):
     assert steps['step-6'].parents == []
 
 
-def test_pipeline_execution(description):
-    pass
+def test_pipeline_run(description):
+    # TODO: Check whether the graph execution is resolved correctly.
+    #       e.g. it should run step-1 and step-6 in parallel and only
+    #       start on step-2 once step-1 has finished computing.
+    pipeline = Pipeline.from_json(description)
+    asyncio.run(pipeline.run())
+
+
+def test_run_partial(description):
+    # TODO: Check whether the graph execution is resolved correctly.
+    #       e.g. it should run step-1 and step-6 in parallel and only
+    #       start on step-2 once step-1 has finished computing.
+    run_partial.delay([], 'full', description)
+
+
+# Uncomment this method and start a celery worker to verify that this
+# tasks indeed takes longer than the task with the regular pipeline
+# description. This lets us believe that the regular graph is indeed
+# executed in parallel. Whether it is indeed correctly resolved, we
+# cannot conclude from this test.
+# def test_run_partial(description_straight):
+#     run_partial.delay([], 'full', description_straight)

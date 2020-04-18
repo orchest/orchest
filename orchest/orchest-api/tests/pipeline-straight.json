@@ -26,7 +26,7 @@
             }
         },
         "uuid-4": {
-            "incoming_connections": ["uuid-2"],
+            "incoming_connections": ["uuid-3"],
             "name": "step-4",
             "uuid": "uuid-4",
             "image": {
@@ -42,7 +42,7 @@
             }
         },
         "uuid-6": {
-            "incoming_connections": [],
+            "incoming_connections": ["uuid-5"],
             "name": "step-6",
             "uuid": "uuid-6",
             "image": {

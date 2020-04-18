@@ -22,6 +22,9 @@ def run_partial(uuids, run_type, pipeline_description):
         run_type (str): one of ("full", "selection", "incoming").
         pipeline_description (dict): json describing pipeline.
     """
+    # TODO: note that the list of uuids can be empty (this is helpful
+    #       when doing a full run).
+
     # Get the pipeline to run according to the run_type.
     pipeline = construct_pipeline(uuids, run_type, pipeline_description)
 
@@ -44,7 +47,7 @@ def construct_pipeline(uuids, run_type, pipeline_description, config=None):
         return pipeline
 
     if run_type == 'selection':
-        return pipeline.get_subgraph(uuids)
+        return pipeline.get_induced_subgraph(uuids)
 
     if run_type == 'incoming':
         return pipeline.incoming(uuids, inclusive=False)
@@ -78,12 +81,18 @@ class PipelineStep:
     async def run(self, docker):
         # Before running the step itself, it has to run all incoming
         # steps.
-        tasks = [asyncio.create_task(parent.run()) for parent in self.parents]
+        tasks = [asyncio.create_task(parent.run(docker)) for parent in self.parents]
         await asyncio.gather(*tasks)
 
-        await self.run_self(docker)
+        # The sentinel node cannot be executed itself.
+        if self.properties is not None:
+            await self.run_self(docker)
 
     def __eq__(self, other):
+        # TODO: for now steps get a UUID and are always only identified
+        #       with the UUID. Thus if they get additional parents and/or
+        #       children, then they will stay the same. I think this is
+        #       fine though.
         return self.properties['uuid'] == other.properties['uuid']
 
     def __hash__(self):
@@ -151,8 +160,7 @@ class Pipeline:
 
         return self._sentinel
 
-    # TODO: should I rename it to convert_to_induced_subgraph.
-    def convert_to_subgraph(self, selection):
+    def convert_to_induced_subgraph(self, selection):
         """Converts the pipeline to a subpipeline.
 
         Takes an induced subgraph of the pipeline formed by a subset of
@@ -173,7 +181,7 @@ class Pipeline:
             step.parents = [s for s in step.parents if s in self.steps]
             step._children = [s for s in step._children if s in self.steps]
 
-    def get_subgraph(self, selection):
+    def get_induced_subgraph(self, selection):
         """Returns a new pipeline whos set of steps equal the selection.
 
         NOTE:
