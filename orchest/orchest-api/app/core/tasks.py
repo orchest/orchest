@@ -151,6 +151,7 @@ class Pipeline:
 
         return self._sentinel
 
+    # TODO: should I rename it to convert_to_induced_subgraph.
     def convert_to_subgraph(self, selection):
         """Converts the pipeline to a subpipeline.
 
@@ -224,6 +225,11 @@ class Pipeline:
         if not inclusive:
             steps = [step for step in steps if step.properties['uuid'] not in selection]
 
+        # TODO: note that the steps might have children that are not part
+        #       of the pipeline itself. (They are kept from the old pipeline
+        #       structure.) However, only the execute is run after this
+        #       method where we only traverse by getting the parents.
+        #       So for now it is not a big deal and makes the method faster.
         return Pipeline(steps=list(steps))
 
     async def run(self):

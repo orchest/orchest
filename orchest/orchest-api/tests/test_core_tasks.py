@@ -27,9 +27,6 @@ def test_pipeline_from_json(description):
     pipeline = Pipeline.from_json(description)
     steps = {step.properties['name']: step for step in pipeline.steps}
 
-    # pipeline = Pipeline(steps=list(steps.values()))
-    # steps = {step.properties['name']: step for step in pipeline.steps}
-
     assert steps['step-1']._children == [steps['step-2']]
     assert steps['step-1'].parents == []
 
@@ -78,7 +75,37 @@ def test_pipeline_get_subgraph(description):
 
 
 def test_pipeline_incoming(description):
-    pass
+    pipeline = Pipeline.from_json(description)
+
+    incoming = pipeline.incoming(['uuid-4', 'uuid-6'], inclusive=False)
+    steps = {step.properties['name']: step for step in incoming.steps}
+
+    assert steps['step-1']._children == [steps['step-2']]
+    assert steps['step-1'].parents == []
+
+    # TODO: this will currently still fail, since it has children
+    #       step-3 and step-4. But not sure yet what we want.
+    # assert steps['step-2']._children == []
+    assert steps['step-2'].parents == [steps['step-1']]
+
+    # Testing the inclusive kwarg.
+    incoming_inclusive = pipeline.incoming(['uuid-4', 'uuid-6'], inclusive=True)
+    steps = {step.properties['name']: step for step in incoming_inclusive.steps}
+
+    assert steps['step-1']._children == [steps['step-2']]
+    assert steps['step-1'].parents == []
+
+    # TODO: this will currently still fail, since it has children
+    #       step-3 and step-4. But not sure yet what we want.
+    #       Similarly for the step-4 children.
+    # assert steps['step-2']._children == []
+    assert steps['step-2'].parents == [steps['step-1']]
+
+    assert steps['step-4'].parents == [steps['step-2']]
+    # assert steps['step-4']._children == []
+
+    assert steps['step-6']._children == []
+    assert steps['step-6'].parents == []
 
 
 def test_pipeline_execution(description):
