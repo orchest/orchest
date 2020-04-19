@@ -28,6 +28,9 @@ class Pipeline:
             json_obj = json.loads(file.read())
             self.json = json_obj
 
+        self.uuid = self.json['uuid']
+        self.name = self.json['name']
+
         # populate steps
         step_keys = self.json['steps'].keys()
 

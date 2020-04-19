@@ -59,6 +59,7 @@ def pipelines_create():
         if os.path.isfile(kernel_json_file):
             with open(kernel_json_file, 'r') as file:
                 data = file.read().replace('{host_pipeline_dir}', pipeline_dir)
+                data = data.replace('{orchest_api_address}', app.config['ORCHEST_API_ADDRESS'])
 
             with open(kernel_json_file, 'w') as file:
                 file.write(data)
