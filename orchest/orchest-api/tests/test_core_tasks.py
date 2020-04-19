@@ -125,11 +125,15 @@ def test_pipeline_run(description):
     asyncio.run(pipeline.run())
 
 
-def test_run_partial(description):
-    # TODO: Check whether the graph execution is resolved correctly.
-    #       e.g. it should run step-1 and step-6 in parallel and only
-    #       start on step-2 once step-1 has finished computing.
-    run_partial.delay([], 'full', description)
+# ---- Make sure to start a Celery worker before running the tests below.
+
+# TODO: use parametrized docker containers that do a time.sleep() Then
+#       we can check whether everything is executed in the correct order.
+# def test_run_partial(description):
+#     # TODO: Check whether the graph execution is resolved correctly.
+#     #       e.g. it should run step-1 and step-6 in parallel and only
+#     #       start on step-2 once step-1 has finished computing.
+#     run_partial.delay([], 'full', description)
 
 
 # Uncomment this method and start a celery worker to verify that this

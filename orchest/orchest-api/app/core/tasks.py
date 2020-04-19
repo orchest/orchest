@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any, Dict, Iterable, List, Optional
 
 import aiodocker
 
@@ -6,24 +7,29 @@ from app import celery
 
 
 @celery.task
-def add(x, y):
-    return x + y
-
-
-@celery.task
-def run_partial(uuids, run_type, pipeline_description):
+def run_partial(uuids: Iterable[str], run_type: str, pipeline_description: Dict) -> None:
     """Runs a pipeline partially.
+
+    A partial run is described by the pipeline description, selection of
+    step UUIDs and a run type. The call-order of the steps is always
+    preserved, e.g. a --> b then a will always be run before b.
+
+    Type of runs:
+        * Run all the steps of the pipeline.
+        * Given a selection of UUIDs run only the selection.
+        * Given a selectin of UUIDs, run all their precursors (i.e.
+          parents in a directed graph). This can be done either inclusive
+          or exclusive of the selection.
 
     NOTE:
         Running a pipeline fully can also be described as a partial run.
 
     Args:
-        uuids (iterable): sequence of pipeline step UUIDS.
-        run_type (str): one of ("full", "selection", "incoming").
-        pipeline_description (dict): json describing pipeline.
+        uuids: a selection/sequence of pipeline step UUIDs. If `run_type`
+            equals "full", then this argument is ignored.
+        run_type: one of ("full", "selection", "incoming").
+        pipeline_description: a json description of the pipeline.
     """
-    # TODO: note that the list of uuids can be empty (this is helpful
-    #       when doing a full run).
 
     # Get the pipeline to run according to the run_type.
     pipeline = construct_pipeline(uuids, run_type, pipeline_description)
@@ -32,12 +38,44 @@ def run_partial(uuids, run_type, pipeline_description):
     asyncio.run(pipeline.run())
 
 
-def construct_pipeline(uuids, run_type, pipeline_description, config=None):
-    """
+def construct_pipeline(uuids: Iterable[str],
+                       run_type: str,
+                       pipeline_description: Dict,
+                       config: Optional[Dict] = None) -> 'Pipeline':
+    """Constructs a pipeline from a description with selection criteria.
+
+    Based on the run type and selection of UUIDs, constructs the
+    appropriate Pipeline.
+
+    TODO:
+        Include config options to be based to methods. This can be done
+        via the **kwargs option.
+
+        Example: waiting on container completion, or inclusive or
+            exclusive of the selection for "incoming" `run_type`.
+
+        All options for the config should be documented somewhere.
+
+    Args:
+        uuids: a selection/sequence of pipeline step UUIDs. If `run_type`
+            equals "full", then this argument is ignored.
+        run_type: one of ("full", "selection", "incoming").
+        pipeline_description: a json description of the pipeline.
+
     Kwargs:
-        config (dict or None): configuration for the run_type. Do you
-            want to wait on container completion, or do you want to
-            include the selection uuids when it calls incoming?
+        config: configuration for the `run_type`.
+
+    Returns:
+        Always returns a Pipeline. Depending on the `run_type` the
+        Pipeline is constructed as follows from the given
+        `pipeline_description`:
+            * "full" -> entire pipeline from description
+            * "selection" -> induced subgraph based on selection.
+            * "incoming" -> all incoming steps of the selection. In other
+                words: all ancestors of the steps of the selection.
+
+        As of now, the selection itself is NOT included in the Pipeline
+        if `run_type` equals "incoming".
     """
     # Create a pipeline from the pipeline_description. And run the
     # appropriate method based on the run_type.
@@ -54,11 +92,22 @@ def construct_pipeline(uuids, run_type, pipeline_description, config=None):
 
 
 class PipelineStep:
-    def __init__(self, properties: dict, parents: list = None):
-        """
-            properties: properties of the step. See example description
-                in README.
-        """
+    """PipelineStep.
+
+    Some more.
+
+    Args:
+        properties: properties of the step. See example description
+            in README.
+        parents: oef
+
+    Attributes:
+        properties: see "Args" section.
+        parents: see "Args" section.
+    """
+    def __init__(self,
+                 properties: Dict[str, Any],
+                 parents: Optional[List['PipelineStep']] = None) -> None:
         self.properties = properties
         self.parents = parents if parents is not None else []
 
