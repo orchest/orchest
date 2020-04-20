@@ -374,9 +374,49 @@ class Pipeline:
         return f'Pipeline({self.steps!r})'
 
 
-class PipelineStepRunnerDocker(Pipeline):
-    pass
+# -- New idea --
+# Using the class structure below we can run Pipelines on different
+# back-ends.
+
+# NOTE: we introduce the terminology that a node can be an ancestor of
+#       itself. A parent would be a proper ancestor.
+class PipelineStepRunner:
+    async def run_on_docker(self):
+        pass
+
+    async def run_ancestors_on_docker(self):
+        # Call the run_on_docker internally.
+        pass
+
+    async def run_on_kubernetes(self):
+        pass
+
+    async def run_ancestors_on_kubernetes(self):
+        # Call the run_on_kubernetes internally.
+        pass
 
 
-class PipelineRunnerDocker(Pipeline):
-    pass
+class PipelineStep(PipelineStepRunner):
+    async def run(self, compute_backend='docker'):
+        """
+        compute_backend = ('docker', 'kubernetes')
+        """
+        run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
+
+        # from connections import RUNNER_CONNECTIONS
+        runner_env = RUNNER_CONNECTIONS[compute_backend]['env']
+        await run_func(runner_env)
+
+        # note that we do not close the env here, since it might be used
+        # again in the future.
+
+
+# Thoughts
+"""
+I think the PipelineStep, Pipeline and PipelineStepRunner should all be
+in some util package. The code for the API should only contain functions
+such as the `run_partial` and `construct_pipeline`.
+
+The API package should call this logic, but not implement it. Additionally,
+the sdk also uses this logic (even more reason to put it somewhere else).
+"""
