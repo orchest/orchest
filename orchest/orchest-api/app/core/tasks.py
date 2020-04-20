@@ -1,13 +1,33 @@
 import asyncio
-from typing import Any, Dict, Iterable, List, Optional, TypedDict
+from typing import Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
 
 from app import celery
 
 
+# TODO: this class is not extensive yet. The Other Dicts can be typed
+#       with a TypedDict also.
+class PipelineStepProperties(TypedDict):
+    name: str
+    uuid: str
+    incoming_connections: List['PipelineStep']
+    file_path: str
+    image: Dict[str, str]
+    experiment_json: str
+    meta_data: Dict[str, List[int]]
+
+
+class PipelineDescription(TypedDict):
+    name: str
+    uuid: str
+    steps: Dict[str, PipelineStepProperties]
+
+
 @celery.task
-def run_partial(uuids: Iterable[str], run_type: str, pipeline_description: Dict) -> None:
+def run_partial(uuids: Iterable[str],
+                run_type: str,
+                pipeline_description: PipelineDescription) -> None:
     """Runs a pipeline partially.
 
     A partial run is described by the pipeline description, selection of
@@ -61,8 +81,6 @@ def construct_pipeline(uuids: Iterable[str],
             equals "full", then this argument is ignored.
         run_type: one of ("full", "selection", "incoming").
         pipeline_description: a json description of the pipeline.
-
-    Kwargs:
         config: configuration for the `run_type`.
 
     Returns:
@@ -89,24 +107,6 @@ def construct_pipeline(uuids: Iterable[str],
 
     if run_type == 'incoming':
         return pipeline.incoming(uuids, inclusive=False)
-
-
-# TODO: this class is not extensive yet. The Other Dicts can be typed
-#       with a TypedDict also.
-class PipelineStepProperties(TypedDict):
-    name: str
-    uuid: str
-    incoming_connections: List['PipelineStep']
-    file_path: str
-    image: Dict[str, str]
-    experiment_json: str
-    meta_data: Dict[str, List[int]]
-
-
-class PipelineDescription(TypedDict):
-    name: str
-    uuid: str
-    steps: Dict[str, PipelineStepProperties]
 
 
 class PipelineStep:
@@ -306,15 +306,30 @@ class Pipeline:
         # Reset the sentinel.
         self._sentinel = None
 
-    def incoming(self, selection, inclusive=False):
-        """
-        TODO: take a--> b --> c where selection=[b, c]. Then b would
-              also be in the steps to be executed. Do we want this?
-        """
+    def incoming(self,
+                 selection: List[str],
+                 inclusive: bool = False) -> 'Pipeline':
+        """Returns a new Pipeline of all ancestors of the selection.
 
+        NOTE:
+            The following can be thought of as an edge case. Lets say
+            you have the pipeline: a --> b --> c and a selection of
+            [b, c] with `inclusive` set to False. Then only step "a"
+            would be run.
+
+        Args:
+            selection: list of UUIDs representing `PipelineStep`s.
+            inclusive: if True, then the steps in the selection are also
+                part of the returned `Pipeline`, else the steps will not
+                be included.
+
+        Returns:
+            An induced pipeline by the set of steps (defined by the given
+            selection).
+        """
         # This set will be populated with all the steps that are ancestors
         # of the sets given by the selection. Depending on the kwarg
-        # "inclusive" the steps from the selection itself will either be
+        # `inclusive` the steps from the selection itself will either be
         # included or excluded.
         steps = set()
 
@@ -329,13 +344,14 @@ class Pipeline:
 
             # TODO: again the properties point to the old properties dict.
             #       Therefore containing incorrect "incoming_connections".
+            #       Make a deepcopy.
             # Create a new Pipeline step that is a copy of the step.
             new_step = PipelineStep(step.properties, step.parents)
 
             # NOTE: the childrens list has to be updated, since the
-            #       sentinel node uses its information to be computed. On
-            #       the other hand, the parents, do not change and are
-            #       always all included.
+            # sentinel node uses its information to be computed. On the
+            # other hand, the parents, do not change and are always all
+            # included.
             new_step._children = [s for s in step._children if s in steps]
             steps.add(new_step)
             stack.extend(new_step.parents)
@@ -346,6 +362,7 @@ class Pipeline:
         return Pipeline(steps=list(steps))
 
     async def run(self):
+        """Runs the Pipeline asynchronously."""
         # TODO: do we want to put this docker instance also inside the
         #       connections.py file? Similar to the standard docker
         #       sdk instance?
