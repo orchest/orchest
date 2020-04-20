@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
 
@@ -91,22 +91,40 @@ def construct_pipeline(uuids: Iterable[str],
         return pipeline.incoming(uuids, inclusive=False)
 
 
-class PipelineStep:
-    """PipelineStep.
+# TODO: this class is not extensive yet. The Other Dicts can be typed
+#       with a TypedDict also.
+class PipelineStepProperties(TypedDict):
+    name: str
+    uuid: str
+    incoming_connections: List['PipelineStep']
+    file_path: str
+    image: Dict[str, str]
+    experiment_json: str
+    meta_data: Dict[str, List[int]]
 
-    Some more.
+
+class PipelineDescription(TypedDict):
+    name: str
+    uuid: str
+    steps: Dict[str, PipelineStepProperties]
+
+
+class PipelineStep:
+    """A step of a pipeline.
+
+    It can also be thought of as a node of a graph.
 
     Args:
-        properties: properties of the step. See example description
-            in README.
-        parents: oef
+        properties: properties of the step used for execution and front
+            end.
+        parents: the parents/incoming steps of the current step.
 
     Attributes:
         properties: see "Args" section.
         parents: see "Args" section.
     """
     def __init__(self,
-                 properties: Dict[str, Any],
+                 properties: PipelineStepProperties,
                  parents: Optional[List['PipelineStep']] = None) -> None:
         self.properties = properties
         self.parents = parents if parents is not None else []
@@ -116,18 +134,38 @@ class PipelineStep:
         # Pipeline methods.
         self._children = []
 
-    async def run_self(self, docker, wait_on_completion=True):
+    # TODO: I don't really like the name of this method.
+    async def run_self(self,
+                       docker: aiodocker.Docker,
+                       wait_on_completion: bool = True) -> None:
+        """Runs the container image defined in the step's properties.
+
+        Running is done asynchronously.
+
+        Args:
+            docker: Docker environment to run containers (asynchronously).
+            wait_on_completion: if True await containers, else do not.
+                Awaiting containers is helpful when running a dependency
+                graph (like a pipeline), because one step can only
+                executed once all its ancestors have completed.
+        """
         config = {'Image': self.properties['image']['image_name']}
 
         # Starts the container asynchronously, however, it does not wait
         # for completion of the container (like the `docker run` CLI
-        # command does).
+        # command does). Therefore the option to await the container
+        # completion is introduced.
         container = await docker.containers.run(config=config)
 
         if wait_on_completion:
             await container.wait()
 
-    async def run(self, docker):
+    async def run(self, docker: aiodocker.Docker) -> None:
+        """Runs all ancestor steps before running itself.
+
+        Args:
+            docker: Docker environment to run containers (asynchronously).
+        """
         # Before running the step itself, it has to run all incoming
         # steps.
         tasks = [asyncio.create_task(parent.run(docker)) for parent in self.parents]
@@ -155,7 +193,8 @@ class PipelineStep:
 
     def __repr__(self):
         # TODO: This is actually not correct: it should be self.properties.
-        #       But this just look ugly as hell (so maybe for later)
+        #       But this just look ugly as hell (so maybe for later). And
+        #       strictly, should also include its parents.
         if self.properties is not None:
             return f'PipelineStep({self.properties["name"]!r})'
 
@@ -163,24 +202,20 @@ class PipelineStep:
 
 
 class Pipeline:
-    def __init__(self, steps=None):
+    def __init__(self, steps: Optional[List[PipelineStep]] = None) -> None:
         self.steps = steps
 
-        # Similarly to the implementation of a DLL, we add a sentinel node
-        # to the end of the pipeline (i.e. all steps that do not have
-        # children will be connected to the sentinel node). By having a
-        # pointer to the sentinel we can traverse the entire pipeline.
-        # This way we can start a run by "running" the sentinel node.
+        # See the sentinel property for explanation.
         self._sentinel: PipelineStep = None
 
     @classmethod
-    def from_json(cls, description):
-        """Constructs a pipeline from a json-like description.
+    def from_json(cls, description: PipelineDescription) -> 'Pipeline':
+        """Constructs a pipeline from a json description.
 
-        This is an alternative constructur the the __init__().
+        This is an alternative constructur.
 
         Args:
-            description (dict): json description of Pipeline.
+            description: json description of Pipeline.
 
         Returns:
             A pipeline object defined by the given description.
@@ -199,9 +234,13 @@ class Pipeline:
 
     @property
     def sentinel(self):
-        """
+        """Returns the sentinel step, connected to the leaf steps.
 
-        TODO: description of sentinel
+        Similarly to the implementation of a DLL, we add a sentinel node
+        to the end of the pipeline (i.e. all steps that do not have
+        children will be connected to the sentinel node). By having a
+        pointer to the sentinel we can traverse the entire pipeline.
+        This way we can start a run by "running" the sentinel node.
         """
         if self._sentinel is None:
             self._sentinel = PipelineStep(None)
@@ -209,36 +248,28 @@ class Pipeline:
 
         return self._sentinel
 
-    def convert_to_induced_subgraph(self, selection):
-        """Converts the pipeline to a subpipeline.
+    def get_induced_subgraph(self, selection: List[str]) -> 'Pipeline':
+        """Returns a new pipeline whos set of steps equal the selection.
 
         Takes an induced subgraph of the pipeline formed by a subset of
         its steps given by the selection (of UUIDs).
 
-        NOTE:
-            It is done like this because if a--> b is selected then the
-            order should be kept in mind. We cannot simply run a and b
-            as if they are independent.
+        Example:
+            When the selection consists of: a --> b. Then it is important
+            that "a" is run before "b". Therefore the induced subgraph
+            has to be taken to ensure the correct ordering, instead of
+            executing the steps independently (and in parallel).
 
-        NOTE: Modifies inplace!
-        """
-        self.steps = [step for step in self.steps if step.properties['uuid'] in selection]
+        Args:
+            selection: list of UUIDs representing `PipelineStep`s.
 
-        # Removing connection from steps to "non-existing" steps, i.e.
-        # steps that are not included in the selection.
-        for step in self.steps:
-            step.parents = [s for s in step.parents if s in self.steps]
-            step._children = [s for s in step._children if s in self.steps]
-
-    def get_induced_subgraph(self, selection):
-        """Returns a new pipeline whos set of steps equal the selection.
-
-        NOTE:
-            Exactly the same as convert_to_subgraph except that it returns
-            a new pipeline object instead of modifying it inplace.
+        Returns:
+            An induced pipeline by the set of steps (defined by the given
+            selection).
         """
         # TODO: keep_steps = set(self.steps) & set(selection)
-        keep_steps = [step for step in self.steps if step.properties['uuid'] in selection]
+        keep_steps = [step for step in self.steps
+                      if step.properties['uuid'] in selection]
 
         # Only keep connection to parents and children if these steps are
         # also included in the selection.
@@ -248,12 +279,32 @@ class Pipeline:
             #       This should be fine since the properties itself do not
             #       get changed. Although the incoming_connections property
             #       is no longer correct.
+            # TODO: Deepclone it and update the incoming_connections
             new_step = PipelineStep(step.properties)
             new_step.parents = [s for s in step.parents if s in keep_steps]
             new_step._children = [s for s in step._children if s in keep_steps]
             new_steps.append(new_step)
 
         return Pipeline(steps=new_steps)
+
+    def convert_to_induced_subgraph(self, selection: List[str]) -> None:
+        """Converts the pipeline to a subpipeline.
+
+        NOTE:
+            Exactly the same as `get_induced_subgraph` except that it
+            modifies the underlying `Pipeline` object inplace.
+        """
+        self.steps = [step for step in self.steps
+                      if step.properties['uuid'] in selection]
+
+        # Removing connection from steps to "non-existing" steps, i.e.
+        # steps that are not included in the selection.
+        for step in self.steps:
+            step.parents = [s for s in step.parents if s in self.steps]
+            step._children = [s for s in step._children if s in self.steps]
+
+        # Reset the sentinel.
+        self._sentinel = None
 
     def incoming(self, selection, inclusive=False):
         """
@@ -276,17 +327,22 @@ class Pipeline:
             if step in steps:
                 continue
 
-            steps.add(step)
-            stack.extend(step.parents)
+            # TODO: again the properties point to the old properties dict.
+            #       Therefore containing incorrect "incoming_connections".
+            # Create a new Pipeline step that is a copy of the step.
+            new_step = PipelineStep(step.properties, step.parents)
+
+            # NOTE: the childrens list has to be updated, since the
+            #       sentinel node uses its information to be computed. On
+            #       the other hand, the parents, do not change and are
+            #       always all included.
+            new_step._children = [s for s in step._children if s in steps]
+            steps.add(new_step)
+            stack.extend(new_step.parents)
 
         if not inclusive:
             steps = [step for step in steps if step.properties['uuid'] not in selection]
 
-        # TODO: note that the steps might have children that are not part
-        #       of the pipeline itself. (They are kept from the old pipeline
-        #       structure.) However, only the execute is run after this
-        #       method where we only traverse by getting the parents.
-        #       So for now it is not a big deal and makes the method faster.
         return Pipeline(steps=list(steps))
 
     async def run(self):

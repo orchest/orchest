@@ -73,13 +73,14 @@ lower priority such that the partial runs can always be executed.
 
 ## TODO
 - [ ] Some flaws when it comes to the `Pipeline` class:
-    * The induced subgraph has to be proper and not contain children that are not part of the
+    - [X] The induced subgraph has to be proper and not contain children that are not part of the
         selection. Because then the sentinel node does not get computed correctly (since it looks
         for the nodes that do not have children).
-    * It would be faster to immediately construct the subgraph etc. directly from the json
+    - [ ] It would be faster to immediately construct the subgraph etc. directly from the json
         description. Although this is a lot more messy
-    * When Pipeline --inplace--> subgraph, then the sentinel node has to be set to `None`
+    - [X] When Pipeline --inplace--> subgraph, then the sentinel node has to be set to `None`
 - [ ] Do we want to check for cycles?
+- [ ] Run the docker containers of the `aiodocker` on the Orchest docker network.
 - [ ] Note that the pipeline is run on docker. Maybe we can add an abstraction layer such that it
     can easily be swapped to run on k8s.
     * Idea: Let `Pipeline` class function as a Mixin to `PipelineRunnerDocker(Pipeline)` class that
@@ -91,6 +92,7 @@ lower priority such that the partial runs can always be executed.
 - [ ] Tests that check whether the pipeline execution order is correct.
 - [ ] Choosing the right broker for Celery
 - [ ] Add typing and documentation to the Pipeline and PipelineStep classes.
+    - [ ] Do we want to introduce a generic type for UUID? I think that makes sense.
 - [ ] Coverage report for testing that can be included on the GitHub page with a nice button.
 - [ ] Error handling. If a step fails, should the entire pipeline fail? Or only sequential steps?
     Also handle error for Celery, nbconvert, etc.
