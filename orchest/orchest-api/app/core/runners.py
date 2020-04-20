@@ -372,3 +372,11 @@ class Pipeline:
 
     def __repr__(self):
         return f'Pipeline({self.steps!r})'
+
+
+class PipelineStepRunnerDocker(Pipeline):
+    pass
+
+
+class PipelineRunnerDocker(Pipeline):
+    pass

@@ -7,7 +7,7 @@ class Config:
 
     # Celery configurations. Note that they have to be lowercase.
     broker_url = None
-    imports = ['app.core.tasks', ]
+    imports = ['app.core.runners', ]
 
 
 class DevelopmentConfig(Config):

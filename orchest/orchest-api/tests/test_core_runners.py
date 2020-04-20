@@ -13,7 +13,7 @@ import unittest
 
 import pytest
 
-from app.core.tasks import Pipeline, run_partial
+from app.core.runners import Pipeline, run_partial
 
 
 @pytest.fixture
