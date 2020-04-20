@@ -119,6 +119,15 @@ def pipelines_get_single(url_uuid):
         return "", 404
 
 
+@app.route("/async/config", methods=["GET"])
+def get_frontend_config():
+
+    json_string = json.dumps({"success": True, "result": {
+        "ORCHEST_API_ADDRESS": app.config["ORCHEST_API_ADDRESS"]
+    }})
+
+    return json_string, 200, {'content-type': 'application/json'}
+
 @app.route("/async/pipelines/get_directory/<string:url_uuid>", methods=["GET"])
 def pipelines_get_directory(url_uuid):
     json_string = json.dumps({"success": True, "result": get_pipeline_directory_by_uuid(url_uuid)}, cls=AlchemyEncoder)

@@ -52,25 +52,39 @@ function Orchest() {
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
     };
 
-
-    // load first pipeline
-    fetch("/async/pipelines", {
-       method: "GET",
-       cache: "no-cache",
-       redirect: "follow",
-       referrer: "no-referrer"
+    // get config from server
+    fetch("/async/config", {
     }).then(handleErrors).then((response) => {
-        response.json().then((result) => {
-            if(result.success && result.result.length > 0){
-                let firstPipeline = result.result[0];
-                // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
-                this.loadView(PipelinesView);
-            }else{
-                console.warn("Could not load a first pipeline");
-                console.log(result);
-            }
+        response.json().then((json) => {
+
+            this.config = json.result;
+            this.initializeFirstView();
         })
-    });
+    })
+
+
+    this.initializeFirstView = function(){
+        // load first pipeline
+        fetch("/async/pipelines", {
+            method: "GET",
+            cache: "no-cache",
+            redirect: "follow",
+            referrer: "no-referrer"
+        }).then(handleErrors).then((response) => {
+            response.json().then((result) => {
+                if(result.success && result.result.length > 0){
+                    let firstPipeline = result.result[0];
+                    // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
+                    this.loadView(PipelinesView);
+                }else{
+                    console.warn("Could not load a first pipeline");
+                    console.log(result);
+                }
+            })
+        });
+    }
+
+    
 
 
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));
