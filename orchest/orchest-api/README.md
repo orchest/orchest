@@ -91,8 +91,9 @@ lower priority such that the partial runs can always be executed.
     Some compute back-end?
 - [ ] Tests that check whether the pipeline execution order is correct.
 - [ ] Choosing the right broker for Celery
-- [ ] Add typing and documentation to the Pipeline and PipelineStep classes.
-    - [ ] Do we want to introduce a generic type for UUID? I think that makes sense.
+- [X] Add typing and documentation to the Pipeline and PipelineStep classes.
+    - [X] Do we want to introduce a generic type for UUID? I think that makes sense. Nope... that
+        would lose a lot of flexibility and speed we have as early early startup.
 - [ ] Coverage report for testing that can be included on the GitHub page with a nice button.
 - [ ] Error handling. If a step fails, should the entire pipeline fail? Or only sequential steps?
     Also handle error for Celery, nbconvert, etc.

@@ -1,4 +1,3 @@
-import aiodocker
 from docker.client import DockerClient
 from flask_sqlalchemy import SQLAlchemy
 
@@ -14,6 +13,3 @@ db = SQLAlchemy()
 
 # Manage docker containers.
 docker_client = DockerClient.from_env()
-aiodocker_client = aiodocker.Docker()
-
-RUNNER_CLIENTS = {'docker': aiodocker_client, 'kubernetes': None}

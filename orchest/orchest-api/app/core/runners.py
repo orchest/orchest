@@ -1,10 +1,10 @@
 import asyncio
+import copy
 from typing import Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
 
 from app import celery
-from app.connections import RUNNER_CLIENTS
 
 
 # TODO: this class is not extensive yet. The Other Dicts can be typed
@@ -110,9 +110,20 @@ def construct_pipeline(uuids: Iterable[str],
         return pipeline.incoming(uuids, inclusive=False)
 
 
-# Can be thought of as a Mixin class.
-# Or maybe it is the design pattern: composition over inheritance.
 class PipelineStepRunner:
+    """Runs a PipelineStep on a chosen backend.
+
+    It follows the composition over inheritance design pattern, since a
+    `PipelineStep` "has-a" `PipelineStepRunner` instead of "is-a".
+
+    Args:
+        properties: properties of the step used for execution.
+        parents: the parents/incoming steps of the current step.
+
+    Attributes:
+        properties: see "Args" section.
+        parents: see "Args" section.
+        """
     def __init__(self,
                  properties: PipelineStepProperties,
                  parents: Optional[List['PipelineStep']] = None) -> None:
@@ -120,14 +131,14 @@ class PipelineStepRunner:
         self.parents = parents if parents is not None else []
 
     async def run_on_docker(self,
-                            docker_env: aiodocker.Docker,
+                            docker_client: aiodocker.Docker,
                             wait_on_completion: bool = True) -> None:
         """Runs the container image defined in the step's properties.
 
         Running is done asynchronously.
 
         Args:
-            docker_env: Docker environment to run containers (async).
+            docker_client: Docker environment to run containers (async).
             wait_on_completion: if True await containers, else do not.
                 Awaiting containers is helpful when running a dependency
                 graph (like a pipeline), because one step can only
@@ -139,26 +150,26 @@ class PipelineStepRunner:
         # for completion of the container (like the `docker run` CLI
         # command does). Therefore the option to await the container
         # completion is introduced.
-        container = await docker_env.containers.run(config=config)
+        container = await docker_client.containers.run(config=config)
 
         if wait_on_completion:
             await container.wait()
 
-    async def run_ancestors_on_docker(self, docker_env: aiodocker.Docker) -> None:
+    async def run_ancestors_on_docker(self, docker_client: aiodocker.Docker) -> None:
         """Runs all ancestor steps before running itself.
 
         Args:
-            docker: Docker environment to run containers (asynchronously).
+            docker_client: Docker environment to run containers (async).
         """
         # Before running the step itself, it has to run all incoming
         # steps.
-        tasks = [asyncio.create_task(parent.run_ancestors_on_docker(docker_env))
+        tasks = [asyncio.create_task(parent.run_ancestors_on_docker(docker_client))
                  for parent in self.parents]
         await asyncio.gather(*tasks)
 
         # The sentinel node cannot be executed itself.
         if self.properties is not None:
-            await self.run_on_docker(docker_env)
+            await self.run_on_docker(docker_client)
 
     async def run_on_kubernetes(self):
         pass
@@ -174,8 +185,7 @@ class PipelineStep(PipelineStepRunner):
     It can also be thought of as a node of a graph.
 
     Args:
-        properties: properties of the step used for execution and front
-            end.
+        properties: properties of the step used for execution.
         parents: the parents/incoming steps of the current step.
 
     Attributes:
@@ -185,8 +195,6 @@ class PipelineStep(PipelineStepRunner):
     def __init__(self,
                  properties: PipelineStepProperties,
                  parents: Optional[List['PipelineStep']] = None) -> None:
-        # self.properties = properties
-        # self.parents = parents if parents is not None else []
         super().__init__(properties, parents)
 
         # Keeping a list of children allows us to traverse the pipeline
@@ -194,67 +202,22 @@ class PipelineStep(PipelineStepRunner):
         # Pipeline methods.
         self._children: List['PipelineStep'] = []
 
-    # # TODO: I don't really like the name of this method.
-    # async def run_self(self,
-    #                    docker: aiodocker.Docker,
-    #                    wait_on_completion: bool = True) -> None:
-    #     """Runs the container image defined in the step's properties.
+    async def run(self,
+                  runner_client: aiodocker.Docker,
+                  compute_backend: str = 'docker') -> None:
+        """Runs the `PipelineStep` on the given compute backend.
 
-    #     Running is done asynchronously.
-
-    #     Args:
-    #         docker: Docker environment to run containers (asynchronously).
-    #         wait_on_completion: if True await containers, else do not.
-    #             Awaiting containers is helpful when running a dependency
-    #             graph (like a pipeline), because one step can only
-    #             executed once all its ancestors have completed.
-    #     """
-    #     config = {'Image': self.properties['image']['image_name']}
-
-    #     # Starts the container asynchronously, however, it does not wait
-    #     # for completion of the container (like the `docker run` CLI
-    #     # command does). Therefore the option to await the container
-    #     # completion is introduced.
-    #     container = await docker.containers.run(config=config)
-
-    #     if wait_on_completion:
-    #         await container.wait()
-
-    # async def run(self, docker: aiodocker.Docker) -> None:
-    #     """Runs all ancestor steps before running itself.
-
-    #     Args:
-    #         docker: Docker environment to run containers (asynchronously).
-    #     """
-    #     # Before running the step itself, it has to run all incoming
-    #     # steps.
-    #     tasks = [asyncio.create_task(parent.run(docker)) for parent in self.parents]
-    #     await asyncio.gather(*tasks)
-
-    #     # The sentinel node cannot be executed itself.
-    #     if self.properties is not None:
-    #         await self.run_self(docker)
-
-    async def run(self, compute_backend='docker'):
-        """
-        compute_backend = ('docker', 'kubernetes')
+        Args:
+            runner_client: client to manage the compute backend.
+            compute_backend: one of ("docker", "kubernetes").
         """
         run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
-
-        # TODO: Make the comment below work.
-        # runner_client = RUNNER_CLIENTS[compute_backend]
-        runner_client = aiodocker.Docker()
         await run_func(runner_client)
-        await runner_client.close()
-
-        # note that we do not close the env here, since it might be used
-        # again in the future.
 
     def __eq__(self, other):
-        # TODO: for now steps get a UUID and are always only identified
-        #       with the UUID. Thus if they get additional parents and/or
-        #       children, then they will stay the same. I think this is
-        #       fine though.
+        # NOTE: steps get a UUID and are always only identified with the
+        # UUID. Thus if they get additional parents and/or children, then
+        # they will stay the same. I think this is fine though.
         return self.properties['uuid'] == other.properties['uuid']
 
     def __hash__(self):
@@ -342,22 +305,24 @@ class Pipeline:
             An induced pipeline by the set of steps (defined by the given
             selection).
         """
-        # TODO: keep_steps = set(self.steps) & set(selection)
         keep_steps = [step for step in self.steps
                       if step.properties['uuid'] in selection]
 
         # Only keep connection to parents and children if these steps are
-        # also included in the selection.
+        # also included in the selection. In addition, to keep consistency
+        # of the properties attributes of the steps, we update the
+        # "incoming_connections" to be representative of the new pipeline
+        # structure.
         new_steps = []
         for step in keep_steps:
-            # TODO: I guess these properties point to the same object now.
-            #       This should be fine since the properties itself do not
-            #       get changed. Although the incoming_connections property
-            #       is no longer correct.
-            # TODO: Deepclone it and update the incoming_connections
-            new_step = PipelineStep(step.properties)
+            # Take a deepcopy such that the properties of the new and
+            # original step do not point to the same object (since we
+            # want to update the "incoming_connections").
+            new_step = PipelineStep(copy.deepcopy(step.properties))
             new_step.parents = [s for s in step.parents if s in keep_steps]
             new_step._children = [s for s in step._children if s in keep_steps]
+            new_step.properties['incoming_connections'] = [s.properties['uuid']
+                                                           for s in new_step.parents]
             new_steps.append(new_step)
 
         return Pipeline(steps=new_steps)
@@ -417,11 +382,13 @@ class Pipeline:
             if step in steps:
                 continue
 
-            # TODO: again the properties point to the old properties dict.
-            #       Therefore containing incorrect "incoming_connections".
-            #       Make a deepcopy.
-            # Create a new Pipeline step that is a copy of the step.
-            new_step = PipelineStep(step.properties, step.parents)
+            # Create a new Pipeline step that is a copy of the step. For
+            # consistency also update the properties attribute and make
+            # it point to a new object.
+            new_properties = copy.deepcopy(step.properties)
+            new_properties['incoming_connections'] = [s.properties['uuid']
+                                                      for s in step.parents]
+            new_step = PipelineStep(new_properties, step.parents)
 
             # NOTE: the childrens list has to be updated, since the
             # sentinel node uses its information to be computed. On the
@@ -432,50 +399,25 @@ class Pipeline:
             stack.extend(new_step.parents)
 
         if not inclusive:
-            steps = [step for step in steps if step.properties['uuid'] not in selection]
+            steps = set(step for step in steps
+                        if step.properties['uuid'] not in selection)
 
         return Pipeline(steps=list(steps))
 
     async def run(self):
-        """Runs the Pipeline asynchronously."""
-        await self.sentinel.run(compute_backend='docker')
+        """Runs the Pipeline asynchronously.
+
+        TODO:
+            The function should also take the argument `compute_backend`
+            Although this can be done later, since we do not support
+            any other compute backends yet.
+        """
+        # We have to instantiate the Docker() client here instead of in
+        # the connections.py main module. Because the client has to be
+        # bound to an asyncio eventloop.
+        runner_client = aiodocker.Docker()
+        await self.sentinel.run(runner_client, compute_backend='docker')
+        await runner_client.close()
 
     def __repr__(self):
         return f'Pipeline({self.steps!r})'
-
-
-# -- New idea --
-# Using the class structure below we can run Pipelines on different
-# back-ends.
-
-# NOTE: we introduce the terminology that a node can be an ancestor of
-#       itself. A parent would be a proper ancestor.
-# class PipelineStepRunner:
-#     async def run_on_docker(self):
-#         pass
-
-#     async def run_ancestors_on_docker(self):
-#         # Call the run_on_docker internally.
-#         pass
-
-#     async def run_on_kubernetes(self):
-#         pass
-
-#     async def run_ancestors_on_kubernetes(self):
-#         # Call the run_on_kubernetes internally.
-#         pass
-
-
-# class PipelineStep(PipelineStepRunner):
-#     async def run(self, compute_backend='docker'):
-#         """
-#         compute_backend = ('docker', 'kubernetes')
-#         """
-#         run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
-
-#         # from connections import RUNNER_CONNECTIONS
-#         runner_env = RUNNER_CONNECTIONS[compute_backend]['env']
-#         await run_func(runner_env)
-
-#         # note that we do not close the env here, since it might be used
-#         # again in the future.
