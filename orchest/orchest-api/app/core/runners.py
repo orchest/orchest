@@ -4,6 +4,7 @@ from typing import Dict, Iterable, List, Optional, TypedDict
 import aiodocker
 
 from app import celery
+from app.connections import RUNNER_CLIENTS
 
 
 # TODO: this class is not extensive yet. The Other Dicts can be typed
@@ -11,7 +12,7 @@ from app import celery
 class PipelineStepProperties(TypedDict):
     name: str
     uuid: str
-    incoming_connections: List['PipelineStep']
+    incoming_connections: List[str]  # list of UUIDs
     file_path: str
     image: Dict[str, str]
     experiment_json: str
@@ -60,7 +61,7 @@ def run_partial(uuids: Iterable[str],
 
 def construct_pipeline(uuids: Iterable[str],
                        run_type: str,
-                       pipeline_description: Dict,
+                       pipeline_description: PipelineDescription,
                        config: Optional[Dict] = None) -> 'Pipeline':
     """Constructs a pipeline from a description with selection criteria.
 
@@ -109,7 +110,65 @@ def construct_pipeline(uuids: Iterable[str],
         return pipeline.incoming(uuids, inclusive=False)
 
 
-class PipelineStep:
+# Can be thought of as a Mixin class.
+# Or maybe it is the design pattern: composition over inheritance.
+class PipelineStepRunner:
+    def __init__(self,
+                 properties: PipelineStepProperties,
+                 parents: Optional[List['PipelineStep']] = None) -> None:
+        self.properties = properties
+        self.parents = parents if parents is not None else []
+
+    async def run_on_docker(self,
+                            docker_env: aiodocker.Docker,
+                            wait_on_completion: bool = True) -> None:
+        """Runs the container image defined in the step's properties.
+
+        Running is done asynchronously.
+
+        Args:
+            docker_env: Docker environment to run containers (async).
+            wait_on_completion: if True await containers, else do not.
+                Awaiting containers is helpful when running a dependency
+                graph (like a pipeline), because one step can only
+                executed once all its ancestors have completed.
+        """
+        config = {'Image': self.properties['image']['image_name']}
+
+        # Starts the container asynchronously, however, it does not wait
+        # for completion of the container (like the `docker run` CLI
+        # command does). Therefore the option to await the container
+        # completion is introduced.
+        container = await docker_env.containers.run(config=config)
+
+        if wait_on_completion:
+            await container.wait()
+
+    async def run_ancestors_on_docker(self, docker_env: aiodocker.Docker) -> None:
+        """Runs all ancestor steps before running itself.
+
+        Args:
+            docker: Docker environment to run containers (asynchronously).
+        """
+        # Before running the step itself, it has to run all incoming
+        # steps.
+        tasks = [asyncio.create_task(parent.run_ancestors_on_docker(docker_env))
+                 for parent in self.parents]
+        await asyncio.gather(*tasks)
+
+        # The sentinel node cannot be executed itself.
+        if self.properties is not None:
+            await self.run_on_docker(docker_env)
+
+    async def run_on_kubernetes(self):
+        pass
+
+    async def run_ancestors_on_kubernetes(self):
+        # Call the run_on_kubernetes internally.
+        pass
+
+
+class PipelineStep(PipelineStepRunner):
     """A step of a pipeline.
 
     It can also be thought of as a node of a graph.
@@ -126,54 +185,70 @@ class PipelineStep:
     def __init__(self,
                  properties: PipelineStepProperties,
                  parents: Optional[List['PipelineStep']] = None) -> None:
-        self.properties = properties
-        self.parents = parents if parents is not None else []
+        # self.properties = properties
+        # self.parents = parents if parents is not None else []
+        super().__init__(properties, parents)
 
         # Keeping a list of children allows us to traverse the pipeline
         # also in the other direction. This is helpful for certain
         # Pipeline methods.
-        self._children = []
+        self._children: List['PipelineStep'] = []
 
-    # TODO: I don't really like the name of this method.
-    async def run_self(self,
-                       docker: aiodocker.Docker,
-                       wait_on_completion: bool = True) -> None:
-        """Runs the container image defined in the step's properties.
+    # # TODO: I don't really like the name of this method.
+    # async def run_self(self,
+    #                    docker: aiodocker.Docker,
+    #                    wait_on_completion: bool = True) -> None:
+    #     """Runs the container image defined in the step's properties.
 
-        Running is done asynchronously.
+    #     Running is done asynchronously.
 
-        Args:
-            docker: Docker environment to run containers (asynchronously).
-            wait_on_completion: if True await containers, else do not.
-                Awaiting containers is helpful when running a dependency
-                graph (like a pipeline), because one step can only
-                executed once all its ancestors have completed.
+    #     Args:
+    #         docker: Docker environment to run containers (asynchronously).
+    #         wait_on_completion: if True await containers, else do not.
+    #             Awaiting containers is helpful when running a dependency
+    #             graph (like a pipeline), because one step can only
+    #             executed once all its ancestors have completed.
+    #     """
+    #     config = {'Image': self.properties['image']['image_name']}
+
+    #     # Starts the container asynchronously, however, it does not wait
+    #     # for completion of the container (like the `docker run` CLI
+    #     # command does). Therefore the option to await the container
+    #     # completion is introduced.
+    #     container = await docker.containers.run(config=config)
+
+    #     if wait_on_completion:
+    #         await container.wait()
+
+    # async def run(self, docker: aiodocker.Docker) -> None:
+    #     """Runs all ancestor steps before running itself.
+
+    #     Args:
+    #         docker: Docker environment to run containers (asynchronously).
+    #     """
+    #     # Before running the step itself, it has to run all incoming
+    #     # steps.
+    #     tasks = [asyncio.create_task(parent.run(docker)) for parent in self.parents]
+    #     await asyncio.gather(*tasks)
+
+    #     # The sentinel node cannot be executed itself.
+    #     if self.properties is not None:
+    #         await self.run_self(docker)
+
+    async def run(self, compute_backend='docker'):
         """
-        config = {'Image': self.properties['image']['image_name']}
-
-        # Starts the container asynchronously, however, it does not wait
-        # for completion of the container (like the `docker run` CLI
-        # command does). Therefore the option to await the container
-        # completion is introduced.
-        container = await docker.containers.run(config=config)
-
-        if wait_on_completion:
-            await container.wait()
-
-    async def run(self, docker: aiodocker.Docker) -> None:
-        """Runs all ancestor steps before running itself.
-
-        Args:
-            docker: Docker environment to run containers (asynchronously).
+        compute_backend = ('docker', 'kubernetes')
         """
-        # Before running the step itself, it has to run all incoming
-        # steps.
-        tasks = [asyncio.create_task(parent.run(docker)) for parent in self.parents]
-        await asyncio.gather(*tasks)
+        run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
 
-        # The sentinel node cannot be executed itself.
-        if self.properties is not None:
-            await self.run_self(docker)
+        # TODO: Make the comment below work.
+        # runner_client = RUNNER_CLIENTS[compute_backend]
+        runner_client = aiodocker.Docker()
+        await run_func(runner_client)
+        await runner_client.close()
+
+        # note that we do not close the env here, since it might be used
+        # again in the future.
 
     def __eq__(self, other):
         # TODO: for now steps get a UUID and are always only identified
@@ -202,11 +277,11 @@ class PipelineStep:
 
 
 class Pipeline:
-    def __init__(self, steps: Optional[List[PipelineStep]] = None) -> None:
+    def __init__(self, steps: List[PipelineStep]) -> None:
         self.steps = steps
 
         # See the sentinel property for explanation.
-        self._sentinel: PipelineStep = None
+        self._sentinel: Optional[PipelineStep] = None
 
     @classmethod
     def from_json(cls, description: PipelineDescription) -> 'Pipeline':
@@ -248,7 +323,7 @@ class Pipeline:
 
         return self._sentinel
 
-    def get_induced_subgraph(self, selection: List[str]) -> 'Pipeline':
+    def get_induced_subgraph(self, selection: Iterable[str]) -> 'Pipeline':
         """Returns a new pipeline whos set of steps equal the selection.
 
         Takes an induced subgraph of the pipeline formed by a subset of
@@ -307,7 +382,7 @@ class Pipeline:
         self._sentinel = None
 
     def incoming(self,
-                 selection: List[str],
+                 selection: Iterable[str],
                  inclusive: bool = False) -> 'Pipeline':
         """Returns a new Pipeline of all ancestors of the selection.
 
@@ -363,12 +438,7 @@ class Pipeline:
 
     async def run(self):
         """Runs the Pipeline asynchronously."""
-        # TODO: do we want to put this docker instance also inside the
-        #       connections.py file? Similar to the standard docker
-        #       sdk instance?
-        docker = aiodocker.Docker()
-        await self.sentinel.run(docker)
-        await docker.close()
+        await self.sentinel.run(compute_backend='docker')
 
     def __repr__(self):
         return f'Pipeline({self.steps!r})'
@@ -380,43 +450,32 @@ class Pipeline:
 
 # NOTE: we introduce the terminology that a node can be an ancestor of
 #       itself. A parent would be a proper ancestor.
-class PipelineStepRunner:
-    async def run_on_docker(self):
-        pass
+# class PipelineStepRunner:
+#     async def run_on_docker(self):
+#         pass
 
-    async def run_ancestors_on_docker(self):
-        # Call the run_on_docker internally.
-        pass
+#     async def run_ancestors_on_docker(self):
+#         # Call the run_on_docker internally.
+#         pass
 
-    async def run_on_kubernetes(self):
-        pass
+#     async def run_on_kubernetes(self):
+#         pass
 
-    async def run_ancestors_on_kubernetes(self):
-        # Call the run_on_kubernetes internally.
-        pass
-
-
-class PipelineStep(PipelineStepRunner):
-    async def run(self, compute_backend='docker'):
-        """
-        compute_backend = ('docker', 'kubernetes')
-        """
-        run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
-
-        # from connections import RUNNER_CONNECTIONS
-        runner_env = RUNNER_CONNECTIONS[compute_backend]['env']
-        await run_func(runner_env)
-
-        # note that we do not close the env here, since it might be used
-        # again in the future.
+#     async def run_ancestors_on_kubernetes(self):
+#         # Call the run_on_kubernetes internally.
+#         pass
 
 
-# Thoughts
-"""
-I think the PipelineStep, Pipeline and PipelineStepRunner should all be
-in some util package. The code for the API should only contain functions
-such as the `run_partial` and `construct_pipeline`.
+# class PipelineStep(PipelineStepRunner):
+#     async def run(self, compute_backend='docker'):
+#         """
+#         compute_backend = ('docker', 'kubernetes')
+#         """
+#         run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
 
-The API package should call this logic, but not implement it. Additionally,
-the sdk also uses this logic (even more reason to put it somewhere else).
-"""
+#         # from connections import RUNNER_CONNECTIONS
+#         runner_env = RUNNER_CONNECTIONS[compute_backend]['env']
+#         await run_func(runner_env)
+
+#         # note that we do not close the env here, since it might be used
+#         # again in the future.
