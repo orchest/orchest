@@ -131,6 +131,9 @@ class PipelineStepRunner:
         self.properties = properties
         self.parents = parents if parents is not None else []
 
+        # A step only has to be started once when executing a Pipeline.
+        self._started: bool = False
+
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
                             wait_on_completion: bool = True) -> None:
@@ -145,7 +148,20 @@ class PipelineStepRunner:
                 graph (like a pipeline), because one step can only
                 executed once all its proper ancestors have completed.
         """
-        config = {'Image': self.properties['image']['image_name']}
+        # Don't start a step if it has already been started.
+        if self._started:
+            return
+
+        # Indicate that the step has started executing.
+        self._started = True
+
+        # NOTE: Passing the UUID as a configuration parameter does not
+        # get used by the docker_client. However, we use it for testing
+        # to check whether the resolve order of the pipeline is correct.
+        config = {
+            'Image': self.properties['image']['image_name'],
+            'uuid': self.properties['uuid']
+        }
 
         # Starts the container asynchronously, however, it does not wait
         # for completion of the container (like the `docker run` CLI
@@ -422,6 +438,10 @@ class Pipeline:
         runner_client = aiodocker.Docker()
         await self.sentinel.run(runner_client, compute_backend='docker')
         await runner_client.close()
+
+        # Reset the execution environment of the Pipeline.
+        for step in self.steps:
+            step._started = False
 
     def __repr__(self):
         return f'Pipeline({self.steps!r})'

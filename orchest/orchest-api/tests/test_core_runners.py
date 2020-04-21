@@ -11,9 +11,10 @@ import asyncio
 import json
 import unittest
 
+from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
 
-from app.core.runners import Pipeline, run_partial
+from app.core.runners import Pipeline
 
 
 @pytest.fixture
@@ -25,11 +26,11 @@ def description():
 
 
 @pytest.fixture
-def description_straight():
-    with open('tests/pipeline-straight.json', 'r') as f:
-        description_straight = json.load(f)
+def description_resolve():
+    with open('tests/pipeline-resolve.json', 'r') as f:
+        description_resolve = json.load(f)
 
-    return description_straight
+    return description_resolve
 
 
 def test_pipeline_from_json(description):
@@ -125,21 +126,36 @@ def test_pipeline_run(description):
     asyncio.run(pipeline.run())
 
 
+CALLING_ORDER = []
+
+
+class MockDockerContainer:
+    def __init__(self, sleep_amount, uuid):
+        self.sleep_amount = sleep_amount
+        self.uuid = uuid
+
+    async def wait(self):
+        await asyncio.sleep(self.sleep_amount)
+        CALLING_ORDER.append(self.uuid)
+
+
+def test_pipeline_run_mocked(description_resolve, monkeypatch):
+    async def mockreturn_run(*args, **kwargs):
+        # It gets the config that get's passed to the
+        # `aiodocker.Docker().containers.run(config=config)`
+        mock_class = MockDockerContainer(kwargs['config']['Image'],
+                                         kwargs['config']['uuid'])
+
+        return mock_class
+
+    pipeline = Pipeline.from_json(description_resolve)
+
+    monkeypatch.setattr(DockerContainers, 'run', mockreturn_run)
+    asyncio.run(pipeline.run())
+    assert CALLING_ORDER == ['uuid-1', 'uuid-2', 'uuid-4', 'uuid-3', 'uuid-6', 'uuid-5']
+
+
 # ---- Make sure to start a Celery worker before running the tests below.
-
-# TODO: use parametrized docker containers that do a time.sleep() Then
-#       we can check whether everything is executed in the correct order.
-# def test_run_partial(description):
-#     # TODO: Check whether the graph execution is resolved correctly.
-#     #       e.g. it should run step-1 and step-6 in parallel and only
-#     #       start on step-2 once step-1 has finished computing.
+# def test_run_partial_on_celery(description):
+#     from app.core.runners import run_partial
 #     run_partial.delay([], 'full', description)
-
-
-# Uncomment this method and start a celery worker to verify that this
-# tasks indeed takes longer than the task with the regular pipeline
-# description. This lets us believe that the regular graph is indeed
-# executed in parallel. Whether it is indeed correctly resolved, we
-# cannot conclude from this test.
-# def test_run_partial(description_straight):
-#     run_partial.delay([], 'full', description_straight)
