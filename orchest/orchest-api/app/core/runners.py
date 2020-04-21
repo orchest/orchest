@@ -38,9 +38,10 @@ def run_partial(uuids: Iterable[str],
     Type of runs:
         * Run all the steps of the pipeline.
         * Given a selection of UUIDs run only the selection.
-        * Given a selectin of UUIDs, run all their precursors (i.e.
+        * Given a selectin of UUIDs, run all their proper ancestors (i.e.
           parents in a directed graph). This can be done either inclusive
-          or exclusive of the selection.
+          or exclusive of the selection (making it run all ancestors
+          instead of proper ancestors - thus including the step itself).
 
     NOTE:
         Running a pipeline fully can also be described as a partial run.
@@ -142,7 +143,7 @@ class PipelineStepRunner:
             wait_on_completion: if True await containers, else do not.
                 Awaiting containers is helpful when running a dependency
                 graph (like a pipeline), because one step can only
-                executed once all its ancestors have completed.
+                executed once all its proper ancestors have completed.
         """
         config = {'Image': self.properties['image']['image_name']}
 
@@ -157,6 +158,9 @@ class PipelineStepRunner:
 
     async def run_ancestors_on_docker(self, docker_client: aiodocker.Docker) -> None:
         """Runs all ancestor steps before running itself.
+
+        We make a difference between an ancestor and proper ancestor. A
+        step is an ancestor of itself but not a proper ancestor.
 
         Args:
             docker_client: Docker environment to run containers (async).
