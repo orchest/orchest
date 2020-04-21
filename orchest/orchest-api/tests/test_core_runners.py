@@ -93,26 +93,25 @@ def test_pipeline_incoming(description):
     assert steps['step-1']._children == [steps['step-2']]
     assert steps['step-1'].parents == []
 
-    # TODO: this will currently still fail, since it has children
-    #       step-3 and step-4. But not sure yet what we want.
-    # assert steps['step-2']._children == []
+    assert steps['step-2']._children == []
     assert steps['step-2'].parents == [steps['step-1']]
 
     # Testing the inclusive kwarg.
-    incoming_inclusive = pipeline.incoming(['uuid-4', 'uuid-6'], inclusive=True)
+    incoming_inclusive = pipeline.incoming(['uuid-3', 'uuid-4', 'uuid-6'], inclusive=True)
     steps = {step.properties['name']: step for step in incoming_inclusive.steps}
 
     assert steps['step-1']._children == [steps['step-2']]
     assert steps['step-1'].parents == []
 
-    # TODO: this will currently still fail, since it has children
-    #       step-3 and step-4. But not sure yet what we want.
-    #       Similarly for the step-4 children.
-    # assert steps['step-2']._children == []
+    case = unittest.TestCase()
+    case.assertCountEqual(steps['step-2']._children, [steps['step-4'], steps['step-3']])
     assert steps['step-2'].parents == [steps['step-1']]
 
+    assert steps['step-3'].parents == [steps['step-2']]
+    assert steps['step-3']._children == []
+
     assert steps['step-4'].parents == [steps['step-2']]
-    # assert steps['step-4']._children == []
+    assert steps['step-4']._children == []
 
     assert steps['step-6']._children == []
     assert steps['step-6'].parents == []

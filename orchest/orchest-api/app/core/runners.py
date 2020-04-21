@@ -38,7 +38,7 @@ def run_partial(uuids: Iterable[str],
     Type of runs:
         * Run all the steps of the pipeline.
         * Given a selection of UUIDs run only the selection.
-        * Given a selectin of UUIDs, run all their proper ancestors (i.e.
+        * Given a selection of UUIDs, run all their proper ancestors (i.e.
           parents in a directed graph). This can be done either inclusive
           or exclusive of the selection (making it run all ancestors
           instead of proper ancestors - thus including the step itself).
@@ -414,15 +414,26 @@ class Pipeline:
             # sentinel node uses its information to be computed. On the
             # other hand, the parents, do not change and are always all
             # included.
-            new_step._children = [s for s in step._children if s in steps]
+            new_step._children = [s for s in step._children
+                                  if s in steps or s.properties['uuid'] in selection]
             steps.add(new_step)
             stack.extend(new_step.parents)
 
-        if not inclusive:
-            steps = set(step for step in steps
-                        if step.properties['uuid'] not in selection)
+        # Remove steps if the selection should not be included in the new
+        # pipeline.
+        if inclusive:
+            steps_to_be_included = steps
+        elif not inclusive:
+            steps_to_be_included = steps - set(step for step in self.steps
+                                               if step.properties['uuid'] in selection)
 
-        return Pipeline(steps=list(steps))
+            # We have to go over the children again to make sure they
+            # also do not include any steps of the selection.
+            for step in steps_to_be_included:
+                step._children = [s for s in step._children
+                                  if s in steps_to_be_included]
+
+        return Pipeline(steps=list(steps_to_be_included))
 
     async def run(self):
         """Runs the Pipeline asynchronously.
