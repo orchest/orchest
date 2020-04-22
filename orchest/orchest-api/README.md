@@ -79,9 +79,9 @@ lower priority such that the partial runs can always be executed.
     - [ ] It would be faster to immediately construct the subgraph etc. directly from the json
         description. Although this is a lot more messy
     - [X] When Pipeline --inplace--> subgraph, then the sentinel node has to be set to `None`
-- [ ] Do we want to check for cycles?
+- [X] Do we want to check for cycles?
 - [ ] Run the docker containers of the `aiodocker` on the Orchest docker network.
-- [ ] Note that the pipeline is run on docker. Maybe we can add an abstraction layer such that it
+- [X] Note that the pipeline is run on docker. Maybe we can add an abstraction layer such that it
     can easily be swapped to run on k8s.
     * Idea: Let `Pipeline` class function as a Mixin to `PipelineRunnerDocker(Pipeline)` class that
         implements the `async def run():` instead of having it in the `Pipeline` class itself.
@@ -89,7 +89,8 @@ lower priority such that the partial runs can always be executed.
 - [ ] Running a pipeline is a Task. Thus we need some way to let the front-end know about completion
     of the pipeline and step (flask socketio?). Otherwise we could maybe write to the Celery broker?
     Some compute back-end?
-- [ ] Tests that check whether the pipeline execution order is correct.
+- [X] Tests that check whether the pipeline execution order is correct.
+- [ ] Write more tests since the pipeline execution order really is at the core of our product.
 - [ ] Choosing the right broker for Celery
 - [X] Add typing and documentation to the Pipeline and PipelineStep classes.
     - [X] Do we want to introduce a generic type for UUID? I think that makes sense. Nope... that
@@ -99,7 +100,7 @@ lower priority such that the partial runs can always be executed.
     Also handle error for Celery, nbconvert, etc.
 - [ ] Logging
 - [ ] Execution of containers and correct mount
-- [ ] API endpoint design for the runs
+- [X] API endpoint design for the runs
 - [ ] How many runs per pipeline? Maybe multiple, but sequantially run just like a Jupyter cell runs
     after previous selected ones have finished (keep in mind that the runs operate on the same
     filesystem)
@@ -107,7 +108,5 @@ lower priority such that the partial runs can always be executed.
     docker-compose to get jupyter-server to reliably start after the EG (and connect to it)
     * How does JupyterHub start and connect to a Jupyter server? Maybe we can do something similar
         for our jupyter-server (and no longer need the Flask API to run inside the container).
-- [ ]
-- [ ] Rewrite to use `networkx`? As it is the goto graph library for python.
 - [ ] Put the `Pipeline` and `PipelineStep` classes some place else? Rick probably also uses them
     for his sdk. Some orchest-utils package?

@@ -117,10 +117,7 @@ def test_pipeline_incoming(description):
     assert steps['step-6'].parents == []
 
 
-def test_pipeline_run(description):
-    # TODO: Check whether the graph execution is resolved correctly.
-    #       e.g. it should run step-1 and step-6 in parallel and only
-    #       start on step-2 once step-1 has finished computing.
+def test_pipeline_run_with_docker_containers(description):
     pipeline = Pipeline.from_json(description)
     asyncio.run(pipeline.run())
 
@@ -138,7 +135,7 @@ class MockDockerContainer:
         CALLING_ORDER.append(self.uuid)
 
 
-def test_pipeline_run_mocked(description_resolve, monkeypatch):
+def test_pipeline_run_call_order(description_resolve, monkeypatch):
     async def mockreturn_run(*args, **kwargs):
         # It gets the config that get's passed to the
         # `aiodocker.Docker().containers.run(config=config)`

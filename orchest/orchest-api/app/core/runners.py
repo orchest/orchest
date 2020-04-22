@@ -114,8 +114,8 @@ def construct_pipeline(uuids: Iterable[str],
 class PipelineStepRunner:
     """Runs a PipelineStep on a chosen backend.
 
-    It follows the composition over inheritance design pattern, since a
-    `PipelineStep` "has-a" `PipelineStepRunner` instead of "is-a".
+    This class can be thought of as a mixin class to the `PipelineStep`
+    class.
 
     Args:
         properties: properties of the step used for execution.
@@ -171,6 +171,8 @@ class PipelineStepRunner:
 
         if wait_on_completion:
             await container.wait()
+
+            # TODO: some code to store that the step is done executing.
 
     async def run_ancestors_on_docker(self, docker_client: aiodocker.Docker) -> None:
         """Runs all ancestor steps before running itself.
@@ -262,6 +264,10 @@ class PipelineStep(PipelineStepRunner):
 class Pipeline:
     def __init__(self, steps: List[PipelineStep]) -> None:
         self.steps = steps
+
+        # TODO: we want to be able to serialize a Pipeline back to a json
+        #       file. Therefore we would need to store the Pipeline name
+        #       and UUID from the json first.
 
         # See the sentinel property for explanation.
         self._sentinel: Optional[PipelineStep] = None
