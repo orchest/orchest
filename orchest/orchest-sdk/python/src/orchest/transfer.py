@@ -1,4 +1,4 @@
-from .pipeline import Pipeline
+from orchest.pipeline import Pipeline
 import pickle
 import os
 import json
