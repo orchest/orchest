@@ -172,7 +172,14 @@ class PipelineStepRunner:
         if wait_on_completion:
             await container.wait()
 
+            # TODO: get the logs of the container to check for error.
+            #       Rick will return the status code of the container
+            #       once it is done executing and if an error happened
+            #       then it will be redirected to some file in the
+            #       containers.
+
             # TODO: some code to store that the step is done executing.
+            #       This is done by sending a POST to the orchest-api.
 
     async def run_ancestors_on_docker(self, docker_client: aiodocker.Docker) -> None:
         """Runs all ancestor steps before running itself.

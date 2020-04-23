@@ -10,7 +10,7 @@ pipeline_step = api.model('Pipeline Step', {
 })
 
 run = api.model('Run', {
-    'uid': fields.Integer(required=True, description='UID for run'),
+    'uid': fields.String(required=True, description='UID for run'),
     'status': fields.String(required=True, description='Status of the run'),
     'step-status': fields.List(fields.Nested(pipeline_step),
                                description='Status of each pipeline steps')
@@ -46,7 +46,7 @@ class RunList(Resource):
         return
 
 
-@api.route('/<int:uid>')
+@api.route('/<string:uid>')
 @api.param('uid', 'UID for Run')
 @api.response(404, 'Run not found')
 class Run(Resource):
@@ -71,5 +71,22 @@ class Run(Resource):
         pass
 
 
-# TODO: could also include the path /runs/{uid}/pipeline-step/{uuid} to
-#       get the status of the specific step.
+# TODO: check what it should return. Everything about the step? Or just
+#       the status?
+@api.route('/<string:run_uid>/<string:step_uuid>',
+           doc={'description': 'Set and get execution status of steps.'})
+@api.param('run_uid', 'UID for Run')
+@api.param('step_uuid', 'UUID of Pipeline Step')
+@api.response(404, 'Pipeline step not found')
+class StepStatus(Resource):
+    @api.doc('get_step_status')
+    def get(self, run_uid, step_uuid):
+        """Fetch a step of a given run given their ids."""
+        # Returns the status and logs. Of course logs are empty if the
+        # step is not executed yet.
+        pass
+
+    @api.doc('set_step_status')
+    def post(self, run_uid, step_uuid):
+        """Set the status of a step."""
+        pass
