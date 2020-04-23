@@ -4,7 +4,7 @@
 import os
 
 
-PIPELINE_UUID = "5005a1c8-9d99-446e-98e4-d53293591d2e"
+PIPELINE_UUID = "229ccc73-3762-40d9-b38e-8ccf0eda66ac"
 SDK_DIR = "orchest/orchest-sdk/python/src/orchest/"
 SDK_TARGET_DIR = "orchest/userdir/pipelines/" + PIPELINE_UUID + "/orchest/"
 
