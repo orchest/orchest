@@ -4,7 +4,14 @@ from typing import Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
 
-from app import celery
+# from app import celery
+# from main import celery
+from app.celery import make_celery
+from app import create_app
+from config import CONFIG_CLASS
+
+
+celery = make_celery(create_app(CONFIG_CLASS))
 
 
 # TODO: this class is not extensive yet. The Other Dicts can be typed
@@ -25,8 +32,9 @@ class PipelineDescription(TypedDict):
     steps: Dict[str, PipelineStepProperties]
 
 
-@celery.task
-def run_partial(uuids: Iterable[str],
+@celery.task(bind=True)
+def run_partial(self,
+                uuids: Iterable[str],
                 run_type: str,
                 pipeline_description: PipelineDescription) -> None:
     """Runs a pipeline partially.
@@ -52,7 +60,9 @@ def run_partial(uuids: Iterable[str],
         run_type: one of ("full", "selection", "incoming").
         pipeline_description: a json description of the pipeline.
     """
-
+    # TODO: call the pipeline.run or set it inside the pipelinesteprunner
+    #       as an attribute: self.request.id (the task_id of the celery
+    #       task).
     # Get the pipeline to run according to the run_type.
     pipeline = construct_pipeline(uuids, run_type, pipeline_description)
 

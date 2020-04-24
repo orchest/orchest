@@ -24,5 +24,4 @@ class TestingConfig(Config):
 CONFIG_CLASS = Config
 
 # Development
-# CONFIG_CLASS = DevelopmentConfig
-
+CONFIG_CLASS = DevelopmentConfig

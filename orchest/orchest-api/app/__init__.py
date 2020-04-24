@@ -12,10 +12,6 @@ from flask_cors import CORS
 
 from app.apis import blueprint as api
 from app.connections import db
-from config import CONFIG_CLASS
-
-
-celery = Celery(__name__, config_source=CONFIG_CLASS)
 
 
 def create_app(config_class=None):
