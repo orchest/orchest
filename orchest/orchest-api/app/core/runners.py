@@ -4,8 +4,6 @@ from typing import Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
 
-# from app import celery
-# from main import celery
 from app.celery import make_celery
 from app import create_app
 from config import CONFIG_CLASS
@@ -60,12 +58,12 @@ def run_partial(self,
         run_type: one of ("full", "selection", "incoming").
         pipeline_description: a json description of the pipeline.
     """
-    # TODO: call the pipeline.run or set it inside the pipelinesteprunner
-    #       as an attribute: self.request.id (the task_id of the celery
-    #       task).
     # Get the pipeline to run according to the run_type.
     pipeline = construct_pipeline(uuids, run_type, pipeline_description)
 
+    # TODO: give self.request.id (self.request is the AsyncResult) as
+    #       argument so the steps can call the API to update their
+    #       status.
     # Run the subgraph in parallel.
     asyncio.run(pipeline.run())
 

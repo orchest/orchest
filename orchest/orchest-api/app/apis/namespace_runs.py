@@ -1,9 +1,9 @@
+from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource, fields
 
 from app.connections import db
 import app.models as models
-# from app.core.runners import run_partial
 from app.celery import make_celery
 
 
@@ -33,11 +33,19 @@ run_configuration = api.model('Run Configuration', {
         description='UUIDs of pipeline steps'),
     'run_type': fields.String(
         required=True,
-        description='Status of the step',
+        description='Type of run',
         enum=['full', 'selection', 'incoming']),
     'pipeline_description': fields.Raw(
         required=True,
         description='Pipeline definition in JSON')
+})
+
+# TODO: see celery states.
+step_status_update = api.model('Step Status Update', {
+    'status': fields.String(
+        required=True,
+        description='New status of the step',
+        enum=['PENDING', 'STARTED', 'SUCCESS']),
 })
 
 
@@ -75,44 +83,50 @@ class RunList(Resource):
         # (for storing and transmitting results) associated to the task.
         # res.forget()
 
+        # TODO: it is vital! that this addition to the dataset gets run
+        #       before the status of the steps are updated by the Celery
+        #       task (which is also done via the API).
         run = {
            'run_uid': res.id,
            'pipeline_uuid': post_data['pipeline_description']['uuid'],
            'status': res.state,
         }
+
+        # TODO: write to the StepStatus an initial default empty values.
+
         db.session.add(models.Run(**run))
         db.session.commit()
 
         return run, 201
 
 
-@api.route('/<string:uid>')
-@api.param('uid', 'UID for Run')
+@api.route('/<string:run_uid>')
+@api.param('run_uid', 'UID for Run')
 @api.response(404, 'Run not found')
 class Run(Resource):
     @api.doc('get_run')
-    def get(self, uid):
+    @api.marshal_with(run, code=200)
+    def get(self, run_uid):
         """Fetch a run given its UID."""
-        # Return the status of the Task, and the status of all the steps.
-        # if task.status == DONE then all steps are also DONE
-        # if task.status == PENDING then all steps are also PENDING (queue)
-        # if task.status == RUNNING then the steps could all have different status.
-
-        # The status from the steps is stored in some in-memory-store
-        # (could be redis or aiosqlite). Note that it has to be done
-        # async. Since the containers of the steps are also run async.
-        pass
+        run = models.Run.query.filter_by(run_uid=run_uid).first_or_404(
+                description='Run not found'
+        )
+        return run.as_dict()
 
     @api.doc('delete_run')
-    def delete(self, uid):
+    @api.response(200, 'Run terminated')
+    def delete(self, run_uid):
         """Stop a run given its UID."""
+        # TODO: we could specify more options when deleting the run.
+        # TODO: error handling.
+
         # Stop the run, whether it is in the queue or whether it is
         # actually running.
-        pass
+        revoke(run_uid, terminate=True)
+
+        return {'message': 'Run termination was successful'}, 200
 
 
-# TODO: check what it should return. Everything about the step? Or just
-#       the status?
 @api.route('/<string:run_uid>/<string:step_uuid>',
            doc={'description': 'Set and get execution status of steps.'})
 @api.param('run_uid', 'UID for Run')
@@ -124,16 +138,29 @@ class StepStatus(Resource):
         """Fetch a step of a given run given their ids."""
         # Returns the status and logs. Of course logs are empty if the
         # step is not executed yet.
-        pass
+        step = models.StepStatus.query.filter_by(
+                run_uid=run_uid, step_uuid=step_uuid
+        ).first_or_404(description='Run and step combination not found')
+        return step.as_dict()
 
+    # TODO: make into update. It should by default populate the db with all
+    #       the steps and set their status to PENDING or whatever default
+    #       value.
     @api.doc('set_step_status')
-    def post(self, run_uid, step_uuid):
+    @api.expect(step_status_update)
+    def put(self, run_uid, step_uuid):
         """Set the status of a step."""
-        # launch = {
-        #     'pipeline_uuid': post_data['pipeline_uuid'],
-        #     'server_ip': IP.server,
-        #     'server_info': r.json()
-        # }
-        # db.session.add(models.Launch(**launch))
-        # db.session.commit()
-        pass
+        post_data = request.get_json()
+
+        # TODO: first check the status and make sure it says PENDING or
+        #       or whatever. Because it is empty then this would write it
+        #       and then get overwritten.
+        # TODO: maybe set synchorinze_session kwarg for update.
+        res = models.StepStatus.query.filter_by(
+            run_uid=run_uid, step_uuid=step_uuid
+        ).update({'status': post_data['status']})
+
+        if res:
+            db.session.commit()
+
+        return {'message': 'Status was updated successfully'}, 200
