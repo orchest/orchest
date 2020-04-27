@@ -9,7 +9,7 @@ from app.celery import make_celery
 
 api = Namespace('runs', description='Managing (partial) runs')
 
-pipeline_step = api.model('Pipeline Step', {
+step_status = api.model('Pipeline Step', {
     'run_uid': fields.String(required=True, description='UID for run'),
     'step_uuid': fields.String(required=True, description='UUID of a pipeline step'),
     'status': fields.String(
@@ -18,16 +18,11 @@ pipeline_step = api.model('Pipeline Step', {
         enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
 })
 
-run = api.model('Run', {
-    'run_uid': fields.String(required=True, description='UID for run'),
-    'pipeline_uuid': fields.String(required=True, description='UUID of a pipeline step'),
-    'status': fields.String(required=True, description='Status of the run'),
-    'step_statuses': fields.List(fields.Nested(pipeline_step),
-                               description='Status of each pipeline step')
-})
-
-runs = api.model('Runs', {
-    'runs': fields.List(fields.Nested(run), description='Ran and running tasks')
+status_update = api.model('Status Update', {
+    'status': fields.String(
+        required=True,
+        description='New status of the step',
+        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
 })
 
 run_configuration = api.model('Run Configuration', {
@@ -44,11 +39,16 @@ run_configuration = api.model('Run Configuration', {
         description='Pipeline definition in JSON')
 })
 
-status_update = api.model('Status Update', {
-    'status': fields.String(
-        required=True,
-        description='New status of the step',
-        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
+run = api.model('Run', {
+    'run_uid': fields.String(required=True, description='UID for run'),
+    'pipeline_uuid': fields.String(required=True, description='UUID of a pipeline step'),
+    'status': fields.String(required=True, description='Status of the run'),
+    'step_statuses': fields.List(fields.Nested(step_status),
+                                 description='Status of each pipeline step')
+})
+
+runs = api.model('Runs', {
+    'runs': fields.List(fields.Nested(run), description='Ran and running tasks')
 })
 
 
@@ -86,9 +86,6 @@ class RunList(Resource):
         # (for storing and transmitting results) associated to the task.
         # res.forget()
 
-        # TODO: it is vital! that this addition to the dataset gets run
-        #       before the status of the steps are updated by the Celery
-        #       task (which is also done via the API).
         # NOTE: we are setting the status of the run ourselves without
         # using the option of celery to get the status of tasks. This way
         # we do not have to configure a backend (where the default of
@@ -100,7 +97,7 @@ class RunList(Resource):
         }
         db.session.add(models.Run(**run))
 
-        # TODO: write to the StepStatus an initial default empty values.
+        # Set an initial value for the status of the pipline steps.
         step_statuses = []
         for step_uuid in post_data['pipeline_description']['steps']:
             step_statuses.append(models.StepStatus(**{
@@ -109,10 +106,10 @@ class RunList(Resource):
                 'status': 'PENDING'
             }))
         db.session.bulk_save_objects(step_statuses)
-        # db.session.add(models.StepStatus(**step_status))
 
         db.session.commit()
 
+        run['step_statuses'] = step_statuses
         return run, 201
 
 
@@ -127,8 +124,8 @@ class Run(Resource):
         run = models.Run.query.filter_by(run_uid=run_uid).first_or_404(
                 description='Run not found'
         )
-        print(run.step_statuses)
-        # return run.as_dict()
+        # TODO: we probably want to use this __dict__ for other models
+        #       as well.
         return run.__dict__
 
     @api.doc('set_run_status')
@@ -177,9 +174,6 @@ class StepStatus(Resource):
         ).first_or_404(description='Run and step combination not found')
         return step.as_dict()
 
-    # TODO: make into update. It should by default populate the db with all
-    #       the steps and set their status to PENDING or whatever default
-    #       value.
     @api.doc('set_step_status')
     @api.expect(status_update)
     def put(self, run_uid, step_uuid):
@@ -192,7 +186,6 @@ class StepStatus(Resource):
         # TODO: first check the status and make sure it says PENDING or
         #       or whatever. Because it is empty then this would write it
         #       and then get overwritten.
-        # TODO: maybe set synchorinze_session kwarg for update.
         res = models.StepStatus.query.filter_by(
             run_uid=run_uid, step_uuid=step_uuid
         ).update({'status': post_data['status']})

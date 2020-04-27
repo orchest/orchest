@@ -21,7 +21,7 @@ class Run(BaseModel, db.Model):
     run_uid = db.Column(db.String(36), primary_key=True)
     pipeline_uuid = db.Column(db.String(36), unique=False, nullable=False)
     status = db.Column(db.String(15), unique=False, nullable=True)
-    step_statuses = db.relationship('StepStatus', lazy='select')
+    step_statuses = db.relationship('StepStatus', lazy='joined')
 
     def __repr__(self):
         return f'<Run {self.run_uid}>'
