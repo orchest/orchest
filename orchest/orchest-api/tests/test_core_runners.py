@@ -14,7 +14,7 @@ import unittest
 from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
 
-from app.core.runners import Pipeline
+from app.core.runners import Pipeline, PipelineStepRunner
 
 
 @pytest.fixture
@@ -117,12 +117,15 @@ def test_pipeline_incoming(description):
     assert steps['step-6'].parents == []
 
 
-# TODO: for the two tests below we have to mock the update_status call
-#       of the PipelineStepRunner such that it does not call the API
-#       and just does nothing. Also give the pipeline.run a task_id
-def test_pipeline_run_with_docker_containers(description):
+def test_pipeline_run_with_docker_containers(description, monkeypatch):
+    async def mockreturn_update_status(*args, **kwargs):
+        return
+
+    monkeypatch.setattr(PipelineStepRunner, 'update_status', mockreturn_update_status)
     pipeline = Pipeline.from_json(description)
-    asyncio.run(pipeline.run())
+
+    filler_for_task_id = '1'
+    asyncio.run(pipeline.run(filler_for_task_id))
 
 
 CALLING_ORDER = []
@@ -147,10 +150,17 @@ def test_pipeline_run_call_order(description_resolve, monkeypatch):
 
         return mock_class
 
+    async def mockreturn_update_status(*args, **kwargs):
+        return
+
     pipeline = Pipeline.from_json(description_resolve)
 
     monkeypatch.setattr(DockerContainers, 'run', mockreturn_run)
-    asyncio.run(pipeline.run())
+    monkeypatch.setattr(PipelineStepRunner, 'update_status', mockreturn_update_status)
+
+    filler_for_task_id = '1'
+    asyncio.run(pipeline.run(filler_for_task_id))
+
     assert CALLING_ORDER == ['uuid-1', 'uuid-2', 'uuid-4', 'uuid-3', 'uuid-6', 'uuid-5']
 
 
