@@ -120,6 +120,20 @@ def construct_pipeline(uuids: Iterable[str],
         return pipeline.incoming(uuids, inclusive=False)
 
 
+async def update_status(status, task_id, session, type, uuid=None):
+    """Updates status of step via the orchest-api."""
+    base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/runs/{task_id}'
+    if type == 'step':
+        url = f'{base_url}/{uuid}'
+    elif type == 'pipeline':
+        url = base_url
+
+    data = {'status': status}
+
+    async with session.put(url, json=data) as response:
+        return await response.json()
+
+
 class PipelineStepRunner:
     """Runs a PipelineStep on a chosen backend.
 
@@ -142,14 +156,6 @@ class PipelineStepRunner:
 
         # A step only has to be started once when executing a Pipeline.
         self._started: bool = False
-
-    async def update_status(self, status, task_id, session):
-        """Updates status of step via the orchest-api."""
-        url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{task_id}/{self.properties["uuid"]}'
-        data = {'status': status}
-
-        async with session.put(url, json=data) as response:
-            return await response
 
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
@@ -189,7 +195,8 @@ class PipelineStepRunner:
         container = await docker_client.containers.run(config=config)
 
         # TODO: error handling?
-        update = await self.update_status('STARTED', task_id, session)
+        update = await update_status('STARTED', task_id, session, type='step',
+                                     uuid=self.properties['uuid'])
 
         if wait_on_completion:
             await container.wait()
@@ -204,7 +211,8 @@ class PipelineStepRunner:
 
             # TODO: some code to store that the step is done executing.
             #       This is done by sending a POST to the orchest-api.
-            update = await self.update_status(status, task_id, session)
+            update = await update_status(status, task_id, session, type='step',
+                                         uuid=self.properties['uuid'])
 
     async def run_ancestors_on_docker(self,
                                       docker_client: aiodocker.Docker,
@@ -494,9 +502,16 @@ class Pipeline:
         runner_client = aiodocker.Docker()
 
         async with aiohttp.ClientSession() as session:
+            await update_status('STARTED', task_id, session, type='pipeline')
+
             await self.sentinel.run(
                     runner_client, session,
                     task_id, compute_backend='docker')
+
+            # NOTE: the status of a pipeline is always success once it is
+            # done executing. Errors in steps are reflected by the status
+            # of the respective steps.
+            await update_status('SUCCESS', task_id, session, type='pipeline')
 
         await runner_client.close()
 

@@ -6,3 +6,7 @@ managed with some global configuration. Example would be the mounted `/notebooks
 * `jupyter-server/app/app/core/start_server.py`
 * `orchest/orchest-api/api/core/managers.py`
 
+
+## TODO
+- [ ] The Orchest-API should get its own static IP address, possibly also in some global config file
+    such that it does not have to be passed everywhere it is needed.

@@ -10,8 +10,12 @@ from app.celery import make_celery
 api = Namespace('runs', description='Managing (partial) runs')
 
 pipeline_step = api.model('Pipeline Step', {
-    'uuid': fields.String(required=True, description='UUID of a pipeline step'),
-    'status': fields.String(required=True, description='Status of the step'),
+    'run_uid': fields.String(required=True, description='UID for run'),
+    'step_uuid': fields.String(required=True, description='UUID of a pipeline step'),
+    'status': fields.String(
+        required=True,
+        description='Status of the step',
+        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
 })
 
 run = api.model('Run', {
@@ -40,12 +44,11 @@ run_configuration = api.model('Run Configuration', {
         description='Pipeline definition in JSON')
 })
 
-# TODO: see celery states.
-step_status_update = api.model('Step Status Update', {
+status_update = api.model('Status Update', {
     'status': fields.String(
         required=True,
         description='New status of the step',
-        enum=['PENDING', 'STARTED', 'SUCCESS']),
+        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
 })
 
 
@@ -60,7 +63,7 @@ class RunList(Resource):
         """
         # Return a list of all Task ids that are either in the queue or
         # running.
-        runs = models.Runs.query.all()
+        runs = models.Run.query.all()
         return {'runs': [run.as_dict() for run in runs]}, 200
 
     @api.doc('start_run')
@@ -86,15 +89,28 @@ class RunList(Resource):
         # TODO: it is vital! that this addition to the dataset gets run
         #       before the status of the steps are updated by the Celery
         #       task (which is also done via the API).
+        # NOTE: we are setting the status of the run ourselves without
+        # using the option of celery to get the status of tasks. This way
+        # we do not have to configure a backend (where the default of
+        # "rpc://" does not give the results we would want).
         run = {
            'run_uid': res.id,
            'pipeline_uuid': post_data['pipeline_description']['uuid'],
-           'status': res.state,
+           'status': 'PENDING',
         }
+        db.session.add(models.Run(**run))
 
         # TODO: write to the StepStatus an initial default empty values.
+        step_statuses = []
+        for step_uuid in post_data['pipeline_description']['steps']:
+            step_statuses.append(models.StepStatus(**{
+                'run_uid': res.id,
+                'step_uuid': step_uuid,
+                'status': 'PENDING'
+            }))
+        db.session.bulk_save_objects(step_statuses)
+        # db.session.add(models.StepStatus(**step_status))
 
-        db.session.add(models.Run(**run))
         db.session.commit()
 
         return run, 201
@@ -111,7 +127,24 @@ class Run(Resource):
         run = models.Run.query.filter_by(run_uid=run_uid).first_or_404(
                 description='Run not found'
         )
-        return run.as_dict()
+        print(run.step_statuses)
+        # return run.as_dict()
+        return run.__dict__
+
+    @api.doc('set_run_status')
+    @api.expect(status_update)
+    def put(self, run_uid):
+        """Set the status of a run."""
+        post_data = request.get_json()
+
+        res = models.Run.query.filter_by(run_uid=run_uid).update({
+            'status': post_data['status']
+        })
+
+        if res:
+            db.session.commit()
+
+        return {'message': 'Status was updated successfully'}, 200
 
     @api.doc('delete_run')
     @api.response(200, 'Run terminated')
@@ -148,7 +181,7 @@ class StepStatus(Resource):
     #       the steps and set their status to PENDING or whatever default
     #       value.
     @api.doc('set_step_status')
-    @api.expect(step_status_update)
+    @api.expect(status_update)
     def put(self, run_uid, step_uuid):
         """Set the status of a step."""
         post_data = request.get_json()
