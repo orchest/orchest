@@ -10,11 +10,13 @@ The pipeline looks as follows:
 import asyncio
 import json
 import unittest
+from unittest.mock import Mock
 
 from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
 
-from app.core.runners import Pipeline, PipelineStepRunner
+from app.core import runners
+from app.core.runners import Pipeline
 
 
 @pytest.fixture
@@ -121,7 +123,7 @@ def test_pipeline_run_with_docker_containers(description, monkeypatch):
     async def mockreturn_update_status(*args, **kwargs):
         return
 
-    monkeypatch.setattr(PipelineStepRunner, 'update_status', mockreturn_update_status)
+    monkeypatch.setattr(runners, 'update_status', mockreturn_update_status)
     pipeline = Pipeline.from_json(description)
 
     filler_for_task_id = '1'
@@ -156,7 +158,7 @@ def test_pipeline_run_call_order(description_resolve, monkeypatch):
     pipeline = Pipeline.from_json(description_resolve)
 
     monkeypatch.setattr(DockerContainers, 'run', mockreturn_run)
-    monkeypatch.setattr(PipelineStepRunner, 'update_status', mockreturn_update_status)
+    monkeypatch.setattr(runners, 'update_status', mockreturn_update_status)
 
     filler_for_task_id = '1'
     asyncio.run(pipeline.run(filler_for_task_id))

@@ -1,6 +1,6 @@
 import asyncio
 import copy
-from typing import Dict, Iterable, List, Optional, TypedDict
+from typing import Any, Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
 import aiohttp
@@ -120,7 +120,11 @@ def construct_pipeline(uuids: Iterable[str],
         return pipeline.incoming(uuids, inclusive=False)
 
 
-async def update_status(status, task_id, session, type, uuid=None):
+async def update_status(status: str,
+                        task_id: str,
+                        session: aiohttp.ClientSession,
+                        type: str,
+                        uuid: Optional[str] = None) -> Any:
     """Updates status of step via the orchest-api."""
     base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/runs/{task_id}'
     if type == 'step':
@@ -159,8 +163,8 @@ class PipelineStepRunner:
 
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
-                            session,
-                            task_id,
+                            session: aiohttp.ClientSession,
+                            task_id: str,
                             wait_on_completion: bool = True) -> None:
         """Runs the container image defined in the step's properties.
 
@@ -216,8 +220,8 @@ class PipelineStepRunner:
 
     async def run_ancestors_on_docker(self,
                                       docker_client: aiodocker.Docker,
-                                      session,
-                                      task_id) -> None:
+                                      session: aiohttp.ClientSession,
+                                      task_id: str) -> None:
         """Runs all ancestor steps before running itself.
 
         We make a difference between an ancestor and proper ancestor. A
@@ -235,7 +239,7 @@ class PipelineStepRunner:
         await asyncio.gather(*tasks)
 
         # The sentinel node cannot be executed itself.
-        if self.properties is not None:
+        if self.properties:
             await self.run_on_docker(docker_client, session, task_id)
 
     async def run_on_kubernetes(self):
@@ -271,8 +275,8 @@ class PipelineStep(PipelineStepRunner):
 
     async def run(self,
                   runner_client: aiodocker.Docker,
-                  session,
-                  task_id,
+                  session: aiohttp.ClientSession,
+                  task_id: str,
                   compute_backend: str = 'docker') -> None:
         """Runs the `PipelineStep` on the given compute backend.
 
@@ -283,26 +287,26 @@ class PipelineStep(PipelineStepRunner):
         run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
         await run_func(runner_client, session, task_id)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         # NOTE: steps get a UUID and are always only identified with the
         # UUID. Thus if they get additional parents and/or children, then
         # they will stay the same. I think this is fine though.
         return self.properties['uuid'] == other.properties['uuid']
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.properties['uuid'])
 
-    def __str__(self):
-        if self.properties is not None:
+    def __str__(self) -> str:
+        if self.properties:
             return f'<PipelineStep: {self.properties["name"]}>'
 
         return f'<Pipelinestep: None>'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # TODO: This is actually not correct: it should be self.properties.
         #       But this just look ugly as hell (so maybe for later). And
         #       strictly, should also include its parents.
-        if self.properties is not None:
+        if self.properties:
             return f'PipelineStep({self.properties["name"]!r})'
 
         return f'Pipelinestep(None)'
@@ -344,7 +348,7 @@ class Pipeline:
         return cls(list(steps.values()))
 
     @property
-    def sentinel(self):
+    def sentinel(self) -> PipelineStep:
         """Returns the sentinel step, connected to the leaf steps.
 
         Similarly to the implementation of a DLL, we add a sentinel node
@@ -354,7 +358,7 @@ class Pipeline:
         This way we can start a run by "running" the sentinel node.
         """
         if self._sentinel is None:
-            self._sentinel = PipelineStep(None)
+            self._sentinel = PipelineStep({})
             self._sentinel.parents = [step for step in self.steps if not step._children]
 
         return self._sentinel
@@ -488,7 +492,7 @@ class Pipeline:
 
         return Pipeline(steps=list(steps_to_be_included))
 
-    async def run(self, task_id):
+    async def run(self, task_id: str) -> None:
         """Runs the Pipeline asynchronously.
 
         TODO:
@@ -519,5 +523,5 @@ class Pipeline:
         for step in self.steps:
             step._started = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Pipeline({self.steps!r})'
