@@ -9,6 +9,9 @@ class Config:
     broker_url = None
     imports = ['app.core.runners', ]
 
+    # TODO: for now this is put here.
+    ORCHEST_API_ADDRESS = '127.0.0.1:5000/api'
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

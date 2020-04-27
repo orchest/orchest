@@ -120,6 +120,7 @@ class Run(Resource):
         # TODO: we could specify more options when deleting the run.
         # TODO: error handling.
 
+        # TODO: possible set status of steps and Run to "REVOKED"
         # Stop the run, whether it is in the queue or whether it is
         # actually running.
         revoke(run_uid, terminate=True)
@@ -152,6 +153,9 @@ class StepStatus(Resource):
         """Set the status of a step."""
         post_data = request.get_json()
 
+        # TODO: don't we want to do this async? Since otherwise the API
+        #       call might be blocking another since they both execute
+        #       on the database?
         # TODO: first check the status and make sure it says PENDING or
         #       or whatever. Because it is empty then this would write it
         #       and then get overwritten.

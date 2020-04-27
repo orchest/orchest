@@ -117,6 +117,9 @@ def test_pipeline_incoming(description):
     assert steps['step-6'].parents == []
 
 
+# TODO: for the two tests below we have to mock the update_status call
+#       of the PipelineStepRunner such that it does not call the API
+#       and just does nothing. Also give the pipeline.run a task_id
 def test_pipeline_run_with_docker_containers(description):
     pipeline = Pipeline.from_json(description)
     asyncio.run(pipeline.run())

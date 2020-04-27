@@ -3,6 +3,7 @@ import copy
 from typing import Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
+import aiohttp
 
 from app.celery import make_celery
 from app import create_app
@@ -65,7 +66,7 @@ def run_partial(self,
     #       argument so the steps can call the API to update their
     #       status.
     # Run the subgraph in parallel.
-    asyncio.run(pipeline.run())
+    asyncio.run(pipeline.run(self.request.id))
 
 
 def construct_pipeline(uuids: Iterable[str],
@@ -142,8 +143,18 @@ class PipelineStepRunner:
         # A step only has to be started once when executing a Pipeline.
         self._started: bool = False
 
+    async def update_status(self, status, task_id, session):
+        """Updates status of step via the orchest-api."""
+        url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{task_id}/{self.properties["uuid"]}'
+        data = {'status': status}
+
+        async with session.put(url, json=data) as response:
+            return await response
+
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
+                            session,
+                            task_id,
                             wait_on_completion: bool = True) -> None:
         """Runs the container image defined in the step's properties.
 
@@ -177,6 +188,9 @@ class PipelineStepRunner:
         # completion is introduced.
         container = await docker_client.containers.run(config=config)
 
+        # TODO: error handling?
+        update = await self.update_status('STARTED', task_id, session)
+
         if wait_on_completion:
             await container.wait()
 
@@ -185,11 +199,17 @@ class PipelineStepRunner:
             #       once it is done executing and if an error happened
             #       then it will be redirected to some file in the
             #       containers.
+            # TODO: set status accordingly.
+            status = 'SUCCESS'
 
             # TODO: some code to store that the step is done executing.
             #       This is done by sending a POST to the orchest-api.
+            update = await self.update_status(status, task_id, session)
 
-    async def run_ancestors_on_docker(self, docker_client: aiodocker.Docker) -> None:
+    async def run_ancestors_on_docker(self,
+                                      docker_client: aiodocker.Docker,
+                                      session,
+                                      task_id) -> None:
         """Runs all ancestor steps before running itself.
 
         We make a difference between an ancestor and proper ancestor. A
@@ -200,13 +220,15 @@ class PipelineStepRunner:
         """
         # Before running the step itself, it has to run all incoming
         # steps.
-        tasks = [asyncio.create_task(parent.run_ancestors_on_docker(docker_client))
-                 for parent in self.parents]
+        tasks = [
+            asyncio.create_task(parent.run_ancestors_on_docker(docker_client, session, task_id))
+            for parent in self.parents
+        ]
         await asyncio.gather(*tasks)
 
         # The sentinel node cannot be executed itself.
         if self.properties is not None:
-            await self.run_on_docker(docker_client)
+            await self.run_on_docker(docker_client, session, task_id)
 
     async def run_on_kubernetes(self):
         pass
@@ -241,6 +263,8 @@ class PipelineStep(PipelineStepRunner):
 
     async def run(self,
                   runner_client: aiodocker.Docker,
+                  session,
+                  task_id,
                   compute_backend: str = 'docker') -> None:
         """Runs the `PipelineStep` on the given compute backend.
 
@@ -249,7 +273,7 @@ class PipelineStep(PipelineStepRunner):
             compute_backend: one of ("docker", "kubernetes").
         """
         run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
-        await run_func(runner_client)
+        await run_func(runner_client, session, task_id)
 
     def __eq__(self, other):
         # NOTE: steps get a UUID and are always only identified with the
@@ -456,7 +480,7 @@ class Pipeline:
 
         return Pipeline(steps=list(steps_to_be_included))
 
-    async def run(self):
+    async def run(self, task_id):
         """Runs the Pipeline asynchronously.
 
         TODO:
@@ -468,7 +492,12 @@ class Pipeline:
         # the connections.py main module. Because the client has to be
         # bound to an asyncio eventloop.
         runner_client = aiodocker.Docker()
-        await self.sentinel.run(runner_client, compute_backend='docker')
+
+        async with aiohttp.ClientSession() as session:
+            await self.sentinel.run(
+                    runner_client, session,
+                    task_id, compute_backend='docker')
+
         await runner_client.close()
 
         # Reset the execution environment of the Pipeline.
