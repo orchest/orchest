@@ -61,8 +61,6 @@ class RunList(Resource):
 
         Either in the queue, running or already completed.
         """
-        # Return a list of all Task ids that are either in the queue or
-        # running.
         runs = models.Run.query.all()
         return {'runs': [run.as_dict() for run in runs]}, 200
 
@@ -76,8 +74,9 @@ class RunList(Resource):
         # Create Celery object with the Flask context.
         celery = make_celery(current_app)
 
-        # Start the run as a background task on Celery.
-        # res = run_partial.delay(**post_data)
+        # Start the run as a background task on Celery. Due to circular
+        # imports we send the task by name instead of importing the
+        # function directly.
         res = celery.send_task('app.core.runners.run_partial', kwargs=post_data)
 
         # NOTE: this is only if a backend is configured.
@@ -121,9 +120,8 @@ class Run(Resource):
     @api.marshal_with(run, code=200)
     def get(self, run_uid):
         """Fetch a run given its UID."""
-        run = models.Run.query.filter_by(run_uid=run_uid).first_or_404(
-                description='Run not found'
-        )
+        run = models.Run.query.get_or_404(run_uid, description='Run not found')
+
         # TODO: we probably want to use this __dict__ for other models
         #       as well.
         return run.__dict__
@@ -151,6 +149,7 @@ class Run(Resource):
         # TODO: error handling.
 
         # TODO: possible set status of steps and Run to "REVOKED"
+
         # Stop the run, whether it is in the queue or whether it is
         # actually running.
         revoke(run_uid, terminate=True)
@@ -167,11 +166,11 @@ class StepStatus(Resource):
     @api.doc('get_step_status')
     def get(self, run_uid, step_uuid):
         """Fetch a step of a given run given their ids."""
-        # Returns the status and logs. Of course logs are empty if the
+        # TODO: Returns the status and logs. Of course logs are empty if the
         # step is not executed yet.
-        step = models.StepStatus.query.filter_by(
-                run_uid=run_uid, step_uuid=step_uuid
-        ).first_or_404(description='Run and step combination not found')
+        step = models.StepStatus.query.get_or_404(
+                            ident=(run_uid, step_uuid),
+                            description='Run and step combination not found')
         return step.as_dict()
 
     @api.doc('set_step_status')
@@ -182,10 +181,13 @@ class StepStatus(Resource):
 
         # TODO: don't we want to do this async? Since otherwise the API
         #       call might be blocking another since they both execute
-        #       on the database?
+        #       on the database? SQLite can only have one process write
+        #       to the db. If this becomes an issue than we could also
+        #       use an in-memory db (since that is a lot faster than
+        #       disk). Otherwise we might have to use PostgreSQL.
         # TODO: first check the status and make sure it says PENDING or
-        #       or whatever. Because it is empty then this would write it
-        #       and then get overwritten.
+        #       whatever. Because if is empty then this would write it
+        #       and then get overwritten afterwards with "PENDING".
         res = models.StepStatus.query.filter_by(
             run_uid=run_uid, step_uuid=step_uuid
         ).update({'status': post_data['status']})

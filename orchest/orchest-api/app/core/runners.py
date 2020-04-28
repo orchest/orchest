@@ -62,10 +62,8 @@ def run_partial(self,
     # Get the pipeline to run according to the run_type.
     pipeline = construct_pipeline(uuids, run_type, pipeline_description)
 
-    # TODO: give self.request.id (self.request is the AsyncResult) as
-    #       argument so the steps can call the API to update their
-    #       status.
-    # Run the subgraph in parallel.
+    # Run the subgraph in parallel. And pass the id of the AsyncResult
+    # object.
     asyncio.run(pipeline.run(self.request.id))
 
 
@@ -213,8 +211,6 @@ class PipelineStepRunner:
             # TODO: set status accordingly.
             status = 'SUCCESS'
 
-            # TODO: some code to store that the step is done executing.
-            #       This is done by sending a POST to the orchest-api.
             update = await update_status(status, task_id, session, type='step',
                                          uuid=self.properties['uuid'])
 

@@ -1,5 +1,4 @@
 # orchest-api
-
 Make sure the `install_orchest.py` is run before launching the API.
 
 
@@ -63,26 +62,45 @@ respectively.
 
 
 ## Partial runs
-
-`orchest/orchest/orchest-api$ celery worker -A app.celery -l INFO`
-This command is now (because the celery instance is instanciated in the runners.py file)
+Do not forget to start a Celery worker to run the background tasks for the Flask API:
 `orchest/orchest/orchest-api$ celery worker -A app.core.runners -l INFO`
+
+The logic here is straightforward. 
+1. API gets called to start a (partial) run through a POST request to `/api/runs/`
+2. Inside the POST a payload is given which contains a specification of the run and the pipeline.
+3. The run is then started as a background task through Celery. In this case `run_partial` in the
+   `/app/core/runners.py` module.
+4. The task converts the JSON description of the pipeline to a `Pipeline` object and then calls its
+   `run(task_id)` function, where `task_id` is the id of the Celery task. (The id is used to update
+   the status of the task inside the sqlite database.)
+5. The pipeline execution order is resolved through asynchronous calls using `asyncio`.
+6. Each step calls the API (multiple times) using a PUT to notify about its individual status (such
+   that it can be displayed in the UI).
+7. Once the pipeline is done executing it will update its own status (note that the status is always
+   "SUCCESS" once it has finished, errors are reflected by the individual steps, not the pipline). 
+   Lastly, the "environment" is reset for the next run.
+
+### Some thoughts
+The application structure has become reasonably complex due to Celery integration. It might be best
+to put all the Celery related things in a seperate package (away from the api). Because the
+functions that Celery executes do not need the flask app context. Now Celery is completely entangled
+through the API (due to cirular imports).
+This works. See my experiments folder. (Created a package with setup.py that uses celery tasks and
+also initiates the Celery instance, the celery worker -A is then started on this instance. Another
+package can then import from this package, after installing it in the environment, and call the
+functions with and without .delay() to send it to the task queue).
 
 We probably do not want to send the pipeline.json over the API, since the pipeline might be outdated
 if the Task queue is full and the task has to wait for a long time. (It is no longer the same as the
 UI.) Maybe just do some priority queue in celery. Just let background tasks (experiments) get a
 lower priority such that the partial runs can always be executed.
 
-### Status for Tasks and Steps
-https://docs.celeryproject.org/en/stable/reference/celery.states.html
 
 ## TODO
-- [ ] Some flaws when it comes to the `Pipeline` class:
+- [X] Some flaws when it comes to the `Pipeline` class:
     - [X] The induced subgraph has to be proper and not contain children that are not part of the
         selection. Because then the sentinel node does not get computed correctly (since it looks
         for the nodes that do not have children).
-    - [ ] It would be faster to immediately construct the subgraph etc. directly from the json
-        description. Although this is a lot more messy
     - [X] When Pipeline --inplace--> subgraph, then the sentinel node has to be set to `None`
 - [X] Do we want to check for cycles?
 - [ ] Run the docker containers of the `aiodocker` on the Orchest docker network.
@@ -91,9 +109,11 @@ https://docs.celeryproject.org/en/stable/reference/celery.states.html
     * Idea: Let `Pipeline` class function as a Mixin to `PipelineRunnerDocker(Pipeline)` class that
         implements the `async def run():` instead of having it in the `Pipeline` class itself.
         Similarly for the `PipelineStep`.
-- [ ] Running a pipeline is a Task. Thus we need some way to let the front-end know about completion
+- [X] Running a pipeline is a Task. Thus we need some way to let the front-end know about completion
     of the pipeline and step (flask socketio?). Otherwise we could maybe write to the Celery broker?
     Some compute back-end?
+- [ ] Possibly use flask-socketio for websockets to push the front-end about the status of pipeline
+    steps during runs.
 - [X] Tests that check whether the pipeline execution order is correct.
 - [ ] Write more tests since the pipeline execution order really is at the core of our product.
 - [ ] Choosing the right broker for Celery
@@ -117,11 +137,3 @@ https://docs.celeryproject.org/en/stable/reference/celery.states.html
     for his sdk. Some orchest-utils package?
 
 
-The application structure has become reasonably complex due to Celery integration. It might be best
-to put all the Celery related things in a seperate package (away from the api). Because the
-functions that Celery executes do not need the flask app context. Now Celery is completely entangled
-through the API (due to cirular imports).
-This works. See my experiments folder. (Created a package with setup.py that uses celery tasks and
-also initiates the Celery instance, the celery worker -A is then started on this instance. Another
-package can then import from this package, after installing it in the environment, and call the
-functions with and without .delay() to send it to the task queue).
