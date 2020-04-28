@@ -12,7 +12,9 @@ It currently supports executing Jupyter notebooks (.ipynb), Python scripts and s
 To test whether it's correctly executing run one of the following commands:
 
 `docker run -v $PWD/notebooks/:/notebooks pipeline-step-runner sample-notebook.ipynb`
+
 `docker run -v $PWD/notebooks/:/notebooks pipeline-step-runner hello.py`
+
 `docker run -v $PWD/notebooks/:/notebooks pipeline-step-runner hello.sh`
 
 ### Base image
