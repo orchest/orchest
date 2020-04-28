@@ -185,6 +185,7 @@ class PipelineStepRunner:
         # NOTE: Passing the UUID as a configuration parameter does not
         # get used by the docker_client. However, we use it for testing
         # to check whether the resolve order of the pipeline is correct.
+        # TODO: Should include some mounts.
         config = {
             'Image': self.properties['image']['image_name'],
             'uuid': self.properties['uuid']
@@ -201,18 +202,19 @@ class PipelineStepRunner:
                                      uuid=self.properties['uuid'])
 
         if wait_on_completion:
-            await container.wait()
+            data = await container.wait()
 
-            # TODO: get the logs of the container to check for error.
-            #       Rick will return the status code of the container
-            #       once it is done executing and if an error happened
-            #       then it will be redirected to some file in the
-            #       containers.
-            # TODO: set status accordingly.
-            status = 'SUCCESS'
+            # The status code will be 0 for "SUCCESS" and -N otherwise. A
+            # negative value -N indicates that the child was terminated
+            # by signal N (POSIX only).
+            status = 'FAILURE' if data.get('StatusCode') else 'SUCCESS'
 
             update = await update_status(status, task_id, session, type='step',
                                          uuid=self.properties['uuid'])
+
+            # TODO: get the logs (errors are piped to stdout, thus running
+            #       "docker logs" should get them). Find the appropriate
+            #       way to return them.
 
     async def run_ancestors_on_docker(self,
                                       docker_client: aiodocker.Docker,
