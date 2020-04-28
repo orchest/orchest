@@ -19,4 +19,4 @@ To test whether it's correctly executing run one of the following commands:
 
 ### Base image
 
-The image is based on the same jupyter/scipy-notebook image as the Enterprise Gateway kernel-py image (https://github.com/jupyter/enterprise_gateway/blob/master/etc/docker/kernel-py/Dockerfile).
+The image is based on the same `jupyter/scipy-notebook` image as the Enterprise Gateway `kernel-py` image (https://github.com/jupyter/enterprise_gateway/blob/master/etc/docker/kernel-py/Dockerfile).
