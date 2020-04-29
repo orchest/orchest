@@ -63,6 +63,10 @@ aside.mdc-drawer {
   }
 }
 
+.hidden {
+  display: none;
+}
+
 .header-bar-interactive {
   display: flex;
   justify-content: center;
@@ -298,8 +302,8 @@ h2.header {
 
     .pipeline-step {
 
-      $pipelineHeight: 84px;
-      $pipelineWidth: 170px;
+      $pipelineHeight: 105px;
+      $pipelineWidth: 190px;
 
       position: absolute;
       background: #fff;
@@ -313,7 +317,29 @@ h2.header {
       text-align: center;
       z-index: 2;
 
+      .execution-indicator {
+        position: absolute;
+        width: 100%;
+        background: #eee;
+        left: 0;
+        bottom: 0;
+        font-size: 12px;
+        padding: 4px;
+        color: #666;
+        opacity: 1;
+        border-radius: 0 0 6px 6px;
 
+        span {
+          color: #16bd43;
+        }
+      }
+
+      &.running {
+        .execution-indicator {
+          background: $mdc-theme-secondary;
+          color: #fff;
+        }
+      }
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 
@@ -338,6 +364,7 @@ h2.header {
         display: block;
         height: 100%;
         overflow: hidden;
+        transform: translateY(-11px);
       }
 
       .step-label {

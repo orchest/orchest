@@ -80,7 +80,7 @@ class JupyterDockerManager(DockerManager):
                     f'EG_DOCKER_NETWORK={self.network}',
                     'EG_MIRROR_WORKING_DIRS=True',
                     'EG_LIST_KERNELS=True',
-                    'EG_KERNEL_WHITELIST=["r_docker","python3","python_docker"]'
+                    'EG_KERNEL_WHITELIST=["docker_python","docker_r"]'
                 ],
                 network=self.network
         )

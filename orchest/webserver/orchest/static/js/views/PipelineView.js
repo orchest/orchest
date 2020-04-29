@@ -269,6 +269,7 @@ class PipelineView extends React.Component {
                 x2: 0,
                 y2: 0,
             },
+            stepExecutionState: {},
             steps: {},
             backend: {
                 running: false,
@@ -282,6 +283,7 @@ class PipelineView extends React.Component {
     }
 
     componentDidMount() {
+        console.log(this);
 
         fetch("/async/pipelines/json/get/" + this.props.uuid, {
             method: "GET",
@@ -820,10 +822,11 @@ class PipelineView extends React.Component {
             "uuid": uuidv4(),
             "incoming_connections": [],
             "file_path": ".ipynb",
-            "image": {
-                "image_name": "kernel-python-36-tensorflow-20",
-                "display_name": "Python 3.6, TensorFlow 2.0"
+            "kernel": {
+                "name": "docker_python",
+                "display_name": "Python 3"
             },
+            "image": "jupyter/scipy-notebook",
             "memory": "1024",
             "vcpus": "1",
             "gpus": "0",
@@ -869,6 +872,22 @@ class PipelineView extends React.Component {
         }
 
         this.forceUpdate();
+    }
+
+    getStepExecutionState(stepUUID){
+        if(this.state.stepExecutionState[stepUUID]){
+            return this.state.stepExecutionState[stepUUID];
+        }else{
+            return {status: "idle", time: new Date()};
+        }
+    }
+    setStepExecutionState(stepUUID, executionState){
+
+        this.state.stepExecutionState[stepUUID] = executionState;
+
+        this.setState({
+            "stepExecutionState": this.state.stepExecutionState
+        })
     }
 
     removeConnection(sourcePipelineStepUUID, targetPipelineStepUUID) {
@@ -920,6 +939,55 @@ class PipelineView extends React.Component {
         orchest.headerBarComponent.setPipeline(this.props);
     }
 
+    onRerunIncoming(pipelineDetailsComponent){
+
+        // figure out incoming steps from this step:
+        let currentStep = this.state.steps[this.state.openedStep];
+
+        // fake execute list
+        let executeOrder = [];
+
+        // note array is pass by reference
+        this.TEMP_findIncomingStep(currentStep, executeOrder);
+
+        let totalDelay = 0;
+
+        for(let x = 0; x < executeOrder.length; x++){
+            
+            let stepDuration = 2000 + Math.random() * 1000 * 4;
+
+            ((uuid) => {
+                
+                setTimeout(() => {
+                    this.setStepExecutionState(uuid, {status: "running", time: new Date()});
+                }, totalDelay);
+                
+                setTimeout(() => {
+                    this.setStepExecutionState(uuid, {status: "completed", time: new Date()});
+                }, totalDelay + stepDuration);
+
+            })(executeOrder[x]);
+
+            totalDelay += stepDuration;
+        }
+    }
+
+    /// TEMP: only for demp
+    TEMP_findIncomingStep(step, list){
+        for(let x = 0; x < step.incoming_connections.length; x++){
+            
+            // recurse to incoming
+            this.TEMP_findIncomingStep(this.state.steps[step.incoming_connections[x]], list);
+
+            // add inomcing step itself
+            let stepUUID = step.incoming_connections[x];
+            if(list.indexOf(stepUUID) === -1){
+                list.push(stepUUID);
+            }
+        }
+    }
+    /// END TEMP
+
     onCancelDetails(pipelineDetailsComponent) {
         this.setState({ "openedStep": undefined });
     }
@@ -929,20 +997,9 @@ class PipelineView extends React.Component {
         // update step state based on latest state of pipelineDetails component
 
         // step name
-        let step = this.state.steps[pipelineDetailsComponent.props.step.uuid];
+        this.state.steps[pipelineDetailsComponent.props.step.uuid] = pipelineDetailsComponent.state.step;
 
-        step.title = pipelineDetailsComponent.inputTitle.value;
-        step.file_path = pipelineDetailsComponent.inputFileName.value + pipelineDetailsComponent.selectFileType.value;
-        step.image.image_name = pipelineDetailsComponent.selectKernel.value;
-        step.image.display_name = $(pipelineDetailsComponent.selectKernel.selectedText_).text();
-        step.memory = pipelineDetailsComponent.inputMemory.value;
-        step.vcpus = pipelineDetailsComponent.selectVCPU.value;
-        step.gpus = pipelineDetailsComponent.selectGPU.value;
-        step.experiment_json = pipelineDetailsComponent.experimentJSON.value;
-        step.incoming_connections = pipelineDetailsComponent.state.incoming_connections;
-
-        // update steps in setState even though reference objects are directly modified - this propagates state updates
-        // properly
+        // update steps in setState even though reference objects are directly modified - this propagates state updates properly
 
         this.setState({ "openedStep": undefined, "steps": this.state.steps });
     }
@@ -1064,6 +1121,7 @@ class PipelineView extends React.Component {
                     step={step}
                     selected={selected}
                     ref={step.uuid}
+                    executionState={this.getStepExecutionState(step.uuid)}
                     onConnect={this.makeConnection.bind(this)}
                     onMove={this.moveStep.bind(this)}
                     onClick={this.selectStep.bind(this)} />);
@@ -1146,8 +1204,9 @@ class PipelineView extends React.Component {
                             onSave={this.onSaveDetails.bind(this)}
                             onCancel={this.onCancelDetails.bind(this)}
                             onOpenNotebook={this.onOpenNotebook.bind(this)}
+                            onRerunIncoming={this.onRerunIncoming.bind(this)}
                             connections={connections_list}
-                            step={this.state.steps[this.state.openedStep]} />
+                            step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
                     }
                 })()}
             </div>

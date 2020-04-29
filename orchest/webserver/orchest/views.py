@@ -156,13 +156,13 @@ def get_pipeline_directory_by_uuid(uuid):
 def generate_ipynb_from_template(step):
 
     # TODO: support additional languages to Python and R
-    if "python" in step["image"]["image_name"].lower():
+    if "python" in step["kernel"]["name"].lower():
         template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
     else:
         template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template_r.json"), "r"))
 
-    template_json["metadata"]["kernelspec"]["display_name"] = step["image"]["display_name"]
-    template_json["metadata"]["kernelspec"]["name"] = step["image"]["image_name"]
+    template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"]["display_name"]
+    template_json["metadata"]["kernelspec"]["name"] = step["kernel"]["name"]
 
     return json.dumps(template_json)
 
