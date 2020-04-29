@@ -17,7 +17,7 @@ from app.core import runners
 from app.core.runners import Pipeline
 
 
-class TestCase:
+class IO:
     def __init__(self, pipeline, correct_execution_order):
         self.pipeline = pipeline
         self.correct_execution_order = correct_execution_order
@@ -40,7 +40,7 @@ def testio(request):
 
     pipeline = Pipeline.from_json(description)
     correct_execution_order = description['correct_execution_order']
-    return TestCase(pipeline, correct_execution_order)
+    return IO(pipeline, correct_execution_order)
 
 
 class MockDockerContainer:

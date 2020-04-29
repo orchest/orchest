@@ -161,114 +161,8 @@ class PipelineStepRunner:
         # Pipeline methods.
         self._children: List['PipelineStep'] = []
 
-        # A step only has to be started once when executing a Pipeline.
-        # self._started: bool = False
-
         # Initial status is "PENDING".
         self._status: str = 'PENDING'
-
-    # async def run_on_docker(self,
-    #                         docker_client: aiodocker.Docker,
-    #                         session: aiohttp.ClientSession,
-    #                         task_id: str,
-    #                         wait_on_completion: bool = True) -> Optional[str]:
-    #     """Runs the container image defined in the step's properties.
-
-    #     Running is done asynchronously.
-
-    #     Args:
-    #         docker_client: Docker environment to run containers (async).
-    #         wait_on_completion: if True await containers, else do not.
-    #             Awaiting containers is helpful when running a dependency
-    #             graph (like a pipeline), because one step can only
-    #             executed once all its proper ancestors have completed.
-    #     """
-    #     # Don't start a step if it has already been started.
-    #     if self._started:
-    #         # TODO: should return the result of run, maybe store it in
-    #         #       an attribute.
-
-    #         # TODO: BIG PROBLEM. Another child will potentially run now
-    #         #       since this step seems to have completed already.
-    #         return f'{self.properties["uuid"]}: HAS ALREADY RUN'
-
-    #     # Indicate that the step has started executing.
-    #     self._started = True
-
-    #     # NOTE: Passing the UUID as a configuration parameter does not
-    #     # get used by the docker_client. However, we use it for testing
-    #     # to check whether the resolve order of the pipeline is correct.
-    #     # TODO: Should include some mounts.
-    #     config = {
-    #         'Image': self.properties['image']['image_name'],
-    #         'uuid': self.properties['uuid']
-    #     }
-
-    #     # Starts the container asynchronously, however, it does not wait
-    #     # for completion of the container (like the `docker run` CLI
-    #     # command does). Therefore the option to await the container
-    #     # completion is introduced.
-    #     container = await docker_client.containers.run(config=config)
-
-    #     # TODO: error handling?
-    #     update = await update_status('STARTED', task_id, session, type='step',
-    #                                  uuid=self.properties['uuid'])
-
-    #     if wait_on_completion:
-    #         data = await container.wait()
-
-    #         # The status code will be 0 for "SUCCESS" and -N otherwise. A
-    #         # negative value -N indicates that the child was terminated
-    #         # by signal N (POSIX only).
-    #         # TODO: This will fail for tests since they do not return
-    #         #       a statuscode.
-    #         # status = 'FAILURE' if data.get('StatusCode') else 'SUCCESS'
-    #         status = 'SUCCESS'
-
-    #         update = await update_status(status, task_id, session, type='step',
-    #                                      uuid=self.properties['uuid'])
-
-    #         # TODO: get the logs (errors are piped to stdout, thus running
-    #         #       "docker logs" should get them). Find the appropriate
-    #         #       way to return them.
-
-    #         # TODO: If status is FAILURE, then we can return this here.
-    #         #       In the run_ancestors we can check if any of the
-    #         #       parents experienced an error. If so, then just do not
-    #         #       run the step itself.
-    #         # return status
-    #         return f'{self.properties["uuid"]}: SUCCESS'
-
-    # async def run_ancestors_on_docker(self,
-    #                                   docker_client: aiodocker.Docker,
-    #                                   session: aiohttp.ClientSession,
-    #                                   task_id: str) -> Optional[str]:
-    #     """Runs all ancestor steps before running itself.
-
-    #     We make a difference between an ancestor and proper ancestor. A
-    #     step is an ancestor of itself but not a proper ancestor.
-
-    #     Args:
-    #         docker_client: Docker environment to run containers (async).
-    #     """
-    #     # Before running the step itself, it has to run all incoming
-    #     # steps.
-    #     tasks = [
-    #         asyncio.create_task(parent.run_ancestors_on_docker(docker_client, session, task_id))
-    #         for parent in self.parents
-    #     ]
-    #     results = await asyncio.gather(*tasks)
-    #     await asyncio.sleep(1)
-    #     print(results)
-
-    #     if 'FAILURE' in results:
-    #         return 'FAILURE IN PARENTS'
-
-    #     # The sentinel node cannot be executed itself.
-    #     if self.properties:
-    #         return await self.run_on_docker(docker_client, session, task_id)
-
-    #     return 'SUCCESSFUL RUN'
 
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
@@ -388,11 +282,6 @@ class PipelineStep(PipelineStepRunner):
                  parents: Optional[List['PipelineStep']] = None) -> None:
         super().__init__(properties, parents)
 
-        # # Keeping a list of children allows us to traverse the pipeline
-        # # also in the other direction. This is helpful for certain
-        # # Pipeline methods.
-        # self._children: List['PipelineStep'] = []
-
     async def run(self,
                   runner_client: aiodocker.Docker,
                   session: aiohttp.ClientSession,
@@ -483,22 +372,6 @@ class Pipeline:
             self._sentinel._children = [step for step in self.steps if not step.parents]
 
         return self._sentinel
-
-    # @property
-    # def sentinel(self) -> PipelineStep:
-    #     """Returns the sentinel step, connected to the leaf steps.
-
-    #     Similarly to the implementation of a DLL, we add a sentinel node
-    #     to the end of the pipeline (i.e. all steps that do not have
-    #     children will be connected to the sentinel node). By having a
-    #     pointer to the sentinel we can traverse the entire pipeline.
-    #     This way we can start a run by "running" the sentinel node.
-    #     """
-    #     if self._sentinel is None:
-    #         self._sentinel = PipelineStep({})
-    #         self._sentinel.parents = [step for step in self.steps if not step._children]
-
-    #     return self._sentinel
 
     def get_induced_subgraph(self, selection: Iterable[str]) -> 'Pipeline':
         """Returns a new pipeline whos set of steps equal the selection.
