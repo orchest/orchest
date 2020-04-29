@@ -10,9 +10,7 @@ The pipeline looks as follows:
 import asyncio
 import json
 import unittest
-from unittest.mock import Mock
 
-from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
 
 from app.core import runners
@@ -20,23 +18,15 @@ from app.core.runners import Pipeline
 
 
 @pytest.fixture
-def description():
-    with open('tests/pipeline.json', 'r') as f:
+def pipeline():
+    with open('tests/input_operations/pipeline.json', 'r') as f:
         description = json.load(f)
 
-    return description
-
-
-@pytest.fixture
-def description_resolve():
-    with open('tests/pipeline-resolve.json', 'r') as f:
-        description_resolve = json.load(f)
-
-    return description_resolve
-
-
-def test_pipeline_from_json(description):
     pipeline = Pipeline.from_json(description)
+    return pipeline
+
+
+def test_pipeline_from_json(pipeline):
     steps = {step.properties['name']: step for step in pipeline.steps}
 
     assert steps['step-1']._children == [steps['step-2']]
@@ -59,8 +49,7 @@ def test_pipeline_from_json(description):
     assert steps['step-6'].parents == []
 
 
-def test_pipeline_sentinel(description):
-    pipeline = Pipeline.from_json(description)
+def test_pipeline_sentinel(pipeline):
     steps = {step.properties['name']: step for step in pipeline.steps}
 
     case = unittest.TestCase()
@@ -68,9 +57,7 @@ def test_pipeline_sentinel(description):
     case.assertCountEqual(pipeline.sentinel.parents, correct_parents)
 
 
-def test_pipeline_get_induced_subgraph(description):
-    pipeline = Pipeline.from_json(description)
-
+def test_pipeline_get_induced_subgraph(pipeline):
     subgraph = pipeline.get_induced_subgraph(['uuid-2', 'uuid-4', 'uuid-6'])
     steps = {step.properties['name']: step for step in subgraph.steps}
 
@@ -86,9 +73,7 @@ def test_pipeline_get_induced_subgraph(description):
     assert steps['step-6'].parents == []
 
 
-def test_pipeline_incoming(description):
-    pipeline = Pipeline.from_json(description)
-
+def test_pipeline_incoming(pipeline):
     incoming = pipeline.incoming(['uuid-4', 'uuid-6'], inclusive=False)
     steps = {step.properties['name']: step for step in incoming.steps}
 
@@ -119,54 +104,11 @@ def test_pipeline_incoming(description):
     assert steps['step-6'].parents == []
 
 
-def test_pipeline_run_with_docker_containers(description, monkeypatch):
+def test_pipeline_run_with_docker_containers(pipeline, monkeypatch):
     async def mockreturn_update_status(*args, **kwargs):
         return
 
     monkeypatch.setattr(runners, 'update_status', mockreturn_update_status)
-    pipeline = Pipeline.from_json(description)
 
     filler_for_task_id = '1'
     asyncio.run(pipeline.run(filler_for_task_id))
-
-
-CALLING_ORDER = []
-
-
-class MockDockerContainer:
-    def __init__(self, sleep_amount, uuid):
-        self.sleep_amount = sleep_amount
-        self.uuid = uuid
-
-    async def wait(self):
-        await asyncio.sleep(self.sleep_amount)
-        CALLING_ORDER.append(self.uuid)
-
-
-def test_pipeline_run_call_order(description_resolve, monkeypatch):
-    async def mockreturn_run(*args, **kwargs):
-        # It gets the config that get's passed to the
-        # `aiodocker.Docker().containers.run(config=config)`
-        mock_class = MockDockerContainer(kwargs['config']['Image'],
-                                         kwargs['config']['uuid'])
-
-        return mock_class
-
-    async def mockreturn_update_status(*args, **kwargs):
-        return
-
-    pipeline = Pipeline.from_json(description_resolve)
-
-    monkeypatch.setattr(DockerContainers, 'run', mockreturn_run)
-    monkeypatch.setattr(runners, 'update_status', mockreturn_update_status)
-
-    filler_for_task_id = '1'
-    asyncio.run(pipeline.run(filler_for_task_id))
-
-    assert CALLING_ORDER == ['uuid-1', 'uuid-2', 'uuid-4', 'uuid-3', 'uuid-6', 'uuid-5']
-
-
-# ---- Make sure to start a Celery worker before running the tests below.
-# def test_run_partial_on_celery(description):
-#     from app.core.runners import run_partial
-#     run_partial.delay([], 'full', description)
