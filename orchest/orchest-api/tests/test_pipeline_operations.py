@@ -53,8 +53,10 @@ def test_pipeline_sentinel(pipeline):
     steps = {step.properties['name']: step for step in pipeline.steps}
 
     case = unittest.TestCase()
-    correct_parents = [steps['step-3'], steps['step-5'], steps['step-6']]
-    case.assertCountEqual(pipeline.sentinel.parents, correct_parents)
+    # correct_parents = [steps['step-3'], steps['step-5'], steps['step-6']]
+    # case.assertCountEqual(pipeline.sentinel.parents, correct_parents)
+    correct_children = [steps['step-1'], steps['step-6']]
+    case.assertCountEqual(pipeline.sentinel._children, correct_children)
 
 
 def test_pipeline_get_induced_subgraph(pipeline):

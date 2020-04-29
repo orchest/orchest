@@ -30,6 +30,8 @@ class TestCase:
     'pipeline-4.json',
     'pipeline-5.json',
     'pipeline-6.json',
+    'pipeline-7.json',
+    'pipeline-8.json',
 ])
 def testio(request):
     full_name = f'tests/input_execution_order/{request.param}'
@@ -50,6 +52,7 @@ class MockDockerContainer:
     async def wait(self):
         await asyncio.sleep(self.sleep_amount)
         self.execution_order.append(self.uuid)
+        return {'StatusCode': 0}
 
 
 def test_pipeline_run_call_order(testio, monkeypatch):
