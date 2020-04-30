@@ -32,6 +32,7 @@ class IO:
     'pipeline-6.json',
     'pipeline-7.json',
     'pipeline-8.json',
+    'pipeline-9.json',
 ])
 def testio(request):
     full_name = f'tests/input_execution_order/{request.param}'
