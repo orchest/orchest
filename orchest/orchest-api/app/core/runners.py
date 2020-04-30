@@ -103,6 +103,9 @@ def construct_pipeline(uuids: Iterable[str],
 
         As of now, the selection itself is NOT included in the Pipeline
         if `run_type` equals "incoming".
+
+    Raises:
+        ValueError if the `run_type` is incorrectly specified.
     """
     # Create a pipeline from the pipeline_description. And run the
     # appropriate method based on the run_type.
@@ -116,6 +119,8 @@ def construct_pipeline(uuids: Iterable[str],
 
     if run_type == 'incoming':
         return pipeline.incoming(uuids, inclusive=False)
+
+    raise ValueError('Function not defined for specified run_type')
 
 
 async def update_status(status: str,

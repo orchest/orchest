@@ -20,30 +20,65 @@ api = Namespace('launches', description='Launches of pipelines for development')
 
 # API models.
 server = api.model('Server', {
-    'url': fields.String(required=True, description='URL of the server'),
-    'hostname': fields.String(required=True, default='localhost', description='Hostname'),
-    'port': fields.Integer(required=True, default=8888, description='Port to access the server'),
-    'secure': fields.Boolean(required=True, description='Any extra security measures'),
-    'base_url': fields.String(required=True, default='/', description='Base URL'),
-    'token': fields.String(required=True, description='Token for authentication'),
-    'notebook_dir': fields.String(required=True, default='/notebooks', description='Working directory'),
-    'password': fields.Boolean(required=True, description='Password if one is set'),
-    'pid': fields.Integer(required=True, description='PID'),
+    'url': fields.String(
+        required=True,
+        description='URL of the server'),
+    'hostname': fields.String(
+        required=True,
+        default='localhost',
+        description='Hostname'),
+    'port': fields.Integer(
+        required=True,
+        default=8888,
+        description='Port to access the server'),
+    'secure': fields.Boolean(
+        required=True,
+        description='Any extra security measures'),
+    'base_url': fields.String(
+        required=True,
+        default='/',
+        description='Base URL'),
+    'token': fields.String(
+        required=True,
+        description='Token for authentication'),
+    'notebook_dir': fields.String(
+        required=True,
+        default='/notebooks',
+        description='Working directory'),
+    'password': fields.Boolean(
+        required=True,
+        description='Password if one is set'),
+    'pid': fields.Integer(
+        required=True,
+        description='PID'),
 })
 
 launch = api.model('Launch', {
-    'pipeline_uuid': fields.String(required=True, description='UUID of pipeline'),
-    'server_ip': fields.String(required=True, description='IP of the Jupyter server'),
-    'server_info': fields.Nested(server, required=True, description='Jupyter connection info')
+    'pipeline_uuid': fields.String(
+        required=True,
+        description='UUID of pipeline'),
+    'server_ip': fields.String(
+        required=True,
+        description='IP of the Jupyter server'),
+    'server_info': fields.Nested(
+        server,
+        required=True,
+        description='Jupyter connection info')
 })
 
 launches = api.model('Launches', {
-    'launches': fields.List(fields.Nested(launch), description='Currently running launches')
+    'launches': fields.List(
+        fields.Nested(launch),
+        description='Currently running launches')
 })
 
 pipeline = api.model('Pipeline', {
-    'pipeline_uuid': fields.String(required=True, description='UUID of pipeline'),
-    'pipeline_dir': fields.String(required=True, description='Path to pipeline files')
+    'pipeline_uuid': fields.String(
+        required=True,
+        description='UUID of pipeline'),
+    'pipeline_dir': fields.String(
+        required=True,
+        description='Path to pipeline files')
 })
 
 
@@ -72,11 +107,11 @@ class LaunchList(Resource):
         # API to be running after container launch.
         for i in range(10):
             try:
+                logging.info('Starting Jupyter Server on %s with Enterprise '
+                             'Gateway on %s' % (IP.server, IP.EG))
+
                 # Starts the Jupyter server and connects it to the given
                 # Enterprise Gateway.
-
-                logging.info('Starting Jupyter Server on %s with Enterprise Gateway on %s' % (IP.server, IP.EG))
-
                 r = requests.post(
                         f'http://{IP.server}:80/api/servers/',
                         json={'gateway-url': f'http://{IP.EG}:8888'}

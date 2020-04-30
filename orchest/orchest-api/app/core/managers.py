@@ -94,7 +94,8 @@ class JupyterDockerManager(DockerManager):
 
         # Return IP addresses of the started containers.
         IP = namedtuple('IP', ['EG', 'server'])
-        return IP(self._get_container_ip(EG_container), self._get_container_ip(server_container))
+        return IP(self._get_container_ip(EG_container),
+                  self._get_container_ip(server_container))
 
     def shutdown_pipeline(self, uuid):
         """Shuts down launched pipeline with given UUID.

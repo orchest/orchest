@@ -10,8 +10,12 @@ from app.celery import make_celery
 api = Namespace('runs', description='Managing (partial) runs')
 
 step_status = api.model('Pipeline Step', {
-    'run_uid': fields.String(required=True, description='UID for run'),
-    'step_uuid': fields.String(required=True, description='UUID of a pipeline step'),
+    'run_uid': fields.String(
+        required=True,
+        description='UID for run'),
+    'step_uuid': fields.String(
+        required=True,
+        description='UUID of a pipeline step'),
     'status': fields.String(
         required=True,
         description='Status of the step',
@@ -40,11 +44,18 @@ run_configuration = api.model('Run Configuration', {
 })
 
 run = api.model('Run', {
-    'run_uid': fields.String(required=True, description='UID for run'),
-    'pipeline_uuid': fields.String(required=True, description='UUID of a pipeline step'),
-    'status': fields.String(required=True, description='Status of the run'),
-    'step_statuses': fields.List(fields.Nested(step_status),
-                                 description='Status of each pipeline step')
+    'run_uid': fields.String(
+        required=True,
+        description='UID for run'),
+    'pipeline_uuid': fields.String(
+        required=True,
+        description='UUID of a pipeline step'),
+    'status': fields.String(
+        required=True,
+        description='Status of the run'),
+    'step_statuses': fields.List(
+        fields.Nested(step_status),
+        description='Status of each pipeline step')
 })
 
 runs = api.model('Runs', {
