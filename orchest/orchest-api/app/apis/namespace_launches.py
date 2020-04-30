@@ -114,10 +114,8 @@ class Launch(Resource):
     @api.marshal_with(launch)
     def get(self, pipeline_uuid):
         """Fetch a launch given its UUID."""
-        launch = models.Launch.query.filter_by(pipeline_uuid=pipeline_uuid).first_or_404(
-                description='Launch not found'
-        )
-
+        launch = models.Launch.query_get_or_404(pipeline_uuid,
+                                                description='Launch not found')
         return launch.as_dict()
 
     @api.doc('shutdown_launch')
@@ -125,9 +123,8 @@ class Launch(Resource):
     @api.response(404, 'Launch not found')
     def delete(self, pipeline_uuid):
         """Shutdown launch"""
-        launch = models.Launch.query.filter_by(pipeline_uuid=pipeline_uuid).first_or_404(
-                description='Launch not found'
-        )
+        launch = models.Launch.query_get_or_404(pipeline_uuid,
+                                                description='Launch not found')
 
         # Uses the API inside the container that is also running the
         # Jupyter server to shut the server down and clean all running
