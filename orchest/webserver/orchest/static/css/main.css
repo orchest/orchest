@@ -669,7 +669,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-u47b795b1 {
+@keyframes mdc-checkbox-fade-in-background-u6d7f9b9b {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -681,7 +681,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-u47b795b1 {
+@keyframes mdc-checkbox-fade-out-background-u6d7f9b9b {
   0%,
   80% {
     border-color: #0a6df7;
@@ -695,10 +695,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u47b795b1; }
+  animation-name: mdc-checkbox-fade-in-background-u6d7f9b9b; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u47b795b1; }
+  animation-name: mdc-checkbox-fade-out-background-u6d7f9b9b; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1444,7 +1444,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-ubb8c1a6a {
+@keyframes mdc-checkbox-fade-in-background-u0b94e904 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1456,7 +1456,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-ubb8c1a6a {
+@keyframes mdc-checkbox-fade-out-background-u0b94e904 {
   0%,
   80% {
     border-color: #000000;
@@ -1472,12 +1472,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-ubb8c1a6a; }
+  animation-name: mdc-checkbox-fade-in-background-u0b94e904; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-ubb8c1a6a; }
+  animation-name: mdc-checkbox-fade-out-background-u0b94e904; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7498,7 +7498,8 @@ h2.header {
     position: absolute;
     padding: 20px;
     font-size: 21px;
-    z-index: 3; }
+    z-index: 3;
+    width: 50%; }
   .pipeline-view .pipeline-actions {
     position: absolute;
     right: 0;
@@ -7512,10 +7513,16 @@ h2.header {
         transition: color 0.3s ease; }
       .pipeline-view .pipeline-actions button.active i {
         color: #00FF00; }
+  .pipeline-view .pipeline-steps-outer-holder {
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    background-image: url("../image/cross-fill.svg");
+    background-repeat: repeat; }
+    .pipeline-view .pipeline-steps-outer-holder.dragging {
+      cursor: grabbing; }
   .pipeline-view .pipeline-steps-holder {
     height: 100%;
-    background-image: url("../image/cross-fill.svg");
-    background-repeat: repeat;
     position: relative;
     user-select: none; }
     .pipeline-view .pipeline-steps-holder .step-selector {

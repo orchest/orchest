@@ -111,7 +111,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
             this.el.removeClass("flipped");
         }
 
-        this.el.css('transform', "translateX(" + (this.x - this.svgPadding + xOffset) + "px) translateY(" + (this.y - this.svgPadding + yOffset) + "px)");
+        this.el.css('transform', "translateX(" + (this.x - this.svgPadding + xOffset - this.pipelineView.pipelineOffset[0]) + "px) translateY(" + (this.y - this.svgPadding + yOffset - this.pipelineView.pipelineOffset[1]) + "px)");
 
         // update svg poly line
         this.svgEl.setAttribute("width", (Math.abs(targetX) + 2 * this.svgPadding) + "px");
@@ -252,6 +252,10 @@ class PipelineView extends React.Component {
 
         // newConnection is for creating a new connection
         this.newConnection = undefined;
+
+        this.keysDown = {};
+        this.draggingPipeline = false;
+        this.pipelineOffset = [0, 0];
 
         this.connections = [];
         this.pipelineSteps = {};
@@ -537,6 +541,10 @@ class PipelineView extends React.Component {
             }
             _this.newConnection = undefined;
 
+            if(_this.draggingPipeline){
+                _this.draggingPipeline = false;
+            }
+
 
             // stepSelector
             _this.state.stepSelector.active = false;
@@ -602,9 +610,18 @@ class PipelineView extends React.Component {
                 _this.refs.encodeButton.click();
             }
 
+            _this.keysDown[e.keyCode] = true;
+
         });
 
         $(document).on("keyup.initializePipeline", function (e) {
+
+            _this.keysDown[e.keyCode] = false;
+
+            if(e.keyCode){
+                $(_this.refs.pipelineStepsOuterHolder).removeClass("dragging");
+                this.draggingPipeline = false;
+            }
 
             if (e.keyCode === 27) {
                 if (_this.selectedConnection) {
@@ -1017,23 +1034,7 @@ class PipelineView extends React.Component {
         return classes.join(" ");
     }
 
-    pipelineStepsHolderDown(e) {
-
-        if ($(e.target).hasClass('pipeline-steps-holder') && e.button === 0) {
-
-            let pipelineStepHolderOffset = $(e.target).offset();
-
-            this.state.stepSelector.active = true;
-            this.state.stepSelector.x1 = e.clientX - pipelineStepHolderOffset.left;
-            this.state.stepSelector.y1 = e.clientY - pipelineStepHolderOffset.top;
-            this.state.stepSelector.x2 = e.clientX - pipelineStepHolderOffset.left;
-            this.state.stepSelector.y2 = e.clientY - pipelineStepHolderOffset.top;
-
-            this.setState({
-                stepSelector: this.state.stepSelector
-            })
-        }
-    }
+    
 
     deselectSteps() {
         this.setState({
@@ -1073,11 +1074,8 @@ class PipelineView extends React.Component {
         return selectedSteps;
     }
 
-
-
-
-    pipelineStepsHolderMove(e) {
-
+     onPipelineStepsOuterHolderMove(e){
+        
         if (this.state.stepSelector.active) {
 
             let pipelineStepHolderOffset = $(this.refs.pipelineStepsHolder).offset();
@@ -1089,6 +1087,47 @@ class PipelineView extends React.Component {
                 stepSelector: this.state.stepSelector,
                 selectedSteps: this.getSelectedSteps()
             })
+        }
+
+        if(this.draggingPipeline){
+            
+            let dx = e.nativeEvent.movementX;
+            let dy = e.nativeEvent.movementY; 
+
+            this.pipelineOffset[0] += dx/2;
+            this.pipelineOffset[1] += dy/2;
+            
+            $(this.refs.pipelineStepsHolder).css({transform: "translateX(" + this.pipelineOffset[0] + "px) translateY(" + this.pipelineOffset[1] + "px)"});
+
+            $(this.refs.pipelineStepsOuterHolder).css({backgroundPosition: this.pipelineOffset[0] + "px " + this.pipelineOffset[1] + "px"});
+        }
+
+    }
+
+    onPipelineStepsOuterHolderDown(e) {
+
+        if (($(e.target).hasClass('pipeline-steps-holder') || $(e.target).hasClass('pipeline-steps-outer-holder') ) && e.button === 0) {
+
+            if(this.keysDown[32]){
+                
+                // space held while clicking, means canvas drag
+                $(this.refs.pipelineStepsOuterHolder).addClass("dragging");
+                this.draggingPipeline = true;
+
+            }else{
+                let pipelineStepHolderOffset = $(e.target).offset();
+
+                this.state.stepSelector.active = true;
+                this.state.stepSelector.x1 = e.clientX - pipelineStepHolderOffset.left;
+                this.state.stepSelector.y1 = e.clientY - pipelineStepHolderOffset.top;
+                this.state.stepSelector.x2 = e.clientX - pipelineStepHolderOffset.left;
+                this.state.stepSelector.y2 = e.clientY - pipelineStepHolderOffset.top;
+
+                this.setState({
+                    stepSelector: this.state.stepSelector
+                })
+            }
+
         }
     }
 
@@ -1185,31 +1224,36 @@ class PipelineView extends React.Component {
                 </button>
 
             </div>
-
-            <div className={"pipeline-steps-holder"}
-                onMouseDown={this.pipelineStepsHolderDown.bind(this)}
-                onMouseMove={this.pipelineStepsHolderMove.bind(this)}
-                ref={"pipelineStepsHolder"}
+            <div className="pipeline-steps-outer-holder" ref={"pipelineStepsOuterHolder"} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
+            onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
             >
+                <div className={"pipeline-steps-holder"}
+                    
+                    ref={"pipelineStepsHolder"}
+                >
 
-                {stepSelectorComponent}
+                    {stepSelectorComponent}
 
-                {pipelineSteps}
+                    {pipelineSteps}
+
+                    
+                </div>
 
                 {(() => {
-                    if (this.state.openedStep) {
-                        return <PipelineDetails
-                            onDelete={this.onDetailsDelete.bind(this)}
-                            onNameUpdate={this.stepNameUpdate.bind(this)}
-                            onSave={this.onSaveDetails.bind(this)}
-                            onCancel={this.onCancelDetails.bind(this)}
-                            onOpenNotebook={this.onOpenNotebook.bind(this)}
-                            onRerunIncoming={this.onRerunIncoming.bind(this)}
-                            connections={connections_list}
-                            step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
-                    }
-                })()}
+                        if (this.state.openedStep) {
+                            return <PipelineDetails
+                                onDelete={this.onDetailsDelete.bind(this)}
+                                onNameUpdate={this.stepNameUpdate.bind(this)}
+                                onSave={this.onSaveDetails.bind(this)}
+                                onCancel={this.onCancelDetails.bind(this)}
+                                onOpenNotebook={this.onOpenNotebook.bind(this)}
+                                onRerunIncoming={this.onRerunIncoming.bind(this)}
+                                connections={connections_list}
+                                step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
+                        }
+                    })()}
             </div>
+            
         </div>;
     }
 }

@@ -11,6 +11,10 @@ class PipelineStep extends React.Component {
         }, 1000);
     }
 
+    componentWillUnmount(){
+        clearInterval(this.componentUpdateInterval);
+    }
+
     render() {
         let classNames = ["pipeline-step"];
 

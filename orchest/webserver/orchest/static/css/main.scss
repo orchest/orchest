@@ -208,6 +208,7 @@ h2.header {
     padding: $generalPadding;
     font-size: 21px;
     z-index: 3;
+    width: 50%;
   }
 
   .pipeline-actions {
@@ -227,15 +228,24 @@ h2.header {
         i {
           color: #00FF00;
         }
-      }
+      } 
     }
   }
 
+  .pipeline-steps-outer-holder {
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    background-image: url("../image/cross-fill.svg");
+    background-repeat: repeat;
+
+    &.dragging {
+      cursor: grabbing;
+    }
+  }
 
   .pipeline-steps-holder {
     height: 100%;
-    background-image: url("../image/cross-fill.svg");
-    background-repeat: repeat;
     position: relative;
     user-select: none;
 
