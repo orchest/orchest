@@ -26,14 +26,14 @@ class PipelineStep extends React.Component {
         
         classNames.push(this.props.executionState.status);
 
-        if(this.props.executionState.status === "success"){
+        if(this.props.executionState.status === "SUCCESS"){
             stateText = "Success";
         }
-        if(this.props.executionState.status === "running"){
+        if(this.props.executionState.status === "STARTED"){
             let seconds = Math.round((new Date() - this.props.executionState.time)/1000);
             stateText = "Running (" + seconds + " sec.)";
         }
-        if(this.props.executionState.status == "pending"){
+        if(this.props.executionState.status == "PENDING"){
             stateText = "Pending";
         }
 
@@ -42,7 +42,7 @@ class PipelineStep extends React.Component {
 
             </div>
             <div className={"execution-indicator"}>
-                { ( () => { if(this.props.executionState.status === "success"){ return <span>✓ </span>} } )() }
+                { ( () => { if(this.props.executionState.status === "SUCCESS"){ return <span>✓ </span>} } )() }
                 {stateText}
             </div>
             <div className="step-label-holder">

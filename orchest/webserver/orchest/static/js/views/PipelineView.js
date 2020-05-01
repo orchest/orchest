@@ -5,6 +5,7 @@ import { handleErrors, uuidv4, intersectRect, globalMDCVars } from "../utils/all
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
+import MDCButtonReact from "../mdc-components/MDCButtonReact";
 
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
@@ -82,6 +83,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 
 
         // set xEnd and yEnd if endNode is defined
+                
         if (this.endNode) {
             let endNodePosition = nodeCenter(this.endNode);
             endNodePosition = correctedPosition(endNodePosition.x, endNodePosition.y, $('.pipeline-view'));
@@ -244,8 +246,16 @@ class PipelineView extends React.Component {
         this.setState({ "steps": steps, "pipelineJson": pipelineJson });
     }
 
+    getPipelineJSON(){
+        this.state.pipelineJson.steps = this.state.steps;
+        return this.state.pipelineJson;
+    }
+
     constructor(props) {
         super(props);
+
+        // class constants
+        this.STATUS_POLL_FREQUENCY = 5000;
 
         this.selectedItem = undefined;
         this.selectedConnection = undefined;
@@ -262,10 +272,12 @@ class PipelineView extends React.Component {
         this.pipelineRefs = [];
         this.prevPosition = [];
         this.pipelineListenersInitialized = false;
+        this.pipelineStepStatusPollingInterval = undefined;
 
         this.state = {
             openedStep: undefined,
             selectedSteps: [],
+            runUuid: undefined,
             stepSelector: {
                 active: false,
                 x1: 0,
@@ -280,6 +292,7 @@ class PipelineView extends React.Component {
                 working: false
             }
         }
+
     }
 
     openSettings() {
@@ -867,9 +880,13 @@ class PipelineView extends React.Component {
         }
 
         // always deselects other steps
+        this.deselectSteps();
+
+
+        this.state.openedStep = pipelineStepUUID;
         this.setState({
             openedStep: pipelineStepUUID,
-            selectedSteps: []
+            selectedSteps: this.getSelectedSteps()
         });
     }
 
@@ -956,57 +973,120 @@ class PipelineView extends React.Component {
         orchest.headerBarComponent.setPipeline(this.props);
     }
 
-    onRerunIncoming(pipelineDetailsComponent) {
+    parseRunStatuses(result){
 
+        if(result.step_statuses === undefined || result.step_statuses.length === undefined){
+            console.error("Did not contain step_statuses list. Invalid `result` object");
+        }
+
+        for(let x = 0; x < result.step_statuses.length; x++){
+            this.setStepExecutionState(result.step_statuses[x].step_uuid, {status: result.step_statuses[x].status, time: new Date(result.step_statuses[x].started_time)})
+        }
+        
+    }
+
+    pollPipelineStepStatuses(){
+
+        if(this.state.runUuid){
+
+            fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/runs/" + this.state.runUuid, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'same-origin',
+                redirect: 'follow', // manual, *follow, error
+                referrer: 'no-referrer', // no-referrer, *client
+            }).then(handleErrors).then((response) => {
+                response.json().then((result) => {
+
+                    this.parseRunStatuses(result);
+
+                    if(result.status === "SUCCESS"){
+                        clearInterval(this.pipelineStepStatusPollingInterval);
+                    }
+                })
+            });
+            
+
+        }
+
+    }
+
+    runSelectedSteps() {
+        this.runStepUuids(this.state.selectedSteps, "selection");
+    }
+
+    runStepUuids(uuids, type){
+
+        // get pipeline dir from webserver
+        fetch("/async/pipelines/get_directory/" + this.props.uuid, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            redirect: 'follow', // manual, *follow, error
+            referrer: 'no-referrer', // no-referrer, *client
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        }).then(handleErrors).then((response) => {
+
+            response.json().then((json) => {
+                let piperline_dir = json.result;
+
+                // store pipeline.json
+                let data = {
+                    "uuids": uuids,
+                    "run_type": type,
+                    "pipeline_description": this.getPipelineJSON(),
+                    "config": {
+                        "pipeline_dir": piperline_dir
+                    }
+                };
+                
+                fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/runs/", {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    cache: 'no-cache',
+                    credentials: 'same-origin',
+                    redirect: 'follow', // manual, *follow, error
+                    referrer: 'no-referrer', // no-referrer, *client
+                    body: JSON.stringify(data)
+                }).then(handleErrors).then((response) => {
+                    response.json().then((result) => {
+
+                        this.parseRunStatuses(result);
+
+                        this.setState({
+                            runUuid: result.run_uuid
+                        });
+
+                        // initialize interval
+                        this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
+                    
+                    })
+                });
+            });
+        });
+
+    }
+
+    onRunIncoming() {
         // figure out incoming steps from this step:
-        let currentStep = this.state.steps[this.state.openedStep];
-
-        // fake execute list
-        let executeOrder = [];
-
-        // note array is pass by reference
-        this.TEMP_findIncomingStep(currentStep, executeOrder);
-
-        let totalDelay = 0;
-
-        for (let x = 0; x < executeOrder.length; x++) {
-
-            let stepDuration = 2000 + Math.random() * 1000 * 4;
-
-            ((uuid) => {
-                this.setStepExecutionState(uuid, { status: "pending", time: new Date() });
-
-                setTimeout(() => {
-                    this.setStepExecutionState(uuid, { status: "running", time: new Date() });
-                }, totalDelay);
-
-                setTimeout(() => {
-                    this.setStepExecutionState(uuid, { status: "success", time: new Date() });
-                }, totalDelay + stepDuration);
-
-            })(executeOrder[x]);
-
-            totalDelay += stepDuration;
-        }
+        let currentStepUUID = this.state.openedStep;
+        this.runStepUuids([currentStepUUID], "incoming");
     }
 
-    /// TEMP: only for demo
-    TEMP_findIncomingStep(step, list) {
-        for (let x = 0; x < step.incoming_connections.length; x++) {
-
-            // recurse to incoming
-            this.TEMP_findIncomingStep(this.state.steps[step.incoming_connections[x]], list);
-
-            // add inomcing step itself
-            let stepUUID = step.incoming_connections[x];
-            if (list.indexOf(stepUUID) === -1) {
-                list.push(stepUUID);
-            }
-        }
-    }
-    /// END TEMP
     onCloseDetails(pipelineDetailsComponent) {
-        this.setState({ "openedStep": undefined });
+        this.state.openedStep = undefined;
+
+        this.setState({ 
+            "openedStep": undefined,
+            "selectedSteps": this.getSelectedSteps() 
+        });
     }
 
     onSaveDetails(pipelineDetailsComponent) {
@@ -1033,11 +1113,17 @@ class PipelineView extends React.Component {
         return classes.join(" ");
     }
 
-
-
     deselectSteps() {
+
+        this.state.stepSelector.x1 = Number.MIN_VALUE;
+        this.state.stepSelector.y1 = Number.MIN_VALUE;
+        this.state.stepSelector.x2 = Number.MIN_VALUE;
+        this.state.stepSelector.y2 = Number.MIN_VALUE;
+        this.state.stepSelector.active = false;
+        
         this.setState({
-            selectedSteps: []
+            stepSelector: this.state.stepSelector,
+            selectedSteps: this.getSelectedSteps()
         });
     }
 
@@ -1068,6 +1154,11 @@ class PipelineView extends React.Component {
                     selectedSteps.push(uuid);
                 }
             }
+        }
+
+        // always add opened step to selected steps
+        if(this.state.openedStep && selectedSteps.indexOf(this.state.openedStep) === -1){
+            selectedSteps.push(this.state.openedStep);
         }
 
         return selectedSteps;
@@ -1157,10 +1248,6 @@ class PipelineView extends React.Component {
 
                 let selected = this.state.selectedSteps.indexOf(uuid) !== -1;
 
-                if (this.state.openedStep === uuid) {
-                    selected = true;
-                }
-
                 pipelineSteps.push(<PipelineStep
                     key={step.uuid}
                     step={step}
@@ -1207,6 +1294,13 @@ class PipelineView extends React.Component {
         return <div className={"pipeline-view"}>
             <div className={"pane"}>
                 <div className={"pipeline-name"}>{pipelineName}</div>
+                <div className={"pipeline-actions bottom-left"}>
+                    {(() => {
+                        if (this.state.selectedSteps.length > 0) {
+                            return <MDCButtonReact onClick={this.runSelectedSteps.bind(this)} label="Run selected steps" />
+                        }
+                    })()}
+                </div>
                 <div className={"pipeline-actions"}>
 
                     <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
@@ -1258,7 +1352,7 @@ class PipelineView extends React.Component {
                         onSave={this.onSaveDetails.bind(this)}
                         onClose={this.onCloseDetails.bind(this)}
                         onOpenNotebook={this.onOpenNotebook.bind(this)}
-                        onRerunIncoming={this.onRerunIncoming.bind(this)}
+                        onRunIncoming={this.onRunIncoming.bind(this)}
                         connections={connections_list}
                         step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
                 }

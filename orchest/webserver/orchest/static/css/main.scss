@@ -226,6 +226,17 @@ h2.header {
     z-index: 9;
     padding: $generalPadding;
 
+    &.bottom-left {
+      top: auto;
+      bottom: 0;
+      right: auto;
+      left: 0;
+
+      button {
+        background-color: $mdc-theme-secondary;
+      }
+    }
+
     button {
       margin-left: $generalPadding;
       min-width: 0;

@@ -157,8 +157,8 @@ class PipelineDetails extends React.Component {
         this.props.onOpenNotebook(this);
     }
 
-    onRerunIncoming() {
-        this.props.onRerunIncoming(this);
+    onRunIncoming() {
+        this.props.onRunIncoming(this);
     }
 
     componentDidMount() {
@@ -439,10 +439,10 @@ class PipelineDetails extends React.Component {
                         <span className="mdc-button__label">Open notebook</span>
                     </button>
 
-                    <button ref={"launchNotebook"} onClick={this.onRerunIncoming.bind(this)} className="mdc-button mdc-button--raised save-button">
+                    <button ref={"launchNotebook"} onClick={this.onRunIncoming.bind(this)} className="mdc-button mdc-button--raised save-button">
                         <div className="mdc-button__ripple"></div>
                         <i className="material-icons mdc-button__icon" aria-hidden="true">replay</i>
-                        <span className="mdc-button__label">Rerun incoming steps</span>
+                        <span className="mdc-button__label">Run incoming steps</span>
                     </button>
                 </div>
 
