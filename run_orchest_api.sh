@@ -35,10 +35,8 @@ docker container prune -f
 # clear orchest-api db
 rm orchest/orchest-api/app/resources.db
 
-
 # run celery worker
-
-
+gnome-terminal --geometry=154x84+0+0 --working-directory=$PWD/orchest/orchest-api/ -- celery worker -A app.core.runners -l INFO
 
 # run orchest-api
 python orchest/orchest-api/main.py

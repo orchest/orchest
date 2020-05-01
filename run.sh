@@ -12,11 +12,11 @@ DEBUG=true
 
 if [ "$DEBUG" = true ] ; then
     echo "[Debug = true] starting webpack & sass watchers..."
-    gnome-terminal --geometry=154x84+0+0 --working-directory=/home/rick/workspace/orchest/orchest/webserver/orchest/static/ -- "./compile-js.sh" 
-    gnome-terminal --geometry=154x84+0+0 --working-directory=/home/rick/workspace/orchest/orchest/webserver/orchest/static/css/ -- "./compile-sass.sh" 
+    gnome-terminal --geometry=154x84+0+0 --working-directory=$PWD/orchest/webserver/orchest/static/ -- "./compile-js.sh" 
+    gnome-terminal --geometry=154x84+0+0 --working-directory=$PWD/orchest/webserver/orchest/static/css/ -- "./compile-sass.sh" 
 fi
 
 
 ## Run orchest web interface
-cd /home/rick/workspace/orchest/orchest/webserver
+cd $PWD/orchest/webserver
 python app.py
