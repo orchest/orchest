@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource, fields
@@ -20,6 +22,9 @@ step_status = api.model('Pipeline Step', {
         required=True,
         description='Status of the step',
         enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
+    'started_time': fields.String(
+        required=True,
+        description='Time at which the step was started'),
 })
 
 status_update = api.model('Status Update', {
@@ -175,6 +180,7 @@ class Run(Resource):
 @api.response(404, 'Pipeline step not found')
 class StepStatus(Resource):
     @api.doc('get_step_status')
+    @api.marshal_with(step_status, code=200)
     def get(self, run_uid, step_uuid):
         """Fetch a step of a given run given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if the
@@ -182,7 +188,7 @@ class StepStatus(Resource):
         step = models.StepStatus.query.get_or_404(
                             ident=(run_uid, step_uuid),
                             description='Run and step combination not found')
-        return step.as_dict()
+        return step.__dict__
 
     @api.doc('set_step_status')
     @api.expect(status_update)
@@ -199,9 +205,17 @@ class StepStatus(Resource):
         # TODO: first check the status and make sure it says PENDING or
         #       whatever. Because if is empty then this would write it
         #       and then get overwritten afterwards with "PENDING".
+        # TODO: Obviously this is not the most correct place to set the
+        #       time of when the task has started. This should be done
+        #       in the app.core.runners when the self._status is set to
+        #       STARTED.
+        update_data = post_data
+        if update_data['status'] == 'STARTED':
+            update_data['started_time'] = datetime.utcnow()
+
         res = models.StepStatus.query.filter_by(
             run_uid=run_uid, step_uuid=step_uuid
-        ).update({'status': post_data['status']})
+        ).update(update_data)
 
         if res:
             db.session.commit()

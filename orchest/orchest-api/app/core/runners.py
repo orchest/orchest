@@ -129,13 +129,14 @@ async def update_status(status: str,
                         type: str,
                         uuid: Optional[str] = None) -> Any:
     """Updates status of step via the orchest-api."""
+    data = {'status': status}
+
     base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/runs/{task_id}'
     if type == 'step':
         url = f'{base_url}/{uuid}'
+
     elif type == 'pipeline':
         url = base_url
-
-    data = {'status': status}
 
     async with session.put(url, json=data) as response:
         return await response.json()

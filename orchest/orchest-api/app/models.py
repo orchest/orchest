@@ -32,6 +32,7 @@ class StepStatus(BaseModel, db.Model):
     run_uid = db.Column(db.String(36), db.ForeignKey('runs.run_uid'), primary_key=True)
     step_uuid = db.Column(db.String(36), primary_key=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
+    started_time = db.Column(db.DateTime, unique=False, nullable=True)
 
     def __repr__(self):
         return f'<StepStatus {self.run_uid}.{self.step_uuid}>'
