@@ -170,6 +170,8 @@ class PipelineStepRunner:
         # Initial status is "PENDING".
         self._status: str = 'PENDING'
 
+    # TODO: specify a config argument here that is updated as the config
+    #       variable that is passed to run the docker container.
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
                             session: aiohttp.ClientSession,
@@ -189,12 +191,20 @@ class PipelineStepRunner:
             # The step cannot be run yet.
             return self._status
 
-        # TODO: mounts etc. and run correct image.
         # NOTE: Passing the UUID as a configuration parameter does not
         # get used by the docker_client. However, we use it for testing
         # to check whether the resolve order of the pipeline is correct.
+
+        # TODO: mounts etc. and run correct image.
+        # TODO: The image? Is it put in the pipeline.json? Is it hardcoded
+        #       to be the pipeline-step-runner?
+        PIPELINE_DIR: str = None
         config = {
             'Image': self.properties['image']['image_name'],
+            'Env': [f'STEP_UUID={self.properties["uuid"]}'],
+            'Volumes': {'/notebooks': PIPELINE_DIR},
+            # 'HostConfig': {'Binds': [f'{PIPELINE_DIR}:/notebooks']},
+            'Cmd': [self.properties['file_path']],
             'uuid': self.properties['uuid']
         }
 
