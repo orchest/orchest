@@ -7,6 +7,7 @@ from flask_restplus import Namespace, Resource, fields
 from app.connections import db
 import app.models as models
 from app.celery import make_celery
+from app.utils import construct_pipeline
 
 
 api = Namespace('runs', description='Managing (partial) runs')
@@ -112,9 +113,13 @@ class RunList(Resource):
         }
         db.session.add(models.Run(**run))
 
-        # Set an initial value for the status of the pipline steps.
+        # Set an initial value for the status of the pipline steps that
+        # will be run.
+        pipeline = construct_pipeline(**post_data)
+        step_uuids = [s.properties['uuid'] for s in pipeline.steps]
+
         step_statuses = []
-        for step_uuid in post_data['pipeline_description']['steps']:
+        for step_uuid in step_uuids:
             step_statuses.append(models.StepStatus(**{
                 'run_uuid': res.id,
                 'step_uuid': step_uuid,
