@@ -12,9 +12,9 @@ from app.celery import make_celery
 api = Namespace('runs', description='Managing (partial) runs')
 
 step_status = api.model('Pipeline Step', {
-    'run_uid': fields.String(
+    'run_uuid': fields.String(
         required=True,
-        description='UID for run'),
+        description='UUID for run'),
     'step_uuid': fields.String(
         required=True,
         description='UUID of a pipeline step'),
@@ -49,9 +49,9 @@ run_configuration = api.model('Run Configuration', {
 })
 
 run = api.model('Run', {
-    'run_uid': fields.String(
+    'run_uuid': fields.String(
         required=True,
-        description='UID for run'),
+        description='UUID for run'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of a pipeline step'),
@@ -106,7 +106,7 @@ class RunList(Resource):
         # we do not have to configure a backend (where the default of
         # "rpc://" does not give the results we would want).
         run = {
-           'run_uid': res.id,
+           'run_uuid': res.id,
            'pipeline_uuid': post_data['pipeline_description']['uuid'],
            'status': 'PENDING',
         }
@@ -116,7 +116,7 @@ class RunList(Resource):
         step_statuses = []
         for step_uuid in post_data['pipeline_description']['steps']:
             step_statuses.append(models.StepStatus(**{
-                'run_uid': res.id,
+                'run_uuid': res.id,
                 'step_uuid': step_uuid,
                 'status': 'PENDING'
             }))
@@ -128,15 +128,15 @@ class RunList(Resource):
         return run, 201
 
 
-@api.route('/<string:run_uid>')
-@api.param('run_uid', 'UID for Run')
+@api.route('/<string:run_uuid>')
+@api.param('run_uuid', 'UUID for Run')
 @api.response(404, 'Run not found')
 class Run(Resource):
     @api.doc('get_run')
     @api.marshal_with(run, code=200)
-    def get(self, run_uid):
-        """Fetch a run given its UID."""
-        run = models.Run.query.get_or_404(run_uid, description='Run not found')
+    def get(self, run_uuid):
+        """Fetch a run given its UUID."""
+        run = models.Run.query.get_or_404(run_uuid, description='Run not found')
 
         # TODO: we probably want to use this __dict__ for other models
         #       as well.
@@ -144,11 +144,11 @@ class Run(Resource):
 
     @api.doc('set_run_status')
     @api.expect(status_update)
-    def put(self, run_uid):
+    def put(self, run_uuid):
         """Set the status of a run."""
         post_data = request.get_json()
 
-        res = models.Run.query.filter_by(run_uid=run_uid).update({
+        res = models.Run.query.filter_by(run_uuid=run_uuid).update({
             'status': post_data['status']
         })
 
@@ -159,8 +159,8 @@ class Run(Resource):
 
     @api.doc('delete_run')
     @api.response(200, 'Run terminated')
-    def delete(self, run_uid):
-        """Stop a run given its UID."""
+    def delete(self, run_uuid):
+        """Stop a run given its UUID."""
         # TODO: we could specify more options when deleting the run.
         # TODO: error handling.
 
@@ -168,31 +168,31 @@ class Run(Resource):
 
         # Stop the run, whether it is in the queue or whether it is
         # actually running.
-        revoke(run_uid, terminate=True)
+        revoke(run_uuid, terminate=True)
 
         return {'message': 'Run termination was successful'}, 200
 
 
-@api.route('/<string:run_uid>/<string:step_uuid>',
+@api.route('/<string:run_uuid>/<string:step_uuid>',
            doc={'description': 'Set and get execution status of steps.'})
-@api.param('run_uid', 'UID for Run')
+@api.param('run_uuid', 'UUID for Run')
 @api.param('step_uuid', 'UUID of Pipeline Step')
 @api.response(404, 'Pipeline step not found')
 class StepStatus(Resource):
     @api.doc('get_step_status')
     @api.marshal_with(step_status, code=200)
-    def get(self, run_uid, step_uuid):
+    def get(self, run_uuid, step_uuid):
         """Fetch a step of a given run given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if the
         # step is not executed yet.
         step = models.StepStatus.query.get_or_404(
-                            ident=(run_uid, step_uuid),
+                            ident=(run_uuid, step_uuid),
                             description='Run and step combination not found')
         return step.__dict__
 
     @api.doc('set_step_status')
     @api.expect(status_update)
-    def put(self, run_uid, step_uuid):
+    def put(self, run_uuid, step_uuid):
         """Set the status of a step."""
         post_data = request.get_json()
 
@@ -214,7 +214,7 @@ class StepStatus(Resource):
             update_data['started_time'] = datetime.utcnow()
 
         res = models.StepStatus.query.filter_by(
-            run_uid=run_uid, step_uuid=step_uuid
+            run_uuid=run_uuid, step_uuid=step_uuid
         ).update(update_data)
 
         if res:

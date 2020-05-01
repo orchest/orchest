@@ -24,7 +24,6 @@ MarkupSafe==1.1.1
 more-itertools==8.0.2
 multidict==4.7.5
 packaging==20.3
-pkg-resources==0.0.0
 pluggy==0.13.1
 py==1.8.1
 pyparsing==2.4.7

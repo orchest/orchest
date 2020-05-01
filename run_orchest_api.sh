@@ -33,7 +33,12 @@ docker container prune -f
 
 ## Run orchest api
 # clear orchest-api db
-rm orchest/orchest-api/api/resources.db
+rm orchest/orchest-api/app/resources.db
+
+
+# run celery worker
+
+
 
 # run orchest-api
-python orchest/orchest-api/api/main.py
+python orchest/orchest-api/main.py
