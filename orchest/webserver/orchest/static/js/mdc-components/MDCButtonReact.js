@@ -7,9 +7,28 @@ class MDCButtonReact extends React.Component {
     }
     render() {
 
-        return <button ref={"button"} onClick={this.props.onClick} className={"mdc-button mdc-button--raised"}>
+        let topClasses = ["mdc-button", "mdc-button--raised"];
+        if (this.props.classNames) {
+            topClasses = topClasses.concat(this.props.classNames)
+        }
+        topClasses = topClasses.join(" ");
+
+        return <button ref={"button"} onClick={this.props.onClick} className={topClasses}>
             <div className="mdc-button__ripple"></div>
-            <span className="mdc-button__label">{this.props.label}</span>
+
+            {(() => {
+                if (this.props.icon && this.props.label) {
+                    return <span className="mdc-button__label">
+                        <i className="material-icons mdc-button__icon">{this.props.icon}</i>{this.props.label}</span>;
+                }
+                if (this.props.icon) {
+                    return <i className="material-icons">{this.props.icon}</i>;
+                }
+                if (this.props.label) {
+                    return <span className="mdc-button__label">{this.props.label}</span>
+                }
+            })()}
+
         </button>;
     }
 }

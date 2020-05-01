@@ -198,9 +198,9 @@ class PipelineStepRunner:
         # TODO: mounts etc. and run correct image.
         # TODO: The image? Is it put in the pipeline.json? Is it hardcoded
         #       to be the pipeline-step-runner?
-        PIPELINE_DIR: str = None
+        PIPELINE_DIR: str = "/home/rick/workspace/orchest/orchest/webserver/instance/../../userdir/pipelines/c42fba4a-7908-4f0a-b587-9530347aa0f2"
         config = {
-            'Image': self.properties['image']['image_name'],
+            'Image': "pipeline-step-runner",
             'Env': [f'STEP_UUID={self.properties["uuid"]}'],
             'Volumes': {'/notebooks': PIPELINE_DIR},
             # 'HostConfig': {'Binds': [f'{PIPELINE_DIR}:/notebooks']},

@@ -347,12 +347,6 @@ class PipelineView extends React.Component {
             }
         });
 
-        // new pipelineStep listener
-        this.newStepButtonMDC = new MDCRipple(this.refs.newStepButton);
-        this.encodeButton = new MDCRipple(this.refs.encodeButton);
-        this.settingsButtonRipple = new MDCRipple(this.refs.settingsButton);
-        this.powerButtonRipple = new MDCRipple(this.refs.powerButton);
-
     }
 
     updatePipelineViewerState() {
@@ -870,7 +864,8 @@ class PipelineView extends React.Component {
 
         this.setState({ "steps": this.state.steps });
 
-        this.selectStep(step.uuid);
+        // TODO: selection mechanism on new step
+        // this.selectStep(step.uuid);
 
     }
 
@@ -1039,9 +1034,9 @@ class PipelineView extends React.Component {
                     "uuids": uuids,
                     "run_type": type,
                     "pipeline_description": this.getPipelineJSON(),
-                    "config": {
-                        "pipeline_dir": piperline_dir
-                    }
+                    // "config": {
+                        // "pipeline_dir": piperline_dir
+                    // }
                 };
                 
                 fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/runs/", {
@@ -1101,7 +1096,7 @@ class PipelineView extends React.Component {
     }
 
     getPowerButtonClasses() {
-        let classes = ["mdc-button", "mdc-button--raised"];
+        let classes = [];
 
         if (this.state.backend.running) {
             classes.push("active");
@@ -1110,7 +1105,7 @@ class PipelineView extends React.Component {
             classes.push("working");
         }
 
-        return classes.join(" ");
+        return classes;
     }
 
     deselectSteps() {
@@ -1303,26 +1298,28 @@ class PipelineView extends React.Component {
                 </div>
                 <div className={"pipeline-actions"}>
 
-                    <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
-                        <div className="mdc-button__ripple"></div>
-                        <i className="material-icons">power_settings_new</i>
-                    </button>
+                    <MDCButtonReact 
+                        onClick={this.launchPipeline.bind(this)}
+                        classNames={this.getPowerButtonClasses()}
+                        icon={"power_settings_new"}
+                    />
 
-                    <button ref={"newStepButton"} onClick={this.newStep.bind(this)} className="mdc-button mdc-button--raised">
-                        <div className="mdc-button__ripple"></div>
-                        <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i>NEW STEP</span>
-                    </button>
+                    <MDCButtonReact 
+                        onClick={this.newStep.bind(this)}
+                        icon={"add"}
+                        label={"NEW STEP"}
+                    />
 
-                    <button ref={"encodeButton"} onClick={this.savePipeline.bind(this)} className="mdc-button mdc-button--raised">
-                        <div className="mdc-button__ripple"></div>
-                        <span className="mdc-button__label">SAVE</span>
-                    </button>
+                    <MDCButtonReact 
+                        onClick={this.savePipeline.bind(this)}
+                        label={"SAVE"}
+                    />
 
-
-                    <button ref={"settingsButton"} onClick={this.openSettings.bind(this)} className="mdc-button mdc-button--raised">
-                        <div className="mdc-button__ripple"></div>
-                        <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>settings_applications</i>Settings</span>
-                    </button>
+                    <MDCButtonReact 
+                        onClick={this.openSettings.bind(this)}
+                        label={"Settings"}
+                        icon="settings_applications"
+                    />
 
                 </div>
                 <div className="pipeline-steps-outer-holder" ref={"pipelineStepsOuterHolder"} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
