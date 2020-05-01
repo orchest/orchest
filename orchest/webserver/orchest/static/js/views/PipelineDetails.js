@@ -22,36 +22,6 @@ class ConnectionItem extends React.Component {
 
 class PipelineDetails extends React.Component {
 
-
-    updateStepName() {
-        this.props.onNameUpdate(this.props.step.uuid, this.state.step.title, this.state.step.file_path);
-    }
-
-    onChangeFileName(updatedFileName) {
-        this.state.step.file_path = updatedFileName + "." + extensionFromFilename(this.state.step.file_path);
-
-        this.setState({
-            "step": this.state.step
-        });
-
-        this.updateStepName();
-    }
-
-    onChangeFileType(updatedExtension) {
-        this.state.step.file_path = filenameWithoutExtension(this.state.step.file_path) + updatedExtension;
-
-        this.setState({
-            "step": this.state.step,
-            isNotebookStep: updatedExtension === ".ipynb"
-        });
-
-        this.updateStepName();
-    }
-
-    changeImage() {
-
-    }
-
     constructor(props) {
         super(props);
 
@@ -70,12 +40,49 @@ class PipelineDetails extends React.Component {
         }
     }
 
+    componentWillUnmount() {
+        $(document).off("mouseup.connectionList");
+        $(document).off("mousemove.connectionList");
+        $(window).off("resize.pipelineDetails");
+        $(window).off("keyup.pipelineDetails");
+    }
+
+    updateStepName() {
+        this.props.onNameUpdate(this.props.step.uuid, this.state.step.title, this.state.step.file_path);
+    }
+
+    onChangeFileName(updatedFileName) {
+        this.state.step.file_path = updatedFileName + "." + extensionFromFilename(this.state.step.file_path);
+
+        this.setState({
+            "step": this.state.step
+        });
+
+        this.updateStepName();
+
+        this.props.onSave(this);
+    }
+
+    onChangeFileType(updatedExtension) {
+        this.state.step.file_path = filenameWithoutExtension(this.state.step.file_path) + updatedExtension;
+
+        this.setState({
+            "step": this.state.step,
+            isNotebookStep: updatedExtension === ".ipynb"
+        });
+
+        this.updateStepName();
+        this.props.onSave(this);
+    }
+
     onChangeVCPUS(updatedVCPUS) {
         this.state.step.vcpus = updatedVCPUS;
 
         this.setState({
             "step": this.state.step
         });
+
+        this.props.onSave(this);
     }
 
     onChangeGPUS(updatedGPUS) {
@@ -83,6 +90,8 @@ class PipelineDetails extends React.Component {
         this.setState({
             "step": this.state.step
         });
+
+        this.props.onSave(this);
     }
 
     onChangeExperimentJSON(updatedExperimentJSON){
@@ -90,6 +99,8 @@ class PipelineDetails extends React.Component {
         this.setState({
             "step": this.state.step
         });
+
+        this.props.onSave(this);
     }
 
     onChangeMemory(updatedMemory) {
@@ -98,6 +109,8 @@ class PipelineDetails extends React.Component {
         this.setState({
             "step": this.state.step
         });
+
+        this.props.onSave(this);
     }
 
     onChangeImage(updatedImage){
@@ -106,6 +119,8 @@ class PipelineDetails extends React.Component {
         this.setState({
             "step": this.state.step
         });
+
+        this.props.onSave(this);
     }
 
     onChangeKernel(updatedKernel){
@@ -120,8 +135,10 @@ class PipelineDetails extends React.Component {
         }
 
         this.setState({
-            "step": this.state.step
+            "step": this.state.step 
         });
+
+        this.props.onSave(this);
     }
 
     onChangeTitle(updatedTitle) {
@@ -132,17 +149,9 @@ class PipelineDetails extends React.Component {
         });
 
         this.updateStepName();
-    }
 
-    onSave() {
         this.props.onSave(this);
     }
-
-    onCancel() {
-        this.props.onNameUpdate(this.props.step.uuid, this.initialTitle, this.initialFilePath);
-        this.props.onCancel(this);
-    }
-
 
     onOpenNotebook() {
         this.props.onOpenNotebook(this);
@@ -154,12 +163,6 @@ class PipelineDetails extends React.Component {
 
     componentDidMount() {
 
-        // store initial filename and for restore on cancel
-        this.initialFilePath = this.props.step.file_path;
-        this.initialTitle = this.props.step.title;
-
-        this.saveButtonRipple = new MDCRipple(this.refs.saveButton);
-        this.cancelButtonRipple = new MDCRipple(this.refs.cancelButton);
         this.deleteButtonRipple = new MDCRipple(this.refs.deleteButton);
 
         // initiate draggable connections
@@ -270,12 +273,6 @@ class PipelineDetails extends React.Component {
         $(window).on("resize.pipelineDetails", this.overflowChecks.bind(this))
         this.overflowChecks();
 
-        // keyboard listener for escape cancel
-        $(window).on('keyup.pipelineDetails', (e) => {
-            if(e.keyCode == 27){
-                this.onCancel();
-            }
-        });
     }
 
     overflowChecks() {
@@ -306,15 +303,10 @@ class PipelineDetails extends React.Component {
                 "step": this.state.step
             });
 
+            this.props.onSave(this);
+
         }
 
-    }
-
-    componentWillUnmount() {
-        $(document).off("mouseup.connectionList");
-        $(document).off("mousemove.connectionList");
-        $(window).off("resize.pipelineDetails");
-        $(window).off("keyup.pipelineDetails");
     }
 
     render() {
@@ -328,7 +320,7 @@ class PipelineDetails extends React.Component {
             } key={key} />
         ));
 
-        return <div className={"pipeline-details"}>
+        return <div className={"pipeline-details pane"}>
             <div className={"overflowable"}>
                 <div className="input-group">
                     <h3>Pipeline step</h3>
@@ -455,14 +447,10 @@ class PipelineDetails extends React.Component {
                 </div>
 
                 <div className={"general-actions"}>
-                    <button ref={"saveButton"} onClick={this.onSave.bind(this)} className="mdc-button mdc-button--raised save-button">
+                    <button ref={"deleteButton"} className="mdc-button mdc-button--raised" onClick={this.props.onClose.bind(this)}>
                         <div className="mdc-button__ripple"></div>
-                        <span className="mdc-button__label">Save</span>
-                    </button>
-
-                    <button ref={"cancelButton"} onClick={this.onCancel.bind(this)} className="mdc-button mdc-button--raised save-button">
-                        <div className="mdc-button__ripple"></div>
-                        <span className="mdc-button__label">Cancel</span>
+                        <i className="material-icons mdc-button__icon" aria-hidden="true">close</i>
+                        <span className="mdc-button__label">Close</span>
                     </button>
 
                     <button ref={"deleteButton"} className="mdc-button mdc-button--raised" onClick={this.props.onDelete.bind(this)}>

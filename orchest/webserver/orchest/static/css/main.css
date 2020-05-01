@@ -669,7 +669,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-u6d7f9b9b {
+@keyframes mdc-checkbox-fade-in-background-u90d4a125 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -681,7 +681,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-u6d7f9b9b {
+@keyframes mdc-checkbox-fade-out-background-u90d4a125 {
   0%,
   80% {
     border-color: #0a6df7;
@@ -695,10 +695,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u6d7f9b9b; }
+  animation-name: mdc-checkbox-fade-in-background-u90d4a125; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u6d7f9b9b; }
+  animation-name: mdc-checkbox-fade-out-background-u90d4a125; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1444,7 +1444,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-u0b94e904 {
+@keyframes mdc-checkbox-fade-in-background-u59735576 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1456,7 +1456,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-u0b94e904 {
+@keyframes mdc-checkbox-fade-out-background-u59735576 {
   0%,
   80% {
     border-color: #000000;
@@ -1472,12 +1472,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u0b94e904; }
+  animation-name: mdc-checkbox-fade-in-background-u59735576; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u0b94e904; }
+  animation-name: mdc-checkbox-fade-out-background-u59735576; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7493,13 +7493,18 @@ h2.header {
 
 .pipeline-view {
   position: relative;
-  height: 100%; }
+  height: 100%;
+  display: flex;
+  flex-direction: row; }
   .pipeline-view .pipeline-name {
     position: absolute;
     padding: 20px;
     font-size: 21px;
     z-index: 3;
     width: 50%; }
+  .pipeline-view .pane {
+    flex: 1;
+    position: relative; }
   .pipeline-view .pipeline-actions {
     position: absolute;
     right: 0;
@@ -7629,9 +7634,6 @@ h2.header {
           right: -5px;
           left: auto; }
   .pipeline-view .pipeline-details {
-    position: absolute;
-    right: 0;
-    top: 0;
     height: 100%;
     padding: 20px;
     background: #fff;

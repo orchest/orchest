@@ -22,16 +22,19 @@ class PipelineStep extends React.Component {
             classNames.push("selected");
         }
 
-        let stateText = "Idle";
+        let stateText = "Ready";
         
         classNames.push(this.props.executionState.status);
 
-        if(this.props.executionState.status === "completed"){
-            stateText = "Completed";
+        if(this.props.executionState.status === "success"){
+            stateText = "Success";
         }
         if(this.props.executionState.status === "running"){
             let seconds = Math.round((new Date() - this.props.executionState.time)/1000);
             stateText = "Running (" + seconds + " sec.)";
+        }
+        if(this.props.executionState.status == "pending"){
+            stateText = "Pending";
         }
 
         return <div data-uuid={this.props.step.uuid} ref={"container"} className={classNames.join(" ")}>
@@ -39,7 +42,7 @@ class PipelineStep extends React.Component {
 
             </div>
             <div className={"execution-indicator"}>
-                { ( () => { if(this.props.executionState.status === "completed"){ return <span>✓ </span>} } )() }
+                { ( () => { if(this.props.executionState.status === "success"){ return <span>✓ </span>} } )() }
                 {stateText}
             </div>
             <div className="step-label-holder">

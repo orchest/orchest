@@ -187,7 +187,7 @@ class PipelineSettingsView extends React.Component {
                                 </span>
                                 <span className="mdc-tab__ripple"></span>
                             </button>
-                            <button className="mdc-tab" role="tab" tabIndex="0">
+                            {/* <button className="mdc-tab" role="tab" tabIndex="0">
                                 <span className="mdc-tab__content">
                                     <span className="mdc-tab__icon material-icons" aria-hidden="true">history</span>
                                     <span className="mdc-tab__text-label">Snapshots</span>
@@ -196,7 +196,7 @@ class PipelineSettingsView extends React.Component {
                                     <span className="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
                                 </span>
                                 <span className="mdc-tab__ripple"></span>
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                 </div>

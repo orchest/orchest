@@ -202,6 +202,9 @@ h2.header {
 .pipeline-view {
   position: relative;
   height: 100%;
+  display: flex;
+  flex-direction: row;
+
 
   .pipeline-name {
     position: absolute;
@@ -209,6 +212,11 @@ h2.header {
     font-size: 21px;
     z-index: 3;
     width: 50%;
+  }
+
+  .pane {
+    flex: 1;
+    position: relative;
   }
 
   .pipeline-actions {
@@ -421,9 +429,6 @@ h2.header {
 
 
   .pipeline-details {
-    position: absolute;
-    right: 0;
-    top: 0;
     height: 100%;
     padding: $generalPadding;
     background: #fff;

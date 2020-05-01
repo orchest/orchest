@@ -111,7 +111,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
             this.el.removeClass("flipped");
         }
 
-        this.el.css('transform', "translateX(" + (this.x - this.svgPadding + xOffset - this.pipelineView.pipelineOffset[0]) + "px) translateY(" + (this.y - this.svgPadding + yOffset - this.pipelineView.pipelineOffset[1]) + "px)");
+        this.el.css('transform', "translateX(" + (this.x - this.svgPadding + xOffset + this.pipelineView.pipelineOffset[0]) + "px) translateY(" + (this.y - this.svgPadding + yOffset + this.pipelineView.pipelineOffset[1]) + "px)");
 
         // update svg poly line
         this.svgEl.setAttribute("width", (Math.abs(targetX) + 2 * this.svgPadding) + "px");
@@ -417,11 +417,11 @@ class PipelineView extends React.Component {
 
         let cycles = false;
 
-        while(whiteSet.size > 0){
+        while (whiteSet.size > 0) {
             // take first element left in whiteSet
             let step_uuid = whiteSet.values().next().value;
 
-            if(this.dfsWithSets(step_uuid, whiteSet, greySet)){
+            if (this.dfsWithSets(step_uuid, whiteSet, greySet)) {
                 cycles = true;
             }
         }
@@ -432,20 +432,20 @@ class PipelineView extends React.Component {
         return cycles;
     }
 
-    dfsWithSets(step_uuid, whiteSet, greySet){
+    dfsWithSets(step_uuid, whiteSet, greySet) {
         // move from white to grey
         whiteSet.delete(step_uuid);
         greySet.add(step_uuid);
 
-        for(let x = 0; x < this.state.steps[step_uuid].outgoing_connections.length; x++){
+        for (let x = 0; x < this.state.steps[step_uuid].outgoing_connections.length; x++) {
             let child_uuid = this.state.steps[step_uuid].outgoing_connections[x];
 
-            if(whiteSet.has(child_uuid)){
-                if(this.dfsWithSets(child_uuid, whiteSet, greySet)){
+            if (whiteSet.has(child_uuid)) {
+                if (this.dfsWithSets(child_uuid, whiteSet, greySet)) {
                     return true;
                 }
             }
-            else if(greySet.has(child_uuid)){
+            else if (greySet.has(child_uuid)) {
                 return true;
             }
         }
@@ -541,7 +541,7 @@ class PipelineView extends React.Component {
             }
             _this.newConnection = undefined;
 
-            if(_this.draggingPipeline){
+            if (_this.draggingPipeline) {
                 _this.draggingPipeline = false;
             }
 
@@ -618,7 +618,7 @@ class PipelineView extends React.Component {
 
             _this.keysDown[e.keyCode] = false;
 
-            if(e.keyCode){
+            if (e.keyCode) {
                 $(_this.refs.pipelineStepsOuterHolder).removeClass("dragging");
                 this.draggingPipeline = false;
             }
@@ -891,14 +891,14 @@ class PipelineView extends React.Component {
         this.forceUpdate();
     }
 
-    getStepExecutionState(stepUUID){
-        if(this.state.stepExecutionState[stepUUID]){
+    getStepExecutionState(stepUUID) {
+        if (this.state.stepExecutionState[stepUUID]) {
             return this.state.stepExecutionState[stepUUID];
-        }else{
-            return {status: "idle", time: new Date()};
+        } else {
+            return { status: "idle", time: new Date() };
         }
     }
-    setStepExecutionState(stepUUID, executionState){
+    setStepExecutionState(stepUUID, executionState) {
 
         this.state.stepExecutionState[stepUUID] = executionState;
 
@@ -956,7 +956,7 @@ class PipelineView extends React.Component {
         orchest.headerBarComponent.setPipeline(this.props);
     }
 
-    onRerunIncoming(pipelineDetailsComponent){
+    onRerunIncoming(pipelineDetailsComponent) {
 
         // figure out incoming steps from this step:
         let currentStep = this.state.steps[this.state.openedStep];
@@ -969,18 +969,19 @@ class PipelineView extends React.Component {
 
         let totalDelay = 0;
 
-        for(let x = 0; x < executeOrder.length; x++){
-            
+        for (let x = 0; x < executeOrder.length; x++) {
+
             let stepDuration = 2000 + Math.random() * 1000 * 4;
 
             ((uuid) => {
-                
+                this.setStepExecutionState(uuid, { status: "pending", time: new Date() });
+
                 setTimeout(() => {
-                    this.setStepExecutionState(uuid, {status: "running", time: new Date()});
+                    this.setStepExecutionState(uuid, { status: "running", time: new Date() });
                 }, totalDelay);
-                
+
                 setTimeout(() => {
-                    this.setStepExecutionState(uuid, {status: "completed", time: new Date()});
+                    this.setStepExecutionState(uuid, { status: "success", time: new Date() });
                 }, totalDelay + stepDuration);
 
             })(executeOrder[x]);
@@ -989,23 +990,22 @@ class PipelineView extends React.Component {
         }
     }
 
-    /// TEMP: only for demp
-    TEMP_findIncomingStep(step, list){
-        for(let x = 0; x < step.incoming_connections.length; x++){
-            
+    /// TEMP: only for demo
+    TEMP_findIncomingStep(step, list) {
+        for (let x = 0; x < step.incoming_connections.length; x++) {
+
             // recurse to incoming
             this.TEMP_findIncomingStep(this.state.steps[step.incoming_connections[x]], list);
 
             // add inomcing step itself
             let stepUUID = step.incoming_connections[x];
-            if(list.indexOf(stepUUID) === -1){
+            if (list.indexOf(stepUUID) === -1) {
                 list.push(stepUUID);
             }
         }
     }
     /// END TEMP
-
-    onCancelDetails(pipelineDetailsComponent) {
+    onCloseDetails(pipelineDetailsComponent) {
         this.setState({ "openedStep": undefined });
     }
 
@@ -1014,11 +1014,10 @@ class PipelineView extends React.Component {
         // update step state based on latest state of pipelineDetails component
 
         // step name
-        this.state.steps[pipelineDetailsComponent.props.step.uuid] = pipelineDetailsComponent.state.step;
+        this.state.steps[pipelineDetailsComponent.props.step.uuid] = JSON.parse(JSON.stringify(pipelineDetailsComponent.state.step));
 
         // update steps in setState even though reference objects are directly modified - this propagates state updates properly
-
-        this.setState({ "openedStep": undefined, "steps": this.state.steps });
+        this.setState({ "steps": this.state.steps });
     }
 
     getPowerButtonClasses() {
@@ -1034,7 +1033,7 @@ class PipelineView extends React.Component {
         return classes.join(" ");
     }
 
-    
+
 
     deselectSteps() {
         this.setState({
@@ -1074,8 +1073,8 @@ class PipelineView extends React.Component {
         return selectedSteps;
     }
 
-     onPipelineStepsOuterHolderMove(e){
-        
+    onPipelineStepsOuterHolderMove(e) {
+
         if (this.state.stepSelector.active) {
 
             let pipelineStepHolderOffset = $(this.refs.pipelineStepsHolder).offset();
@@ -1089,33 +1088,40 @@ class PipelineView extends React.Component {
             })
         }
 
-        if(this.draggingPipeline){
-            
+        if (this.draggingPipeline) {
+
             let dx = e.nativeEvent.movementX;
-            let dy = e.nativeEvent.movementY; 
+            let dy = e.nativeEvent.movementY;
 
-            this.pipelineOffset[0] += dx/2;
-            this.pipelineOffset[1] += dy/2;
-            
-            $(this.refs.pipelineStepsHolder).css({transform: "translateX(" + this.pipelineOffset[0] + "px) translateY(" + this.pipelineOffset[1] + "px)"});
+            this.pipelineOffset[0] -= dx / 2;
+            this.pipelineOffset[1] -= dy / 2;
 
-            $(this.refs.pipelineStepsOuterHolder).css({backgroundPosition: this.pipelineOffset[0] + "px " + this.pipelineOffset[1] + "px"});
+            // if(this.pipelineOffset[0] < 0){
+            //     this.pipelineOffset[0] = 0;
+            // }
+            // if(this.pipelineOffset[1] < 0){
+            //     this.pipelineOffset[1] = 0;
+            // }
+
+            $(this.refs.pipelineStepsHolder).css({ transform: "translateX(" + -this.pipelineOffset[0] + "px) translateY(" + -this.pipelineOffset[1] + "px)" });
+
+            $(this.refs.pipelineStepsOuterHolder).css({ backgroundPosition: -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px" });
         }
 
     }
 
     onPipelineStepsOuterHolderDown(e) {
 
-        if (($(e.target).hasClass('pipeline-steps-holder') || $(e.target).hasClass('pipeline-steps-outer-holder') ) && e.button === 0) {
+        if (($(e.target).hasClass('pipeline-steps-holder') || $(e.target).hasClass('pipeline-steps-outer-holder')) && e.button === 0) {
 
-            if(this.keysDown[32]){
-                
+            if (this.keysDown[32]) {
+
                 // space held while clicking, means canvas drag
                 $(this.refs.pipelineStepsOuterHolder).addClass("dragging");
                 this.draggingPipeline = true;
 
-            }else{
-                let pipelineStepHolderOffset = $(e.target).offset();
+            } else {
+                let pipelineStepHolderOffset = $('.pipeline-steps-holder').offset();
 
                 this.state.stepSelector.active = true;
                 this.state.stepSelector.x1 = e.clientX - pipelineStepHolderOffset.left;
@@ -1199,61 +1205,64 @@ class PipelineView extends React.Component {
         }
 
         return <div className={"pipeline-view"}>
-            <div className={"pipeline-name"}>{pipelineName}</div>
-            <div className={"pipeline-actions"}>
+            <div className={"pane"}>
+                <div className={"pipeline-name"}>{pipelineName}</div>
+                <div className={"pipeline-actions"}>
 
-                <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
-                    <div className="mdc-button__ripple"></div>
-                    <i className="material-icons">power_settings_new</i>
-                </button>
+                    <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
+                        <div className="mdc-button__ripple"></div>
+                        <i className="material-icons">power_settings_new</i>
+                    </button>
 
-                <button ref={"newStepButton"} onClick={this.newStep.bind(this)} className="mdc-button mdc-button--raised">
-                    <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i>NEW STEP</span>
-                </button>
+                    <button ref={"newStepButton"} onClick={this.newStep.bind(this)} className="mdc-button mdc-button--raised">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i>NEW STEP</span>
+                    </button>
 
-                <button ref={"encodeButton"} onClick={this.savePipeline.bind(this)} className="mdc-button mdc-button--raised">
-                    <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label">SAVE</span>
-                </button>
+                    <button ref={"encodeButton"} onClick={this.savePipeline.bind(this)} className="mdc-button mdc-button--raised">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label">SAVE</span>
+                    </button>
 
 
-                <button ref={"settingsButton"} onClick={this.openSettings.bind(this)} className="mdc-button mdc-button--raised">
-                    <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>settings_applications</i>Settings</span>
-                </button>
+                    <button ref={"settingsButton"} onClick={this.openSettings.bind(this)} className="mdc-button mdc-button--raised">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>settings_applications</i>Settings</span>
+                    </button>
 
-            </div>
-            <div className="pipeline-steps-outer-holder" ref={"pipelineStepsOuterHolder"} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
-            onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
-            >
-                <div className={"pipeline-steps-holder"}
-                    
-                    ref={"pipelineStepsHolder"}
-                >
-
-                    {stepSelectorComponent}
-
-                    {pipelineSteps}
-
-                    
                 </div>
+                <div className="pipeline-steps-outer-holder" ref={"pipelineStepsOuterHolder"} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
+                    onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
+                >
+                    <div className={"pipeline-steps-holder"}
 
-                {(() => {
-                        if (this.state.openedStep) {
-                            return <PipelineDetails
-                                onDelete={this.onDetailsDelete.bind(this)}
-                                onNameUpdate={this.stepNameUpdate.bind(this)}
-                                onSave={this.onSaveDetails.bind(this)}
-                                onCancel={this.onCancelDetails.bind(this)}
-                                onOpenNotebook={this.onOpenNotebook.bind(this)}
-                                onRerunIncoming={this.onRerunIncoming.bind(this)}
-                                connections={connections_list}
-                                step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
-                        }
-                    })()}
+                        ref={"pipelineStepsHolder"}
+                    >
+
+                        {stepSelectorComponent}
+
+                        {pipelineSteps}
+
+
+                    </div>
+
+
+                </div>
             </div>
-            
+
+            {(() => {
+                if (this.state.openedStep) {
+                    return <PipelineDetails
+                        onDelete={this.onDetailsDelete.bind(this)}
+                        onNameUpdate={this.stepNameUpdate.bind(this)}
+                        onSave={this.onSaveDetails.bind(this)}
+                        onClose={this.onCloseDetails.bind(this)}
+                        onOpenNotebook={this.onOpenNotebook.bind(this)}
+                        onRerunIncoming={this.onRerunIncoming.bind(this)}
+                        connections={connections_list}
+                        step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
+                }
+            })()}
         </div>;
     }
 }
