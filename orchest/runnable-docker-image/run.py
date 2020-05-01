@@ -51,9 +51,13 @@ def main():
 
         with open(file_path) as f:
             nb = nbformat.read(f, as_version=4)
+
+            # replace kernel to non-docker equivalent
+            nb.metadata.kernelspec.name = nb.metadata.kernelspec.name.replace("docker_", "")
+
             ep = PartialExecutePreprocessor()
 
-            ep.preprocess(nb, {"path": WORKING_DIR})
+            ep.preprocess(nb, {"metadata": {"path": WORKING_DIR}})
 
         with open(file_path, 'w', encoding='utf-8') as f:
             nbformat.write(nb, f)

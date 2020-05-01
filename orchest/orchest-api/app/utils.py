@@ -115,6 +115,7 @@ class PipelineStepRunner:
         properties: see "Args" section.
         parents: see "Args" section.
         """
+
     def __init__(self,
                  properties: PipelineStepProperties,
                  parents: Optional[List['PipelineStep']] = None) -> None:
@@ -158,12 +159,11 @@ class PipelineStepRunner:
         # TODO: The image? Is it put in the pipeline.json? Is it hardcoded
         #       to be the pipeline-step-runner?
         PIPELINE_DIR: str = "/home/rick/workspace/orchest/orchest/webserver/instance/../../userdir/pipelines/c42fba4a-7908-4f0a-b587-9530347aa0f2"
-        
+
         config = {
             'Image': "pipeline-step-runner",
-            'Env': [f'STEP_UUID={self.properties["uuid"]}'],
-            'Volumes': {'/notebooks': PIPELINE_DIR},
-            # 'HostConfig': {'Binds': [f'{PIPELINE_DIR}:/notebooks']},
+            'Env': [f'STEP_UUID="{self.properties["uuid"]}"'],
+            'HostConfig': {'Binds': [f'{PIPELINE_DIR}:/notebooks']},
             'Cmd': [self.properties['file_path']],
             'uuid': self.properties['uuid']
         }
@@ -172,7 +172,10 @@ class PipelineStepRunner:
         # for completion of the container (like the `docker run` CLI
         # command does). Therefore the option to await the container
         # completion is introduced.
-        container = await docker_client.containers.run(config=config)
+        try:
+            container = await docker_client.containers.run(config=config)
+        except Exception as e:
+            print(e)
 
         # TODO: error handling?
         self._status = 'STARTED'
@@ -219,7 +222,8 @@ class PipelineStepRunner:
         if status == 'SUCCESS':
             tasks = []
             for child in self._children:
-                task = child.run_children_on_docker(docker_client, session, task_id)
+                task = child.run_children_on_docker(
+                    docker_client, session, task_id)
                 tasks.append(asyncio.create_task(task))
 
             res = await asyncio.gather(*tasks)
@@ -253,6 +257,7 @@ class PipelineStep(PipelineStepRunner):
         properties: see "Args" section.
         parents: see "Args" section.
     """
+
     def __init__(self,
                  properties: PipelineStepProperties,
                  parents: Optional[List['PipelineStep']] = None) -> None:
@@ -345,7 +350,8 @@ class Pipeline:
         """
         if self._sentinel is None:
             self._sentinel = PipelineStep({})
-            self._sentinel._children = [step for step in self.steps if not step.parents]
+            self._sentinel._children = [
+                step for step in self.steps if not step.parents]
 
         return self._sentinel
 
@@ -495,8 +501,8 @@ class Pipeline:
             await update_status('STARTED', task_id, session, type='pipeline')
 
             status = await self.sentinel.run(
-                        runner_client, session,
-                        task_id, compute_backend='docker')
+                runner_client, session,
+                task_id, compute_backend='docker')
 
             # NOTE: the status of a pipeline is always success once it is
             # done executing. Errors in steps are reflected by the status
