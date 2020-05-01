@@ -1,0 +1,43 @@
+{
+    "name": "pipeline-name",
+    "correct_execution_order": [
+        "uuid-2",
+        "uuid-1",
+        "uuid-3",
+        "uuid-4"
+    ],
+    "steps": {
+        "uuid-1": {
+            "incoming_connections": [],
+            "name": "step-1",
+            "uuid": "uuid-1",
+            "image": {
+                "image_name": 3
+            }
+        },
+        "uuid-2": {
+            "incoming_connections": [],
+            "name": "step-2",
+            "uuid": "uuid-2",
+            "image": {
+                "image_name": 1
+            }
+        },
+        "uuid-3": {
+            "incoming_connections": ["uuid-1", "uuid-2"],
+            "name": "step-3",
+            "uuid": "uuid-3",
+            "image": {
+                "image_name": 1
+            }
+        },
+        "uuid-4": {
+            "incoming_connections": ["uuid-3"],
+            "name": "step-4",
+            "uuid": "uuid-4",
+            "image": {
+                "image_name": 1
+            }
+        }
+    }
+}

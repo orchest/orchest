@@ -1,0 +1,53 @@
+{
+    "name": "pipeline-name",
+    "steps": {
+        "uuid-1": {
+            "incoming_connections": [],
+            "name": "step-1",
+            "uuid": "uuid-1",
+            "image": {
+                "image_name": "hello-world"
+            }
+        },
+        "uuid-2": {
+            "incoming_connections": ["uuid-1"],
+            "name": "step-2",
+            "uuid": "uuid-2",
+            "image": {
+                "image_name": "hello-world"
+            }
+        },
+        "uuid-3": {
+            "incoming_connections": ["uuid-2"],
+            "name": "step-3",
+            "uuid": "uuid-3",
+            "image": {
+                "image_name": "hello-world"
+            }
+        },
+        "uuid-4": {
+            "incoming_connections": ["uuid-2"],
+            "name": "step-4",
+            "uuid": "uuid-4",
+            "image": {
+                "image_name": "hello-world"
+            }
+        },
+        "uuid-5": {
+            "incoming_connections": ["uuid-4"],
+            "name": "step-5",
+            "uuid": "uuid-5",
+            "image": {
+                "image_name": "hello-world"
+            }
+        },
+        "uuid-6": {
+            "incoming_connections": [],
+            "name": "step-6",
+            "uuid": "uuid-6",
+            "image": {
+                "image_name": "hello-world"
+            }
+        }
+    }
+}
