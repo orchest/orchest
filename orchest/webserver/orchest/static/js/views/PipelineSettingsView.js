@@ -45,7 +45,7 @@ class PipelineSettingsView extends React.Component {
     componentWillUnmount() {
     }
 
-    componentDidMount() {
+    initComponent(){
         const tabBar = new MDCTabBar(this.refs.tabBar);
 
         tabBar.listen("MDCTabBar:activated", (details) => {
@@ -55,10 +55,36 @@ class PipelineSettingsView extends React.Component {
         this.initiateMDCComponents()
     }
 
+    componentDidMount() {
+        
+
+        fetch("/async/pipelines/json/get/" + this.props.uuid, {
+            method: "GET",
+            cache: "no-cache",
+            redirect: "follow",
+            referrer: "no-referrer"
+         }).then(handleErrors).then((response) => {
+             response.json().then((result) => {
+                 if(result.success){
+
+                     let pipelineJson = JSON.parse(result['pipeline_json']);
+                     this.setState({"pipelineJson": pipelineJson});
+
+                     this.initComponent();
+
+                 }else{
+                     console.warn("Could not load pipeline.json");
+                     console.log(result);
+                 }
+             })
+         });
+
+    }
+
     initiateMDCComponents(){
         if(this.refs.pipelineNameField){
             this.pipelineNameField = new MDCTextField(this.refs.pipelineNameField);
-            this.pipelineNameField.value = this.props.name;
+            this.pipelineNameField.value = this.state.pipelineJson.name;
         }
         if(this.refs.saveGeneralForm){
             new MDCRipple(this.refs.saveGeneralForm);
@@ -75,7 +101,7 @@ class PipelineSettingsView extends React.Component {
     }
 
     closeSettings() {
-        orchest.loadView(PipelineView, {"name": this.props.name, "uuid": this.props.uuid});
+        orchest.loadView(PipelineView, {"uuid": this.props.uuid});
     }
 
     stub(){
@@ -104,7 +130,10 @@ class PipelineSettingsView extends React.Component {
             response.json().then((json) => {
                 console.log(json)
                 if(json.success === true) {
-                    orchest.loadView(PipelineSettingsView, {name: pipelineName, uuid: this.props.uuid});
+                    // orchest.loadView(PipelineSettingsView, {name: pipelineName, uuid: this.props.uuid});
+
+                    // TODO: evaluate: should we close PipelineSettingsView on save?
+                    orchest.loadView(PipelineView, {"uuid": this.props.uuid});
                 }
             })
 
@@ -135,10 +164,11 @@ class PipelineSettingsView extends React.Component {
         ];
 
         let snapshotComponents = [];
-        for(let x = 0; x < snapshots.length; x++){
-            let snapshot = snapshots[x];
-            snapshotComponents.push(<SnapshotListItem onRestoreSnapshot={this.restoreSnapshot.bind(this)} key={x} snapshot={snapshot} />);
-        }
+
+        // for(let x = 0; x < snapshots.length; x++){
+        //     let snapshot = snapshots[x];
+        //     snapshotComponents.push(<SnapshotListItem onRestoreSnapshot={this.restoreSnapshot.bind(this)} key={x} snapshot={snapshot} />);
+        // }
 
         return <div className={"view-page view-pipeline-settings"}>
             <h2>Settings</h2>
@@ -157,7 +187,7 @@ class PipelineSettingsView extends React.Component {
                                 </span>
                                 <span className="mdc-tab__ripple"></span>
                             </button>
-                            <button className="mdc-tab" role="tab" tabIndex="0">
+                            {/* <button className="mdc-tab" role="tab" tabIndex="0">
                                 <span className="mdc-tab__content">
                                     <span className="mdc-tab__icon material-icons" aria-hidden="true">history</span>
                                     <span className="mdc-tab__text-label">Snapshots</span>
@@ -166,7 +196,7 @@ class PipelineSettingsView extends React.Component {
                                     <span className="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
                                 </span>
                                 <span className="mdc-tab__ripple"></span>
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                 </div>
@@ -194,11 +224,12 @@ class PipelineSettingsView extends React.Component {
                             </div>;
                         case "snapshots":
                             return <div>
-                                <h4>Snapshots for: {this.props.name}</h4>
+                                <h4>Snapshots for: {this.state.pipelineJson.name}</h4>
 
-                                <div className={"snapshot-list"}>
+                                <i>Not yet implemented.</i>
+                                {/* <div className={"snapshot-list"}>
                                     { snapshotComponents }
-                                </div>
+                                </div> */}
                             </div>
                     }
                 })()}

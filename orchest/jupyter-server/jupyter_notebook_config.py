@@ -650,7 +650,7 @@ c.NotebookApp.tornado_settings = { 'headers': { 'Content-Security-Policy': "" } 
 #    indicating the root path.
 
 ## Allow access to hidden files
-#c.ContentsManager.allow_hidden = False
+c.ContentsManager.allow_hidden = True
 
 ## 
 #c.ContentsManager.checkpoints = None

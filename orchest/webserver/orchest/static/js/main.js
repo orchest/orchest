@@ -2,6 +2,7 @@ import {MDCTopAppBar} from "@material/top-app-bar";
 import {MDCDrawer} from "@material/drawer";
 
 import PipelinesView from "./views/PipelinesView";
+import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
 import HeaderButtons from "./views/HeaderButtons";
 import React from 'react';
@@ -9,8 +10,9 @@ import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import ExperimentsView from "./views/ExperimentsView";
 import Jupyter from "./jupyter/Jupyter";
-import PipelineSettingsView from "./views/PipelineSettingsView";
 import {handleErrors} from "./utils/all";
+
+import './lib/overflowing';
 
 function Orchest() {
 
@@ -20,11 +22,11 @@ function Orchest() {
         "PipelinesView": PipelinesView,
         "DataSourcesView": DataSourcesView,
         "PipelineView": PipelineView,
-        "ExperimentsView": ExperimentsView
+        "ExperimentsView": ExperimentsView,
+        "SettingsView": SettingsView,
     };
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
-
 
     // mount titlebare componenet
     this.headerBar = document.querySelector(".header-bar-interactive");
@@ -50,32 +52,58 @@ function Orchest() {
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
     };
 
-
-    // load first pipeline
-    fetch("/async/pipelines", {
-       method: "GET",
-       cache: "no-cache",
-       redirect: "follow",
-       referrer: "no-referrer"
+    // get config from server
+    fetch("/async/config", {
     }).then(handleErrors).then((response) => {
-        response.json().then((result) => {
-            if(result.success && result.result.length > 0){
-                let firstPipeline = result.result[0];
-                // this.loadView(PipelineView, {"name": firstPipeline.name, "uuid": firstPipeline.uuid });
-                this.loadView(PipelinesView);
-            }else{
-                console.warn("Could not load a first pipeline");
-                console.log(result);
-            }
+        response.json().then((json) => {
+
+            this.config = json.result;
+            this.initializeFirstView();
         })
-    });
+    })
+
+
+    this.initializeFirstView = function(){
+        // load first pipeline
+        fetch("/async/pipelines", {
+            method: "GET",
+            cache: "no-cache",
+            redirect: "follow",
+            referrer: "no-referrer"
+        }).then(handleErrors).then((response) => {
+            response.json().then((result) => {
+                if(result.success && result.result.length > 0){
+                    let firstPipeline = result.result[0];
+                    // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
+                    this.loadView(PipelinesView);
+                }else{
+                    console.warn("Could not load a first pipeline");
+                    console.log(result);
+                }
+            })
+        });
+    }
+
+    
 
 
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));
     topAppBar.setScrollTarget(document.getElementById('main-content'));
     topAppBar.listen('MDCTopAppBar:nav', () => {
+
+      window.localStorage.setItem("topAppBar.open", "" + !drawer.open);
+
       drawer.open = !drawer.open;
     });
+
+    // persist nav menu to localStorage
+    if(window.localStorage.getItem("topAppBar.open") !== null){
+        if(window.localStorage.getItem("topAppBar.open") === "true"){
+            drawer.open = true;
+        }else{
+            drawer.open = false;
+        }
+    }
 
     // to embed an <iframe> in the main application as a first class citizen (with state) there needs to be a
     // persistent element on the page. It will only be created when the JupyterLab UI is first requested.

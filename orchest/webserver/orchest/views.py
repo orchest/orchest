@@ -17,12 +17,14 @@ def index():
 @app.route("/async/pipelines/delete/<pipeline_id>", methods=["POST"])
 def pipelines_delete(pipeline_id):
 
-    Pipeline.query.filter(Pipeline.id == int(pipeline_id)).delete()
-    db.session.commit()
+    pipeline = Pipeline.query.filter_by(id=pipeline_id).first()
 
     # also delete directory
-    pipeline_dir = get_pipeline_directory_by_uuid(pipeline_id)
-    shutil.rmtree(pipeline_dir, ignore_errors=False)
+    pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
+    shutil.rmtree(pipeline_dir)
+
+    db.session.delete(pipeline)
+    db.session.commit()
 
     return jsonify({"success": True})
 
@@ -57,9 +59,21 @@ def pipelines_create():
         if os.path.isfile(kernel_json_file):
             with open(kernel_json_file, 'r') as file:
                 data = file.read().replace('{host_pipeline_dir}', pipeline_dir)
+                data = data.replace('{orchest_api_address}', app.config['ORCHEST_API_ADDRESS'])
 
             with open(kernel_json_file, 'w') as file:
                 file.write(data)
+
+
+    # generate clean pipeline.json
+
+    pipeline_json = {
+        "name": pipeline.name,
+        "uuid": pipeline.uuid
+    }
+
+    with open(os.path.join(pipeline_dir, "pipeline.json"), 'w') as pipeline_json_file:
+        pipeline_json_file.write(json.dumps(pipeline_json))
 
     return jsonify({"success": True})
 
@@ -105,6 +119,21 @@ def pipelines_get_single(url_uuid):
         return "", 404
 
 
+@app.route("/async/config", methods=["GET"])
+def get_frontend_config():
+
+    json_string = json.dumps({"success": True, "result": {
+        "ORCHEST_API_ADDRESS": app.config["ORCHEST_API_ADDRESS"]
+    }})
+
+    return json_string, 200, {'content-type': 'application/json'}
+
+@app.route("/async/pipelines/get_directory/<string:url_uuid>", methods=["GET"])
+def pipelines_get_directory(url_uuid):
+    json_string = json.dumps({"success": True, "result": get_pipeline_directory_by_uuid(url_uuid)}, cls=AlchemyEncoder)
+    return json_string, 200, {'content-type': 'application/json'}
+
+
 @app.route("/async/pipelines", methods=["GET"])
 def pipelines_get():
 
@@ -125,11 +154,15 @@ def get_pipeline_directory_by_uuid(uuid):
 
 
 def generate_ipynb_from_template(step):
-    template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
 
-    # TODO: support additional languages to Python
-    template_json["metadata"]["kernelspec"]["display_name"] = step["image"]["image_name"]
-    template_json["metadata"]["kernelspec"]["name"] = step["image"]["display_name"]
+    # TODO: support additional languages to Python and R
+    if "python" in step["kernel"]["name"].lower():
+        template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
+    else:
+        template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template_r.json"), "r"))
+
+    template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"]["display_name"]
+    template_json["metadata"]["kernelspec"]["name"] = step["kernel"]["name"]
 
     return json.dumps(template_json)
 

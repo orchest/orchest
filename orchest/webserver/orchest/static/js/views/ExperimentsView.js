@@ -215,34 +215,13 @@ class ExperimentsView extends React.Component {
                                 </tr>
                                 </thead>
                                 <tbody className="mdc-data-table__content">
-                                    <tr className="mdc-data-table__row">
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">#4</td>
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">6 Jan, 2020 at 15:30</td>
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">1.05</td>
-                                        <td className="mdc-data-table__cell ">learning_rate, image_size</td>
-                                        <td className="mdc-data-table__cell">Grid search</td>
-                                    </tr>
-                                    <tr className="mdc-data-table__row">
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">#3</td>
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">6 Jan, 2020 at 13:20</td>
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">1.05</td>
-                                        <td className="mdc-data-table__cell ">learning_rate</td>
-                                        <td className="mdc-data-table__cell">Finding learning rate</td>
-                                    </tr>
-                                    <tr className="mdc-data-table__row">
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">#2</td>
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">6 Jan, 2020 at 13:10</td>
-                                        <td className="mdc-data-table__cell mdc-data-table__cell--numeric">1.02</td>
-                                        <td className="mdc-data-table__cell "></td>
-                                        <td className="mdc-data-table__cell">Second run - fixed paths</td>
-                                    </tr>
-                                    <tr className="mdc-data-table__row">
+                                    {/* <tr className="mdc-data-table__row">
                                         <td className="mdc-data-table__cell mdc-data-table__cell--numeric">#1</td>
                                         <td className="mdc-data-table__cell mdc-data-table__cell--numeric">6 Jan, 2020 at 13:07</td>
                                         <td className="mdc-data-table__cell mdc-data-table__cell--numeric">1.01</td>
                                         <td className="mdc-data-table__cell "></td>
                                         <td className="mdc-data-table__cell">first try</td>
-                                    </tr>
+                                    </tr> */}
                                 </tbody>
                             </table>
                         </div>

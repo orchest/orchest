@@ -72,13 +72,15 @@ class JupyterDockerManager(DockerManager):
         # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
         # started by the EG are on the same docker network as the EG.
         EG_container = self.client.containers.run(
-                image='elyra/enterprise-gateway:dev',  # TODO: make not static.
+                image='elyra/enterprise-gateway:2.1.0',  # TODO: make not static.
                 detach=True,
                 mounts=[docker_sock_mount, kernelspec_mount],
                 name=f'jupyter-EG-{uuid}',
                 environment=[
                     f'EG_DOCKER_NETWORK={self.network}',
-                    'EG_MIRROR_WORKING_DIRS=True'
+                    'EG_MIRROR_WORKING_DIRS=True',
+                    'EG_LIST_KERNELS=True',
+                    'EG_KERNEL_WHITELIST=["docker_python","docker_r"]'
                 ],
                 network=self.network
         )

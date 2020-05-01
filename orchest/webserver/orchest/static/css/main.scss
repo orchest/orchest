@@ -1,17 +1,19 @@
-// My main SCSS file.
-$mdc-theme-primary: #000000;
-$mdc-theme-secondary: #0a6df7;
-$mdc-theme-background: #fff;7
+@import "vars";
+
 @import "../node_modules/material-components-web/material-components-web";
+
+@import "scrollbar";
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0
 }
 
 *:focus {
   outline: none;
 }
-
+ 
 html,
 body {
   font-size: 17px;
@@ -59,6 +61,10 @@ aside.mdc-drawer {
       border: 0;
     }
   }
+}
+
+.hidden {
+  display: none;
 }
 
 .header-bar-interactive {
@@ -196,11 +202,21 @@ h2.header {
 .pipeline-view {
   position: relative;
   height: 100%;
+  display: flex;
+  flex-direction: row;
+
 
   .pipeline-name {
     position: absolute;
     padding: $generalPadding;
     font-size: 21px;
+    z-index: 3;
+    width: 50%;
+  }
+
+  .pane {
+    flex: 1;
+    position: relative;
   }
 
   .pipeline-actions {
@@ -220,21 +236,39 @@ h2.header {
         i {
           color: #00FF00;
         }
-      }
+      } 
     }
   }
 
-
-  .pipeline-steps-holder {
+  .pipeline-steps-outer-holder {
     height: 100%;
+    overflow: hidden;
+    position: relative;
     background-image: url("../image/cross-fill.svg");
     background-repeat: repeat;
 
+    &.dragging {
+      cursor: grabbing;
+    }
+  }
+
+  .pipeline-steps-holder {
+    height: 100%;
+    position: relative;
+    user-select: none;
+
+    .step-selector {
+      position: absolute;
+      z-index:  0;
+      background: rgba(0,0,0,.1);
+    }
 
     .connection {
       position: absolute;
       left: 0;
       top: 0;
+
+      z-index: 1;
 
       &.selected {
 
@@ -255,7 +289,7 @@ h2.header {
         background-repeat: no-repeat;
         right: 7px;
         bottom: -2px;
-        transition: 0.3s opacity ease;
+        transition: 0s opacity ease;
       }
 
       &.flipped {
@@ -286,8 +320,8 @@ h2.header {
 
     .pipeline-step {
 
-      $pipelineHeight: 80px;
-      $pipelineWidth: 160px;
+      $pipelineHeight: 105px;
+      $pipelineWidth: 190px;
 
       position: absolute;
       background: #fff;
@@ -299,14 +333,56 @@ h2.header {
       width: $pipelineWidth;
       height: $pipelineHeight;
       text-align: center;
-      z-index: 1;
+      z-index: 2;
+
+      .execution-indicator {
+        position: absolute;
+        width: 100%;
+        background: #eee;
+        left: 0;
+        bottom: 0;
+        font-size: 12px;
+        padding: 4px;
+        color: #666;
+        opacity: 1;
+        border-radius: 0 0 6px 6px;
+
+        span {
+          color: #16bd43;
+        }
+      }
+
+      &.running {
+        .execution-indicator {
+          background: $mdc-theme-secondary;
+          color: #fff;
+        }
+      }
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
+
+      transition: border 0.3s ease;
+      transition-property: border, background;
+
+      &.selected {
+        border-color: $mdc-theme-secondary;
+        background: rgb(245, 245, 255);
+        // border-width: 2px;
+
+        // .connection-point {
+        //   left: -6px; 
+
+        //   &.outgoing-connections {
+        //     right: -6px;
+        //   }
+        // }
+      }
 
       .step-label-holder {
         display: block;
         height: 100%;
         overflow: hidden;
+        transform: translateY(-11px);
       }
 
       .step-label {
@@ -320,6 +396,14 @@ h2.header {
         overflow: hidden;
         font-size: 15px;
       }
+      span.filename {
+        display: block;
+        font-size: 14px;
+        padding-top: 4px;
+        color: #555;
+      }
+
+      
 
       .connection-point {
         display: block;
@@ -332,6 +416,8 @@ h2.header {
         transform: translateY(-50%);
         left: -5px;
 
+        transition: left 0.3s ease;
+
         &.outgoing-connections {
           right: -5px;
           left: auto;
@@ -343,9 +429,6 @@ h2.header {
 
 
   .pipeline-details {
-    position: absolute;
-    right: 0;
-    top: 0;
     height: 100%;
     padding: $generalPadding;
     background: #fff;
@@ -353,6 +436,50 @@ h2.header {
     z-index: 12;
     width: 50%;
     max-width: 450px;
+
+    .input-group {
+      margin-bottom: $generalPadding;
+    }
+
+    .connection-list {
+
+      &.dragging {
+        .connection-item {
+          transition: transform 0.3s ease;
+        }
+      }
+
+      .connection-item {
+        overflow: auto;
+        padding: 10px 0;
+        cursor: pointer;
+        user-select: none;
+
+        span.filename {
+          color: #555;
+          display: inline-block;
+        }
+
+        &.swapped-up {
+          transform: translateY(-100%);
+        }
+        &.swapped-down {
+          transform: translateY(100%);
+        }
+
+        &.selected {
+          transition: none;
+        }
+  
+        i.material-icons {
+          float: left;
+          padding-right: 10px;
+          margin-top: -2px;
+        }
+      }
+    }
+
+    
 
     .mdc-text-field--textarea {
       textarea {
@@ -367,10 +494,22 @@ h2.header {
       width: 100%;
     }
 
+    display: flex;
+    flex-direction: column;
+
+    .overflowable {
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 1;
+
+      &.overflown {
+        padding-right: $generalPadding;
+      }
+    }
+
     .action-buttons-bottom {
-      position: absolute;
-      bottom: $generalPadding;
-      left: $generalPadding;
+
+      padding-top: $generalPadding;
 
       .notebook-actions {
         margin-bottom: $generalPadding;

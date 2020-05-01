@@ -1,0 +1,10 @@
+// My main SCSS file.
+$mdc-theme-primary: #000000;
+$mdc-theme-secondary: #0a6df7;
+$mdc-theme-background: #fff;
+
+:export {
+    mdcthemeprimary: $mdc-theme-primary;
+    mdcthemesecondary: $mdc-theme-secondary;
+    mdcthemebackground: $mdc-theme-background;
+}

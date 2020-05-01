@@ -1,295 +1,13 @@
 import React from 'react';
-import {MDCSelect} from '@material/select';
-import {MDCRipple} from '@material/ripple';
-import {MDCTextField} from '@material/textfield';
+import { MDCRipple } from '@material/ripple';
 
-import {handleErrors, uuidv4, nameToFilename} from "../utils/all";
+import { handleErrors, uuidv4, intersectRect, globalMDCVars } from "../utils/all";
 import PipelineSettingsView from "./PipelineSettingsView";
-
-class PipelineStep extends React.Component {
-    render() {
-        return <div data-uuid={this.props.step.uuid} ref={"container"} className={"pipeline-step"}>
-            <div className={"incoming-connections connection-point"}>
-
-            </div>
-            <div className="step-label-holder">
-                <div className={"step-label"}>
-                    {this.props.step.name}
-                </div>
-            </div>
-            <div className={"outgoing-connections connection-point"}>
-
-            </div>
-        </div>
-    }
-}
-
-class PipelineDetails extends React.Component {
-
-    changeFileName(){
-
-    }
-
-    changeImage(){
-
-    }
-
-    changeVCPU(){
-
-    }
-
-    changeMemory(){
-
-    }
-
-    changeName(e){
-        this.inputFileName.value = nameToFilename(e.target.value);
-
-        // send name update to React state
-        this.props.onNameUpdate(this.props.step.uuid, e.target.value);
-    }
-
-    onSave(){
-        this.props.onSave(this);
-    }
-
-    onOpenNotebook(){
-        this.props.onOpenNotebook(this);
-    }
-
-    componentDidMount() {
-
-        this.selectFileType = new MDCSelect(this.refs.selectFile);
-        let split_file_path = this.props.step.file_path.split(".");
-        let filepath = split_file_path.slice(0, split_file_path.length - 1).join(".");
-
-        this.selectFileType.value = "." + split_file_path[split_file_path.length - 1];
-
-        this.inputFileName = new MDCTextField(this.refs.inputFileName);
-        this.inputFileName.value = filepath;
-
-        this.inputName = new MDCTextField(this.refs.inputName);
-        this.inputName.value = this.props.step.name;
-
-        this.inputMemory = new MDCTextField(this.refs.inputMemory);
-        this.inputMemory.value = this.props.step.memory;
-
-        // this.selectFileType.listen('MDCSelect:change', () => {
-        //   // alert(`Selected option at index ${select.selectedIndex} with value "${select.value}"`);
-        // });
-
-        this.selectKernel = new MDCSelect(this.refs.selectKernel);
-        this.selectKernel.value = this.props.step.image.image_name;
-
-        // this.selectKernel.listen('MDCSelect:change', () => {
-        //   // alert(`Selected option at index ${selectKernel.selectedIndex} with value "${selectKernel.value}"`);
-        // });
-
-        this.selectVCPU = new MDCSelect(this.refs.selectVCPU);
-        this.selectVCPU.value = this.props.step.vcpus;
-
-        this.selectGPU = new MDCSelect(this.refs.selectGPU);
-        this.selectGPU.value = this.props.step.gpus;
-
-        // this.selectVCPU.listen('MDCSelect:change', () => {
-        //   // alert(`Selected option at index ${selectVCPU.selectedIndex} with value "${selectVCPU.value}"`);
-        // });
-
-        this.saveButtonRipple = new MDCRipple(this.refs.saveButton);
-        this.deleteButtonRipple = new MDCRipple(this.refs.deleteButton);
-
-        this.inputName.focus();
-
-        this.experimentJSON = new MDCTextField(this.refs.experimentJSON);
-        this.experimentJSON.value = this.props.step.experiment_json;
-    }
+import PipelineDetails from "./PipelineDetails";
+import PipelineStep from "./PipelineStep";
 
 
-
-    render() {
-        return <div className={"pipeline-details"}>
-            <h3>Pipeline step</h3>
-
-            <div ref={"inputName"} className="mdc-text-field fullwidth push-down">
-                <input onChange={this.changeName.bind(this)} className="mdc-text-field__input"
-                       type="text"
-                       id="step-input-name" />
-                <label className="mdc-floating-label" htmlFor="step-input-name">Pipeline step name</label>
-                <div className="mdc-line-ripple"></div>
-            </div>
-
-            <div className={"multi-field-input"}>
-                <div ref={"inputFileName"} className="mdc-text-field">
-                    <input onChange={this.changeFileName.bind(this)} className="mdc-text-field__input"
-                           type="text"
-                           id="step-input-file_name" />
-                    <label className="mdc-floating-label" htmlFor="step-input-file_name">File name</label>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-                <div className="mdc-select" ref={"selectFile"}>
-                    <div className="mdc-select__anchor fullwidth">
-                        <i className="mdc-select__dropdown-icon"></i>
-                        <div className="mdc-select__selected-text"></div>
-                        <span className="mdc-floating-label">File extension</span>
-                        <div className="mdc-line-ripple"></div>
-                    </div>
-
-                    <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                        <ul className="mdc-list">
-
-                            <li className="mdc-list-item" data-value=".ipynb">
-                                .ipynb
-                            </li>
-                            <li className="mdc-list-item" data-value=".py">
-                                .py
-                            </li>
-                            <li className="mdc-list-item" data-value=".R">
-                                .R
-                            </li>
-                            <li className="mdc-list-item" data-value=".sh">
-                                .sh
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <span className={'clear'}></span>
-            </div>
-
-            <div className="mdc-select" ref={"selectKernel"}>
-                <div className="mdc-select__anchor demo-width-class">
-                    <i className="mdc-select__dropdown-icon"></i>
-                    <div className="mdc-select__selected-text"></div>
-                    <span className="mdc-floating-label">Kernel image</span>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-
-                <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                    <ul className="mdc-list">
-                        <li className="mdc-list-item" data-value="python_docker">
-                            Python on Docker
-                        </li>
-                        <li className="mdc-list-item" data-value="kernel-r-331">
-                            R 3.3.1 (not working)
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <h3>Compute resources</h3>
-
-            <div className="mdc-select push-down" ref={"selectVCPU"}>
-                <div className="mdc-select__anchor demo-width-class">
-                    <i className="mdc-select__dropdown-icon"></i>
-                    <div className="mdc-select__selected-text"></div>
-                    <span className="mdc-floating-label">Number of vCPUs</span>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-
-                <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                    <ul className="mdc-list">
-                        <li className="mdc-list-item" data-value="1">
-                            1 vCPU
-                        </li>
-                        <li className="mdc-list-item" data-value="2">
-                            2 vCPUs
-                        </li>
-                        <li className="mdc-list-item" data-value="4">
-                            4 vCPUs
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-
-            <div className="mdc-select push-down" ref={"selectGPU"}>
-                <div className="mdc-select__anchor demo-width-class">
-                    <i className="mdc-select__dropdown-icon"></i>
-                    <div className="mdc-select__selected-text"></div>
-                    <span className="mdc-floating-label">Number of GPUs</span>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-
-                <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
-                    <ul className="mdc-list">
-                        <li className="mdc-list-item" data-value="0">
-                            No GPU
-                        </li>
-                        <li className="mdc-list-item" data-value="1">
-                            1 GPU
-                        </li>
-                        <li className="mdc-list-item" data-value="2">
-                            2 GPUs
-                        </li>
-                        <li className="mdc-list-item" data-value="3">
-                            3 GPUs
-                        </li>
-                        <li className="mdc-list-item" data-value="4">
-                            4 GPUs
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <label>
-                <div ref={"inputMemory"} className="mdc-text-field">
-                    <input id="step-input-memory" onChange={this.changeMemory.bind(this)}  className="mdc-text-field__input"
-                       type="number" />
-                    <label className="mdc-floating-label" htmlFor="step-input-memory">Memory (in MiB)</label>
-                    <div className="mdc-line-ripple"></div>
-                </div>
-            </label>
-
-            <h3>Experiment</h3>
-
-            <div className="mdc-text-field mdc-text-field--textarea" ref="experimentJSON">
-                <textarea className="mdc-text-field__input" rows="5"></textarea>
-                <div className="mdc-notched-outline">
-                    <div className="mdc-notched-outline__leading"></div>
-                    <div className="mdc-notched-outline__notch">
-                        <label htmlFor="textarea" className="mdc-floating-label">JSON argument description</label>
-                    </div>
-                    <div className="mdc-notched-outline__trailing"></div>
-                </div>
-            </div>
-
-            <div className={"action-buttons-bottom"}>
-
-                <div className={"notebook-actions"}>
-                    <button ref={"launchNotebook"} onClick={this.onOpenNotebook.bind(this)} className="mdc-button mdc-button--raised save-button">
-                        <div className="mdc-button__ripple"></div>
-                        <i className="material-icons mdc-button__icon" aria-hidden="true">launch</i>
-                        <span className="mdc-button__label">Open notebook</span>
-                    </button>
-
-                    <button ref={"launchNotebook"} onClick={this.onOpenNotebook.bind(this)} className="mdc-button mdc-button--raised save-button">
-                        <div className="mdc-button__ripple"></div>
-                        <i className="material-icons mdc-button__icon" aria-hidden="true">replay</i>
-                        <span className="mdc-button__label">Rerun incoming steps</span>
-                    </button>
-                </div>
-
-                <div className={"general-actions"}>
-                    <button ref={"saveButton"} onClick={this.onSave.bind(this)} className="mdc-button mdc-button--raised save-button">
-                        <div className="mdc-button__ripple"></div>
-                        <span className="mdc-button__label">Save</span>
-                    </button>
-
-                    <button ref={"deleteButton"} className="mdc-button mdc-button--raised" onClick={this.props.onDelete.bind(this)}>
-                        <div className="mdc-button__ripple"></div>
-                        <i className="material-icons mdc-button__icon" aria-hidden="true">delete</i>
-                        <span className="mdc-button__label">Delete</span>
-                    </button>
-                </div>
-
-            </div>
-
-        </div>
-    }
-}
-
-
-
-function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
+function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 
     this.startNode = startNode;
     this.endNode = endNode;
@@ -310,33 +28,33 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
 
     this.el = $(el);
 
-    this.remove = function(){
+    this.remove = function () {
         this.el.remove();
     };
 
-    this.setStartNode = function(startNodeJEl){
+    this.setStartNode = function (startNodeJEl) {
         this.startNode = startNodeJEl;
-        if(startNodeJEl){
+        if (startNodeJEl) {
             this.startNodeUUID = this.startNode.parents(".pipeline-step").attr("data-uuid");
             this.el.attr("data-start-uuid", this.startNodeUUID);
         }
     };
 
-    this.setEndNode = function(endNodeJEl){
+    this.setEndNode = function (endNodeJEl) {
         this.endNode = endNodeJEl;
-        if(endNodeJEl){
+        if (endNodeJEl) {
             this.endNodeUUID = this.endNode.parents(".pipeline-step").attr("data-uuid");
             this.el.attr("data-end-uuid", this.endNodeUUID);
         }
     };
 
-    this.selectState = function(){
-        $(this.svgPath).attr("stroke", "blue");
+    this.selectState = function () {
+        $(this.svgPath).attr("stroke", globalMDCVars()['mdcthemesecondary']);
         this.el.addClass("selected");
         $(this.svgPath).attr("stroke-width", 3);
     };
 
-    this.deselectState = function(){
+    this.deselectState = function () {
         this.el.removeClass("selected");
         $(this.svgPath).attr("stroke", "black");
         $(this.svgPath).attr("stroke-width", 2);
@@ -345,8 +63,8 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
     this.setStartNode(this.startNode);
     this.setEndNode(this.endNode);
 
-    this.svgEl = document.createElementNS("http://www.w3.org/2000/svg" ,"svg");
-    this.svgPath = document. createElementNS("http://www.w3.org/2000/svg", "path");
+    this.svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    this.svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     this.svgPath.setAttribute("stroke", "black");
     this.svgPath.setAttribute("stroke-width", "2");
     this.svgPath.setAttribute("fill", "none");
@@ -355,7 +73,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
 
     this.el.append(this.svgEl);
 
-    this.render = function(){
+    this.render = function () {
 
         let startNodePosition = nodeCenter(this.startNode);
         startNodePosition = correctedPosition(startNodePosition.x, startNodePosition.y, $('.pipeline-view'));
@@ -364,7 +82,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
 
 
         // set xEnd and yEnd if endNode is defined
-        if(this.endNode){
+        if (this.endNode) {
             let endNodePosition = nodeCenter(this.endNode);
             endNodePosition = correctedPosition(endNodePosition.x, endNodePosition.y, $('.pipeline-view'));
             this.xEnd = endNodePosition.x;
@@ -377,27 +95,27 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
         let xOffset = 0;
         let yOffset = 0;
 
-        if(targetX < 0){
+        if (targetX < 0) {
             xOffset = targetX
         }
-        if(targetX < this.arrowWidth){
+        if (targetX < this.arrowWidth * 10) {
             this.el.addClass("flipped-horizontal");
-        }else{
+        } else {
             this.el.removeClass("flipped-horizontal");
         }
 
-        if(targetY < 0){
+        if (targetY < 0) {
             yOffset = targetY;
             this.el.addClass("flipped");
-        }else{
+        } else {
             this.el.removeClass("flipped");
         }
 
-        this.el.css('transform', "translateX("+(this.x-this.svgPadding+xOffset)+"px) translateY("+(this.y-this.svgPadding+yOffset)+"px)");
+        this.el.css('transform', "translateX(" + (this.x - this.svgPadding + xOffset + this.pipelineView.pipelineOffset[0]) + "px) translateY(" + (this.y - this.svgPadding + yOffset + this.pipelineView.pipelineOffset[1]) + "px)");
 
         // update svg poly line
-        this.svgEl.setAttribute("width", (Math.abs(targetX) + 2*this.svgPadding) + "px");
-        this.svgEl.setAttribute("height", (Math.abs(targetY) + 2*this.svgPadding) + "px");
+        this.svgEl.setAttribute("width", (Math.abs(targetX) + 2 * this.svgPadding) + "px");
+        this.svgEl.setAttribute("height", (Math.abs(targetY) + 2 * this.svgPadding) + "px");
 
         this.svgPath.setAttribute('d', this.curvedHorizontal(this.svgPadding - xOffset,
             this.svgPadding - yOffset,
@@ -405,18 +123,18 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView){
             this.svgPadding + targetY - yOffset));
     };
 
-    this.curvedHorizontal = function(x1, y1, x2, y2){
-      let line = [];
-      let mx = x1 + (x2 - x1) / 2;
+    this.curvedHorizontal = function (x1, y1, x2, y2) {
+        let line = [];
+        let mx = x1 + (x2 - x1) / 2;
 
-      line.push('M', x1, y1);
-      line.push('C', mx, y1, mx, y2, x2, y2);
+        line.push('M', x1, y1);
+        line.push('C', mx, y1, mx, y2, x2, y2);
 
-      return line.join(' ')
+        return line.join(' ')
     };
 }
 
-function PipelineStepDOMWrapper(el, uuid, reactRef){
+function PipelineStepDOMWrapper(el, uuid, reactRef) {
     this.el = $(el);
     this.uuid = uuid;
     this.reactRef = reactRef;
@@ -429,35 +147,35 @@ function PipelineStepDOMWrapper(el, uuid, reactRef){
         this.y = this.reactRef.props.step.meta_data.position[1];
     };
 
-    this.render = function(){
-        this.el.css('transform', "translateX("+this.x+"px) translateY("+this.y+"px)");
+    this.render = function () {
+        this.el.css('transform', "translateX(" + this.x + "px) translateY(" + this.y + "px)");
     };
 
-    this.save = function(){
+    this.save = function () {
         this.reactRef.props.onMove(this.uuid, this.x, this.y);
     };
 }
 
-function nodeCenter(el){
+function nodeCenter(el) {
 
     let position = {};
 
-    position.x = el.offset().left + el.width()/2;
-    position.y = el.offset().top + el.height()/2;
+    position.x = el.offset().left + el.width() / 2;
+    position.y = el.offset().top + el.height() / 2;
 
     return position;
 }
 
-function correctedPosition(x, y, el){
+function correctedPosition(x, y, el) {
     let elementOffset = el.offset();
     let position = {};
     position.x = x - elementOffset.left;
-    position.y = y- elementOffset.top;
+    position.y = y - elementOffset.top;
     return position;
 }
 
-function renderConnections(connections){
-    for(let x = 0; x < connections.length; x++){
+function renderConnections(connections) {
+    for (let x = 0; x < connections.length; x++) {
         connections[x].render();
     }
 }
@@ -465,28 +183,18 @@ function renderConnections(connections){
 class PipelineView extends React.Component {
 
     componentWillUnmount() {
+        $(document).off("mouseup.initializePipeline");
+        $(document).off("keyup.initializePipeline");
+        $(document).off("keydown.initializePipeline");
     }
 
-    encodeJSON(){
-        // generate JSON representation using the internal state of React components describing the pipeline
-        let pipelineJSON = {
-            "name": this.props.name,
-            "uuid": this.props.uuid,
-            "steps": {}
-        };
+    savePipeline() {
 
-        for(let key in this.state.steps){
-            if(this.state.steps.hasOwnProperty(key)){
-                let step = this.state.steps[key];
-                pipelineJSON["steps"][step.uuid] = step;
-            }
-        }
+        let pipelineJSON = this.encodeJSON();
 
-        console.log(JSON.stringify(pipelineJSON));
-
+        // store pipeline.json
         let formData = new FormData();
         formData.append("pipeline_json", JSON.stringify(pipelineJSON));
-
         formData.append("pipeline_uuid", pipelineJSON.uuid);
 
         // perform POST to save
@@ -499,22 +207,41 @@ class PipelineView extends React.Component {
             referrer: 'no-referrer', // no-referrer, *client
             body: formData
         });
+
     }
 
-    decodeJSON(jsonPipeline){
+    encodeJSON() {
+        // generate JSON representation using the internal state of React components describing the pipeline
+        let pipelineJSON = {
+            "name": this.state.pipelineJson.name,
+            "uuid": this.props.uuid,
+            "steps": {}
+        };
+
+        for (let key in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(key)) {
+                let step = this.state.steps[key];
+                pipelineJSON["steps"][step.uuid] = step;
+            }
+        }
+
+        return pipelineJSON;
+    }
+
+    decodeJSON(pipelineJson) {
         // initialize React components based on incoming JSON description of the pipeline
-        console.log(jsonPipeline);
 
         // add steps to the state
         let steps = this.state.steps;
 
-        for(let key in jsonPipeline.steps){
-            if(jsonPipeline.steps.hasOwnProperty(key)){
-                steps[key] = jsonPipeline.steps[key];
+        for (let key in pipelineJson.steps) {
+            if (pipelineJson.steps.hasOwnProperty(key)) {
+                steps[key] = pipelineJson.steps[key];
             }
         }
 
-        this.setState({"steps": steps});
+        // in addition to creating steps explicitly in the React state, also attach full pipelineJson
+        this.setState({ "steps": steps, "pipelineJson": pipelineJson });
     }
 
     constructor(props) {
@@ -526,6 +253,10 @@ class PipelineView extends React.Component {
         // newConnection is for creating a new connection
         this.newConnection = undefined;
 
+        this.keysDown = {};
+        this.draggingPipeline = false;
+        this.pipelineOffset = [0, 0];
+
         this.connections = [];
         this.pipelineSteps = {};
         this.pipelineRefs = [];
@@ -533,34 +264,41 @@ class PipelineView extends React.Component {
         this.pipelineListenersInitialized = false;
 
         this.state = {
-            selectedStep: undefined,
+            openedStep: undefined,
+            selectedSteps: [],
+            stepSelector: {
+                active: false,
+                x1: 0,
+                y1: 0,
+                x2: 0,
+                y2: 0,
+            },
+            stepExecutionState: {},
             steps: {},
             backend: {
                 running: false,
-                booting: false
+                working: false
             }
         }
     }
 
-    openSettings(){
-        orchest.loadView(PipelineSettingsView, {"name": this.props.name, "uuid": this.props.uuid});
+    openSettings() {
+        orchest.loadView(PipelineSettingsView, { "uuid": this.props.uuid });
     }
 
     componentDidMount() {
-
-        // get object positions from localStorage
-        // TODO: serialize object positions
+        console.log(this);
 
         fetch("/async/pipelines/json/get/" + this.props.uuid, {
-           method: "GET",
-           cache: "no-cache",
-           redirect: "follow",
-           referrer: "no-referrer"
+            method: "GET",
+            cache: "no-cache",
+            redirect: "follow",
+            referrer: "no-referrer"
         }).then(handleErrors).then((response) => {
             response.json().then((result) => {
-                if(result.success){
+                if (result.success) {
                     this.decodeJSON(JSON.parse(result['pipeline_json']));
-                }else{
+                } else {
                     console.warn("Could not load pipeline.json");
                     console.log(result);
                 }
@@ -568,55 +306,55 @@ class PipelineView extends React.Component {
         });
 
         // get backend status
-        fetch("http://localhost:5000/api/launches/" + this.props.uuid, {
-           method: "GET",
-           cache: "no-cache",
-           redirect: "follow",
-           referrer: "no-referrer"
+        fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/launches/" + this.props.uuid, {
+            method: "GET",
+            cache: "no-cache",
+            redirect: "follow",
+            referrer: "no-referrer"
         }).then((response) => {
-            if(response.status === 200){
+            if (response.status === 200) {
                 this.state.backend.running = true;
-                this.setState({"backend": this.state.backend });
+                this.setState({ "backend": this.state.backend });
 
                 return response
-            }else{
+            } else {
                 console.warn("Pipeline back-end is not live");
             }
         }).then((response) => {
-            if(response){
+            if (response) {
                 response.json().then((json) => {
                     console.log(json);
 
                     this.state.backend.server_ip = json.server_ip;
                     this.state.backend.server_info = json.server_info;
 
-                    this.setState({"backend": this.state.backend});
+                    this.setState({ "backend": this.state.backend });
                     this.updateJupyterInstance();
                 })
             }
         });
 
         // new pipelineStep listener
-        const newStepButtonMDC = new MDCRipple(this.refs.newStepButton);
-        const encodeButton = new MDCRipple(this.refs.encodeButton);
-        const settingsButtonRipple = new MDCRipple(this.refs.settingsButton);
-        const powerButtonRipple = new MDCRipple(this.refs.powerButton);
+        this.newStepButtonMDC = new MDCRipple(this.refs.newStepButton);
+        this.encodeButton = new MDCRipple(this.refs.encodeButton);
+        this.settingsButtonRipple = new MDCRipple(this.refs.settingsButton);
+        this.powerButtonRipple = new MDCRipple(this.refs.powerButton);
 
     }
 
-    updatePipelineViewerState(){
+    updatePipelineViewerState() {
         // populate pipelineRefs
         this.pipelineRefs = [];
 
-        for(let key in this.state.steps){
-            if(this.state.steps.hasOwnProperty(key)){
+        for (let key in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(key)) {
                 let step = this.state.steps[key];
                 this.pipelineRefs.push(this.refs[step.uuid]);
             }
         }
 
         // create step object to store state related to rendering
-        for(let x = 0; x < this.pipelineRefs.length; x++){
+        for (let x = 0; x < this.pipelineRefs.length; x++) {
             let el = this.pipelineRefs[x].refs.container;
             let psdw = new PipelineStepDOMWrapper(el, $(el).attr('data-uuid'), this.pipelineRefs[x]);
             this.pipelineSteps[$(el).attr('data-uuid')] = psdw;
@@ -625,15 +363,15 @@ class PipelineView extends React.Component {
         }
     }
 
-    getConnectionByUUIDs(startNodeUUID, endNodeUUID){
-        for(let x = 0; x < this.connections.length; x++){
-            if(this.connections[x].startNodeUUID === startNodeUUID && this.connections[x].endNodeUUID === endNodeUUID){
+    getConnectionByUUIDs(startNodeUUID, endNodeUUID) {
+        for (let x = 0; x < this.connections.length; x++) {
+            if (this.connections[x].startNodeUUID === startNodeUUID && this.connections[x].endNodeUUID === endNodeUUID) {
                 return this.connections[x];
             }
         }
     }
 
-    createConnection(outgoingJEl, incomingJEl){
+    createConnection(outgoingJEl, incomingJEl) {
         // create a new element that represents the connection (svg image)
         let connectionHolder = document.createElement("div");
         $(connectionHolder).addClass('connection');
@@ -641,7 +379,7 @@ class PipelineView extends React.Component {
         let newConnection = new ConnectionDOMWrapper(connectionHolder, outgoingJEl, incomingJEl, this);
         this.connections.push(newConnection);
 
-        if(!incomingJEl){
+        if (!incomingJEl) {
             this.newConnection = newConnection;
         }
 
@@ -650,7 +388,73 @@ class PipelineView extends React.Component {
         $(this.refs.pipelineStepsHolder).append(connectionHolder);
     }
 
-    initializePipeline(){
+    willCreateCycle(startNodeUUID, endNodeUUID) {
+
+        // add connection temporarily
+        let insertIndex = this.state.steps[endNodeUUID].incoming_connections.push(startNodeUUID) - 1;
+
+        // augment incoming_connections with outgoing_connections to be able to traverse from root nodes
+
+        // reset outgoing_connections state (creates 2N algorithm, but makes for guaranteerd clean state.steps data structure)
+        for (let step_uuid in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(step_uuid)) {
+                this.state.steps[step_uuid].outgoing_connections = [];
+            }
+        }
+
+        for (let step_uuid in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(step_uuid)) {
+                let incoming_connections = this.state.steps[step_uuid].incoming_connections;
+                for (let x = 0; x < incoming_connections.length; x++) {
+                    this.state.steps[incoming_connections[x]].outgoing_connections.push(step_uuid);
+                }
+            }
+        }
+
+
+        let whiteSet = new Set(Object.keys(this.state.steps));
+        let greySet = new Set();
+
+        let cycles = false;
+
+        while (whiteSet.size > 0) {
+            // take first element left in whiteSet
+            let step_uuid = whiteSet.values().next().value;
+
+            if (this.dfsWithSets(step_uuid, whiteSet, greySet)) {
+                cycles = true;
+            }
+        }
+
+        // remote temp connection
+        this.state.steps[endNodeUUID].incoming_connections.splice(insertIndex, 1);
+
+        return cycles;
+    }
+
+    dfsWithSets(step_uuid, whiteSet, greySet) {
+        // move from white to grey
+        whiteSet.delete(step_uuid);
+        greySet.add(step_uuid);
+
+        for (let x = 0; x < this.state.steps[step_uuid].outgoing_connections.length; x++) {
+            let child_uuid = this.state.steps[step_uuid].outgoing_connections[x];
+
+            if (whiteSet.has(child_uuid)) {
+                if (this.dfsWithSets(child_uuid, whiteSet, greySet)) {
+                    return true;
+                }
+            }
+            else if (greySet.has(child_uuid)) {
+                return true;
+            }
+        }
+
+        // move from grey to black
+        greySet.delete(step_uuid);
+    }
+
+    initializePipeline() {
 
         // Initialize should be called only once
         // this.state.steps is assumed to be populated
@@ -660,21 +464,38 @@ class PipelineView extends React.Component {
 
         let _this = this;
 
-        $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step", function(e) {
-            if(!$(e.target).hasClass('connection-point')){
-                _this.selectedItem = _this.pipelineSteps[$(e.currentTarget).attr('data-uuid')];
+        $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step", function (e) {
+
+            if (e.button === 0) {
+
+                if (!$(e.target).hasClass('connection-point')) {
+                    _this.selectedItem = _this.pipelineSteps[$(e.currentTarget).attr('data-uuid')];
+                }
+                _this.prevPosition = [e.clientX, e.clientY];
+
             }
-            _this.prevPosition = [e.clientX, e.clientY];
+
         });
 
-        $(document).on("mouseup", function(e){
-            if(_this.selectedItem){
+        $(document).on("mouseup.initializePipeline", function (e) {
+            if (_this.selectedItem) {
                 // check if click should be triggered
 
                 // TODO: check if save pipeline needs to be triggered on every mouserelease
-                _this.selectedItem.save();
 
-                if(!_this.selectedItem.dragged){
+                // Saving pipeline step position on mouse release.
+                // two cases: moved selectedItem or moved this.state.selectedSteps
+                if (_this.state.selectedSteps.length > 0) {
+                    for (let key in _this.state.selectedSteps) {
+                        let uuid = _this.state.selectedSteps[key];
+                        _this.pipelineSteps[uuid].save();
+                    }
+                } else {
+                    _this.selectedItem.save();
+                }
+
+
+                if (!_this.selectedItem.dragged) {
                     _this.selectedItem.reactRef.props.onClick(_this.selectedItem.uuid);
                 }
 
@@ -682,68 +503,137 @@ class PipelineView extends React.Component {
             }
             _this.selectedItem = undefined;
 
-            if(_this.newConnection){
-                if($(e.target).hasClass("incoming-connections")){
+            if (_this.newConnection) {
+
+                let endNodeUUID = $(e.target).parents(".pipeline-step").attr('data-uuid');
+                let startNodeUUID = _this.newConnection.startNode.parents(".pipeline-step").attr('data-uuid');
+
+                // check whether drag release was on .incomming-connections class
+                let dragEndedInIcomingConnectionsElement = $(e.target).hasClass("incoming-connections");
+                let noConnectionExists = true;
+
+                // check whether there already exists a connection
+                if (dragEndedInIcomingConnectionsElement) {
+                    noConnectionExists = _this.refs[endNodeUUID].props.step.incoming_connections.indexOf(startNodeUUID) === -1;
+                }
+
+                // check whether connection will create a cycle in Pipeline graph
+                let connectionCreatesCycle = false;
+                if (noConnectionExists && dragEndedInIcomingConnectionsElement) {
+                    connectionCreatesCycle = _this.willCreateCycle(startNodeUUID, endNodeUUID);
+                }
+
+                if (connectionCreatesCycle) {
+                    alert("Error: Connecting this step will create a cycle in your pipeline which is not supported.");
+                }
+
+                if (dragEndedInIcomingConnectionsElement && noConnectionExists && !connectionCreatesCycle) {
+
                     // newConnection
                     _this.newConnection.setEndNode($(e.target));
-
-                    let startNodeUUID = _this.newConnection.startNode.parents(".pipeline-step").attr('data-uuid');
-                    let endNodeUUID = $(e.target).parents(".pipeline-step").attr('data-uuid');
-
                     _this.refs[endNodeUUID].props.onConnect(startNodeUUID, endNodeUUID);
                     _this.newConnection.render();
 
-                }else{
+                } else {
                     _this.newConnection.el.remove();
-                    _this.connections.splice(_this.connections.indexOf(_this.newConnection),1);
+                    _this.connections.splice(_this.connections.indexOf(_this.newConnection), 1);
                 }
             }
             _this.newConnection = undefined;
+
+            if (_this.draggingPipeline) {
+                _this.draggingPipeline = false;
+            }
+
+
+            // stepSelector
+            _this.state.stepSelector.active = false;
+            _this.setState({
+                stepSelector: _this.state.stepSelector
+            });
+
+
         });
 
 
-        $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step .outgoing-connections", function(e) {
+        $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step .outgoing-connections", function (e) {
 
-            // create connection
-            _this.createConnection($(e.target));
+            if (e.button === 0) {
+
+                // create connection
+                _this.createConnection($(e.target));
+
+            }
+
 
         });
 
         $(this.refs.pipelineStepsHolder).on("mousedown", (e) => {
-            if(e.target === this.refs.pipelineStepsHolder){
-                if(this.selectedConnection){
-                    this.selectedConnection.deselectState();
-                    this.selectedConnection = undefined;
+
+            if (e.button === 0) {
+                if (e.target === this.refs.pipelineStepsHolder) {
+                    if (this.selectedConnection) {
+                        this.deselectConnection();
+                    }
+
+                    this.deselectSteps();
                 }
             }
-        });
-
-        $(this.refs.pipelineStepsHolder).on("mousedown", "#path", function(e) {
-
-            if(_this.selectedConnection){
-                _this.selectedConnection.deselectState();
-            }
-
-            let connection = $(this).parents("svg").parents(".connection");
-            let startNodeUUID = connection.attr("data-start-uuid");
-            let endNodeUUID = connection.attr("data-end-uuid");
-
-            _this.selectedConnection = _this.getConnectionByUUIDs(startNodeUUID, endNodeUUID);
-
-            _this.selectedConnection.selectState();
 
         });
 
-        $(document).on("keyup", function(e){
+        $(this.refs.pipelineStepsHolder).on("mousedown", "#path", function (e) {
 
-            if(e.keyCode === 27){
-                if(_this.selectedConnection){
+            if (e.button === 0) {
+                if (_this.selectedConnection) {
                     _this.selectedConnection.deselectState();
                 }
+
+                let connection = $(this).parents("svg").parents(".connection");
+                let startNodeUUID = connection.attr("data-start-uuid");
+                let endNodeUUID = connection.attr("data-end-uuid");
+
+                _this.selectedConnection = _this.getConnectionByUUIDs(startNodeUUID, endNodeUUID);
+
+                _this.selectedConnection.selectState();
             }
 
-            if(e.keyCode === 8){
-                if(_this.selectedConnection){
+        });
+
+        $(document).on("keydown.initializePipeline", function (e) {
+
+            // Ctrl / Meta + S for saving pipeline
+            if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                _this.encodeButton.activate();
+                _this.encodeButton.deactivate();
+                _this.refs.encodeButton.click();
+            }
+
+            _this.keysDown[e.keyCode] = true;
+
+        });
+
+        $(document).on("keyup.initializePipeline", function (e) {
+
+            _this.keysDown[e.keyCode] = false;
+
+            if (e.keyCode) {
+                $(_this.refs.pipelineStepsOuterHolder).removeClass("dragging");
+                this.draggingPipeline = false;
+            }
+
+            if (e.keyCode === 27) {
+                if (_this.selectedConnection) {
+
+                    _this.deselectConnection();
+                }
+
+                _this.deselectSteps();
+            }
+
+            if (e.keyCode === 8) {
+                if (_this.selectedConnection) {
                     e.preventDefault();
 
                     _this.removeConnection(_this.selectedConnection.startNodeUUID, _this.selectedConnection.endNodeUUID);
@@ -754,25 +644,37 @@ class PipelineView extends React.Component {
 
         });
 
-        $(this.refs.pipelineStepsHolder).on('mousemove', function(e){
+        $(this.refs.pipelineStepsHolder).on('mousemove', function (e) {
 
-            if(_this.selectedItem){
+            if (_this.selectedItem) {
 
                 _this.selectedItem.dragged = true;
 
                 let delta = [e.clientX - _this.prevPosition[0], e.clientY - _this.prevPosition[1]];
 
-                _this.selectedItem.x += delta[0];
-                _this.selectedItem.y += delta[1];
+                // if multiple steps are selected move all at the same time
+                if (_this.state.selectedSteps.length > 0) {
 
-                _this.selectedItem.render();
+                    for (let key in _this.state.selectedSteps) {
+                        let uuid = _this.state.selectedSteps[key];
 
-                _this.prevPosition = [e.clientX, e.clientY];
+                        _this.pipelineSteps[uuid].x += delta[0];
+                        _this.pipelineSteps[uuid].y += delta[1];
+                        _this.pipelineSteps[uuid].render();
+                    }
+
+                } else {
+                    _this.selectedItem.x += delta[0];
+                    _this.selectedItem.y += delta[1];
+                    _this.selectedItem.render();
+                }
 
                 renderConnections(_this.connections);
 
+                _this.prevPosition = [e.clientX, e.clientY];
+
             }
-            else if(_this.newConnection){
+            else if (_this.newConnection) {
 
                 let position = correctedPosition(e.clientX, e.clientY, $('.pipeline-view'));
 
@@ -786,11 +688,11 @@ class PipelineView extends React.Component {
 
 
         // add all existing connections (this happens only at initialization - thus can be
-        for(let key in this.state.steps){
-            if(this.state.steps.hasOwnProperty(key)){
+        for (let key in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(key)) {
                 let step = this.state.steps[key];
 
-                for(let x = 0; x < step.incoming_connections.length; x++){
+                for (let x = 0; x < step.incoming_connections.length; x++) {
                     let startNodeUUID = step.incoming_connections[x];
                     let endNodeUUID = step.uuid;
 
@@ -800,7 +702,7 @@ class PipelineView extends React.Component {
                     let endNodeIncomingEl = $(this.refs.pipelineStepsHolder)
                         .find(".pipeline-step[data-uuid='" + endNodeUUID + "'] .incoming-connections");
 
-                    if(startNodeOutgoingEl.length > 0 && endNodeIncomingEl.length > 0){
+                    if (startNodeOutgoingEl.length > 0 && endNodeIncomingEl.length > 0) {
                         this.createConnection(startNodeOutgoingEl, endNodeIncomingEl);
                     }
                 }
@@ -813,51 +715,41 @@ class PipelineView extends React.Component {
     componentDidUpdate(prevProps, prevState, snapshot) {
 
         // add listeners once state is initialized by decodeJSON
-        if(this.state.steps !== undefined && Object.keys(this.state.steps).length > 0){
+        if (this.state.steps !== undefined && Object.keys(this.state.steps).length > 0) {
 
             // initialize pipeline after setting state in decodeJSON/setting up React components
             this.updatePipelineViewerState()
 
             // initliaze pipeline only once
-            if(!this.pipelineListenersInitialized){
+            if (!this.pipelineListenersInitialized) {
                 this.initializePipeline();
             }
         }
 
     }
 
-    updateJupyterInstance(){
+    updateJupyterInstance() {
         let baseAddress = "http://" + this.state.backend.server_ip + ":" + this.state.backend.server_info.port + "/";
         let token = this.state.backend.server_info.token;
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
 
-    launchPipeline(){
+    launchPipeline() {
 
-        if(this.state.backend.booting){
-            alert("Please wait, the pipeline is still booting");
+        if (this.state.backend.working) {
+            alert("Please wait, the pipeline is still busy.");
             return
         }
 
-        if(!this.state.backend.running){
+        if (!this.state.backend.running) {
 
             // send launch request to API
 
             // perform POST to save
-            // TODO: replace hardcoded URL
-            // TODO: replace hardcoded pipeline directory
-            let userdir_pipeline = "/home/yannick/Documents/Orchest/orchest/orchest/userdir/pipelines/";
 
-            let data = {
-                "pipeline_uuid": this.props.uuid,
-                "pipeline_dir": userdir_pipeline + this.props.uuid + "/"
-            };
-
-            this.state.backend.booting = true;
-            this.setState({"backend": this.state.backend});
-
-            fetch("http://localhost:5000/api/launches/", {
-                method: 'POST',
+            // get pipeline dir from webserver
+            fetch("/async/pipelines/get_directory/" + this.props.uuid, {
+                method: 'GET',
                 mode: 'cors',
                 cache: 'no-cache',
                 credentials: 'same-origin',
@@ -866,27 +758,57 @@ class PipelineView extends React.Component {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
             }).then(handleErrors).then((response) => {
                 response.json().then((json) => {
-                    console.log("API launch result");
-                    console.log(json);
+                    let userdir_pipeline = json.result;
 
-                    this.state.backend.running = true;
-                    this.state.backend.booting = false;
+                    let data = {
+                        "pipeline_uuid": this.props.uuid,
+                        "pipeline_dir": userdir_pipeline
+                    };
 
-                    this.state.backend.server_ip = json.server_ip;
-                    this.state.backend.server_info = json.server_info;
+                    this.state.backend.working = true;
 
-                    this.setState({"backend": this.state.backend});
+                    this.setState({ "backend": this.state.backend });
 
-                    this.updateJupyterInstance();
+                    fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/launches/", {
+                        method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
+                        credentials: 'same-origin',
+                        redirect: 'follow', // manual, *follow, error
+                        referrer: 'no-referrer', // no-referrer, *client
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    }).then(handleErrors).then((response) => {
+                        response.json().then((json) => {
+                            console.log("API launch result");
+                            console.log(json);
+
+                            this.state.backend.running = true;
+                            this.state.backend.working = false;
+
+                            this.state.backend.server_ip = json.server_ip;
+                            this.state.backend.server_info = json.server_info;
+
+                            this.setState({ "backend": this.state.backend });
+
+                            this.updateJupyterInstance();
+                        })
+                    });
+
                 })
-            });
+            })
 
-        }else{
 
-            fetch("http://localhost:5000/api/launches/" + this.props.uuid, {
+
+        } else {
+
+            this.state.backend.working = true;
+
+            fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/launches/" + this.props.uuid, {
                 method: 'DELETE',
                 mode: 'cors',
                 cache: 'no-cache',
@@ -899,8 +821,8 @@ class PipelineView extends React.Component {
                     console.log(result);
 
                     this.state.backend.running = false;
-                    this.state.backend.booting = false;
-                    this.setState({"backend": this.state.backend});
+                    this.state.backend.working = false;
+                    this.setState({ "backend": this.state.backend });
                 })
             });
 
@@ -908,76 +830,102 @@ class PipelineView extends React.Component {
 
     }
 
-    newStep(){
+    newStep() {
 
         let pipelineStepsHolderJEl = $(this.refs.pipelineStepsHolder);
 
         let step = {
-            "name": "",
+            "title": "",
             "uuid": uuidv4(),
             "incoming_connections": [],
             "file_path": ".ipynb",
-            "image": {
-                "image_name": "kernel-python-36-tensorflow-20",
-                "display_name": "Python 3.6, TensorFlow 2.0"
+            "kernel": {
+                "name": "docker_python",
+                "display_name": "Python 3"
             },
+            "image": "jupyter/scipy-notebook",
             "memory": "1024",
             "vcpus": "1",
             "gpus": "0",
             "experiment_json": "",
             "meta_data": {
-                "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height()/2]
+                "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height() / 2]
             }
         };
 
         this.state.steps[step.uuid] = step;
 
-        this.setState({"steps": this.state.steps});
+        this.setState({ "steps": this.state.steps });
 
         this.selectStep(step.uuid);
 
     }
 
-    selectStep(pipelineStepUUID){
-        if(this.state.selectedStep){
-            this.setState({"selectedStep": undefined});
+    selectStep(pipelineStepUUID) {
+        if (this.state.openedStep) {
+            this.setState({ "openedStep": undefined });
         }
 
-        this.setState({"selectedStep": pipelineStepUUID});
+        // always deselects other steps
+        this.setState({
+            openedStep: pipelineStepUUID,
+            selectedSteps: []
+        });
     }
 
-    moveStep(pipelineStepUUID, x, y){
+    moveStep(pipelineStepUUID, x, y) {
         this.state.steps[pipelineStepUUID].meta_data.position = [x, y];
     }
 
-    stepNameUpdate(pipelineStepUUID, name){
-        this.state.steps[pipelineStepUUID].name = name;
-        this.setState({"steps": this.state.steps});
+    stepNameUpdate(pipelineStepUUID, title, file_path) {
+        this.state.steps[pipelineStepUUID].title = title;
+        this.state.steps[pipelineStepUUID].file_path = file_path;
+        this.setState({ "steps": this.state.steps });
     }
 
-    makeConnection(sourcePipelineStepUUID, targetPipelineStepUUID){
-        if(this.state.steps[targetPipelineStepUUID].incoming_connections.indexOf(sourcePipelineStepUUID) === -1){
+    makeConnection(sourcePipelineStepUUID, targetPipelineStepUUID) {
+        if (this.state.steps[targetPipelineStepUUID].incoming_connections.indexOf(sourcePipelineStepUUID) === -1) {
             this.state.steps[targetPipelineStepUUID].incoming_connections.push(sourcePipelineStepUUID);
         }
+
+        this.forceUpdate();
     }
 
-    removeConnection(sourcePipelineStepUUID, targetPipelineStepUUID){
-        let connectionIndex = this.state.steps[targetPipelineStepUUID].incoming_connections.indexOf(sourcePipelineStepUUID);
-        if(connectionIndex !== -1){
-            this.state.steps[targetPipelineStepUUID].incoming_connections.splice(connectionIndex, 1);
+    getStepExecutionState(stepUUID) {
+        if (this.state.stepExecutionState[stepUUID]) {
+            return this.state.stepExecutionState[stepUUID];
+        } else {
+            return { status: "idle", time: new Date() };
         }
     }
+    setStepExecutionState(stepUUID, executionState) {
 
-    onDetailsDelete(){
-        let uuid = this.state.selectedStep;
+        this.state.stepExecutionState[stepUUID] = executionState;
+
+        this.setState({
+            "stepExecutionState": this.state.stepExecutionState
+        })
+    }
+
+    removeConnection(sourcePipelineStepUUID, targetPipelineStepUUID) {
+        let connectionIndex = this.state.steps[targetPipelineStepUUID].incoming_connections.indexOf(sourcePipelineStepUUID);
+        if (connectionIndex !== -1) {
+            this.state.steps[targetPipelineStepUUID].incoming_connections.splice(connectionIndex, 1);
+        }
+
+        this.forceUpdate();
+    }
+
+    onDetailsDelete() {
+        let uuid = this.state.openedStep;
 
         // also delete incoming connections that contain this uuid
-        for(let key in this.state.steps){
-            if(this.state.steps.hasOwnProperty(key)){
+        for (let key in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(key)) {
                 let step = this.state.steps[key];
 
                 let connectionIndex = step.incoming_connections.indexOf(uuid);
-                if(connectionIndex !== -1){
+                if (connectionIndex !== -1) {
                     step.incoming_connections.splice(connectionIndex, 1);
 
                     // also delete incoming connections from GUI
@@ -991,7 +939,7 @@ class PipelineView extends React.Component {
 
         // visually delete incoming connections from GUI
         let step = this.state.steps[uuid];
-        for(let x = 0; x < step.incoming_connections.length; x++){
+        for (let x = 0; x < step.incoming_connections.length; x++) {
 
             let connection = this.getConnectionByUUIDs(step.incoming_connections[x], uuid);
             this.connections.splice(this.connections.indexOf(connection), 1);
@@ -999,109 +947,322 @@ class PipelineView extends React.Component {
         }
 
         delete this.state.steps[uuid];
-        this.setState({"steps": this.state.steps, "selectedStep": undefined });
+        this.setState({ "steps": this.state.steps, "openedStep": undefined });
     }
 
-    onOpenNotebook(pipelineDetailsComponent){
-        orchest.jupyter.navigateTo(this.state.steps[this.state.selectedStep].file_path);
+    onOpenNotebook(pipelineDetailsComponent) {
+        orchest.jupyter.navigateTo(this.state.steps[this.state.openedStep].file_path);
         orchest.showJupyter();
         orchest.headerBarComponent.setPipeline(this.props);
     }
 
-    onSaveDetails(pipelineDetailsComponent){
+    onRerunIncoming(pipelineDetailsComponent) {
+
+        // figure out incoming steps from this step:
+        let currentStep = this.state.steps[this.state.openedStep];
+
+        // fake execute list
+        let executeOrder = [];
+
+        // note array is pass by reference
+        this.TEMP_findIncomingStep(currentStep, executeOrder);
+
+        let totalDelay = 0;
+
+        for (let x = 0; x < executeOrder.length; x++) {
+
+            let stepDuration = 2000 + Math.random() * 1000 * 4;
+
+            ((uuid) => {
+                this.setStepExecutionState(uuid, { status: "pending", time: new Date() });
+
+                setTimeout(() => {
+                    this.setStepExecutionState(uuid, { status: "running", time: new Date() });
+                }, totalDelay);
+
+                setTimeout(() => {
+                    this.setStepExecutionState(uuid, { status: "success", time: new Date() });
+                }, totalDelay + stepDuration);
+
+            })(executeOrder[x]);
+
+            totalDelay += stepDuration;
+        }
+    }
+
+    /// TEMP: only for demo
+    TEMP_findIncomingStep(step, list) {
+        for (let x = 0; x < step.incoming_connections.length; x++) {
+
+            // recurse to incoming
+            this.TEMP_findIncomingStep(this.state.steps[step.incoming_connections[x]], list);
+
+            // add inomcing step itself
+            let stepUUID = step.incoming_connections[x];
+            if (list.indexOf(stepUUID) === -1) {
+                list.push(stepUUID);
+            }
+        }
+    }
+    /// END TEMP
+    onCloseDetails(pipelineDetailsComponent) {
+        this.setState({ "openedStep": undefined });
+    }
+
+    onSaveDetails(pipelineDetailsComponent) {
 
         // update step state based on latest state of pipelineDetails component
 
         // step name
-        let step = this.state.steps[pipelineDetailsComponent.props.step.uuid];
+        this.state.steps[pipelineDetailsComponent.props.step.uuid] = JSON.parse(JSON.stringify(pipelineDetailsComponent.state.step));
 
-        step.name = pipelineDetailsComponent.inputName.value;
-        step.file_path = pipelineDetailsComponent.inputFileName.value + pipelineDetailsComponent.selectFileType.value;
-        step.image.image_name = pipelineDetailsComponent.selectKernel.value;
-        step.image.display_name = $(pipelineDetailsComponent.selectKernel.selectedText_).text();
-        step.memory = pipelineDetailsComponent.inputMemory.value;
-        step.vcpus = pipelineDetailsComponent.selectVCPU.value;
-        step.gpus = pipelineDetailsComponent.selectGPU.value;
-        step.experiment_json = pipelineDetailsComponent.experimentJSON.value;
-
-        // update steps in setState even though reference objects are directly modified - this propagates state updates
-        // properly
-
-        this.setState({"selectedStep": undefined, "steps": this.state.steps});
+        // update steps in setState even though reference objects are directly modified - this propagates state updates properly
+        this.setState({ "steps": this.state.steps });
     }
 
-    getPowerButtonClasses(){
+    getPowerButtonClasses() {
         let classes = ["mdc-button", "mdc-button--raised"];
 
-        if(this.state.backend.running){
+        if (this.state.backend.running) {
             classes.push("active");
         }
-        if(this.state.backend.booting){
-            classes.push("booting");
+        if (this.state.backend.working) {
+            classes.push("working");
         }
 
         return classes.join(" ");
+    }
+
+
+
+    deselectSteps() {
+        this.setState({
+            selectedSteps: []
+        });
+    }
+
+    deselectConnection() {
+        this.selectedConnection.deselectState();
+        this.selectedConnection = undefined;
+    }
+
+    getSelectedSteps() {
+        let rect = this.getStepSelectorRectangle();
+
+        let selectedSteps = [];
+
+        // for each step perform intersect
+        for (let uuid in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(uuid)) {
+                let step = this.state.steps[uuid];
+                let stepDom = $(this.refs[uuid].refs.container);
+
+                let stepRect = {
+                    x: step.meta_data.position[0],
+                    y: step.meta_data.position[1],
+                    width: stepDom.outerWidth(),
+                    height: stepDom.outerHeight()
+                }
+
+                if (intersectRect(rect, stepRect)) {
+                    selectedSteps.push(uuid);
+                }
+            }
+        }
+
+        return selectedSteps;
+    }
+
+    onPipelineStepsOuterHolderMove(e) {
+
+        if (this.state.stepSelector.active) {
+
+            let pipelineStepHolderOffset = $(this.refs.pipelineStepsHolder).offset();
+
+            this.state.stepSelector.x2 = e.clientX - pipelineStepHolderOffset.left;
+            this.state.stepSelector.y2 = e.clientY - pipelineStepHolderOffset.top;
+
+            this.setState({
+                stepSelector: this.state.stepSelector,
+                selectedSteps: this.getSelectedSteps()
+            })
+        }
+
+        if (this.draggingPipeline) {
+
+            let dx = e.nativeEvent.movementX;
+            let dy = e.nativeEvent.movementY;
+
+            this.pipelineOffset[0] -= dx / 2;
+            this.pipelineOffset[1] -= dy / 2;
+
+            // if(this.pipelineOffset[0] < 0){
+            //     this.pipelineOffset[0] = 0;
+            // }
+            // if(this.pipelineOffset[1] < 0){
+            //     this.pipelineOffset[1] = 0;
+            // }
+
+            $(this.refs.pipelineStepsHolder).css({ transform: "translateX(" + -this.pipelineOffset[0] + "px) translateY(" + -this.pipelineOffset[1] + "px)" });
+
+            $(this.refs.pipelineStepsOuterHolder).css({ backgroundPosition: -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px" });
+        }
+
+    }
+
+    onPipelineStepsOuterHolderDown(e) {
+
+        if (($(e.target).hasClass('pipeline-steps-holder') || $(e.target).hasClass('pipeline-steps-outer-holder')) && e.button === 0) {
+
+            if (this.keysDown[32]) {
+
+                // space held while clicking, means canvas drag
+                $(this.refs.pipelineStepsOuterHolder).addClass("dragging");
+                this.draggingPipeline = true;
+
+            } else {
+                let pipelineStepHolderOffset = $('.pipeline-steps-holder').offset();
+
+                this.state.stepSelector.active = true;
+                this.state.stepSelector.x1 = e.clientX - pipelineStepHolderOffset.left;
+                this.state.stepSelector.y1 = e.clientY - pipelineStepHolderOffset.top;
+                this.state.stepSelector.x2 = e.clientX - pipelineStepHolderOffset.left;
+                this.state.stepSelector.y2 = e.clientY - pipelineStepHolderOffset.top;
+
+                this.setState({
+                    stepSelector: this.state.stepSelector
+                })
+            }
+
+        }
+    }
+
+    getStepSelectorRectangle() {
+        let rect = {
+            x: Math.min(this.state.stepSelector.x1, this.state.stepSelector.x2),
+            y: Math.min(this.state.stepSelector.y1, this.state.stepSelector.y2),
+            width: Math.abs(this.state.stepSelector.x2 - this.state.stepSelector.x1),
+            height: Math.abs(this.state.stepSelector.y2 - this.state.stepSelector.y1)
+        }
+        return rect;
     }
 
     render() {
 
         let pipelineSteps = [];
 
-        for(let key in this.state.steps){
-            if(this.state.steps.hasOwnProperty(key)){
-                let step = this.state.steps[key];
+        for (let uuid in this.state.steps) {
+            if (this.state.steps.hasOwnProperty(uuid)) {
+                let step = this.state.steps[uuid];
+
+                let selected = this.state.selectedSteps.indexOf(uuid) !== -1;
+
+                if (this.state.openedStep === uuid) {
+                    selected = true;
+                }
+
                 pipelineSteps.push(<PipelineStep
                     key={step.uuid}
                     step={step}
+                    selected={selected}
                     ref={step.uuid}
+                    executionState={this.getStepExecutionState(step.uuid)}
                     onConnect={this.makeConnection.bind(this)}
                     onMove={this.moveStep.bind(this)}
                     onClick={this.selectStep.bind(this)} />);
             }
         }
 
+        let pipelineName = "";
+        if (this.state.pipelineJson) {
+            pipelineName = this.state.pipelineJson.name;
+        }
+
+
+        let connections_list = [];
+        if (this.state.openedStep) {
+
+            let incoming_connections = this.state.steps[this.state.openedStep].incoming_connections;
+
+            for (var x = 0; x < incoming_connections.length; x++) {
+                connections_list[incoming_connections[x]] = [this.state.steps[incoming_connections[x]].title, this.state.steps[incoming_connections[x]].file_path]
+            }
+        }
+
+        let stepSelectorComponent = undefined;
+
+        if (this.state.stepSelector.active) {
+
+            let rect = this.getStepSelectorRectangle();
+
+            stepSelectorComponent = <div className="step-selector" style={{
+                width: rect.width,
+                height: rect.height,
+                left: rect.x,
+                top: rect.y
+            }}>
+            </div>;
+        }
+
         return <div className={"pipeline-view"}>
-            <div className={"pipeline-name"}>{this.props.name}</div>
-            <div className={"pipeline-actions"}>
+            <div className={"pane"}>
+                <div className={"pipeline-name"}>{pipelineName}</div>
+                <div className={"pipeline-actions"}>
 
-                <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
-                    <div className="mdc-button__ripple"></div>
-                    <i className="material-icons">power_settings_new</i>
-                </button>
+                    <button ref={"powerButton"} onClick={this.launchPipeline.bind(this)} className={this.getPowerButtonClasses()}>
+                        <div className="mdc-button__ripple"></div>
+                        <i className="material-icons">power_settings_new</i>
+                    </button>
 
-                <button ref={"newStepButton"} onClick={this.newStep.bind(this)} className="mdc-button mdc-button--raised">
-                    <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i>NEW STEP</span>
-                </button>
+                    <button ref={"newStepButton"} onClick={this.newStep.bind(this)} className="mdc-button mdc-button--raised">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>add</i>NEW STEP</span>
+                    </button>
 
-                <button ref={"encodeButton"} onClick={this.encodeJSON.bind(this)} className="mdc-button mdc-button--raised">
-                    <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label">SAVE</span>
-                </button>
+                    <button ref={"encodeButton"} onClick={this.savePipeline.bind(this)} className="mdc-button mdc-button--raised">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label">SAVE</span>
+                    </button>
 
 
-                <button ref={"settingsButton"} onClick={this.openSettings.bind(this)} className="mdc-button mdc-button--raised">
-                    <div className="mdc-button__ripple"></div>
-                    <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>settings_applications</i>Settings</span>
-                </button>
+                    <button ref={"settingsButton"} onClick={this.openSettings.bind(this)} className="mdc-button mdc-button--raised">
+                        <div className="mdc-button__ripple"></div>
+                        <span className="mdc-button__label"><i className={"material-icons mdc-button__icon"}>settings_applications</i>Settings</span>
+                    </button>
 
+                </div>
+                <div className="pipeline-steps-outer-holder" ref={"pipelineStepsOuterHolder"} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
+                    onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
+                >
+                    <div className={"pipeline-steps-holder"}
+
+                        ref={"pipelineStepsHolder"}
+                    >
+
+                        {stepSelectorComponent}
+
+                        {pipelineSteps}
+
+
+                    </div>
+
+
+                </div>
             </div>
 
-            <div className={"pipeline-steps-holder"} ref={"pipelineStepsHolder"}>
-
-                {pipelineSteps}
-
-                { (() => {
-                    if (this.state.selectedStep){
-                        return <PipelineDetails
-                            onDelete={this.onDetailsDelete.bind(this)}
-                            onNameUpdate={this.stepNameUpdate.bind(this)}
-                            onSave={this.onSaveDetails.bind(this)}
-                            onOpenNotebook={this.onOpenNotebook.bind(this)}
-                            step={this.state.steps[this.state.selectedStep]} />
-                    }
-                })() }
-            </div>
+            {(() => {
+                if (this.state.openedStep) {
+                    return <PipelineDetails
+                        onDelete={this.onDetailsDelete.bind(this)}
+                        onNameUpdate={this.stepNameUpdate.bind(this)}
+                        onSave={this.onSaveDetails.bind(this)}
+                        onClose={this.onCloseDetails.bind(this)}
+                        onOpenNotebook={this.onOpenNotebook.bind(this)}
+                        onRerunIncoming={this.onRerunIncoming.bind(this)}
+                        connections={connections_list}
+                        step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
+                }
+            })()}
         </div>;
     }
 }

@@ -1,0 +1,28 @@
+{
+    "cells": [
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": []
+        }
+    ],
+    "metadata": {
+        "kernelspec": {
+            "display_name": "R on Docker",
+            "language": "r",
+            "name": "r_docker"
+        },
+        "language_info": {
+            "codemirror_mode": "r",
+            "file_extension": ".r",
+            "mimetype": "text/x-r-source",
+            "name": "R",
+            "pygments_lexer": "r",
+            "version": "3.6.1"
+        }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 4
+}
