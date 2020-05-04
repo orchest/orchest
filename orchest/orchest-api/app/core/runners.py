@@ -1,9 +1,9 @@
 import asyncio
-from typing import Iterable
+from typing import Dict, Union
 
 from app import create_app
 from app.celery import make_celery
-from app.utils import construct_pipeline, PipelineDescription
+from app.utils import Pipeline, PipelineDescription
 from config import CONFIG_CLASS
 
 
@@ -12,9 +12,8 @@ celery = make_celery(create_app(CONFIG_CLASS))
 
 @celery.task(bind=True)
 def run_partial(self,
-                uuids: Iterable[str],
-                run_type: str,
-                pipeline_description: PipelineDescription) -> None:
+                pipeline_description: PipelineDescription,
+                run_config: Dict[str, Union[str, Dict[str, str]]]) -> None:
     """Runs a pipeline partially.
 
     A partial run is described by the pipeline description, selection of
@@ -38,9 +37,9 @@ def run_partial(self,
         run_type: one of ("full", "selection", "incoming").
         pipeline_description: a json description of the pipeline.
     """
-    # Get the pipeline to run according to the run_type.
-    pipeline = construct_pipeline(uuids, run_type, pipeline_description)
+    # Get the pipeline to run.
+    pipeline = Pipeline.from_json(pipeline_description)
 
     # Run the subgraph in parallel. And pass the id of the AsyncResult
     # object.
-    return asyncio.run(pipeline.run(self.request.id))
+    return asyncio.run(pipeline.run(self.request.id, run_config=run_config))
