@@ -25,12 +25,10 @@ class PipelineDetails extends React.Component {
     constructor(props) {
         super(props);
 
-        console.log(this);
-
         this.state = {
             "kernelOptions": [
-                ["docker_python", "Python 3"],
-                ["docker_r", "R"]
+                ["python", "Python 3"],
+                ["r", "R"]
             ],
             "imageOptions": [
                 ["jupyter/scipy-notebook", "jupyter/scipy-notebook"]
@@ -371,7 +369,7 @@ class PipelineDetails extends React.Component {
                     />
                 </div>
 
-                <div className="input-group">
+                {/* <div className="input-group">
                     <h3>Compute resources</h3>
 
                     <MDCSelectReact
@@ -407,7 +405,7 @@ class PipelineDetails extends React.Component {
                         onChange={this.onChangeMemory.bind(this)}
                         label="Memory (in MiB)"
                     />
-                </div>
+                </div> */}
 
                 <div className="input-group">
                     <h3>Experiment</h3>

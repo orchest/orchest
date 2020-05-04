@@ -14,5 +14,7 @@ def send_js(path):
     return send_from_directory('static', path)
 
 
-
 from orchest.views import index
+from orchest.proxy import proxy
+
+app.register_blueprint(proxy)

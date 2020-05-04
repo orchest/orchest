@@ -319,7 +319,7 @@ class PipelineView extends React.Component {
         });
 
         // get backend status
-        fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/launches/" + this.props.uuid, {
+        fetch("/api-proxy/api/launches/" + this.props.uuid, {
             method: "GET",
             cache: "no-cache",
             redirect: "follow",
@@ -476,7 +476,13 @@ class PipelineView extends React.Component {
             if (e.button === 0) {
 
                 if (!$(e.target).hasClass('connection-point')) {
-                    _this.selectedItem = _this.pipelineSteps[$(e.currentTarget).attr('data-uuid')];
+
+                    let stepUUID = $(e.currentTarget).attr('data-uuid');
+
+                    _this.selectedItem = _this.pipelineSteps[stepUUID];
+
+                    
+                    
                 }
                 _this.prevPosition = [e.clientX, e.clientY];
 
@@ -485,6 +491,9 @@ class PipelineView extends React.Component {
         });
 
         $(document).on("mouseup.initializePipeline", function (e) {
+
+            let dragOp = false;
+
             if (_this.selectedItem) {
                 // check if click should be triggered
 
@@ -492,7 +501,7 @@ class PipelineView extends React.Component {
 
                 // Saving pipeline step position on mouse release.
                 // two cases: moved selectedItem or moved this.state.selectedSteps
-                if (_this.state.selectedSteps.length > 0) {
+                if (_this.state.selectedSteps.length > 1) {
                     for (let key in _this.state.selectedSteps) {
                         let uuid = _this.state.selectedSteps[key];
                         _this.pipelineSteps[uuid].save();
@@ -501,9 +510,19 @@ class PipelineView extends React.Component {
                     _this.selectedItem.save();
                 }
 
-
                 if (!_this.selectedItem.dragged) {
+                    // also select this step only
                     _this.selectedItem.reactRef.props.onClick(_this.selectedItem.uuid);
+                    _this.selectStep(_this.selectedItem.uuid);
+
+                    // if(_this.state.selectedSteps.indexOf(stepUUID) === -1){
+                    //     // also make this item selected in PipelineView
+                    //     _this.setState({
+                    //         selectedSteps: [stepUUID]
+                    //     })
+                    // }
+                }else{
+                    dragOp = true;
                 }
 
                 _this.selectedItem.dragged = false;
@@ -552,13 +571,19 @@ class PipelineView extends React.Component {
                 _this.draggingPipeline = false;
             }
 
-
             // stepSelector
             _this.state.stepSelector.active = false;
             _this.setState({
                 stepSelector: _this.state.stepSelector
             });
 
+            // if single step is selected open pane
+            if(_this.state.selectedSteps.length == 1){
+                let selectedStep = _this.state.selectedSteps[0];
+                if(_this.state.openedStep !== selectedStep && !dragOp){
+                    _this.selectStep(selectedStep);
+                }
+            }
 
         });
 
@@ -612,9 +637,10 @@ class PipelineView extends React.Component {
             // Ctrl / Meta + S for saving pipeline
             if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                _this.encodeButton.activate();
-                _this.encodeButton.deactivate();
-                _this.refs.encodeButton.click();
+                // _this.encodeButton.activate();
+                // _this.encodeButton.deactivate();
+                // _this.refs.encodeButton.click();
+                // TODO: fix save button after React component swap
             }
 
             _this.keysDown[e.keyCode] = true;
@@ -654,23 +680,20 @@ class PipelineView extends React.Component {
         $(this.refs.pipelineStepsHolder).on('mousemove', function (e) {
 
             if (_this.selectedItem) {
+                
+                let delta = [e.clientX - _this.prevPosition[0], e.clientY - _this.prevPosition[1]];
 
                 _this.selectedItem.dragged = true;
 
-                let delta = [e.clientX - _this.prevPosition[0], e.clientY - _this.prevPosition[1]];
-
-                // if multiple steps are selected move all at the same time
-                if (_this.state.selectedSteps.length > 0) {
-
+                if(_this.state.selectedSteps.length > 1){
                     for (let key in _this.state.selectedSteps) {
                         let uuid = _this.state.selectedSteps[key];
-
+    
                         _this.pipelineSteps[uuid].x += delta[0];
                         _this.pipelineSteps[uuid].y += delta[1];
                         _this.pipelineSteps[uuid].render();
                     }
-
-                } else {
+                }else if(_this.selectedItem){
                     _this.selectedItem.x += delta[0];
                     _this.selectedItem.y += delta[1];
                     _this.selectedItem.render();
@@ -778,7 +801,7 @@ class PipelineView extends React.Component {
 
                     this.setState({ "backend": this.state.backend });
 
-                    fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/launches/", {
+                    fetch("/api-proxy/api/launches/", {
                         method: 'POST',
                         mode: 'cors',
                         cache: 'no-cache',
@@ -815,7 +838,7 @@ class PipelineView extends React.Component {
 
             this.state.backend.working = true;
 
-            fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/launches/" + this.props.uuid, {
+            fetch("/api-proxy/api/launches/" + this.props.uuid, {
                 method: 'DELETE',
                 mode: 'cors',
                 cache: 'no-cache',
@@ -839,6 +862,8 @@ class PipelineView extends React.Component {
 
     newStep() {
 
+        this.deselectSteps();
+
         let pipelineStepsHolderJEl = $(this.refs.pipelineStepsHolder);
 
         let step = {
@@ -851,9 +876,10 @@ class PipelineView extends React.Component {
                 "display_name": "Python 3"
             },
             "image": "jupyter/scipy-notebook",
-            "memory": "1024",
-            "vcpus": "1",
-            "gpus": "0",
+            // TODO: incorporate pipeline step level resource control
+            // "memory": "1024",
+            // "vcpus": "1",
+            // "gpus": "0",
             "experiment_json": "",
             "meta_data": {
                 "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height() / 2]
@@ -861,11 +887,9 @@ class PipelineView extends React.Component {
         };
 
         this.state.steps[step.uuid] = step;
-
         this.setState({ "steps": this.state.steps });
 
-        // TODO: selection mechanism on new step
-        // this.selectStep(step.uuid);
+        this.selectStep(step.uuid);
 
     }
 
@@ -874,14 +898,11 @@ class PipelineView extends React.Component {
             this.setState({ "openedStep": undefined });
         }
 
-        // always deselects other steps
-        this.deselectSteps();
-
-
         this.state.openedStep = pipelineStepUUID;
+        
         this.setState({
             openedStep: pipelineStepUUID,
-            selectedSteps: this.getSelectedSteps()
+            selectedSteps: [pipelineStepUUID]
         });
     }
 
@@ -984,7 +1005,7 @@ class PipelineView extends React.Component {
 
         if(this.state.runUuid){
 
-            fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/runs/" + this.state.runUuid, {
+            fetch("/api-proxy/api/runs/" + this.state.runUuid, {
                 method: 'GET',
                 mode: 'cors',
                 cache: 'no-cache',
@@ -1013,60 +1034,38 @@ class PipelineView extends React.Component {
 
     runStepUuids(uuids, type){
 
-        // get pipeline dir from webserver
-        fetch("/async/pipelines/get_directory/" + this.props.uuid, {
-            method: 'GET',
+        // store pipeline.json
+        let data = {
+            "uuids": uuids,
+            "run_type": type,
+            "pipeline_description": this.getPipelineJSON()
+        };
+        
+        fetch("/api-proxy/api/runs/", {
+            method: 'POST',
             mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             cache: 'no-cache',
             credentials: 'same-origin',
             redirect: 'follow', // manual, *follow, error
             referrer: 'no-referrer', // no-referrer, *client
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            body: JSON.stringify(data)
         }).then(handleErrors).then((response) => {
+            response.json().then((result) => {
 
-            response.json().then((json) => {
-                let piperline_dir = json.result;
+                this.parseRunStatuses(result);
 
-                // store pipeline.json
-                let data = {
-                    "uuids": uuids,
-                    "run_type": type,
-                    "pipeline_description": this.getPipelineJSON(),
-                    // "config": {
-                        // "pipeline_dir": piperline_dir
-                    // }
-                };
-                
-                fetch("http://" + orchest.config["ORCHEST_API_ADDRESS"] + "/api/runs/", {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    cache: 'no-cache',
-                    credentials: 'same-origin',
-                    redirect: 'follow', // manual, *follow, error
-                    referrer: 'no-referrer', // no-referrer, *client
-                    body: JSON.stringify(data)
-                }).then(handleErrors).then((response) => {
-                    response.json().then((result) => {
-
-                        this.parseRunStatuses(result);
-
-                        this.setState({
-                            runUuid: result.run_uuid
-                        });
-
-                        // initialize interval
-                        this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
-                    
-                    })
+                this.setState({
+                    runUuid: result.run_uuid
                 });
-            });
-        });
 
+                // initialize interval
+                this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
+            
+            })
+        });
     }
 
     onRunIncoming() {
@@ -1080,7 +1079,6 @@ class PipelineView extends React.Component {
 
         this.setState({ 
             "openedStep": undefined,
-            "selectedSteps": this.getSelectedSteps() 
         });
     }
 
@@ -1115,7 +1113,7 @@ class PipelineView extends React.Component {
         this.state.stepSelector.x2 = Number.MIN_VALUE;
         this.state.stepSelector.y2 = Number.MIN_VALUE;
         this.state.stepSelector.active = false;
-        
+
         this.setState({
             stepSelector: this.state.stepSelector,
             selectedSteps: this.getSelectedSteps()
@@ -1133,27 +1131,28 @@ class PipelineView extends React.Component {
         let selectedSteps = [];
 
         // for each step perform intersect
-        for (let uuid in this.state.steps) {
-            if (this.state.steps.hasOwnProperty(uuid)) {
-                let step = this.state.steps[uuid];
-                let stepDom = $(this.refs[uuid].refs.container);
-
-                let stepRect = {
-                    x: step.meta_data.position[0],
-                    y: step.meta_data.position[1],
-                    width: stepDom.outerWidth(),
-                    height: stepDom.outerHeight()
-                }
-
-                if (intersectRect(rect, stepRect)) {
-                    selectedSteps.push(uuid);
+        if(this.state.stepSelector.active){
+            for (let uuid in this.state.steps) {
+                if (this.state.steps.hasOwnProperty(uuid)) {
+                    let step = this.state.steps[uuid];
+    
+                    // guard against ref existing, in case step is being added
+                    if(this.refs[uuid]){
+                        let stepDom = $(this.refs[uuid].refs.container);
+    
+                        let stepRect = {
+                            x: step.meta_data.position[0],
+                            y: step.meta_data.position[1],
+                            width: stepDom.outerWidth(),
+                            height: stepDom.outerHeight()
+                        }
+        
+                        if (intersectRect(rect, stepRect)) {
+                            selectedSteps.push(uuid);
+                        }
+                    }
                 }
             }
-        }
-
-        // always add opened step to selected steps
-        if(this.state.openedStep && selectedSteps.indexOf(this.state.openedStep) === -1){
-            selectedSteps.push(this.state.openedStep);
         }
 
         return selectedSteps;
@@ -1174,7 +1173,7 @@ class PipelineView extends React.Component {
             })
         }
 
-        if (this.draggingPipeline) {
+        if (this.draggingPipeline) { 
 
             let dx = e.nativeEvent.movementX;
             let dy = e.nativeEvent.movementY;

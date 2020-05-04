@@ -12,7 +12,7 @@
   "kernelspec": {
    "display_name": "Python on Docker",
    "language": "python",
-   "name": "python_docker"
+   "name": "{kernel_name}"
   },
   "language_info": {
    "codemirror_mode": {

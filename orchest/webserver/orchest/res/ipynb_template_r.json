@@ -12,7 +12,7 @@
         "kernelspec": {
             "display_name": "R on Docker",
             "language": "r",
-            "name": "r_docker"
+            "name": "{kernel_name}"
         },
         "language_info": {
             "codemirror_mode": "r",

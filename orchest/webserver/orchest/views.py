@@ -1,17 +1,39 @@
 from orchest import app, db
 from flask import render_template, request, jsonify
-from .models import AlchemyEncoder, Pipeline
+from orchest.models import AlchemyEncoder, Pipeline
 from distutils.dir_util import copy_tree
+from orchest.proxy import proxy_request
 
 import shutil
 import json
 import os
 import uuid
 import pdb
+import requests
+
 
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
+
+
+@app.route("/catch/api-proxy/api/runs/", methods=["POST"])
+def catch_api_proxy_runs(pipeline_id):
+
+    json_obj = request.json
+
+    # add image mapping
+    # TODO: replace with dynamic mapping instead of hardcoded
+    image_mapping = {
+        "jupyter/scipy-notebook": "scipy-notebook-runnable"
+    }
+
+    json_obj['runnable_image_mapping'] = image_mapping
+
+    resp = requests.post(
+        app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
+
+    return resp.raw.read(), resp.status_code, resp.headers.items()
 
 
 @app.route("/async/pipelines/delete/<pipeline_id>", methods=["POST"])
@@ -21,7 +43,11 @@ def pipelines_delete(pipeline_id):
 
     # also delete directory
     pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
-    shutil.rmtree(pipeline_dir)
+
+    # TODO: find way to not force sudo remove on pipeline dirs
+    # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
+    if len(pipeline_dir) > 36:
+        os.system("sudo rm -rf %s", (pipeline_dir))
 
     db.session.delete(pipeline)
     db.session.commit()
@@ -45,32 +71,32 @@ def pipelines_create():
 
     # populate pipeline directory with kernels
 
-    ## copy directories
+    # copy directories
     fromDirectory = os.path.join(app.config['RESOURCE_DIR'], "kernels/")
     toDirectory = os.path.join(pipeline_dir, ".kernels/")
 
     copy_tree(fromDirectory, toDirectory)
 
-    ## replace variables in kernel.json files
-    kernel_folders = [ f.path for f in os.scandir(toDirectory) if f.is_dir() ]
+    # replace variables in kernel.json files
+    kernel_folders = [f.path for f in os.scandir(toDirectory) if f.is_dir()]
 
     for kernel_folder in kernel_folders:
         kernel_json_file = os.path.join(kernel_folder, "kernel.json")
         if os.path.isfile(kernel_json_file):
             with open(kernel_json_file, 'r') as file:
                 data = file.read().replace('{host_pipeline_dir}', pipeline_dir)
-                data = data.replace('{orchest_api_address}', app.config['ORCHEST_API_ADDRESS'])
+                data = data.replace('{orchest_api_address}',
+                                    app.config['ORCHEST_API_ADDRESS'])
 
             with open(kernel_json_file, 'w') as file:
                 file.write(data)
-
 
     # generate clean pipeline.json
 
     pipeline_json = {
         "name": pipeline.name,
         "uuid": pipeline.uuid,
-        "version": "1.0.0" 
+        "version": "1.0.0"
     }
 
     with open(os.path.join(pipeline_dir, "pipeline.json"), 'w') as pipeline_json_file:
@@ -114,7 +140,8 @@ def pipelines_get_single(url_uuid):
     pipeline = Pipeline.query.filter_by(uuid=url_uuid).first()
 
     if pipeline:
-        json_string = json.dumps({"success": True, "result": pipeline}, cls=AlchemyEncoder)
+        json_string = json.dumps(
+            {"success": True, "result": pipeline}, cls=AlchemyEncoder)
         return json_string, 200, {'content-type': 'application/json'}
     else:
         return "", 404
@@ -129,9 +156,11 @@ def get_frontend_config():
 
     return json_string, 200, {'content-type': 'application/json'}
 
+
 @app.route("/async/pipelines/get_directory/<string:url_uuid>", methods=["GET"])
 def pipelines_get_directory(url_uuid):
-    json_string = json.dumps({"success": True, "result": get_pipeline_directory_by_uuid(url_uuid)}, cls=AlchemyEncoder)
+    json_string = json.dumps({"success": True, "result": get_pipeline_directory_by_uuid(
+        url_uuid)}, cls=AlchemyEncoder)
     return json_string, 200, {'content-type': 'application/json'}
 
 
@@ -140,13 +169,15 @@ def pipelines_get():
 
     pipelines = Pipeline.query.all()
 
-    json_string = json.dumps({"success": True, "result": pipelines}, cls=AlchemyEncoder)
+    json_string = json.dumps(
+        {"success": True, "result": pipelines}, cls=AlchemyEncoder)
     return json_string, 200, {'content-type': 'application/json'}
 
 
 def get_pipeline_directory_by_uuid(uuid):
 
-    pipeline_dir = os.path.join(app.config['ROOT_DIR'], "userdir/pipelines/" + uuid)
+    pipeline_dir = os.path.join(
+        app.config['ROOT_DIR'], "userdir/pipelines/" + uuid)
 
     # create pipeline dir if it doesn't exist
     os.makedirs(pipeline_dir, exist_ok=True)
@@ -158,12 +189,14 @@ def generate_ipynb_from_template(step):
 
     # TODO: support additional languages to Python and R
     if "python" in step["kernel"]["name"].lower():
-        template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
+        template_json = json.load(
+            open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
     else:
-        template_json = json.load(open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template_r.json"), "r"))
+        template_json = json.load(
+            open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template_r.json"), "r"))
 
     template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"]["display_name"]
-    template_json["metadata"]["kernelspec"]["name"] = step["kernel"]["name"]
+    template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(step['image'], step["kernel"]["name"])
 
     return json.dumps(template_json)
 
@@ -172,11 +205,12 @@ def create_pipeline_files(pipeline_json):
 
     pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
 
-    # currently, we check per step whether the file exists. If not, we create it (empty by default).
-    # In case the file has an .ipynb extension we generate the file from a template with a kernel based on the
-    # kernel description in the JSON step.
+    # Currently, we check per step whether the file exists. 
+    # If not, we create it (empty by default).
+    # In case the file has an .ipynb extension we generate the file from a 
+    # template with a kernel based on the kernel description in the JSON step.
 
-    # iterate over steps
+    # Iterate over steps
     steps = pipeline_json["steps"].keys()
 
     for key in steps:
@@ -202,18 +236,58 @@ def create_pipeline_files(pipeline_json):
 @app.route("/async/pipelines/json/save", methods=["POST"])
 def pipelines_json_save():
 
-    pipeline_directory = get_pipeline_directory_by_uuid(request.form.get("pipeline_uuid"))
-
-    # TODO: think properly about how to generate the pipeline files
+    pipeline_directory = get_pipeline_directory_by_uuid(
+        request.form.get("pipeline_uuid"))
 
     # parse JSON
     pipeline_json = json.loads(request.form.get("pipeline_json"))
     create_pipeline_files(pipeline_json)
 
+    # side effect: for each Notebook in de pipeline.json set the correct kernel
+    pipeline_set_notebook_kernels(pipeline_json)
+
     with open(os.path.join(pipeline_directory, "pipeline.json"), "w") as json_file:
         json_file.write(json.dumps(pipeline_json))
 
     return jsonify({"success": True})
+
+
+def generate_gateway_kernel_name(image, kernel):
+    base_image = image
+    # derive gateway kernel from kernel + image name
+    # (dynamic instead of hardcoded mapping for now)
+    # base image: i.e. jupyter/scipy-notebook gets reduced to scipy-notebook
+    if "/" in base_image:
+        base_image = base_image.split("/")[-1]
+
+    return base_image + "_docker_" + kernel
+
+
+def pipeline_set_notebook_kernels(pipeline_json):
+
+    # for each step set correct notebook kernel if it exists
+    pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
+
+    steps = pipeline_json["steps"].keys()
+
+    for key in steps:
+        step = pipeline_json["steps"][key]
+
+        if "ipynb" == step["file_path"].split(".")[-1]:
+
+            gateway_kernel = generate_gateway_kernel_name(step['image'], step['kernel']['name'])
+
+            notebook_path = os.path.join(pipeline_directory, step["file_path"])
+
+            notebook_json = None
+
+            with open(notebook_path, "r") as file:
+                notebook_json = json.load(file)
+
+            notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+
+            with open(notebook_path, "w") as file:
+                file.write(json.dumps(notebook_json))
 
 
 def get_experiment_args_from_pipeline_json(pipeline_json):
@@ -246,7 +320,8 @@ def pipelines_json_experiments_get(pipeline_uuid):
 
             pipeline_json = json.load(json_file)
 
-            experiment_args = get_experiment_args_from_pipeline_json(pipeline_json)
+            experiment_args = get_experiment_args_from_pipeline_json(
+                pipeline_json)
 
             return jsonify({"success": True, "experiment_args": experiment_args})
 
