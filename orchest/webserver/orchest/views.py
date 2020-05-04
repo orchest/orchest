@@ -69,7 +69,8 @@ def pipelines_create():
 
     pipeline_json = {
         "name": pipeline.name,
-        "uuid": pipeline.uuid
+        "uuid": pipeline.uuid,
+        "version": "1.0.0" 
     }
 
     with open(os.path.join(pipeline_dir, "pipeline.json"), 'w') as pipeline_json_file:
