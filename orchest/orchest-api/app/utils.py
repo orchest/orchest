@@ -1,5 +1,6 @@
 import asyncio
 import copy
+from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, TypedDict
 
 import aiodocker
@@ -29,7 +30,7 @@ class PipelineDescription(TypedDict):
 def construct_pipeline(uuids: Iterable[str],
                        run_type: str,
                        pipeline_description: PipelineDescription,
-                       config: Optional[Dict] = None) -> 'Pipeline':
+                       **kwargs) -> 'Pipeline':
     """Constructs a pipeline from a description with selection criteria.
 
     Based on the run type and selection of UUIDs, constructs the
@@ -89,6 +90,10 @@ async def update_status(status: str,
                         uuid: Optional[str] = None) -> Any:
     """Updates status of step via the orchest-api."""
     data = {'status': status}
+    if data['status'] == 'STARTED':
+        data['started_time'] = datetime.utcnow().isoformat()
+    elif data['status'] in ['SUCCESS', 'FAILURE']:
+        data['ended_time'] = datetime.utcnow().isoformat()
 
     base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/runs/{task_id}'
     if type == 'step':
@@ -135,7 +140,9 @@ class PipelineStepRunner:
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
                             session: aiohttp.ClientSession,
-                            task_id: str) -> Optional[str]:
+                            task_id: str,
+                            *,
+                            run_config: Dict[str, Any]) -> Optional[str]:
         """Runs the container image defined in the step's properties.
 
         Running is done asynchronously.
@@ -154,18 +161,14 @@ class PipelineStepRunner:
         # NOTE: Passing the UUID as a configuration parameter does not
         # get used by the docker_client. However, we use it for testing
         # to check whether the resolve order of the pipeline is correct.
-
-        # TODO: mounts etc. and run correct image.
-        # TODO: The image? Is it put in the pipeline.json? Is it hardcoded
-        #       to be the pipeline-step-runner?
-        PIPELINE_DIR: str = "/home/rick/workspace/orchest/orchest/webserver/instance/../../userdir/pipelines/c42fba4a-7908-4f0a-b587-9530347aa0f2"
-
+        pipeline_dir: str = run_config['pipeline_dir']
+        image: str = run_config['runnable_image_mapping'][self.properties['image']]
         config = {
-            'Image': "pipeline-step-runner",
+            'Image': image,
             'Env': [f'STEP_UUID="{self.properties["uuid"]}"'],
-            'HostConfig': {'Binds': [f'{PIPELINE_DIR}:/notebooks']},
+            'HostConfig': {'Binds': [f'{pipeline_dir}:/notebooks']},
             'Cmd': [self.properties['file_path']],
-            'uuid': self.properties['uuid']
+            'tests-uuid': self.properties['uuid']
         }
 
         # Starts the container asynchronously, however, it does not wait
@@ -175,7 +178,7 @@ class PipelineStepRunner:
         try:
             container = await docker_client.containers.run(config=config)
         except Exception as e:
-            print(e)
+            print('Exception', e)
 
         # TODO: error handling?
         self._status = 'STARTED'
@@ -199,10 +202,13 @@ class PipelineStepRunner:
 
         return self._status
 
-    async def run_children_on_docker(self,
-                                     docker_client: aiodocker.Docker,
-                                     session: aiohttp.ClientSession,
-                                     task_id: str) -> Optional[str]:
+    async def run_children_on_docker(
+            self,
+            docker_client: aiodocker.Docker,
+            session: aiohttp.ClientSession,
+            task_id: str,
+            *,
+            run_config: Dict[str, Any]) -> Optional[str]:
         """Runs all children steps after running itself.
 
         A child run is only started if the step itself has successfully
@@ -214,7 +220,8 @@ class PipelineStepRunner:
         # NOTE: construction for sentinel since it cannot run itself (it
         # is empty).
         if self.properties:
-            status = await self.run_on_docker(docker_client, session, task_id)
+            status = await self.run_on_docker(docker_client, session, task_id,
+                                              run_config=run_config)
         else:
             status = 'SUCCESS'
 
@@ -223,7 +230,8 @@ class PipelineStepRunner:
             tasks = []
             for child in self._children:
                 task = child.run_children_on_docker(
-                    docker_client, session, task_id)
+                    docker_client, session, task_id,
+                    run_config=run_config)
                 tasks.append(asyncio.create_task(task))
 
             res = await asyncio.gather(*tasks)
@@ -267,6 +275,8 @@ class PipelineStep(PipelineStepRunner):
                   runner_client: aiodocker.Docker,
                   session: aiohttp.ClientSession,
                   task_id: str,
+                  *,
+                  run_config: Dict[str, Any],
                   compute_backend: str = 'docker') -> None:
         """Runs the `PipelineStep` on the given compute backend.
 
@@ -276,7 +286,8 @@ class PipelineStep(PipelineStepRunner):
         """
         # run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
         run_func = getattr(self, f'run_children_on_{compute_backend}')
-        return await run_func(runner_client, session, task_id)
+        return await run_func(runner_client, session, task_id,
+                              run_config=run_config)
 
     def __eq__(self, other) -> bool:
         # NOTE: steps get a UUID and are always only identified with the
@@ -310,6 +321,7 @@ class Pipeline:
         # TODO: we want to be able to serialize a Pipeline back to a json
         #       file. Therefore we would need to store the Pipeline name
         #       and UUID from the json first.
+        self.properties: Dict[str, str] = {}
 
         # See the sentinel property for explanation.
         self._sentinel: Optional[PipelineStep] = None
@@ -336,7 +348,20 @@ class Pipeline:
                 step.parents.append(steps[uuid])
                 steps[uuid]._children.append(step)
 
-        return cls(list(steps.values()))
+        pipeline = cls(list(steps.values()))
+        pipeline.properties = {
+            'name': description['name'],
+            'uuid': description['uuid']
+        }
+        return pipeline
+
+    def to_dict(self) -> PipelineDescription:
+        description: PipelineDescription = {'steps': {}}
+        for step in self.steps:
+            description['steps'][step.properties['uuid']] = step.properties
+
+        description.update(self.properties)
+        return description
 
     @property
     def sentinel(self) -> PipelineStep:
@@ -484,7 +509,10 @@ class Pipeline:
 
         return Pipeline(steps=list(steps_to_be_included))
 
-    async def run(self, task_id: str) -> None:
+    async def run(self,
+                  task_id: str,
+                  *,
+                  run_config: Dict[str, Any]) -> None:
         """Runs the Pipeline asynchronously.
 
         TODO:
@@ -501,8 +529,8 @@ class Pipeline:
             await update_status('STARTED', task_id, session, type='pipeline')
 
             status = await self.sentinel.run(
-                runner_client, session,
-                task_id, compute_backend='docker')
+                runner_client, session, task_id,
+                run_config=run_config, compute_backend='docker')
 
             # NOTE: the status of a pipeline is always success once it is
             # done executing. Errors in steps are reflected by the status

@@ -26,6 +26,9 @@ step_status = api.model('Pipeline Step', {
     'started_time': fields.String(
         required=True,
         description='Time at which the step was started'),
+    'ended_time': fields.String(
+        required=True,
+        description='Time at which the step ended execution'),
 })
 
 status_update = api.model('Status Update', {
@@ -35,6 +38,8 @@ status_update = api.model('Status Update', {
         enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
 })
 
+# TODO: The fields.Raw have to be replaced later. But since we are still
+#       actively chaning this. It is a waste of time to do it now.
 run_configuration = api.model('Run Configuration', {
     'uuids': fields.List(
         fields.String(),
@@ -46,7 +51,10 @@ run_configuration = api.model('Run Configuration', {
         enum=['full', 'selection', 'incoming']),
     'pipeline_description': fields.Raw(
         required=True,
-        description='Pipeline definition in JSON')
+        description='Pipeline definition in JSON'),
+    'run_config': fields.Raw(  # TODO: must be pipeline_dir and mapping
+        required=True,
+        description='Configuration for compute backend')
 })
 
 run = api.model('Run', {
@@ -88,13 +96,22 @@ class RunList(Resource):
         """Start a new run."""
         post_data = request.get_json()
 
-        # Create Celery object with the Flask context.
+        # Construct pipeline.
+        pipeline = construct_pipeline(**post_data)
+
+        # Create Celery object with the Flask context and construct the
+        # kwargs for the job.
         celery = make_celery(current_app)
+        celery_job_kwargs = {
+            'pipeline_description': pipeline.to_dict(),
+            'run_config': post_data['run_config']
+        }
 
         # Start the run as a background task on Celery. Due to circular
         # imports we send the task by name instead of importing the
         # function directly.
-        res = celery.send_task('app.core.runners.run_partial', kwargs=post_data)
+        res = celery.send_task('app.core.runners.run_partial',
+                               kwargs=celery_job_kwargs)
 
         # NOTE: this is only if a backend is configured.
         # The task does not return anything. Therefore we can forget its
@@ -108,14 +125,13 @@ class RunList(Resource):
         # "rpc://" does not give the results we would want).
         run = {
            'run_uuid': res.id,
-           'pipeline_uuid': post_data['pipeline_description']['uuid'],
+           'pipeline_uuid': pipeline.properties['uuid'],
            'status': 'PENDING',
         }
         db.session.add(models.Run(**run))
 
         # Set an initial value for the status of the pipline steps that
         # will be run.
-        pipeline = construct_pipeline(**post_data)
         step_uuids = [s.properties['uuid'] for s in pipeline.steps]
 
         step_statuses = []
@@ -210,13 +226,12 @@ class StepStatus(Resource):
         # TODO: first check the status and make sure it says PENDING or
         #       whatever. Because if is empty then this would write it
         #       and then get overwritten afterwards with "PENDING".
-        # TODO: Obviously this is not the most correct place to set the
-        #       time of when the task has started. This should be done
-        #       in the app.core.runners when the self._status is set to
-        #       STARTED.
+        # TODO: Im sure this can be done cleaner.
         update_data = post_data
         if update_data['status'] == 'STARTED':
-            update_data['started_time'] = datetime.utcnow()
+            update_data['started_time'] = datetime.fromisoformat(update_data['started_time'])
+        elif update_data['status'] in ['SUCCESS', 'FAILURE']:
+            update_data['ended_time'] = datetime.fromisoformat(update_data['ended_time'])
 
         res = models.StepStatus.query.filter_by(
             run_uuid=run_uuid, step_uuid=step_uuid

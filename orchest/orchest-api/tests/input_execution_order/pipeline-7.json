@@ -1,5 +1,6 @@
 {
     "name": "pipeline-name",
+    "uuid": "pipeline-uuid",
     "correct_execution_order": [
         "uuid-2",
         "uuid-3",
@@ -13,49 +14,43 @@
             "incoming_connections": [],
             "name": "step-1",
             "uuid": "uuid-1",
-            "image": {
-                "image_name": 3
-            }
+            "file_path": "",
+            "image": 3
         },
         "uuid-2": {
             "incoming_connections": [],
             "name": "step-2",
             "uuid": "uuid-2",
-            "image": {
-                "image_name": 0
-            }
+            "file_path": "",
+            "image": 0
         },
         "uuid-3": {
             "incoming_connections": [],
             "name": "step-3",
             "uuid": "uuid-3",
-            "image": {
-                "image_name": 1
-            }
+            "file_path": "",
+            "image": 1
         },
         "uuid-4": {
             "incoming_connections": ["uuid-1", "uuid-2", "uuid-3"],
             "name": "step-4",
             "uuid": "uuid-4",
-            "image": {
-                "image_name": 3
-            }
+            "file_path": "",
+            "image": 3
         },
         "uuid-5": {
             "incoming_connections": ["uuid-3", "uuid-2"],
             "name": "step-5",
             "uuid": "uuid-5",
-            "image": {
-                "image_name": 1
-            }
+            "file_path": "",
+            "image": 1
         },
         "uuid-6": {
             "incoming_connections": ["uuid-5"],
             "name": "step-6",
             "uuid": "uuid-6",
-            "image": {
-                "image_name": 2
-            }
+            "file_path": "",
+            "image": 2
         }
     }
 }

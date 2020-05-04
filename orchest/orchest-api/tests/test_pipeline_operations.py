@@ -13,8 +13,8 @@ import unittest
 
 import pytest
 
-from app.core import runners
-from app.core.runners import Pipeline
+from app import utils
+from app.utils import Pipeline
 
 
 @pytest.fixture
@@ -104,11 +104,20 @@ def test_pipeline_incoming(pipeline):
     assert steps['step-6'].parents == []
 
 
+@pytest.mark.skip(reason='Wait until pipeline.run() takes a config arg')
 def test_pipeline_run_with_docker_containers(pipeline, monkeypatch):
     async def mockreturn_update_status(*args, **kwargs):
         return
 
-    monkeypatch.setattr(runners, 'update_status', mockreturn_update_status)
+    monkeypatch.setattr(utils, 'update_status', mockreturn_update_status)
 
+    # TODO: the pipeline.run will take a config. This config then also
+    #       contains a mapping that specifies what image to use.
     filler_for_task_id = '1'
-    asyncio.run(pipeline.run(filler_for_task_id))
+    run_config = {
+        'pipeline_dir': None,
+        'runnable_image_mapping': {
+            'hello-world': 'hello-world'
+        }
+    }
+    asyncio.run(pipeline.run(filler_for_task_id, run_config=run_config))

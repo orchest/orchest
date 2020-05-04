@@ -13,8 +13,8 @@ import json
 from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
 
-from app.core import runners
-from app.core.runners import Pipeline
+from app import utils
+from app.utils import Pipeline
 
 
 class IO:
@@ -61,7 +61,7 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         # It gets the config that get's passed to the
         # `aiodocker.Docker().containers.run(config=config)`
         mock_class = MockDockerContainer(kwargs['config']['Image'],
-                                         kwargs['config']['uuid'],
+                                         kwargs['config']['tests-uuid'],
                                          execution_order)
 
         return mock_class
@@ -74,9 +74,15 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     execution_order = []
 
     monkeypatch.setattr(DockerContainers, 'run', mockreturn_run)
-    monkeypatch.setattr(runners, 'update_status', mockreturn_update_status)
+    monkeypatch.setattr(utils, 'update_status', mockreturn_update_status)
 
     filler_for_task_id = '1'
-    asyncio.run(testio.pipeline.run(filler_for_task_id))
+    run_config = {
+        'pipeline_dir': None,
+        'runnable_image_mapping': {
+            0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9
+        }
+    }
+    asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
     assert execution_order == testio.correct_execution_order
