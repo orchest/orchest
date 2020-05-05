@@ -225,8 +225,9 @@ class PipelineStepRunner:
         else:
             status = 'SUCCESS'
 
-        # If the task ran successfully then also try to run its children.
         if status == 'SUCCESS':
+            # If the task ran successfully then also try to run its
+            # children.
             tasks = []
             for child in self._children:
                 task = child.run_children_on_docker(
@@ -235,6 +236,21 @@ class PipelineStepRunner:
                 tasks.append(asyncio.create_task(task))
 
             res = await asyncio.gather(*tasks)
+
+        else:
+            # The task did not run successfully, thus all its children
+            # will be aborted.
+            all_children = set()
+            traversel = self._children.copy()
+            while traversel:
+                child = traversel.pop()
+                if child not in all_children:
+                    all_children.add(child)
+                    traversel.extend(child._children)
+
+            for child in all_children:
+                await update_status('ABORTED', task_id, session, type='step',
+                                    uuid=self.properties['uuid'])
 
         # If one of the children turns out to fail, then we say the step
         # itself has failed. Because we start by calling the sentinel node

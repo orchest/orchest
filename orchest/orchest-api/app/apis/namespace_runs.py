@@ -22,7 +22,7 @@ step_status = api.model('Pipeline Step', {
     'status': fields.String(
         required=True,
         description='Status of the step',
-        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
+        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
     'started_time': fields.String(
         required=True,
         description='Time at which the step was started'),
@@ -35,7 +35,7 @@ status_update = api.model('Status Update', {
     'status': fields.String(
         required=True,
         description='New status of the step',
-        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'REVOKED']),
+        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
 })
 
 # TODO: The fields.Raw have to be replaced later. But since we are still
