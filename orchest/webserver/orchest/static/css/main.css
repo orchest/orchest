@@ -669,7 +669,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-u01a3ced9 {
+@keyframes mdc-checkbox-fade-in-background-ud715f636 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -681,7 +681,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-u01a3ced9 {
+@keyframes mdc-checkbox-fade-out-background-ud715f636 {
   0%,
   80% {
     border-color: #0a6df7;
@@ -695,10 +695,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u01a3ced9; }
+  animation-name: mdc-checkbox-fade-in-background-ud715f636; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u01a3ced9; }
+  animation-name: mdc-checkbox-fade-out-background-ud715f636; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1444,7 +1444,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-u8bb50c61 {
+@keyframes mdc-checkbox-fade-in-background-u1deb5372 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1456,7 +1456,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-u8bb50c61 {
+@keyframes mdc-checkbox-fade-out-background-u1deb5372 {
   0%,
   80% {
     border-color: #000000;
@@ -1472,12 +1472,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u8bb50c61; }
+  animation-name: mdc-checkbox-fade-in-background-u1deb5372; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u8bb50c61; }
+  animation-name: mdc-checkbox-fade-out-background-u1deb5372; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7374,12 +7374,20 @@ body {
   padding: 0;
   margin: 0; }
 
+.mdc-drawer__content {
+  position: relative; }
+
 h1 {
   font-family: "Sofia Pro", sans-serif;
-  font-weight: 400; }
+  font-weight: 400;
+  position: absolute;
+  bottom: 0;
+  width: 100%; }
 
 .view-page {
   padding: 30px; }
+  .view-page h2 {
+    padding-bottom: 20px; }
 
 aside.mdc-drawer {
   width: 325px;
@@ -7598,8 +7606,12 @@ h2.header {
         color: #666;
         opacity: 1;
         border-radius: 0 0 6px 6px; }
-        .pipeline-view .pipeline-steps-holder .pipeline-step .execution-indicator span {
+        .pipeline-view .pipeline-steps-holder .pipeline-step .execution-indicator span.success {
           color: #16bd43; }
+        .pipeline-view .pipeline-steps-holder .pipeline-step .execution-indicator span.failure {
+          color: red; }
+        .pipeline-view .pipeline-steps-holder .pipeline-step .execution-indicator span.aborted {
+          color: orange; }
       .pipeline-view .pipeline-steps-holder .pipeline-step.running .execution-indicator {
         background: #0a6df7;
         color: #fff; }

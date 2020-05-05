@@ -18,7 +18,7 @@ def index():
 
 
 @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
-def catch_api_proxy_runs(pipeline_id):
+def catch_api_proxy_runs():
 
     json_obj = request.json
 
@@ -28,10 +28,13 @@ def catch_api_proxy_runs(pipeline_id):
         "jupyter/scipy-notebook": "scipy-notebook-runnable"
     }
 
-    json_obj['runnable_image_mapping'] = image_mapping
+    json_obj['run_config'] = {
+        'runnable_image_mapping': image_mapping,
+        'pipeline_dir': get_pipeline_directory_by_uuid(json_obj['pipeline_description']['uuid'])
+    }
 
     resp = requests.post(
-        app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
+        "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
 
     return resp.raw.read(), resp.status_code, resp.headers.items()
 
@@ -47,7 +50,7 @@ def pipelines_delete(pipeline_id):
     # TODO: find way to not force sudo remove on pipeline dirs
     # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
     if len(pipeline_dir) > 36:
-        os.system("sudo rm -rf %s", (pipeline_dir))
+        os.system("sudo rm -rf %s" % (pipeline_dir))
 
     db.session.delete(pipeline)
     db.session.commit()

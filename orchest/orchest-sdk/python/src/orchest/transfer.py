@@ -16,17 +16,17 @@ class TransferInterface(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def send(self, data):
+    def send(self, data, verbose=False):
         "Send output through step_uuid"
 
     @abc.abstractmethod
-    def receive(self):
+    def receive(self, verbose=False):
         "Receive input through step_uuid"
 
 
 class DiskTransfer(TransferInterface):
 
-    def send(self, pipeline, step_uuid, data):
+    def send(self, pipeline, step_uuid, data, verbose=False):
 
         step_data_dir = ".data/%s" % (step_uuid)
         if not os.path.isdir(step_data_dir):
@@ -35,9 +35,10 @@ class DiskTransfer(TransferInterface):
         with open(os.path.join(step_data_dir, "%s.pickle") % (step_uuid,), 'wb') as handle:
             pickle.dump(data, handle)
 
-        print("Saving %s to step_uuid %s" % (data, step_uuid))
+        if verbose:
+            print("Saving %s to step_uuid %s" % (data, step_uuid))
 
-    def receive(self, pipeline, step_uuid):
+    def receive(self, pipeline, step_uuid, verbose=False):
 
         step_data_dir = ".data/%s" % (step_uuid)
 
@@ -56,9 +57,9 @@ class DiskTransfer(TransferInterface):
                     d = pickle.load(handle)
                     data.append(d)
 
-        
-        print("Received inputs from steps %s" % 
-            (pipeline.steps[step_uuid].properties["incoming_connections"],))
+        if verbose:
+            print("Received inputs from steps %s" % 
+                (pipeline.steps[step_uuid].properties["incoming_connections"],))
 
         return data
 
@@ -128,19 +129,19 @@ def get_json(url):
         print(e)
 
 
-def send(data):
+def send(data, **kwargs):
 
     pipeline = Pipeline()
     step_uuid = get_step_uuid(pipeline)
 
     transferer = DiskTransfer()
-    transferer.send(pipeline, step_uuid, data)
+    transferer.send(pipeline, step_uuid, data, **kwargs)
 
 
-def receive():
+def receive(**kwargs):
 
     pipeline = Pipeline()
     step_uuid = get_step_uuid(pipeline)
 
     transferer = DiskTransfer()
-    return transferer.receive(pipeline, step_uuid)
+    return transferer.receive(pipeline, step_uuid, **kwargs)

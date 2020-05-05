@@ -255,7 +255,7 @@ class PipelineView extends React.Component {
         super(props);
 
         // class constants
-        this.STATUS_POLL_FREQUENCY = 5000;
+        this.STATUS_POLL_FREQUENCY = 1000;
 
         this.selectedItem = undefined;
         this.selectedConnection = undefined;
@@ -285,6 +285,7 @@ class PipelineView extends React.Component {
                 x2: 0,
                 y2: 0,
             },
+            pipelineRunning: false,
             stepExecutionState: {},
             steps: {},
             backend: {
@@ -572,18 +573,22 @@ class PipelineView extends React.Component {
             }
 
             // stepSelector
+
+            if(_this.state.stepSelector.active){
+                // if single step is selected open pane
+                if(_this.state.selectedSteps.length == 1){
+                    let selectedStep = _this.state.selectedSteps[0];
+                    if(_this.state.openedStep !== selectedStep && !dragOp){
+                        _this.selectStep(selectedStep);
+                    }
+                }
+            }
             _this.state.stepSelector.active = false;
             _this.setState({
                 stepSelector: _this.state.stepSelector
             });
 
-            // if single step is selected open pane
-            if(_this.state.selectedSteps.length == 1){
-                let selectedStep = _this.state.selectedSteps[0];
-                if(_this.state.openedStep !== selectedStep && !dragOp){
-                    _this.selectStep(selectedStep);
-                }
-            }
+            
 
         });
 
@@ -996,7 +1001,19 @@ class PipelineView extends React.Component {
         }
 
         for(let x = 0; x < result.step_statuses.length; x++){
-            this.setStepExecutionState(result.step_statuses[x].step_uuid, {status: result.step_statuses[x].status, time: new Date(result.step_statuses[x].started_time)})
+
+            // ended_time takes priority over started_time
+            let started_time = undefined;
+            let ended_time = undefined;
+
+            if(result.step_statuses[x].started_time){
+                started_time = new Date(result.step_statuses[x].started_time + " GMT")
+            }
+            if(result.step_statuses[x].ended_time){
+                ended_time = new Date(result.step_statuses[x].ended_time + " GMT")
+            }
+            
+            this.setStepExecutionState(result.step_statuses[x].step_uuid, {status: result.step_statuses[x].status, started_time: started_time, ended_time: ended_time})
         }
         
     }
@@ -1018,6 +1035,9 @@ class PipelineView extends React.Component {
                     this.parseRunStatuses(result);
 
                     if(result.status === "SUCCESS"){
+                        this.setState({
+                            pipelineRunning: false
+                        });
                         clearInterval(this.pipelineStepStatusPollingInterval);
                     }
                 })
@@ -1034,6 +1054,15 @@ class PipelineView extends React.Component {
 
     runStepUuids(uuids, type){
 
+        if(this.state.pipelineRunning){
+            alert("The pipeline is currently executing, please wait until it completes.");
+            return;
+        }
+
+        this.setState({
+            pipelineRunning: true
+        });
+
         // store pipeline.json
         let data = {
             "uuids": uuids,
@@ -1041,7 +1070,7 @@ class PipelineView extends React.Component {
             "pipeline_description": this.getPipelineJSON()
         };
         
-        fetch("/api-proxy/api/runs/", {
+        fetch("/catch/api-proxy/api/runs/", {
             method: 'POST',
             mode: 'cors',
             headers: {
@@ -1171,6 +1200,8 @@ class PipelineView extends React.Component {
                 stepSelector: this.state.stepSelector,
                 selectedSteps: this.getSelectedSteps()
             })
+
+            
         }
 
         if (this.draggingPipeline) { 

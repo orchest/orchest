@@ -4,6 +4,9 @@
 
 @import "scrollbar";
 
+$generalPadding: 20px;
+$borderColor: rgba(0, 0, 0, 0.15);
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -23,17 +26,28 @@ body {
   margin: 0;
 }
 
+.mdc-drawer__content {
+  position: relative;
+}
+
 h1 {
   font-family: "Sofia Pro", sans-serif;
   font-weight: 400;
+
+  position: absolute;
+  bottom: 0;
+  width: 100%;
 }
 
 .view-page {
-  padding: 30px;
+  padding: $generalPadding * 1.5;
+
+  h2 {
+    padding-bottom: $generalPadding;
+  }
 }
 
-$generalPadding: 20px;
-$borderColor: rgba(0, 0, 0, 0.15);
+
 
 aside.mdc-drawer {
   //max-width: 325px;
@@ -358,8 +372,14 @@ h2.header {
         opacity: 1;
         border-radius: 0 0 6px 6px;
 
-        span {
+        span.success {
           color: #16bd43;
+        }
+        span.failure {
+          color: red;
+        }
+        span.aborted {
+          color: orange;
         }
       }
 
