@@ -315,13 +315,16 @@ class PipelineStep(PipelineStepRunner):
 
 
 class Pipeline:
-    def __init__(self, steps: List[PipelineStep]) -> None:
+    def __init__(self,
+                 steps: List[PipelineStep],
+                 properties: Dict[str, str]) -> None:
         self.steps = steps
 
         # TODO: we want to be able to serialize a Pipeline back to a json
         #       file. Therefore we would need to store the Pipeline name
         #       and UUID from the json first.
-        self.properties: Dict[str, str] = {}
+        # self.properties: Dict[str, str] = {}
+        self.properties = properties
 
         # See the sentinel property for explanation.
         self._sentinel: Optional[PipelineStep] = None
@@ -348,12 +351,11 @@ class Pipeline:
                 step.parents.append(steps[uuid])
                 steps[uuid]._children.append(step)
 
-        pipeline = cls(list(steps.values()))
-        pipeline.properties = {
+        properties = {
             'name': description['name'],
             'uuid': description['uuid']
         }
-        return pipeline
+        return cls(list(steps.values()), properties)
 
     def to_dict(self) -> PipelineDescription:
         description: PipelineDescription = {'steps': {}}
@@ -419,7 +421,8 @@ class Pipeline:
                                                            for s in new_step.parents]
             new_steps.append(new_step)
 
-        return Pipeline(steps=new_steps)
+        properties = copy.deepcopy(self.properties)
+        return Pipeline(steps=new_steps, properties=properties)
 
     def convert_to_induced_subgraph(self, selection: List[str]) -> None:
         """Converts the pipeline to a subpipeline.
@@ -507,7 +510,8 @@ class Pipeline:
                 step._children = [s for s in step._children
                                   if s in steps_to_be_included]
 
-        return Pipeline(steps=list(steps_to_be_included))
+        properties = copy.deepcopy(self.properties)
+        return Pipeline(steps=list(steps_to_be_included), properties=properties)
 
     async def run(self,
                   task_id: str,
