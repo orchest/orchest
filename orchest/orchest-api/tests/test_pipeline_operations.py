@@ -104,7 +104,8 @@ def test_pipeline_incoming(pipeline):
     assert steps['step-6'].parents == []
 
 
-@pytest.mark.skip(reason='Wait until pipeline.run() takes a config arg')
+@pytest.mark.skip(reason='Problem is that the config takes "Cmd" which '
+                         'the hello-world container does not')
 def test_pipeline_run_with_docker_containers(pipeline, monkeypatch):
     async def mockreturn_update_status(*args, **kwargs):
         return
