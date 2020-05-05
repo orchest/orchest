@@ -250,7 +250,7 @@ class PipelineStepRunner:
 
             for child in all_children:
                 await update_status('ABORTED', task_id, session, type='step',
-                                    uuid=self.properties['uuid'])
+                                    uuid=child.properties['uuid'])
 
         # If one of the children turns out to fail, then we say the step
         # itself has failed. Because we start by calling the sentinel node
