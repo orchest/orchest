@@ -249,6 +249,7 @@ class PipelineStepRunner:
                     traversel.extend(child._children)
 
             for child in all_children:
+                child._status = 'ABORTED'
                 await update_status('ABORTED', task_id, session, type='step',
                                     uuid=child.properties['uuid'])
 
