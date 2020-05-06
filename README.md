@@ -1,4 +1,4 @@
-![Orchest](orchest-logo.png)
+![Orchest](orchest-logo.png =250x)
 
 Today, the process of training, deploying and monitoring machine learning models using projects like Kubeflow is
 complex. Orchest is building a machine learning pipeline product that lets data scientists focus on building models, not
