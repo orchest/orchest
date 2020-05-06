@@ -36,6 +36,15 @@ class APITask(Task):
 
     @property
     async def session(self):
+        """
+        TODO:
+            Think about how to create this property since await in a
+            property is not according to PEP8
+            https://stackoverflow.com/questions/54984337/how-should-you-create-properties-when-using-asyncio
+
+            Possibility:
+            https://async-property.readthedocs.io/en/latest/readme.html
+        """
         if self._session is None:
             self._session = await self.get_clientsession()
         return self._session
