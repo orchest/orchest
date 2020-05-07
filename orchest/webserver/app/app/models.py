@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from orchest import db
+from app import db
 import json
 
 

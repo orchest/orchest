@@ -52,16 +52,6 @@ function Orchest() {
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
     };
 
-    // get config from server
-    fetch("/async/config", {
-    }).then(handleErrors).then((response) => {
-        response.json().then((json) => {
-
-            this.config = json.result;
-            this.initializeFirstView();
-        })
-    })
-
 
     this.initializeFirstView = function(){
         // load first pipeline
@@ -84,7 +74,8 @@ function Orchest() {
         });
     }
 
-    
+
+    this.initializeFirstView();
 
 
     const topAppBar = MDCTopAppBar.attachTo(document.getElementById('app-bar'));

@@ -1,42 +1,16 @@
 #!/bin/bash
 
-## Prepare docker container sock file for in-container docker spawning
-sudo chmod 0777 /var/run/docker.sock
-
-# clean old containers
-process_ids=$(docker ps -a -q --filter ancestor=jupyter-server:latest --format="{{.ID}}")
-
-if [ ! -z "$process_ids" ]
-then
-  docker kill $(docker stop $process_ids)
-fi
-
-if [ ! -z "$process_ids" ]
-then
-  docker rm $(docker stop $process_ids)
-fi
-
-process_ids=$(docker ps -a -q --filter ancestor=elyra/enterprise-gateway:2.1.0 --format="{{.ID}}")
-
-if [ ! -z "$process_ids" ]
-then
-  docker kill $(docker stop $process_ids)
-fi
-
-if [ ! -z "$process_ids" ]
-then
-  docker rm $(docker stop $process_ids)
-fi
-
-
-docker container prune -f
-
 ## Run orchest api
 # clear orchest-api db
-rm orchest/orchest-api/app/resources.db
+rm orchest/orchest-api/app/resources.db 2> /dev/null
+
+# run RabbitMQ
+docker run -d --hostname my-rabbit --network orchest --name rabbitmq-server rabbitmq:3
 
 # run celery worker
-gnome-terminal --geometry=154x84+0+0 --working-directory=$PWD/orchest/orchest-api/ -- celery worker -A app.core.runners -l INFO
+docker run -d -v /var/run/docker.sock:/var/run/docker.sock --network orchest --name celery-worker celery-worker
 
 # run orchest-api
-python orchest/orchest-api/main.py
+docker run -v /var/run/docker.sock:/var/run/docker.sock -d --network orchest --name orchest-api orchest-api
+
+# docker run -d -e FLASK_DEBUG=1 -e FLASK_APP=app -v $PWD/orchest/orchest-api/app:/app -v $PWD/orchest/userdir:/userdir -v /var/run/docker.sock:/var/run/docker.sock --name=orchest-api --network=orchest orchest-api flask run --host=0.0.0.0 --port=80
