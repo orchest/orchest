@@ -5,7 +5,7 @@ import aiohttp
 from celery import Task
 
 from app import create_app
-from app.celery import make_celery
+from app.celery_app import make_celery
 from app.utils import Pipeline, PipelineDescription
 from config import CONFIG_CLASS
 

@@ -6,7 +6,7 @@ from flask_restplus import Namespace, Resource, fields
 
 from app.connections import db
 import app.models as models
-from app.celery import make_celery
+from app.celery_app import make_celery
 from app.utils import construct_pipeline
 
 

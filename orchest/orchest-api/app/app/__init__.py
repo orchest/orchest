@@ -12,7 +12,7 @@ from flask_cors import CORS
 
 from app.apis import blueprint as api
 from app.connections import db
-import logging
+
 
 def create_app(config_class=None):
     app = Flask(__name__)

@@ -1,12 +1,17 @@
 import asyncio
 import copy
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, TypedDict
+from typing import Any, Dict, Iterable, List, Optional#, TypedDict
 
 import aiodocker
 import aiohttp
 
 from config import CONFIG_CLASS
+
+
+# TODO: supported in python3.8 But docker images run 3.7
+class TypedDict:
+    pass
 
 
 # TODO: this class is not extensive yet. The Other Dicts can be typed
