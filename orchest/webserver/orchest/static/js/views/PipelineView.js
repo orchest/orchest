@@ -1157,14 +1157,10 @@ class PipelineView extends React.Component {
     }
 
     onRunIncoming() {
-        // figure out incoming steps from this step:
-        let currentStepUUID = this.state.openedStep;
-        this.runStepUuids([currentStepUUID], "incoming");
+        this.runStepUuids(this.state.selectedSteps, "incoming");
     }
 
     onCloseDetails(pipelineDetailsComponent) {
-        this.state.openedStep = undefined;
-
         this.setState({
             "openedStep": undefined,
         });
