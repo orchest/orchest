@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {MDCIconButtonToggle} from '@material/icon-button';
 import PipelineView from "./PipelineView";
+import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 
 class PipelineListItem extends React.Component {
 
@@ -111,7 +111,6 @@ class PipelinesView extends React.Component {
     componentDidMount() {
 
         this.fetchList();
-
     }
 
     fetchList(){
@@ -123,73 +122,65 @@ class PipelinesView extends React.Component {
         })
     }
 
-    componentDidUpdate(prevProps, prevState, snapshot) {
+    onDeleteClick(){
 
-        if(this.state.loaded){
+        let selectedIndex = this.refs.pipelineListView.customSelectedIndex();
+        
+        if(selectedIndex.length === 0){
+            alert("You haven't selected a pipeline.")
+            return;
+        }
 
-            if(!this.removeButton){
+        if(confirm("Are you certain that you want to delete this pipeline? Note: this action is irreversible.")){
 
-                // listeners for the MDCButtons in the pipeline actions bar
-                this.removeButton = new MDCIconButtonToggle(this.refs.removeButton);
-                this.removeButton.listen("MDCIconButtonToggle:change", (e) => {
-                    if(confirm("Are you certain that you want to delete this pipeline? Note: this action is irreversible.")){
+            selectedIndex.forEach((item, index) => {
+                let pipeline_id = this.state.listData[item].id;
 
-                        let selectedIndex = this.refs.pipelineListView.customSelectedIndex();
+                fetch("async/pipelines/delete/" + pipeline_id, {method: "POST"}).then((response) => {
+                    // reload list once removal succeeds
+                    this.fetchList();
 
-                        if(selectedIndex.length === 0){
-                            alert("You haven't selected a pipeline.")
-                        }
-                        else{
-
-                            selectedIndex.forEach((item, index) => {
-                                let pipeline_id = this.state.listData[item].id;
-
-                                fetch("async/pipelines/delete/" + pipeline_id, {method: "POST"}).then((response) => {
-                                    // reload list once removal succeeds
-                                    this.fetchList();
-
-                                })
-                            });
-
-
-                        }
-                    }
-                });
-
-                // listeners for the MDCButtons in the pipeline actions bar
-                this.createButton = new MDCIconButtonToggle(this.refs.createButton);
-                this.createButton.listen("MDCIconButtonToggle:change", (e) => {
-
-                    let pipelineName = prompt("Enter a pipeline name");
-
-                    let data = new FormData();
-                    data.append("name", pipelineName);
-
-                    fetch("async/pipelines/create", {
-                        method: "POST",
-                        body: data
-                    }).then((response) => {
-                        // reload list once removal succeeds
-                        this.fetchList()
-                    })
                 })
-
-            }
-
+            });
         }
     }
 
+    onCreateClick(){
+        let pipelineName = prompt("Enter a pipeline name");
+
+        if(!pipelineName){
+            alert("Please enter a name.")
+            return;
+        }
+
+        let data = new FormData();
+        data.append("name", pipelineName);
+
+        fetch("async/pipelines/create", {
+            method: "POST",
+            body: data
+        }).then((response) => {
+            // reload list once removal succeeds
+            this.fetchList()
+        })
+    }
+
+    onForkClick(){
+        alert("Forking is not yet supported.")
+    }
+
+    componentDidUpdate(prevProps, prevState, snapshot) {
+    }
 
 
     render() {
-
         if(this.state.loaded){
-
             return <div className={"view-page"}>
                 <h2>Pipelines</h2>
                 <div className={"pipeline-actions"}>
-                    <button ref={"createButton"} className="mdc-icon-button material-icons">create</button>
-                    <button ref={"removeButton"} className="mdc-icon-button material-icons">delete</button>
+                    <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
+                    <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
+                    <MDCIconButtonToggleReact icon="call_split" onClick={this.onForkClick.bind(this)} />
                 </div>
                 <PipelinesListView ref={"pipelineListView"} listData={this.state.listData} />
             </div>;

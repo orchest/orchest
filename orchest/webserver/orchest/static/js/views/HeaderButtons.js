@@ -1,6 +1,7 @@
 import React from 'react';
 import PipelineView from "./PipelineView";
 import {MDCRipple} from "@material/ripple";
+import MDCButtonReact from '../mdc-components/MDCButtonReact';
 
 class HeaderButtons extends React.Component {
 
@@ -20,9 +21,6 @@ class HeaderButtons extends React.Component {
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
-        if(this.refs.backButton && !this.backButtonRipple){
-            this.backButtonRipple = new MDCRipple(this.refs.backButton);
-        }
     }
 
     openView() {
@@ -42,12 +40,7 @@ class HeaderButtons extends React.Component {
     render() {
         if(this.state.pipeline){
             return <div>
-                <button ref={"backButton"} onClick={this.openView.bind(this)}
-                        className="mdc-button mdc-button--raised save-button">
-                    <div className="mdc-button__ripple"></div>
-                    <i className="material-icons mdc-button__icon" aria-hidden="true">arrow_back</i>
-                    <span className="mdc-button__label">Back to Pipeline</span>
-                </button>
+                <MDCButtonReact onClick={this.openView.bind(this)} icon="arrow_back" label="Back to Pipeline" />
             </div>;
         }else{
             return <div>

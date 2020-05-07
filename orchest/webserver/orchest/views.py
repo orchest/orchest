@@ -50,7 +50,7 @@ def pipelines_delete(pipeline_id):
     # TODO: find way to not force sudo remove on pipeline dirs
     # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
     if len(pipeline_dir) > 36:
-        os.system("sudo rm -rf %s" % (pipeline_dir))
+        os.system("rm -rf %s" % (pipeline_dir))
 
     db.session.delete(pipeline)
     db.session.commit()

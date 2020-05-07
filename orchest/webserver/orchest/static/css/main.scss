@@ -40,7 +40,7 @@ h1 {
 }
 
 .view-page {
-  padding: $generalPadding * 1.5;
+  padding: $generalPadding;
 
   h2 {
     padding-bottom: $generalPadding;
@@ -252,6 +252,10 @@ h2.header {
     }
 
     button {
+      &:first-of-type { 
+        margin-left: 0;
+      }
+
       margin-left: $generalPadding;
       min-width: 0;
       i {
@@ -392,21 +396,9 @@ h2.header {
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 
-      transition: border 0.3s ease;
-      transition-property: border, background;
-
       &.selected {
         border-color: $mdc-theme-secondary;
         background: rgb(245, 245, 255);
-        // border-width: 2px;
-
-        // .connection-point {
-        //   left: -6px; 
-
-        //   &.outgoing-connections {
-        //     right: -6px;
-        //   }
-        // }
       }
 
       .step-label-holder {
@@ -467,6 +459,19 @@ h2.header {
     z-index: 12;
     width: 50%;
     max-width: 450px;
+
+    .detail-subview {
+      flex: 1;
+    }
+
+    .log-content {
+      font-family: monospace;
+      font-size: 13px;
+      background: #000;
+      color: #fff;
+      padding: $generalPadding / 2;
+      height: 100%;
+    }
 
     .input-group {
       margin-bottom: $generalPadding;
@@ -532,6 +537,8 @@ h2.header {
       overflow-y: auto;
       overflow-x: hidden;
       flex: 1;
+      display: flex;
+      flex-direction: column;
 
       &.overflown {
         padding-right: $generalPadding;
@@ -547,7 +554,6 @@ h2.header {
 
         button {
           background-color: $mdc-theme-secondary;
-          margin-bottom: $generalPadding;
           margin-right: $generalPadding;
         }
       }
