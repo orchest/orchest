@@ -13,7 +13,7 @@ productionizing machine learning models in web & mobile applications a breeze.
 Features
 ========
 * Build pipelines in our visual interface
-* Use built-int data sources
+* Use built-in data sources
 * Collaborate on the same project
 * Develop your code on the platform or upload files
 * Debug your notebooks in Visual Studio Code
