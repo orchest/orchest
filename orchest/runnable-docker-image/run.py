@@ -21,7 +21,14 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         if tags is not None and 'skip' in tags:
             return cell, resources
         else:
-            return super().preprocess_cell(cell, resources, cell_index)
+
+            cell, resources = super().preprocess_cell(cell, resources, cell_index)
+
+            # cell output to STDOUT of this process
+            for output in cell.outputs:
+                print("[%i] %s" % (cell['execution_count'], output['text']), flush=True, end='')
+
+            return cell, resources
 
 
 def inverted(dict):
@@ -63,6 +70,11 @@ def main():
             nb = nbformat.read(f, as_version=4)
 
             # replace kernel to non-docker equivalent
+
+            # if key not in mapping, create entry for no-effect-mapping action
+            if nb.metadata.kernelspec.name not in kernel_mapping:
+                kernel_mapping[nb.metadata.kernelspec.name] = nb.metadata.kernelspec.name
+
             nb.metadata.kernelspec.name = kernel_mapping[nb.metadata.kernelspec.name]
 
             ep = PartialExecutePreprocessor()

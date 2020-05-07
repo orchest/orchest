@@ -111,6 +111,9 @@ class PipelinesView extends React.Component {
     componentDidMount() {
 
         this.fetchList();
+
+        // set headerbar
+        orchest.headerBarComponent.setPipeline(undefined);
     }
 
     fetchList(){

@@ -6,7 +6,7 @@ class PipelineDetailsLogs extends React.Component {
   render() {
     return <div className={"detail-subview"}>
         <div className="log-content">
-            Logs...
+            ...
         </div>
     </div>;
   }

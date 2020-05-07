@@ -81,7 +81,7 @@ class PipelineDetails extends React.Component {
                         ]}
                         icons={[
                             'tune',
-                            'receipt'
+                            'view_headline'
                         ]}
                         onChange={this.onSelectSubview.bind(this)}
                     />

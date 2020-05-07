@@ -9,7 +9,8 @@ class HeaderButtons extends React.Component {
         super(props);
 
         this.state = {
-            pipeline: undefined
+            pipeline: undefined,
+            showBack: false
         }
     }
 
@@ -27,27 +28,34 @@ class HeaderButtons extends React.Component {
         orchest.loadView(PipelineView, {"uuid": this.state.pipeline.uuid});
 
         this.setState({
-            "pipeline": undefined
+            "showBack": false
         });
     }
 
-    setPipeline(pipeline){
+    showBack(){
         this.setState({
-            "pipeline": pipeline
+            showBack: true
+        })
+    }
+
+    setPipeline(pipelineJson){
+        this.setState({
+            "pipeline": pipelineJson,
         });
     }
 
     render() {
+
         if(this.state.pipeline){
             return <div>
-                <MDCButtonReact onClick={this.openView.bind(this)} icon="arrow_back" label="Back to Pipeline" />
-            </div>;
-        }else{
-            return <div>
-
-            </div>;
+                <span className="pipeline-name">{this.state.pipeline.name}</span>
+                {this.state.showBack ? <MDCButtonReact onClick={this.openView.bind(this)} icon="arrow_back" label="Back to Pipeline" /> : <span></span> }
+            </div>
         }
-
+        else{
+            return <div></div>;
+        }
+        
     }
 }
 

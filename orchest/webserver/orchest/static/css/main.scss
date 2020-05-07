@@ -77,17 +77,40 @@ aside.mdc-drawer {
   }
 }
 
+
+
 .hidden {
   display: none;
 }
 
 .header-bar-interactive {
-  display: flex;
-  justify-content: center;
-  flex-direction: row;
   position: absolute;
-  width: 50%;
-  left: 25%;
+  width: 100%;
+  left: 0;
+  top: 0;
+  height: 100%;
+  
+  div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  button {
+    position: absolute;
+    right: $generalPadding;
+    top: 50%;
+    transform: translateY(-50%);
+
+  }
+
+  .pipeline-name {
+    font-size: 21px;
+  }
 }
 
 .view-pipeline-settings {
@@ -192,6 +215,10 @@ h2.header {
   font-weight: 800;
 }
 
+.mdc-top-app-bar .mdc-top-app-bar__navigation-icon{
+  z-index: 9
+}
+
 .experiment-list {
   .mdc-data-table {
     width: 100%;
@@ -220,14 +247,6 @@ h2.header {
   flex-direction: row;
 
 
-  .pipeline-name {
-    position: absolute;
-    padding: $generalPadding;
-    font-size: 21px;
-    z-index: 3;
-    width: 50%;
-  }
-
   .pane {
     flex: 1;
     position: relative;
@@ -245,10 +264,16 @@ h2.header {
       bottom: 0;
       right: auto;
       left: 0;
+ 
+      .selection-buttons {
+        display: inline-block;
+        padding-left: $generalPadding;
 
-      button {
-        background-color: $mdc-theme-secondary;
+        button {
+          background-color: $mdc-theme-secondary;
+        }
       }
+      
     }
 
     button {
@@ -258,9 +283,7 @@ h2.header {
 
       margin-left: $generalPadding;
       min-width: 0;
-      i {
-        transition: color 0.3s ease;
-      }
+
       &.active {
         i {
           color: #00FF00;

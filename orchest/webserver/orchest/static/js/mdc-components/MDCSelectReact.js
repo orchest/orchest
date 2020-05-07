@@ -7,12 +7,12 @@ class MDCSelectReact extends React.Component {
 
     componentDidMount(){
         this.mdc = new MDCSelect(this.refs.select);
+        this.mdc.value = this.props.selected;
 
         this.mdc.listen("MDCSelect:change", () => {
            this.props.onChange(this.mdc.value);
         })
 
-        this.mdc.value = this.props.selected;
     }
 
     render() {
