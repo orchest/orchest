@@ -334,20 +334,20 @@ h2.header {
         position: absolute;
         content: " ";
         display: block;
-        width: 15px;
-        height: 15px;
+        width: 12px;
+        height: 12px;
         background-image: url("../image/arrow-head.svg");
         background-size: contain;
         background-repeat: no-repeat;
         right: 7px;
-        bottom: -2px;
+        bottom: -1px;
         transition: 0s opacity ease;
       }
 
       &.flipped {
         &:after {
           bottom: auto;
-          top: -3px;
+          top: -1px;
         }
       }
 
