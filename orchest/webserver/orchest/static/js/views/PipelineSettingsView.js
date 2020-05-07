@@ -99,7 +99,7 @@ class PipelineSettingsView extends React.Component {
     render() {
 
         return <div className={"view-page view-pipeline-settings"}>
-            <h2>Settings</h2>
+            <h2>Pipeline settings</h2>
 
             <MDCTabBarReact items={["General"]} icons={["subject"]} />
 
