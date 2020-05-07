@@ -669,7 +669,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-secondary, #0a6df7); }
 
-@keyframes mdc-checkbox-fade-in-background-ud715f636 {
+@keyframes mdc-checkbox-fade-in-background-u0257f059 {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -681,7 +681,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-secondary, #0a6df7); } }
 
-@keyframes mdc-checkbox-fade-out-background-ud715f636 {
+@keyframes mdc-checkbox-fade-out-background-u0257f059 {
   0%,
   80% {
     border-color: #0a6df7;
@@ -695,10 +695,10 @@ svg.mdc-button__icon {
     background-color: transparent; } }
 
 .mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-ud715f636; }
+  animation-name: mdc-checkbox-fade-in-background-u0257f059; }
 
 .mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-ud715f636; }
+  animation-name: mdc-checkbox-fade-out-background-u0257f059; }
 
 .mdc-checkbox__native-control[disabled]:not(:checked):not(:indeterminate) ~ .mdc-checkbox__background {
   border-color: rgba(0, 0, 0, 0.26);
@@ -1444,7 +1444,7 @@ svg.mdc-button__icon {
   /* @alternate */
   background-color: var(--mdc-theme-primary, #000000); }
 
-@keyframes mdc-checkbox-fade-in-background-u1deb5372 {
+@keyframes mdc-checkbox-fade-in-background-u1591edec {
   0% {
     border-color: rgba(0, 0, 0, 0.54);
     background-color: transparent; }
@@ -1456,7 +1456,7 @@ svg.mdc-button__icon {
     /* @alternate */
     background-color: var(--mdc-theme-primary, #000000); } }
 
-@keyframes mdc-checkbox-fade-out-background-u1deb5372 {
+@keyframes mdc-checkbox-fade-out-background-u1591edec {
   0%,
   80% {
     border-color: #000000;
@@ -1472,12 +1472,12 @@ svg.mdc-button__icon {
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-in-background-u1deb5372; }
+  animation-name: mdc-checkbox-fade-in-background-u1591edec; }
 
 .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background, .mdc-data-table__header-row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background,
 .mdc-data-table__row-checkbox.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__native-control:enabled ~ .mdc-checkbox__background {
-  animation-name: mdc-checkbox-fade-out-background-u1deb5372; }
+  animation-name: mdc-checkbox-fade-out-background-u1591edec; }
 
 .mdc-dialog,
 .mdc-dialog__scrim {
@@ -7385,7 +7385,7 @@ h1 {
   width: 100%; }
 
 .view-page {
-  padding: 30px; }
+  padding: 20px; }
   .view-page h2 {
     padding-bottom: 20px; }
 
@@ -7420,12 +7420,26 @@ aside.mdc-drawer {
   display: none; }
 
 .header-bar-interactive {
-  display: flex;
-  justify-content: center;
-  flex-direction: row;
   position: absolute;
-  width: 50%;
-  left: 25%; }
+  width: 100%;
+  left: 0;
+  top: 0;
+  height: 100%; }
+  .header-bar-interactive div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    position: relative; }
+  .header-bar-interactive button {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%); }
+  .header-bar-interactive .pipeline-name {
+    font-size: 21px; }
 
 .view-pipeline-settings .close-button {
   position: absolute;
@@ -7491,6 +7505,9 @@ h2.header {
 .mdc-data-table__header-cell {
   font-weight: 800; }
 
+.mdc-top-app-bar .mdc-top-app-bar__navigation-icon {
+  z-index: 9; }
+
 .experiment-list .mdc-data-table {
   width: 100%; }
 
@@ -7504,12 +7521,6 @@ h2.header {
   height: 100%;
   display: flex;
   flex-direction: row; }
-  .pipeline-view .pipeline-name {
-    position: absolute;
-    padding: 20px;
-    font-size: 21px;
-    z-index: 3;
-    width: 50%; }
   .pipeline-view .pane {
     flex: 1;
     position: relative; }
@@ -7524,13 +7535,16 @@ h2.header {
       bottom: 0;
       right: auto;
       left: 0; }
-      .pipeline-view .pipeline-actions.bottom-left button {
-        background-color: #0a6df7; }
+      .pipeline-view .pipeline-actions.bottom-left .selection-buttons {
+        display: inline-block;
+        padding-left: 20px; }
+        .pipeline-view .pipeline-actions.bottom-left .selection-buttons button {
+          background-color: #0a6df7; }
     .pipeline-view .pipeline-actions button {
       margin-left: 20px;
       min-width: 0; }
-      .pipeline-view .pipeline-actions button i {
-        transition: color 0.3s ease; }
+      .pipeline-view .pipeline-actions button:first-of-type {
+        margin-left: 0; }
       .pipeline-view .pipeline-actions button.active i {
         color: #00FF00; }
   .pipeline-view .pipeline-steps-outer-holder {
@@ -7561,17 +7575,17 @@ h2.header {
         position: absolute;
         content: " ";
         display: block;
-        width: 15px;
-        height: 15px;
+        width: 12px;
+        height: 12px;
         background-image: url("../image/arrow-head.svg");
         background-size: contain;
         background-repeat: no-repeat;
         right: 7px;
-        bottom: -2px;
+        bottom: -1px;
         transition: 0s opacity ease; }
       .pipeline-view .pipeline-steps-holder .connection.flipped:after {
         bottom: auto;
-        top: -3px; }
+        top: -1px; }
       .pipeline-view .pipeline-steps-holder .connection.flipped-horizontal:after {
         opacity: 0; }
       .pipeline-view .pipeline-steps-holder .connection svg {
@@ -7592,9 +7606,7 @@ h2.header {
       height: 105px;
       text-align: center;
       z-index: 2;
-      box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
-      transition: border 0.3s ease;
-      transition-property: border, background; }
+      box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1); }
       .pipeline-view .pipeline-steps-holder .pipeline-step .execution-indicator {
         position: absolute;
         width: 100%;
@@ -7662,6 +7674,15 @@ h2.header {
     max-width: 450px;
     display: flex;
     flex-direction: column; }
+    .pipeline-view .pipeline-details .detail-subview {
+      flex: 1; }
+    .pipeline-view .pipeline-details .log-content {
+      font-family: monospace;
+      font-size: 13px;
+      background: #000;
+      color: #fff;
+      padding: 10px;
+      height: 100%; }
     .pipeline-view .pipeline-details .input-group {
       margin-bottom: 20px; }
     .pipeline-view .pipeline-details .connection-list.dragging .connection-item {
@@ -7695,7 +7716,9 @@ h2.header {
     .pipeline-view .pipeline-details .overflowable {
       overflow-y: auto;
       overflow-x: hidden;
-      flex: 1; }
+      flex: 1;
+      display: flex;
+      flex-direction: column; }
       .pipeline-view .pipeline-details .overflowable.overflown {
         padding-right: 20px; }
     .pipeline-view .pipeline-details .action-buttons-bottom {
@@ -7704,7 +7727,6 @@ h2.header {
         margin-bottom: 20px; }
         .pipeline-view .pipeline-details .action-buttons-bottom .notebook-actions button {
           background-color: #0a6df7;
-          margin-bottom: 20px;
           margin-right: 20px; }
       .pipeline-view .pipeline-details .action-buttons-bottom button {
         margin-right: 20px; }

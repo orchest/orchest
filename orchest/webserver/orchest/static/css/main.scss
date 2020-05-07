@@ -40,7 +40,7 @@ h1 {
 }
 
 .view-page {
-  padding: $generalPadding * 1.5;
+  padding: $generalPadding;
 
   h2 {
     padding-bottom: $generalPadding;
@@ -77,17 +77,40 @@ aside.mdc-drawer {
   }
 }
 
+
+
 .hidden {
   display: none;
 }
 
 .header-bar-interactive {
-  display: flex;
-  justify-content: center;
-  flex-direction: row;
   position: absolute;
-  width: 50%;
-  left: 25%;
+  width: 100%;
+  left: 0;
+  top: 0;
+  height: 100%;
+  
+  div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  button {
+    position: absolute;
+    right: $generalPadding;
+    top: 50%;
+    transform: translateY(-50%);
+
+  }
+
+  .pipeline-name {
+    font-size: 21px;
+  }
 }
 
 .view-pipeline-settings {
@@ -192,6 +215,10 @@ h2.header {
   font-weight: 800;
 }
 
+.mdc-top-app-bar .mdc-top-app-bar__navigation-icon{
+  z-index: 9
+}
+
 .experiment-list {
   .mdc-data-table {
     width: 100%;
@@ -220,14 +247,6 @@ h2.header {
   flex-direction: row;
 
 
-  .pipeline-name {
-    position: absolute;
-    padding: $generalPadding;
-    font-size: 21px;
-    z-index: 3;
-    width: 50%;
-  }
-
   .pane {
     flex: 1;
     position: relative;
@@ -245,18 +264,26 @@ h2.header {
       bottom: 0;
       right: auto;
       left: 0;
+ 
+      .selection-buttons {
+        display: inline-block;
+        padding-left: $generalPadding;
 
-      button {
-        background-color: $mdc-theme-secondary;
+        button {
+          background-color: $mdc-theme-secondary;
+        }
       }
+      
     }
 
     button {
+      &:first-of-type { 
+        margin-left: 0;
+      }
+
       margin-left: $generalPadding;
       min-width: 0;
-      i {
-        transition: color 0.3s ease;
-      }
+
       &.active {
         i {
           color: #00FF00;
@@ -307,20 +334,20 @@ h2.header {
         position: absolute;
         content: " ";
         display: block;
-        width: 15px;
-        height: 15px;
+        width: 12px;
+        height: 12px;
         background-image: url("../image/arrow-head.svg");
         background-size: contain;
         background-repeat: no-repeat;
         right: 7px;
-        bottom: -2px;
+        bottom: -1px;
         transition: 0s opacity ease;
       }
 
       &.flipped {
         &:after {
           bottom: auto;
-          top: -3px;
+          top: -1px;
         }
       }
 
@@ -392,21 +419,9 @@ h2.header {
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 
-      transition: border 0.3s ease;
-      transition-property: border, background;
-
       &.selected {
         border-color: $mdc-theme-secondary;
         background: rgb(245, 245, 255);
-        // border-width: 2px;
-
-        // .connection-point {
-        //   left: -6px; 
-
-        //   &.outgoing-connections {
-        //     right: -6px;
-        //   }
-        // }
       }
 
       .step-label-holder {
@@ -467,6 +482,19 @@ h2.header {
     z-index: 12;
     width: 50%;
     max-width: 450px;
+
+    .detail-subview {
+      flex: 1;
+    }
+
+    .log-content {
+      font-family: monospace;
+      font-size: 13px;
+      background: #000;
+      color: #fff;
+      padding: $generalPadding / 2;
+      height: 100%;
+    }
 
     .input-group {
       margin-bottom: $generalPadding;
@@ -532,6 +560,8 @@ h2.header {
       overflow-y: auto;
       overflow-x: hidden;
       flex: 1;
+      display: flex;
+      flex-direction: column;
 
       &.overflown {
         padding-right: $generalPadding;
@@ -547,7 +577,6 @@ h2.header {
 
         button {
           background-color: $mdc-theme-secondary;
-          margin-bottom: $generalPadding;
           margin-right: $generalPadding;
         }
       }

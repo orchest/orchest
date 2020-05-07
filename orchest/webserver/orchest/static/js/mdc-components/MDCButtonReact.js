@@ -5,6 +5,13 @@ class MDCButtonReact extends React.Component {
     componentDidMount() {
         this.mdc = new MDCRipple(this.refs.button);
     }
+
+    click(){
+        this.mdc.activate();
+        this.props.onClick();
+        this.mdc.deactivate();
+    }
+    
     render() {
 
         let topClasses = ["mdc-button", "mdc-button--raised"];
@@ -13,7 +20,7 @@ class MDCButtonReact extends React.Component {
         }
         topClasses = topClasses.join(" ");
 
-        return <button ref={"button"} onClick={this.props.onClick} className={topClasses}>
+        return <button disabled={this.props.disabled === true} ref={"button"} onClick={this.props.onClick} className={topClasses}>
             <div className="mdc-button__ripple"></div>
 
             {(() => {

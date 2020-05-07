@@ -83,7 +83,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 
 
         // set xEnd and yEnd if endNode is defined
-                
+
         if (this.endNode) {
             let endNodePosition = nodeCenter(this.endNode);
             endNodePosition = correctedPosition(endNodePosition.x, endNodePosition.y, $('.pipeline-view'));
@@ -143,6 +143,7 @@ function PipelineStepDOMWrapper(el, uuid, reactRef) {
     this.x = 0;
     this.y = 0;
     this.dragged = false;
+    this.dragCount = 0;
 
     this.restore = function () {
         this.x = this.reactRef.props.step.meta_data.position[0];
@@ -210,6 +211,10 @@ class PipelineView extends React.Component {
             body: formData
         });
 
+        this.setState({
+            "unsavedChanges": false
+        })
+
     }
 
     encodeJSON() {
@@ -246,7 +251,7 @@ class PipelineView extends React.Component {
         this.setState({ "steps": steps, "pipelineJson": pipelineJson });
     }
 
-    getPipelineJSON(){
+    getPipelineJSON() {
         this.state.pipelineJson.steps = this.state.steps;
         return this.state.pipelineJson;
     }
@@ -256,6 +261,7 @@ class PipelineView extends React.Component {
 
         // class constants
         this.STATUS_POLL_FREQUENCY = 1000;
+        this.DRAG_CLICK_SENSITIVITY = 3;
 
         this.selectedItem = undefined;
         this.selectedConnection = undefined;
@@ -278,6 +284,7 @@ class PipelineView extends React.Component {
             openedStep: undefined,
             selectedSteps: [],
             runUuid: undefined,
+            unsavedChanges: false,
             stepSelector: {
                 active: false,
                 x1: 0,
@@ -285,9 +292,11 @@ class PipelineView extends React.Component {
                 x2: 0,
                 y2: 0,
             },
+            showSelectionButton: false,
             pipelineRunning: false,
             stepExecutionState: {},
             steps: {},
+            defaultDetailViewIndex: 0,
             backend: {
                 running: false,
                 working: false
@@ -301,7 +310,6 @@ class PipelineView extends React.Component {
     }
 
     componentDidMount() {
-        console.log(this);
 
         fetch("/async/pipelines/json/get/" + this.props.uuid, {
             method: "GET",
@@ -312,6 +320,8 @@ class PipelineView extends React.Component {
             response.json().then((result) => {
                 if (result.success) {
                     this.decodeJSON(JSON.parse(result['pipeline_json']));
+                    
+                    orchest.headerBarComponent.setPipeline(this.state.pipelineJson);
                 } else {
                     console.warn("Could not load pipeline.json");
                     console.log(result);
@@ -482,8 +492,8 @@ class PipelineView extends React.Component {
 
                     _this.selectedItem = _this.pipelineSteps[stepUUID];
 
-                    
-                    
+
+
                 }
                 _this.prevPosition = [e.clientX, e.clientY];
 
@@ -511,22 +521,22 @@ class PipelineView extends React.Component {
                     _this.selectedItem.save();
                 }
 
+                // on move step trigger unsavedChanges
+                _this.setState({
+                    "unsavedChanges": _this.state.unsavedChanges
+                });
+
                 if (!_this.selectedItem.dragged) {
                     // also select this step only
                     _this.selectedItem.reactRef.props.onClick(_this.selectedItem.uuid);
                     _this.selectStep(_this.selectedItem.uuid);
 
-                    // if(_this.state.selectedSteps.indexOf(stepUUID) === -1){
-                    //     // also make this item selected in PipelineView
-                    //     _this.setState({
-                    //         selectedSteps: [stepUUID]
-                    //     })
-                    // }
-                }else{
+                } else {
                     dragOp = true;
                 }
 
                 _this.selectedItem.dragged = false;
+                _this.selectedItem.dragCount = 0;
             }
             _this.selectedItem = undefined;
 
@@ -573,22 +583,27 @@ class PipelineView extends React.Component {
             }
 
             // stepSelector
-
-            if(_this.state.stepSelector.active){
+            if (_this.state.stepSelector.active) {
                 // if single step is selected open pane
-                if(_this.state.selectedSteps.length == 1){
+                if (_this.state.selectedSteps.length == 1) {
                     let selectedStep = _this.state.selectedSteps[0];
-                    if(_this.state.openedStep !== selectedStep && !dragOp){
-                        _this.selectStep(selectedStep);
+                    if (_this.state.openedStep !== selectedStep && !dragOp) {
+                        // TODO: evaluate whether dragOp can open a step
+                        // _this.selectStep(selectedStep);
                     }
                 }
-            }
-            _this.state.stepSelector.active = false;
-            _this.setState({
-                stepSelector: _this.state.stepSelector
-            });
 
-            
+                _this.state.stepSelector.active = false;
+                _this.setState({
+                    stepSelector: _this.state.stepSelector
+                });
+
+                _this.onSelectionChanged();
+            }
+
+
+            // always force update (due to center button)
+            _this.forceUpdate();
 
         });
 
@@ -642,10 +657,15 @@ class PipelineView extends React.Component {
             // Ctrl / Meta + S for saving pipeline
             if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
+
+                _this.refs.saveButton.click();
                 // _this.encodeButton.activate();
                 // _this.encodeButton.deactivate();
                 // _this.refs.encodeButton.click();
                 // TODO: fix save button after React component swap
+            }
+            if(e.keyCode == 72){
+                _this.centerView();
             }
 
             _this.keysDown[e.keyCode] = true;
@@ -685,20 +705,24 @@ class PipelineView extends React.Component {
         $(this.refs.pipelineStepsHolder).on('mousemove', function (e) {
 
             if (_this.selectedItem) {
-                
+
                 let delta = [e.clientX - _this.prevPosition[0], e.clientY - _this.prevPosition[1]];
 
-                _this.selectedItem.dragged = true;
+                _this.selectedItem.dragCount++;
+                if (_this.selectedItem.dragCount >= _this.DRAG_CLICK_SENSITIVITY) {
+                    _this.selectedItem.dragged = true;
+                    _this.selectedItem.dragCount = 0;
+                }
 
-                if(_this.state.selectedSteps.length > 1){
+                if (_this.state.selectedSteps.length > 1) {
                     for (let key in _this.state.selectedSteps) {
                         let uuid = _this.state.selectedSteps[key];
-    
+
                         _this.pipelineSteps[uuid].x += delta[0];
                         _this.pipelineSteps[uuid].y += delta[1];
                         _this.pipelineSteps[uuid].render();
                     }
-                }else if(_this.selectedItem){
+                } else if (_this.selectedItem) {
                     _this.selectedItem.x += delta[0];
                     _this.selectedItem.y += delta[1];
                     _this.selectedItem.render();
@@ -745,6 +769,18 @@ class PipelineView extends React.Component {
         }
 
         this.pipelineListenersInitialized = true;
+    }
+
+    updateSelectionButtons() {
+        if (this.state.selectedSteps.length > 0 && !this.state.stepSelector.active) {
+            this.setState({
+                showSelectionButton: true
+            });
+        }else{
+            this.setState({
+                showSelectionButton: false
+            });
+        }
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
@@ -842,6 +878,9 @@ class PipelineView extends React.Component {
         } else {
 
             this.state.backend.working = true;
+            this.setState({
+                "backend": this.state.backend
+            })
 
             fetch("/api-proxy/api/launches/" + this.props.uuid, {
                 method: 'DELETE',
@@ -904,15 +943,21 @@ class PipelineView extends React.Component {
         }
 
         this.state.openedStep = pipelineStepUUID;
-        
+
         this.setState({
             openedStep: pipelineStepUUID,
             selectedSteps: [pipelineStepUUID]
         });
+
+        this.onSelectionChanged();
     }
 
     moveStep(pipelineStepUUID, x, y) {
-        this.state.steps[pipelineStepUUID].meta_data.position = [x, y];
+        if(this.state.steps[pipelineStepUUID].meta_data.position[0] != x
+            || this.state.steps[pipelineStepUUID].meta_data.position[1] != y){
+                this.state.steps[pipelineStepUUID].meta_data.position = [x, y];
+                this.state.unsavedChanges = true;
+        }
     }
 
     stepNameUpdate(pipelineStepUUID, title, file_path) {
@@ -989,38 +1034,42 @@ class PipelineView extends React.Component {
     }
 
     onOpenNotebook(pipelineDetailsComponent) {
-        orchest.jupyter.navigateTo(this.state.steps[this.state.openedStep].file_path);
-        orchest.showJupyter();
-        orchest.headerBarComponent.setPipeline(this.props);
+        if (this.state.backend.running) {
+            orchest.jupyter.navigateTo(this.state.steps[this.state.openedStep].file_path);
+            orchest.showJupyter();
+            orchest.headerBarComponent.showBack();
+        } else {
+            alert("Please start the back-end before opening the Notebook in Jupyter");
+        }
     }
 
-    parseRunStatuses(result){
+    parseRunStatuses(result) {
 
-        if(result.step_statuses === undefined || result.step_statuses.length === undefined){
+        if (result.step_statuses === undefined || result.step_statuses.length === undefined) {
             console.error("Did not contain step_statuses list. Invalid `result` object");
         }
 
-        for(let x = 0; x < result.step_statuses.length; x++){
+        for (let x = 0; x < result.step_statuses.length; x++) {
 
             // ended_time takes priority over started_time
             let started_time = undefined;
             let ended_time = undefined;
 
-            if(result.step_statuses[x].started_time){
+            if (result.step_statuses[x].started_time) {
                 started_time = new Date(result.step_statuses[x].started_time + " GMT")
             }
-            if(result.step_statuses[x].ended_time){
+            if (result.step_statuses[x].ended_time) {
                 ended_time = new Date(result.step_statuses[x].ended_time + " GMT")
             }
-            
-            this.setStepExecutionState(result.step_statuses[x].step_uuid, {status: result.step_statuses[x].status, started_time: started_time, ended_time: ended_time})
+
+            this.setStepExecutionState(result.step_statuses[x].step_uuid, { status: result.step_statuses[x].status, started_time: started_time, ended_time: ended_time })
         }
-        
+
     }
 
-    pollPipelineStepStatuses(){
+    pollPipelineStepStatuses() {
 
-        if(this.state.runUuid){
+        if (this.state.runUuid) {
 
             fetch("/api-proxy/api/runs/" + this.state.runUuid, {
                 method: 'GET',
@@ -1034,7 +1083,7 @@ class PipelineView extends React.Component {
 
                     this.parseRunStatuses(result);
 
-                    if(result.status === "SUCCESS"){
+                    if (result.status === "SUCCESS") {
                         this.setState({
                             pipelineRunning: false
                         });
@@ -1042,19 +1091,29 @@ class PipelineView extends React.Component {
                     }
                 })
             });
-            
+
 
         }
 
+    }
+
+    centerView(){
+
+        this.pipelineOffset[0] = 0;
+        this.pipelineOffset[1] = 0;
+
+        this.renderBackground();
+
+        this.forceUpdate();
     }
 
     runSelectedSteps() {
         this.runStepUuids(this.state.selectedSteps, "selection");
     }
 
-    runStepUuids(uuids, type){
+    runStepUuids(uuids, type) {
 
-        if(this.state.pipelineRunning){
+        if (this.state.pipelineRunning) {
             alert("The pipeline is currently executing, please wait until it completes.");
             return;
         }
@@ -1069,7 +1128,7 @@ class PipelineView extends React.Component {
             "run_type": type,
             "pipeline_description": this.getPipelineJSON()
         };
-        
+
         fetch("/catch/api-proxy/api/runs/", {
             method: 'POST',
             mode: 'cors',
@@ -1092,23 +1151,27 @@ class PipelineView extends React.Component {
 
                 // initialize interval
                 this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
-            
+
             })
         });
     }
 
     onRunIncoming() {
-        // figure out incoming steps from this step:
-        let currentStepUUID = this.state.openedStep;
-        this.runStepUuids([currentStepUUID], "incoming");
+        this.runStepUuids(this.state.selectedSteps, "incoming");
     }
 
     onCloseDetails(pipelineDetailsComponent) {
-        this.state.openedStep = undefined;
-
-        this.setState({ 
+        this.setState({
             "openedStep": undefined,
         });
+    }
+
+    onDetailsChangeView(newIndex){
+
+        this.setState({
+            defaultDetailViewIndex: newIndex
+        });
+
     }
 
     onSaveDetails(pipelineDetailsComponent) {
@@ -1119,7 +1182,10 @@ class PipelineView extends React.Component {
         this.state.steps[pipelineDetailsComponent.props.step.uuid] = JSON.parse(JSON.stringify(pipelineDetailsComponent.state.step));
 
         // update steps in setState even though reference objects are directly modified - this propagates state updates properly
-        this.setState({ "steps": this.state.steps });
+        this.setState({ 
+            "steps": this.state.steps,    
+            "unsavedChanges": true
+        });
     }
 
     getPowerButtonClasses() {
@@ -1147,6 +1213,8 @@ class PipelineView extends React.Component {
             stepSelector: this.state.stepSelector,
             selectedSteps: this.getSelectedSteps()
         });
+
+        this.onSelectionChanged();
     }
 
     deselectConnection() {
@@ -1160,22 +1228,22 @@ class PipelineView extends React.Component {
         let selectedSteps = [];
 
         // for each step perform intersect
-        if(this.state.stepSelector.active){
+        if (this.state.stepSelector.active) {
             for (let uuid in this.state.steps) {
                 if (this.state.steps.hasOwnProperty(uuid)) {
                     let step = this.state.steps[uuid];
-    
+
                     // guard against ref existing, in case step is being added
-                    if(this.refs[uuid]){
+                    if (this.refs[uuid]) {
                         let stepDom = $(this.refs[uuid].refs.container);
-    
+
                         let stepRect = {
                             x: step.meta_data.position[0],
                             y: step.meta_data.position[1],
                             width: stepDom.outerWidth(),
                             height: stepDom.outerHeight()
                         }
-        
+
                         if (intersectRect(rect, stepRect)) {
                             selectedSteps.push(uuid);
                         }
@@ -1185,6 +1253,10 @@ class PipelineView extends React.Component {
         }
 
         return selectedSteps;
+    }
+
+    onSelectionChanged(){
+        this.updateSelectionButtons();
     }
 
     onPipelineStepsOuterHolderMove(e) {
@@ -1201,10 +1273,10 @@ class PipelineView extends React.Component {
                 selectedSteps: this.getSelectedSteps()
             })
 
-            
+            this.onSelectionChanged();
         }
 
-        if (this.draggingPipeline) { 
+        if (this.draggingPipeline) {
 
             let dx = e.nativeEvent.movementX;
             let dy = e.nativeEvent.movementY;
@@ -1212,18 +1284,15 @@ class PipelineView extends React.Component {
             this.pipelineOffset[0] -= dx / 2;
             this.pipelineOffset[1] -= dy / 2;
 
-            // if(this.pipelineOffset[0] < 0){
-            //     this.pipelineOffset[0] = 0;
-            // }
-            // if(this.pipelineOffset[1] < 0){
-            //     this.pipelineOffset[1] = 0;
-            // }
-
-            $(this.refs.pipelineStepsHolder).css({ transform: "translateX(" + -this.pipelineOffset[0] + "px) translateY(" + -this.pipelineOffset[1] + "px)" });
-
-            $(this.refs.pipelineStepsOuterHolder).css({ backgroundPosition: -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px" });
+            this.renderBackground();
         }
 
+    }
+
+    renderBackground(){
+        $(this.refs.pipelineStepsHolder).css({ transform: "translateX(" + -this.pipelineOffset[0] + "px) translateY(" + -this.pipelineOffset[1] + "px)" });
+
+        $(this.refs.pipelineStepsOuterHolder).css({ backgroundPosition: -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px" });
     }
 
     onPipelineStepsOuterHolderDown(e) {
@@ -1261,6 +1330,10 @@ class PipelineView extends React.Component {
             height: Math.abs(this.state.stepSelector.y2 - this.state.stepSelector.y1)
         }
         return rect;
+    }
+
+    centerButtonDisabled(){
+        return this.pipelineOffset[0] == 0 && this.pipelineOffset[1] == 0;
     }
 
     render() {
@@ -1318,37 +1391,41 @@ class PipelineView extends React.Component {
 
         return <div className={"pipeline-view"}>
             <div className={"pane"}>
-                <div className={"pipeline-name"}>{pipelineName}</div>
                 <div className={"pipeline-actions bottom-left"}>
+                    <MDCButtonReact disabled={this.centerButtonDisabled()} onClick={this.centerView.bind(this)} icon="crop_free" />
                     {(() => {
-                        if (this.state.selectedSteps.length > 0) {
-                            return <MDCButtonReact onClick={this.runSelectedSteps.bind(this)} label="Run selected steps" />
+                        if (this.state.showSelectionButton) {
+                            return <div className="selection-buttons">
+                                <MDCButtonReact onClick={this.runSelectedSteps.bind(this)} label="Run selected steps" />
+                                <MDCButtonReact onClick={this.onRunIncoming.bind(this)} label="Run incoming steps" />
+                            </div>;
                         }
                     })()}
                 </div>
                 <div className={"pipeline-actions"}>
 
-                    <MDCButtonReact 
+                    <MDCButtonReact
                         onClick={this.launchPipeline.bind(this)}
                         classNames={this.getPowerButtonClasses()}
-                        icon={"power_settings_new"}
+                        icon={ this.state.backend.working ? "hourglass_empty" : "power_settings_new" }
                     />
 
-                    <MDCButtonReact 
+                    <MDCButtonReact
                         onClick={this.newStep.bind(this)}
                         icon={"add"}
                         label={"NEW STEP"}
                     />
 
-                    <MDCButtonReact 
+                    <MDCButtonReact
+                        ref="saveButton"
                         onClick={this.savePipeline.bind(this)}
-                        label={"SAVE"}
+                        label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                     />
 
-                    <MDCButtonReact 
+                    <MDCButtonReact
                         onClick={this.openSettings.bind(this)}
                         label={"Settings"}
-                        icon="settings_applications"
+                        icon="tune"
                     />
 
                 </div>
@@ -1374,13 +1451,14 @@ class PipelineView extends React.Component {
             {(() => {
                 if (this.state.openedStep) {
                     return <PipelineDetails
-                        onDelete={this.onDetailsDelete.bind(this)}
-                        onNameUpdate={this.stepNameUpdate.bind(this)}
                         onSave={this.onSaveDetails.bind(this)}
+                        onNameUpdate={this.stepNameUpdate.bind(this)}
+                        onDelete={this.onDetailsDelete.bind(this)}
                         onClose={this.onCloseDetails.bind(this)}
                         onOpenNotebook={this.onOpenNotebook.bind(this)}
-                        onRunIncoming={this.onRunIncoming.bind(this)}
                         connections={connections_list}
+                        defaultViewIndex={this.state.defaultDetailViewIndex}
+                        onChangeView={this.onDetailsChangeView.bind(this)}
                         step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
                 }
             })()}

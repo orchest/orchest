@@ -3,8 +3,6 @@ import { MDCTextField } from '@material/textfield';
 import {uuidv4} from '../utils/all';
 
 class MDCTextFieldReact extends React.Component {
-    componentWillUnmount() {
-    }
 
     componentDidMount() {
         this.mdc = new MDCTextField(this.refs.input);
@@ -14,6 +12,11 @@ class MDCTextFieldReact extends React.Component {
     onChange(){
         this.props.onChange(this.mdc.value)
     }
+    
+    focus(){
+        this.mdc.focus();
+    }
+
     render() {
 
         let randomFor = uuidv4();
