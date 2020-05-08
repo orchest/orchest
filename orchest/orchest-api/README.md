@@ -23,7 +23,7 @@ broker_url = 'ampq://guest:guest@X:5672//'
 
 To start the web-based UI run
 1. Enable the management plugins (inside the container)
-        `docker exec -it some-rabbit bash`
+        `docker exec -it rabbitmq-server bash`
    Then run
         `rabbitmq-plugins enable rabbitmq_management`
 2. Now we can connect to it using our web-browser on:
