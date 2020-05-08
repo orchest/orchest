@@ -2,15 +2,23 @@
 
 ## RabbitMQ
 To start the my-rabbit node (the port `5672` is automatically published):
-`docker run -d --hostname my-rabbit --network orchest --name rabbitmq-server rabbitmq:3`
+```bash
+docker run -d --hostname my-rabbit --network orchest --name rabbitmq-server rabbitmq:3
+```
 
 Check the IP of the container
-`docker network inspect <network-name>`
+```bash
+docker network inspect <network-name>
+```
 
 (---- no longer needed, because we use host names ----)
+
 Connect Celery to RabbitMQ (lets say the IP is X)
-`broker_url = 'ampq://guest:guest@X:5672//'`
+```bash
+broker_url = 'ampq://guest:guest@X:5672//'
+```
 (where `guest:guest` is the default `user:password` of the `rabbitmq:3`)
+
 (-----------------------------------------------------)
 
 To start the web-based UI run
@@ -25,19 +33,29 @@ To start the web-based UI run
 
 ## Celery worker
 We want to spawn docker from inside docker
-`sudo chmod -R 0777 /var/run/docker.sock `
+```bash
+sudo chmod -R 0777 /var/run/docker.sock 
+```
 
 Building with non-default dockerfile name
-`docker build -t celery-worker -f Dockerfile_celery .`
+```bash
+docker build -t celery-worker -f Dockerfile_celery .
+```
 
 Running container (with the docker.sock mount)
-`docker run -v /var/run/docker.sock:/var/run/docker.sock --network orchest --name celery-worker celery-worker`
+```bash
+docker run -v /var/run/docker.sock:/var/run/docker.sock --network orchest --name celery-worker celery-worker
+```
 
 
 ## Orchest API
 Building can be done via
-`docker build -t orchest-api .`
+```bash
+docker build -t orchest-api .
+```
 
-uwsgi automatically listens on port 80
-`docker run --network orchest --name orchest-api orchest-api`
+Run (uwsgi automatically listens on port 80)
+```bash
+docker run --network orchest --name orchest-api orchest-api
+```
 
