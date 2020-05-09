@@ -67,7 +67,7 @@ class PipelineDetails extends React.Component {
                 subView = <PipelineDetailsProperties onNameUpdate={this.props.onNameUpdate} onSave={this.props.onSave} connections={this.props.connections} step={this.props.step} onChange={this.props.onChange} />;
                 break;
             case 1:
-                subView = <PipelineDetailsLogs />
+                subView = <PipelineDetailsLogs step={this.props.step} pipeline={this.props.pipeline} />
         }
 
         return <div className={"pipeline-details pane"}>
@@ -94,7 +94,7 @@ class PipelineDetails extends React.Component {
             <div className={"action-buttons-bottom"}>
 
                 <div className={"notebook-actions"}>
-                    <MDCButtonReact icon="launch" label="Open notebook" onClick={this.onOpenNotebook.bind(this)} />
+                    <MDCButtonReact icon="launch" label="Open in Jupyter" onClick={this.onOpenNotebook.bind(this)} />
                 </div>
 
                 <div className={"general-actions"}>

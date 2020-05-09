@@ -221,7 +221,7 @@ class PipelineView extends React.Component {
         // generate JSON representation using the internal state of React components describing the pipeline
         let pipelineJSON = {
             "name": this.state.pipelineJson.name,
-            "uuid": this.props.uuid,
+            "uuid": this.props.pipeline.uuid,
             "steps": {}
         };
 
@@ -306,12 +306,12 @@ class PipelineView extends React.Component {
     }
 
     openSettings() {
-        orchest.loadView(PipelineSettingsView, { "uuid": this.props.uuid });
+        orchest.loadView(PipelineSettingsView, { "pipeline": this.props.pipeline });
     }
 
     componentDidMount() {
 
-        fetch("/async/pipelines/json/get/" + this.props.uuid, {
+        fetch("/async/pipelines/json/get/" + this.props.pipeline.uuid, {
             method: "GET",
             cache: "no-cache",
             redirect: "follow",
@@ -330,7 +330,7 @@ class PipelineView extends React.Component {
         });
 
         // get backend status
-        fetch("/api-proxy/api/launches/" + this.props.uuid, {
+        fetch("/api-proxy/api/launches/" + this.props.pipeline.uuid, {
             method: "GET",
             cache: "no-cache",
             redirect: "follow",
@@ -786,7 +786,7 @@ class PipelineView extends React.Component {
     componentDidUpdate(prevProps, prevState, snapshot) {
 
         // add listeners once state is initialized by decodeJSON
-        if (this.state.steps !== undefined && Object.keys(this.state.steps).length > 0) {
+        if (this.state.steps !== undefined) {
 
             // initialize pipeline after setting state in decodeJSON/setting up React components
             this.updatePipelineViewerState()
@@ -819,7 +819,7 @@ class PipelineView extends React.Component {
             // perform POST to save
 
             // get pipeline dir from webserver
-            fetch("/async/pipelines/get_directory/" + this.props.uuid, {
+            fetch("/async/pipelines/get_directory/" + this.props.pipeline.uuid, {
                 method: 'GET',
                 mode: 'cors',
                 cache: 'no-cache',
@@ -834,7 +834,7 @@ class PipelineView extends React.Component {
                     let userdir_pipeline = json.result;
 
                     let data = {
-                        "pipeline_uuid": this.props.uuid,
+                        "pipeline_uuid": this.props.pipeline.uuid,
                         "pipeline_dir": userdir_pipeline
                     };
 
@@ -882,7 +882,7 @@ class PipelineView extends React.Component {
                 "backend": this.state.backend
             })
 
-            fetch("/api-proxy/api/launches/" + this.props.uuid, {
+            fetch("/api-proxy/api/launches/" + this.props.pipeline.uuid, {
                 method: 'DELETE',
                 mode: 'cors',
                 cache: 'no-cache',
@@ -1459,6 +1459,7 @@ class PipelineView extends React.Component {
                         connections={connections_list}
                         defaultViewIndex={this.state.defaultDetailViewIndex}
                         onChangeView={this.onDetailsChangeView.bind(this)}
+                        pipeline={this.props.pipeline}
                         step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
                 }
             })()}

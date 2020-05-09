@@ -9,13 +9,11 @@ source kill_orchest.sh
 docker container prune -f
 
 # source virtual env
-source venv/bin/activate
-
 source run_orchest_api.sh
 
 # sensible-browser http://127.0.0.1:8000 &> /dev/null &
 
-DEBUG=false
+DEBUG=true
 
 if [ "$DEBUG" = true ] ; then
     echo "[Debug = true] starting webpack & sass watchers..."
@@ -25,6 +23,11 @@ fi
 
 
 ## Run orchest web interface
-docker run -d -e HOST_USER_DIR=$PWD/orchest/userdir -v $PWD/orchest/webserver/app:/app -v $PWD/orchest/userdir:/userdir --name=orchest-webserver --network=orchest orchest-webserver
+#docker run -d -e HOST_USER_DIR=$PWD/orchest/userdir -v $PWD/orchest/webserver/app:/app -v $PWD/orchest/userdir:/userdir --name=orchest-webserver --network=orchest orchest-webserver
 
-# docker run -d -e HOST_USER_DIR=$PWD/orchest/userdir -e FLASK_DEBUG=1 -e FLASK_APP=app -v $PWD/orchest/webserver/app:/app -v $PWD/orchest/userdir:/userdir --name=orchest-webserver --network=orchest orchest-webserver flask run --host=0.0.0.0 --port=80
+docker run -d -e HOST_USER_DIR=$PWD/orchest/userdir -e FLASK_DEBUG=1 -e FLASK_APP=app -v $PWD/orchest/webserver/app:/app -v $PWD/orchest/userdir:/userdir --name=orchest-webserver --network=orchest orchest-webserver flask run --host=0.0.0.0 --port=80
+
+# spawn browser for docker container running webserver
+IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' orchest-webserver)
+
+sensible-browser "http://$IP" > /dev/null 2>&1 # supress browser warnings/errors

@@ -12,6 +12,7 @@ class Config:
 
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
+    LOG_DIR = ".logs"
 
     ORCHEST_API_ADDRESS = "orchest-api"
 

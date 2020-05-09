@@ -14,7 +14,7 @@ class PipelineListItem extends React.Component {
 
     pipelineClick(){
         // load pipeline view
-        orchest.loadView(PipelineView, {"uuid": this.props.pipeline.uuid})
+        orchest.loadView(PipelineView, {"pipeline": this.props.pipeline})
     }
 
     getChecked(){
@@ -118,7 +118,7 @@ class PipelinesView extends React.Component {
 
     fetchList(){
         // initialize REST call for pipelines
-        fetch('async/pipelines').then((response) => {
+        fetch('/async/pipelines').then((response) => {
             response.json().then((data) => {
                 this.setState({loaded: true, listData: data.result})
             })
@@ -139,7 +139,7 @@ class PipelinesView extends React.Component {
             selectedIndex.forEach((item, index) => {
                 let pipeline_id = this.state.listData[item].id;
 
-                fetch("async/pipelines/delete/" + pipeline_id, {method: "POST"}).then((response) => {
+                fetch("/async/pipelines/delete/" + pipeline_id, {method: "POST"}).then((response) => {
                     // reload list once removal succeeds
                     this.fetchList();
 
@@ -159,7 +159,7 @@ class PipelinesView extends React.Component {
         let data = new FormData();
         data.append("name", pipelineName);
 
-        fetch("async/pipelines/create", {
+        fetch("/async/pipelines/create", {
             method: "POST",
             body: data
         }).then((response) => {

@@ -165,6 +165,37 @@ def register_views(app, db):
             {"success": True, "result": pipelines}, cls=AlchemyEncoder)
         return json_string, 200, {'content-type': 'application/json'}
 
+    
+    @app.route("/async/logs/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
+    def logs_get(pipeline_uuid, step_uuid):
+
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
+
+        log_path = os.path.join(pipeline_dir, app.config["LOG_DIR"], "%s.log" % step_uuid)
+
+        logs = None
+
+        if os.path.isfile(log_path):
+            try:
+
+                with open(log_path, 'r') as f:
+                    logs = f.read()
+
+            except IOError as error:
+                print("Error opening log file %s erorr: %s", (log_path, error))
+
+        if logs is not None:
+            json_string = json.dumps(
+            {"success": True, "result": logs}, cls=AlchemyEncoder)
+
+            return json_string, 200, {'content-type': 'application/json'}
+
+        else:
+            json_string = json.dumps(
+            {"success": False, "reason": "Could not find log file"}, cls=AlchemyEncoder)
+
+            return json_string, 404, {'content-type': 'application/json'}
+
 
     def get_pipeline_directory_by_uuid(uuid, host_path=False):
 
@@ -312,7 +343,7 @@ def register_views(app, db):
 
         pipeline_json_path = os.path.join(pipeline_directory, "pipeline.json")
         if not os.path.isfile(pipeline_json_path):
-            return jsonify({"success": False, "reason": "pipeline.json doesn't exist"})
+            return jsonify({"success": False, "reason": "pipeline.json doesn't exist"}), 404
         else:
             with open(pipeline_json_path) as json_file:
 
@@ -331,7 +362,7 @@ def register_views(app, db):
 
         pipeline_json_path = os.path.join(pipeline_directory, "pipeline.json")
         if not os.path.isfile(pipeline_json_path):
-            return jsonify({"success": False, "reason": "pipeline.json doesn't exist"})
+            return jsonify({"success": False, "reason": "pipeline.json doesn't exist"}), 404
         else:
             with open(pipeline_json_path) as json_file:
                 return jsonify({"success": True, "pipeline_json": json_file.read()})

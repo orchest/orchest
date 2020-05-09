@@ -47,7 +47,7 @@ class ExperimentsView extends React.Component {
 
     fetchList() {
         // initialize REST call for pipelines
-        fetch('async/pipelines').then((response) => {
+        fetch('/async/pipelines').then((response) => {
             response.json().then((data) => {
 
                 this.setState({
@@ -75,7 +75,7 @@ class ExperimentsView extends React.Component {
 
             return;
         }
-        fetch('async/pipelines/json/experiments/' + this.state.selectedPipelineUUID).then((response) => {
+        fetch('/async/pipelines/json/experiments/' + this.state.selectedPipelineUUID).then((response) => {
             response.json().then((data) => {
                 this.setState({
                     experiment_args: data.experiment_args,

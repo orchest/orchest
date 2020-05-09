@@ -60,7 +60,7 @@ class PipelineSettingsView extends React.Component {
     }
 
     closeSettings() {
-        orchest.loadView(PipelineView, {"uuid": this.props.uuid});
+        orchest.loadView(PipelineView, {"pipeline": this.props.pipeline});
     }
 
     saveGeneralForm(e){
@@ -89,7 +89,7 @@ class PipelineSettingsView extends React.Component {
                     // orchest.loadView(PipelineSettingsView, {name: pipelineName, uuid: this.props.uuid});
 
                     // TODO: evaluate: should we close PipelineSettingsView on save?
-                    orchest.loadView(PipelineView, {"uuid": this.props.uuid});
+                    orchest.loadView(PipelineView, {"pipeline": this.props.pipeline});
                 }
             })
 
