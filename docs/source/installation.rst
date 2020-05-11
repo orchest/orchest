@@ -1,4 +1,9 @@
 Installation
 ============
 
-Some info
+System requirements
+-------------------
+
+
+Troubleshooting
+---------------

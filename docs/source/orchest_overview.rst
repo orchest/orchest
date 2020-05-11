@@ -29,3 +29,9 @@ What can I use Orchest for?
 With Orchest, you get to build pipelines where each step has its own isolated environment allowing
 you to focus on a specific task, may it be: data engineering, model building or even more low level
 things such as data transforms.
+
+
+Orchest roadmap
+---------------
+
+Where will we go from here.
