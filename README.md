@@ -1,4 +1,4 @@
-<img src='orchest-logo.png' width="250px" />
+<img src='docs/source/img/logo.png' width="250px" />
 
 #
 
