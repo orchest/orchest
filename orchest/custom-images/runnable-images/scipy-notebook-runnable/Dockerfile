@@ -1,5 +1,5 @@
 # Ubuntu 18.04.1 LTS Bionic
-FROM jupyter/scipy-notebook
+FROM scipy-notebook-augmented
 
 USER root
 

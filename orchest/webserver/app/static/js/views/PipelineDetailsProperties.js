@@ -106,6 +106,8 @@ class PipelineDetailsProperties extends React.Component {
             }
         }
 
+        this.state.step.kernel.display_name = kernelDisplayName;
+
         this.setState({
             "step": this.state.step 
         });
@@ -155,10 +157,11 @@ class PipelineDetailsProperties extends React.Component {
         this.state = {
             "kernelOptions": [
                 ["python", "Python 3"],
-                ["r", "R"]
+                ["ir", "R"]
             ],
             "imageOptions": [
-                ["jupyter/scipy-notebook", "jupyter/scipy-notebook"]
+                ["scipy-notebook-augmented", "scipy-notebook-augmented"],
+                ["r-notebook-augmented", "r-notebook-augmented"]
             ],
             "isNotebookStep": true,
             "step": this.props.step

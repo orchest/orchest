@@ -1,0 +1,9 @@
+FROM jupyter/base-notebook
+
+RUN python3 -m pip install docker
+
+COPY ./app /app
+
+WORKDIR /app
+
+ENTRYPOINT ["python3", "main.py"]

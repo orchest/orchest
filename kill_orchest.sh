@@ -1,5 +1,5 @@
 # clean old containers
-for ANCESTOR in jupyter-server:latest elyra/enterprise-gateway:2.1.0 elyra/kernel-py:2.1.1 rabbitmq:3 orchest-api celery-worker orchest-webserver
+for ANCESTOR in jupyter-server:latest elyra/enterprise-gateway:2.1.1 elyra/kernel-py:2.1.1 rabbitmq:3 orchest-api celery-worker orchest-webserver
 do 
   process_ids=$(docker ps -a -q --filter ancestor=$ANCESTOR --format="{{.ID}}")
 

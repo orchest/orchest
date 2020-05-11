@@ -24,7 +24,8 @@ def register_views(app, db):
         # add image mapping
         # TODO: replace with dynamic mapping instead of hardcoded
         image_mapping = {
-            "jupyter/scipy-notebook": "scipy-notebook-runnable"
+            "scipy-notebook-augmented": "scipy-notebook-runnable",
+            "r-notebook-augmented": "r-notebook-runnable"
         }
 
         json_obj['run_config'] = {

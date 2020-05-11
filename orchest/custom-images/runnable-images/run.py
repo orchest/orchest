@@ -81,8 +81,8 @@ def run_notebook(file_path, step_uuid=None):
 
     # TODO: extend this mapping
     kernel_mapping = {
-        "scipy-notebook_docker_python": "python",
-        "scipy-notebook_docker_r": "r"
+        "scipy-notebook-augmented_docker_python": "python",
+        "r-notebook-augmented_docker_ir": "ir"
     }
 
     nb = None

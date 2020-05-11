@@ -24,7 +24,7 @@ class PipelineSettingsView extends React.Component {
 
     componentDidMount() {
 
-        fetch("/async/pipelines/json/get/" + this.props.uuid, {
+        fetch("/async/pipelines/json/get/" + this.props.pipeline.uuid, {
             method: "GET",
             cache: "no-cache",
             redirect: "follow",
@@ -73,7 +73,7 @@ class PipelineSettingsView extends React.Component {
         formData.append("name", pipelineName);
 
         // perform POST to save
-        fetch("/async/pipelines/rename/" + this.props.uuid, {
+        fetch("/async/pipelines/rename/" + this.props.pipeline.uuid, {
             method: 'POST',
             mode: 'cors',
             cache: 'no-cache',

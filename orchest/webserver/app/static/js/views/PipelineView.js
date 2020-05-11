@@ -919,7 +919,7 @@ class PipelineView extends React.Component {
                 "name": "docker_python",
                 "display_name": "Python 3"
             },
-            "image": "jupyter/scipy-notebook",
+            "image": "scipy-notebook-augmented",
             // TODO: incorporate pipeline step level resource control
             // "memory": "1024",
             // "vcpus": "1",
