@@ -17,7 +17,7 @@ A pipeline in Orchest can be thought of as a single executable file (e.g. notebo
 scripts) within its own isolated environment powered by containerization. Users get a visual
 pipeline editor to describe the execution order of those executable files, which we will call
 (pipeline) steps. After coding a subset of these steps, Orchest allows you to select and run any of
-the steps whilst keeping in mind the given execution order of the pipeline.
+the steps whilst keeping in mind the defined execution order of the pipeline.
 
 Orchest essentially helps you to modularize, i.e. split up, your single monolithic notebook or
 script into pipeline steps and pass data between them.
@@ -29,9 +29,3 @@ What can I use Orchest for?
 With Orchest, you get to build pipelines where each step has its own isolated environment allowing
 you to focus on a specific task, may it be: data engineering, model building or even more low level
 things such as data transforms.
-
-Orchest provides a web based platform to manage your data science efforts:
-
-* dependencies
-* compute
-* all in your favorite editor

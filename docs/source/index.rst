@@ -3,8 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Orchest's documentation!
-===================================
+Orchest
+=======
+
+Orchest is an open source, cloud native, development environment build for data science. Orchest
+enables you to develop, train and run your models on the cloud without any knowledge of cloud
+infrastructure.
 
 .. toctree::
    :maxdepth: 2
@@ -20,9 +24,9 @@ Welcome to Orchest's documentation!
 
 
 
-Indices and tables
-==================
+.. Indices and tables
+.. ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. * :ref:`genindex`
+.. * :ref:`modindex`
+.. * :ref:`search`
