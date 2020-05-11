@@ -4,7 +4,9 @@ import time
 
 
 from flask import request
-from flask_restplus import Namespace, Resource, fields
+from flask_restplus import fields
+from flask_restplus import Namespace
+from flask_restplus import Resource
 import requests
 
 from app.connections import db, docker_client
@@ -14,11 +16,9 @@ import app.models as models
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-
-# Set namespace.
 api = Namespace('launches', description='Launches of pipelines for development')
 
-# API models.
+# Models for RESTful API.
 server = api.model('Server', {
     'url': fields.String(
         required=True,
@@ -99,7 +99,8 @@ class LaunchList(Resource):
         post_data = request.get_json()
 
         jdm = JupyterDockerManager(docker_client, network='orchest')
-        IP = jdm.launch_pipeline(post_data['pipeline_uuid'], post_data['pipeline_dir'])
+        IP = jdm.launch_pipeline(post_data['pipeline_uuid'],
+                                 post_data['pipeline_dir'])
 
         # The launched jupyter-server container is only running the API
         # and waits for instructions before the Jupyter server is
@@ -114,7 +115,7 @@ class LaunchList(Resource):
                 # Enterprise Gateway.
                 r = requests.post(
                         f'http://{IP.server}:80/api/servers/',
-                        json={'gateway-url': f'http://{IP.EG}:8888'}
+                        json={'gateway_url': f'http://{IP.EG}:8888'}
                 )
             except requests.ConnectionError:
                 # TODO: there is probably a robuster way than a sleep.
@@ -149,8 +150,9 @@ class Launch(Resource):
     @api.marshal_with(launch)
     def get(self, pipeline_uuid):
         """Fetch a launch given its UUID."""
-        launch = models.Launch.query.get_or_404(pipeline_uuid,
-                                                description='Launch not found')
+        launch = models.Launch.query.get_or_404(
+            pipeline_uuid, description='Launch not found'
+        )
         return launch.as_dict()
 
     @api.doc('shutdown_launch')
@@ -158,13 +160,18 @@ class Launch(Resource):
     @api.response(404, 'Launch not found')
     def delete(self, pipeline_uuid):
         """Shutdown launch"""
-        launch = models.Launch.query.get_or_404(pipeline_uuid,
-                                                description='Launch not found')
+        launch = models.Launch.query.get_or_404(
+            pipeline_uuid, description='Launch not found'
+        )
 
         # Uses the API inside the container that is also running the
         # Jupyter server to shut the server down and clean all running
         # kernels that are associated with the server.
         requests.delete(f'http://{launch.server_ip}:80/api/servers/')
+
+        # TODO: not sure whether the event of shutting down all the
+        #       kernels has to be awaited or the docker containers can
+        #       simply be shut down.
 
         jdm = JupyterDockerManager(docker_client, network='orchest')
         response = jdm.shutdown_pipeline(pipeline_uuid)

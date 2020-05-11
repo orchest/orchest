@@ -1,45 +1,56 @@
-from collections import namedtuple
 import os
+from typing import NamedTuple
 
 from docker.types import Mount
+
+
+class IP(NamedTuple):
+    EG: str
+    server: str
 
 
 class DockerManager:
     """Manages containers on a local network.
 
     Attributes:
-        client (docker.client.DockerClient)
-        network (str): name of docker network to manage resources on.
-
+        client (docker.client.DockerClient): docker client to manage
+            Docker recourses.
+        network: name of docker network to manage resources on.
     """
-    def __init__(self, client, network='bridge'):
+    def __init__(self, client, network: str = 'bridge'):
         self.client = client
         self.network = network
 
 
 class JupyterDockerManager(DockerManager):
     """Manages all docker containers for Jupyter resources."""
-    def _get_container_ip(self, container):
+    def _get_container_ip(self, container) -> str:
         """Get IP address of container.
 
         Args:
-            container (docker.models.containers.Container)
+            container (docker.models.containers.Container): container of
+                which to get the IP address.
 
+        Returns:
+            The IPAdress of the container inside the network.
         """
         # The containers have to be reloaded as otherwise cached "attrs"
         # is used, which might not be up-to-date.
         container.reload()
-        return container.attrs['NetworkSettings']['Networks']['orchest']['IPAddress']
+        return container.attrs['NetworkSettings']['Networks'][self.network]['IPAddress']
 
-    def launch_pipeline(self, uuid, pipeline_dir):
+    def launch_pipeline(self, uuid: str, pipeline_dir: str) -> IP:
         """Launches a configured Jupyter server and Jupyter EG.
 
         All containers are run in detached mode.
 
         Args:
-            uuid (str): UUID of pipeline that is launched.
-            pipeline_dir (str): path to pipeline files.
+            uuid: UUID of pipeline that is launched.
+            pipeline_dir: path to pipeline files.
 
+        Returns:
+            A namedtuple of the IPs of the enterprise-gateway container
+            and jupyter-server container respectively.
         """
         # TODO: Do we want a restart_policy when containers die
         #       "on_failure"?
@@ -80,14 +91,15 @@ class JupyterDockerManager(DockerManager):
                     f'EG_DOCKER_NETWORK={self.network}',
                     'EG_MIRROR_WORKING_DIRS=True',
                     'EG_LIST_KERNELS=True',
-                    'EG_KERNEL_WHITELIST=["scipy-notebook_docker_python","scipy-notebook_docker_r"]'
+                    ('EG_KERNEL_WHITELIST=["scipy-notebook_docker_python",'
+                                          '"scipy-notebook_docker_r"]')
                 ],
                 network=self.network
         )
 
         # Run Jupyter server container.
         server_container = self.client.containers.run(
-                image='jupyter-server:latest',  # TODO: make not static. Some config.
+                image='jupyter-server:latest',  # TODO: make not static.
                 detach=True,
                 mounts=[pipeline_dir_mount],
                 name=f'jupyter-server-{uuid}',
@@ -95,11 +107,10 @@ class JupyterDockerManager(DockerManager):
         )
 
         # Return IP addresses of the started containers.
-        IP = namedtuple('IP', ['EG', 'server'])
         return IP(self._get_container_ip(EG_container),
                   self._get_container_ip(server_container))
 
-    def shutdown_pipeline(self, uuid):
+    def shutdown_pipeline(self, uuid: str) -> None:
         """Shuts down launched pipeline with given UUID.
 
         Stops and removes containers. Containers are removed such that
@@ -107,15 +118,14 @@ class JupyterDockerManager(DockerManager):
         relaunched.
 
         Args:
-            uuid (str): pipeline uuid.
+            uuid: pipeline uuid.
 
         Raises:
-            ...
+            TODO
 
         Returns:
             None. If no error is raised, then it means the pipeline was
             shut down successfully.
-
         """
         pattern = f'jupyter-(EG|server)-{uuid}'
 

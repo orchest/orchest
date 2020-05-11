@@ -4,8 +4,6 @@ from config import CONFIG_CLASS
 
 
 def make_celery(app):
-    # TODO: later the Celery instance has to be initialized with the app
-    #       config that states the broker etc.
     celery = Celery(
         app.import_name,
         config_source=CONFIG_CLASS
