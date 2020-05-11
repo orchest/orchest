@@ -1,10 +1,14 @@
 FROM tiangolo/uwsgi-nginx-flask:python3.7
 
-RUN pip3 install flask_socketio flask_restplus requests jupyterlab Werkzeug==0.16.1
+RUN pip3 install flask_socketio \
+    flask_restplus \
+    requests \
+    jupyterlab \
+    Werkzeug==0.16.1
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
-# install nodejs for jupyterextension install support
+# Install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
 RUN apt-get install -y nodejs
 

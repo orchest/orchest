@@ -14,26 +14,47 @@ api = Namespace('servers', description='Start and stop Jupyter servers')
 
 # Server information to connect to JupyterLab instance.
 server = api.model('Server', {
-    'url': fields.String(required=True, description='URL of the server'),
-    'hostname': fields.String(required=True, default='localhost', description='Hostname'),
-    'port': fields.Integer(required=True, description='Port to access the server'),
-    'secure': fields.Boolean(required=True, description='Any extra security measures'),
-    'base_url': fields.String(required=True, default='/', description='Base URL'),
-    'token': fields.String(required=True, description='Token for authentication'),
-    'notebook_dir': fields.String(required=True, description='Directory of the server'),
-    'password': fields.Boolean(required=True, description='Password if one is set'),
-    'pid': fields.Integer(required=True, description='PID'),
+    'url': fields.String(
+        required=True,
+        description='URL of the server'),
+    'hostname': fields.String(
+        required=True,
+        default='localhost',
+        description='Hostname'),
+    'port': fields.Integer(
+        required=True,
+        description='Port to access the server'),
+    'secure': fields.Boolean(
+        required=True,
+        description='Any extra security measures'),
+    'base_url': fields.String(
+        required=True,
+        default='/',
+        description='Base URL'),
+    'token': fields.String(
+        required=True,
+        description='Token for authentication'),
+    'notebook_dir': fields.String(
+        required=True,
+        description='Directory of the server'),
+    'password': fields.Boolean(
+        required=True,
+        description='Password if one is set'),
+    'pid': fields.Integer(
+        required=True,
+        description='PID'),
 })
 
-# These model attributes do not follow the naming convention
-# of underscores instead of dashes, because they are passed
-# as command line arguments to the subprocess.
 jupyter_config = api.model('Jupyter Config', {
-    'gateway-url': fields.String(required=True, description='URL of the EG'),
+    'gateway_url': fields.String(
+        required=True,
+        description='URL of the EG'),
 })
 
 message = api.model('Message', {
-    'message': fields.String(required=True, description='Message clarifying response')
+    'message': fields.String(
+        required=True,
+        description='Message clarifying response')
 })
 
 
@@ -51,7 +72,8 @@ class Server(Resource):
     def get(self):
         """Fetch the server information if it is running."""
         if not os.path.exists(self.connection_file):
-            return api.marshal(fields=message, data={'message': 'No running server'}), 404
+            return api.marshal(fields=message,
+                               data={'message': 'No running server'}), 404
 
         with open(self.connection_file, 'r') as f:
             server_info = json.load(f)
@@ -60,7 +82,7 @@ class Server(Resource):
 
     # TODO: super stricly there can only be one running server at any
     #       moment. Thus another POST request when a server is already
-    #       running should just return the existing server.
+    #       running should return an error code.
     @api.doc('start_server')
     @api.expect(jupyter_config)
     @api.marshal_with(server, code=201, description='Server started')
@@ -69,12 +91,16 @@ class Server(Resource):
         # Use the flask "request context".
         post_data = request.get_json()
 
-        # Parse arguments to pass to the subprocess. The "args" should be
-        # a sequence of program arguments. Because if it is a string, then
-        # the interpretation is platform-dependent (see python docs).
+        # Parse arguments to pass to the subprocess. The "args" should
+        # be a sequence of program arguments. Because if it is a string,
+        # then the interpretation is platform-dependent (see python
+        # docs).
         start_script = os.path.join(self.abs_path, '../core/start_server.py')
         args = ['python', '-u', start_script]
-        args.extend([f'--{arg}={value}' for arg, value in post_data.items()])
+        args.extend([
+            f'--{arg.replace("_", "-")}={value}'
+            for arg, value in post_data.items()
+        ])
 
         # Need to start a new event loop to start a subprocess.
         asyncio.set_event_loop(asyncio.new_event_loop())
@@ -93,7 +119,7 @@ class Server(Resource):
         with open(self.connection_file, 'r') as f:
             server_info = json.load(f)
 
-        # TODO: return 404 in case it did not work! So you can try again
+        # TODO: return 404 in case it did not work!
 
         return server_info, 201
 
@@ -101,10 +127,7 @@ class Server(Resource):
     @api.response(200, 'Server stopped')
     @api.response(404, 'Server not found')
     def delete(self):
-        """Shuts down running Jupyter server.
-
-        Sends an authenticated POST request to "localhost:<port>/api/shutdown".
-        """
+        """Shuts down running Jupyter server."""
         r = shutdown_jupyter_server(self.connection_file)
 
         if r is None:

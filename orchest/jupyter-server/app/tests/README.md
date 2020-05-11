@@ -9,6 +9,8 @@ Explanation: Due to all the hardcoded paths (and urls), the tests will not run i
 and PORTs are already in use by another application (this is because the tests are run on the local
 machine and not inside a docker container similar to the production environment).
 
+* `app/app/core/config.py`: Set `PRODUCTION = False`. As noted in the top-level README.md
+
 
 ## Difficulties for writing the tests
 D: Subprocess cleanup. Since a POST would only start the server in a subprocess, but never shuts it
