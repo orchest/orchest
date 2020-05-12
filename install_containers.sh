@@ -33,7 +33,7 @@ docker build -t custom-base-kernel-r \
 # runnable images
 docker build -t orchest-api orchest/orchest-api/
 
-docker build -t orchest-webserver orchest/webserver/
+docker build -t orchest-webserver orchest/orchest-webserver/
 
 # RabbitMQ
 docker pull rabbitmq:3

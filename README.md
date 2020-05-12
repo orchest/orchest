@@ -26,6 +26,7 @@ Orchest is an open source end-to-end machine learning platform tailored to web &
 
 # Running Orchest for development
 
+# TODO: update this
 1. Install virtualenv and create a virtual environment in this directory `venv/` by running `virtualenv venv`.
 2. Install requirements.txt in virtualenv from orchest/webserver/requirements.txt
 2. Install requirements.txt in virtualenv from orchest/orchest-api/requirements.txt

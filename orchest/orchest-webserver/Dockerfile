@@ -6,10 +6,9 @@ RUN pip3 install Flask \
     flask_sqlalchemy \
     Flask-Migrate \
     requests \
+    APScheduler \
     Werkzeug==0.16.0
 
 COPY ./app /app
-
-ENV FLASK_DEBUG: 1
 
 WORKDIR /app

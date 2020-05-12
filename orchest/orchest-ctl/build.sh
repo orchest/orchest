@@ -1,0 +1,1 @@
+docker build -t orchest-ctl $(dirname "$0")
