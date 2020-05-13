@@ -173,6 +173,11 @@ class PipelineStepRunner:
             'Env': [f'STEP_UUID={self.properties["uuid"]}'],
             'HostConfig': {'Binds': [f'{pipeline_dir}:/notebooks']},
             'Cmd': [self.properties['file_path']],
+            'NetworkingConfig': {
+                'EndpointsConfig': {
+                    'orchest': {}  # TODO: should not be hardcoded.
+                }
+            },
             'tests-uuid': self.properties['uuid']
         }
 
