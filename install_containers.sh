@@ -30,10 +30,13 @@ docker build -t custom-base-kernel-py \
 docker build -t custom-base-kernel-r \
     -f orchest/custom-images/custom-base-kernel-r/Dockerfile orchest/custom-images/r-notebook-augmented
 
-# runnable images
+# application images
 docker build -t orchest-api orchest/orchest-api/
 
+docker build -t orchest-ctl orchest/orchest-ctl/
+
 docker build -t orchest-webserver orchest/orchest-webserver/
+
 
 # RabbitMQ
 docker pull rabbitmq:3

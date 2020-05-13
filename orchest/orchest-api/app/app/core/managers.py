@@ -80,8 +80,11 @@ class JupyterDockerManager(DockerManager):
                     f'EG_DOCKER_NETWORK={self.network}',
                     'EG_MIRROR_WORKING_DIRS=True',
                     'EG_LIST_KERNELS=True',
-                    'EG_KERNEL_WHITELIST=["scipy-notebook-augmented_docker_python","r-notebook-augmented_docker_ir"]'
+                    'EG_KERNEL_WHITELIST=["scipy-notebook-augmented_docker_python","r-notebook-augmented_docker_ir"]',
+                    "EG_UNAUTHORIZED_USERS=['dummy']",
+                    "EG_UID_BLACKLIST=['-1']"
                 ],
+                user='root',
                 network=self.network
         )
 
@@ -91,7 +94,10 @@ class JupyterDockerManager(DockerManager):
                 detach=True,
                 mounts=[pipeline_dir_mount],
                 name=f'jupyter-server-{uuid}',
-                network=self.network
+                network=self.network,
+                environment=[
+                    'KERNEL_UID=0'
+                ]
         )
 
         # Return IP addresses of the started containers.

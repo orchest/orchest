@@ -173,7 +173,7 @@ def install_complete():
     if len(missing_images) > 0:
         logging.warning("Missing images: %s" % missing_images)
         return False
-    
+
 
     return True
 
