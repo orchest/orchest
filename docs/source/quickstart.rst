@@ -2,8 +2,8 @@ Quickstart
 ==========
 
 
-Your workflow in Orchest
-------------------------
+General workflow in Orchest
+---------------------------
 
 1. Visually build your pipeline. Drag, drop and connect steps.
 
