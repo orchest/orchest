@@ -243,12 +243,18 @@ def stop():
     for running_container in running_containers:
         if len(running_container.image.tags) > 0 and running_container.image.tags[0] in IMAGES:
             logging.info("Killing container %s" % running_container.name)
-            running_container.kill()
-            running_container.remove()
-        elif running_container.name in container_names:
-                logging.info("Killing container %s" % running_container.name)
+            try:
                 running_container.kill()
                 running_container.remove()
+            except Exception as e:
+                print(e)
+        elif running_container.name in container_names:
+            logging.info("Killing container %s" % running_container.name)
+            try:
+                running_container.kill()
+                running_container.remove()
+            except Exception as e:
+                print(e)
 
 
 def log_server_url():
