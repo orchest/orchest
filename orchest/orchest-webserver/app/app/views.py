@@ -1,5 +1,4 @@
 from flask import render_template, request, jsonify
-from app.models import AlchemyEncoder, Pipeline
 from distutils.dir_util import copy_tree
 
 import shutil
@@ -39,21 +38,16 @@ def register_views(app, db):
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
 
-    @app.route("/async/pipelines/delete/<pipeline_id>", methods=["POST"])
-    def pipelines_delete(pipeline_id):
-
-        pipeline = Pipeline.query.filter_by(id=pipeline_id).first()
+    @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
+    def pipelines_delete(pipeline_uuid):
 
         # also delete directory
-        pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
         # TODO: find way to not force sudo remove on pipeline dirs
         # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
         if len(pipeline_dir) > 36:
             os.system("rm -rf %s" % (pipeline_dir))
-
-        db.session.delete(pipeline)
-        db.session.commit()
 
         return jsonify({"success": True})
 
@@ -61,15 +55,10 @@ def register_views(app, db):
     @app.route("/async/pipelines/create", methods=["POST"])
     def pipelines_create():
 
-        pipeline = Pipeline()
-        pipeline.name = request.form.get("name")
-        pipeline.uuid = str(uuid.uuid4())
-
-        db.session.add(pipeline)
-        db.session.commit()
+        pipeline_uuid = str(uuid.uuid4())
 
         # create dirs
-        pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
         os.makedirs(pipeline_dir, exist_ok=True)
 
         # populate pipeline directory with kernels
@@ -87,7 +76,7 @@ def register_views(app, db):
             kernel_json_file = os.path.join(kernel_folder, "kernel.json")
             if os.path.isfile(kernel_json_file):
                 with open(kernel_json_file, 'r') as file:
-                    data = file.read().replace('{host_pipeline_dir}', get_pipeline_directory_by_uuid(pipeline.uuid, host_path=True))
+                    data = file.read().replace('{host_pipeline_dir}', get_pipeline_directory_by_uuid(pipeline_uuid, host_path=True))
                     data = data.replace('{orchest_api_address}',
                                         app.config['ORCHEST_API_ADDRESS'])
 
@@ -95,10 +84,9 @@ def register_views(app, db):
                     file.write(data)
 
         # generate clean pipeline.json
-
         pipeline_json = {
-            "name": pipeline.name,
-            "uuid": pipeline.uuid,
+            "name": request.form.get("name"),
+            "uuid": pipeline_uuid,
             "version": "1.0.0"
         }
 
@@ -108,62 +96,83 @@ def register_views(app, db):
         return jsonify({"success": True})
 
 
-    @app.route("/async/pipelines/rename/<string:url_uuid>", methods=["POST"])
-    def pipelines_rename(url_uuid):
+    @app.route("/async/pipelines/rename/<string:pipeline_uuid>", methods=["POST"])
+    def pipelines_rename(pipeline_uuid):
 
-        pipeline = Pipeline.query.filter_by(uuid=url_uuid).first()
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        if pipeline:
-
-            # rename pipeline in DB
-            pipeline.name = request.form.get("name")
-            db.session.commit()
+        if os.path.isdir(pipeline_dir) and os.path.isfile(os.path.join(pipeline_dir, "pipeline.json")):
 
             # rename pipeline in JSON file
-            pipeline_dir = get_pipeline_directory_by_uuid(pipeline.uuid)
             pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
 
             with open(pipeline_json_path, 'r') as json_file:
                 pipeline_json = json.load(json_file)
 
-            pipeline_json["name"] = pipeline.name
+            pipeline_json["name"] = request.form.get("name")
 
             with open(pipeline_json_path, 'w') as json_file:
                 json_file.write(json.dumps(pipeline_json))
 
-            json_string = json.dumps({"success": True}, cls=AlchemyEncoder)
+            json_string = json.dumps({"success": True})
             return json_string, 200, {'content-type': 'application/json'}
         else:
             return "", 404
 
 
-    @app.route("/async/pipelines/get/<string:url_uuid>", methods=["GET"])
-    def pipelines_get_single(url_uuid):
+    @app.route("/async/pipelines/get/<string:pipeline_uuid>", methods=["GET"])
+    def pipelines_get_single(pipeline_uuid):
 
-        pipeline = Pipeline.query.filter_by(uuid=url_uuid).first()
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
+        pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
 
-        if pipeline:
-            json_string = json.dumps(
-                {"success": True, "result": pipeline}, cls=AlchemyEncoder)
-            return json_string, 200, {'content-type': 'application/json'}
+        if os.path.isfile(pipeline_json_path):
+
+            with open(pipeline_json_path, 'r') as json_file:
+                pipeline_json = json.load(json_file)
+
+                pipeline_light = {
+                    "name": pipeline_json["name"],
+                    "uuid": pipeline_json["uuid"]
+                }
+                json_string = json.dumps(
+                    {"success": True, "result": pipeline_light})
+                return json_string, 200, {'content-type': 'application/json'}
         else:
             return "", 404
 
 
-    @app.route("/async/pipelines/get_directory/<string:url_uuid>", methods=["GET"])
-    def pipelines_get_directory(url_uuid):
+    @app.route("/async/pipelines/get_directory/<string:pipeline_uuid>", methods=["GET"])
+    def pipelines_get_directory(pipeline_uuid):
         json_string = json.dumps({"success": True, "result": get_pipeline_directory_by_uuid(
-            url_uuid, host_path=True)}, cls=AlchemyEncoder)
+            pipeline_uuid, host_path=True)})
         return json_string, 200, {'content-type': 'application/json'}
 
 
     @app.route("/async/pipelines", methods=["GET"])
     def pipelines_get():
 
-        pipelines = Pipeline.query.all()
+        pipelines_dir = get_pipelines_dir()
+
+        pipeline_uuids = [ f.path for f in os.scandir(pipelines_dir) if f.is_dir() ]
+
+        pipelines = []
+        
+        for pipeline_uuid in pipeline_uuids:
+
+            pipeline_json_path = os.path.join(pipelines_dir, pipeline_uuid, "pipeline.json")
+
+            if os.path.isfile(pipeline_json_path):
+                with open(pipeline_json_path, 'r') as json_file:
+                    pipeline_json = json.load(json_file)
+
+                    pipelines.append({
+                        "name": pipeline_json["name"],
+                        "uuid": pipeline_json["uuid"]
+                    })
 
         json_string = json.dumps(
-            {"success": True, "result": pipelines}, cls=AlchemyEncoder)
+            {"success": True, "result": pipelines})
         return json_string, 200, {'content-type': 'application/json'}
 
     
@@ -187,32 +196,35 @@ def register_views(app, db):
 
         if logs is not None:
             json_string = json.dumps(
-            {"success": True, "result": logs}, cls=AlchemyEncoder)
+            {"success": True, "result": logs})
 
             return json_string, 200, {'content-type': 'application/json'}
 
         else:
             json_string = json.dumps(
-            {"success": False, "reason": "Could not find log file"}, cls=AlchemyEncoder)
+            {"success": False, "reason": "Could not find log file"})
 
             return json_string, 404, {'content-type': 'application/json'}
 
 
     def get_pipeline_directory_by_uuid(uuid, host_path=False):
 
-        USER_DIR = app.config['USER_DIR']
-
-        if host_path:
-            USER_DIR = app.config['HOST_USER_DIR']
-
-        pipeline_dir = os.path.join(
-            USER_DIR, "pipelines/" + uuid)
+        pipeline_dir = os.path.join(get_pipelines_dir(host_path=host_path), uuid)
 
         # create pipeline dir if it doesn't exist
         if not host_path:
             os.makedirs(pipeline_dir, exist_ok=True)
 
         return pipeline_dir
+
+    def get_pipelines_dir(host_path=False):
+
+        USER_DIR = app.config['USER_DIR']
+
+        if host_path:
+            USER_DIR = app.config['HOST_USER_DIR']
+
+        return os.path.join(USER_DIR, "pipelines/")
 
 
     def generate_ipynb_from_template(step):

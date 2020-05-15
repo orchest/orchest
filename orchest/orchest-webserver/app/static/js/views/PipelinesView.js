@@ -137,9 +137,9 @@ class PipelinesView extends React.Component {
         if(confirm("Are you certain that you want to delete this pipeline? Note: this action is irreversible.")){
 
             selectedIndex.forEach((item, index) => {
-                let pipeline_id = this.state.listData[item].id;
+                let pipeline_uuid = this.state.listData[item].uuid;
 
-                fetch("/async/pipelines/delete/" + pipeline_id, {method: "POST"}).then((response) => {
+                fetch("/async/pipelines/delete/" + pipeline_uuid, {method: "POST"}).then((response) => {
                     // reload list once removal succeeds
                     this.fetchList();
 
