@@ -218,7 +218,8 @@ class PipelineStepRunner:
             session: aiohttp.ClientSession,
             task_id: str,
             *,
-            run_config: Dict[str, Any]) -> Optional[str]:
+            run_config: Dict[str, Any]
+    ) -> Optional[str]:
         """Runs all children steps after running itself.
 
         A child run is only started if the step itself has successfully

@@ -12,7 +12,7 @@ api = Api(
     blueprint,
     title='Orchest API',
     version='1.0',
-    description='Back-end API for orchest'
+    description='Back-end API for Orchest'
 )
 
 api.add_namespace(ns_experiments)

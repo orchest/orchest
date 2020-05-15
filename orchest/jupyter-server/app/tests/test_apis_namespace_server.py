@@ -1,5 +1,9 @@
 """Tests for the servers namespace of the API.
 
+Before running the tests:
+    * `app/app/core/config.py`: Set `PRODUCTION = False`. As noted in
+      the top-level README.md
+
 Difficulties:
     * Hardcoded paths. Take for example the `_write_server_info_to_file`
       functin in `/core/start_server.py`
@@ -39,7 +43,8 @@ def client():
 
 
 # TODO: Note that this test tests significant logic. This is a temporary
-#       solution due to the difficulties stated in this modules docstring.
+#       solution due to the difficulties stated in this modules's
+#       docstring.
 def test_api_start_and_shutdown_server(client):
     # Can't get server information if no server is running.
     response = client.get('/api/servers/')
@@ -48,7 +53,7 @@ def test_api_start_and_shutdown_server(client):
 
     # A POST request to the Flask API should start the Jupyter server.
     some_gateway_url = 'http://0.0.0.0:8765'
-    response_post = client.post('/api/servers/', json={'gateway-url': some_gateway_url})
+    response_post = client.post('/api/servers/', json={'gateway_url': some_gateway_url})
     assert response_post.status_code == 201
 
     # A user should be able to interact with the start Jupyter server.

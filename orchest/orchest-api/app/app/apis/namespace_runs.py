@@ -73,7 +73,9 @@ run = api.model('Run', {
 })
 
 runs = api.model('Runs', {
-    'runs': fields.List(fields.Nested(run), description='Ran and running tasks')
+    'runs': fields.List(
+        fields.Nested(run),
+        description='Ran and running tasks')
 })
 
 
@@ -113,16 +115,17 @@ class RunList(Resource):
         res = celery.send_task('app.core.runners.run_partial',
                                kwargs=celery_job_kwargs)
 
-        # NOTE: this is only if a backend is configured.
-        # The task does not return anything. Therefore we can forget its
-        # result and make sure that the Celery backend releases recourses
-        # (for storing and transmitting results) associated to the task.
+        # NOTE: this is only if a backend is configured.  The task does
+        # not return anything. Therefore we can forget its result and
+        # make sure that the Celery backend releases recourses (for
+        # storing and transmitting results) associated to the task.
+        # Uncomment the line below if applicable.
         # res.forget()
 
         # NOTE: we are setting the status of the run ourselves without
-        # using the option of celery to get the status of tasks. This way
-        # we do not have to configure a backend (where the default of
-        # "rpc://" does not give the results we would want).
+        # using the option of celery to get the status of tasks. This
+        # way we do not have to configure a backend (where the default
+        # of "rpc://" does not give the results we would want).
         run = {
            'run_uuid': res.id,
            'pipeline_uuid': pipeline.properties['uuid'],
@@ -158,9 +161,6 @@ class Run(Resource):
     def get(self, run_uuid):
         """Fetch a run given its UUID."""
         run = models.Run.query.get_or_404(run_uuid, description='Run not found')
-
-        # TODO: we probably want to use this __dict__ for other models
-        #       as well.
         return run.__dict__
 
     @api.doc('set_run_status')
@@ -184,7 +184,6 @@ class Run(Resource):
         """Stop a run given its UUID."""
         # TODO: we could specify more options when deleting the run.
         # TODO: error handling.
-
         # TODO: possible set status of steps and Run to "REVOKED"
 
         # Stop the run, whether it is in the queue or whether it is
@@ -204,11 +203,12 @@ class StepStatus(Resource):
     @api.marshal_with(step_status, code=200)
     def get(self, run_uuid, step_uuid):
         """Fetch a step of a given run given their ids."""
-        # TODO: Returns the status and logs. Of course logs are empty if the
-        # step is not executed yet.
+        # TODO: Returns the status and logs. Of course logs are empty if
+        #       the step is not executed yet.
         step = models.StepStatus.query.get_or_404(
-                            ident=(run_uuid, step_uuid),
-                            description='Run and step combination not found')
+            ident=(run_uuid, step_uuid),
+            description='Run and step combination not found'
+        )
         return step.__dict__
 
     @api.doc('set_step_status')
@@ -226,16 +226,15 @@ class StepStatus(Resource):
         # TODO: first check the status and make sure it says PENDING or
         #       whatever. Because if is empty then this would write it
         #       and then get overwritten afterwards with "PENDING".
-        # TODO: Im sure this can be done cleaner.
-        update_data = post_data
-        if update_data['status'] == 'STARTED':
-            update_data['started_time'] = datetime.fromisoformat(update_data['started_time'])
-        elif update_data['status'] in ['SUCCESS', 'FAILURE']:
-            update_data['ended_time'] = datetime.fromisoformat(update_data['ended_time'])
+        data = post_data
+        if data['status'] == 'STARTED':
+            data['started_time'] = datetime.fromisoformat(data['started_time'])
+        elif data['status'] in ['SUCCESS', 'FAILURE']:
+            data['ended_time'] = datetime.fromisoformat(data['ended_time'])
 
         res = models.StepStatus.query.filter_by(
             run_uuid=run_uuid, step_uuid=step_uuid
-        ).update(update_data)
+        ).update(data)
 
         if res:
             db.session.commit()

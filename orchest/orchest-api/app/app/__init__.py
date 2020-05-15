@@ -19,7 +19,7 @@ def create_app(config_class=None):
     app.config.from_object(config_class)
 
     # Cross-origin resource sharing. Allow API to be requested from the
-    # webserver front-end.
+    # different microservices such as the webserver.
     CORS(app, resources={r'/*': {'origins': '*'}})
 
     # Initialize the database and create the database file.

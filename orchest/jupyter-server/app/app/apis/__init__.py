@@ -8,7 +8,7 @@ blueprint = Blueprint('api', __name__)
 
 api = Api(
     blueprint,
-    title='Orchest - Jupyter API',
+    title='Orchest - jupyter-server API',
     version='1.0',
     description='Start and shutdown (a single) Jupyter server'
 )

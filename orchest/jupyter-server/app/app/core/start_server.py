@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 import sys
-from typing import List
+from typing import Any, Dict, List
 
 from jupyterlab.labapp import LabApp
 
@@ -10,6 +10,7 @@ from jupyterlab.labapp import LabApp
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Arguments for JupyterLab Server')
 
+    # Allowed arguments.
     parser.add_argument('--gateway-url')
 
     return parser.parse_args()
@@ -24,7 +25,32 @@ def format_arguments(args: argparse.Namespace) -> List[str]:
     return formatted_args
 
 
-def _write_server_info_to_file(server_info, file_name, respective_path='../tmp/'):
+def _write_server_info_to_file(server_info: Dict[str, Any],
+                               file_name: str,
+                               respective_path: str = '../tmp/') -> None:
+    """Writes server information to a file.
+
+    The information is written to the given "file_name" with trespect to
+    the "respective_path" (this path is relative to this module).
+
+    Args:
+        server_info: server information of the started JupyterLab
+            instance. Example:
+            {
+                'base_url': '/',
+                'hostname': 'localhost',
+                'notebook_dir': '/notebooks',
+                'password': False,
+                'pid': 94619,
+                'port': 8888,
+                'secure': False,
+                'token': '<some-token>',
+                'url': 'http://localhost:8888/'
+            }
+        file_name: name of the file to write the information to.
+        respective_path: path relative to this module to create the
+            file.
+    """
     # Write the server information to the "respective_path" with respect
     # to the current file.
     abs_path = os.path.dirname(os.path.abspath(__file__))
@@ -34,8 +60,8 @@ def _write_server_info_to_file(server_info, file_name, respective_path='../tmp/'
 
 
 def main():
-    # This import should not be done w.r.t. the package. Instead this file
-    # is run as a module, since it is executed in a subprocess.
+    # This import should not be done w.r.t. the package. Instead this
+    # file is run as a module, since it is executed in a subprocess.
     from config import NOTEBOOK_DIR
 
     # Formats the passed command line arguments to start the JupyterLab

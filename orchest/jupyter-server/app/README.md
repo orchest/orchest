@@ -20,7 +20,7 @@ running.
 To retrieve the connection information and achieve a graceful shutdown of the server and its running
 kernels, we run an extra Flask API inside the container. This API starts the Jupyter server in a
 subprocess and returns its `server_info` to the process outside of the `jupyter-server` container.
-Additionally, the API gracefully shuts down the Jupyter sending by sending a POST request to
+Additionally, the API gracefully shuts down the JupyterLab by sending a POST request to the
 Jupyter server process at `http:localhost:8888/api/shutdown`. An alternative way to gracefully shut
 down the subprocess is with a `SIGTERM`, see the example below.
 ```python

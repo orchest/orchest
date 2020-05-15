@@ -57,32 +57,19 @@ def run_partial(self,
                 run_config: Dict[str, Union[str, Dict[str, str]]]) -> None:
     """Runs a pipeline partially.
 
-    A partial run is described by the pipeline description, selection of
-    step UUIDs and a run type. The call-order of the steps is always
-    preserved, e.g. a --> b then a will always be run before b.
-
-    Type of runs:
-        * Run all the steps of the pipeline.
-        * Given a selection of UUIDs run only the selection.
-        * Given a selection of UUIDs, run all their proper ancestors (i.e.
-          parents in a directed graph). This can be done either inclusive
-          or exclusive of the selection (making it run all ancestors
-          instead of proper ancestors - thus including the step itself).
-
-    NOTE:
-        Running a pipeline fully can also be described as a partial run.
+    A partial run is described by the pipeline description The
+    call-order of the steps is always preserved, e.g. a --> b then a
+    will always be run before b.
 
     Args:
-        uuids: a selection/sequence of pipeline step UUIDs. If `run_type`
-            equals "full", then this argument is ignored.
-        run_type: one of ("full", "selection", "incoming").
         pipeline_description: a json description of the pipeline.
+        run_config: configuration of the run for the compute backend.
     """
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
 
     # Run the subgraph in parallel. And pass the id of the AsyncResult
     # object.
-    # TODO:
-    #   session = run_partial.session
+    # TODO: The commented line below is once we can introduce sessions.
+    # session = run_partial.session
     return asyncio.run(pipeline.run(self.request.id, run_config=run_config))

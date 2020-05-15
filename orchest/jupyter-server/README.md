@@ -27,7 +27,7 @@ docker build -t "jupyter-server" .
 docker rm $(docker ps -a -q) 
 
 # Run the container and publish the ports for the API and JupyterLab instance
-docker run --name mytest -p 8888:8888 -p 80:80 -v /Users/yannick/Documents/experiments:/notebooks jupyter-server:latest
+docker run --name jupyter-server -p 8888:8888 -p 80:80 -v <mount-path>:/notebooks jupyter-server
 ```
 
 ## Running in Development
@@ -41,7 +41,7 @@ be ignored by the `.gitignore`), because otherwise the virtualenvironment will b
 docker container when building the Dockerfile. Use the `app/requirements.txt` like so `pip install
 -r app/requirements.txt` (after activating your virtualenv).
 
-Test can be run inside `app/` using `python -m pytest`.
+Tests can be run inside `app/` using `python -m pytest`.
 
 
 ## Explanation of project structure
@@ -55,7 +55,8 @@ The structure is as follows (generated using `tree -A -I "venv|__pycache__"`)
 │   │   ├── core
 │   │   │   └── ...
 │   │   ├── __init__.py
-│   │   └── tmp
+│   │   ├── tmp
+│   │   └── utils.py
 │   ├── config.py
 │   ├── main.py
 │   ├── README.md
@@ -77,51 +78,3 @@ A short explanation of certain directories and files:
 * `app/tests/`: tests for the Flask application. This uses its own configuration object (exactly why
     this entire structure was chosen, because without the application factory pattern this is not
     possible without side effects).
-
-
-## TODO
-- [ ] Remove  hardcoded location w.r.t. filesystem of the local user. For example the docker section
-    in this README includes the `/home/yannick/...` which simply is not true for other users.
-- [ ] Rework the `app/apis/namespace_servers.py`. The flask-restplus framework does not allow for
-    certain configurations (take for example multiple `@api.response` on the same error code). Down
-    the line this should be fixed, but for now things are tested and seem to run "fine". Another
-    thing to rework or better said to add, is error handling. But since this code is only called
-    internally, we can (for now) assume that everything is called properly.
-- [ ] (Keep in mind the `:ALEInfo` obtion in Vim with the ALE plugin. This helped them tremendously!)
-- [ ] Explain logic between Jupyter server and connection file. Similarly other things.
-- [ ] Naming should be more clear. Now we have Jupyter server and jupyter-server. This is fine in
-    text but when talking to people it just totally isn't.
-- [ ] Shouldn't the testing environment be equal to the production environment?
-- [ ] Create `/app/errors/` with `__init__.py` and `handlers.py` to create the blueprints and handle
-    the errors respectively. See this one https://flask-restplus.readthedocs.io/en/stable/errors.html
-    for examples of handlers.
-- [ ] Since this will be running inside a docker container we need a good stacktrace.
-- [ ] Logging
-- [ ] Currently, the `connection_file` is stored at a hardcoded location. Put this location in a
-    config.
-- [ ] Maybe it is possible to set an ENV variable to determine where the Jupyter `connection_file`
-    is written instead of using their internal functions. The latter is more susceptible to erros in
-    the future if their internal framework changes. Although for now this does not seem that
-    important. I don't thinkt the Jupyter ecosystem will change this much that (ever possibly).
-- [X] Fix the tests! They should be cleaner than they are now. Also make sure the comments and
-    documentation are on point. Add things to the `tests/README.md`.
-- [X] When it comes to the loading the `config.py` in the `main.py` it should use the `from_pyfile`
-    instead. Additionally, it could load `from_envvar("SOME_VAR_TO_DISABLE_DEBUG")` which is only
-    set in the Dockerfile. This way, when building the Dockerfile, DEBUG is always set to False and
-    during development always to True. Have a look https://flask.palletsprojects.com/en/1.1.x/config/
-- [X] How exactly does everything work with the `__init__.py` file. When is it called and where
-    should it be placed? 
-    Then what is this: https://github.com/timbrel/GitSavvy/issues/626
-- [X] I should put environment variables into the docker container. For example the notebook
-    directory. Then I can set one for testing (without docker) and one for inside the container
-    (which can be hardcoded to "/notebooks", since the files are always mounted there)
-- [X] Testing with Flask https://flask.palletsprojects.com/en/1.1.x/testing/ I think it is best to
-    create the factory application. Then call the `create_app` and then do `app.test_client()`
-- [X] Exclude the `app/tests` directory in the Dockerfile, because this is not perse needed to run
-    the application inside a container. This is so lightweight. I think I can just leave it there
-    for the time being.
-- [X] Elaborate more on the project structure. Would be great to know on a high level what every
-    file does and why it is there.
-- [X] Fix the configuration such that it knows what the NOTEBOOK_DIR is when in docker (thus
-    production) and when in development.
-
