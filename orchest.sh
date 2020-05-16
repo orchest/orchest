@@ -1,3 +1,5 @@
+#!/bin/bash
+
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$PWD/orchest/userdir/
 

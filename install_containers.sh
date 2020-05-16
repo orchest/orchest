@@ -1,6 +1,3 @@
-# give access to docker sock
-sudo chmod 0777 /var/run/docker.sock
-
 #kill any containers running
 source kill_orchest.sh
 

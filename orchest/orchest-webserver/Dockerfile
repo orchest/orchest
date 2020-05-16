@@ -11,4 +11,19 @@ RUN pip3 install Flask \
 
 COPY ./app /app
 
+
+# Compile front-end code with npx
+
+# refresh SSL certificates
+RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
+
+# install nodejs for jupyterextension install support
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+
+WORKDIR /app/static/
+
+RUN npm install
+
+RUN ./compile-js.sh
+
 WORKDIR /app

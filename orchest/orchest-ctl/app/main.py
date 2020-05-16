@@ -27,6 +27,14 @@ if "HOST_CONFIG_DIR" in os.environ:
 else:
     raise("Need to set HOST_CONFIG_DIR!")
 
+
+# for Windows convert backslashes (\) to forward slashes (/) to make Docker Engine API work
+def slash_sub(path):
+    return path.replace("\\","/").replace("C:/", "/host_mnt/c/")
+
+HOST_USER_DIR = slash_sub(HOST_USER_DIR)
+HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
+
 # Set to `True` if you want to pull images from Dockerhub 
 # instead of using local equivalents
 REMOTE_IMAGES = False
@@ -162,11 +170,34 @@ def start():
     else:
         logging.info("Installation required. Starting installer.")
         install_images()
+        install_network()
         logging.info("Installation finished. Attempting to start...")
         start()
 
 
+def install_network():
+
+    docker_client = docker.from_env()
+
+    try:
+        docker_client.networks.get(DOCKER_NETWORK)
+    except docker.errors.NotFound as e:
+
+        logging.info("Docker network %s doesn't exist: %s. Creating it." % (DOCKER_NETWORK, e))
+        # Create Docker network named "orchest" with a custom subnet such that
+        # containers can be spawned at custom static IP addresses.
+        ipam_pool = docker.types.IPAMPool(subnet='172.31.0.0/16')
+        ipam_config = docker.types.IPAMConfig(pool_configs=[ipam_pool])
+        docker_client.networks.create(
+            DOCKER_NETWORK,
+            driver="bridge",
+            ipam=ipam_config
+        )
+
+
 def install_complete():
+
+    docker_client = docker.from_env()
 
     missing_images = check_images()
     
@@ -174,6 +205,11 @@ def install_complete():
         logging.warning("Missing images: %s" % missing_images)
         return False
 
+    try:
+        docker_client.networks.get(DOCKER_NETWORK)
+    except docker.errors.NotFound as e:
+        logging.warning("Docker network (%s) not installed: %s" % (DOCKER_NETWORK, e))
+        return False
 
     return True
 

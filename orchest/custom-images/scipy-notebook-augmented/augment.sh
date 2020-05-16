@@ -1,1 +1,1 @@
-pip install torch torchvision tensorflow
+# pip install torch torchvision tensorflow

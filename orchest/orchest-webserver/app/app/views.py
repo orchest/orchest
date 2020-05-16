@@ -211,11 +211,8 @@ def register_views(app, db):
 
         pipeline_dir = os.path.join(get_pipelines_dir(host_path=host_path), uuid)
 
-        # create pipeline dir if it doesn't exist
-        if not host_path:
-            os.makedirs(pipeline_dir, exist_ok=True)
-
         return pipeline_dir
+
 
     def get_pipelines_dir(host_path=False):
 
@@ -224,7 +221,13 @@ def register_views(app, db):
         if host_path:
             USER_DIR = app.config['HOST_USER_DIR']
 
-        return os.path.join(USER_DIR, "pipelines/")
+        pipeline_dir = os.path.join(USER_DIR, "pipelines/")
+
+        # create pipeline dir if it doesn't exist but only when not getting host path (that's not relative to this OS)
+        if not host_path:
+            os.makedirs(pipeline_dir, exist_ok=True)
+
+        return pipeline_dir
 
 
     def generate_ipynb_from_template(step):
