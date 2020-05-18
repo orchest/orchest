@@ -6,7 +6,7 @@ Before running the tests:
 
 Difficulties:
     * Hardcoded paths. Take for example the `_write_server_info_to_file`
-      functin in `/core/start_server.py`
+      function in `/core/start_server.py`
 
     * The Jupyter server is started in a subprocess.
 

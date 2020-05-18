@@ -800,7 +800,7 @@ class PipelineView extends React.Component {
     }
 
     updateJupyterInstance() {
-        let baseAddress = "http://" + this.state.backend.server_ip + ":" + this.state.backend.server_info.port + "/";
+        let baseAddress = "http://"+ window.location.host + "/jupyter_" + this.state.backend.server_ip.replace(/\./g, "_") + "/";
         let token = this.state.backend.server_info.token;
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }

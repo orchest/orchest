@@ -34,6 +34,7 @@ docker build -t orchest-ctl orchest/orchest-ctl/
 
 docker build -t orchest-webserver orchest/orchest-webserver/
 
+docker build -t nginx-proxy orchest/nginx-proxy/
 
 # RabbitMQ
 docker pull rabbitmq:3

@@ -115,7 +115,8 @@ class LaunchList(Resource):
                 # Enterprise Gateway.
                 r = requests.post(
                         f'http://{IP.server}:80/api/servers/',
-                        json={'gateway_url': f'http://{IP.EG}:8888'}
+                        json={'gateway-url': f'http://{IP.EG}:8888',
+                        'NotebookApp.base_url': f'/jupyter_{IP.server.replace(".", "_")}/'}
                 )
             except requests.ConnectionError:
                 # TODO: there is probably a robuster way than a sleep.

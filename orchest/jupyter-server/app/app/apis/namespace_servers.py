@@ -98,7 +98,7 @@ class Server(Resource):
         start_script = os.path.join(self.abs_path, '../core/start_server.py')
         args = ['python', '-u', start_script]
         args.extend([
-            f'--{arg.replace("_", "-")}={value}'
+            f'--{arg}={value}'
             for arg, value in post_data.items()
         ])
 

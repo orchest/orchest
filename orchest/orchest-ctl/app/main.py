@@ -3,6 +3,7 @@ import sys
 import pprint
 import docker
 import os
+import re
 
 from docker.types import Mount
 
@@ -29,8 +30,11 @@ else:
 
 
 # for Windows convert backslashes (\) to forward slashes (/) to make Docker Engine API work
+def capture_drive(match):
+     return '/host_mnt/' + match.group(1).lower() + '/'
+
 def slash_sub(path):
-    return path.replace("\\","/").replace("C:/", "/host_mnt/c/")
+    return re.sub(r'([A-Z]):\\', capture_drive, path).replace("\\","/")
 
 HOST_USER_DIR = slash_sub(HOST_USER_DIR)
 HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
@@ -53,6 +57,12 @@ CONTAINER_MAPPING = {
             },
         ]
     },
+    IMAGE_PREFIX + "nginx-proxy:latest": {
+        "name": "nginx-proxy",
+        "ports": {
+            "80/tcp": 8000
+        }
+    },
     IMAGE_PREFIX + "orchest-webserver:latest": {
         "name": "orchest-webserver",
         "environment": {
@@ -72,9 +82,6 @@ CONTAINER_MAPPING = {
                 "target": "/config"
             }
         ],
-        "ports": {
-            "80/tcp": 8000
-        }
     },
     IMAGE_PREFIX + "celery-worker:latest": {
         "name": "celery-worker",

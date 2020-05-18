@@ -12,15 +12,15 @@ def parse_arguments():
 
     # Allowed arguments.
     parser.add_argument('--gateway-url')
+    parser.add_argument("--NotebookApp.base_url")
 
     return parser.parse_args()
 
 
 def format_arguments(args: argparse.Namespace) -> List[str]:
-    """Replaces underscores with minusses."""
     formatted_args = []
     for arg, value in vars(args).items():
-        formatted_args.append(f'--{arg.replace("_", "-")}={value}')
+        formatted_args.append(f'--{arg}={value}')
 
     return formatted_args
 
