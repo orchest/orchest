@@ -77,6 +77,7 @@ def main():
     formatted_args.extend([
         '--allow-root',
         '--no-browser',
+        '--debug',
         '--ip=0.0.0.0',
         '--port=8888',
         f'--notebook-dir={NOTEBOOK_DIR}'

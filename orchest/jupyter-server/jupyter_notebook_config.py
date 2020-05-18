@@ -45,7 +45,7 @@
 #  Use '*' to allow any origin to access your server.
 #  
 #  Takes precedence over allow_origin_pat.
-#c.NotebookApp.allow_origin = ''
+c.NotebookApp.allow_origin = '*'
 
 ## Use a regular expression for the Access-Control-Allow-Origin header
 #  
@@ -347,7 +347,9 @@
 ## Supply overrides for the tornado.web.Application that the Jupyter notebook
 #  uses.
 #c.NotebookApp.tornado_settings = {}
-c.NotebookApp.tornado_settings = { 'headers': { 'Content-Security-Policy': "" } }
+#c.NotebookApp.tornado_settings = { 'headers': { 
+#    'Content-Security-Policy': "",
+#    'Access-Control-Allow-Origin': "*" } }
 
 ## Whether to trust or not X-Scheme/X-Forwarded-Proto and X-Real-Ip/X-Forwarded-
 #  For headerssent by the upstream reverse proxy. Necessary if the proxy handles
@@ -875,3 +877,6 @@ c.ContentsManager.allow_hidden = True
 #  provided, this value will correspond to the value of the Gateway url with 'ws'
 #  in place of 'http'.  (JUPYTER_GATEWAY_WS_URL env var)
 #c.GatewayClient.ws_url = None
+
+c.LabApp.allow_remote_access=True
+c.LabApp.allow_origin='*'
