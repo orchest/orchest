@@ -272,7 +272,7 @@ def get_application_url():
 
 def help_func():
     for key in VALID_COMMANDS:
-        print("%s\t\t %s" % (key, VALID_COMMANDS[key]))
+        print("{0:20}\t {1}".format(key, VALID_COMMANDS[key]), flush=True)
 
 
 def stop():
@@ -344,9 +344,24 @@ def status():
 
     log_server_url()
 
+
+def init_logger():
+    logging.basicConfig(level=logging.INFO)
+
+    root = logging.getLogger()
+    if len(root.handlers) > 0:
+        h = root.handlers[0]
+        root.removeHandler(h)
+
+    formatter = logging.Formatter(logging.BASIC_FORMAT)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
+
 def main():
 
-    logging.basicConfig(level=logging.INFO)
+    init_logger()
 
     command_to_func = {
         "start": start,
@@ -366,7 +381,8 @@ def main():
             debug_mount_inject()
 
     if command not in VALID_COMMANDS.keys():
-        logging.error("Command %s is not supported. Use `orchest help` to get a list of commands." % command)
+        logging.error("Command `%s` is not supported." % command)
+        help_func()
         return
 
     
