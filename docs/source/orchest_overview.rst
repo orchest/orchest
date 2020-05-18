@@ -56,3 +56,4 @@ In the near future you can expect the following features:
 * Scheduled experiments by parametrizing your pipeline steps.
 * Managed hosted version to easily try out the Orchest platform.
 * Integration to load in your existing projects from GitHub.
+* Alternatives for on disk data passing, e.g. Apache Arrow
