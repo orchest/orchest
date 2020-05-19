@@ -1,31 +1,45 @@
-from orchest.pipeline import Pipeline
-import pickle
-import os
-import json
-import urllib
+"""Transfer mechanisms to send and receive data from within steps.
+
+To add another transfer method
+1. Create a new class that inherits from "Transferer" and implement its
+   abstractmethods.
+2. Define a module level function for sending and receiving data, e.g.
+   "send_disk(data, **kwargs)" and "receive_disk(**kwargs)"
+
+TODO:
+    High up on our list is to add other transfer methods, among which
+    Apache Arrow.
+"""
 import abc
+import json
+import os
+import pickle
+import urllib
+
+from orchest.pipeline import Pipeline
 
 
-class TransferInterface(metaclass=abc.ABCMeta):
-    @classmethod
-    def __subclasshook_(cls, subclass):
-        return (hasattr(subclass, 'save') and
-                callable(subclass.load_data_source) and
-                hasattr(subclass, 'receive') and
-                callable(subclass.extract_text) or
-                NotImplemented)
+class Transferer(metaclass=abc.ABCMeta):
+    # @classmethod
+    # def __subclasshook_(cls, subclass):
+    #     return (hasattr(subclass, 'save') and
+    #             callable(subclass.load_data_source) and
+    #             hasattr(subclass, 'receive') and
+    #             callable(subclass.extract_text) or
+    #             NotImplemented)
 
     @abc.abstractmethod
     def send(self, data, verbose=False):
-        "Send output through step_uuid"
+        """Send output through step_uuid."""
+        pass
 
     @abc.abstractmethod
     def receive(self, verbose=False):
-        "Receive input through step_uuid"
+        """Receive input through step_uuid."""
+        pass
 
 
-class DiskTransfer(TransferInterface):
-
+class DiskTransferer(Transferer):
     def send(self, pipeline, step_uuid, data, verbose=False):
 
         step_data_dir = ".data/%s" % (step_uuid)
@@ -58,7 +72,7 @@ class DiskTransfer(TransferInterface):
                     data.append(d)
 
         if verbose:
-            print("Received inputs from steps %s" % 
+            print("Received inputs from steps %s" %
                 (pipeline.steps[step_uuid].properties["incoming_connections"],))
 
         return data
@@ -70,7 +84,6 @@ class DiskTransfer(TransferInterface):
 # - get JupyterLab /api/sessions access through orchest-api (:5000/launches)
 
 def get_step_uuid(pipeline):
-
     # preferrably get step_uuid from ENV
     if "STEP_UUID" in os.environ:
         return os.environ["STEP_UUID"]
@@ -103,6 +116,8 @@ def get_step_uuid(pipeline):
         if session["kernel"]["id"] == os.environ["KERNEL_ID"]:
             notebook_path = session["notebook"]["path"]
 
+    # TODO: these are not the type of errors we want to raise to our
+    #       user. To them this is not descriptive at all.
     if notebook_path == "":
         raise Exception("Could not find KERNEL_ID in session data.")
 
@@ -130,18 +145,21 @@ def get_json(url):
 
 
 def send(data, **kwargs):
-
     pipeline = Pipeline()
     step_uuid = get_step_uuid(pipeline)
 
-    transferer = DiskTransfer()
+    transferer = DiskTransferer()
     transferer.send(pipeline, step_uuid, data, **kwargs)
 
 
 def receive(**kwargs):
-
     pipeline = Pipeline()
     step_uuid = get_step_uuid(pipeline)
 
-    transferer = DiskTransfer()
+    transferer = DiskTransferer()
     return transferer.receive(pipeline, step_uuid, **kwargs)
+
+
+# TODO: Once we are set on the API we could specify __all__. For now we
+#       will stick with the leading _underscore convenction to keep
+#       methods private.
