@@ -3,6 +3,7 @@ FROM tiangolo/uwsgi-nginx-flask:python3.7
 RUN pip3 install flask_socketio \
     flask_restplus \
     requests \
+    notebook==6.0.3 \
     jupyterlab \
     Werkzeug==0.16.1
 
