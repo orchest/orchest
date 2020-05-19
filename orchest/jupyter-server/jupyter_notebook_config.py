@@ -79,7 +79,7 @@ c.NotebookApp.allow_origin = '*'
 #  
 #  Local IP addresses (such as 127.0.0.1 and ::1) are allowed as local, along
 #  with hostnames configured in local_hostnames.
-#c.NotebookApp.allow_remote_access = False
+c.NotebookApp.allow_remote_access = True
 
 ## Whether to allow the user to run the notebook as root.
 #c.NotebookApp.allow_root = False
@@ -877,6 +877,3 @@ c.ContentsManager.allow_hidden = True
 #  provided, this value will correspond to the value of the Gateway url with 'ws'
 #  in place of 'http'.  (JUPYTER_GATEWAY_WS_URL env var)
 #c.GatewayClient.ws_url = None
-
-c.LabApp.allow_remote_access=True
-c.LabApp.allow_origin='*'

@@ -45,10 +45,14 @@ server = api.model('Server', {
         description='PID'),
 })
 
+# follows Jupyter command line parameters
 jupyter_config = api.model('Jupyter Config', {
-    'gateway_url': fields.String(
+    'gateway-url': fields.String(
         required=True,
         description='URL of the EG'),
+    'NotebookApp.base_url': fields.String(
+        required=True,
+        description='Base URL of Jupyter notebook'),
 })
 
 message = api.model('Message', {

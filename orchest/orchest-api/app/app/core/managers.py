@@ -94,7 +94,8 @@ class JupyterDockerManager(DockerManager):
                     ('EG_KERNEL_WHITELIST=["scipy-notebook-augmented_docker_python",'
                                           '"r-notebook-augmented_docker_ir"]'),
                     "EG_UNAUTHORIZED_USERS=['dummy']",
-                    "EG_UID_BLACKLIST=['-1']"
+                    "EG_UID_BLACKLIST=['-1']",
+                    "EG_ALLOW_ORIGIN=*"
                 ],
                 user='root',
                 network=self.network

@@ -17,5 +17,7 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -
 RUN mkdir /root/.jupyter/
 COPY jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 
+COPY notebook-patch/handlers.py /usr/local/lib/python3.7/site-packages/notebook/gateway/handlers.py
+
 COPY ./app /app
 

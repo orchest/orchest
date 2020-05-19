@@ -7,24 +7,6 @@ from typing import Any, Dict, List
 from jupyterlab.labapp import LabApp
 
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description='Arguments for JupyterLab Server')
-
-    # Allowed arguments.
-    parser.add_argument('--gateway-url')
-    parser.add_argument("--NotebookApp.base_url")
-
-    return parser.parse_args()
-
-
-def format_arguments(args: argparse.Namespace) -> List[str]:
-    formatted_args = []
-    for arg, value in vars(args).items():
-        formatted_args.append(f'--{arg}={value}')
-
-    return formatted_args
-
-
 def _write_server_info_to_file(server_info: Dict[str, Any],
                                file_name: str,
                                respective_path: str = '../tmp/') -> None:
@@ -64,24 +46,19 @@ def main():
     # file is run as a module, since it is executed in a subprocess.
     from config import NOTEBOOK_DIR
 
-    # Formats the passed command line arguments to start the JupyterLab
-    # instance. When passing command line arguments they have to be with
-    # minusses "-" instead of the underscores "_" the python argparse
-    # library parses them to.
-    formatted_args = format_arguments(parse_arguments())
-
     # Add default options.
     # TODO: don't allow to run as root. But to make that work, the
     #       docker image has to be changed in order to allow another
     #       user. For now, it just works.
-    formatted_args.extend([
+    formatted_args = [
         '--allow-root',
         '--no-browser',
         '--debug',
         '--ip=0.0.0.0',
         '--port=8888',
         f'--notebook-dir={NOTEBOOK_DIR}'
-    ])
+    ]
+
     sys.argv.extend(formatted_args)
 
     # Initializes the Lab instance and writes its server info to a json
