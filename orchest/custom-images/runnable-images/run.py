@@ -149,7 +149,7 @@ def main():
     step_uuid = os.environ.get("STEP_UUID")
 
     filename = sys.argv[1]
-    file_extension = filename.split(".")[-1]
+    file_extension = filename.split(".")[-1].lower()
     file_path = os.path.join(WORKING_DIR, filename)
 
     # check if file exists in working directory
@@ -170,6 +170,10 @@ def main():
     elif file_extension == "py":
 
         sys.exit(run_process("python3", filename, step_uuid=step_uuid))
+
+    elif file_extension == "r":
+
+        sys.exit(run_process("Rscript", filename, step_uuid=step_uuid))
 
     elif file_extension == "sh":
 
