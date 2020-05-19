@@ -78,3 +78,7 @@ A short explanation of certain directories and files:
 * `app/tests/`: tests for the Flask application. This uses its own configuration object (exactly why
     this entire structure was chosen, because without the application factory pattern this is not
     possible without side effects).
+
+
+## notebook-patch
+In order to make the notebook gateway kernel connect through the nginx proxy we patched the websocket handler in the notebook package (notebook/gateway/handlers.py). We override the check_origin method as per tornado framework instruction to allow varying origins. This might introduce a security issue, but I think it's mitigated by the Docker network not being exposed.
