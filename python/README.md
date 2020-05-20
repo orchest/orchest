@@ -13,7 +13,7 @@ package. For sending all you need to specify is the data you want to send and ho
 receiving all you need to do is call the appropriate receive method depending on where you send the
 data to in the previous step.
 
-Example for sending through disk, where `Step 1` -> `Step 2`
+Example for sending through disk, where `Step 1` -> `Step 2`.
 ```python
 """Step 1"""
 from orchest import transfer
