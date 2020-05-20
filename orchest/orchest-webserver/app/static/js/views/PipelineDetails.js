@@ -1,4 +1,3 @@
-import { MDCRipple } from '@material/ripple';
 import React from 'react';
 import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
 import PipelineDetailsProperties from './PipelineDetailsProperties';

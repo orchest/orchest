@@ -1,0 +1,18 @@
+.visual-cell-tags {
+  font-size: 0.8rem;
+  border-bottom: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  background: #eee;
+  padding: 4px;
+  overflow: auto;
+}
+.visual-cell-tags .cell-tag {
+  padding: 4px;
+  background: white;
+  float: left;
+  border: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+}
+.visual-cell-tags .label {
+  float: right;
+  padding: 4px;
+  color: #777;
+}

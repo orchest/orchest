@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # prompt sudo on first terminal
 source orchest.sh stop
 source orchest.sh start debug

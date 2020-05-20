@@ -163,7 +163,7 @@ class PipelineDetailsProperties extends React.Component {
                 ["scipy-notebook-augmented", "scipy-notebook-augmented"],
                 ["r-notebook-augmented", "r-notebook-augmented"]
             ],
-            "isNotebookStep": true,
+            "isNotebookStep": extensionFromFilename(this.props.step.file_path) == "ipynb",
             "step": this.props.step
         }
     }

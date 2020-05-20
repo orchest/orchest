@@ -24,6 +24,6 @@ WORKDIR /app/static/
 
 RUN npm install
 
-RUN ./compile-js.sh
+RUN npx webpack
 
 WORKDIR /app

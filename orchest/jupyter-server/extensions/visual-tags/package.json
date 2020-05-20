@@ -1,0 +1,59 @@
+{
+  "name": "visual-tags",
+  "version": "0.1.0",
+  "description": "A small JupyterLab extension that allows you to more easily choose which cells get executed.",
+  "keywords": [
+    "jupyter",
+    "jupyterlab",
+    "jupyterlab-extension"
+  ],
+  "homepage": "http://github.com/orchest/visual-tags",
+  "bugs": {
+    "url": "http://github.com/orchest/visual-tags/issues"
+  },
+  "license": "BSD-3-Clause",
+  "author": "R. Lamers",
+  "files": [
+    "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
+    "style/**/*.{css,eot,gif,html,jpg,json,png,svg,woff2,ttf}"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/orchest/visual-tags.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf lib tsconfig.tsbuildinfo",
+    "eslint": "eslint . --ext .ts,.tsx --fix",
+    "eslint:check": "eslint . --ext .ts,.tsx",
+    "prepare": "jlpm run clean && jlpm run build",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^2.1.2",
+    "@jupyterlab/apputils": "^2.1.1",
+    "@jupyterlab/docregistry": "^2.1.2",
+    "@jupyterlab/notebook": "^2.1.2",
+    "@lumino/disposable": "^1.3.6"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.25.0",
+    "@typescript-eslint/parser": "^2.25.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.1",
+    "eslint-plugin-prettier": "^3.1.2",
+    "prettier": "1.16.4",
+    "rimraf": "^2.6.1",
+    "typedoc": "^0.17.7",
+    "typescript": "~3.7.0"
+  },
+  "sideEffects": [
+    "style/*.css"
+  ],
+  "jupyterlab": {
+    "extension": true
+  }
+}

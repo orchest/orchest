@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #kill any containers running
 source kill_orchest.sh
 
