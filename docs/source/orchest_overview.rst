@@ -14,7 +14,7 @@ based platform that works on top of your filesystem (similar to JupyterLab) allo
 editor of choice. With Orchest you get to focus on visually building and iterating on your
 pipelining ideas.
 
-[INSERT PICTURE: show pipeline]
+[INSERT PICTURE/GIF: show pipeline]
 
 A pipeline in Orchest can be thought of as a graph consisting of executable files, e.g. notebooks or
 scripts, within their own isolated environment (powered by containerization). Users get a visual
@@ -22,25 +22,29 @@ pipeline editor to describe the execution order of individual steps that represe
 files. After coding your scripts, Orchest allows you to select and run any subset of the steps
 whilst keeping in mind the defined execution order of the pipeline.
 
-Orchest essentially provides your with a development environment for your data science efforts.
+Orchest essentially provides your with a development environment for your data science efforts
+without taking away the tools you know and love.
 
 
 What can I use Orchest for?
 ---------------------------
 
 With Orchest, you get to build pipelines where each step has its own isolated environment allowing
-you to focus on a specific task, may it be: data engineering, model building or even more low level
+you to focus on a specific task, may it be: data engineering, model building or more low level
 things such as data transforms.
 
 With Orchest you get to:
 
 * Visually construct pipelines.
+* Code your data science efforts in your editor of choice.
 * Modularize, i.e. split up, your (monolithic) notebooks.
 * Run any selection of pipeline steps. 
-* Select specific notebook cells to skip when running a pipeline.
+* Select specific notebook cells to skip when running a pipeline through the pre-installed celltags
+  extension of JupyterLab.
 
 What Orchest does for you:
 
+* Provide you with an interactive pipeline editing view.
 * Manage your dependencies and environments.
 * Run your pipelines based on the defined execution order.
 * Pass data between your steps.
@@ -49,11 +53,10 @@ What Orchest does for you:
 Orchest roadmap
 ---------------
 
-Where will we go from here.
-
-In the near future you can expect the following features:
+Orchest is just beginning to take shape. In the near future you can expect the following features:
 
 * Scheduled experiments by parametrizing your pipeline steps.
 * Managed hosted version to easily try out the Orchest platform.
-* Integration to load in your existing projects from GitHub.
-* Alternatives for on disk data passing, e.g. Apache Arrow
+* Integration to load in your existing projects from GitHub. Note that you can already setup Orchest
+  for an existing project on your filesystem.
+* Alternatives for on disk data passing, e.g. in-memory powered by Apache Arrow.

@@ -6,6 +6,10 @@
 Orchest
 =======
 
+`Website <https://www.orchest.io>`_
+-- `GitHub <http://www.github.com/orchest/orchest>`_
+-- `Gitter <http://www.gitter.im/orchest>`_
+
 Orchest is an open source, cloud native, development environment build for data science. Orchest
 enables you to develop, train and run your models on the cloud without any knowledge of cloud
 infrastructure.
@@ -17,11 +21,9 @@ infrastructure.
    orchest_overview
    installation
    quickstart
-   get_started/index
+   how_orchest_works
    api/index
    development/index
-
-
 
 
 .. Indices and tables

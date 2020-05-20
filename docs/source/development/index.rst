@@ -2,7 +2,7 @@ Development
 ===========
 
 We would love to hear your feedback to prioritize the right features. Come talk to us at
-`Gitter <http://www.gitter.im/>`_.
+`Gitter <http://www.gitter.im/orchest/>`_.
 
 .. toctree::
    :maxdepth: 2

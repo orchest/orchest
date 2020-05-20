@@ -1,13 +1,12 @@
 API
 ===
 
-.. Possibly put the Orchest-sdk at the top level and remove the API header. As of now we will
-.. only have the orchest-sdk and nothing else where the user interacts with.
+We plan to support other programming languages such as R too.
 
-Examples of how to use the orchest-sdk.
+Python SDK
+----------
+.. code-block:: python
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   from orchest import transfer
 
-   orchest_sdk
+   transfer.send_disk(data)

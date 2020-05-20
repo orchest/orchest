@@ -1,13 +1,16 @@
 <img src='docs/source/img/logo.png' width="450px" />
 
-[docs](https://orchest.readthedocs.io/en/stable/) - [tutorial](https://orchest.readthedocs.io/en/stable/get_started) - [chat](https://gitter.im/orchest)
+[docs](https://orchest.readthedocs.io/en/stable/) 
+-- [tutorial](https://orchest.readthedocs.io/en/stable/get_started) 
+-- [chat](https://gitter.im/orchest)
 
 [Short gif showing the Orchest pipeline interface]
 
 -----
-Orchest is an open source, cloud native, development environment built for data science. Orchest
-enables you to develop, train and run your models on the cloud without any knowledge of cloud
-infrastructure.
+Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
+based platform that works on top of your filesystem (similar to JupyterLab) allowing you to use your
+editor of choice. With Orchest you get to focus on visually building and iterating on your
+pipelining ideas.
 
 Orchest lets you
 * Interactively build pipelines in our visual interface.
@@ -31,7 +34,12 @@ docker run orchest
 ```bash
 docker run orchest
 ```
-See our docs for a [get started](link-to-docs) tutorial.
+
+List of features that the user might run into:
+* celltags to skip cells
+* Importance of the pipeline.json file
+
+See our docs for a [quickstart](link-to-docs) tutorial.
 
 ## Contributing
 Contributions are more than welcome! Please see our [contributer guides](link-to-docs) for more
