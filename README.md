@@ -2,6 +2,8 @@
 
 [docs](https://orchest.readthedocs.io/en/stable/) - [tutorial](https://orchest.readthedocs.io/en/stable/get_started) - [chat](https://gitter.im/orchest)
 
+[Short gif showing the Orchest pipeline interface]
+
 -----
 Orchest is an open source, cloud native, development environment built for data science. Orchest
 enables you to develop, train and run your models on the cloud without any knowledge of cloud
