@@ -1,8 +1,9 @@
 <img src='docs/source/img/logo.png' width="450px" />
+<br/>
 
-[docs](https://orchest.readthedocs.io/en/stable/) 
--- [tutorial](https://orchest.readthedocs.io/en/stable/get_started) 
--- [chat](https://gitter.im/orchest)
+[Docs](https://orchest.readthedocs.io/en/stable/) 
+— [Quickstart](https://orchest.readthedocs.io/en/stable/quickstart) 
+— [Gitter](https://gitter.im/orchest)
 
 [Short gif showing the Orchest pipeline interface]
 
