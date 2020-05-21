@@ -7,6 +7,9 @@
 
 
 -----
+
+[![Join the chat at https://gitter.im/orchest/orchest](https://badges.gitter.im/orchest/orchest.svg)](https://gitter.im/orchest/orchest?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
 
 Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
