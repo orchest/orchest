@@ -7,7 +7,7 @@
 
 
 -----
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![Gitter](https://img.shields.io/gitter/room/orchest/community)
+<img alt="Version badge 0.1.0" src="https://img.shields.io/badge/version-0.1.0-blue" />  <a href="https://gitter.im/orchest/orchest"><img alt="Gitter chatroom link orchest/orchest" src="https://img.shields.io/gitter/room/orchest/orchest" /></a>
 
 Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
 based platform that works on top of your filesystem allowing you to use your
