@@ -14,6 +14,7 @@ Orchest is an open source, cloud native, development environment build for data 
 enables you to develop, train and run your models on the cloud without any knowledge of cloud
 infrastructure.
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
@@ -24,6 +25,7 @@ infrastructure.
    how_orchest_works
    sdk/index
    development/index
+   help
 
 
 .. Indices and tables

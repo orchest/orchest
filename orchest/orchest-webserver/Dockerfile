@@ -7,6 +7,7 @@ RUN pip3 install Flask \
     Flask-Migrate \
     requests \
     APScheduler \
+    pyinotify \
     Werkzeug==0.16.0
 
 COPY ./app /app

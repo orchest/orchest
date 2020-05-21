@@ -1,6 +1,9 @@
+.. _sdk:
+
 SDK
 ===
-[LINK TO DOCS OF THE SDK - this is just a general overview]
+
+Full documentation of the Orchest SDK can be found here: `orchest-sdk <https://orchest-sdk.readthedocs.io/en/latest/>`_.
 
 You can send data and receive data. The destination and source of the data is managed by this
 package. For sending all you need to specify is the data you want to send and how to send it. For
@@ -15,7 +18,13 @@ Python package to pass data between pipeline steps in the Orchest platform.
 
 Installation
 ~~~~~~~~~~~~
-Installation info
+Currently the recommended method for installing the Orchest SDK is through the :code:`git`
+repository.
+
+.. code-block:: bash
+
+   pip install git+https://github.com/orchest/orchest-sdk.git#subdirectory=python
+
 
 Code example
 ~~~~~~~~~~~~

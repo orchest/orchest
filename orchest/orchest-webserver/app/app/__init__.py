@@ -17,11 +17,15 @@ import json
 import sys
 import requests
 import uuid
+import atexit
+
 from app.analytics import analytics_ping
+from subprocess import Popen
 
 db = SQLAlchemy()
 
 from app.views import register_views
+
 
 def create_app():
 
@@ -62,5 +66,11 @@ def create_app():
         scheduler.add_job(analytics_ping, 'interval', minutes=15, args=[app])
         scheduler.start()
 
-
+    
+    # Start threaded file_permission_watcher
+    # TODO: reconsider file permission approach
+    # Note: process is never cleaned up, this is permissible because it's only
+    # executed inside a container. 
+    permission_process = Popen(["python3", "scripts/file_permission_watcher.py", app.config["USER_DIR"]], cwd=os.path.dirname(os.path.realpath(__file__)))
+    
     return app
