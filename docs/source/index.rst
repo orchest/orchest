@@ -22,7 +22,7 @@ infrastructure.
    installation
    quickstart
    how_orchest_works
-   api/index
+   sdk/index
    development/index
 
 

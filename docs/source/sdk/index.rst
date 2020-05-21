@@ -1,4 +1,4 @@
-API
+SDK
 ===
 [LINK TO DOCS OF THE SDK - this is just a general overview]
 
