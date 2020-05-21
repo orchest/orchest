@@ -1,11 +1,11 @@
 {
-  "language": "r",
-  "display_name": "R on Docker",
+  "language": "python",
+  "display_name": "Python on Docker",
   "metadata": {
     "process_proxy": {
       "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",
       "config": {
-        "image_name": "custom-base-kernel-r"
+        "image_name": "custom-base-kernel-py"
       }
     }
   },
@@ -15,7 +15,7 @@
   },
   "argv": [
     "python",
-    "/usr/local/share/jupyter/kernels/r-notebook-augmented_docker_ir/scripts/launch_docker.py",
+    "/usr/local/share/jupyter/kernels/orchestsoftware-scipy-notebook-augmented_docker_python/scripts/launch_docker.py",
     "--RemoteProcessProxy.kernel-id",
     "{kernel_id}",
     "--RemoteProcessProxy.response-address",

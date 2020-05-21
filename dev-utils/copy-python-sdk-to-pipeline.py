@@ -5,8 +5,8 @@ import os
 
 
 PIPELINE_UUID = "05d7cc70-eed8-48d3-9cab-8639789fb8ad"
-SDK_DIR = "orchest/orchest-sdk/python/src/orchest/"
-SDK_TARGET_DIR = "orchest/userdir/pipelines/" + PIPELINE_UUID + "/orchest/"
+SDK_DIR = "../orchest/orchest-sdk/python/src/orchest/"
+SDK_TARGET_DIR = "../orchest/userdir/pipelines/" + PIPELINE_UUID + "/orchest/"
 
 import pyinotify
 

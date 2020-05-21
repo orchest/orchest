@@ -1,5 +1,5 @@
 # Ubuntu 18.04.1 LTS Bionic
-FROM scipy-notebook-augmented
+FROM orchestsoftware/scipy-notebook-augmented
 
 USER root
 

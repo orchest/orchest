@@ -41,14 +41,9 @@ HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
 
 # Set to `True` if you want to pull images from Dockerhub 
 # instead of using local equivalents
-REMOTE_IMAGES = False
-IMAGE_PREFIX = ""
-
-if REMOTE_IMAGES:
-    IMAGE_PREFIX = "orchestsoftware/"
 
 CONTAINER_MAPPING = {
-    IMAGE_PREFIX + "orchest-api:latest": {
+    "orchestsoftware/orchest-api:latest": {
         "name": "orchest-api",
         "mounts": [
             {
@@ -57,13 +52,13 @@ CONTAINER_MAPPING = {
             },
         ]
     },
-    IMAGE_PREFIX + "nginx-proxy:latest": {
+    "orchestsoftware/nginx-proxy:latest": {
         "name": "nginx-proxy",
         "ports": {
             "80/tcp": 8000
         }
     },
-    IMAGE_PREFIX + "orchest-webserver:latest": {
+    "orchestsoftware/orchest-webserver:latest": {
         "name": "orchest-webserver",
         "environment": {
             "HOST_USER_DIR": HOST_USER_DIR
@@ -83,7 +78,7 @@ CONTAINER_MAPPING = {
             }
         ],
     },
-    IMAGE_PREFIX + "celery-worker:latest": {
+    "orchestsoftware/celery-worker:latest": {
         "name": "celery-worker",
         "mounts": [
             {
@@ -104,13 +99,13 @@ CONTAINER_MAPPING = {
 IMAGES = list(CONTAINER_MAPPING.keys())
 IMAGES += [
     "elyra/enterprise-gateway:2.1.1", 
-    IMAGE_PREFIX + "jupyter-server:latest",
-    IMAGE_PREFIX + "r-notebook-augmented:latest",
-    IMAGE_PREFIX + "r-notebook-runnable:latest",
-    IMAGE_PREFIX + "scipy-notebook-runnable:latest",
-    IMAGE_PREFIX + "scipy-notebook-augmented:latest",
-    IMAGE_PREFIX + "custom-base-kernel-py:latest",
-    IMAGE_PREFIX + "custom-base-kernel-r:latest",
+    "orchestsoftware/jupyter-server:latest",
+    "orchestsoftware/r-notebook-augmented:latest",
+    "orchestsoftware/r-notebook-runnable:latest",
+    "orchestsoftware/scipy-notebook-runnable:latest",
+    "orchestsoftware/scipy-notebook-augmented:latest",
+    "orchestsoftware/custom-base-kernel-py:latest",
+    "orchestsoftware/custom-base-kernel-r:latest",
 ]
 
 
@@ -310,7 +305,7 @@ def log_server_url():
 
 def debug_mount_inject():
 
-    CONTAINER_MAPPING[IMAGE_PREFIX + "orchest-webserver:latest"]['mounts'] += [
+    CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]['mounts'] += [
         {
             "source": os.path.join(os.environ.get("HOST_PWD"), "orchest/orchest-webserver/app/"),
             "target": "/app"

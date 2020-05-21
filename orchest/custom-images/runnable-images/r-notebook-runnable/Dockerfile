@@ -1,5 +1,5 @@
 # Ubuntu 18.04.1 LTS Bionic
-FROM r-notebook-augmented
+FROM orchestsoftware/r-notebook-augmented
 
 USER root
 

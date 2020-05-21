@@ -160,8 +160,8 @@ class PipelineDetailsProperties extends React.Component {
                 ["ir", "R"]
             ],
             "imageOptions": [
-                ["scipy-notebook-augmented", "scipy-notebook-augmented"],
-                ["r-notebook-augmented", "r-notebook-augmented"]
+                ["orchestsoftware/scipy-notebook-augmented", "orchestsoftware/scipy-notebook-augmented"],
+                ["orchestsoftware/r-notebook-augmented", "orchestsoftware/r-notebook-augmented"]
             ],
             "isNotebookStep": extensionFromFilename(this.props.step.file_path) == "ipynb",
             "step": this.props.step

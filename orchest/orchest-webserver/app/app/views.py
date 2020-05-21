@@ -23,8 +23,8 @@ def register_views(app, db):
         # add image mapping
         # TODO: replace with dynamic mapping instead of hardcoded
         image_mapping = {
-            "scipy-notebook-augmented": "scipy-notebook-runnable",
-            "r-notebook-augmented": "r-notebook-runnable"
+            "orchestsoftware/scipy-notebook-augmented": "orchestsoftware/scipy-notebook-runnable",
+            "orchestsoftware/r-notebook-augmented": "orchestsoftware/r-notebook-runnable"
         }
 
         json_obj['run_config'] = {
@@ -303,7 +303,7 @@ def register_views(app, db):
         # (dynamic instead of hardcoded mapping for now)
         # base image: i.e. jupyter/scipy-notebook gets reduced to scipy-notebook
         if "/" in base_image:
-            base_image = base_image.split("/")[-1]
+            base_image = base_image.replace("/", "-")
 
         return base_image + "_docker_" + kernel
 
