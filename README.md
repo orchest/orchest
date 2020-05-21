@@ -27,10 +27,21 @@ Orchest lets you
 
 
 ## Installation
+Requirements
+* Docker (tested on 19.03.9)
+
+Linux/macOS
 ```bash
 git clone https://github.com/orchest/orchest.git
 cd orchest
 ./orchest.sh start
+```
+
+Windows
+```bash
+git clone https://github.com/orchest/orchest.git
+cd orchest
+orchest.sh start
 ```
 
 
