@@ -13,9 +13,10 @@ editor of choice. With Orchest you get to focus on visually building and iterati
 pipelining ideas.
 
 Orchest lets you
-* Interactively build pipelines in our visual interface.
+* Interactively build pipelines through its visual interface.
+* Automatically run your pipelines in parallel.
 * Develop your code in your favorite editor. Everything is filesystem based.
-* Pick what cells you want to skip when executing a notebook. Perfect for prototyping as you do not 
+* Tag the notebooks cells you want to skip when running a pipeline. Perfect for prototyping as you do not 
   have to maintain a perfectly clean notebook.
 
 
