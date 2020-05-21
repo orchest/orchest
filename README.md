@@ -7,7 +7,7 @@
 
 
 -----
-![version](https://img.shields.io/badge/version-0.1.0-blue)
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![gitter](https://img.shields.io/gitter/room/orchest/orchest)
 
 Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
 based platform that works on top of your filesystem allowing you to use your
