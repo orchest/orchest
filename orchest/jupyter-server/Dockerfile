@@ -21,7 +21,7 @@ COPY jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 # install extension
 COPY extensions/visual-tags /extensions/visuals-tags
 
-WORKDIR /extensions/visuals-tags
+WORKDIR /extensions/visual-tags
 
 # set directory permissions since npm install won't run as root (for security purposes)
 RUN chmod 0766 .
