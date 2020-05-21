@@ -1,14 +1,12 @@
 """Transfer mechanisms to send and receive data from within steps.
 
 To add another transfer method
+
 1. Create a new class that inherits from "Transferer" and implement its
    abstractmethods.
 2. Define a module level function for sending and receiving data, e.g.
-   "send_disk(data, **kwargs)" and "receive_disk(**kwargs)"
+   ``send_disk(data, **kwargs)`` and ``receive_disk(**kwargs)``
 
-TODO:
-    High up on our list is to add other transfer methods, among which
-    Apache Arrow.
 """
 import abc
 import json
@@ -153,6 +151,11 @@ def send_to_disk(data, **kwargs):
 
 
 def receive_from_disk(**kwargs):
+    """Receives data from disk.
+
+    Args:
+        **kwargs
+    """
     pipeline = Pipeline()
     step_uuid = get_step_uuid(pipeline)
 
