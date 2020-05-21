@@ -11,7 +11,7 @@ def write_config(app, key, value):
             conf_data[key] = value
             
             app.config.update(conf_data)
-
+        with open(conf_json_path, 'w') as f:
             try:
                 json.dump(conf_data, conf_json_path)
             except Exception as e:

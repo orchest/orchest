@@ -13,11 +13,11 @@ def analytics_ping(app):
         if "TELEMETRY_UUID" in app.config:
             telemetry_uuid = app.config["TELEMETRY_UUID"]
         else:
-            telemetry_uuid = uuid.uuid4()
+            telemetry_uuid = str(uuid.uuid4())
             write_config(app, "TELEMETRY_UUID", telemetry_uuid)
 
         requests.post("https://analytics.orchest.io", json={
-            "user_uuid": str(telemetry_uuid)
+            "user_uuid": telemetry_uuid
         }, timeout=1)
     except Exception as e:
         logging.warning("Exception while sending telemetry request %s" % e)
