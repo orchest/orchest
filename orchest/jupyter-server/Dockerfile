@@ -24,8 +24,7 @@ COPY extensions/visual-tags /extensions/visual-tags
 WORKDIR /extensions/visual-tags
 
 # set directory permissions since npm install won't run as root (for security purposes)
-RUN chmod 0766 .
-RUN npm install
+RUN npm install --unsafe-perm
 RUN jupyter labextension install
 
 # patch handlers.py to allow for CORS on websocket to kernels for gateway Jupyter mode

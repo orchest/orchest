@@ -2,3 +2,4 @@
 __pycache__
 */.mypy_cache
 */*/.mypy_cache
+node_modules/
