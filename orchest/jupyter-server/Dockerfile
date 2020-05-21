@@ -19,7 +19,7 @@ RUN mkdir /root/.jupyter/
 COPY jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 
 # install extension
-COPY extensions/visual-tags /extensions/visuals-tags
+COPY extensions/visual-tags /extensions/visual-tags
 
 WORKDIR /extensions/visual-tags
 
