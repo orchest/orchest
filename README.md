@@ -51,7 +51,7 @@ orchest.sh start
 Please refer to our docs for a more comprehensive 
 [quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial.
 
-[GIFS comming soon!]
+[GIFS coming soon!]
 
 Build your pipeline.
 
