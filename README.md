@@ -50,15 +50,15 @@ orchest start
 Please refer to our docs for a more comprehensive 
 [quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial.
 
-Build your pipeline.
+### Build your pipeline.
 
 ![clip-1-cropped](https://user-images.githubusercontent.com/1309307/82610388-8ffc7580-9bbe-11ea-8886-d045ff6b76d0.gif)
 
-Write your code.
+### Write your code.
 
 ![clip-2-cropped](https://user-images.githubusercontent.com/1309307/82610397-94c12980-9bbe-11ea-8e16-eb686d0cfc75.gif)
 
-Run your pipeline and see the results come in.
+### Run your pipeline and see the results come in.
 
 ![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
 
