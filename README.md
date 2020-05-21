@@ -49,15 +49,17 @@ orchest start
 Please refer to our docs for a more comprehensive 
 [quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial.
 
-[GIFS coming soon!]
-
 Build your pipeline.
+
+![clip-1-cropped](https://user-images.githubusercontent.com/1309307/82610388-8ffc7580-9bbe-11ea-8886-d045ff6b76d0.gif)
 
 Write your code.
 
-Run your pipeline.
+![clip-2-cropped](https://user-images.githubusercontent.com/1309307/82610397-94c12980-9bbe-11ea-8e16-eb686d0cfc75.gif)
 
-See your result.
+Run your pipeline and see the results come in.
+
+![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
 
 
 ## Contributing
