@@ -18,11 +18,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Orchest'
-copyright = '2020, Rick Lamers, Yannick Perrenet'
+copyright = '2020, Orchest Software B.V.'
 author = 'Rick Lamers, Yannick Perrenet'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.1.0'
 version = 'alpha'
 
 
