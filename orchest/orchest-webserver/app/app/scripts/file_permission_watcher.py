@@ -1,14 +1,30 @@
 import pyinotify
 import os
 import sys
+import subprocess
+
+def fix_path_permission(path, is_dir):
+
+    if is_dir:
+        subprocess.Popen("chmod o+rwx " + path, shell=True)
+    else:
+        subprocess.Popen("chmod o+rw " + path, shell=True)
 
 
-def fix_path_permission(path):
+def walk_dir(path):
 
-    os.system("chmod o+rwx " + path)
+    for dp, dirs, files in os.walk(path):
+        for f in files:
+            current_path = os.path.join(dp, f)
+            fix_path_permission(current_path, os.path.isdir(current_path))
+        for d in dirs:
+            current_path = os.path.join(dp, d)
+            fix_path_permission(current_path, os.path.isdir(current_path))
 
 
 def initialize_permission_watcher(watch_dir):
+
+    walk_dir(watch_dir)
 
     wm = pyinotify.WatchManager()
     mask = pyinotify.IN_CREATE | pyinotify.IN_MODIFY
@@ -17,11 +33,12 @@ def initialize_permission_watcher(watch_dir):
 
         def process_IN_CREATE(self, event):
             print("Creating: ", event.pathname)
-            fix_path_permission(event.pathname)
+            walk_dir(watch_dir)
 
         def process_IN_MODIFY(self, event):
             print("Modified: ", event.pathname)
-            fix_path_permission(event.pathname)
+            walk_dir(watch_dir)
+
 
     handler = EventHandler()
     notifier = pyinotify.Notifier(wm, handler)

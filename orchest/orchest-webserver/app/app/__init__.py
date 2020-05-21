@@ -71,6 +71,7 @@ def create_app():
     # TODO: reconsider file permission approach
     # Note: process is never cleaned up, this is permissible because it's only
     # executed inside a container. 
-    permission_process = Popen(["python3", "scripts/file_permission_watcher.py", app.config["USER_DIR"]], cwd=os.path.dirname(os.path.realpath(__file__)))
+    permission_process_log = open('permission_process.log', 'a')
+    permission_process = Popen(["python3", "scripts/file_permission_watcher.py", app.config["USER_DIR"]], cwd=os.path.dirname(os.path.realpath(__file__)), stdout=permission_process_log, stderr=permission_process_log)
     
     return app
