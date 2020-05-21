@@ -1,5 +1,5 @@
 # Python - Orchest SDK
-[Docs](https://orchest-sdk.readthedocs.io/en/latest/python)
+[Docs](https://orchest-sdk.readthedocs.io/en/latest/python.html)
 — [Quickstart](https://orchest-sdk.readthedocs.io/en/latest/python.html#quickstart)
 — [Gitter](https://gitter.im/orchest)
 
