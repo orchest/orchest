@@ -3,8 +3,6 @@
 
 [Docs](https://orchest.readthedocs.io/en/latest/) 
 — [Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) 
-— [Gitter](https://gitter.im/orchest)
-
 
 -----
 <img alt="Version badge 0.1.0" src="https://img.shields.io/badge/version-0.1.0-blue" />  <a href="https://gitter.im/orchest/orchest"><img alt="Gitter chatroom link orchest/orchest" src="https://img.shields.io/gitter/room/orchest/orchest" /></a>
