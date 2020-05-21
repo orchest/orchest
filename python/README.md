@@ -2,9 +2,7 @@
 Python package to pass data between pipeline steps in the Orchest platform.
 
 ## Installation
-```bash
-pip install orchest
-```
+TBD.
 
 ## Basic usage
 Example for sending through disk, where `Step 1` -> `Step 2`.
