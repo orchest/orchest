@@ -292,7 +292,6 @@ class PipelineView extends React.Component {
                 x2: 0,
                 y2: 0,
             },
-            showSelectionButton: false,
             pipelineRunning: false,
             stepExecutionState: {},
             steps: {},
@@ -598,7 +597,6 @@ class PipelineView extends React.Component {
                     stepSelector: _this.state.stepSelector
                 });
 
-                _this.onSelectionChanged();
             }
 
 
@@ -771,17 +769,6 @@ class PipelineView extends React.Component {
         this.pipelineListenersInitialized = true;
     }
 
-    updateSelectionButtons() {
-        if (this.state.selectedSteps.length > 0 && !this.state.stepSelector.active) {
-            this.setState({
-                showSelectionButton: true
-            });
-        }else{
-            this.setState({
-                showSelectionButton: false
-            });
-        }
-    }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
 
@@ -916,7 +903,7 @@ class PipelineView extends React.Component {
             "incoming_connections": [],
             "file_path": ".ipynb",
             "kernel": {
-                "name": "docker_python",
+                "name": "python",
                 "display_name": "Python 3"
             },
             "image": "scipy-notebook-augmented",
@@ -949,7 +936,6 @@ class PipelineView extends React.Component {
             selectedSteps: [pipelineStepUUID]
         });
 
-        this.onSelectionChanged();
     }
 
     moveStep(pipelineStepUUID, x, y) {
@@ -1214,7 +1200,6 @@ class PipelineView extends React.Component {
             selectedSteps: this.getSelectedSteps()
         });
 
-        this.onSelectionChanged();
     }
 
     deselectConnection() {
@@ -1255,10 +1240,6 @@ class PipelineView extends React.Component {
         return selectedSteps;
     }
 
-    onSelectionChanged(){
-        this.updateSelectionButtons();
-    }
-
     onPipelineStepsOuterHolderMove(e) {
 
         if (this.state.stepSelector.active) {
@@ -1273,7 +1254,6 @@ class PipelineView extends React.Component {
                 selectedSteps: this.getSelectedSteps()
             })
 
-            this.onSelectionChanged();
         }
 
         if (this.draggingPipeline) {
@@ -1394,7 +1374,7 @@ class PipelineView extends React.Component {
                 <div className={"pipeline-actions bottom-left"}>
                     <MDCButtonReact disabled={this.centerButtonDisabled()} onClick={this.centerView.bind(this)} icon="crop_free" />
                     {(() => {
-                        if (this.state.showSelectionButton) {
+                        if (this.state.selectedSteps.length > 0 && !this.state.stepSelector.active) {
                             return <div className="selection-buttons">
                                 <MDCButtonReact onClick={this.runSelectedSteps.bind(this)} label="Run selected steps" />
                                 <MDCButtonReact onClick={this.onRunIncoming.bind(this)} label="Run incoming steps" />

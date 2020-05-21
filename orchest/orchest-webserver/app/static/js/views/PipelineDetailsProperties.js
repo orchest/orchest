@@ -167,6 +167,15 @@ class PipelineDetailsProperties extends React.Component {
             "step": this.props.step
         }
     }
+
+    // TODO: refactor state of properties to match novel React paradigm (no state as a function of props)
+    UNSAFE_componentWillReceiveProps(props){
+        this.setState({
+            "step": props.step,
+            "isNotebookStep": extensionFromFilename(props.step.file_path) == "ipynb",
+        })
+    }
+
     componentDidMount() {
 
         // set focus on first field

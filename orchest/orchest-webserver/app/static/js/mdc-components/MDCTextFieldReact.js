@@ -10,7 +10,9 @@ class MDCTextFieldReact extends React.Component {
     }
 
     onChange(){
-        this.props.onChange(this.mdc.value)
+        if(this.mdc.value !== this.props.value){
+            this.props.onChange(this.mdc.value)
+        }
     }
     
     focus(){
@@ -18,6 +20,10 @@ class MDCTextFieldReact extends React.Component {
     }
 
     render() {
+
+        if(this.mdc){
+            this.mdc.value = this.props.value;
+        }
 
         let randomFor = uuidv4();
 

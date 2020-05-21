@@ -1,30 +1,36 @@
 import React from 'react';
-import {MDCSelect} from '@material/select';
+import { MDCSelect } from '@material/select';
 
 class MDCSelectReact extends React.Component {
     componentWillUnmount() {
     }
 
-    componentDidMount(){
+    componentDidMount() {
         this.mdc = new MDCSelect(this.refs.select);
         this.mdc.value = this.props.selected;
 
         this.mdc.listen("MDCSelect:change", () => {
-           this.props.onChange(this.mdc.value);
+            if (this.mdc.value !== this.props.selected) {
+                this.props.onChange(this.mdc.value);
+            }
         })
 
     }
 
     render() {
 
+        if(this.mdc){
+            this.mdc.value = this.props.selected;
+        }
+
         let listItems = this.props.items.map((item, key) => {
             return <li key={key} className="mdc-list-item" data-value={item[0]}>
-                { item[1] }
+                {item[1]}
             </li>;
         })
 
         let topClasses = ["mdc-select"];
-        if(this.props.classNames){
+        if (this.props.classNames) {
             topClasses = topClasses.concat(this.props.classNames)
         }
 
@@ -38,7 +44,7 @@ class MDCSelectReact extends React.Component {
 
             <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
                 <ul className="mdc-list">
-                    { listItems }
+                    {listItems}
                 </ul>
             </div>
         </div>;
