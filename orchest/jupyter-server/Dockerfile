@@ -18,14 +18,7 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -
 RUN mkdir /root/.jupyter/
 COPY jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 
-# install extension
-COPY extensions/visual-tags /extensions/visual-tags
-
-WORKDIR /extensions/visual-tags
-
-# set directory permissions since npm install won't run as root (for security purposes)
-RUN npm install --unsafe-perm
-RUN jupyter labextension install
+RUN jupyter labextension install visual-tags
 
 # patch handlers.py to allow for CORS on websocket to kernels for gateway Jupyter mode
 COPY notebook-patch/handlers.py /usr/local/lib/python3.7/site-packages/notebook/gateway/handlers.py
