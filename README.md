@@ -1,9 +1,7 @@
-![version](https://img.shields.io/badge/version-0.1.0-blue)
-
 <img src='docs/source/img/logo.png' width="450px" />
 <br/>
 
-[Docs](https://orchest.readthedocs.io/en/latest/) 
+![version](https://img.shields.io/badge/version-0.1.0-blue) — [Docs](https://orchest.readthedocs.io/en/latest/) 
 — [Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) 
 — [Gitter](https://gitter.im/orchest)
 
