@@ -20,10 +20,14 @@ Orchest lets you
 
 
 ## Table of contents
-* [Installation](#installation)
-* [Quickstart](#quickstart)
-* [Contributing](#contributing)
-* [We love your feedback](#we-love-your-feedback)
+- [Table of contents](#table-of-contents)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+  - [Build your pipeline.](#build-your-pipeline)
+  - [Write your code.](#write-your-code)
+  - [Run your pipeline and see the results come in.](#run-your-pipeline-and-see-the-results-come-in)
+- [Contributing](#contributing)
+- [We love your feedback](#we-love-your-feedback)
 
 
 ## Installation
@@ -41,7 +45,7 @@ Windows
 ```bash
 git clone https://github.com/orchest/orchest.git
 cd orchest
-orchest start
+orchest.bat start
 ```
 
 
