@@ -7,10 +7,9 @@
 -----
 <img alt="Version badge 0.1.0" src="https://img.shields.io/badge/version-0.1.0-blue" />  <a href="https://gitter.im/orchest/orchest"><img alt="Gitter chatroom link orchest/orchest" src="https://badges.gitter.im/orchest/orchest.svg" /></a>
 
-Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
-based platform that works on top of your filesystem allowing you to use your
+Orchest is a web based data science platform that works on top of your filesystem allowing you to use your
 editor of choice. With Orchest you get to focus on visually building and iterating on your
-pipelining ideas.
+pipelining ideas. Under the hood Orchest runs a collection of containers to provide a scalable platform that can run on your laptop as well as on a large scale cloud cluster.
 
 Orchest lets you
 * Interactively build pipelines through its visual interface.
