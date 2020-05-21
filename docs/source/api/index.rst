@@ -7,7 +7,7 @@ package. For sending all you need to specify is the data you want to send and ho
 receiving all you need to do is call the appropriate receive method depending on where you send the
 data to in the previous step.
 
-We plan to support other programming languages such as R too.
+We plan to also support other popular programming languages such as R.
 
 Python SDK
 ----------
@@ -38,4 +38,5 @@ Example for sending through disk, where `Step 1` -> `Step 2`.
    """Step 2"""
    from orchest import transfer
 
+   # Now we will get: data = [1, 2, 3]
    data = transfer.receive_from_disk()
