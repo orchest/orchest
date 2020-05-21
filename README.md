@@ -1,12 +1,10 @@
 <img src='docs/source/img/logo.png' width="450px" />
 <br/>
 
-[Docs](https://orchest.readthedocs.io/en/stable/) 
-— [Quickstart](https://orchest.readthedocs.io/en/stable/quickstart) 
+[Docs](https://orchest.readthedocs.io/en/latest/) 
+— [Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) 
 — [Gitter](https://gitter.im/orchest)
 
-
-<!-- [Short gif showing the Orchest pipeline interface] -->
 
 -----
 Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
@@ -27,23 +25,46 @@ Orchest lets you
 * [Contributing](#contributing)
 * [We love your feedback](#we-love-your-feedback)
 
+
 ## Installation
+Requirements
+* Docker (tested on 19.03.9)
+
+Linux/macOS
 ```bash
 git clone https://github.com/orchest/orchest.git
 cd orchest
 ./orchest.sh start
 ```
 
-## Quickstart
-List of features that the user might run into:
-* celltags to skip cells
-* Importance of the pipeline.json file
+Windows
+```bash
+git clone https://github.com/orchest/orchest.git
+cd orchest
+orchest.sh start
+```
 
-See our docs for a [quickstart](link-to-docs) tutorial.
+
+## Quickstart
+Please refer to our docs for a more comprehensive 
+[quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial.
+
+[GIFS comming soon!]
+
+Build your pipeline.
+
+Write your code.
+
+Run your pipeline.
+
+See your result.
+
 
 ## Contributing
-Contributions are more than welcome! Please see our [contributer guides](link-to-docs) for more
-details.
+Contributions are more than welcome! Please see our 
+[contributer guides](https://orchest.readthedocs.io/en/latest/development/contributer_guides.html)
+for more details.
+
 
 ## We love your feedback
 We would love to hear what you think and potentially add features based on your ideas. Come chat
