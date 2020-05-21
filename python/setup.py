@@ -1,18 +1,20 @@
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+# The long_description field is used by PyPI when you publish a package,
+# to build its project page.
+with open("README.md", "r") as f:
+    long_description = f.read()
 
 setuptools.setup(
     name="orchest",
-    version="0.0.1",
+    version="0.1.0",
     author="Rick Lamers",
     author_email="rick@orchest.io",
     description="SDK for data passing in Orchest",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ricklamers/orchest-pypi",
-    py_modules=["orchest"],
+    # py_modules=["orchest"],
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 1 - Planning",
@@ -21,4 +23,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
+    license='',
 )

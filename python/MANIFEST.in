@@ -1,2 +1,2 @@
-include LICENSE
-recursive-include orchest *.py
+include README.md
+include ../LICENSE.txt
