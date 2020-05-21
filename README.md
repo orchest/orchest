@@ -1,3 +1,5 @@
+![version](https://img.shields.io/badge/version-0.1.0-blue)
+
 <img src='docs/source/img/logo.png' width="450px" />
 <br/>
 
