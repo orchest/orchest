@@ -41,7 +41,7 @@ Windows
 ```bash
 git clone https://github.com/orchest/orchest.git
 cd orchest
-orchest.sh start
+orchest start
 ```
 
 
