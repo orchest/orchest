@@ -1,5 +1,5 @@
 # Orchest SDK
-[Docs](https://orchest-sdk.readthedocs.io/en/stable/)
+[Docs](https://orchest-sdk.readthedocs.io/en/latest/)
 — [Gitter](https://gitter.im/orchest)
 
 Orchest SDK for data passing between pipeline steps in the 

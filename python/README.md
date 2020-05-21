@@ -1,6 +1,6 @@
 # Python - Orchest SDK
-[Docs](https://orchest-sdk.readthedocs.io/en/stable/python)
-— [Quickstart](https://orchest-sdk.readthedocs.io/en/latest/python#quickstart)
+[Docs](https://orchest-sdk.readthedocs.io/en/latest/python)
+— [Quickstart](https://orchest-sdk.readthedocs.io/en/latest/python.html#quickstart)
 — [Gitter](https://gitter.im/orchest)
 
 Python package to pass data between pipeline steps in the Orchest platform.
