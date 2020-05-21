@@ -28,14 +28,12 @@ Orchest lets you
 
 ## Installation
 ```bash
-docker run orchest
+git clone https://github.com/orchest/orchest.git
+cd orchest
+./orchest.sh start
 ```
 
 ## Quickstart
-```bash
-docker run orchest
-```
-
 List of features that the user might run into:
 * celltags to skip cells
 * Importance of the pipeline.json file
