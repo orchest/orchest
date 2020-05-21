@@ -5,7 +5,7 @@
 — [Quickstart](https://orchest.readthedocs.io/en/stable/quickstart) 
 — [Gitter](https://gitter.im/orchest)
 
-[Short gif showing the Orchest pipeline interface]
+<!-- [Short gif showing the Orchest pipeline interface] -->
 
 -----
 Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web

@@ -25,7 +25,8 @@ Launch:
 
    docker run -v <mount>:<mount> installer
 
-Build your pipeline. Create two steps and connect them (INSERT GIF)
+Build your pipeline. Create two steps and connect them
+..  (INSERT GIF)
 
 Write your code. Add the following code in the first step (Click on the step > open notebook)
 Add the following code in the second step (You can use the JupyterLab interface to open the file).
@@ -33,6 +34,8 @@ You can read more about the orchest sdk here in the docs (INSERT LINK)
 (INSERT GIF that opens the jupyterlab that has the code inside). Possibly also where there is a
 "skip" tag.
 
-Run your pipeline. (INSERT GIF)
+Run your pipeline.
+.. (INSERT GIF)
 
-Check your output. (INSERT GIF)
+Check your output.
+.. (INSERT GIF)

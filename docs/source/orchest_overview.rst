@@ -14,7 +14,7 @@ based platform that works on top of your filesystem (similar to JupyterLab) allo
 editor of choice. With Orchest you get to focus on visually building and iterating on your
 pipelining ideas.
 
-[INSERT PICTURE/GIF: show pipeline]
+.. [INSERT PICTURE/GIF: show pipeline]
 
 A pipeline in Orchest can be thought of as a graph consisting of executable files, e.g. notebooks or
 scripts, within their own isolated environment (powered by containerization). Users get a visual
