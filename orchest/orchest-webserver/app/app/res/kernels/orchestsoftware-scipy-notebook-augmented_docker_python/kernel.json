@@ -5,7 +5,7 @@
     "process_proxy": {
       "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",
       "config": {
-        "image_name": "custom-base-kernel-py"
+        "image_name": "orchestsoftware/custom-base-kernel-py"
       }
     }
   },

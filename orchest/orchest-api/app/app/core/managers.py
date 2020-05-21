@@ -103,7 +103,7 @@ class JupyterDockerManager(DockerManager):
 
         # Run Jupyter server container.
         server_container = self.client.containers.run(
-                image='jupyter-server:latest',  # TODO: make not static.
+                image='orchestsoftware/jupyter-server:latest',  # TODO: make not static.
                 detach=True,
                 mounts=[pipeline_dir_mount],
                 name=f'jupyter-server-{uuid}',
