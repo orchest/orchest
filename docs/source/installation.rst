@@ -1,4 +1,13 @@
 Installation
 ============
 
-Some info
+Requirements
+------------
+Docker
+
+
+Troubleshooting
+---------------
+
+Common pitfalls.
+
