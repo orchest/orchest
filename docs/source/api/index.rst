@@ -1,5 +1,6 @@
 API
 ===
+[LINK TO DOCS OF THE SDK - this is just a general overview]
 
 You can send data and receive data. The destination and source of the data is managed by this
 package. For sending all you need to specify is the data you want to send and how to send it. For
