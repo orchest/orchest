@@ -100,9 +100,10 @@ def get_step_uuid(pipeline):
 
     launch_data = get_json(url)
 
-    jupyter_api_url = "http://%s:%s/api/sessions?token=%s" % (
+    jupyter_api_url = "http://%s:%s/%s/api/sessions?token=%s" % (
         launch_data["server_ip"],
         launch_data["server_info"]["port"],
+	"jupyter_" + launch_data["server_ip"].replace(".", "_"),
         launch_data["server_info"]["token"]
     )
 
