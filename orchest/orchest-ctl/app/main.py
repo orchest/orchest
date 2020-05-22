@@ -12,7 +12,8 @@ VALID_COMMANDS = {
     "start": "Starts the Orchest application",
     "help": "Shows this help menu",
     "stop": "Stops the Orchest application",
-    "status": "Checks the current status of the Orchest application"
+    "status": "Checks the current status of the Orchest application",
+    "update": "Update Orchest to the latest version by pulling latest container images"
 }
 
 
@@ -354,6 +355,24 @@ def init_logger():
     root.addHandler(handler)
 
 
+def update():
+    logging.info("Updating Orchest...")
+
+    client = docker.from_env()
+
+    for image in IMAGES:
+        try:
+            try:
+                logging.info("Pulling image `%s` ..." % image)
+                client.images.pull(image)
+                logging.info("Pulled image `%s`." % image)
+            except Exception as e:
+                logging.error("Something went wrong while pulling image %s error: %s" % (image, e))
+
+        except Exception as e:
+            raise(e)
+
+
 def main():
 
     init_logger()
@@ -362,7 +381,8 @@ def main():
         "start": start,
         "help": help_func,
         "stop": stop,
-        "status": status
+        "status": status,
+        "update": update
     }
 
     # default command
