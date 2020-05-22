@@ -19,23 +19,27 @@ Your first project
 ------------------
 You can follow the next example.
 
-Launch:
+Launch Orchest:
 
 .. code-block:: bash
 
-   docker run -v <mount>:<mount> installer
+   ./orchest.sh start
 
-Build your pipeline. Create two steps and connect them
-..  (INSERT GIF)
+On Windows:
 
-Write your code. Add the following code in the first step (Click on the step > open notebook)
-Add the following code in the second step (You can use the JupyterLab interface to open the file).
-You can read more about the orchest sdk here in the docs (INSERT LINK)
-(INSERT GIF that opens the jupyterlab that has the code inside). Possibly also where there is a
-"skip" tag.
+.. code-block:: bash
 
-Run your pipeline.
-.. (INSERT GIF)
+   orchest.bat start
 
-Check your output.
-.. (INSERT GIF)
+Build your pipeline. Create two steps and connect them.
+
+.. image:: https://user-images.githubusercontent.com/1309307/82610388-8ffc7580-9bbe-11ea-8886-d045ff6b76d0.gif
+
+Directly edit your pipeline steps.
+
+.. image:: https://user-images.githubusercontent.com/1309307/82610397-94c12980-9bbe-11ea-8e16-eb686d0cfc75.gif
+
+Run your pipeline and see the results come in.
+
+.. image:: https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif
+

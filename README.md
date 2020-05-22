@@ -7,23 +7,27 @@
 -----
 <img alt="Version badge 0.1.0" src="https://img.shields.io/badge/version-0.1.0-blue" />  <a href="https://gitter.im/orchest/orchest"><img alt="Gitter chatroom link orchest/orchest" src="https://badges.gitter.im/orchest/orchest.svg" /></a>
 
-Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
-based platform that works on top of your filesystem allowing you to use your
+Orchest is a web based data science platform that works on top of your filesystem allowing you to use your
 editor of choice. With Orchest you get to focus on visually building and iterating on your
-pipelining ideas.
+pipelining ideas. Under the hood Orchest runs a collection of containers to provide a scalable platform that can run on your laptop as well as on a large scale cloud cluster.
 
 Orchest lets you
-* Interactively build pipelines in our visual interface.
+* Interactively build pipelines through its visual interface.
+* Automatically run your pipelines in parallel.
 * Develop your code in your favorite editor. Everything is filesystem based.
-* Pick what cells you want to skip when executing a notebook. Perfect for prototyping as you do not 
+* Tag the notebooks cells you want to skip when running a pipeline. Perfect for prototyping as you do not 
   have to maintain a perfectly clean notebook.
 
 
 ## Table of contents
-* [Installation](#installation)
-* [Quickstart](#quickstart)
-* [Contributing](#contributing)
-* [We love your feedback](#we-love-your-feedback)
+- [Table of contents](#table-of-contents)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+  - [Build your pipeline.](#build-your-pipeline)
+  - [Write your code.](#write-your-code)
+  - [Run your pipeline and see the results come in.](#run-your-pipeline-and-see-the-results-come-in)
+- [Contributing](#contributing)
+- [We love your feedback](#we-love-your-feedback)
 
 
 ## Installation
@@ -41,7 +45,7 @@ Windows
 ```bash
 git clone https://github.com/orchest/orchest.git
 cd orchest
-orchest.sh start
+orchest.bat start
 ```
 
 
@@ -49,15 +53,17 @@ orchest.sh start
 Please refer to our docs for a more comprehensive 
 [quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial.
 
-[GIFS coming soon!]
+### Build your pipeline.
 
-Build your pipeline.
+![clip-1-cropped](https://user-images.githubusercontent.com/1309307/82610388-8ffc7580-9bbe-11ea-8886-d045ff6b76d0.gif)
 
-Write your code.
+### Write your code.
 
-Run your pipeline.
+![clip-2-cropped](https://user-images.githubusercontent.com/1309307/82610397-94c12980-9bbe-11ea-8e16-eb686d0cfc75.gif)
 
-See your result.
+### Run your pipeline and see the results come in.
+
+![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
 
 
 ## Contributing
