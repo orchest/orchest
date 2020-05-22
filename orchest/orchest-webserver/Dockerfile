@@ -25,4 +25,8 @@ RUN npm install
 # Compile front-end code with npx
 RUN npx webpack
 
+# Compile style
+WORKDIR /app/static/css/
+RUN ./compile-sass.sh
+
 WORKDIR /app
