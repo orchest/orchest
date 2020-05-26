@@ -10,7 +10,7 @@ Orchest
 -- `GitHub <http://www.github.com/orchest/orchest>`_
 -- `Gitter <http://www.gitter.im/orchest>`_
 
-Orchest is an open source, cloud native, development environment build for data science. Orchest
+Orchest is an open source, cloud native, development environment built for data science. Orchest
 enables you to develop, train and run your models on the cloud without any knowledge of cloud
 infrastructure.
 
