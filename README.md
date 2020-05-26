@@ -12,7 +12,7 @@ editor of choice. With Orchest you get to focus on visually building and iterati
 pipelining ideas. Under the hood Orchest runs a collection of containers to provide a scalable platform that can run on your laptop as well as on a large scale cloud cluster.
 
 Orchest lets you
-* Interactively build pipelines through its visual interface.
+* Interactively build data science pipelines through its visual interface.
 * Automatically run your pipelines in parallel.
 * Develop your code in your favorite editor. Everything is filesystem based.
 * Tag the notebooks cells you want to skip when running a pipeline. Perfect for prototyping as you do not 
