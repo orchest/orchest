@@ -47,5 +47,5 @@ Example for sending through disk, where `Step 1` -> `Step 2`.
    """Step 2"""
    from orchest import transfer
 
-   # Now we will get: data = [1, 2, 3]
+   # Now we will get: data = [[1, 2, 3]]
    data = transfer.receive_from_disk()
