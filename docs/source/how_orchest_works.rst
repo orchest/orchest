@@ -16,3 +16,58 @@ files `for each pipeline`:
 Orchest runs as a collection of Docker containers and only stores a global configuration file. The
 location for this config is :code:`~/.config/orchest/config.json` for Unix based systems and
 :code:`%UserProfile%\.orchest\config.json` for Windows.
+
+
+Installing additional packages
+------------------------------
+
+Orchest runs all your pipeline step code scripts (.ipynb, .py, .R, .sh) in containers. The default
+images are based on the |jupyter_stack_link| and come with a number of
+|pre_installed_link|.
+
+.. |jupyter_stack_link| raw:: html
+
+  <a href="https://jupyter-docker-stacks.readthedocs.io/en/latest/"
+  target="_blank">Jupyter Docker Stacks</a>
+
+.. |pre_installed_link| raw:: html
+
+   <a
+   href="https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html"
+   target="_nlank">pre-installed packages</a>
+
+Installing additional Python packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Execute commands inside the scripts to install the package before use.
+
+For Jupyter notebooks you can run the following code in a cell:
+
+.. code-block:: bash
+
+   !conda install <package name>
+
+or for the :code:`pip` packages run:
+
+.. code-block:: bash
+
+   !pip install <package name>
+
+
+Or directly from within Python (i.e. for Python scripts):
+
+.. code-block:: python
+
+   from pip._internal import main as pip
+
+   pip(['install', '--user', '<package name>'])
+
+
+Installing additional R packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+R packages can be installed with the regular command:
+
+.. code-block:: r
+   
+   install.packages("gplots")
