@@ -25,6 +25,9 @@ Orchest runs all your pipeline step code scripts (.ipynb, .py, .R, .sh) in conta
 images are based on the |jupyter_stack_link| and come with a number of
 |pre_installed_link|.
 
+We plan on supporting custom images and/or container commits, to avoid having to reinstall packages each
+time a pipeline step is run.
+
 .. |jupyter_stack_link| raw:: html
 
   <a href="https://jupyter-docker-stacks.readthedocs.io/en/latest/"
