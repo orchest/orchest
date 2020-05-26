@@ -5,7 +5,7 @@ Orchest can be run locally on Windows, macOS and Linux.
 
 
 Docker access
-~~~~~~~~~~~~~
+-------------
 
 The run scripts (orchest.sh/orchest.bat) will mount the Docker socket to the :code:`orchest-ctl`
 container to manage the local Docker containers necessary for running Orchest. In addition, the
