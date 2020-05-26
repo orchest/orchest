@@ -73,4 +73,4 @@ R packages can be installed with the regular command:
 
 .. code-block:: r
    
-   install.packages("gplots")
+   install.packages("<package name>")
