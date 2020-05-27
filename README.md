@@ -48,6 +48,9 @@ cd orchest
 orchest.bat start
 ```
 
+**Note!** On Windows, make sure to give Docker permission to mount the directory in which
+you cloned Orchest. For more details check the [Windows Docker documentation](https://docs.docker.com/docker-for-windows/#file-sharing).
+
 
 ## Quickstart
 Please refer to our docs for a more comprehensive 
