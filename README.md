@@ -9,7 +9,7 @@
 
 Orchest is a web based data science platform that works on top of your filesystem allowing you to use your
 editor of choice. With Orchest you get to focus on visually building and iterating on your
-pipelining ideas. Under the hood Orchest runs a collection of containers to provide a scalable platform that can run on your laptop as well as on a large scale cloud cluster.
+pipeline ideas. Under the hood Orchest runs a collection of containers to provide a scalable platform that can run on your laptop as well as on a large scale cloud cluster.
 
 Orchest lets you
 * Interactively build data science pipelines through its visual interface.
