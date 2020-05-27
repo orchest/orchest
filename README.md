@@ -1,4 +1,4 @@
-<img src='docs/source/img/logo.png' width="450px" />
+<img src='docs/source/img/logo.png' width="300px" />
 <br/>
 
 [Docs](https://orchest.readthedocs.io/en/latest/) 
