@@ -8,7 +8,6 @@ To add another transfer method
    ``send_disk(data, **kwargs)`` and ``receive_disk(**kwargs)``
 
 """
-import abc
 import json
 import os
 import pickle
@@ -17,63 +16,134 @@ import urllib
 from orchest.pipeline import Pipeline
 
 
-class Transferer(metaclass=abc.ABCMeta):
-    # @classmethod
-    # def __subclasshook_(cls, subclass):
-    #     return (hasattr(subclass, 'save') and
-    #             callable(subclass.load_data_source) and
-    #             hasattr(subclass, 'receive') and
-    #             callable(subclass.extract_text) or
-    #             NotImplemented)
+def _send_disk(data, full_path, type='pickle', **kwargs):
+    """Sends data to disk to the specified path.
 
-    @abc.abstractmethod
-    def send(self, data, verbose=False):
-        """Send output through step_uuid."""
-        pass
+    Args:
+        data:
+        full_path:
+        type: file extension.
+        **kwargs: kwargs to the function that handles writing data to
+            disk for the specified `type`. For example:
+            ``pickle.dump(data, fname, **kwargs)``
 
-    @abc.abstractmethod
-    def receive(self, verbose=False):
-        """Receive input through step_uuid."""
-        pass
+    Raises:
+        ValueError: If `type` is not one of ["pickle",]
+    """
+    if type == 'pickle':
+        with open(f'{full_path}.{type}', 'wb') as f:
+            pickle.dump(data, f, **kwargs)
+    else:
+        raise ValueError("Function not defined for specified 'type'")
+
+    return
 
 
-class DiskTransferer(Transferer):
-    def send(self, pipeline, step_uuid, data, verbose=False):
+def send_disk(data, type='pickle', **kwargs):
+    """Sends data to disk.
 
-        step_data_dir = ".data/%s" % (step_uuid)
-        if not os.path.isdir(step_data_dir):
-            os.makedirs(step_data_dir)
+    Args:
+        data:
+        type:
+        **kwargs: kwargs to the function that handles writing data to
+            disk for the specified `type`. For example:
+            ``pickle.dump(data, fname, **kwargs)``
+    """
+    pipeline = Pipeline()
+    step_uuid = get_step_uuid(pipeline)
 
-        with open(os.path.join(step_data_dir, "%s.pickle") % (step_uuid,), 'wb') as handle:
-            pickle.dump(data, handle)
+    # Set the full path to write the data to and recursively create any
+    # directories if they do not already exists.
+    step_data_dir = f'.data/{step_uuid}'
+    os.makedirs(step_data_dir, exist_ok=True)
+    full_path = os.path.join(step_data_dir, step_uuid)
 
-        if verbose:
-            print("Saving %s to step_uuid %s" % (data, step_uuid))
+    return _send_disk(data, full_path, type=type, **kwargs)
 
-    def receive(self, pipeline, step_uuid, verbose=False):
 
-        step_data_dir = ".data/%s" % (step_uuid)
+def _receive_disk(full_path, type='pickle', **kwargs):
+    if type == 'pickle':
+        try:
+            with open(f'{full_path}.{type}', 'rb') as f:
+                data = pickle.load(f)
 
-        data = []
-
-        for incoming_step in pipeline.steps[step_uuid].properties["incoming_connections"]:
-
-            pickle_path = ".data/%s/%s.pickle" % (incoming_step, incoming_step)
-
-            if not os.path.isfile(pickle_path):
-
-                raise Exception("No input available for step_uuid")
-
-            else:
-                with open(pickle_path, 'rb') as handle:
-                    d = pickle.load(handle)
-                    data.append(d)
-
-        if verbose:
-            print("Received inputs from steps %s" %
-                (pipeline.steps[step_uuid].properties["incoming_connections"],))
+        except FileNotFoundError as e:
+            # TODO: Ideally we want to provide the user with the step's
+            #       name instead of UUID.
+            step_uuid = os.path.split(full_path)[-1]
+            custom_message = f'Step "{step_uuid}" did not produce any output.'
+            raise FileNotFoundError(custom_message, e)
 
         return data
+
+    raise ValueError("Function not defined for specified 'type'")
+
+
+def receive_disk(step_uuid, type='pickle', **kwargs):
+    """Receives data from disk.
+
+    Args:
+        **kwargs
+    """
+    step_data_dir = f'.data/{step_uuid}'
+    full_path = os.path.join(step_data_dir, step_uuid)
+
+    return _receive_disk(full_path, type=type, **kwargs)
+
+
+def resolve_disk(step_uuid):
+    # TODO: check within the HEAD file
+    type = 'pickle'
+    timestamp = 10  # TODO: some valid time
+
+    res = {
+        'timestamp': timestamp,
+        'method_to_call': receive_disk,
+        'method_args': (),
+        'method_kwargs': {
+            'type': type
+        }
+    }
+    return res
+
+
+def resolve(step_uuid):
+    # TODO: check all methods and return which one should be used.
+    methods = [resolve_disk]
+    method_info = [method(step_uuid) for method in methods]
+
+    # Get the method that was most recently based on its logged
+    # timestamp.
+    most_recent = max(method_info, key=lambda x: x['timestamp'])
+    return (most_recent['method_to_call'],
+            most_recent['method_args'],
+            most_recent['method_kwargs'])
+
+
+def receive(verbose=False):
+    pipeline = Pipeline()
+    step_uuid = get_step_uuid(pipeline)
+
+    data = []
+    # TODO: add to pipeline method: self.get_step_by_uuid(uuid). I
+    #       forgot why. But one reason I can think of is getting the
+    #       name once you have the PipelineStep object.
+    for incoming_step in pipeline.steps[step_uuid].properties['incoming_connections']:
+        # TODO: resolve what method should be called! Thus receive_disk
+        #       or receive_memory.
+        step_uuid = incoming_step
+        receive_method, args, kwargs = resolve(step_uuid)
+
+        # Get data.
+        incoming_step_data = receive_method(step_uuid, *args, **kwargs)
+
+        # TODO: Would be cool if step_uuid was step_name instead.
+        if verbose:
+            print(f'Received input from step: {step_uuid}')
+
+        data.append(incoming_step_data)
+
+    return data
 
 
 # Idea for solution:
@@ -141,27 +211,6 @@ def get_json(url):
     except (urllib.error.HTTPError, urllib.error.URLError) as e:
         print("Failed to fetch from: %s" % (url))
         print(e)
-
-
-def send_to_disk(data, **kwargs):
-    pipeline = Pipeline()
-    step_uuid = get_step_uuid(pipeline)
-
-    transferer = DiskTransferer()
-    transferer.send(pipeline, step_uuid, data, **kwargs)
-
-
-def receive_from_disk(**kwargs):
-    """Receives data from disk.
-
-    Args:
-        **kwargs
-    """
-    pipeline = Pipeline()
-    step_uuid = get_step_uuid(pipeline)
-
-    transferer = DiskTransferer()
-    return transferer.receive(pipeline, step_uuid, **kwargs)
 
 
 # TODO: Once we are set on the API we could specify __all__. For now we
