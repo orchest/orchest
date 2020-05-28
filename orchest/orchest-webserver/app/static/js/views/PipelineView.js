@@ -308,54 +308,10 @@ class PipelineView extends React.Component {
         orchest.loadView(PipelineSettingsView, { "pipeline": this.props.pipeline });
     }
 
+
     componentDidMount() {
 
-        fetch("/async/pipelines/json/get/" + this.props.pipeline.uuid, {
-            method: "GET",
-            cache: "no-cache",
-            redirect: "follow",
-            referrer: "no-referrer"
-        }).then(handleErrors).then((response) => {
-            response.json().then((result) => {
-                if (result.success) {
-                    this.decodeJSON(JSON.parse(result['pipeline_json']));
-                    
-                    orchest.headerBarComponent.setPipeline(this.state.pipelineJson);
-                } else {
-                    console.warn("Could not load pipeline.json");
-                    console.log(result);
-                }
-            })
-        });
-
-        // get backend status
-        fetch("/api-proxy/api/launches/" + this.props.pipeline.uuid, {
-            method: "GET",
-            cache: "no-cache",
-            redirect: "follow",
-            referrer: "no-referrer"
-        }).then((response) => {
-            if (response.status === 200) {
-                this.state.backend.running = true;
-                this.setState({ "backend": this.state.backend });
-
-                return response
-            } else {
-                console.warn("Pipeline back-end is not live");
-            }
-        }).then((response) => {
-            if (response) {
-                response.json().then((json) => {
-                    console.log(json);
-
-                    this.state.backend.server_ip = json.server_ip;
-                    this.state.backend.server_info = json.server_info;
-
-                    this.setState({ "backend": this.state.backend });
-                    this.updateJupyterInstance();
-                })
-            }
-        });
+        this.fetchPipelineAndInitialize()
 
     }
 
@@ -472,6 +428,8 @@ class PipelineView extends React.Component {
     }
 
     initializePipeline() {
+
+        this.updatePipelineViewerState()
 
         // Initialize should be called only once
         // this.state.steps is assumed to be populated
@@ -662,7 +620,7 @@ class PipelineView extends React.Component {
                 // _this.refs.encodeButton.click();
                 // TODO: fix save button after React component swap
             }
-            if(e.keyCode == 72){
+            if (e.keyCode == 72) {
                 _this.centerView();
             }
 
@@ -772,22 +730,68 @@ class PipelineView extends React.Component {
 
     componentDidUpdate(prevProps, prevState, snapshot) {
 
-        // add listeners once state is initialized by decodeJSON
-        if (this.state.steps !== undefined) {
-
-            // initialize pipeline after setting state in decodeJSON/setting up React components
-            this.updatePipelineViewerState()
-
-            // initliaze pipeline only once
-            if (!this.pipelineListenersInitialized) {
-                this.initializePipeline();
-            }
+        // fetch pipeline when uuid changed
+        if (this.props.pipeline.uuid !== prevProps.pipeline.uuid) {
+            this.fetchPipelineAndInitialize()
         }
+    }
+
+    fetchPipelineAndInitialize() {
+
+        fetch("/async/pipelines/json/get/" + this.props.pipeline.uuid, {
+            method: "GET",
+            cache: "no-cache",
+            redirect: "follow",
+            referrer: "no-referrer"
+        }).then(handleErrors).then((response) => {
+            response.json().then((result) => {
+                if (result.success) {
+                    this.decodeJSON(JSON.parse(result['pipeline_json']));
+
+                    orchest.headerBarComponent.setPipeline(this.state.pipelineJson);
+
+                    this.initializePipeline();
+
+                } else {
+                    console.warn("Could not load pipeline.json");
+                    console.log(result);
+                }
+            })
+        });
+
+        // get backend status
+        fetch("/api-proxy/api/launches/" + this.props.pipeline.uuid, {
+            method: "GET",
+            cache: "no-cache",
+            redirect: "follow",
+            referrer: "no-referrer"
+        }).then((response) => {
+            if (response.status === 200) {
+                this.state.backend.running = true;
+                this.setState({ "backend": this.state.backend });
+
+                return response
+            } else {
+                console.warn("Pipeline back-end is not live");
+            }
+        }).then((response) => {
+            if (response) {
+                response.json().then((json) => {
+                    console.log(json);
+
+                    this.state.backend.server_ip = json.server_ip;
+                    this.state.backend.server_info = json.server_info;
+
+                    this.setState({ "backend": this.state.backend });
+                    this.updateJupyterInstance();
+                })
+            }
+        });
 
     }
 
     updateJupyterInstance() {
-        let baseAddress = "http://"+ window.location.host + "/jupyter_" + this.state.backend.server_ip.replace(/\./g, "_") + "/";
+        let baseAddress = "http://" + window.location.host + "/jupyter_" + this.state.backend.server_ip.replace(/\./g, "_") + "/";
         let token = this.state.backend.server_info.token;
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
@@ -939,10 +943,10 @@ class PipelineView extends React.Component {
     }
 
     moveStep(pipelineStepUUID, x, y) {
-        if(this.state.steps[pipelineStepUUID].meta_data.position[0] != x
-            || this.state.steps[pipelineStepUUID].meta_data.position[1] != y){
-                this.state.steps[pipelineStepUUID].meta_data.position = [x, y];
-                this.state.unsavedChanges = true;
+        if (this.state.steps[pipelineStepUUID].meta_data.position[0] != x
+            || this.state.steps[pipelineStepUUID].meta_data.position[1] != y) {
+            this.state.steps[pipelineStepUUID].meta_data.position = [x, y];
+            this.state.unsavedChanges = true;
         }
     }
 
@@ -1083,7 +1087,7 @@ class PipelineView extends React.Component {
 
     }
 
-    centerView(){
+    centerView() {
 
         this.pipelineOffset[0] = 0;
         this.pipelineOffset[1] = 0;
@@ -1152,7 +1156,7 @@ class PipelineView extends React.Component {
         });
     }
 
-    onDetailsChangeView(newIndex){
+    onDetailsChangeView(newIndex) {
 
         this.setState({
             defaultDetailViewIndex: newIndex
@@ -1168,8 +1172,8 @@ class PipelineView extends React.Component {
         this.state.steps[pipelineDetailsComponent.props.step.uuid] = JSON.parse(JSON.stringify(pipelineDetailsComponent.state.step));
 
         // update steps in setState even though reference objects are directly modified - this propagates state updates properly
-        this.setState({ 
-            "steps": this.state.steps,    
+        this.setState({
+            "steps": this.state.steps,
             "unsavedChanges": true
         });
     }
@@ -1269,7 +1273,7 @@ class PipelineView extends React.Component {
 
     }
 
-    renderBackground(){
+    renderBackground() {
         $(this.refs.pipelineStepsHolder).css({ transform: "translateX(" + -this.pipelineOffset[0] + "px) translateY(" + -this.pipelineOffset[1] + "px)" });
 
         $(this.refs.pipelineStepsOuterHolder).css({ backgroundPosition: -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px" });
@@ -1312,7 +1316,7 @@ class PipelineView extends React.Component {
         return rect;
     }
 
-    centerButtonDisabled(){
+    centerButtonDisabled() {
         return this.pipelineOffset[0] == 0 && this.pipelineOffset[1] == 0;
     }
 
@@ -1387,7 +1391,7 @@ class PipelineView extends React.Component {
                     <MDCButtonReact
                         onClick={this.launchPipeline.bind(this)}
                         classNames={this.getPowerButtonClasses()}
-                        icon={ this.state.backend.working ? "hourglass_empty" : "power_settings_new" }
+                        icon={this.state.backend.working ? "hourglass_empty" : "power_settings_new"}
                     />
 
                     <MDCButtonReact

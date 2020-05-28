@@ -7,6 +7,9 @@ import os
 import uuid
 import pdb
 import requests
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 def register_views(app, db):
 
@@ -192,7 +195,7 @@ def register_views(app, db):
                     logs = f.read()
 
             except IOError as error:
-                print("Error opening log file %s erorr: %s", (log_path, error))
+                logging.debug("Error opening log file %s erorr: %s", (log_path, error))
 
         if logs is not None:
             json_string = json.dumps(
@@ -266,16 +269,19 @@ def register_views(app, db):
             full_file_path = os.path.join(pipeline_directory, file_name)
 
             if not os.path.isfile(full_file_path):
-                ext = file_name.split(".")[-1]
+                file_name_split = file_name.split(".")
+                file_name_without_ext = '.'.join(file_name_split[:-1])
+                ext = file_name_split[-1]
 
-                file_content = ""
+                if len(file_name_without_ext) > 0:
+                    file_content = ""
 
-                if ext == "ipynb":
-                    file_content = generate_ipynb_from_template(step)
+                    if ext == "ipynb":
+                        file_content = generate_ipynb_from_template(step)
 
-                file = open(full_file_path, "w")
+                    file = open(full_file_path, "w")
 
-                file.write(file_content)
+                    file.write(file_content)
 
 
     @app.route("/async/pipelines/json/save", methods=["POST"])
@@ -320,19 +326,23 @@ def register_views(app, db):
 
             if "ipynb" == step["file_path"].split(".")[-1]:
 
-                gateway_kernel = generate_gateway_kernel_name(step['image'], step['kernel']['name'])
-
                 notebook_path = os.path.join(pipeline_directory, step["file_path"])
 
-                notebook_json = None
+                if os.path.isfile(notebook_path):
 
-                with open(notebook_path, "r") as file:
-                    notebook_json = json.load(file)
+                    gateway_kernel = generate_gateway_kernel_name(step['image'], step['kernel']['name'])
 
-                notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+                    notebook_json = None
 
-                with open(notebook_path, "w") as file:
-                    file.write(json.dumps(notebook_json))
+                    with open(notebook_path, "r") as file:
+                        notebook_json = json.load(file)
+
+                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+
+                    with open(notebook_path, "w") as file:
+                        file.write(json.dumps(notebook_json))
+                else:
+                    logging.debug("pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
 
 
     def get_experiment_args_from_pipeline_json(pipeline_json):
