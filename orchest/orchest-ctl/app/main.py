@@ -304,7 +304,7 @@ def log_server_url():
         logging.warning("Orchest is not running.")
 
 
-def debug_mount_inject():
+def dev_mount_inject():
 
     CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]['mounts'] += [
         {
@@ -392,8 +392,8 @@ def main():
         command = sys.argv[1]
 
     if len(sys.argv) > 2:
-        if sys.argv[2] == "debug":
-            debug_mount_inject()
+        if sys.argv[2] == "dev":
+            dev_mount_inject()
 
     if command not in VALID_COMMANDS.keys():
         logging.error("Command `%s` is not supported." % command)

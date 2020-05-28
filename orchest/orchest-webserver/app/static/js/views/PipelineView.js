@@ -760,30 +760,25 @@ class PipelineView extends React.Component {
         });
 
         // get backend status
-        fetch("/api-proxy/api/launches/" + this.props.pipeline.uuid, {
+        fetch("/api-proxy/api/launches/?pipeline_uuid=" + this.props.pipeline.uuid, {
             method: "GET",
             cache: "no-cache",
             redirect: "follow",
             referrer: "no-referrer"
-        }).then((response) => {
-            if (response.status === 200) {
-                this.state.backend.running = true;
-                this.setState({ "backend": this.state.backend });
-
-                return response
-            } else {
-                console.warn("Pipeline back-end is not live");
-            }
-        }).then((response) => {
+        }).then(handleErrors).then((response) => {
             if (response) {
                 response.json().then((json) => {
                     console.log(json);
 
-                    this.state.backend.server_ip = json.server_ip;
-                    this.state.backend.server_info = json.server_info;
+                    if(json.launches.length > 0){
+                        let launch = json.launches[0];
+                        this.state.backend.server_ip = launch.server_ip;
+                        this.state.backend.server_info = launch.server_info;
+                        this.state.backend.running = true;
 
-                    this.setState({ "backend": this.state.backend });
-                    this.updateJupyterInstance();
+                        this.setState({ "backend": this.state.backend });
+                        this.updateJupyterInstance();
+                    }
                 })
             }
         });

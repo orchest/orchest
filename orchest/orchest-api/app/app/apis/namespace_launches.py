@@ -88,7 +88,14 @@ class LaunchList(Resource):
     @api.marshal_with(launches)
     def get(self):
         """Fetch all launches."""
-        launches = models.Launch.query.all()
+
+        query = models.Launch.query
+        
+        if "pipeline_uuid" in request.args:
+            query = query.filter_by(pipeline_uuid=request.args.get('pipeline_uuid'))
+
+        launches = query.all()
+
         return {'launches': [launch.as_dict() for launch in launches]}, 200
 
     @api.doc('launch_pipeline')
