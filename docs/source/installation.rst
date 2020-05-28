@@ -36,4 +36,4 @@ Windows
    orchest start
 
 **Note!** On Windows, make sure to give Docker permission to mount the directory in which
-you cloned Orchest. For more details check the `Windows Docker documentation <https://docs.docker.com/docker-for-windows/#file-sharing>`_.
+you cloned Orchest. For more details check the `Windows Docker documentation <https://docs.docker.com/docker-for-windows/#resources>`_ (*Docker settings* > *Resources* > *File sharing* > Add directory that contains Orchest).
