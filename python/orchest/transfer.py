@@ -1,18 +1,11 @@
-"""Transfer mechanisms to send and receive data from within steps.
-
-To add another transfer method
-
-1. Create a new class that inherits from "Transferer" and implement its
-   abstractmethods.
-2. Define a module level function for sending and receiving data, e.g.
-   ``send_disk(data, **kwargs)`` and ``receive_disk(**kwargs)``
-
-"""
+"""Transfer mechanisms to send and receive data from within steps."""
+from datetime import datetime
 import json
 import os
 import pickle
 import urllib
 
+from orchest.errors import DiskInputNotFound
 from orchest.pipeline import Pipeline
 
 
@@ -42,6 +35,8 @@ def _send_disk(data, full_path, type='pickle', **kwargs):
 def send_disk(data, type='pickle', **kwargs):
     """Sends data to disk.
 
+    Something about the side effects? HEAD, step_data_dir.
+
     Args:
         data:
         type:
@@ -49,13 +44,22 @@ def send_disk(data, type='pickle', **kwargs):
             disk for the specified `type`. For example:
             ``pickle.dump(data, fname, **kwargs)``
     """
-    pipeline = Pipeline()
+    with open('pipeline.json', 'r') as f:
+        pipeline_description = json.load(f)
+
+    pipeline = Pipeline.from_json(pipeline_description)
     step_uuid = get_step_uuid(pipeline)
 
-    # Set the full path to write the data to and recursively create any
-    # directories if they do not already exists.
+    # Recursively create any directories if they do not already exists.
     step_data_dir = f'.data/{step_uuid}'
     os.makedirs(step_data_dir, exist_ok=True)
+
+    # The HEAD file serves to resolve the transfer method.
+    head_file = os.path.join(step_data_dir, 'HEAD')
+    with open(head_file, 'w') as f:
+        f.write(f'{datetime.utcnow().isoformat()}, {type}')
+
+    # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
 
     return _send_disk(data, full_path, type=type, **kwargs)
@@ -67,12 +71,14 @@ def _receive_disk(full_path, type='pickle', **kwargs):
             with open(f'{full_path}.{type}', 'rb') as f:
                 data = pickle.load(f)
 
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             # TODO: Ideally we want to provide the user with the step's
             #       name instead of UUID.
             step_uuid = os.path.split(full_path)[-1]
-            custom_message = f'Step "{step_uuid}" did not produce any output.'
-            raise FileNotFoundError(custom_message, e)
+            raise DiskInputNotFound(
+                f'Input from incoming step "{step_uuid}" cannot be found. '
+                'Try rerunning it.'
+            )
 
         return data
 
@@ -83,7 +89,7 @@ def receive_disk(step_uuid, type='pickle', **kwargs):
     """Receives data from disk.
 
     Args:
-        **kwargs
+        **kwargs:
     """
     step_data_dir = f'.data/{step_uuid}'
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -92,9 +98,22 @@ def receive_disk(step_uuid, type='pickle', **kwargs):
 
 
 def resolve_disk(step_uuid):
-    # TODO: check within the HEAD file
-    type = 'pickle'
-    timestamp = 10  # TODO: some valid time
+    # TODO: The data dir is created in many functions. Can we make this
+    #       more robust?
+    step_data_dir = f'.data/{step_uuid}'
+
+    head_file = os.path.join(step_data_dir, 'HEAD')
+    try:
+        with open(head_file, 'r') as f:
+            timestamp, type = f.read().split(', ')
+
+    except FileNotFoundError:
+        # TODO: Ideally we want to provide the user with the step's
+        #       name instead of UUID.
+        raise DiskInputNotFound(
+            f'Input from incoming step "{step_uuid}" cannot be found. '
+            'Try rerunning it.'
+        )
 
     res = {
         'timestamp': timestamp,
@@ -107,8 +126,16 @@ def resolve_disk(step_uuid):
     return res
 
 
-def resolve(step_uuid):
-    # TODO: check all methods and return which one should be used.
+# TODO: Confusing name. It is not resolving what receive method to use
+#       for the step_uuid. It is resolving how step_uuid has most
+#       recently send data. It is resolving what receive method the
+#       step_uuid's children should use. Maybe change back to "resolve"
+def resolve_receive_method(step_uuid):
+    # TODO: create this methods list dynamically. Or have it hardcoded
+    #       in a GLOBAL instead of here in the function which allows for
+    #       easier extendibility.
+    # NOTE: All "resolve_{method}" functions have to be included in this
+    # list.
     methods = [resolve_disk]
     method_info = [method(step_uuid) for method in methods]
 
@@ -121,25 +148,27 @@ def resolve(step_uuid):
 
 
 def receive(verbose=False):
-    pipeline = Pipeline()
+    with open('pipeline.json', 'r') as f:
+        pipeline_description = json.load(f)
+
+    pipeline = Pipeline.from_json(pipeline_description)
     step_uuid = get_step_uuid(pipeline)
 
     data = []
     # TODO: add to pipeline method: self.get_step_by_uuid(uuid). I
     #       forgot why. But one reason I can think of is getting the
-    #       name once you have the PipelineStep object.
-    for incoming_step in pipeline.steps[step_uuid].properties['incoming_connections']:
-        # TODO: resolve what method should be called! Thus receive_disk
-        #       or receive_memory.
-        step_uuid = incoming_step
-        receive_method, args, kwargs = resolve(step_uuid)
+    #       name once you have the PipelineStep object. Exactly this
+    #       line requires this...
+    for parent in pipeline.get_step_by_uuid(step_uuid).parents:
+        parent_uuid = parent.properties['uuid']
+        receive_method, args, kwargs = resolve_receive_method(parent_uuid)
 
-        # Get data.
-        incoming_step_data = receive_method(step_uuid, *args, **kwargs)
+        # Get data from the incoming step.
+        incoming_step_data = receive_method(parent_uuid, *args, **kwargs)
 
-        # TODO: Would be cool if step_uuid was step_name instead.
+        # TODO: Would be cool if parent_uuid was step_name instead.
         if verbose:
-            print(f'Received input from step: {step_uuid}')
+            print(f'Received input from step: {parent_uuid}')
 
         data.append(incoming_step_data)
 
@@ -166,7 +195,7 @@ def get_step_uuid(pipeline):
 
     # get JupyterLab session with token from ORCHEST_API
     url = "http://" + \
-        os.environ["ORCHEST_API_ADDRESS"] + "/api/launches/" + pipeline.uuid
+        os.environ["ORCHEST_API_ADDRESS"] + "/api/launches/" + pipeline.properties['uuid']
 
     launch_data = get_json(url)
 
@@ -190,7 +219,7 @@ def get_step_uuid(pipeline):
     if notebook_path == "":
         raise Exception("Could not find KERNEL_ID in session data.")
 
-    for step in pipeline.step_list():
+    for step in pipeline.steps:
         if step.properties["file_path"] == notebook_path:
 
             # TODO: could decide to 'cache' the looked up UUID here through os.environ["STEP_UUID"]
