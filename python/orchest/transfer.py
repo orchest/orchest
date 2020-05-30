@@ -3,19 +3,25 @@ from datetime import datetime
 import json
 import os
 import pickle
+from typing import Any, Dict, List, Tuple
 import urllib
 
-from orchest.errors import DiskInputNotFound
+from orchest.config import STEP_DATA_DIR
+from orchest.errors import DiskInputNotFoundError
 from orchest.pipeline import Pipeline
 
 
-def _send_disk(data, full_path, type='pickle', **kwargs):
+def _send_disk(data: Any,
+               full_path: str,
+               type: str = ' pickle',
+               **kwargs) -> None:
     """Sends data to disk to the specified path.
 
     Args:
-        data:
-        full_path:
-        type: file extension.
+        data: data to send.
+        full_path: full path to save the data to.
+        type: file extension determining how to save the data to disk.
+            Available options are one of: ["pickle",]
         **kwargs: kwargs to the function that handles writing data to
             disk for the specified `type`. For example:
             ``pickle.dump(data, fname, **kwargs)``
@@ -32,17 +38,26 @@ def _send_disk(data, full_path, type='pickle', **kwargs):
     return
 
 
-def send_disk(data, type='pickle', **kwargs):
+def send_disk(data: Any, type: str = 'pickle', **kwargs) -> None:
     """Sends data to disk.
 
-    Something about the side effects? HEAD, step_data_dir.
+    To manage sending the data to disk for the user, this function has
+    a side effect:
+        * Writes to a HEAD file alongside the actual data file. This
+          file serves a protocol that returns the timestamp of the
+          latest write to disk via this function.
 
     Args:
-        data:
-        type:
+        data: data to send.
+        type: file extension determining how to save the data to disk.
+            Available options are one of: ["pickle",]
         **kwargs: kwargs to the function that handles writing data to
             disk for the specified `type`. For example:
             ``pickle.dump(data, fname, **kwargs)``
+
+    Example:
+        >>> data = 'Data I would like to send'
+        >>> send_disk(data)
     """
     with open('pipeline.json', 'r') as f:
         pipeline_description = json.load(f)
@@ -51,7 +66,7 @@ def send_disk(data, type='pickle', **kwargs):
     step_uuid = get_step_uuid(pipeline)
 
     # Recursively create any directories if they do not already exists.
-    step_data_dir = f'.data/{step_uuid}'
+    step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
     os.makedirs(step_data_dir, exist_ok=True)
 
     # The HEAD file serves to resolve the transfer method.
@@ -65,44 +80,70 @@ def send_disk(data, type='pickle', **kwargs):
     return _send_disk(data, full_path, type=type, **kwargs)
 
 
-def _receive_disk(full_path, type='pickle', **kwargs):
+def _receive_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
+    """Receives data from disk.
+
+    Raises:
+        ValueError: If `type` is not one of ["pickle",]
+    """
     if type == 'pickle':
-        try:
-            with open(f'{full_path}.{type}', 'rb') as f:
-                data = pickle.load(f)
-
-        except FileNotFoundError:
-            # TODO: Ideally we want to provide the user with the step's
-            #       name instead of UUID.
-            step_uuid = os.path.split(full_path)[-1]
-            raise DiskInputNotFound(
-                f'Input from incoming step "{step_uuid}" cannot be found. '
-                'Try rerunning it.'
-            )
-
-        return data
+        with open(f'{full_path}.{type}', 'rb') as f:
+            return pickle.load(f, **kwargs)
 
     raise ValueError("Function not defined for specified 'type'")
 
 
-def receive_disk(step_uuid, type='pickle', **kwargs):
+def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
     """Receives data from disk.
 
     Args:
-        **kwargs:
+        step_uuid: the UUID of the step from which to receive its data.
+        type: file extension determining how to read the data from disk.
+            Available options are one of: ["pickle",]
+
+        **kwargs: kwargs to the function that handles reading data from
+            disk for the specified `type`. For example:
+            ``pickle.load(fname, **kwargs)``
+
+    Raises:
+        DiskInputNotFoundError: If input from step_uuid cannot be found.
     """
-    step_data_dir = f'.data/{step_uuid}'
+    step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
     full_path = os.path.join(step_data_dir, step_uuid)
 
-    return _receive_disk(full_path, type=type, **kwargs)
+    try:
+        return _receive_disk(full_path, type=type, **kwargs)
+    except FileNotFoundError:
+        # TODO: Ideally we want to provide the user with the step's
+        #       name instead of UUID.
+        raise DiskInputNotFoundError(
+            f'Input from incoming step "{step_uuid}" cannot be found. '
+            'Try rerunning it.'
+        )
 
 
-def resolve_disk(step_uuid):
-    # TODO: The data dir is created in many functions. Can we make this
-    #       more robust?
-    step_data_dir = f'.data/{step_uuid}'
+def resolve_disk(step_uuid: str) -> Dict[str, Any]:
+    """Returns information of the most recent write to disk.
 
+    Resolves via the HEAD file the timestamp (that is used to determine
+    the most recent write) and arguments to call the :meth:`receive_disk`
+    method.
+
+    Args:
+        step_uuid: the UUID of the step to resolve its most recent write
+            to disk.
+
+    Returns:
+        Dictionary containing the information of the function to be
+        called to receive the most recent data from the step.
+        Additionally, returns fill-in arguments for the function.
+
+    Raises:
+        DiskInputNotFoundError: If input from step_uuid cannot be found.
+    """
+    step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
     head_file = os.path.join(step_data_dir, 'HEAD')
+
     try:
         with open(head_file, 'r') as f:
             timestamp, type = f.read().split(', ')
@@ -110,7 +151,7 @@ def resolve_disk(step_uuid):
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
-        raise DiskInputNotFound(
+        raise DiskInputNotFoundError(
             f'Input from incoming step "{step_uuid}" cannot be found. '
             'Try rerunning it.'
         )
@@ -126,20 +167,25 @@ def resolve_disk(step_uuid):
     return res
 
 
-# TODO: Confusing name. It is not resolving what receive method to use
-#       for the step_uuid. It is resolving how step_uuid has most
-#       recently send data. It is resolving what receive method the
-#       step_uuid's children should use. Maybe change back to "resolve"
-def resolve_receive_method(step_uuid):
-    # TODO: create this methods list dynamically. Or have it hardcoded
-    #       in a GLOBAL instead of here in the function which allows for
-    #       easier extendibility.
-    # NOTE: All "resolve_{method}" functions have to be included in this
-    # list.
-    methods = [resolve_disk]
-    method_info = [method(step_uuid) for method in methods]
+def resolve(step_uuid: str) -> Tuple[Any]:
+    """Resolves the most recently used tranfer method of the given step.
 
-    # Get the method that was most recently based on its logged
+    Args:
+        step_uuid: UUID of the step to resolve its most recent write.
+
+    Returns:
+        Tuple containing the information of the function to be called
+        to receive the most recent data from the step. Additionally,
+        returns fill-in arguments for the function.
+    """
+    # TODO: not completely sure whether this global approach is prefered
+    #       over difining that same list inside this function. Arguably
+    #       defining it outside the function allows for easier
+    #       extendability.
+    global _receive_methods
+    method_info = [method(step_uuid) for method in _receive_methods]
+
+    # Get the method that was most recently used based on its logged
     # timestamp.
     most_recent = max(method_info, key=lambda x: x['timestamp'])
     return (most_recent['method_to_call'],
@@ -147,28 +193,38 @@ def resolve_receive_method(step_uuid):
             most_recent['method_kwargs'])
 
 
-def receive(verbose=False):
-    with open('pipeline.json', 'r') as f:
+def receive(pipeline_description_path: str = 'pipeline.json',
+            verbose: bool = False) -> List[Any]:
+    """Receives all data send from incoming steps.
+
+    Args:
+        pipeline_description_path: path to the pipeline description that
+            is used to determine what the incoming steps are.
+        verbose: if True print all the steps from which the current step
+            has received data.
+
+    Returns:
+        List of all the data in the specified order from the front-end.
+
+    Example:
+        >>> data_step_1, data_step_2 = receive()
+    """
+    with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
     step_uuid = get_step_uuid(pipeline)
 
     data = []
-    # TODO: add to pipeline method: self.get_step_by_uuid(uuid). I
-    #       forgot why. But one reason I can think of is getting the
-    #       name once you have the PipelineStep object. Exactly this
-    #       line requires this...
     for parent in pipeline.get_step_by_uuid(step_uuid).parents:
         parent_uuid = parent.properties['uuid']
-        receive_method, args, kwargs = resolve_receive_method(parent_uuid)
+        receive_method, args, kwargs = resolve(parent_uuid)
 
-        # Get data from the incoming step.
         incoming_step_data = receive_method(parent_uuid, *args, **kwargs)
 
-        # TODO: Would be cool if parent_uuid was step_name instead.
         if verbose:
-            print(f'Received input from step: {parent_uuid}')
+            parent_title = parent.properties['title']
+            print(f'Received input from step: "{parent_title}"')
 
         data.append(incoming_step_data)
 
@@ -241,6 +297,12 @@ def get_json(url):
         print("Failed to fetch from: %s" % (url))
         print(e)
 
+
+# NOTE: All "resolve_{method}" functions have to be included in this
+# list.
+_receive_methods = [
+    resolve_disk,
+]
 
 # TODO: Once we are set on the API we could specify __all__. For now we
 #       will stick with the leading _underscore convenction to keep

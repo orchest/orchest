@@ -34,8 +34,8 @@ class PipelineStep:
         parents: the parents/incoming steps of the current step.
 
     Attributes:
-        properties: see "Args" section.
-        parents: see "Args" section.
+        properties: see ``Args`` section.
+        parents: see ``Args`` section.
     """
 
     def __init__(self,
@@ -107,6 +107,7 @@ class Pipeline:
     def get_step_by_uuid(self,
                          uuid: str,
                          default: Any = None) -> Optional[PipelineStep]:
+        """Get pipeline step object by its UUID."""
         for step in self.steps:
             if step.properties['uuid'] == uuid:
                 return step
