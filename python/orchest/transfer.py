@@ -8,6 +8,8 @@ import urllib
 
 from orchest.config import STEP_DATA_DIR
 from orchest.errors import DiskInputNotFoundError
+from orchest.errors import OrchestNetworkError
+from orchest.errors import StepUUIDResolveError
 from orchest.pipeline import Pipeline
 
 
@@ -21,13 +23,13 @@ def _send_disk(data: Any,
         data: data to send.
         full_path: full path to save the data to.
         type: file extension determining how to save the data to disk.
-            Available options are one of: ["pickle",]
-        **kwargs: kwargs to the function that handles writing data to
-            disk for the specified `type`. For example:
-            ``pickle.dump(data, fname, **kwargs)``
+            Available options are: ``['pickle']``
+        **kwargs: these kwargs are passed to the function that handles
+            the writing of the data to disk for the specified `type`.
+            For example: ``pickle.dump(data, fname, **kwargs)``.
 
     Raises:
-        ValueError: If `type` is not one of ["pickle",]
+        ValueError: If the specified `type` is not one of ``['pickle']``
     """
     if type == 'pickle':
         with open(f'{full_path}.{type}', 'wb') as f:
@@ -43,17 +45,18 @@ def send_disk(data: Any, type: str = 'pickle', **kwargs) -> None:
 
     To manage sending the data to disk for the user, this function has
     a side effect:
-        * Writes to a HEAD file alongside the actual data file. This
-          file serves a protocol that returns the timestamp of the
-          latest write to disk via this function.
+
+    * Writes to a HEAD file alongside the actual data file. This file
+      serves a protocol that returns the timestamp of the latest write
+      to disk via this function.
 
     Args:
         data: data to send.
         type: file extension determining how to save the data to disk.
-            Available options are one of: ["pickle",]
-        **kwargs: kwargs to the function that handles writing data to
-            disk for the specified `type`. For example:
-            ``pickle.dump(data, fname, **kwargs)``
+            Available options are: ``['pickle']``
+        **kwargs: these kwargs are passed to the function that handles
+            the writing of the data to disk for the specified `type`.
+            For example: ``pickle.dump(data, fname, **kwargs)``.
 
     Example:
         >>> data = 'Data I would like to send'
@@ -63,7 +66,11 @@ def send_disk(data: Any, type: str = 'pickle', **kwargs) -> None:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
-    step_uuid = get_step_uuid(pipeline)
+
+    try:
+        step_uuid = get_step_uuid(pipeline)
+    except StepUUIDResolveError:
+        raise StepUUIDResolveError('Failed to determine where to send data to.')
 
     # Recursively create any directories if they do not already exists.
     step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
@@ -84,7 +91,7 @@ def _receive_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
     """Receives data from disk.
 
     Raises:
-        ValueError: If `type` is not one of ["pickle",]
+        ValueError: If the specified `type` is not one of ``['pickle']``
     """
     if type == 'pickle':
         with open(f'{full_path}.{type}', 'rb') as f:
@@ -99,14 +106,17 @@ def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
     Args:
         step_uuid: the UUID of the step from which to receive its data.
         type: file extension determining how to read the data from disk.
-            Available options are one of: ["pickle",]
+            Available options are: ``['pickle']``
 
-        **kwargs: kwargs to the function that handles reading data from
-            disk for the specified `type`. For example:
-            ``pickle.load(fname, **kwargs)``
+        **kwargs: these kwargs are passed to the function that handles
+            the reading of the data from disk for the specified `type`.
+            For example: ``pickle.load(fname, **kwargs)``.
+
+    Returns:
+        Data from step identified by `step_uuid`.
 
     Raises:
-        DiskInputNotFoundError: If input from step_uuid cannot be found.
+        DiskInputNotFoundError: If input from `step_uuid` cannot be found.
     """
     step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -139,7 +149,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
         Additionally, returns fill-in arguments for the function.
 
     Raises:
-        DiskInputNotFoundError: If input from step_uuid cannot be found.
+        DiskInputNotFoundError: If input from `step_uuid` cannot be found.
     """
     step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
     head_file = os.path.join(step_data_dir, 'HEAD')
@@ -213,7 +223,10 @@ def receive(pipeline_description_path: str = 'pipeline.json',
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
-    step_uuid = get_step_uuid(pipeline)
+    try:
+        step_uuid = get_step_uuid(pipeline)
+    except StepUUIDResolveError:
+        raise StepUUIDResolveError('Failed to determine from where to receive data.')
 
     data = []
     for parent in pipeline.get_step_by_uuid(step_uuid).parents:
@@ -231,71 +244,83 @@ def receive(pipeline_description_path: str = 'pipeline.json',
     return data
 
 
-# Idea for solution:
-# - find kernel_id from ENV["KERNEL_ID"] that's populated by enterprise gateway
-# - find kernel_id --> notebook filename through JupyterLab session
-# - get JupyterLab /api/sessions access through orchest-api (:5000/launches)
+def get_step_uuid(pipeline: Pipeline) -> str:
+    """Gets the currently running script's step UUID.
 
-def get_step_uuid(pipeline):
-    # preferrably get step_uuid from ENV
-    if "STEP_UUID" in os.environ:
-        return os.environ["STEP_UUID"]
+    Returns:
+        The UUID of the currently running step. May it be through an
+        active Jupyter kernel or as part of a partial run.
 
-    # check if os environment variables KERNEL_ID and ORCHEST_API_ADDRESS are present
-    if "ORCHEST_API_ADDRESS" not in os.environ:
-        raise Exception(
-            "ORCHEST_API_ADDRESS environment variable not available. Could not resolve step UUID.")
-    if "KERNEL_ID" not in os.environ:
-        raise Exception(
-            "KERNEL_ID environment variable not available. Could not resolve step UUID.")
+    Raises:
+        StepUUIDResolveError: The step's UUID cannot be resolved.
+    """
+    # In case of partial runs, the step UUID can be obtained via the
+    # environment.
+    if 'STEP_UUID' in os.environ:
+        return os.environ['STEP_UUID']
 
-    # get JupyterLab session with token from ORCHEST_API
-    url = "http://" + \
-        os.environ["ORCHEST_API_ADDRESS"] + "/api/launches/" + pipeline.properties['uuid']
+    # The KERNEL_ID environment variable is set by the Jupyter
+    # Enterprise Gateway.
+    kernel_id = os.environ.get('KERNEL_ID')
+    if kernel_id is None:
+        raise StepUUIDResolveError('Environment variable "KERNEL_ID" not present.')
 
-    launch_data = get_json(url)
+    # Get JupyterLab sessions to resolve the step's UUID via the id of
+    # the running kernel and the step's associated file path. This
+    # requires an authenticated request, which is obtained by requesting
+    # the token via the Orchest API.
+    # Orchest API --token--> Jupyter sessions --notebook path--> UUID.
+    launches_url = f'http://orchest-api/api/launches/{pipeline.properties["uuid"]}'
+    launch_data = _request_json(launches_url)
 
-    jupyter_api_url = "http://%s:%s/%s/api/sessions?token=%s" % (
-        launch_data["server_ip"],
-        launch_data["server_info"]["port"],
-	"jupyter_" + launch_data["server_ip"].replace(".", "_"),
-        launch_data["server_info"]["token"]
+    jupyter_api_url = 'http://{ip}:{port}/{proxy_prefix}/api/sessions?token={token}'
+    jupyter_api_url = jupyter_api_url.format(
+        ip=launch_data['server_ip'],
+        port=launch_data['server_info']['port'],
+        proxy_prefix='jupyter_' + launch_data['server_ip'].replace('.', '_'),
+        token=launch_data['server_info']['token']
     )
+    jupyter_sessions = _request_json(jupyter_api_url)
 
-    session_data = get_json(jupyter_api_url)
-
-    notebook_path = ""
-
-    for session in session_data:
-        if session["kernel"]["id"] == os.environ["KERNEL_ID"]:
-            notebook_path = session["notebook"]["path"]
-
-    # TODO: these are not the type of errors we want to raise to our
-    #       user. To them this is not descriptive at all.
-    if notebook_path == "":
-        raise Exception("Could not find KERNEL_ID in session data.")
+    for session in jupyter_sessions:
+        if session['kernel']['id'] == kernel_id:
+            notebook_path = session['notebook']['path']
+            break
+    else:
+        raise StepUUIDResolveError(
+            f'Jupyter session data has no "kernel" with "id" equal to the '
+            '"KERNEL_ID" of this step: {kernel_id}.'
+        )
 
     for step in pipeline.steps:
-        if step.properties["file_path"] == notebook_path:
+        if step.properties['file_path'] == notebook_path:
+            # Cache the UUID.
+            os.environ['STEP_UUID'] = step.properties['uuid']
+            return step.properties['uuid']
 
-            # TODO: could decide to 'cache' the looked up UUID here through os.environ["STEP_UUID"]
-            return step.properties["uuid"]
-
-    raise Exception(
-        "Could not find notebook_path %s in pipeline.json", (notebook_path,))
+    raise StepUUIDResolveError('No step with "notebook_path": {notebook_path}.')
 
 
-def get_json(url):
+def _request_json(url: str) -> Dict[Any, Any]:
+    """Requests response from specified url and jsonifies it."""
     try:
-        r = urllib.request.urlopen(url)
+        with urllib.request.urlopen(url) as r:
+            encoding = r.info().get_param('charset')
+            data = r.read()
+    except urllib.error.URLError:
+        raise OrchestNetworkError(
+            f'Failed to fetch data from {url}. Either the specified server '
+            'does not exist or the network connection could not be established.'
+        )
+    except urllib.error.HTTPError:
+        raise OrchestNetworkError(
+            f'Failed to fetch data from {url}. The server could not fulfil the request.'
+        )
 
-        data = json.loads(r.read().decode(
-            r.info().get_param('charset') or 'utf-8'))
+    encoding = encoding or 'utf-8'
+    data = data.decode(encoding or 'utf-8')
 
-        return data
-    except (urllib.error.HTTPError, urllib.error.URLError) as e:
-        print("Failed to fetch from: %s" % (url))
-        print(e)
+    return json.loads(data)
 
 
 # NOTE: All "resolve_{method}" functions have to be included in this
