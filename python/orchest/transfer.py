@@ -15,7 +15,7 @@ from orchest.pipeline import Pipeline
 
 def _send_disk(data: Any,
                full_path: str,
-               type: str = ' pickle',
+               type: str = 'pickle',
                **kwargs) -> None:
     """Sends data to disk to the specified path.
 
