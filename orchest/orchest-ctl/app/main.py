@@ -51,7 +51,11 @@ CONTAINER_MAPPING = {
                 "source": "/var/run/docker.sock",
                 "target": "/var/run/docker.sock"
             },
-        ]
+        ],
+        "ports": {
+            "80/tcp": 9000
+        },
+
     },
     "orchestsoftware/nginx-proxy:latest": {
         "name": "nginx-proxy",
