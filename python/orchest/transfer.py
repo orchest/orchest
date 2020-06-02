@@ -294,8 +294,10 @@ def get_step_uuid(pipeline: Pipeline) -> str:
 
     for step in pipeline.steps:
         if step.properties['file_path'] == notebook_path:
-            # Cache the UUID.
-            os.environ['STEP_UUID'] = step.properties['uuid']
+            # NOTE: the UUID cannot be cached here. Because if the
+            # notebook is assigned to a different step, then the env
+            # variable does not change and thus the notebooks wrongly
+            # thinks it is a different step.
             return step.properties['uuid']
 
     raise StepUUIDResolveError('No step with "notebook_path": {notebook_path}.')
