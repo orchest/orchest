@@ -1,0 +1,38 @@
+From 6abc01280c11d0aac922d8c8efdd42d7f2452108 Mon Sep 17 00:00:00 2001
+From: Jason Grout <jgrout6@bloomberg.net>
+Date: Fri, 15 May 2020 13:51:23 -0700
+Subject: [PATCH] Reconnect a websocket when a kernel is restarted.
+
+In some cases, a kernel may use different zmq ports when it is restarted. The current Jupyter Notebook server checks these zmq ports only when a websocket connection is created. We work around this problem by reconnecting when a kernel is restarted. Ideally the Notebook Server would maintain the same websocket connection and just change the zmq ports as needed.
+
+See https://github.com/jupyterlab/jupyterlab/issues/8013
+---
+ packages/services/src/kernel/default.ts | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/packages/services/src/kernel/default.ts b/packages/services/src/kernel/default.ts
+index 654a19a55..7b491e20c 100644
+--- a/packages/services/src/kernel/default.ts
++++ b/packages/services/src/kernel/default.ts
+@@ -983,10 +983,15 @@ export class KernelConnection implements Kernel.IKernelConnection {
+     this._clearKernelState();
+     this._updateStatus('restarting');
+ 
+-    // Kick off an async kernel request to eventually reset the kernel status.
+-    // We do this with a setTimeout so that it comes after the microtask
+-    // logic in _handleMessage for restarting/autostarting status updates.
++    // Reconnect to a new websocket and kick off an async kernel request to
++    // eventually reset the kernel status. We do this with a setTimeout so
++    // that it comes after the microtask logic in _handleMessage for
++    // restarting/autostarting status updates.
+     setTimeout(() => {
++      // We must reconnect since the kernel connection information may have
++      // changed, and the server only refreshes its zmq connection when a new
++      // websocket is opened.
++      void this.reconnect();
+       void this.requestKernelInfo();
+     }, 0);
+   }
+-- 
+2.17.1
+
