@@ -1,4 +1,7 @@
-# Container manga
+# orchest-api container
+
+This container is the Orchest back-end. It is responsible for executing and
+managing pipelines.
 
 ## RabbitMQ
 To start the my-rabbit node (the port `5672` is automatically published):
