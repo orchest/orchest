@@ -1,0 +1,154 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Docker CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  repository_dispatch:
+    types: [manual-trigger]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  nginx-proxy:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push nginx-proxy
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/nginx-proxy
+        tags: latest
+        path: orchest/nginx-proxy/
+      
+  celery-worker:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push celery-worker
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/celery-worker
+        tags: latest
+        path: orchest/orchest-api/
+        dockerfile: orchest/orchest-api/Dockerfile_celery
+
+  orchest-ctl:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push orchest-ctl
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/orchest-ctl
+        tags: latest
+        path: orchest/orchest-ctl/
+
+  images:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push r-notebook-augmented
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/r-notebook-augmented
+        tags: latest
+        path: orchest/custom-images/r-notebook-augmented/
+
+    - name: Build and push scipy-notebook-augmented
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/scipy-notebook-augmented
+        tags: latest
+        path: orchest/custom-images/scipy-notebook-augmented/
+
+    - name: Build and push r-notebook-runnable
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/r-notebook-runnable
+        tags: latest
+        path: orchest/custom-images/runnable-images/
+        dockerfile: orchest/custom-images/runnable-images/r-notebook-runnable/Dockerfile
+
+    - name: Build and push scipy-notebook-runnable
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/scipy-notebook-runnable
+        tags: latest
+        path: orchest/custom-images/runnable-images/
+        dockerfile: orchest/custom-images/runnable-images/scipy-notebook-runnable/Dockerfile
+
+  kernels:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push custom-base-kernel-r
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/custom-base-kernel-r
+        tags: latest
+        path: orchest/custom-images/r-notebook-augmented/
+        dockerfile: orchest/custom-images/custom-base-kernel-r/Dockerfile
+
+    - name: Build and push custom-base-kernel-py
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/custom-base-kernel-py
+        tags: latest
+        path: orchest/custom-images/scipy-notebook-augmented/
+        dockerfile: orchest/custom-images/custom-base-kernel-py/Dockerfile
+
+  web-applications:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push orchest-api
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/orchest-api
+        tags: latest
+        path: orchest/orchest-api/
+
+    - name: Build and push jupyter-server
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/jupyter-server
+        tags: latest
+        path: orchest/jupyter-server/
+    
+    - name: Build and push orchest-webserver
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/orchest-webserver
+        tags: latest
+        path: orchest/orchest-webserver/
