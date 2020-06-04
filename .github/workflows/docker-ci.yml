@@ -152,3 +152,83 @@ jobs:
         repository: orchestsoftware/orchest-webserver
         tags: latest
         path: orchest/orchest-webserver/
+  
+  push-readme:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Push README files to DockerHub nginx-proxy
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/nginx-proxy
+        README_FILEPATH: orchest/nginx-proxy/README.md
+
+    - name: Push README files to DockerHub celery-worker
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/celery-worker
+        README_FILEPATH: orchest/orchest-api/README.md
+
+    - name: Push README files to DockerHub orchest-ctl
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/orchest-ctl
+        README_FILEPATH: orchest/orchest-ctl/README.md
+
+    - name: Push README files to DockerHub r-notebook-augmented
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/r-notebook-augmented
+        README_FILEPATH: orchest/custom-images/r-notebook-augmented/README.md
+
+    - name: Push README files to DockerHub scipy-notebook-augmented
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/scipy-notebook-augmented
+        README_FILEPATH: orchest/custom-images/scipy-notebook-augmented/README.md
+
+    - name: Push README files to DockerHub r-notebook-runnable
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/r-notebook-runnable
+        README_FILEPATH: orchest/custom-images/runnable-images/r-notebook-runnable/README.md
+
+    - name: Push README files to DockerHub scipy-notebook-runnable
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/scipy-notebook-runnable
+        README_FILEPATH: orchest/custom-images/runnable-images/scipy-notebook-runnable/README.md
+
+    - name: Push README files to DockerHub custom-base-kernel-r
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/custom-base-kernel-r
+        README_FILEPATH: orchest/custom-images/custom-base-kernel-r/README.md
+
+    - name: Push README files to DockerHub custom-base-kernel-py
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/custom-base-kernel-py
+        README_FILEPATH: orchest/custom-images/custom-base-kernel-py/README.md
+
+    - name: Push README files to DockerHub orchest-api
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/orchest-api
+        README_FILEPATH: orchest/orchest-api/README.md
+
+    - name: Push README files to DockerHub jupyter-server
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/jupyter-server
+        README_FILEPATH: orchest/jupyter-server/README.md
+
+    - name: Push README files to DockerHub orchest-webserver
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/orchest-webserver
+        README_FILEPATH: orchest/orchest-webserver/README.md

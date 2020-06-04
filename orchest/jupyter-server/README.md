@@ -1,4 +1,5 @@
 # jupyter-server 
+
 Naming convention: The container running the Jupyter server process (the JupyterLab instance) is
 called `jupyter-server`.
 
