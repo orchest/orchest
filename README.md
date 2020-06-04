@@ -81,7 +81,7 @@ for more details.
 
 ## We love your feedback
 We would love to hear what you think and potentially add features based on your ideas. Come chat
-with us at [Gitter](https://gitter.im/orchest).
+with us at our [Community forum](https://community.orchest.io/).
 
 Want to stay updated? Subsribe to our (no spam, low traffic) mailinglist at
 [orchest.io](https://www.orchest.io/).
