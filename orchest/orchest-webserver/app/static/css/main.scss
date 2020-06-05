@@ -454,19 +454,34 @@ h2.header {
 
       .connection-point {
         display: block;
-        width: 10px;
-        height: 10px;
-        background: black;
-        border-radius: 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 30px;
+
+        &.hover {
+          .inner-dot{
+            background: $mdc-theme-secondary;
+          }
+        }
+
+        .inner-dot{
+          background: black;
+          border-radius: 10px;
+          width: 10px;
+          height: 10px;
+          margin-left: 10px;
+          margin-top: 10px;
+          pointer-events: none;
+        }
+        
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        left: -5px;
-
+        left: -16px;
         transition: left 0.3s ease;
 
         &.outgoing-connections {
-          right: -5px;
+          right: -16px;
           left: auto;
         }
       }

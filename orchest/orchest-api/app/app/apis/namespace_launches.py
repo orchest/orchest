@@ -175,6 +175,7 @@ class Launch(Resource):
         # Uses the API inside the container that is also running the
         # Jupyter server to shut the server down and clean all running
         # kernels that are associated with the server.
+        
         requests.delete(f'http://{launch.server_ip}:80/api/servers/')
 
         # TODO: not sure whether the event of shutting down all the
@@ -182,10 +183,10 @@ class Launch(Resource):
         #       simply be shut down.
 
         jdm = JupyterDockerManager(docker_client, network='orchest')
-        response = jdm.shutdown_pipeline(pipeline_uuid)
+        jdm.shutdown_pipeline(pipeline_uuid)
 
-        if response is not None:
-            api.abort(404)
+        # TODO: shutdown_pipeline doesn't report about success/failure yet,
+        # in the future we might want to do deeper error handling here.
 
         db.session.delete(launch)
         db.session.commit()

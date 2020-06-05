@@ -111,7 +111,7 @@ IMAGES += [
 
 
 def start():
-    logging.info("Stub: starting Orchest")
+    logging.info("Starting Orchest...")
 
     # check if all images are present
     if install_complete():

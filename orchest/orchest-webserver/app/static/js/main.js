@@ -10,7 +10,7 @@ import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import ExperimentsView from "./views/ExperimentsView";
 import Jupyter from "./jupyter/Jupyter";
-import {handleErrors} from "./utils/all";
+import {makeRequest} from "./utils/all";
 
 import './lib/overflowing';
  
@@ -55,22 +55,17 @@ function Orchest() {
 
     this.initializeFirstView = function(){
         // load first pipeline
-        fetch("/async/pipelines", {
-            method: "GET",
-            cache: "no-cache",
-            redirect: "follow",
-            referrer: "no-referrer"
-        }).then(handleErrors).then((response) => {
-            response.json().then((result) => {
-                if(result.success && result.result.length > 0){
-                    let firstPipeline = result.result[0];
-                    // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
-                    this.loadView(PipelinesView);
-                }else{
-                    console.warn("Could not load a first pipeline");
-                    console.log(result);
-                }
-            })
+        makeRequest("GET", "/async/pipelines", {
+        }).then((response) => {
+            let result = JSON.parse(response);
+            if(result.success && result.result.length > 0){
+                let firstPipeline = result.result[0];
+                // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
+                this.loadView(PipelinesView);
+            }else{
+                console.warn("Could not load a first pipeline");
+                console.log(result);
+            }
         });
     }
 

@@ -132,9 +132,9 @@ class Server(Resource):
     @api.response(404, 'Server not found')
     def delete(self):
         """Shuts down running Jupyter server."""
-        r = shutdown_jupyter_server(self.connection_file)
+        success = shutdown_jupyter_server(self.connection_file)
 
-        if r is None:
+        if not success:
             return {'message': 'No running server'}, 404
 
         # There no longer is a running server, so clean up the file.

@@ -1,9 +1,9 @@
 import React from 'react';
 import PipelineView from "./PipelineView";
-import {MDCTabBar} from '@material/tab-bar';
-import {MDCTextField} from "@material/textfield";
-import {MDCRipple} from '@material/ripple';
-import {handleErrors} from "../utils/all";
+import { MDCTabBar } from '@material/tab-bar';
+import { MDCTextField } from "@material/textfield";
+import { MDCRipple } from '@material/ripple';
+import { makeRequest } from "../utils/all";
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
 
@@ -18,37 +18,32 @@ class PipelineSettingsView extends React.Component {
         };
     }
 
-    initComponent(){
+    initComponent() {
         this.initiateMDCComponents()
     }
 
     componentDidMount() {
 
-        fetch("/async/pipelines/json/get/" + this.props.pipeline.uuid, {
-            method: "GET",
-            cache: "no-cache",
-            redirect: "follow",
-            referrer: "no-referrer"
-         }).then(handleErrors).then((response) => {
-             response.json().then((result) => {
-                 if(result.success){
+        makeRequest("GET", "/async/pipelines/json/get/" + this.props.pipeline.uuid).then((response) => {
+            let result = JSON.parse(response);
 
-                     let pipelineJson = JSON.parse(result['pipeline_json']);
-                     this.setState({"pipelineJson": pipelineJson});
+            if (result.success) {
 
-                     this.initComponent();
+                let pipelineJson = JSON.parse(result['pipeline_json']);
+                this.setState({ "pipelineJson": pipelineJson });
 
-                 }else{
-                     console.warn("Could not load pipeline.json");
-                     console.log(result);
-                 }
-             })
-         });
+                this.initComponent();
+
+            } else {
+                console.warn("Could not load pipeline.json");
+                console.log(result);
+            }
+        });
 
     }
 
-    initiateMDCComponents(){
-        if(this.refs.pipelineNameField){
+    initiateMDCComponents() {
+        if (this.refs.pipelineNameField) {
             this.pipelineNameField = new MDCTextField(this.refs.pipelineNameField);
             this.pipelineNameField.value = this.state.pipelineJson.name;
             this.pipelineNameField.focus();
@@ -60,10 +55,10 @@ class PipelineSettingsView extends React.Component {
     }
 
     closeSettings() {
-        orchest.loadView(PipelineView, {"pipeline": this.props.pipeline});
+        orchest.loadView(PipelineView, { "pipeline": this.props.pipeline });
     }
 
-    saveGeneralForm(e){
+    saveGeneralForm(e) {
         e.preventDefault();
 
         // new name
@@ -73,26 +68,16 @@ class PipelineSettingsView extends React.Component {
         formData.append("name", pipelineName);
 
         // perform POST to save
-        fetch("/async/pipelines/rename/" + this.props.pipeline.uuid, {
-            method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'same-origin',
-            redirect: 'follow', // manual, *follow, error
-            referrer: 'no-referrer', // no-referrer, *client
-            body: formData
-        }).then(handleErrors).then((response) => {
+        makeRequest("POST", "/async/pipelines/rename/" + this.props.pipeline.uuid, {type: 'FormData', content: formData}).then((response) => {
+            
+            let json = JSON.parse(response);
+            console.log(json)
+            if (json.success === true) {
+                // orchest.loadView(PipelineSettingsView, {name: pipelineName, uuid: this.props.uuid});
 
-            response.json().then((json) => {
-                console.log(json)
-                if(json.success === true) {
-                    // orchest.loadView(PipelineSettingsView, {name: pipelineName, uuid: this.props.uuid});
-
-                    // TODO: evaluate: should we close PipelineSettingsView on save?
-                    orchest.loadView(PipelineView, {"pipeline": this.props.pipeline});
-                }
-            })
-
+                // TODO: evaluate: should we close PipelineSettingsView on save?
+                orchest.loadView(PipelineView, { "pipeline": this.props.pipeline });
+            }
         })
     }
 
@@ -105,7 +90,7 @@ class PipelineSettingsView extends React.Component {
 
             <div className={"tab-content"}>
                 {(() => {
-                    switch(this.state.active_tab_index){
+                    switch (this.state.active_tab_index) {
                         case 0:
                             return <div>
                                 <form>
