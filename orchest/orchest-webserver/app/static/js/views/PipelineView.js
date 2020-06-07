@@ -284,6 +284,7 @@ class PipelineView extends React.Component {
             openedStep: undefined,
             selectedSteps: [],
             runUuid: undefined,
+            scheduledRun: false,
             unsavedChanges: false,
             stepSelector: {
                 active: false,
@@ -1052,11 +1053,19 @@ class PipelineView extends React.Component {
 
     }
 
-    pollPipelineStepStatuses() {
 
+
+    pollPipelineStepStatuses() {
         if (this.state.runUuid) {
 
-            fetch("/api-proxy/api/runs/" + this.state.runUuid, {
+            let runType = null
+            if(this.state.scheduledRun){
+                runType = 'scheduled_runs'
+            }else{
+                runType = 'runs'
+            }
+
+            fetch(`/api-proxy/api/${runType}/` + this.state.runUuid, {
                 method: 'GET',
                 mode: 'cors',
                 cache: 'no-cache',
@@ -1070,7 +1079,8 @@ class PipelineView extends React.Component {
 
                     if (result.status === "SUCCESS") {
                         this.setState({
-                            pipelineRunning: false
+                            pipelineRunning: false,
+                            scheduledRun: false,
                         });
                         clearInterval(this.pipelineStepStatusPollingInterval);
                     }
@@ -1091,6 +1101,67 @@ class PipelineView extends React.Component {
 
         this.forceUpdate();
     }
+
+
+
+    
+    runSelectedStepsIn10Seconds() {
+        this.runStepUuidsDelayed(this.state.selectedSteps, "selection", 10);
+    }
+
+    runStepUuidsDelayed(uuids, type, seconds) {
+
+        let now = new Date();
+        now.setSeconds(now.getSeconds() + seconds);
+        let scheduled_date_time = now.toISOString();
+
+        
+
+        if (this.state.pipelineRunning) {
+            alert("The pipeline is currently executing, please wait until it completes.");
+            return;
+        }
+
+        this.setState({
+            pipelineRunning: true
+        });
+
+        // store pipeline.json
+        let data = {
+            "uuids": uuids,
+            "run_type": type,
+            "scheduled_date_time": scheduled_date_time,
+            "pipeline_description": this.getPipelineJSON()
+        };
+
+        fetch("/catch/api-proxy/api/scheduled_runs/", {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            redirect: 'follow', // manual, *follow, error
+            referrer: 'no-referrer', // no-referrer, *client
+            body: JSON.stringify(data)
+        }).then(handleErrors).then((response) => {
+            response.json().then((result) => {
+
+                this.parseRunStatuses(result);
+
+                this.setState({
+                    scheduledRun: true,
+                    runUuid: result.run_uuid,
+                });
+
+                // initialize interval
+                this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
+
+            })
+        });
+    }
+    
 
     runSelectedSteps() {
         this.runStepUuids(this.state.selectedSteps, "selection");
@@ -1368,6 +1439,7 @@ class PipelineView extends React.Component {
             </div>;
         }
 
+        
         return <div className={"pipeline-view"}>
             <div className={"pane"}>
                 <div className={"pipeline-actions bottom-left"}>
@@ -1375,6 +1447,7 @@ class PipelineView extends React.Component {
                     {(() => {
                         if (this.state.selectedSteps.length > 0 && !this.state.stepSelector.active) {
                             return <div className="selection-buttons">
+                                <MDCButtonReact onClick={this.runSelectedStepsIn10Seconds.bind(this)} label="Run selected steps in 10 seconds" />
                                 <MDCButtonReact onClick={this.runSelectedSteps.bind(this)} label="Run selected steps" />
                                 <MDCButtonReact onClick={this.onRunIncoming.bind(this)} label="Run incoming steps" />
                             </div>;

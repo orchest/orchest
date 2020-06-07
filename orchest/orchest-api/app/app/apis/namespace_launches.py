@@ -13,73 +13,18 @@ from app.connections import db, docker_client
 from app.core.managers import JupyterDockerManager
 import app.models as models
 
+from app.schema import server, launch, launches, pipeline
+
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 api = Namespace('launches', description='Launches of pipelines for development')
 
-# Models for RESTful API.
-server = api.model('Server', {
-    'url': fields.String(
-        required=True,
-        description='URL of the server'),
-    'hostname': fields.String(
-        required=True,
-        default='localhost',
-        description='Hostname'),
-    'port': fields.Integer(
-        required=True,
-        default=8888,
-        description='Port to access the server'),
-    'secure': fields.Boolean(
-        required=True,
-        description='Any extra security measures'),
-    'base_url': fields.String(
-        required=True,
-        default='/',
-        description='Base URL'),
-    'token': fields.String(
-        required=True,
-        description='Token for authentication'),
-    'notebook_dir': fields.String(
-        required=True,
-        default='/notebooks',
-        description='Working directory'),
-    'password': fields.Boolean(
-        required=True,
-        description='Password if one is set'),
-    'pid': fields.Integer(
-        required=True,
-        description='PID'),
-})
 
-launch = api.model('Launch', {
-    'pipeline_uuid': fields.String(
-        required=True,
-        description='UUID of pipeline'),
-    'server_ip': fields.String(
-        required=True,
-        description='IP of the Jupyter server'),
-    'server_info': fields.Nested(
-        server,
-        required=True,
-        description='Jupyter connection info')
-})
-
-launches = api.model('Launches', {
-    'launches': fields.List(
-        fields.Nested(launch),
-        description='Currently running launches')
-})
-
-pipeline = api.model('Pipeline', {
-    'pipeline_uuid': fields.String(
-        required=True,
-        description='UUID of pipeline'),
-    'pipeline_dir': fields.String(
-        required=True,
-        description='Path to pipeline files')
-})
+api.models[server.name] = server
+api.models[launch.name] = launch
+api.models[launches.name] = launches
+api.models[pipeline.name] = pipeline
 
 
 @api.route('/')

@@ -51,6 +51,10 @@ CONTAINER_MAPPING = {
                 "source": "/var/run/docker.sock",
                 "target": "/var/run/docker.sock"
             },
+            {
+                "source": HOST_USER_DIR,
+                "target": "/userdir"
+            },
         ],
         "ports": {
             "80/tcp": 9000
@@ -89,11 +93,15 @@ CONTAINER_MAPPING = {
             {
                 "source": "/var/run/docker.sock",
                 "target": "/var/run/docker.sock"
-            }
+            },
+            {
+                "source": HOST_USER_DIR,
+                "target": "/userdir"
+            },
         ]
     },
     "rabbitmq:3": {
-        "name": "rabbitmq-server"
+        "name": "rabbitmq-server",
     }
 }
 

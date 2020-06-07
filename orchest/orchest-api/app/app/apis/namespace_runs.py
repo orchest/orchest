@@ -9,74 +9,27 @@ import app.models as models
 from app.celery_app import make_celery
 from app.utils import construct_pipeline
 
+from app.schema import step_status, status_update, run_configuration, run
 
-api = Namespace('runs', description='Managing (partial) runs')
 
-step_status = api.model('Pipeline Step', {
-    'run_uuid': fields.String(
-        required=True,
-        description='UUID for run'),
-    'step_uuid': fields.String(
-        required=True,
-        description='UUID of a pipeline step'),
-    'status': fields.String(
-        required=True,
-        description='Status of the step',
-        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
-    'started_time': fields.String(
-        required=True,
-        description='Time at which the step was started'),
-    'ended_time': fields.String(
-        required=True,
-        description='Time at which the step ended execution'),
-})
+RUN_ENDPOINT = 'runs'
+api = Namespace(RUN_ENDPOINT, description='Managing (partial) runs')
 
-status_update = api.model('Status Update', {
-    'status': fields.String(
-        required=True,
-        description='New status of the step',
-        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
-})
 
-# TODO: The fields.Raw have to be replaced later. But since we are still
-#       actively chaning this. It is a waste of time to do it now.
-run_configuration = api.model('Run Configuration', {
-    'uuids': fields.List(
-        fields.String(),
-        required=False,
-        description='UUIDs of pipeline steps'),
-    'run_type': fields.String(
-        required=True,
-        description='Type of run',
-        enum=['full', 'selection', 'incoming']),
-    'pipeline_description': fields.Raw(
-        required=True,
-        description='Pipeline definition in JSON'),
-    'run_config': fields.Raw(  # TODO: must be pipeline_dir and mapping
-        required=True,
-        description='Configuration for compute backend')
-})
-
-run = api.model('Run', {
-    'run_uuid': fields.String(
-        required=True,
-        description='UUID for run'),
-    'pipeline_uuid': fields.String(
-        required=True,
-        description='UUID of a pipeline step'),
-    'status': fields.String(
-        required=True,
-        description='Status of the run'),
-    'step_statuses': fields.List(
-        fields.Nested(step_status),
-        description='Status of each pipeline step')
-})
 
 runs = api.model('Runs', {
     'runs': fields.List(
         fields.Nested(run),
         description='Ran and running tasks')
 })
+
+
+api.models[step_status.name] = step_status
+api.models[status_update.name] = status_update
+api.models[run_configuration.name] = run_configuration
+api.models[run.name] = run
+
+
 
 
 @api.route('/')
@@ -91,6 +44,7 @@ class RunList(Resource):
         runs = models.Run.query.all()
         return {'runs': [run.as_dict() for run in runs]}, 200
 
+
     @api.doc('start_run')
     @api.expect(run_configuration)
     @api.marshal_with(run, code=201, description='Run started')
@@ -98,6 +52,9 @@ class RunList(Resource):
         """Start a new run."""
         post_data = request.get_json()
 
+
+        post_data['run_config']['run_endpoint'] = RUN_ENDPOINT
+        
         # Construct pipeline.
         pipeline = construct_pipeline(**post_data)
 
@@ -106,7 +63,7 @@ class RunList(Resource):
         celery = make_celery(current_app)
         celery_job_kwargs = {
             'pipeline_description': pipeline.to_dict(),
-            'run_config': post_data['run_config']
+            'run_config': post_data['run_config'],
         }
 
         # Start the run as a background task on Celery. Due to circular
@@ -147,7 +104,7 @@ class RunList(Resource):
         db.session.bulk_save_objects(step_statuses)
 
         db.session.commit()
-
+    
         run['step_statuses'] = step_statuses
         return run, 201
 

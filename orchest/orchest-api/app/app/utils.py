@@ -92,6 +92,7 @@ async def update_status(status: str,
                         task_id: str,
                         session: aiohttp.ClientSession,
                         type: str,
+                        run_endpoint: str,
                         uuid: Optional[str] = None) -> Any:
     """Updates status of step via the orchest-api."""
     data = {'status': status}
@@ -100,12 +101,17 @@ async def update_status(status: str,
     elif data['status'] in ['SUCCESS', 'FAILURE']:
         data['ended_time'] = datetime.utcnow().isoformat()
 
-    base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/runs/{task_id}'
+    base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_endpoint}/{task_id}'
+
+
+
+
     if type == 'step':
         url = f'{base_url}/{uuid}'
 
     elif type == 'pipeline':
         url = base_url
+
 
     async with session.put(url, json=data) as response:
         return await response.json()
@@ -167,6 +173,7 @@ class PipelineStepRunner:
         # get used by the docker_client. However, we use it for testing
         # to check whether the resolve order of the pipeline is correct.
         pipeline_dir: str = run_config['pipeline_dir']
+
         image: str = run_config['runnable_image_mapping'][self.properties['image']]
         config = {
             'Image': image,
@@ -193,6 +200,7 @@ class PipelineStepRunner:
         # TODO: error handling?
         self._status = 'STARTED'
         await update_status(self._status, task_id, session, type='step',
+                            run_endpoint=run_config['run_endpoint'], 
                             uuid=self.properties['uuid'])
 
         data = await container.wait()
@@ -202,6 +210,7 @@ class PipelineStepRunner:
         # by signal N (POSIX only).
         self._status = 'FAILURE' if data.get('StatusCode') else 'SUCCESS'
         await update_status(self._status, task_id, session, type='step',
+                            run_endpoint=run_config['run_endpoint'],
                             uuid=self.properties['uuid'])
 
         # TODO: get the logs (errors are piped to stdout, thus running
@@ -262,6 +271,7 @@ class PipelineStepRunner:
             for child in all_children:
                 child._status = 'ABORTED'
                 await update_status('ABORTED', task_id, session, type='step',
+                                    run_endpoint=run_config['run_endpoint'],
                                     uuid=child.properties['uuid'])
 
         # If one of the children turns out to fail, then we say the step
@@ -558,7 +568,8 @@ class Pipeline:
         runner_client = aiodocker.Docker()
 
         async with aiohttp.ClientSession() as session:
-            await update_status('STARTED', task_id, session, type='pipeline')
+            await update_status('STARTED', task_id, session, type='pipeline',
+                                run_endpoint=run_config['run_endpoint'])
 
             status = await self.sentinel.run(
                 runner_client, session, task_id,
@@ -567,7 +578,8 @@ class Pipeline:
             # NOTE: the status of a pipeline is always success once it is
             # done executing. Errors in steps are reflected by the status
             # of the respective steps.
-            await update_status('SUCCESS', task_id, session, type='pipeline')
+            await update_status('SUCCESS', task_id, session, type='pipeline',
+                                run_endpoint=run_config['run_endpoint'])
 
         await runner_client.close()
 

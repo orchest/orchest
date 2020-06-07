@@ -27,6 +27,17 @@ RUN npx webpack
 
 # Compile style
 WORKDIR /app/static/css/
+
+# Windows needs this to run the script correctly
+# https://stackoverflow.com/questions/37419042/container-command-start-sh-not-found-or-does-not-exist-entrypoint-to-contain    
+#RUN sed -i 's/\r$//' ./compile-sass.sh  && \
+#chmod +x ./compile-sass.sh
+
+
 RUN ./compile-sass.sh
 
 WORKDIR /app
+
+# https://github.com/tiangolo/full-stack-fastapi-postgresql/issues/41
+#RUN sed -i 's/\r$//' ./prestart.sh  && \
+#chmod +x ./prestart.sh

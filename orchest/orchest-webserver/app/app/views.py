@@ -35,11 +35,37 @@ def register_views(app, db):
             'pipeline_dir': get_pipeline_directory_by_uuid(json_obj['pipeline_description']['uuid'], host_path=True)
         }
 
+
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
+    
+    @app.route("/catch/api-proxy/api/scheduled_runs/", methods=["POST"])
+    def catch_api_proxy_scheduled_runs():
+
+
+        json_obj = request.json
+
+
+        # add image mapping
+        # TODO: replace with dynamic mapping instead of hardcoded
+        image_mapping = {
+            "orchestsoftware/scipy-notebook-augmented": "orchestsoftware/scipy-notebook-runnable",
+            "orchestsoftware/r-notebook-augmented": "orchestsoftware/r-notebook-runnable"
+        }
+
+        json_obj['run_config'] = {
+            'runnable_image_mapping': image_mapping,
+            'pipeline_dir': get_pipeline_directory_by_uuid(json_obj['pipeline_description']['uuid'], host_path=True)
+        }
+
+        resp = requests.post(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/scheduled_runs/", json=json_obj, stream=True)
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+    
 
     @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
     def pipelines_delete(pipeline_uuid):
@@ -62,6 +88,7 @@ def register_views(app, db):
 
         # create dirs
         pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
+
         os.makedirs(pipeline_dir, exist_ok=True)
 
         # populate pipeline directory with kernels
@@ -225,7 +252,7 @@ def register_views(app, db):
             USER_DIR = app.config['HOST_USER_DIR']
 
         pipeline_dir = os.path.join(USER_DIR, "pipelines/")
-
+        
         # create pipeline dir if it doesn't exist but only when not getting host path (that's not relative to this OS)
         if not host_path:
             os.makedirs(pipeline_dir, exist_ok=True)

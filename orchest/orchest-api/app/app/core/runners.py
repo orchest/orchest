@@ -10,6 +10,9 @@ from app.utils import Pipeline, PipelineDescription
 from config import CONFIG_CLASS
 
 
+# TODO: create_app is called twice, meaning create_all (create databases) is 
+# called twice, which means celery-worker needs the /userdir bind to access the DB
+# which is probably not a good idea. create_all should only be called once per app right?
 celery = make_celery(create_app(CONFIG_CLASS))
 
 
@@ -67,7 +70,7 @@ def run_partial(self,
     """
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
-
+    
     # Run the subgraph in parallel. And pass the id of the AsyncResult
     # object.
     # TODO: The commented line below is once we can introduce sessions.
