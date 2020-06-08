@@ -6,7 +6,7 @@ import pickle
 from typing import Any, Dict, List, Tuple
 import urllib
 
-from orchest.config import STEP_DATA_DIR
+from orchest.config import get_step_data_dir
 from orchest.errors import DiskInputNotFoundError
 from orchest.errors import OrchestNetworkError
 from orchest.errors import StepUUIDResolveError
@@ -40,7 +40,10 @@ def _send_disk(data: Any,
     return
 
 
-def send_disk(data: Any, type: str = 'pickle', **kwargs) -> None:
+def send_disk(data: Any,
+              type: str = 'pickle',
+              pipeline_description_path: str = 'pipeline.json',
+              **kwargs) -> None:
     """Sends data to disk.
 
     To manage sending the data to disk for the user, this function has
@@ -62,7 +65,7 @@ def send_disk(data: Any, type: str = 'pickle', **kwargs) -> None:
         >>> data = 'Data I would like to send'
         >>> send_disk(data)
     """
-    with open('pipeline.json', 'r') as f:
+    with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -73,7 +76,7 @@ def send_disk(data: Any, type: str = 'pickle', **kwargs) -> None:
         raise StepUUIDResolveError('Failed to determine where to send data to.')
 
     # Recursively create any directories if they do not already exists.
-    step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
+    step_data_dir = get_step_data_dir(step_uuid)
     os.makedirs(step_data_dir, exist_ok=True)
 
     # The HEAD file serves to resolve the transfer method.
@@ -118,7 +121,7 @@ def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
     Raises:
         DiskInputNotFoundError: If input from `step_uuid` cannot be found.
     """
-    step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
+    step_data_dir = get_step_data_dir(step_uuid)
     full_path = os.path.join(step_data_dir, step_uuid)
 
     try:
@@ -151,7 +154,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     Raises:
         DiskInputNotFoundError: If input from `step_uuid` cannot be found.
     """
-    step_data_dir = STEP_DATA_DIR.format(step_uuid=step_uuid)
+    step_data_dir = get_step_data_dir(step_uuid)
     head_file = os.path.join(step_data_dir, 'HEAD')
 
     try:

@@ -1,0 +1,70 @@
+{
+    "name": "my-pipeline",
+    "uuid": "pipeline-uuid",
+    "steps": {
+        "uuid-1": {
+            "title": "step-1",
+            "uuid": "uuid-1",
+            "incoming_connections": [],
+            "file_path": "step-1.ipynb",
+            "kernel": {
+                "name": "python",
+                "display_name": "Python 3"
+            },
+            "image": "orchestsoftware/scipy-notebook-augmented",
+            "experiment_json": "",
+            "meta_data": {
+                "position": [
+                    3.75,
+                    395
+                ]
+            },
+            "outgoing_connections": [
+                "uuid-2"
+            ]
+        },
+        "uuid-2": {
+            "title": "step-2",
+            "uuid": "uuid-2",
+            "incoming_connections": [
+                "uuid-1",
+                "uuid-3"
+            ],
+            "file_path": "step-2.ipynb",
+            "kernel": {
+                "name": "python",
+                "display_name": "Python 3"
+            },
+            "image": "orchestsoftware/scipy-notebook-augmented",
+            "experiment_json": "",
+            "meta_data": {
+                "position": [
+                    297.81675,
+                    398.735
+                ]
+            },
+            "outgoing_connections": []
+        },
+        "uuid-3": {
+            "title": "step-3",
+            "uuid": "uuid-3",
+            "incoming_connections": [],
+            "file_path": "step-3.ipynb",
+            "kernel": {
+                "name": "python",
+                "display_name": "Python 3"
+            },
+            "image": "orchestsoftware/scipy-notebook-augmented",
+            "experiment_json": "",
+            "meta_data": {
+                "position": [
+                    297.81675,
+                    398.735
+                ]
+            },
+            "outgoing_connections": [
+                "uuid-2"
+            ]
+        }
+    }
+}
