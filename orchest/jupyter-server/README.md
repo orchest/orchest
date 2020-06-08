@@ -1,5 +1,8 @@
 # jupyter-server 
+Docker container running a single Jupyter server that is managed through a minimal Flask API,
+exposed at port 80. 
 
+## Implementation details
 Naming convention: The container running the Jupyter server process (the JupyterLab instance) is
 called `jupyter-server`.
 
@@ -14,8 +17,7 @@ Example POST request to the `jupyter-server` API
 }
 ```
 
-
-## Docker
+### Docker
 Note that the `jupyter_notebook_config.py` is copied into the container. This overwrites the
 configuration used by the Jupyter server.
 
@@ -31,7 +33,7 @@ docker rm $(docker ps -a -q)
 docker run --name jupyter-server -p 8888:8888 -p 80:80 -v <mount-path>:/notebooks jupyter-server
 ```
 
-## Running in Development
+### Running in Development
 To run the flask application in development, please change the following two settings in their
 respective configuration files:
 * `app/config.py`: Set `CONFIG_CLASS = DevelopmentConfig`.
@@ -45,7 +47,7 @@ docker container when building the Dockerfile. Use the `app/requirements.txt` li
 Tests can be run inside `app/` using `python -m pytest`.
 
 
-## Explanation of project structure
+### Explanation of project structure
 The structure is as follows (generated using `tree -A -I "venv|__pycache__"`)
 ```bash
 .
@@ -81,5 +83,8 @@ A short explanation of certain directories and files:
     possible without side effects).
 
 
-## notebook-patch
-In order to make the notebook gateway kernel connect through the nginx proxy we patched the websocket handler in the notebook package (notebook/gateway/handlers.py). We override the check_origin method as per tornado framework instruction to allow varying origins. This might introduce a security issue, but I think it's mitigated by the Docker network not being exposed.
+### notebook-patch
+In order to make the notebook gateway kernel connect through the nginx proxy we patched the
+websocket handler in the notebook package (notebook/gateway/handlers.py). We override the
+check_origin method as per tornado framework instruction to allow varying origins. This might
+introduce a security issue, but I think it's mitigated by the Docker network not being exposed.
