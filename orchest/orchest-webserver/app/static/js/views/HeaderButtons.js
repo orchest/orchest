@@ -49,7 +49,7 @@ class HeaderButtons extends React.Component {
         if(this.state.pipeline){
             return <div>
                 <span className="pipeline-name">{this.state.pipeline.name}</span>
-                {this.state.showBack ? <MDCButtonReact onClick={this.openView.bind(this)} icon="arrow_back" label="Back to Pipeline" /> : <span></span> }
+                {this.state.showBack ? <MDCButtonReact classNames={["mdc-button--raised"]} onClick={this.openView.bind(this)} icon="arrow_back" label="Back to Pipeline" /> : <span></span> }
             </div>
         }
         else{

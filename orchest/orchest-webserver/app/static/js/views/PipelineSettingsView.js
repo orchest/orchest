@@ -102,7 +102,7 @@ class PipelineSettingsView extends React.Component {
                                         </div>
                                     </div>
 
-                                    <MDCButtonReact label="save" onClick={this.saveGeneralForm.bind(this)} />
+                                    <MDCButtonReact label="save" classNames={["mdc-button--raised"]} onClick={this.saveGeneralForm.bind(this)} />
 
                                 </form>
                             </div>;

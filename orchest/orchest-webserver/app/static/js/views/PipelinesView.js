@@ -12,9 +12,19 @@ class PipelineListItem extends React.Component {
         this.setState({checked: !this.state.checked});
     }
 
-    pipelineClick(){
+    pipelineClick(e){
+        console.log(e);
+
         // load pipeline view
-        orchest.loadView(PipelineView, {"pipeline": this.props.pipeline})
+        let props = {
+            "pipeline":this.props.pipeline,
+        }
+
+        if(e.ctrlKey){
+            props.readOnly = true;
+        }
+
+        orchest.loadView(PipelineView, props);
     }
 
     getChecked(){

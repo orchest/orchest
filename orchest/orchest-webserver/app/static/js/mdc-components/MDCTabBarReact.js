@@ -18,10 +18,11 @@ class MDCTabBarReact extends React.Component {
     }
 
     componentDidMount() {
-        const tabBar = new MDCTabBar(this.refs.tabBar);
-        tabBar.activateTab(this.state.active_tab_index);
+        this.tabBar = new MDCTabBar(this.refs.tabBar);
+        this.tabBar.focusOnActivate = false;
+        this.tabBar.activateTab(this.state.active_tab_index);
 
-        tabBar.listen("MDCTabBar:activated", (details) => {
+        this.tabBar.listen("MDCTabBar:activated", (details) => {
             this.setState({ "active_tab_index": details.detail.index });
 
             if (this.props.onChange) {

@@ -30,12 +30,17 @@ class MDCSelectReact extends React.Component {
         })
 
         let topClasses = ["mdc-select"];
+
+        if(this.props.disabled){
+            topClasses.push("mdc-select--disabled");
+        }
+
         if (this.props.classNames) {
             topClasses = topClasses.concat(this.props.classNames)
         }
 
         return <div className={topClasses.join(" ")} ref="select">
-            <div className="mdc-select__anchor fullwidth">
+            <div className="mdc-select__anchor fullwidth" aria-disabled={this.props.disabled}>
                 <i className="mdc-select__dropdown-icon"></i>
                 <div className="mdc-select__selected-text"></div>
                 <span className="mdc-floating-label">{this.props.label}</span>

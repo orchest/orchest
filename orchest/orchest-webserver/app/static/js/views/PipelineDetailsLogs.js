@@ -10,13 +10,16 @@ class PipelineDetailsLogs extends React.Component {
     };
   }
   componentDidMount() {
+
     // start listener
     this.fetchLog();
 
     this.logFetchInterval = setInterval(() => {
       this.fetchLog();
     }, 1000);
+
   }
+
   componentWillUnmount() {
     clearInterval(this.logFetchInterval);
   }

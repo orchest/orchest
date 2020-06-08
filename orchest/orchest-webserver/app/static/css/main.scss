@@ -114,13 +114,13 @@ aside.mdc-drawer {
   }
 }
 
-.view-pipeline-settings {
+.close-button {
+  position: absolute;
+  top: $generalPadding;
+  right: $generalPadding;
+}
 
-  .close-button {
-    position: absolute;
-    top: $generalPadding;
-    right: $generalPadding;
-  }
+.view-pipeline-settings {
 
   .tab-content {
     padding: $generalPadding 0;
@@ -260,11 +260,21 @@ h2.header {
     z-index: 9;
     padding: $generalPadding;
 
+    .mdc-power-button {
+      i.material-icons {
+        margin-top: -1px;
+      }
+    }
+
     &.bottom-left {
       top: auto;
       bottom: 0;
       right: auto;
       left: 0;
+
+      button {
+        margin-bottom: 0;
+      }
  
       .selection-buttons {
         display: inline-block;
@@ -278,11 +288,12 @@ h2.header {
     }
 
     button {
-      &:first-of-type { 
-        margin-left: 0;
+      &:last-of-type { 
+        margin-right: 0;
       }
 
-      margin-left: $generalPadding;
+      margin-right: $generalPadding;
+      margin-bottom: $generalPadding;
       min-width: 0;
 
       &.active {

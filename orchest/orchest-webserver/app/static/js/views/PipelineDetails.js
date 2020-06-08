@@ -29,7 +29,11 @@ class PipelineDetails extends React.Component {
     }
 
     onOpenNotebook() {
-        this.props.onOpenNotebook(this);
+        this.props.onOpenNotebook();
+    }
+
+    onOpenNotebookPreview() {
+        this.props.onOpenNotebookPreview(this.props.step.uuid);
     }
 
     componentDidMount() {
@@ -63,7 +67,7 @@ class PipelineDetails extends React.Component {
 
         switch(this.state.subviewIndex){
             case 0:
-                subView = <PipelineDetailsProperties onNameUpdate={this.props.onNameUpdate} onSave={this.props.onSave} connections={this.props.connections} step={this.props.step} onChange={this.props.onChange} />;
+                subView = <PipelineDetailsProperties readOnly={this.props.readOnly} onNameUpdate={this.props.onNameUpdate} onSave={this.props.onSave} connections={this.props.connections} step={this.props.step} onChange={this.props.onChange} />;
                 break;
             case 1:
                 subView = <PipelineDetailsLogs step={this.props.step} pipeline={this.props.pipeline} />
@@ -73,6 +77,7 @@ class PipelineDetails extends React.Component {
             <div className={"overflowable"}>
                 <div className="input-group">
                     <MDCTabBarReact
+                        ref={"tabBar"}
                         selectedIndex={this.state.subviewIndex}
                         items={[
                             'Properties',
@@ -92,14 +97,27 @@ class PipelineDetails extends React.Component {
 
             <div className={"action-buttons-bottom"}>
 
-                <div className={"notebook-actions"}>
-                    <MDCButtonReact icon="launch" label="Open in Jupyter" onClick={this.onOpenNotebook.bind(this)} />
-                </div>
+                {(() => {
+                    if(!this.props.readOnly){
+                        return <div className={"notebook-actions"}>
+                            <MDCButtonReact icon="launch" classNames={["mdc-button--raised"]}  label="Open in Jupyter" onClick={this.onOpenNotebook.bind(this)} />
+                        </div>
+                    }else{
+                        return <div className={"notebook-actions"}>
+                            <MDCButtonReact icon="visibility" classNames={["mdc-button--raised"]}  label="View Notebook" onClick={this.onOpenNotebookPreview.bind(this)} />
+                        </div>
+                    }
+                })()}
 
                 <div className={"general-actions"}>
                     <MDCButtonReact icon="close" label="Close" onClick={this.props.onClose.bind(this)} />
 
-                    <MDCButtonReact icon="delete" label="Delete" onClick={this.props.onDelete.bind(this)} />
+                    {(() => {
+                        if(!this.props.readOnly){
+                            return <MDCButtonReact icon="delete" label="Delete" onClick={this.props.onDelete.bind(this)} />
+                        }
+                    })()}
+                    
                 </div>
 
             </div>
