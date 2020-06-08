@@ -7,7 +7,9 @@ def shutdown_jupyter_server(
 ) -> bool:
     """Shuts down the Jupyter server via an authenticated POST request.
 
-    Sends an authenticated POST request to: "url"/api/shutdown.
+    Sends an authenticated DELETE request to:
+        "url"/api/kernels/<kernel.id>
+    for every running kernel.
 
     Args:
         connection_file: path to the connection_file that contains the
@@ -15,8 +17,7 @@ def shutdown_jupyter_server(
         url: the url at which the Jupyter server is running.
 
     Returns:
-        None if no Jupyter server is running. Otherwise the Response
-        object from the POST request to the Jupyter server API.
+        False if no Jupyter server is running. True otherwise.
     """
     # The "life" of a Jupyter server is a 1-to-1 relationship with its
     # "connection_file". If a Jupyter server is up then its
@@ -30,14 +31,15 @@ def shutdown_jupyter_server(
     # Authentication is done via the token of the server.
     headers = {'Authorization': f'Token {server_info["token"]}'}
 
-    # base_url included slash at the end
-    url = url + server_info["base_url"]
+    # Due to the running "nginx_proxy" to route traffic for the Orchest
+    # application. A "base_url" is included for Jupyter, which contains
+    # a slash at the end, e.g. "base/url/".
+    url = url + server_info['base_url']
 
     # Shutdown the server, such that it also shuts down all related
     # kernels.
-
-    # Do not use /api/shutdown --> it is non-blocking causing container based
-    # kernels to persist!
+    # NOTE: Do not use /api/shutdown as it is non-blocking causing
+    # container based kernels to persist!
     r = requests.get(f'{url}api/kernels', headers=headers)
 
     kernels_json = r.json()
