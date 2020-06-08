@@ -386,6 +386,7 @@ class Pipeline:
         return cls(list(steps.values()), properties)
 
     def to_dict(self) -> PipelineDescription:
+        """Convert the Pipeline to its dictionary description."""
         description: PipelineDescription = {'steps': {}}
         for step in self.steps:
             description['steps'][step.properties['uuid']] = step.properties
