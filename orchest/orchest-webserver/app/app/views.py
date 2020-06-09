@@ -8,6 +8,8 @@ import uuid
 import pdb
 import requests
 import logging
+import nbformat
+from nbconvert import HTMLExporter
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -178,6 +180,51 @@ def register_views(app, db):
             {"success": True, "result": pipelines})
         return json_string, 200, {'content-type': 'application/json'}
 
+
+    def return_404(reason = ""):
+        json_string = json.dumps(
+            {"success": False, "reason": reason})
+
+        return json_string, 404, {'content-type': 'application/json'}
+
+
+    @app.route("/async/notebook_html/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
+    def notebook_html_get(pipeline_uuid, step_uuid):
+        
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
+
+        pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
+
+        if os.path.isfile(pipeline_json_path):
+            with open(pipeline_json_path, 'r') as json_file:
+                pipeline_json = json.load(json_file)
+
+            try:
+                notebook_path = os.path.join(pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"])
+            except Exception as e:
+                logging.debug(e)
+                return return_404("Invalid JSON for pipeline %s error: %e" % (pipeline_uuid, e))
+        else:
+            return return_404("Could not find pipeline.json for pipeline %s" % pipeline_uuid)
+                
+
+        if os.path.isfile(notebook_path):
+            try:
+
+                with open(notebook_path, 'r') as file:
+                    nb = nbformat.read(file, nbformat.NO_CONVERT)
+                
+                html_exporter = HTMLExporter()
+                html_exporter.template_file = 'full'
+
+                (body, resources) = html_exporter.from_notebook_node(nb)
+
+                return body
+
+            except IOError as error:
+                logging.debug("Error opening notebook file %s error: %s" % (notebook_path, error))
+                return return_404("Could not find notebook file %s" % notebook_path)
+
     
     @app.route("/async/logs/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
     def logs_get(pipeline_uuid, step_uuid):
@@ -195,7 +242,7 @@ def register_views(app, db):
                     logs = f.read()
 
             except IOError as error:
-                logging.debug("Error opening log file %s erorr: %s", (log_path, error))
+                logging.debug("Error opening log file %s error: %s" % (log_path, error))
 
         if logs is not None:
             json_string = json.dumps(
