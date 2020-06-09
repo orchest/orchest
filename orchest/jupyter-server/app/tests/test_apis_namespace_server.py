@@ -52,7 +52,7 @@ def test_api_start_and_shutdown_server(client):
     assert response.json == {'message': 'No running server'}
 
     # A POST request to the Flask API should start the Jupyter server.
-    some_gateway_url = 'http://0.0.0.0:8765'
+    some_gateway_url = 'http://127.0.0.1:8765'
     response_post = client.post('/api/servers/', json={'gateway-url': some_gateway_url})
     assert response_post.status_code == 201
 
