@@ -36,9 +36,9 @@ def client():
     abs_path = os.path.dirname(os.path.abspath(__file__))
     connection_file = os.path.join(abs_path, '../app/tmp/server_info.json')
 
-    r = shutdown_jupyter_server(connection_file)
+    _ = shutdown_jupyter_server(connection_file)
 
-    if r is not None:
+    if os.path.exists(connection_file):
         os.remove(connection_file)
 
 
@@ -53,7 +53,7 @@ def test_api_start_and_shutdown_server(client):
 
     # A POST request to the Flask API should start the Jupyter server.
     some_gateway_url = 'http://0.0.0.0:8765'
-    response_post = client.post('/api/servers/', json={'gateway_url': some_gateway_url})
+    response_post = client.post('/api/servers/', json={'gateway-url': some_gateway_url})
     assert response_post.status_code == 201
 
     # A user should be able to interact with the start Jupyter server.
@@ -61,7 +61,7 @@ def test_api_start_and_shutdown_server(client):
     assert r.status_code == 200
     assert r.json().get('version') is not None
 
-    # The Flask API should not be able to check for the running server.
+    # The Flask API should now be able to check for the running server.
     response = client.get('/api/servers/')
     assert response.status_code == 200
 
