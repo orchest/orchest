@@ -32,5 +32,5 @@ jobs:
 
     - name: Test with pytest
       run: |
-        python -m pytest
+        python -m pytest -s
       working-directory: ./orchest/jupyter-server/app
