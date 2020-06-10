@@ -34,7 +34,7 @@ def client():
     # Shutdown the Jupyter server and clear its connection file, if it is
     # still running.
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    connection_file = os.path.join(abs_path, '../app/tmp/server_info.json')
+    connection_file = os.path.join(abs_path, '..', 'app', 'tmp', 'server_info.json')
 
     _ = shutdown_jupyter_server(connection_file)
 

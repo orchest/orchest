@@ -20,8 +20,8 @@ def register_views(app, db):
     @app.route("/", methods=["GET"])
     def index():
 
-        js_bundle_path = os.path.join(app.config["STATIC_DIR"], "js/dist/main.bundle.js")
-        css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css/main.css")
+        js_bundle_path = os.path.join(app.config["STATIC_DIR"], "js", "dist", "main.bundle.js")
+        css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
         
         return render_template("index.html", javascript_bundle_hash = get_hash(js_bundle_path), css_bundle_hash = get_hash(css_bundle_path))
 
@@ -75,8 +75,8 @@ def register_views(app, db):
         # populate pipeline directory with kernels
 
         # copy directories
-        fromDirectory = os.path.join(app.config['RESOURCE_DIR'], "kernels/")
-        toDirectory = os.path.join(pipeline_dir, ".kernels/")
+        fromDirectory = os.path.join(app.config['RESOURCE_DIR'], "kernels")
+        toDirectory = os.path.join(pipeline_dir, ".kernels")
 
         copy_tree(fromDirectory, toDirectory)
 
@@ -277,7 +277,7 @@ def register_views(app, db):
         if host_path:
             USER_DIR = app.config['HOST_USER_DIR']
 
-        pipeline_dir = os.path.join(USER_DIR, "pipelines/")
+        pipeline_dir = os.path.join(USER_DIR, "pipelines")
 
         # create pipeline dir if it doesn't exist but only when not getting host path (that's not relative to this OS)
         if not host_path:

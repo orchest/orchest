@@ -308,7 +308,7 @@ def dev_mount_inject():
 
     CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]['mounts'] += [
         {
-            "source": os.path.join(os.environ.get("HOST_PWD"), "orchest/orchest-webserver/app/"),
+            "source": os.path.join(os.environ.get("HOST_PWD"), "orchest", "orchest-webserver", "app"),
             "target": "/app"
         }
     ]

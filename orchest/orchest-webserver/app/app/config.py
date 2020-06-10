@@ -13,7 +13,7 @@ class Config:
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     LOG_DIR = ".logs"
-    STATIC_DIR = os.path.join(dir_path, "../static")
+    STATIC_DIR = os.path.join(dir_path, "..", "static")
 
     ORCHEST_API_ADDRESS = "orchest-api"
 
@@ -22,7 +22,7 @@ class Config:
     if DEBUG:
         logging.basicConfig(level=logging.INFO)
 
-    RESOURCE_DIR = os.path.join(dir_path, "res/")
+    RESOURCE_DIR = os.path.join(dir_path, "res")
 
 
 class DevelopmentConfig(Config):

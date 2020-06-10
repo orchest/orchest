@@ -65,7 +65,7 @@ message = api.model('Message', {
 @api.route('/')
 class Server(Resource):
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    connection_file = os.path.join(abs_path, '../tmp/server_info.json')
+    connection_file = os.path.join(abs_path, '..', 'tmp', 'server_info.json')
 
     # TODO: 404 is not the correct error code, yet the flask-restplus
     #       framework does not allow multiple @api.response for the same
@@ -99,7 +99,7 @@ class Server(Resource):
         # be a sequence of program arguments. Because if it is a string,
         # then the interpretation is platform-dependent (see python
         # docs).
-        start_script = os.path.join(self.abs_path, '../core/start_server.py')
+        start_script = os.path.join(self.abs_path, '..', 'core', 'start_server.py')
         args = ['python', '-u', start_script]
         args.extend([
             f'--{arg}={value}'
