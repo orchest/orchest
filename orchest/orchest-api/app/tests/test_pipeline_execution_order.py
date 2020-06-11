@@ -13,8 +13,8 @@ import json
 from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
 
-from app import utils
-from app.utils import Pipeline
+from app.core import pipelines
+from app.core.pipelines import Pipeline
 
 
 class IO:
@@ -74,7 +74,7 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     execution_order = []
 
     monkeypatch.setattr(DockerContainers, 'run', mockreturn_run)
-    monkeypatch.setattr(utils, 'update_status', mockreturn_update_status)
+    monkeypatch.setattr(pipelines, 'update_status', mockreturn_update_status)
 
     filler_for_task_id = '1'
     run_config = {

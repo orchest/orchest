@@ -93,7 +93,11 @@ async def update_status(status: str,
                         session: aiohttp.ClientSession,
                         type: str,
                         uuid: Optional[str] = None) -> Any:
-    """Updates status of step via the orchest-api."""
+    """Updates status of `type` via the orchest-api.
+
+    Args:
+        type: One of ``['pipeline', 'step']``.
+    """
     data = {'status': status}
     if data['status'] == 'STARTED':
         data['started_time'] = datetime.utcnow().isoformat()
