@@ -90,7 +90,7 @@ class LaunchList(Resource):
         """Fetch all launches."""
 
         query = models.Launch.query
-        
+
         if "pipeline_uuid" in request.args:
             query = query.filter_by(pipeline_uuid=request.args.get('pipeline_uuid'))
 
@@ -172,15 +172,16 @@ class Launch(Resource):
             pipeline_uuid, description='Launch not found'
         )
 
+        # NOTE: this request will block the API. However, this is
+        # desired as the front-end would otherwise need to poll whether
+        # the Jupyter launch has been shut down (to be able to show its
+        # status in the UI).
         # Uses the API inside the container that is also running the
         # Jupyter server to shut the server down and clean all running
         # kernels that are associated with the server.
-        
+        # The request is blocking and returns after all kernels and
+        # server have been shut down.
         requests.delete(f'http://{launch.server_ip}:80/api/servers/')
-
-        # TODO: not sure whether the event of shutting down all the
-        #       kernels has to be awaited or the docker containers can
-        #       simply be shut down.
 
         jdm = JupyterDockerManager(docker_client, network='orchest')
         jdm.shutdown_pipeline(pipeline_uuid)
