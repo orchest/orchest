@@ -63,7 +63,7 @@ def create_app():
         analytics_ping(app)
         
         # and every 15 minutes
-        scheduler.add_job(analytics_ping, 'interval', minutes=15, args=[app])
+        scheduler.add_job(analytics_ping, 'interval', minutes=app.config["TELEMETRY_INTERVAL"], args=[app])
         scheduler.start()
 
     

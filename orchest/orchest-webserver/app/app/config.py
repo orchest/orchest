@@ -13,11 +13,14 @@ class Config:
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     LOG_DIR = ".logs"
+    WEBSERVER_LOG_DIR = "/app/orchest-webserver.log"
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
     ORCHEST_API_ADDRESS = "orchest-api"
 
     DEBUG = True
+
+    TELEMETRY_INTERVAL = 15 # in minutes
 
     if DEBUG:
         logging.basicConfig(level=logging.INFO)
