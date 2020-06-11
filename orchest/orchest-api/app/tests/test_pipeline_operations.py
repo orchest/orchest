@@ -13,8 +13,8 @@ import unittest
 
 import pytest
 
-from app import utils
-from app.utils import Pipeline
+from app.core import pipelines
+from app.core.pipelines import Pipeline
 
 
 @pytest.fixture
@@ -110,7 +110,7 @@ def test_pipeline_run_with_docker_containers(pipeline, monkeypatch):
     async def mockreturn_update_status(*args, **kwargs):
         return
 
-    monkeypatch.setattr(utils, 'update_status', mockreturn_update_status)
+    monkeypatch.setattr(pipelines, 'update_status', mockreturn_update_status)
 
     # TODO: the pipeline.run will take a config. This config then also
     #       contains a mapping that specifies what image to use.
