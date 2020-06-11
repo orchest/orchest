@@ -8,28 +8,16 @@ from app.connections import db
 import app.models as models
 from app.celery_app import make_celery
 from app.utils import construct_pipeline
-
-from app.schema import step_status, status_update, run_configuration, run
-
-
-RUN_ENDPOINT = 'runs'
-api = Namespace(RUN_ENDPOINT, description='Managing (partial) runs')
+from app.schema import step_status, status_update, run_configuration, run, runs
 
 
+api = Namespace('runs', description='Managing (partial) runs')
 
-runs = api.model('Runs', {
-    'runs': fields.List(
-        fields.Nested(run),
-        description='Ran and running tasks')
-})
-
-
+api.models[run.name] = run
+api.models[runs.name] = runs
 api.models[step_status.name] = step_status
 api.models[status_update.name] = status_update
 api.models[run_configuration.name] = run_configuration
-api.models[run.name] = run
-
-
 
 
 @api.route('/')
@@ -44,16 +32,13 @@ class RunList(Resource):
         runs = models.Run.query.all()
         return {'runs': [run.as_dict() for run in runs]}, 200
 
-
     @api.doc('start_run')
     @api.expect(run_configuration)
     @api.marshal_with(run, code=201, description='Run started')
     def post(self):
         """Start a new run."""
         post_data = request.get_json()
-
-
-        post_data['run_config']['run_endpoint'] = RUN_ENDPOINT
+        post_data['run_config']['run_endpoint'] = 'runs'
         
         # Construct pipeline.
         pipeline = construct_pipeline(**post_data)

@@ -2,7 +2,6 @@ import logging
 import sys
 import time
 
-
 from flask import request
 from flask_restplus import fields
 from flask_restplus import Namespace
@@ -12,14 +11,12 @@ import requests
 from app.connections import db, docker_client
 from app.core.managers import JupyterDockerManager
 import app.models as models
-
 from app.schema import server, launch, launches, pipeline
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 api = Namespace('launches', description='Launches of pipelines for development')
-
 
 api.models[server.name] = server
 api.models[launch.name] = launch
@@ -33,7 +30,6 @@ class LaunchList(Resource):
     @api.marshal_with(launches)
     def get(self):
         """Fetch all launches."""
-
         query = models.Launch.query
         
         if "pipeline_uuid" in request.args:
@@ -88,7 +84,6 @@ class LaunchList(Resource):
         db.session.commit()
 
         return launch, 201
-
 
 @api.route('/<string:pipeline_uuid>')
 @api.param('pipeline_uuid', 'UUID of pipeline')

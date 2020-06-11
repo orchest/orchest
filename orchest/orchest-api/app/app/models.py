@@ -16,10 +16,8 @@ class Launch(BaseModel, db.Model):
         return f'<Launch {self.pipeline_uuid}>'
 
 
-
 class Run(BaseModel, db.Model):
     __tablename__ = 'runs'
-    __bind_key__ = "runs_db"
     run_uuid = db.Column(db.String(36), primary_key=True)
     pipeline_uuid = db.Column(db.String(36), unique=False, nullable=False)
     status = db.Column(db.String(15), unique=False, nullable=True)
@@ -29,11 +27,8 @@ class Run(BaseModel, db.Model):
         return f'<Run {self.run_uuid}>'
 
 
-
-
 class StepStatus(BaseModel, db.Model):
     __tablename__ = 'stepstatus'
-    __bind_key__ = "runs_db"
     run_uuid = db.Column(
         db.String(36),
         db.ForeignKey('runs.run_uuid'),
@@ -63,16 +58,13 @@ class StepStatus(BaseModel, db.Model):
         return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'
 
 
-
-
-
 # TODO: make DRY, need to:
 #   have ScheduledRun inherit from Run so we don't repeat fields but this inheritance
 #   must be implemented so that ScheduledRun is it's own table and does not refer to Run in any way
 #   since ScheduledRun is on it's own database
 class ScheduledRun(BaseModel, db.Model):
     __tablename__ = 'scheduled_runs'
-    __bind_key__ = 'scheduled_runs_db'
+    __bind_key__ = 'persistent_db'
 
     run_uuid = db.Column(db.String(36), primary_key=True)
     pipeline_uuid = db.Column(db.String(36), unique=False, nullable=False)
@@ -85,11 +77,12 @@ class ScheduledRun(BaseModel, db.Model):
     def __repr__(self):
         return f'<ScheduledRun {self.run_uuid}>'
 
+
 # TODO: ScheduledStepStatus should just be StepStatus. Need to have StepStatus exist in two seperate
 # databases at a time, where one has a foreign key to Run and the other has a foreign key to ScheduledRun
 class ScheduledStepStatus(BaseModel, db.Model):
     __tablename__ = 'scheduled_stepstatus'
-    __bind_key__ = 'scheduled_runs_db'
+    __bind_key__ = 'persistent_db'
     run_uuid = db.Column(
         db.String(36),
         db.ForeignKey('scheduled_runs.run_uuid'),
@@ -117,4 +110,3 @@ class ScheduledStepStatus(BaseModel, db.Model):
 
     def __repr__(self):
         return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'
-

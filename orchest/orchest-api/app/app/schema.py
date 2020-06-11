@@ -1,8 +1,4 @@
-
-
-
 from flask_restplus import Model, fields, Resource
-
 
 
 step_status = Model('Pipeline Step', {
@@ -24,7 +20,6 @@ step_status = Model('Pipeline Step', {
         description='Time at which the step ended execution'),
 })
 
-
 status_update = Model('Status Update', {
     'status': fields.String(
         required=True,
@@ -34,6 +29,7 @@ status_update = Model('Status Update', {
 
 # TODO: The fields.Raw have to be replaced later. But since we are still
 #       actively chaning this. It is a waste of time to do it now.
+# namespace_runs
 run_configuration = Model('Run Configuration', {
     'uuids': fields.List(
         fields.String(),
@@ -51,7 +47,6 @@ run_configuration = Model('Run Configuration', {
         description='Configuration for compute backend')
 })
 
-
 run = Model('Run', {
     'run_uuid': fields.String(
         required=True,
@@ -66,15 +61,35 @@ run = Model('Run', {
         fields.Nested(step_status),
         description='Status of each pipeline step')
 })
-
-
 runs = Model('Runs', {
     'runs': fields.List(
         fields.Nested(run),
         description='Ran and running tasks')
 })
 
+# namespace_scheduled_runs
+scheduled_run_configuration = run_configuration.inherit('Scheduled Run Configuration', {
+    "scheduled_start": fields.String(
+        required=True,
+        description='Time at which the run is scheduled to start'),
+})
 
+scheduled_run = run.inherit('Scheduled Run', {
+    "scheduled_start": fields.String(
+        required=True,
+        description='Time at which the run is scheduled to start'),
+})
+
+scheduled_runs = Model('Scheduled Runs', {
+    'scheduled_runs': fields.List(
+        fields.Nested(scheduled_run),
+        description='past, present and running scheduled_runs')
+})
+
+# namespace_experiments
+experiment = Model('Experiment', {
+    'id': fields.Integer(required=True, description='UUID for Experiment')
+})
 
 # Models for RESTful API.
 server = Model('Server', {
