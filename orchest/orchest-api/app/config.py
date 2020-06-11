@@ -13,7 +13,7 @@ class Config:
     # NOTE: Flask will not configure lowercase variables. Therefore the
     # config class will be loaded directly by the Celery instance.
     broker_url = 'amqp://guest:guest@rabbitmq-server:5672//'
-    imports = ('app.core.runners',)
+    imports = ('app.core.tasks',)
     # result_backend = 'rpc://'
     # task_track_started = True
 

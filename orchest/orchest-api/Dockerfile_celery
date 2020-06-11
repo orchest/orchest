@@ -24,4 +24,4 @@ WORKDIR /app
 # packages.
 RUN pip3 install -r requirements.txt
 
-CMD ["celery", "worker", "-A", "app.core.runners", "-l", "INFO"]
+CMD ["celery", "worker", "-A", "app.core.tasks", "-l", "INFO"]
