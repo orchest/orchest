@@ -912,7 +912,7 @@ class PipelineView extends React.Component {
                 "backend": this.state.backend
             })
 
-            makeRequest('DELETE', "http://172.31.0.2/api/launches/" + this.props.pipeline.uuid).then((response) => {
+            makeRequest('DELETE', "/api-proxy/api/launches/" + this.props.pipeline.uuid).then((response) => {
                 let result = JSON.parse(response);
                 console.log("API delete result");
                 console.log(result);
