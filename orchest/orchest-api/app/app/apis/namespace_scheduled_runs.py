@@ -1,4 +1,6 @@
 from datetime import datetime
+import os
+from shutil import copytree
 
 from celery import uuid
 from celery.task.control import revoke
@@ -11,8 +13,6 @@ from app.celery_app import make_celery
 from app.utils import construct_pipeline
 from app.schema import step_status, status_update, scheduled_run_configuration, scheduled_run, scheduled_runs
 
-import os
-from shutil import copytree
 
 
 api = Namespace('scheduled_runs', description='Managing (partial) scheduled runs')
@@ -96,10 +96,6 @@ class ScheduledRunList(Resource):
                                 eta=scheduled_date_time,
                                kwargs=celery_job_kwargs)
 
-        # TODO: if celery, rabbitmq or this api fail, then upon system
-        # reboot, we must go through scheduled_runs.db and check for runs with the status PENDING.
-        # if one is PENDING, then we must call this API endpoint again, so that it can
-        # either continue to be PENDING, or if the datetime has passed, it can run immedately.
         scheduled_run = {
            'run_uuid': run_uuid,
            'pipeline_uuid': pipeline.properties['uuid'],
@@ -165,8 +161,14 @@ class ScheduledRun(Resource):
         # actually running.
 
         # TODO: https://stackoverflow.com/questions/39191238/revoke-a-task-from-celery
-        # TODO: delete new pipeline files that were created for this specific run?
+        # NOTE: delete new pipeline files that were created for this specific run?
         revoke(run_uuid, terminate=True)
+
+        res = models.ScheduledRun.query.filter_by(run_uuid=run_uuid).update({
+            'status': 'REVOKED'
+        })
+        if res:
+            db.session.commit()
 
         return {'message': 'Run termination was successful'}, 200
 

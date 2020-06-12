@@ -16,7 +16,6 @@ VALID_COMMANDS = {
     "update": "Update Orchest to the latest version by pulling latest container images"
 }
 
-
 DOCKER_NETWORK = 'orchest'
 
 if "HOST_USER_DIR" in os.environ:
@@ -46,7 +45,6 @@ DURABLE_QUEUES_DIR = ".durable_queues"
 # Set to `True` if you want to pull images from Dockerhub 
 # instead of using local equivalents
 
-
 CONTAINER_MAPPING = {
     "orchestsoftware/orchest-api:latest": {
         "name": "orchest-api",
@@ -56,6 +54,9 @@ CONTAINER_MAPPING = {
                 "target": "/var/run/docker.sock"
             },
             {
+                # NOTE: The API container needs to copy pipeline directories into 
+                # 'userdir/scheduled_runs{pipeline_uuid}/{run_uuid}'
+                # to make read-only pipeline copies.
                 "source": HOST_USER_DIR,
                 "target": "/userdir"
             },

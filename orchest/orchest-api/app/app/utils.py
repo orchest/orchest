@@ -103,15 +103,11 @@ async def update_status(status: str,
 
     base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_endpoint}/{task_id}'
 
-
-
-
     if type == 'step':
         url = f'{base_url}/{uuid}'
 
     elif type == 'pipeline':
         url = base_url
-
 
     async with session.put(url, json=data) as response:
         return await response.json()
