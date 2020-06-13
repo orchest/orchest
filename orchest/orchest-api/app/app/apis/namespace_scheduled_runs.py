@@ -156,19 +156,20 @@ class ScheduledRun(Resource):
         # TODO: we could specify more options when deleting the run.
         # TODO: error handling.
         # TODO: possible set status of steps and Run to "REVOKED"
+        # TODO: https://stackoverflow.com/questions/39191238/revoke-a-task-from-celery
+        # NOTE: delete new pipeline files that were created for this specific run?
 
         # Stop the run, whether it is in the queue or whether it is
         # actually running.
-
-        # TODO: https://stackoverflow.com/questions/39191238/revoke-a-task-from-celery
-        # NOTE: delete new pipeline files that were created for this specific run?
         revoke(run_uuid, terminate=True)
 
-        res = models.ScheduledRun.query.filter_by(run_uuid=run_uuid).update({
-            'status': 'REVOKED'
-        })
-        if res:
-            db.session.commit()
+        run = models.ScheduledRun.query.filter_by(run_uuid=run_uuid).first()
+        run.status = 'REVOKED'
+
+        for status in run.step_statuses:
+            status.status = 'REVOKED'
+            
+        db.session.commit()
 
         return {'message': 'Run termination was successful'}, 200
 
