@@ -78,8 +78,6 @@ class ScheduledRunList(Resource):
         # Construct pipeline.
         pipeline = construct_pipeline(**post_data)
 
-        print(current_app.name)
-
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
         celery = make_celery(current_app)
@@ -163,13 +161,20 @@ class ScheduledRun(Resource):
         # actually running.
         revoke(run_uuid, terminate=True)
 
-        run = models.ScheduledRun.query.filter_by(run_uuid=run_uuid).first()
-        run.status = 'REVOKED'
+        run_res = models.ScheduledRun.query.filter_by(
+            run_uuid=run_uuid
+        ).update({
+            'status': 'REVOKED'
+        })
 
-        for status in run.step_statuses:
-            status.status = 'REVOKED'
-            
-        db.session.commit()
+        step_res = models.ScheduledStepStatus.query.filter_by(
+            run_uuid=run_uuid
+        ).update({
+            'status': 'REVOKED'
+        })
+
+        if run_res and step_res:
+            db.session.commit()
 
         return {'message': 'Run termination was successful'}, 200
 
