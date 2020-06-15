@@ -128,7 +128,7 @@ IMAGES += [
 
 
 def start():
-    logging.info("Stub: starting Orchest")
+    logging.info("Starting Orchest...")
 
     # need '.durable_queues' to put the rabbitmq queue backups into while tasks are scheduled
     durable_queues_path = os.path.join('/userdir', DURABLE_QUEUES_DIR)
@@ -335,7 +335,7 @@ def dev_mount_inject():
 
     CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]['mounts'] += [
         {
-            "source": os.path.join(os.environ.get("HOST_PWD"), "orchest/orchest-webserver/app/"),
+            "source": os.path.join(os.environ.get("HOST_PWD"), "orchest", "orchest-webserver", "app"),
             "target": "/app"
         }
     ]

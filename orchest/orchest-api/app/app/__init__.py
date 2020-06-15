@@ -6,7 +6,6 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
-from celery import Celery
 from flask import Flask
 from flask_cors import CORS
 

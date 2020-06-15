@@ -63,7 +63,7 @@ def create_app():
         analytics_ping(app)
         
         # and every 15 minutes
-        scheduler.add_job(analytics_ping, 'interval', minutes=15, args=[app])
+        scheduler.add_job(analytics_ping, 'interval', minutes=app.config["TELEMETRY_INTERVAL"], args=[app])
         scheduler.start()
 
     
@@ -73,7 +73,7 @@ def create_app():
     # executed inside a container. 
     file_dir = os.path.dirname(os.path.realpath(__file__))
     permission_process = Popen(
-        ["python3", os.path.join(file_dir,"scripts/file_permission_watcher.py"), app.config["USER_DIR"]]
+        ["python3", os.path.join(file_dir,"scripts", "file_permission_watcher.py"), app.config["USER_DIR"]]
     )
     
     return app

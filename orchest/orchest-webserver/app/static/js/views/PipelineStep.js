@@ -50,7 +50,7 @@ class PipelineStep extends React.Component {
 
         return <div data-uuid={this.props.step.uuid} ref={"container"} className={classNames.join(" ")}>
             <div className={"incoming-connections connection-point"}>
-
+                <div className="inner-dot"></div>
             </div>
             <div className={"execution-indicator"}>
                 { ( () => { if(this.props.executionState.status === "SUCCESS"){ return <span className='success'>✓ </span>} } )() }
@@ -65,7 +65,7 @@ class PipelineStep extends React.Component {
                 </div>
             </div>
             <div className={"outgoing-connections connection-point"}>
-
+                <div className="inner-dot"></div>
             </div>
         </div>
     }

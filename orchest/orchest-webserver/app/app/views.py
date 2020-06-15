@@ -8,6 +8,10 @@ import uuid
 import pdb
 import requests
 import logging
+import nbformat
+from nbconvert import HTMLExporter
+
+from app.utils import get_hash
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -15,7 +19,11 @@ def register_views(app, db):
 
     @app.route("/", methods=["GET"])
     def index():
-        return render_template("index.html")
+
+        js_bundle_path = os.path.join(app.config["STATIC_DIR"], "js", "dist", "main.bundle.js")
+        css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
+
+        return render_template("index.html", javascript_bundle_hash = get_hash(js_bundle_path), css_bundle_hash = get_hash(css_bundle_path))
 
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
@@ -40,7 +48,7 @@ def register_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
-    
+
 
     @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
     def pipelines_delete(pipeline_uuid):
@@ -69,8 +77,8 @@ def register_views(app, db):
         # populate pipeline directory with kernels
 
         # copy directories
-        fromDirectory = os.path.join(app.config['RESOURCE_DIR'], "kernels/")
-        toDirectory = os.path.join(pipeline_dir, ".kernels/")
+        fromDirectory = os.path.join(app.config['RESOURCE_DIR'], "kernels")
+        toDirectory = os.path.join(pipeline_dir, ".kernels")
 
         copy_tree(fromDirectory, toDirectory)
 
@@ -162,7 +170,7 @@ def register_views(app, db):
         pipeline_uuids = [ f.path for f in os.scandir(pipelines_dir) if f.is_dir() ]
 
         pipelines = []
-        
+
         for pipeline_uuid in pipeline_uuids:
 
             pipeline_json_path = os.path.join(pipelines_dir, pipeline_uuid, "pipeline.json")
@@ -180,7 +188,52 @@ def register_views(app, db):
             {"success": True, "result": pipelines})
         return json_string, 200, {'content-type': 'application/json'}
 
-    
+
+    def return_404(reason = ""):
+        json_string = json.dumps(
+            {"success": False, "reason": reason})
+
+        return json_string, 404, {'content-type': 'application/json'}
+
+
+    @app.route("/async/notebook_html/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
+    def notebook_html_get(pipeline_uuid, step_uuid):
+
+        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
+
+        pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
+
+        if os.path.isfile(pipeline_json_path):
+            with open(pipeline_json_path, 'r') as json_file:
+                pipeline_json = json.load(json_file)
+
+            try:
+                notebook_path = os.path.join(pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"])
+            except Exception as e:
+                logging.debug(e)
+                return return_404("Invalid JSON for pipeline %s error: %e" % (pipeline_uuid, e))
+        else:
+            return return_404("Could not find pipeline.json for pipeline %s" % pipeline_uuid)
+
+
+        if os.path.isfile(notebook_path):
+            try:
+
+                with open(notebook_path, 'r') as file:
+                    nb = nbformat.read(file, nbformat.NO_CONVERT)
+
+                html_exporter = HTMLExporter()
+                html_exporter.template_file = 'full'
+
+                (body, resources) = html_exporter.from_notebook_node(nb)
+
+                return body
+
+            except IOError as error:
+                logging.debug("Error opening notebook file %s error: %s" % (notebook_path, error))
+                return return_404("Could not find notebook file %s" % notebook_path)
+
+
     @app.route("/async/logs/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
     def logs_get(pipeline_uuid, step_uuid):
 
@@ -197,7 +250,7 @@ def register_views(app, db):
                     logs = f.read()
 
             except IOError as error:
-                logging.debug("Error opening log file %s erorr: %s", (log_path, error))
+                logging.debug("Error opening log file %s error: %s" % (log_path, error))
 
         if logs is not None:
             json_string = json.dumps(
@@ -226,8 +279,7 @@ def register_views(app, db):
         if host_path:
             USER_DIR = app.config['HOST_USER_DIR']
 
-        pipeline_dir = os.path.join(USER_DIR, "pipelines/")
-        
+        pipeline_dir = os.path.join(USER_DIR, "pipelines")
         # create pipeline dir if it doesn't exist but only when not getting host path (that's not relative to this OS)
         if not host_path:
             os.makedirs(pipeline_dir, exist_ok=True)
@@ -255,9 +307,9 @@ def register_views(app, db):
 
         pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
 
-        # Currently, we check per step whether the file exists. 
+        # Currently, we check per step whether the file exists.
         # If not, we create it (empty by default).
-        # In case the file has an .ipynb extension we generate the file from a 
+        # In case the file has an .ipynb extension we generate the file from a
         # template with a kernel based on the kernel description in the JSON step.
 
         # Iterate over steps

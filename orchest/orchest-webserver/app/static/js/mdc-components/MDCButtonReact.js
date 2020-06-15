@@ -14,7 +14,8 @@ class MDCButtonReact extends React.Component {
     
     render() {
 
-        let topClasses = ["mdc-button", "mdc-button--raised"];
+        let topClasses = ["mdc-button"];
+
         if (this.props.classNames) {
             topClasses = topClasses.concat(this.props.classNames)
         }

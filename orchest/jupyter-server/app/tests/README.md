@@ -9,7 +9,9 @@ Explanation: Due to all the hardcoded paths (and urls), the tests will not run i
 and PORTs are already in use by another application (this is because the tests are run on the local
 machine and not inside a docker container similar to the production environment).
 
-* `app/app/core/config.py`: Set `PRODUCTION = False`. As noted in the top-level README.md
+* `app/app/core/config.py`: Set `PRODUCTION = False`. As noted in the top-level README.md It cannot
+    be patched/mocked because this module is imported seperately in the subprocess calling it.
+    Therefore it has to be manually changed inside the file.
 
 
 ## Difficulties for writing the tests

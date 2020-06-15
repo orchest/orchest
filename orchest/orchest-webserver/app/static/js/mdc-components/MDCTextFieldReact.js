@@ -28,12 +28,17 @@ class MDCTextFieldReact extends React.Component {
         let randomFor = uuidv4();
 
         let topClasses = ["mdc-text-field"];
+
+        if(this.props.disabled === true){
+            topClasses.push("mdc-text-field--disabled");
+        }
+
         if(this.props.classNames){
             topClasses = topClasses.concat(this.props.classNames)
         }
 
         return <div ref={"input"} className={topClasses.join(" ")}>
-            <input onChange={this.onChange.bind(this)} className="mdc-text-field__input"
+            <input disabled={this.props.disabled} onChange={this.onChange.bind(this)} className="mdc-text-field__input"
                 type="text"
                 id={randomFor} />
             <label className="mdc-floating-label" htmlFor={randomFor}>{this.props.label}</label>

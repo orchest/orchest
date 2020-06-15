@@ -1,5 +1,20 @@
 import json
 import os
+import hashlib
+import random
+import string
+
+def get_hash(path):
+	BLOCKSIZE = 8192 * 8
+	hasher = hashlib.md5()
+	with open(path, 'rb') as afile:
+	    buf = afile.read(BLOCKSIZE)
+	    while len(buf) > 0:
+	        hasher.update(buf)
+	        buf = afile.read(BLOCKSIZE)
+
+	return hasher.hexdigest()
+
 
 def write_config(app, key, value):
 

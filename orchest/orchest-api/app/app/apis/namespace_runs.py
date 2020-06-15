@@ -2,13 +2,13 @@ from datetime import datetime
 
 from celery.task.control import revoke
 from flask import current_app, request
-from flask_restplus import Namespace, Resource, fields
+from flask_restplus import Namespace, Resource
 
-from app.connections import db
-import app.models as models
 from app.celery_app import make_celery
-from app.utils import construct_pipeline
+from app.connections import db
+from app.core.pipelines import construct_pipeline
 from app.schema import step_status, status_update, run_configuration, run, runs
+import app.models as models
 
 
 api = Namespace('runs', description='Managing (partial) runs')
@@ -39,7 +39,7 @@ class RunList(Resource):
         """Start a new run."""
         post_data = request.get_json()
         post_data['run_config']['run_endpoint'] = 'runs'
-        
+
         # Construct pipeline.
         pipeline = construct_pipeline(**post_data)
 
@@ -54,7 +54,7 @@ class RunList(Resource):
         # Start the run as a background task on Celery. Due to circular
         # imports we send the task by name instead of importing the
         # function directly.
-        res = celery.send_task('app.core.runners.run_partial',
+        res = celery.send_task('app.core.tasks.run_partial',
                                kwargs=celery_job_kwargs)
 
         # NOTE: this is only if a backend is configured.  The task does
@@ -89,7 +89,7 @@ class RunList(Resource):
         db.session.bulk_save_objects(step_statuses)
 
         db.session.commit()
-    
+
         run['step_statuses'] = step_statuses
         return run, 201
 
@@ -128,9 +128,13 @@ class Run(Resource):
         # TODO: error handling.
         # TODO: possible set status of steps and Run to "REVOKED"
 
-        # Stop the run, whether it is in the queue or whether it is
-        # actually running.
-        revoke(run_uuid, terminate=True)
+        # NOTE: The terminate option is a last resort for administrators
+        # when a task is stuck. It’s not for terminating the task, it’s
+        # for terminating the process that’s executing the task, and
+        # that process may have already started processing another task
+        # at the point when the signal is sent, so for this reason you
+        # must never call this programmatically.
+        revoke(run_uuid)
 
         return {'message': 'Run termination was successful'}, 200
 

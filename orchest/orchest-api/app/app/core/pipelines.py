@@ -94,7 +94,11 @@ async def update_status(status: str,
                         type: str,
                         run_endpoint: str,
                         uuid: Optional[str] = None) -> Any:
-    """Updates status of step via the orchest-api."""
+    """Updates status of `type` via the orchest-api.
+
+    Args:
+        type: One of ``['pipeline', 'step']``.
+    """
     data = {'status': status}
     if data['status'] == 'STARTED':
         data['started_time'] = datetime.utcnow().isoformat()
@@ -392,6 +396,7 @@ class Pipeline:
         return cls(list(steps.values()), properties)
 
     def to_dict(self) -> PipelineDescription:
+        """Convert the Pipeline to its dictionary description."""
         description: PipelineDescription = {'steps': {}}
         for step in self.steps:
             description['steps'][step.properties['uuid']] = step.properties

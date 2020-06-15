@@ -176,10 +176,7 @@ class PipelineDetailsProperties extends React.Component {
         })
     }
 
-    componentDidMount() {
-
-        // set focus on first field
-        this.refs.titleTextField.focus();
+    setupConnectionListener(){
 
         // initiate draggable connections
         let _this = this;
@@ -284,7 +281,16 @@ class PipelineDetailsProperties extends React.Component {
                 _this.swapConnectionOrder(oldConnectionIndex, newConnectionIndex);
             }
         });
+    }
 
+    componentDidMount() {
+
+        // set focus on first field
+        this.refs.titleTextField.focus();
+
+        if(!this.props.readOnly){
+            this.setupConnectionListener()
+        }
     }
 
     render() {
@@ -305,6 +311,7 @@ class PipelineDetailsProperties extends React.Component {
                     value={this.state.step.title}
                     onChange={this.onChangeTitle.bind(this)}
                     label="Title"
+                    disabled={this.props.readOnly}
                     classNames={["fullwidth", "push-down"]}
                     ref="titleTextField"
                 />
@@ -315,6 +322,7 @@ class PipelineDetailsProperties extends React.Component {
                         value={filenameWithoutExtension(this.state.step.file_path)}
                         onChange={this.onChangeFileName.bind(this)}
                         label="File name"
+                        disabled={this.props.readOnly}
                     />
 
                     <MDCSelectReact label="File extension" onChange={this.onChangeFileType.bind(this)} items={[
@@ -323,6 +331,7 @@ class PipelineDetailsProperties extends React.Component {
                         [".R", ".R"],
                         [".sh", ".sh"]
                     ]}
+                        disabled={this.props.readOnly}
                         selected={"." + extensionFromFilename(this.state.step.file_path)}
                     />
                     <span className={'clear'}></span>
@@ -332,6 +341,7 @@ class PipelineDetailsProperties extends React.Component {
                     label="Kernel"
                     onChange={this.onChangeKernel.bind(this)} items={this.state.kernelOptions}
                     selected={this.state.step.kernel.name}
+                    disabled={this.props.readOnly}
                     classNames={(() => {
                         let classes = ["push-down"];
                         if (!this.state.isNotebookStep) {
@@ -343,6 +353,7 @@ class PipelineDetailsProperties extends React.Component {
 
                 <MDCSelectReact
                     label="Image"
+                    disabled={this.props.readOnly}
                     onChange={this.onChangeImage.bind(this)} items={this.state.imageOptions}
                     selected={this.state.step.image}
                 />
@@ -352,6 +363,7 @@ class PipelineDetailsProperties extends React.Component {
                 <h3>Experiment</h3>
 
                 <MDCTextFieldAreaReact
+                    disabled={this.props.readOnly}
                     onChange={this.onChangeExperimentJSON.bind(this)}
                     label="JSON argument description"
                     value={this.state.step.experiment_json}

@@ -1,8 +1,8 @@
 import os
 from typing import NamedTuple
-
+import time
 from docker.types import Mount
-
+import subprocess
 
 class IP(NamedTuple):
     EG: str
@@ -91,8 +91,7 @@ class JupyterDockerManager(DockerManager):
                     f'EG_DOCKER_NETWORK={self.network}',
                     'EG_MIRROR_WORKING_DIRS=True',
                     'EG_LIST_KERNELS=True',
-                    ('EG_KERNEL_WHITELIST=["orchestsoftware-scipy-notebook-augmented_docker_python",'
-                                          '"orchestsoftware-r-notebook-augmented_docker_ir"]'),
+                    ('EG_KERNEL_WHITELIST=["orchestsoftware-scipy-notebook-augmented_docker_python","orchestsoftware-r-notebook-augmented_docker_ir"]'),
                     "EG_UNAUTHORIZED_USERS=['dummy']",
                     "EG_UID_BLACKLIST=['-1']",
                     "EG_ALLOW_ORIGIN=*"

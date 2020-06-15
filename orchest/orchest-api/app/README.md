@@ -63,13 +63,13 @@ respectively.
 
 ## Partial runs
 Do not forget to start a Celery worker to run the background tasks for the Flask API:
-`orchest/orchest/orchest-api$ celery worker -A app.core.runners -l INFO`
+`orchest/orchest/orchest-api$ celery worker -A app.core.tasks -l INFO`
 
 The logic here is straightforward. 
 1. API gets called to start a (partial) run through a POST request to `/api/runs/`
 2. Inside the POST a payload is given which contains a specification of the run and the pipeline.
 3. The run is then started as a background task through Celery. In this case `run_partial` in the
-   `/app/core/runners.py` module.
+   `/app/core/tasks.py` module.
 4. The task converts the JSON description of the pipeline to a `Pipeline` object and then calls its
    `run(task_id)` function, where `task_id` is the id of the Celery task. (The id is used to update
    the status of the task inside the sqlite database.)

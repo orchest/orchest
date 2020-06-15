@@ -25,12 +25,17 @@ class MDCTextFieldAreaReact extends React.Component {
         let randomFor = uuidv4();
 
         let topClasses = ["mdc-text-field", "mdc-text-field--textarea"];
+
+        if(this.props.disabled){
+            topClasses.push("mdc-text-field--disabled");
+        }
+
         if(this.props.classNames){
             topClasses = topClasses.concat(this.props.classNames)
         }
 
         return <div ref="input" className={topClasses.join(" ")}>
-            <textarea id={randomFor} onChange={this.onChange.bind(this)} className="mdc-text-field__input" rows="5"></textarea>
+            <textarea disabled={this.props.disabled} id={randomFor} onChange={this.onChange.bind(this)} className="mdc-text-field__input" rows="5"></textarea>
             <div className="mdc-notched-outline">
                 <div className="mdc-notched-outline__leading"></div>
                 <div className="mdc-notched-outline__notch">

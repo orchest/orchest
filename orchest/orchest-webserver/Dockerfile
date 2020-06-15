@@ -8,6 +8,8 @@ RUN pip3 install Flask \
     requests \
     APScheduler \
     pyinotify \
+    nbformat \
+    nbconvert \
     Werkzeug==0.16.0
 
 # refresh SSL certificates

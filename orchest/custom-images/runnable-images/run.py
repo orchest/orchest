@@ -110,7 +110,7 @@ def run_notebook(file_path, step_uuid=None):
 
 
 def get_log_file_path(step_uuid):
-    return os.path.join(WORKING_DIR, "%s/%s.log" % (LOG_DIR, step_uuid))
+    return os.path.join(WORKING_DIR, LOG_DIR, "%s.log" % step_uuid)
 
 
 def run_process(command, filename, step_uuid=None):
