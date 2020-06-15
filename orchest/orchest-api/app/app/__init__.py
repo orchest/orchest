@@ -13,7 +13,7 @@ from app.apis import blueprint as api
 from app.connections import db
 
 
-def create_app(config_class=None):
+def create_app(config_class=None, use_db=True):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -21,10 +21,11 @@ def create_app(config_class=None):
     # different microservices such as the webserver.
     CORS(app, resources={r'/*': {'origins': '*'}})
 
-    # Initialize the database and create the database file.
-    db.init_app(app)
-    with app.app_context():
-        db.create_all()
+    if use_db:
+        # Initialize the database and create the database file.
+        db.init_app(app)
+        with app.app_context():
+            db.create_all()
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix='/api')

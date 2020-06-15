@@ -2,7 +2,14 @@ class Config:
     DEBUG = False
     TESTING = False
 
+    # must be uppercase
+    # https://flask-appbuilder.readthedocs.io/en/latest/multipledbs.html
     SQLALCHEMY_DATABASE_URI = 'sqlite:///resources.db'
+    SQLALCHEMY_BINDS = {
+        # /userdir works because it's mounted via docker
+        'persistent_db': 'sqlite:////userdir/persistent.db',
+    }
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # TODO: for now this is put here.
@@ -15,12 +22,10 @@ class Config:
     broker_url = 'amqp://guest:guest@rabbitmq-server:5672//'
     imports = ('app.core.tasks',)
     # result_backend = 'rpc://'
-    # task_track_started = True
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
-
     # ORCHEST_API_ADDRESS = 'http://127.0.0.1:5000/api'
 
 
