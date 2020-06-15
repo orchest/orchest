@@ -5,14 +5,13 @@ from shutil import copytree
 from celery import uuid
 from celery.task.control import revoke
 from flask import current_app, request
-from flask_restplus import Namespace, Resource, fields
+from flask_restplus import Namespace, Resource
 
 from app.connections import db
 import app.models as models
 from app.celery_app import make_celery
-from app.utils import construct_pipeline
+from app.core.pipelines import construct_pipeline
 from app.schema import step_status, status_update, scheduled_run_configuration, scheduled_run, scheduled_runs
-
 
 
 api = Namespace('scheduled_runs', description='Managing (partial) scheduled runs')
@@ -74,7 +73,7 @@ class ScheduledRunList(Resource):
 
         scheduled_date_time_string = post_data['scheduled_date_time']
         scheduled_date_time = datetime.fromisoformat(scheduled_date_time_string.replace('Z', '+00:00'))
-            
+
         # Construct pipeline.
         pipeline = construct_pipeline(**post_data)
 
@@ -105,7 +104,7 @@ class ScheduledRunList(Resource):
         # Set an initial value for the status of the pipline steps that
         # will be run.
         step_uuids = [s.properties['uuid'] for s in pipeline.steps]
-        
+
         # TODO: create function(s) to increase DRY in regards to runespace_runs and namespace_scheduled_runs
         step_statuses = []
         for step_uuid in step_uuids:
