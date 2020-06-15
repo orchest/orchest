@@ -41,7 +41,7 @@ class PipelineDetailsLogs extends React.Component {
   render() {
     return <div className={"detail-subview"}>
       <div className="log-content">
-        {this.state.logs}
+        <div dangerouslySetInnerHTML={{"__html": this.state.logs}}></div>
       </div>
     </div>;
   }

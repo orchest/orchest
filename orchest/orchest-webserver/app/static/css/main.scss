@@ -4,6 +4,7 @@
 
 @import "scrollbar";
 @import "fonts";
+@import "ansi";
 
 $generalPadding: 20px;
 $borderColor: rgba(0, 0, 0, 0.15);
@@ -542,7 +543,7 @@ h2.header {
       color: #fff;
       padding: $generalPadding / 2;
       height: 100%;
-      white-space: pre;
+      white-space: pre-line;
     }
 
     .input-group {

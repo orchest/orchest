@@ -4,7 +4,8 @@ import subprocess
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-
+from nbconvert.preprocessors.execute import CellExecutionError
+from nbconvert.filters import ansi2html
 
 WORKING_DIR = "/notebooks"
 LOG_DIR = ".logs"
@@ -31,30 +32,42 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
             return cell, resources
         else:
 
-            cell, resources = super().preprocess_cell(cell, resources, cell_index)
+            try:
+            
+                cell, resources = super().preprocess_cell(cell, resources, cell_index)
 
-            # cell output to STDOUT of this process
-            if hasattr(cell, 'outputs'):
-                for output in cell.outputs:
+                # cell output to STDOUT of this process
+                if hasattr(cell, 'outputs'):
+                    for output in cell.outputs:
 
-                    output_text = ''
+                        output_text = ''
 
-                    # support multiple types of output: 
-                    # output['text'] (for output['output_type']=='stream')
-                    # output['data']['text/plain'] (for output['output_type']=='execute_result')
+                        # support multiple types of output: 
+                        # output['text'] (for output['output_type']=='stream')
+                        # output['data']['text/plain'] (for output['output_type']=='execute_result')
+                        
+                        # Note this means application/json and image/png are currently not supported for logging.
+                        if 'text' in output:
+                            output_text = output['text']
+                        elif 'data' in output and 'text/plain' in output['data']:
+                            output_text = output['data']['text/plain']
+
+                        if not output_text.endswith('\n'):
+                            output_text = ''.join([output_text, '\n'])
+
+                        self.log_file.write("[%i] %s" % (cell['execution_count'], output_text))
+                    self.log_file.flush()
                     
-                    # Note this means application/json and image/png are currently not supported for logging.
-                    if 'text' in output:
-                        output_text = output['text']
-                    elif 'data' in output and 'text/plain' in output['data']:
-                        output_text = output['data']['text/plain']
+            except CellExecutionError as e:
 
-                    if not output_text.endswith('\n'):
-                        output_text = ''.join([output_text, '\n'])
-
-                    self.log_file.write("[%i] %s" % (cell['execution_count'], output_text))
-                
+                self.log_file.write("%s" % ansi2html(e))
                 self.log_file.flush()
+
+                # raise CellExecutionError to avoid execution next cells
+                raise e
+
+
+
             # else:
             #     # TODO: Evaluate whether we want to output anything for no output cells
             #     self.log_file.write("%s" % ('<No output cell: %s >\n' % cell['cell_type']))

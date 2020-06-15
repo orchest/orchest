@@ -1,0 +1,35 @@
+.ansi-black-fg { color: rgb(0,0,0); }
+.ansi-red-fg { color: rgb(205,0,0); }
+.ansi-green-fg { color: rgb(0,205,0); }
+.ansi-yellow-fg { color: rgb(205,205,0); }
+.ansi-blue-fg { color: rgb(0,0,238); }
+.ansi-magenta-fg { color: rgb(205,0,205); }
+.ansi-cyan-fg { color: rgb(0,205,205); }
+.ansi-white-fg { color: rgb(229,229,229); }
+
+.ansi-bright-black-fg { color: rgb(127,127,127); }
+.ansi-bright-red-fg { color: rgb(255,0,0); }
+.ansi-bright-green-fg { color: rgb(0,255,0); }
+.ansi-bright-yellow-fg { color: rgb(255,255,0); }
+.ansi-bright-blue-fg { color: rgb(92,92,255); }
+.ansi-bright-magenta-fg { color: rgb(255,0,255); }
+.ansi-bright-cyan-fg { color: rgb(0,255,255); }
+.ansi-bright-white-fg { color: rgb(255,255,255); }
+
+.ansi-black-bg { /* black bg = transparent */ }
+.ansi-red-bg { background-color: rgb(205,0,0); }
+.ansi-green-bg { background-color: rgb(0,205,0);; }
+.ansi-yellow-bg { background-color: rgb(205,205,0); }
+.ansi-blue-bg { background-color: rgb(0,0,238); }
+.ansi-magenta-bg { background-color: rgb(205,0,205); }
+.ansi-cyan-bg { background-color: rgb(0,205,205); }
+.ansi-white-bg { background-color: rgba(255,255,255,0.7); /* alpha baby!*/ }
+
+.ansi-bright-black-bg { background-color: rgb(127,127,127); }
+.ansi-bright-red-bg { background-color: rgb(255,0,0); }
+.ansi-bright-green-bg { background-color:  rgb(0,255,0); }
+.ansi-bright-yellow-bg { background-color: rgb(255,255,0); }
+.ansi-bright-blue-bg { background-color: rgb(92,92,255); }
+.ansi-bright-magenta-bg { background-color: rgb(255,0,255); }
+.ansi-bright-cyan-bg { background-color: rgb(0,255,255); }
+.ansi-bright-white-bg { background-color: rgb(255,255,255); }
