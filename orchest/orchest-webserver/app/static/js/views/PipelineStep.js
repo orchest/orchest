@@ -48,7 +48,11 @@ class PipelineStep extends React.Component {
             stateText = "Aborted";
         }
 
-        return <div data-uuid={this.props.step.uuid} ref={"container"} className={classNames.join(" ")}>
+        let style = {
+            transform: "translateX(" + this.props.step.meta_data.position[0] + "px) translateY(" + this.props.step.meta_data.position[1] + "px)"
+        }
+
+        return <div data-uuid={this.props.step.uuid} ref={"container"} className={classNames.join(" ")} style={style}>
             <div className={"incoming-connections connection-point"}>
                 <div className="inner-dot"></div>
             </div>

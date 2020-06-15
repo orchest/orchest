@@ -8,8 +8,6 @@ import PipelineStep from "./PipelineStep";
 import MDCButtonReact from "../mdc-components/MDCButtonReact";
 import NotebookPreviewView from './NotebookPreviewView';
 
-
-
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 
     this.startNode = startNode;
@@ -135,29 +133,6 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
         line.push('C', mx, y1, mx, y2, x2, y2);
 
         return line.join(' ')
-    };
-}
-
-function PipelineStepDOMWrapper(el, uuid, reactRef) {
-    this.el = $(el);
-    this.uuid = uuid;
-    this.reactRef = reactRef;
-    this.x = 0;
-    this.y = 0;
-    this.dragged = false;
-    this.dragCount = 0;
-
-    this.restore = function () {
-        this.x = this.reactRef.props.step.meta_data.position[0];
-        this.y = this.reactRef.props.step.meta_data.position[1];
-    };
-
-    this.render = function () {
-        this.el.css('transform', "translateX(" + this.x + "px) translateY(" + this.y + "px)");
-    };
-
-    this.save = function () {
-        this.reactRef.props.onMove(this.uuid, this.x, this.y);
     };
 }
 
@@ -297,7 +272,19 @@ class PipelineView extends React.Component {
 
         for (let key in this.state.steps) {
             if (this.state.steps.hasOwnProperty(key)) {
-                let step = this.state.steps[key];
+                
+                // deep copy step
+                let step = JSON.parse(JSON.stringify(this.state.steps[key]));
+
+                // remove private meta_data (prefixed with underscore)
+                let keys = Object.keys(step.meta_data)
+                for(let x = 0; x < keys.length; x++){
+                    let key = keys[x];
+                    if(key[0] === "_"){
+                        delete step.meta_data[key];
+                    }
+                }
+                
                 pipelineJSON["steps"][step.uuid] = step;
             }
         }
@@ -314,6 +301,10 @@ class PipelineView extends React.Component {
         for (let key in pipelineJson.steps) {
             if (pipelineJson.steps.hasOwnProperty(key)) {
                 steps[key] = pipelineJson.steps[key];
+
+                // augmenting state with runtime data in meta_data
+                steps[key].meta_data._drag_count = 0;
+                steps[key].meta_data._dragged = false;
             }
         }
 
@@ -344,27 +335,6 @@ class PipelineView extends React.Component {
 
         this.fetchPipelineAndInitialize()
 
-    }
-
-    updatePipelineViewerState() {
-        // populate pipelineRefs
-        this.pipelineRefs = [];
-
-        for (let key in this.state.steps) {
-            if (this.state.steps.hasOwnProperty(key)) {
-                let step = this.state.steps[key];
-                this.pipelineRefs.push(this.refs[step.uuid]);
-            }
-        }
-
-        // create step object to store state related to rendering
-        for (let x = 0; x < this.pipelineRefs.length; x++) {
-            let el = this.pipelineRefs[x].refs.container;
-            let psdw = new PipelineStepDOMWrapper(el, $(el).attr('data-uuid'), this.pipelineRefs[x]);
-            this.pipelineSteps[$(el).attr('data-uuid')] = psdw;
-            psdw.restore();
-            psdw.render();
-        }
     }
 
     getConnectionByUUIDs(startNodeUUID, endNodeUUID) {
@@ -466,29 +436,6 @@ class PipelineView extends React.Component {
 
             let dragOp = false;
 
-            if (_this.selectedItem) {
-                // check if click should be triggered
-
-                // TODO: check if save pipeline needs to be triggered on every mouserelease
-
-                // Saving pipeline step position on mouse release.
-                // two cases: moved selectedItem or moved this.state.selectedSteps
-                if (_this.state.selectedSteps.length > 1) {
-                    for (let key in _this.state.selectedSteps) {
-                        let uuid = _this.state.selectedSteps[key];
-                        _this.pipelineSteps[uuid].save();
-                    }
-                } else {
-                    _this.selectedItem.save();
-                }
-
-                // on move step trigger unsavedChanges
-                _this.setState({
-                    "unsavedChanges": _this.state.unsavedChanges
-                });
-
-            }
-
             if (_this.newConnection) {
 
                 let endNodeUUID = $(e.target).parents(".pipeline-step").attr('data-uuid');
@@ -579,31 +526,34 @@ class PipelineView extends React.Component {
 
         $(this.refs.pipelineStepsHolder).on('mousemove', function (e) {
 
-            if (_this.selectedItem) {
+            if (_this.selectedItem !== undefined) {
 
                 let delta = [e.clientX - _this.prevPosition[0], e.clientY - _this.prevPosition[1]];
 
                 _this.prevPosition = [e.clientX, e.clientY];
 
-                _this.selectedItem.dragCount++;
-                if (_this.selectedItem.dragCount >= _this.DRAG_CLICK_SENSITIVITY) {
-                    _this.selectedItem.dragged = true;
-                    _this.selectedItem.dragCount = 0;
+                let step = _this.state.steps[_this.selectedItem];
+
+                step.meta_data._drag_count++;
+                if (step.meta_data._drag_count >= _this.DRAG_CLICK_SENSITIVITY) {
+                    step.meta_data._dragged = true;
+                    step.meta_data._drag_count = 0;
                 }
 
                 if (_this.state.selectedSteps.length > 1) {
                     for (let key in _this.state.selectedSteps) {
                         let uuid = _this.state.selectedSteps[key];
 
-                        _this.pipelineSteps[uuid].x += delta[0];
-                        _this.pipelineSteps[uuid].y += delta[1];
-                        _this.pipelineSteps[uuid].render();
+                        _this.state.steps[uuid].meta_data.position[0] += delta[0];
+                        _this.state.steps[uuid].meta_data.position[1] += delta[1];
                     }
-                } else if (_this.selectedItem) {
-                    _this.selectedItem.x += delta[0];
-                    _this.selectedItem.y += delta[1];
-                    _this.selectedItem.render();
+                } else if (_this.selectedItem !== undefined) {
+
+                    step.meta_data.position[0] += delta[0];
+                    step.meta_data.position[1] += delta[1];
                 }
+
+                _this.setState({ "steps": _this.state.steps, "unsavedChanges": true });
 
                 _this.renderConnections(_this.connections);
 
@@ -638,9 +588,7 @@ class PipelineView extends React.Component {
                 if (!$(e.target).hasClass('connection-point')) {
 
                     let stepUUID = $(e.currentTarget).attr('data-uuid');
-
-                    _this.selectedItem = _this.pipelineSteps[stepUUID];
-
+                    _this.selectedItem = stepUUID;
                 }
             }
         });
@@ -649,19 +597,20 @@ class PipelineView extends React.Component {
 
             let dragOp = false;
 
-            if (_this.selectedItem) {
+            if (_this.selectedItem !== undefined) {
 
-                if (!_this.selectedItem.dragged) {
-                    // also select this step only
-                    _this.selectedItem.reactRef.props.onClick(_this.selectedItem.uuid);
-                    _this.selectStep(_this.selectedItem.uuid);
+                let step = _this.state.steps[_this.selectedItem];
+
+                if (!step.meta_data._dragged) {
+                    _this.refs[_this.selectedItem].props.onClick(_this.selectedItem);
+                    _this.selectStep(_this.selectedItem);
 
                 } else {
                     dragOp = true;
                 }
 
-                _this.selectedItem.dragged = false;
-                _this.selectedItem.dragCount = 0;
+                step.meta_data._dragged = false;
+                step.meta_data._drag_count = 0;
             }
 
 
@@ -770,9 +719,6 @@ class PipelineView extends React.Component {
         // this.state.steps is assumed to be populated
         // called after render, assumed dom elements are also available
         // (required by i.e. connections)
-
-        this.updatePipelineViewerState()
-        
         console.log("Initializing pipeline listeners");
 
         // add all existing connections (this happens only at initialization)
@@ -953,7 +899,9 @@ class PipelineView extends React.Component {
             // "gpus": "0",
             "experiment_json": "",
             "meta_data": {
-                "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height() / 2]
+                "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height() / 2],
+                "_dragged": false,
+                "_drag_count": 0,
             }
         };
 
@@ -961,13 +909,6 @@ class PipelineView extends React.Component {
         this.setState({ "steps": this.state.steps });
 
         this.selectStep(step.uuid);
-
-        // create necessary connection between DOM wrapper and this React state
-        // through timeout because it requires intermediate React render for the
-        // ref to be active (which is used in updatePipelineViewerState)
-        setTimeout(() => {
-            this.updatePipelineViewerState();
-        },1);
 
     }
 
@@ -983,14 +924,6 @@ class PipelineView extends React.Component {
             selectedSteps: [pipelineStepUUID]
         });
 
-    }
-
-    moveStep(pipelineStepUUID, x, y) {
-        if (this.state.steps[pipelineStepUUID].meta_data.position[0] != x
-            || this.state.steps[pipelineStepUUID].meta_data.position[1] != y) {
-            this.state.steps[pipelineStepUUID].meta_data.position = [x, y];
-            this.state.unsavedChanges = true;
-        }
     }
 
     stepNameUpdate(pipelineStepUUID, title, file_path) {
@@ -1359,6 +1292,9 @@ class PipelineView extends React.Component {
 
                 let selected = this.state.selectedSteps.indexOf(uuid) !== -1;
 
+
+                // only add steps to the component that have been properly
+                // initialized
                 pipelineSteps.push(<PipelineStep
                     key={step.uuid}
                     step={step}
@@ -1366,7 +1302,6 @@ class PipelineView extends React.Component {
                     ref={step.uuid}
                     executionState={this.getStepExecutionState(step.uuid)}
                     onConnect={this.makeConnection.bind(this)}
-                    onMove={this.moveStep.bind(this)}
                     onClick={this.selectStep.bind(this)} />);
             }
         }
