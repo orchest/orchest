@@ -13,7 +13,6 @@ class PipelineListItem extends React.Component {
     }
 
     pipelineClick(e){
-        console.log(e);
 
         // load pipeline view
         let props = {

@@ -765,11 +765,12 @@ class PipelineView extends React.Component {
 
     initializePipeline() {
 
-        this.updatePipelineViewerState()
 
         // Initialize should be called only once
         // this.state.steps is assumed to be populated
-        // called after render, assumed dom elements are also available (required by i.e. connections)
+        // called after render, assumed dom elements are also available
+        // (required by i.e. connections)
+        this.updatePipelineViewerState()
         
         console.log("Initializing pipeline listeners");
 
@@ -803,6 +804,8 @@ class PipelineView extends React.Component {
             // initialize all listeners related to editing the pipeline
             this.initializePipelineEditListeners();
         }
+
+
 
     }
 
@@ -957,6 +960,13 @@ class PipelineView extends React.Component {
         this.setState({ "steps": this.state.steps });
 
         this.selectStep(step.uuid);
+
+        // create necessary connection between DOM wrapper and this React state
+        // through timeout because it requires intermediate React render for the
+        // ref to be active (which is used in updatePipelineViewerState)
+        setTimeout(() => {
+            this.updatePipelineViewerState();
+        },1);
 
     }
 
