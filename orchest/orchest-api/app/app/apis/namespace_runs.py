@@ -186,9 +186,13 @@ class Run(Resource):
         # TODO: error handling.
         # TODO: possible set status of steps and Run to "REVOKED"
 
-        # Stop the run, whether it is in the queue or whether it is
-        # actually running.
-        revoke(run_uuid, terminate=True)
+        # NOTE: The terminate option is a last resort for administrators
+        # when a task is stuck. It’s not for terminating the task, it’s
+        # for terminating the process that’s executing the task, and
+        # that process may have already started processing another task
+        # at the point when the signal is sent, so for this reason you
+        # must never call this programmatically.
+        revoke(run_uuid)
 
         return {'message': 'Run termination was successful'}, 200
 
