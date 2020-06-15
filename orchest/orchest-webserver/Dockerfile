@@ -29,6 +29,7 @@ RUN npx webpack
 
 # Compile style
 WORKDIR /app/static/css/
-RUN ./compile-sass.sh
 
+# Compile style, compile-sass.sh and prestart.sh need LF line endings
+RUN ./compile-sass.sh
 WORKDIR /app

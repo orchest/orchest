@@ -16,7 +16,6 @@ VALID_COMMANDS = {
     "update": "Update Orchest to the latest version by pulling latest container images"
 }
 
-
 DOCKER_NETWORK = 'orchest'
 
 if "HOST_USER_DIR" in os.environ:
@@ -37,8 +36,11 @@ def capture_drive(match):
 def slash_sub(path):
     return re.sub(r'([A-Z]):\\', capture_drive, path).replace("\\","/")
 
+
 HOST_USER_DIR = slash_sub(HOST_USER_DIR)
 HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
+
+DURABLE_QUEUES_DIR = ".durable_queues"
 
 # Set to `True` if you want to pull images from Dockerhub 
 # instead of using local equivalents
@@ -51,7 +53,15 @@ CONTAINER_MAPPING = {
                 "source": "/var/run/docker.sock",
                 "target": "/var/run/docker.sock"
             },
-        ]
+            {
+                # NOTE: The API container needs to copy pipeline directories into 
+                # 'userdir/scheduled_runs{pipeline_uuid}/{run_uuid}'
+                # to make read-only pipeline copies.
+                "source": HOST_USER_DIR,
+                "target": "/userdir"
+            },
+        ],
+
     },
     "orchestsoftware/nginx-proxy:latest": {
         "name": "nginx-proxy",
@@ -85,11 +95,18 @@ CONTAINER_MAPPING = {
             {
                 "source": "/var/run/docker.sock",
                 "target": "/var/run/docker.sock"
-            }
+            },
         ]
     },
     "rabbitmq:3": {
-        "name": "rabbitmq-server"
+        "name": "rabbitmq-server",
+        "hostname": "rabbitmq-hostname",
+        "mounts": [
+            {
+                "source": os.path.join(HOST_USER_DIR, DURABLE_QUEUES_DIR),
+                "target": "/var/lib/rabbitmq/mnesia",
+            }
+        ],
     }
 }
 
@@ -112,6 +129,11 @@ IMAGES += [
 
 def start():
     logging.info("Starting Orchest...")
+
+    # need '.durable_queues' to put the rabbitmq queue backups into while tasks are scheduled
+    durable_queues_path = os.path.join('/userdir', DURABLE_QUEUES_DIR)
+    if not os.path.exists(durable_queues_path):
+        os.makedirs(durable_queues_path)
 
     # check if all images are present
     if install_complete():
@@ -155,6 +177,10 @@ def start():
                 ports = {}
                 if 'ports' in container_spec:
                     ports = container_spec['ports']
+
+                hostname = None
+                if 'hostname' in container_spec:
+                    hostname = container_spec['hostname']
                 
                 logging.info("Starting image %s" % container_image)
 
@@ -165,7 +191,8 @@ def start():
                     mounts=mounts,
                     network=DOCKER_NETWORK,
                     environment=environment,
-                    ports=ports
+                    ports=ports,
+                    hostname=hostname,
                 )
 
         log_server_url()

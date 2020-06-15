@@ -9,6 +9,7 @@ import MDCButtonReact from "../mdc-components/MDCButtonReact";
 import NotebookPreviewView from './NotebookPreviewView';
 
 
+
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 
     this.startNode = startNode;
@@ -526,7 +527,7 @@ class PipelineView extends React.Component {
                 } else {
                     _this.newConnection.el.remove();
                     _this.connections.splice(_this.connections.indexOf(_this.newConnection), 1);
-                    
+
                     if(!noConnectionExists){
                         alert("These steps are already connected. No new connection has been created.");
                     }
@@ -649,7 +650,7 @@ class PipelineView extends React.Component {
             let dragOp = false;
 
             if (_this.selectedItem) {
-               
+
                 if (!_this.selectedItem.dragged) {
                     // also select this step only
                     _this.selectedItem.reactRef.props.onClick(_this.selectedItem.uuid);
@@ -666,7 +667,7 @@ class PipelineView extends React.Component {
 
             // stepSelector
             if (_this.state.stepSelector.active) {
-                
+
                 _this.state.stepSelector.active = false;
                 _this.setState({
                     stepSelector: _this.state.stepSelector
@@ -689,7 +690,7 @@ class PipelineView extends React.Component {
             _this.forceUpdate();
 
         });
-     
+
         $(this.refs.pipelineStepsHolder).on("mousedown", (e) => {
 
             _this.prevPosition = [e.clientX, e.clientY];
@@ -770,7 +771,7 @@ class PipelineView extends React.Component {
         // Initialize should be called only once
         // this.state.steps is assumed to be populated
         // called after render, assumed dom elements are also available (required by i.e. connections)
-        
+
         console.log("Initializing pipeline listeners");
 
         // add all existing connections (this happens only at initialization)
@@ -797,8 +798,8 @@ class PipelineView extends React.Component {
 
 
         // initialize all listeners related to viewing/navigating the pipeline
-        this.initializePipelineNavigationListeners();     
-        
+        this.initializePipelineNavigationListeners();
+
         if(this.props.readOnly !== true){
             // initialize all listeners related to editing the pipeline
             this.initializePipelineEditListeners();
@@ -873,7 +874,7 @@ class PipelineView extends React.Component {
 
             // get pipeline dir from webserver
             makeRequest("GET", "/async/pipelines/get_directory/" + this.props.pipeline.uuid).then((response) => {
-                
+
                 let json = JSON.parse(response);
 
                 let userdir_pipeline = json.result;
@@ -1092,6 +1093,8 @@ class PipelineView extends React.Component {
 
     }
 
+
+
     pollPipelineStepStatuses() {
 
         if (this.state.runUuid) {
@@ -1120,6 +1123,7 @@ class PipelineView extends React.Component {
 
         this.forceUpdate();
     }
+
 
     runSelectedSteps() {
         this.runStepUuids(this.state.selectedSteps, "selection");
@@ -1388,6 +1392,7 @@ class PipelineView extends React.Component {
             </div>;
         }
 
+
         return <div className={"pipeline-view"}>
             <div className={"pane"}>
                 <div className={"pipeline-actions bottom-left"}>
@@ -1412,32 +1417,32 @@ class PipelineView extends React.Component {
                                 label="Jupyter Server"
                                 icon={this.state.backend.working ? "hourglass_empty" : "power_settings_new"}
                             />
-        
+
                             <MDCButtonReact
-                                classNames={["mdc-button--raised"]} 
+                                classNames={["mdc-button--raised"]}
                                 onClick={this.newStep.bind(this)}
                                 icon={"add"}
                                 label={"NEW STEP"}
                             />
-        
+
                             <MDCButtonReact
-                                classNames={["mdc-button--raised"]} 
+                                classNames={["mdc-button--raised"]}
                                 ref="saveButton"
                                 onClick={this.savePipeline.bind(this)}
                                 label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                             />
-        
+
                             <MDCButtonReact
-                                classNames={["mdc-button--raised"]} 
+                                classNames={["mdc-button--raised"]}
                                 onClick={this.openSettings.bind(this)}
                                 label={"Settings"}
                                 icon="tune"
                             />
-        
+
                         </div>;
                     }else{
                         return <div className={"pipeline-actions"}>
-                                <MDCButtonReact 
+                                <MDCButtonReact
                                 classNames={"mdc-button--outlined"}
                                 label={"Read only"}
                                 icon={"visibility"}
@@ -1445,7 +1450,7 @@ class PipelineView extends React.Component {
                             </div>
                     }
                 })()}
-                
+
                 <div className="pipeline-steps-outer-holder" ref={"pipelineStepsOuterHolder"} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
                     onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
                 >
