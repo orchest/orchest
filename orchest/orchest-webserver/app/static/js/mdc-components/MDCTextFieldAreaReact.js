@@ -6,20 +6,25 @@ class MDCTextFieldAreaReact extends React.Component {
     componentWillUnmount() {
     }
 
+
+    getValue(){
+        return this.props.value ? this.props.value : "";
+    }
+
     componentDidMount() {
         this.mdc = new MDCTextField(this.refs.input);
-        this.mdc.value = this.props.value;
+        this.mdc.value = this.getValue();
     }
 
     onChange(){
-        if(this.mdc.value !== this.props.value){
+        if(this.mdc.value !== this.getValue() && this.props.onChange){
             this.props.onChange(this.mdc.value)
         }
     }
     render() {
 
         if(this.mdc){
-            this.mdc.value = this.props.value;
+            this.mdc.value = this.getValue();
         }
 
         let randomFor = uuidv4();

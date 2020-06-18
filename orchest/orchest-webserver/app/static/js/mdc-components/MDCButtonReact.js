@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { MDCRipple } from '@material/ripple';
 
 class MDCButtonReact extends React.Component {
@@ -8,7 +8,9 @@ class MDCButtonReact extends React.Component {
 
     click(){
         this.mdc.activate();
-        this.props.onClick();
+        if(this.props.onClick){
+            this.props.onClick();
+        }
         this.mdc.deactivate();
     }
     
@@ -26,8 +28,10 @@ class MDCButtonReact extends React.Component {
 
             {(() => {
                 if (this.props.icon && this.props.label) {
-                    return <span className="mdc-button__label">
-                        <i className="material-icons mdc-button__icon">{this.props.icon}</i>{this.props.label}</span>;
+                    return <Fragment>
+                                <i className="material-icons mdc-button__icon">{this.props.icon}</i>
+                                <span className="mdc-button__label">{this.props.label}</span>
+                            </Fragment>;
                 }
                 if (this.props.icon) {
                     return <i className="material-icons">{this.props.icon}</i>;

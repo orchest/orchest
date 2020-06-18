@@ -32,25 +32,30 @@ body {
   position: relative;
 }
 
+aside.mdc-drawer {
+  h1 {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
+}
+
 h1 {
   font-family: "Sofia Pro", sans-serif;
   font-weight: 400;
+}
 
-  position: absolute;
-  bottom: 0;
-  width: 100%;
+h1, h2, h3 {
+  font-weight: 400;
 }
 
 .view-page {
   padding: $generalPadding;
   overflow-y: auto;
+  height: 100%;
 
   &.no-padding {
     padding: 0;
-  }
-
-  &.full-height {
-    height: 100%;
   }
 
   h2 {
@@ -234,6 +239,10 @@ h2.header {
 
 }
 
+.fullwidth {
+  width: 100%;
+}
+
 .mdc-data-table__header-cell {
   font-weight: 800;
 }
@@ -268,7 +277,6 @@ h2.header {
   height: 100%;
   display: flex;
   flex-direction: row;
-
 
   .pane {
     flex: 1;
@@ -525,12 +533,20 @@ h2.header {
 
   .pipeline-details {
     height: 100%;
-    padding: $generalPadding;
+    padding: $generalPadding 0;
     background: #fff;
     border-left: 1px solid $borderColor;
     z-index: 12;
     width: 50%;
     max-width: 450px;
+
+    .overflowable {
+      padding: 0 $generalPadding;
+    }
+
+    .mdc-select__anchor {
+      width: 100%;
+    }
 
     .detail-subview {
       flex: 1;
@@ -599,9 +615,7 @@ h2.header {
       width: 100%;
     }
 
-    .fullwidth {
-      width: 100%;
-    }
+    
 
     display: flex;
     flex-direction: column;
@@ -620,7 +634,8 @@ h2.header {
 
     .action-buttons-bottom {
 
-      padding-top: $generalPadding;
+      padding: $generalPadding;
+      padding-bottom: 0;
 
       .notebook-actions {
         margin-bottom: $generalPadding;
@@ -667,6 +682,17 @@ h2.header {
   display: block;
 }
 
+.connection-form {
+  width: 50%;
+  
+  > div {
+    width: 100%;
+  }
+  .mdc-select__anchor {
+    width: 100%;
+  }
+}
+
 .mdc-drawer-app-content {
   height: 100%;
   display: flex;
@@ -675,17 +701,20 @@ h2.header {
 
 .main-content {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 
   .mdc-top-app-bar--fixed-adjust {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     position: relative;
 
     .react-view-root {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
 

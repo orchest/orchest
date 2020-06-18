@@ -6,13 +6,17 @@ class MDCTextFieldReact extends React.Component {
 
     componentDidMount() {
         this.mdc = new MDCTextField(this.refs.input);
-        this.mdc.value = this.props.value;
+        this.mdc.value = this.getValue();
     }
 
     onChange(){
-        if(this.mdc.value !== this.props.value){
+        if(this.mdc.value !== this.props.value && this.props.onChange){
             this.props.onChange(this.mdc.value)
         }
+    }
+
+    getValue(){
+        return this.props.value ? this.props.value : "";
     }
     
     focus(){
@@ -22,7 +26,7 @@ class MDCTextFieldReact extends React.Component {
     render() {
 
         if(this.mdc){
-            this.mdc.value = this.props.value;
+            this.mdc.value = this.getValue();
         }
 
         let randomFor = uuidv4();

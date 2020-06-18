@@ -11,7 +11,9 @@ class MDCSelectReact extends React.Component {
 
         this.mdc.listen("MDCSelect:change", () => {
             if (this.mdc.value !== this.props.selected) {
-                this.props.onChange(this.mdc.value);
+                if(this.props.onChange){
+                    this.props.onChange(this.mdc.value);
+                }
             }
         })
 
@@ -23,7 +25,12 @@ class MDCSelectReact extends React.Component {
             this.mdc.value = this.props.selected;
         }
 
-        let listItems = this.props.items.map((item, key) => {
+        let listItems = this.props.options.map((item, key) => {
+            // if only single entry is passed instead of value, display value
+            if(item.length == 0){
+                item[1] = item[0];
+            }
+
             return <li key={key} className="mdc-list-item" data-value={item[0]}>
                 {item[1]}
             </li>;
@@ -40,7 +47,7 @@ class MDCSelectReact extends React.Component {
         }
 
         return <div className={topClasses.join(" ")} ref="select">
-            <div className="mdc-select__anchor fullwidth" aria-disabled={this.props.disabled}>
+            <div className="mdc-select__anchor" aria-disabled={this.props.disabled}>
                 <i className="mdc-select__dropdown-icon"></i>
                 <div className="mdc-select__selected-text"></div>
                 <span className="mdc-floating-label">{this.props.label}</span>

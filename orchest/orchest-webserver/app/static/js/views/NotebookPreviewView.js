@@ -47,7 +47,7 @@ class NotebookPreviewView extends React.Component {
   }
 
   render() {
-    return <div className={"view-page full-height no-padding"}>
+    return <div className={"view-page no-padding"}>
         <MDCButtonReact
             classNames={["close-button"]}
             icon="close"

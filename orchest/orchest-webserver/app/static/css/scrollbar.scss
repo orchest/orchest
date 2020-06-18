@@ -2,6 +2,7 @@
     width: 7px;
     background-color: rgba(0, 0, 0, 0);
     -webkit-border-radius: 100px;
+    padding-left: 3px;
 }
 /* hover effect for both scrollbar area, and scrollbar 'thumb' */
 ::-webkit-scrollbar:hover {
@@ -9,11 +10,11 @@
 }
 
 ::-webkit-scrollbar-thumb:vertical {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     -webkit-border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb:vertical:active {
-    background: rgba(0, 0, 0, 0.61); /* Some darker color when you click it */
+    background: rgba(0, 0, 0, 0.8); /* Some darker color when you click it */
     -webkit-border-radius: 100px;
 }

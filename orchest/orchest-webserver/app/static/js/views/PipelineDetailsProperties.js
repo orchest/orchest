@@ -325,7 +325,7 @@ class PipelineDetailsProperties extends React.Component {
                         disabled={this.props.readOnly}
                     />
 
-                    <MDCSelectReact label="File extension" onChange={this.onChangeFileType.bind(this)} items={[
+                    <MDCSelectReact label="File extension" onChange={this.onChangeFileType.bind(this)} options={[
                         [".ipynb", ".ipynb"],
                         [".py", ".py"],
                         [".R", ".R"],
@@ -339,7 +339,7 @@ class PipelineDetailsProperties extends React.Component {
 
                 <MDCSelectReact
                     label="Kernel"
-                    onChange={this.onChangeKernel.bind(this)} items={this.state.kernelOptions}
+                    onChange={this.onChangeKernel.bind(this)} options={this.state.kernelOptions}
                     selected={this.state.step.kernel.name}
                     disabled={this.props.readOnly}
                     classNames={(() => {
@@ -354,7 +354,7 @@ class PipelineDetailsProperties extends React.Component {
                 <MDCSelectReact
                     label="Image"
                     disabled={this.props.readOnly}
-                    onChange={this.onChangeImage.bind(this)} items={this.state.imageOptions}
+                    onChange={this.onChangeImage.bind(this)} options={this.state.imageOptions}
                     selected={this.state.step.image}
                 />
             </div>

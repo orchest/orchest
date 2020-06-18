@@ -12,7 +12,9 @@ class MDCIconButtonToggleReact extends React.Component {
 
     click(){
         this.mdc.activate();
-        this.props.onClick();
+        if(this.props.onClick){
+            this.props.onClick();
+        }
         this.mdc.deactivate();
     }
     
