@@ -21,6 +21,20 @@ class DataSourceEditView extends React.Component {
         this.state = {
             "dynamicForm": undefined,
             "formData":  {
+                "host-directory": {
+                    "groups": [
+                        {
+                            "name": "Directory details",
+                            "fields": [
+                                {
+                                    "label": "Host path",
+                                    "name": "host_path",
+                                    "type": "textfield",
+                                },
+                            ]
+                        }
+                    ]
+                },
                 "database-mysql": {
                     "groups": [
                         {
@@ -29,31 +43,123 @@ class DataSourceEditView extends React.Component {
                                 {
                                     "label": "Host",
                                     "name": "host",
-                                    "type": "textfield"
+                                    "type": "textfield",
                                 },
                                 {
                                     "label": "Database name",
                                     "name": "database_name",
-                                    "type": "textfield"
+                                    "type": "textfield",
                                 },
                                 {
                                     "label": "Username",
                                     "name": "username",
-                                    "type": "textfield"
+                                    "type": "textfield",
                                 },
                                 {
                                     "label": "Password",
                                     "name": "password",
-                                    "type": "textfield"
+                                    "type": "password",
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "database-postgresql": {
+                    "groups": [
+                        {
+                            "name": "Connection details",
+                            "fields": [
+                                {
+                                    "label": "Host",
+                                    "name": "host",
+                                    "type": "textfield",
                                 },
                                 {
-                                    "label": "Connection type",
-                                    "name": "connection_type",
-                                    "type": "select",
-                                    "options": [
-                                        ["one", "One"],
-                                        ["two", "Two"]
-                                    ]
+                                    "label": "Database name",
+                                    "name": "database_name",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Username",
+                                    "name": "username",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Password",
+                                    "name": "password",
+                                    "type": "password",
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "database-aws-redshift": {
+                    "groups": [
+                        {
+                            "name": "Connection details",
+                            "fields": [
+                                {
+                                    "label": "URL",
+                                    "name": "url",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Username",
+                                    "name": "username",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Password",
+                                    "name": "password",
+                                    "type": "password",
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "database-aws-rds": {
+                    "groups": [
+                        {
+                            "name": "Connection details",
+                            "fields": [
+                                {
+                                    "label": "URL",
+                                    "name": "url",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Username",
+                                    "name": "username",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Password",
+                                    "name": "password",
+                                    "type": "password",
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "objectstorage-aws-s3": {
+                    "groups": [
+                        {
+                            "name": "Connection details",
+                            "fields": [
+                                {
+                                    "label": "AWS Bucket name",
+                                    "name": "AWS_BUCKET_NAME",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Access key",
+                                    "name": "access_key",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Secret key",
+                                    "name": "secret_key",
+                                    "type": "password",
                                 }
                             ]
                         }
@@ -75,6 +181,11 @@ class DataSourceEditView extends React.Component {
                     <MDCTextFieldReact key={field.name} classNames={["push-down"]} label={field.label} />
                 )
                 break;
+            case "password":
+                    elements.push(
+                        <MDCTextFieldReact key={field.name} classNames={["push-down"]} password={true} label={field.label} />
+                    )
+                    break;
             case "select":
                 elements.push(
                     <MDCSelectReact selected={field.options[0][0]} classNames={["push-down"]} label={field.label} options={field.options} />

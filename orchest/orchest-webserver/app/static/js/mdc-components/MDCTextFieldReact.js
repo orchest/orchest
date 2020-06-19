@@ -33,6 +33,12 @@ class MDCTextFieldReact extends React.Component {
 
         let topClasses = ["mdc-text-field"];
 
+        let formType = "text";
+
+        if(this.props.password === true){
+            formType = "password";
+        }
+
         if(this.props.disabled === true){
             topClasses.push("mdc-text-field--disabled");
         }
@@ -43,7 +49,7 @@ class MDCTextFieldReact extends React.Component {
 
         return <div ref={"input"} className={topClasses.join(" ")}>
             <input disabled={this.props.disabled} onChange={this.onChange.bind(this)} className="mdc-text-field__input"
-                type="text"
+                type={formType}
                 id={randomFor} />
             <label className="mdc-floating-label" htmlFor={randomFor}>{this.props.label}</label>
             <div className="mdc-line-ripple"></div>
