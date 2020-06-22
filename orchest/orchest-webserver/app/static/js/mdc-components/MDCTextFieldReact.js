@@ -23,11 +23,14 @@ class MDCTextFieldReact extends React.Component {
         this.mdc.focus();
     }
 
-    render() {
+    componentDidUpdate(prevProps){
 
-        if(this.mdc){
+        if(prevProps.value !== this.props.value){
             this.mdc.value = this.getValue();
         }
+    }
+
+    render() {
 
         let randomFor = uuidv4();
 

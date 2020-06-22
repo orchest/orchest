@@ -1,6 +1,3 @@
-from flask import render_template, request, jsonify
-from distutils.dir_util import copy_tree
-
 import shutil
 import json
 import os
@@ -9,11 +6,58 @@ import pdb
 import requests
 import logging
 import nbformat
-from nbconvert import HTMLExporter
 
+from flask import render_template, request, jsonify
+from flask_restful import Api, Resource
+from flask_marshmallow import Marshmallow
+from distutils.dir_util import copy_tree
+from nbconvert import HTMLExporter
 from app.utils import get_hash
+from app.models import DataSource
+
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+def register_rest(app, db):
+
+    ma = Marshmallow(app)
+    api = Api(app)
+
+    class DataSourceSchema(ma.Schema):
+        class Meta:
+            fields = ("name", "source_type", "connection_details")
+
+    datasource_schema = DataSourceSchema()
+    datasources_schema = DataSourceSchema(many=True)
+
+    class DataSourceResource(Resource):
+
+        def get(self):
+
+            if request.args.get('name') is not None:
+                datasource = DataSource.query.filter(
+                    DataSource.name==request.args.get('name')).first()
+                return datasource_schema.dump(datasource)
+            else:
+                datasources = DataSource.query.all()
+                return datasources_schema.dump(datasources)
+
+        def post(self):
+            new_datasource = DataSource(
+                name=request.json['name'],
+                source_type=request.json['source_type'],
+                connection_details=request.json['connection_details']
+            )
+
+            db.session.add(new_datasource)
+            db.session.commit()
+
+            return datasource_schema.dump(new_datasource)
+
+
+    api.add_resource(DataSourceResource, '/store/datasources')
+
 
 def register_views(app, db):
 

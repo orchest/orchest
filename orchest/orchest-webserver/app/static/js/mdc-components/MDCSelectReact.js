@@ -7,10 +7,10 @@ class MDCSelectReact extends React.Component {
 
     componentDidMount() {
         this.mdc = new MDCSelect(this.refs.select);
-        this.mdc.value = this.props.selected;
+        this.mdc.value = this.props.value;
 
         this.mdc.listen("MDCSelect:change", () => {
-            if (this.mdc.value !== this.props.selected) {
+            if (this.mdc.value !== this.props.value) {
                 if(this.props.onChange){
                     this.props.onChange(this.mdc.value);
                 }
@@ -19,11 +19,14 @@ class MDCSelectReact extends React.Component {
 
     }
 
-    render() {
+    componentDidUpdate(prevProps){
 
-        if(this.mdc){
-            this.mdc.value = this.props.selected;
+        if(prevProps.value !== this.props.value){
+            this.mdc.value = this.props.value;
         }
+    }
+
+    render() {
 
         let listItems = this.props.options.map((item, key) => {
             // if only single entry is passed instead of value, display value

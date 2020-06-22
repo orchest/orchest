@@ -127,6 +127,19 @@ IMAGES += [
 ]
 
 
+def clean_containers():
+    client = docker.from_env()
+
+    running_containers = client.containers.list(all=True)
+
+    for container in running_containers:
+        if len(container.image.tags) > 0 and \
+           container.image.tags[0] in IMAGES and \
+           container.status == "exited":
+            logging.info("Removing exited container `%s`" % container.name)
+            container.remove()
+        
+
 def start():
     logging.info("Starting Orchest...")
 
@@ -138,6 +151,9 @@ def start():
     # check if all images are present
     if install_complete():
         client = docker.from_env()
+
+        # start by cleaning up old containers lingering
+        clean_containers()
         
         # start containers from CONTAINER_MAPPING that haven't started
         running_containers = client.containers.list()

@@ -7,7 +7,6 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 from flask import Flask, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
 from app.config import CONFIG_CLASS
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -22,10 +21,8 @@ import atexit
 from app.analytics import analytics_ping
 from subprocess import Popen
 
-db = SQLAlchemy()
-
-from app.views import register_views
-
+from app.views import register_views, register_rest
+from app.connections import db
 
 def create_app():
 
@@ -45,7 +42,10 @@ def create_app():
     logging.info("Flask CONFIG: %s" % app.config)
 
     db.init_app(app)
-    # db.create_all()
+
+    # according to SQLAlchemy will only create tables if they do not exist
+    with app.app_context():
+        db.create_all()
 
     # static file serving
     @app.route('/public/<path:path>')
@@ -53,6 +53,8 @@ def create_app():
         return send_from_directory("../static", path)
 
     register_views(app, db)
+
+    register_rest(app, db)
 
 
     if "TELEMETRY_DISABLED" not in app.config:

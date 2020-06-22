@@ -1,10 +1,37 @@
 import React from 'react';
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
-import DataSourceEditView from "../views/DataSourceEditView";
+import DataSourceEditView from "./DataSourceEditView";
+import CheckItemList from '../components/CheckItemList';
+import { makeRequest } from '../utils/all';
 
 class DataSourcesView extends React.Component {
 
-  componentWillUnmount() {
+  constructor(props){
+    super(props);
+
+    this.state = {
+      "datasources": undefined,
+    }
+  }
+
+  componentDidMount(){
+
+    // fetch data sources
+    makeRequest("GET", "/store/datasources").then((result) => {
+      try {
+        let json = JSON.parse(result);
+
+        this.setState({
+          "dataSources": json
+        })
+      } catch (error) {
+        console.log(error);
+        console.log("Error parsing JSON response: ", result);
+      }
+      
+    }).catch((err) => {
+      console.log("Error fetching DataSources", err);
+    });
 
   }
 
@@ -16,6 +43,13 @@ class DataSourcesView extends React.Component {
 
   onDeleteClick(){
 
+    console.log("Stub: deleting...");
+    console.log(this.refs.checkItemList.customSelectedIndex())
+
+  }
+
+  onClickListItem(dataSource){
+    orchest.loadView(DataSourceEditView, {"dataSource": dataSource});
   }
 
   render() {
@@ -25,6 +59,13 @@ class DataSourcesView extends React.Component {
         <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
         <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
       </div>
+
+      {(() => {
+        if(this.state.dataSources){
+          return <CheckItemList ref="checkItemList" items={this.state.dataSources} onClickListItem={this.onClickListItem.bind(this)} />
+        }
+      })()}
+      
     </div>;
   }
 }

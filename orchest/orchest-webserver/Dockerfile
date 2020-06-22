@@ -4,6 +4,9 @@ FROM tiangolo/uwsgi-nginx-flask:python3.7
 # rebuild containers by using the cache.
 RUN pip3 install Flask \
     flask_sqlalchemy \
+    flask_restful \
+    flask-marshmallow \
+    marshmallow-sqlalchemy \
     Flask-Migrate \
     requests \
     APScheduler \

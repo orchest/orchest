@@ -332,7 +332,7 @@ class PipelineDetailsProperties extends React.Component {
                         [".sh", ".sh"]
                     ]}
                         disabled={this.props.readOnly}
-                        selected={"." + extensionFromFilename(this.state.step.file_path)}
+                        value={"." + extensionFromFilename(this.state.step.file_path)}
                     />
                     <span className={'clear'}></span>
                 </div>
@@ -340,7 +340,7 @@ class PipelineDetailsProperties extends React.Component {
                 <MDCSelectReact
                     label="Kernel"
                     onChange={this.onChangeKernel.bind(this)} options={this.state.kernelOptions}
-                    selected={this.state.step.kernel.name}
+                    value={this.state.step.kernel.name}
                     disabled={this.props.readOnly}
                     classNames={(() => {
                         let classes = ["push-down"];
@@ -355,7 +355,7 @@ class PipelineDetailsProperties extends React.Component {
                     label="Image"
                     disabled={this.props.readOnly}
                     onChange={this.onChangeImage.bind(this)} options={this.state.imageOptions}
-                    selected={this.state.step.image}
+                    value={this.state.step.image}
                 />
             </div>
 

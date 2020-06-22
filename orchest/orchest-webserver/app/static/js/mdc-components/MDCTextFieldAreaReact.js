@@ -21,11 +21,15 @@ class MDCTextFieldAreaReact extends React.Component {
             this.props.onChange(this.mdc.value)
         }
     }
-    render() {
 
-        if(this.mdc){
+    componentDidUpdate(prevProps){
+
+        if(prevProps.value !== this.props.value){
             this.mdc.value = this.getValue();
         }
+    }
+
+    render() {
 
         let randomFor = uuidv4();
 
