@@ -15,6 +15,12 @@ class CheckItemList extends React.Component {
         return selected
     }
 
+    deselectAll(){
+        for(let x = 0; x < this.props.items.length; x++){
+            this.refs["listItem"+x].deselect();
+        }
+    }
+
     render() {
 
         this.listItems = this.props.items.map((item, key) => (

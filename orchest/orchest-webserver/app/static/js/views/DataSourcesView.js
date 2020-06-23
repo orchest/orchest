@@ -16,6 +16,17 @@ class DataSourcesView extends React.Component {
 
   componentDidMount(){
 
+    this.fetchDataSources();
+
+  }
+
+  fetchDataSources(){
+
+    // in case checkItemList exists, clear checks
+    if(this.refs.checkItemList){
+      this.refs.checkItemList.deselectAll();
+    }
+
     // fetch data sources
     makeRequest("GET", "/store/datasources").then((result) => {
       try {
@@ -24,6 +35,7 @@ class DataSourcesView extends React.Component {
         this.setState({
           "dataSources": json
         })
+        
       } catch (error) {
         console.log(error);
         console.log("Error parsing JSON response: ", result);
@@ -32,7 +44,6 @@ class DataSourcesView extends React.Component {
     }).catch((err) => {
       console.log("Error fetching DataSources", err);
     });
-
   }
 
   onCreateClick(){
@@ -44,11 +55,28 @@ class DataSourcesView extends React.Component {
   onDeleteClick(){
 
     console.log("Stub: deleting...");
-    console.log(this.refs.checkItemList.customSelectedIndex())
+    console.log()
+
+    // select indices
+
+    let selectedIndices = this.refs.checkItemList.customSelectedIndex();
+
+    if(confirm("Are you sure you want to delete the selected data sources? (Warning: this cannot be undone.)")){
+      
+      let promises = [];
+      for(let x = 0; x < selectedIndices.length; x++){
+        promises.push(makeRequest("DELETE", "/store/datasources/" + this.state.dataSources[selectedIndices[x]].name));
+      }
+
+      Promise.all(promises).then(() => {
+        this.fetchDataSources();
+      });
+
+    }
 
   }
 
-  onClickListItem(dataSource){
+  onClickListItem(dataSource, e){
     orchest.loadView(DataSourceEditView, {"dataSource": dataSource});
   }
 

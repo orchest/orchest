@@ -48,14 +48,16 @@ export function makeRequest(method, url, body) {
       } else {
         reject({
           status: this.status,
-          statusText: xhr.statusText
+          statusText: xhr.statusText,
+          body: xhr.response
         });
       }
     };
     xhr.onerror = function () {
       reject({
         status: this.status,
-        statusText: xhr.statusText
+        statusText: xhr.statusText,
+        body: xhr.response
       });
     };
 
@@ -63,12 +65,17 @@ export function makeRequest(method, url, body) {
       console.log("Request timed out.")
       reject({
         status: this.status,
-        statusText: xhr.statusText
+        statusText: xhr.statusText,
+        body: xhr.response
       })
     }
 
     if(body !== undefined){
-      xhr.send(body.content);
+      if(body.type === "json"){
+        xhr.send(JSON.stringify(body.content));
+      }else{
+        xhr.send(body.content);
+      }
     }else{
       xhr.send();
     }

@@ -8,7 +8,7 @@ import logging
 import nbformat
 
 from flask import render_template, request, jsonify
-from flask_restful import Api, Resource
+from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
@@ -22,7 +22,18 @@ logging.basicConfig(level=logging.DEBUG)
 def register_rest(app, db):
 
     ma = Marshmallow(app)
-    api = Api(app)
+
+    errors = {
+        'DataSourceNameInUse': {
+            'message': "A data source with this name already exists.",
+            'status': 409,
+        },
+    }
+
+    class DataSourceNameInUse(HTTPException):
+        pass
+
+    api = Api(app, errors = errors)
 
     class DataSourceSchema(ma.Schema):
         class Meta:
@@ -31,32 +42,52 @@ def register_rest(app, db):
     datasource_schema = DataSourceSchema()
     datasources_schema = DataSourceSchema(many=True)
 
-    class DataSourceResource(Resource):
+    class DataSourcesResource(Resource):
 
         def get(self):
+            datasources = DataSource.query.all()
+            return datasources_schema.dump(datasources)
 
-            if request.args.get('name') is not None:
-                datasource = DataSource.query.filter(
-                    DataSource.name==request.args.get('name')).first()
-                return datasource_schema.dump(datasource)
-            else:
-                datasources = DataSource.query.all()
-                return datasources_schema.dump(datasources)
 
-        def post(self):
-            new_datasource = DataSource(
-                name=request.json['name'],
+    class DataSourceResource(Resource):
+
+        def put(self, name):
+
+            ds = DataSource.query.filter(DataSource.name==name).first()
+            ds.name = request.json["name"]
+            ds.source_type = request.json["source_type"]
+            ds.connection_details = request.json["connection_details"]
+            db.session.commit()
+
+            return datasource_schema.dump(ds)
+
+        def get(self, name):
+            ds = DataSource.query.filter(DataSource.name==name).first()
+            return datasource_schema.dump(ds)
+
+        def delete(self, name):
+            DataSource.query.filter(DataSource.name==name).delete()
+            db.session.commit()
+
+        def post(self, name):
+
+            if DataSource.query.filter(DataSource.name == name).count() > 0:
+                raise DataSourceNameInUse()
+
+            new_ds = DataSource(
+                name=name,
                 source_type=request.json['source_type'],
                 connection_details=request.json['connection_details']
             )
 
-            db.session.add(new_datasource)
+            db.session.add(new_ds)
             db.session.commit()
 
-            return datasource_schema.dump(new_datasource)
+            return datasource_schema.dump(new_ds)
 
 
-    api.add_resource(DataSourceResource, '/store/datasources')
+    api.add_resource(DataSourcesResource, '/store/datasources')
+    api.add_resource(DataSourceResource, '/store/datasources/<string:name>')
 
 
 def register_views(app, db):

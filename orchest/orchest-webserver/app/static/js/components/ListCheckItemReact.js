@@ -15,15 +15,19 @@ class ListCheckItemReact extends React.Component {
     }
 
     onClick(e) {
-        e.preventDefault();
+        e.stopPropagation();
     }
 
     getChecked(){
         return this.state.checked;
     }
 
-    onClickListItem(){
-        this.props.onClickListItem(this.props.item);
+    deselect(){
+        this.setState({ checked: false });
+    }
+
+    onClickListItem(e){
+        this.props.onClickListItem(this.props.item, e);
     }
 
     render() {

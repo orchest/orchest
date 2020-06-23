@@ -2,6 +2,8 @@ import React from 'react';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import MDCSelectReact from '../mdc-components/MDCSelectReact';
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
+import { makeRequest } from '../utils/all';
+import DataSourcesView from './DataSourcesView';
 
 class DataSourceEditView extends React.Component {
 
@@ -15,11 +17,25 @@ class DataSourceEditView extends React.Component {
         })
     }
 
+    onChangeName(value){
+        this.state.dataSource.name = value;
+
+        this.setState({
+            "dataSource": this.state.dataSource  
+        })
+    }
+
     constructor(props) {
         super(props);
 
         this.state = {
-            "dataSource": this.props.dataSource ? this.props.dataSource : {},
+            "originalName": this.props.dataSource ? this.props.dataSource.name : undefined,
+            "newDataSource": this.props.dataSource === undefined,
+            "dataSource": this.props.dataSource ? this.props.dataSource : {
+                name: "",
+                source_type: "",
+                connection_details: {}
+            },
             "dynamicForm": this.props.dataSource ? this.props.dataSource.source_type : undefined,
             "formData":  {
                 "host-directory": {
@@ -185,17 +201,17 @@ class DataSourceEditView extends React.Component {
         switch(field.type){
             case "textfield":
                 elements.push(
-                    <MDCTextFieldReact key={field.name} value={prefill} classNames={["push-down"]} label={field.label} />
+                    <MDCTextFieldReact key={field.name} value={prefill} classNames={["push-down"]} label={field.label} onChange={this.changeValue.bind(this, field.name)} />
                 )
                 break;
             case "password":
                     elements.push(
-                        <MDCTextFieldReact value={prefill} key={field.name} classNames={["push-down"]} password={true} label={field.label} />
+                        <MDCTextFieldReact value={prefill} key={field.name} classNames={["push-down"]} password={true} label={field.label} onChange={this.changeValue.bind(this, field.name)} />
                     )
                     break;
             case "select":
                 elements.push(
-                    <MDCSelectReact value={prefill} classNames={["push-down"]} label={field.label} options={field.options} />
+                    <MDCSelectReact value={prefill} classNames={["push-down"]} label={field.label} options={field.options} onChange={this.changeValue.bind(this, field.name)} />
                 )
                 break;
         }
@@ -231,11 +247,78 @@ class DataSourceEditView extends React.Component {
 
     changeValue(key, value){
 
-        this.state.dataSource[key] = value;
+        this.state.dataSource.connection_details[key] = value;
         
         this.setState({
             dataSource: this.state.dataSource
         })
+    }
+
+    getConnectionDetails(){
+
+        let groups = this.state.formData[this.state.dynamicForm].groups;
+
+        // JSON object to pass to database
+        let connection_details = {};
+
+        for(let x = 0; x < groups.length; x++){
+            let fields = groups[x].fields;
+
+            for(let i = 0; i < fields.length; i++){
+                let field = fields[i];
+
+                connection_details[field.name] = 
+                    this.state.dataSource.connection_details[field.name] ? 
+                    this.state.dataSource.connection_details[field.name] : "";
+            }
+        }
+
+        return connection_details;        
+    }
+
+    saveDataSource(e){
+
+        e.preventDefault();
+
+        // form validation
+        if(this.state.dataSource.name.length == 1){
+            alert("Please fill in a data source name.");
+            return;
+        }
+
+        if(this.state.dynamicForm === undefined){
+            alert("Please choose a data source type.");
+            return;
+        }
+        
+        // make request to backend to save data
+        let method = "POST";
+        let endpointName = this.state.dataSource.name;
+
+        if(this.state.newDataSource === false){
+            method = "PUT";
+            endpointName = this.state.originalName;
+        }
+
+        makeRequest(method, "/store/datasources/" + endpointName, {type: 'json', content: {
+            "name": this.state.dataSource.name,
+            "source_type": this.state.dynamicForm,
+            "connection_details": this.getConnectionDetails()
+        }}).then(() => {
+            
+            orchest.loadView(DataSourcesView);
+
+        }).catch((error) => {
+            console.log(error);
+
+            try {
+                alert(JSON.parse(error.body)["message"]);
+            }catch (error){
+                console.log(error);
+                console.log("Couldn't get error message from response.");
+            }
+        })
+        
     }
 
     render() {
@@ -250,7 +333,7 @@ class DataSourceEditView extends React.Component {
             <h2>Edit data source</h2>
 
             <form className="connection-form">
-                <MDCTextFieldReact classNames={["push-down"]} label="Name" value={this.state.dataSource["name"]} onChange={this.changeValue.bind(this, "name")} />
+                <MDCTextFieldReact classNames={["push-down"]} label="Name" value={this.state.dataSource["name"]} onChange={this.onChangeName.bind(this)} />
 
                 <MDCSelectReact onChange={this.onSelectDataSourceType.bind(this)} classNames={["push-down"]} label="Data source type" value={this.state.dynamicForm} options={[
                     ["host-directory", "Filesystem directory"],
@@ -263,7 +346,7 @@ class DataSourceEditView extends React.Component {
 
                 {dynamicFormElements}
 
-                <MDCButtonReact label="Save" icon="save" />
+                <MDCButtonReact onClick={this.saveDataSource.bind(this)} label="Save" icon="save" />
             </form>
             
         </div>;

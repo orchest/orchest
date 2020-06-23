@@ -837,7 +837,7 @@ class PipelineView extends React.Component {
 
                 this.setState({ "backend": this.state.backend });
 
-                makeRequest("POST", "/api-proxy/api/launches/", {"type": "json", content: JSON.stringify(data)}).then((response) => {
+                makeRequest("POST", "/api-proxy/api/launches/", {"type": "json", content: data}).then((response) => {
                     let json = JSON.parse(response);
 
                     console.log("API launch result");
@@ -1090,7 +1090,7 @@ class PipelineView extends React.Component {
             "pipeline_description": this.getPipelineJSON()
         };
 
-        makeRequest("POST", "/catch/api-proxy/api/runs/", {type: "json", content: JSON.stringify(data)}).then((response) => {
+        makeRequest("POST", "/catch/api-proxy/api/runs/", {type: "json", content: data}).then((response) => {
             let result = JSON.parse(response);
 
             this.parseRunStatuses(result);
