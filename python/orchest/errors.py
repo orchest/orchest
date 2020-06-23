@@ -2,8 +2,26 @@ class Error(Exception):
     pass
 
 
-class DiskInputNotFoundError(Error):
+class ObjectNotFoundError(Error):
+    """Error when the object cannot be found in the in-memory store.
+
+    Similar to FileNotFoundError.
+    """
+    pass
+
+
+class OutputNotFoundError(Error):
     """Error when the output from a previous step cannot be found."""
+    pass
+
+
+class DiskOutputNotFoundError(OutputNotFoundError):
+    """InputNotFoundError for disk specifically."""
+    pass
+
+
+class MemoryOutputNotFoundError(OutputNotFoundError):
+    """InputNotFoundError for memory specifically."""
     pass
 
 
