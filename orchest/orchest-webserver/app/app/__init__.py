@@ -53,7 +53,6 @@ def create_app():
         return send_from_directory("../static", path)
 
     register_views(app, db)
-
     register_rest(app, db)
 
 

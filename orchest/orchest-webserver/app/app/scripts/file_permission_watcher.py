@@ -33,7 +33,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
 
     # create file handler which logs even debug messages
-    fh = logging.FileHandler('permission_app.log')
+    fh = logging.FileHandler('permission-app.log')
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
