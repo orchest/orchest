@@ -9,10 +9,8 @@ import urllib
 import pyarrow as pa
 import pyarrow.plasma as plasma
 
-from orchest.config import (
-    get_step_data_dir,
-    get_store_socket_name
-)
+# from orchest.config import Config
+from orchest import Config
 from orchest.errors import (
     DiskOutputNotFoundError,
     OutputNotFoundError,
@@ -98,7 +96,7 @@ def send_disk(data: Any,
         raise StepUUIDResolveError('Failed to determine where to send data to.')
 
     # Recursively create any directories if they do not already exists.
-    step_data_dir = get_step_data_dir(step_uuid)
+    step_data_dir = Config.get_step_data_dir(step_uuid)
     os.makedirs(step_data_dir, exist_ok=True)
 
     # The HEAD file serves to resolve the transfer method.
@@ -123,11 +121,11 @@ def _receive_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
             return pickle.load(f, **kwargs)
 
     elif type == 'arrow':
-        with open('{full_path}.{type}', 'rb') as f:
+        with open(f'{full_path}.{type}', 'rb') as f:
             return pa.deserialize_from(f, base=None)
 
     elif type == 'arrowpickle':
-        with open('{full_path}.{type}', 'rb') as f:
+        with open(f'{full_path}.{type}', 'rb') as f:
             data = pa.deserialize_from(f, base=None)
             return pickle.loads(data)
 
@@ -152,7 +150,7 @@ def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
     """
-    step_data_dir = get_step_data_dir(step_uuid)
+    step_data_dir = Config.get_step_data_dir(step_uuid)
     full_path = os.path.join(step_data_dir, step_uuid)
 
     try:
@@ -186,7 +184,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
     """
-    step_data_dir = get_step_data_dir(step_uuid)
+    step_data_dir = Config.get_step_data_dir(step_uuid)
     head_file = os.path.join(step_data_dir, 'HEAD')
 
     try:
@@ -437,9 +435,15 @@ def receive_memory(step_uuid: str, **kwargs) -> Any:
     #       pass the to the _receive_method that then connects to the
     #       client. Since the metadata we can get together with the
     #       buffers.
-    client = plasma.connect(get_store_socket_name())
+    client = plasma.connect(Config.STORE_SOCKET_NAME)
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
+    # TODO: After receiving the object. Check whether it has to be
+    #       evicted. (Once all other steps have received the object
+    #       also.) Without this eviction it will currently always
+    #       fall back to disk when sending (because the object is never
+    #       removed because we look at size to see whether we can
+    #       insert and not use the reference count).
     try:
         return _receive_memory(obj_id, client, **kwargs)
     except ObjectNotFoundError:
@@ -468,7 +472,7 @@ def resolve_memory(step_uuid: str) -> Dict[str, Any]:
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
     """
-    client = plasma.connect(get_store_socket_name())
+    client = plasma.connect(Config.STORE_SOCKET_NAME)
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
     try:
