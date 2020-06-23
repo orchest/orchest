@@ -9,7 +9,10 @@ import urllib
 import pyarrow as pa
 import pyarrow.plasma as plasma
 
-from orchest.config import get_step_data_dir
+from orchest.config import (
+    get_step_data_dir,
+    get_store_socket_name
+)
 from orchest.errors import (
     DiskOutputNotFoundError,
     OutputNotFoundError,
@@ -163,6 +166,7 @@ def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
         )
 
 
+# TODO: maybe should add the option to specify custom step_data_dir
 def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     """Returns information of the most recent write to disk.
 
@@ -200,7 +204,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     res = {
         'timestamp': timestamp,
         'method_to_call': receive_disk,
-        'method_args': (step_uuid),
+        'method_args': (step_uuid,),
         'method_kwargs': {
             'type': type
         }
@@ -285,6 +289,7 @@ def _send_memory(obj: pa.SerializedPyObject,
 def send_memory(data: Any,
                 pickle_fallback=True,
                 disk_fallback=True,
+                store_socket_name: str = '/tmp/plasma',
                 pipeline_description_path: str = 'pipeline.json',
                 **kwargs) -> None:
     """Sends data to disk.
@@ -321,9 +326,10 @@ def send_memory(data: Any,
     # Serialize the object and collect the serialization metadata.
     obj, metadata = _serialize_memory(data, pickle_fallback=pickle_fallback)
     obj_id = _convert_uuid_to_object_id(step_uuid)
+    client = plasma.connect(store_socket_name)
 
     try:
-        obj_id = _send_memory(obj, obj_id=obj_id, metadata=metadata)
+        obj_id = _send_memory(obj, client, obj_id=obj_id, metadata=metadata)
 
     # TODO: Catch custom error that is raised in _send_memory if the obj
     #       would not fit in plasma store without automatic eviction.
@@ -403,10 +409,10 @@ def _receive_memory(obj_id, client, **kwargs) -> Any:
 #       Probably should just be determined inside this function. Because
 #       it has to be mounted at this location. So users that want to use
 #       this function inside Orchest do not have the possibility to
-#       specify a different socket name.
-def receive_memory(step_uuid: str,
-                   store_socket_name: str = '/tmp/plasma',
-                   **kwargs) -> Any:
+#       specify a different socket name. -> Lets put it in the config,
+#       because then the test can specify it and the user can do it
+#       via a special configuration object.
+def receive_memory(step_uuid: str, **kwargs) -> Any:
     """Receives data from disk.
 
     Args:
@@ -431,7 +437,7 @@ def receive_memory(step_uuid: str,
     #       pass the to the _receive_method that then connects to the
     #       client. Since the metadata we can get together with the
     #       buffers.
-    client = plasma.connect(store_socket_name)
+    client = plasma.connect(get_store_socket_name())
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
     try:
@@ -443,8 +449,7 @@ def receive_memory(step_uuid: str,
         )
 
 
-def resolve_memory(step_uuid: str,
-                   store_socket_name='/tmp/plasma') -> Dict[str, Any]:
+def resolve_memory(step_uuid: str) -> Dict[str, Any]:
     """Returns information of the most recent write to disk.
 
     Resolves via the HEAD file the timestamp (that is used to determine
@@ -463,8 +468,7 @@ def resolve_memory(step_uuid: str,
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
     """
-    # TODO: maybe not store_socket_name in signature.
-    client = plasma.connect(store_socket_name)
+    client = plasma.connect(get_store_socket_name())
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
     try:
@@ -488,7 +492,7 @@ def resolve_memory(step_uuid: str,
     res = {
         'timestamp': timestamp,
         'method_to_call': receive_memory,
-        'method_args': (step_uuid),
+        'method_args': (step_uuid,),
         'method_kwargs': {}
     }
     return res
@@ -537,7 +541,7 @@ def resolve(step_uuid: str) -> Tuple[Any]:
 
     # Get the method that was most recently used based on its logged
     # timestamp.
-    most_recent = max(method_info, key=lambda x: x['timestamp'])
+    most_recent = max(method_infos, key=lambda x: x['timestamp'])
     return (most_recent['method_to_call'],
             most_recent['method_args'],
             most_recent['method_kwargs'])
