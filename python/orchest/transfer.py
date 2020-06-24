@@ -333,31 +333,33 @@ def send_memory(data: Any,
     # TODO: Catch custom error that is raised in _send_memory if the obj
     #       would not fit in plasma store without automatic eviction.
     except MemoryError:
+        if not disk_fallback:
+            raise MemoryError('Data does not fit in memory.')
+
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        if disk_fallback:
-            # TODO: pass on certain kwargs that can be passed to the
-            #       pickle module.
-            # TODO: since it calls send_disk there should be the
-            #       possibility to set some of its kwargs in this method
-            #       call.
-            # TODO: set custom type so it does not serialize again. Note
-            #       that this requires metadata for disk, since otherwise
-            #       it does not know whether to use pickle.load after
-            #       deserializing the content from the file. OR possibly
-            #       do type='arrowpickle' so that from
-            #       left to right is resolve order.
-            if metadata == b'pickled':
-                type_ = 'arrowpickle'
-            elif metadata == b'not-pickled':
-                type_ = 'arrow'
+        # TODO: pass on certain kwargs that can be passed to the
+        #       pickle module.
+        # TODO: since it calls send_disk there should be the
+        #       possibility to set some of its kwargs in this method
+        #       call.
+        # TODO: set custom type so it does not serialize again. Note
+        #       that this requires metadata for disk, since otherwise
+        #       it does not know whether to use pickle.load after
+        #       deserializing the content from the file. OR possibly
+        #       do type='arrowpickle' so that from
+        #       left to right is resolve order.
+        if metadata == b'pickled':
+            type_ = 'arrowpickle'
+        elif metadata == b'not-pickled':
+            type_ = 'arrow'
 
-            return send_disk(
-                obj,
-                type=type_,
-                pipeline_description_path=pipeline_description_path
-            )
+        return send_disk(
+            obj,
+            type=type_,
+            pipeline_description_path=pipeline_description_path
+        )
 
     return
 

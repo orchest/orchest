@@ -14,7 +14,7 @@ import orchest
 from orchest import transfer
 
 
-PLASMA_STORE_CAPACITY = 10000000
+PLASMA_STORE_CAPACITY = 10000
 
 
 @pytest.fixture()
@@ -116,6 +116,71 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 
 @patch('orchest.transfer.get_step_uuid')
 @patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
+    data_1 = np.random.rand(150, 100)
+    data_size = pa.serialize(data_1).total_bytes
+    assert data_size > PLASMA_STORE_CAPACITY
+
+    # Do as if we are uuid-1
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+
+    with pytest.raises(MemoryError):
+        transfer.send_memory(
+            data_1,
+            disk_fallback=False,
+            store_socket_name=plasma_store,
+            pipeline_description_path='tests/userdir/pipeline-basic.json'
+        )
+
+
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
+    # Do as if we are uuid-1
+    data_1 = np.random.rand(150, 100)
+    data_size = pa.serialize(data_1).total_bytes
+    assert data_size > PLASMA_STORE_CAPACITY
+
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+    transfer.send_memory(
+        data_1,
+        disk_fallback=True,
+        store_socket_name=plasma_store,
+        pipeline_description_path='tests/userdir/pipeline-basic.json'
+    )
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = 'uuid-2______________'
+    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+
+    assert (received_data[0] == data_1).all()
+
+
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_memory_pickle_and_disk_fallback(mock_get_step_uuid, plasma_store):
+    data_1 = [Foo(i) for i in range(1000)]
+    serialized, _ = transfer._serialize_memory(data_1)
+    assert serialized.total_bytes > PLASMA_STORE_CAPACITY
+
+    # Do as if we are uuid-1
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+    transfer.send_memory(
+        data_1,
+        disk_fallback=True,
+        store_socket_name=plasma_store,
+        pipeline_description_path='tests/userdir/pipeline-basic.json'
+    )
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = 'uuid-2______________'
+    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+
+    assert received_data == [data_1]
+
+
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
 def test_resolve_disk_memory(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-1.
     mock_get_step_uuid.return_value = 'uuid-1______________'
@@ -180,38 +245,69 @@ def test_resolve_memory_disk(mock_get_step_uuid, plasma_store):
 
 @patch('orchest.transfer.get_step_uuid')
 @patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
-def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
-    # Do as if we are uuid-1
-    send_data_step_1 = np.random.rand(150, 10000)
-    data_size = pa.serialize(send_data_step_1).total_bytes
-    assert data_size > PLASMA_STORE_CAPACITY
+def test_receive_input_order(mock_get_step_uuid, plasma_store):
+    """Test the order of the inputs of the receiving step.
 
-    mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
-        send_data_step_1,
-        disk_fallback=True,
-        store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
+    Note that the order in which the data is send does not determine the
+    "receive order", it is the order in which it is defined in the
+    pipeline.json (for the "incoming-connections").
+    """
     # Do as if we are uuid-3
-    send_data_step_3 = [62, 52, 42]
+    data_3 = 'data-3'
     mock_get_step_uuid.return_value = 'uuid-3______________'
     transfer.send_memory(
-        send_data_step_3,
-        disk_fallback=False,
+        data_3,
         store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
+        pipeline_description_path='tests/userdir/pipeline-order.json'
+    )
+
+    # Do as if we are uuid-1
+    data_1 = 'data-1'
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+    transfer.send_memory(
+        data_1,
+        store_socket_name=plasma_store,
+        pipeline_description_path='tests/userdir/pipeline-order.json'
     )
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline.json')
+    received_data = transfer.receive('tests/userdir/pipeline-order.json')
 
-    assert (received_data[0] == send_data_step_1).all()
-    assert received_data[1] == send_data_step_3
+    assert received_data == [data_1, data_3]
 
 
-# TODO:
-# - Send multiple times and see whether it is received in the order
-#   defined by the pipeline.json i.e. [data_1, data_3]
+# TODO: multiple pipeline.json files, where it should always work with
+#       disk_fallback. With disk_fallback=False it should sometimes
+#       throw an error, and sometimes it should fit (because it evicted
+#       something else).
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_eviction(mock_get_step_uuid, plasma_store):
+    # TODO:
+    #   - new pipeline definition
+    #   - make one of the output to large for memory
+
+    # Do as if we are uuid-1
+    data_1 = 'data-1'
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+    transfer.send_memory(
+        data_1,
+        store_socket_name=plasma_store,
+        pipeline_description_path='tests/userdir/pipeline-order.json'
+    )
+
+    # Do as if we are uuid-3
+    data_3 = 'data-3'
+    mock_get_step_uuid.return_value = 'uuid-3______________'
+    transfer.send_memory(
+        data_3,
+        store_socket_name=plasma_store,
+        pipeline_description_path='tests/userdir/pipeline-order.json'
+    )
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = 'uuid-2______________'
+    received_data = transfer.receive('tests/userdir/pipeline-order.json')
+
+    assert False == True
