@@ -4,6 +4,7 @@ import argparse
 from docker.client import DockerClient
 from docker.types import EndpointSpec, RestartPolicy
 import urllib3
+import requests
 
 urllib3.disable_warnings()
 
@@ -12,6 +13,32 @@ remove_container = bool(os.getenv('EG_REMOVE_CONTAINER', 'True').lower() == 'tru
 swarm_mode = bool(os.getenv('EG_DOCKER_MODE', 'swarm').lower() == 'swarm')
 
 from docker.types import Mount
+
+
+def get_dynamic_mounts(param_env):
+    mounts = []
+
+    try:
+        response = requests.get("http://orchest-webserver/store/datasources")
+        response.raise_for_status()
+
+        datasources = response.json()
+
+        for datasource in datasources:
+            if datasource["source_type"] == "host-directory":
+
+                mount = Mount(
+                    target="/data/%s" % datasource["name"],
+                    source=datasource["connection_details"]["absolute_host_path"],
+                    type='bind'
+                )
+
+                mounts.append(mount)
+                
+    except Exception as e:
+        print(e)
+
+    return mounts
 
 
 def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
@@ -99,8 +126,15 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
             type='bind'
         )
 
+        mounts = [pipeline_dir_mount]
+
+        # dynamically mount host-dir sources
+        dynamic_mounts = get_dynamic_mounts(param_env)
+        
+        mounts = mounts + dynamic_mounts
+
         # print("container args: {}".format(kwargs))  # useful for debug
-        kernel_container = client.containers.run(image_name, mounts=[pipeline_dir_mount], **kwargs)
+        kernel_container = client.containers.run(image_name, mounts=mounts, **kwargs)
 
 
 if __name__ == '__main__':

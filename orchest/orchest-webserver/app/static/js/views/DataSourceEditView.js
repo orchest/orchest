@@ -44,8 +44,8 @@ class DataSourceEditView extends React.Component {
                             "name": "Directory details",
                             "fields": [
                                 {
-                                    "label": "Host path",
-                                    "name": "host_path",
+                                    "label": "Absolute host path",
+                                    "name": "absolute_host_path",
                                     "type": "textfield",
                                 },
                             ]

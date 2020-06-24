@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Optional#, TypedDict
 
 import aiodocker
 import aiohttp
+import requests
 
 from config import CONFIG_CLASS
 
@@ -148,6 +149,7 @@ class PipelineStepRunner:
 
     # TODO: specify a config argument here that is updated as the config
     #       variable that is passed to run the docker container.
+
     async def run_on_docker(self,
                             docker_client: aiodocker.Docker,
                             session: aiohttp.ClientSession,
@@ -175,10 +177,17 @@ class PipelineStepRunner:
         pipeline_dir: str = run_config['pipeline_dir']
 
         image: str = run_config['runnable_image_mapping'][self.properties['image']]
+        
+
+        # Generate binds
+        binds = [f'{pipeline_dir}:/notebooks']
+        dynamic_binds = self.get_dynamic_binds()
+        binds = binds + dynamic_binds
+
         config = {
             'Image': image,
             'Env': [f'STEP_UUID={self.properties["uuid"]}'],
-            'HostConfig': {'Binds': [f'{pipeline_dir}:/notebooks']},
+            'HostConfig': {'Binds': binds},
             'Cmd': [self.properties['file_path']],
             'NetworkingConfig': {
                 'EndpointsConfig': {
@@ -288,6 +297,25 @@ class PipelineStepRunner:
     async def run_ancestors_on_kubernetes(self):
         # Call the run_on_kubernetes internally.
         pass
+
+    def get_dynamic_binds(self):
+        binds = []
+
+        try:
+            response = requests.get("http://orchest-webserver/store/datasources")
+            response.raise_for_status()
+
+            datasources = response.json()
+
+            for datasource in datasources:
+                if datasource["source_type"] == "host-directory":
+
+                    binds.append(f'{datasource["connection_details"]["absolute_host_path"]}:{"/data/%s" % datasource["name"]}')
+
+        except Exception as e:
+            print(e)
+
+        return binds
 
 
 class PipelineStep(PipelineStepRunner):
