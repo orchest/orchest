@@ -1,6 +1,7 @@
 """
 uuid-1, uuid-3 --> uuid-2
 """
+import shutil
 import time
 from unittest.mock import patch
 
@@ -23,117 +24,14 @@ def plasma_store(monkeypatch):
         monkeypatch.setattr(orchest.Config, 'STORE_SOCKET_NAME', store_socket_name)
         yield store_socket_name
 
+    uuids = [
+        'uuid-1______________',
+        'uuid-2______________',
+        'uuid-3______________'
+    ]
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
-def test_transfer_disk(mock_get_step_uuid, plasma_store):
-    # Do as if we are uuid-1
-    send_data_step_1 = [1, 2, 3]
-    mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_disk(
-        send_data_step_1,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # Do as if we are uuid-3
-    send_data_step_3 = [6, 5, 4]
-    mock_get_step_uuid.return_value = 'uuid-3______________'
-    transfer.send_disk(
-        send_data_step_3,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline.json')
-
-    assert received_data == [send_data_step_1, send_data_step_3]
-
-
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
-def test_transfer_memory(mock_get_step_uuid, plasma_store):
-    # Do as if we are uuid-1
-    send_data_step_1 = [1, 2, 3]
-    mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
-        send_data_step_1,
-        disk_fallback=False,
-        store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # Do as if we are uuid-3
-    send_data_step_3 = [6, 5, 4]
-    mock_get_step_uuid.return_value = 'uuid-3______________'
-    transfer.send_memory(
-        send_data_step_3,
-        disk_fallback=False,
-        store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline.json')
-
-    assert received_data == [send_data_step_1, send_data_step_3]
-
-
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
-def test_most_recently_used(mock_get_step_uuid, plasma_store):
-    # Do as if we are uuid-1.
-    # First write data via memory and then via disk.
-    mock_get_step_uuid.return_value = 'uuid-1______________'
-
-    send_data_step_1 = [10, 20, 30]
-    transfer.send_memory(
-        send_data_step_1,
-        disk_fallback=False,
-        store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # TODO: without the sleep the resolve does not work, because disk
-    #       outputs the timestamp with higher precision than memory.
-    #       E.g: '2020-06-23T09:23:22.575459' vs '2020-06-23T09:23:22'
-    # It is very unlikely you will send through memory and disk in quick
-    # succession.
-    time.sleep(1)
-
-    send_data_step_1_new = [10, 10, 10]
-    transfer.send_disk(
-        send_data_step_1_new,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # Do as if we are uuid-3
-    mock_get_step_uuid.return_value = 'uuid-3______________'
-
-    send_data_step_3 = [60, 50, 40]
-    transfer.send_disk(
-        send_data_step_3,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # It is very unlikely you will send through memory and disk in quick
-    # succession.
-    time.sleep(1)
-
-    send_data_step_3_new = [50, 50, 50]
-    transfer.send_memory(
-        send_data_step_3_new,
-        disk_fallback=False,
-        store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
-
-    # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline.json')
-
-    assert received_data == [send_data_step_1_new, send_data_step_3_new]
+    for step_uuid in uuids:
+        shutil.rmtree(f'tests/userdir/.data/{step_uuid}', ignore_errors=True)
 
 
 class Foo:
@@ -144,34 +42,140 @@ class Foo:
         return self.x == other.x
 
 
+@pytest.mark.parametrize('data_1', [
+        [1, 2, 3],
+        [Foo(1), Foo(2), Foo(3)],
+    ],
+    ids=['basic', 'pickle']
+)
+@pytest.mark.parametrize('test_transfer', [
+        {
+            'method': transfer.send_disk,
+            'kwargs': {}
+        },
+    ],
+    ids=['default']
+)
 @patch('orchest.transfer.get_step_uuid')
 @patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
-def test_memory_pickle_fallback(mock_get_step_uuid, plasma_store):
-    # Do as if we are uuid-1
-    send_data_step_1 = [Foo(1), Foo(2), Foo(3)]
+def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
+    # Do as if we are uuid-1. Note the trailing underscores. This is to
+    # make the plasma.ObjectID the required 20 characters.
     mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
-        send_data_step_1,
-        disk_fallback=False,
-        store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
-    )
 
-    # Do as if we are uuid-3
-    send_data_step_3 = [61, 51, 41]
-    mock_get_step_uuid.return_value = 'uuid-3______________'
-    transfer.send_memory(
-        send_data_step_3,
-        disk_fallback=False,
-        store_socket_name=plasma_store,
-        pipeline_description_path='tests/userdir/pipeline.json'
+    test_transfer['method'](
+        data_1,
+        pipeline_description_path='tests/userdir/pipeline-basic.json',
+        **test_transfer['kwargs']
     )
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline.json')
+    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
 
-    assert received_data == [send_data_step_1, send_data_step_3]
+    assert received_data == [data_1]
+
+
+# TODO: add tests for other kwargs
+@pytest.mark.parametrize('data_1', [
+        [1, 2, 3],
+        [Foo(1), Foo(2), Foo(3)],
+    ],
+    ids=['basic', 'pickle']
+)
+@pytest.mark.parametrize('test_transfer', [
+        {
+            'method': transfer.send_memory,
+            'kwargs': {
+                'disk_fallback': False,
+            }
+        }
+    ],
+    ids=['disk_fallback=False']
+)
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
+    test_transfer['kwargs']['store_socket_name'] = plasma_store
+
+    # Do as if we are uuid-1. Note the trailing underscores. This is to
+    # make the plasma.ObjectID the required 20 characters.
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+    test_transfer['method'](
+        data_1,
+        pipeline_description_path='tests/userdir/pipeline-basic.json',
+        **test_transfer['kwargs']
+    )
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = 'uuid-2______________'
+    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+
+    assert received_data == [data_1]
+
+
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_resolve_disk_memory(mock_get_step_uuid, plasma_store):
+    # Do as if we are uuid-1.
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+
+    data_1 = 'data'
+    transfer.send_disk(
+        data_1,
+        pipeline_description_path='tests/userdir/pipeline-basic.json'
+    )
+
+    # It is very unlikely you will send through memory and disk in quick
+    # succession. In addition, the resolve order has a precision of
+    # seconds. Thus we need to ensure that indeed it can be resolved.
+    time.sleep(1)
+
+    data_1_new = 'new data'
+    transfer.send_memory(
+        data_1_new,
+        disk_fallback=False,
+        store_socket_name=plasma_store,
+        pipeline_description_path='tests/userdir/pipeline-basic.json'
+    )
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = 'uuid-2______________'
+    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+
+    assert received_data == [data_1_new]
+
+
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_resolve_memory_disk(mock_get_step_uuid, plasma_store):
+    # Do as if we are uuid-1.
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+
+    data_1 = 'data'
+    transfer.send_memory(
+        data_1,
+        disk_fallback=False,
+        store_socket_name=plasma_store,
+        pipeline_description_path='tests/userdir/pipeline-basic.json'
+    )
+
+    # It is very unlikely you will send through memory and disk in quick
+    # succession. In addition, the resolve order has a precision of
+    # seconds. Thus we need to ensure that indeed it can be resolved.
+    time.sleep(1)
+
+    data_1_new = 'new data'
+    transfer.send_disk(
+        data_1_new,
+        pipeline_description_path='tests/userdir/pipeline-basic.json'
+    )
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = 'uuid-2______________'
+    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+
+    assert received_data == [data_1_new]
 
 
 @patch('orchest.transfer.get_step_uuid')
@@ -206,3 +210,8 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 
     assert (received_data[0] == send_data_step_1).all()
     assert received_data[1] == send_data_step_3
+
+
+# TODO:
+# - Send multiple times and see whether it is received in the order
+#   defined by the pipeline.json i.e. [data_1, data_3]

@@ -102,7 +102,8 @@ def send_disk(data: Any,
     # The HEAD file serves to resolve the transfer method.
     head_file = os.path.join(step_data_dir, 'HEAD')
     with open(head_file, 'w') as f:
-        f.write(f'{datetime.utcnow().isoformat()}, {type}')
+        current_time = datetime.utcnow()
+        f.write(f'{current_time.isoformat(timespec="seconds")}, {type}')
 
     # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -479,6 +480,7 @@ def resolve_memory(step_uuid: str) -> Dict[str, Any]:
         # Dictionary from ObjectIDs to an "info" dictionary describing
         # the object.
         info = client.list()[obj_id]
+        # breakpoint()
 
     except KeyError:
         # TODO: this error should be changed. Because if the user did
@@ -545,6 +547,9 @@ def resolve(step_uuid: str) -> Tuple[Any]:
 
     # Get the method that was most recently used based on its logged
     # timestamp.
+    # NOTE: if multiple methods have the same timestamp then the method
+    # that is highest in the `_receive_methods` list will be returned.
+    # Since `max` returns the first occurrence of the maximum.
     most_recent = max(method_infos, key=lambda x: x['timestamp'])
     return (most_recent['method_to_call'],
             most_recent['method_args'],
@@ -690,8 +695,8 @@ def _request_json(url: str) -> Dict[Any, Any]:
 # NOTE: All "resolve_{method}" functions have to be included in this
 # list.
 _receive_methods = [
-    resolve_disk,
-    resolve_memory
+    resolve_memory,
+    resolve_disk
 ]
 
 # TODO: Once we are set on the API we could specify __all__. For now we
