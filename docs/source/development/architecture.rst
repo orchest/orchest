@@ -1,6 +1,6 @@
 Orchest architecture
 ====================
 
-.. image:: img/orchest-architecture.png?cache=19407917409
+.. image:: img/orchest-architecture.png
   :width: 800
   :alt: Alternative text
