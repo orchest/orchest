@@ -29,14 +29,18 @@ Example for sending through disk, where `Step 1` -> `Step 2`.
    # data to. This is managed through your pipeline definition.
    transfer.send_disk(data)
 
+   # Alternatively, you can also send the data via memory.
+   # transfer.send_memory(data)
+
 
 .. code-block:: python
 
    """Step 2"""
    from orchest import transfer
 
-   # Now we will get: data = [[1, 2, 3]]
-   data = transfer.receive()
+   # You will receive the same data, regardless of the send method in
+   # Step 1. 
+   data = transfer.receive()  # data = [[1, 2, 3]]
 
 
 API guide

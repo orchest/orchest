@@ -29,11 +29,11 @@ def _send_disk(data: Any,
     """Sends data to disk to the specified path.
 
     Args:
-        data: data to send.
-        full_path: full path to save the data to.
-        type: file extension determining how to save the data to disk.
+        data: Data to send.
+        full_path: Full path to save the data to.
+        type: File extension determining how to save the data to disk.
             Available options are: ``['pickle']``
-        **kwargs: these kwargs are passed to the function that handles
+        **kwargs: These kwargs are passed to the function that handles
             the writing of the data to disk for the specified `type`.
             For example: ``pickle.dump(data, fname, **kwargs)``.
 
@@ -79,7 +79,7 @@ def send_disk(data: Any,
             Available options are: ``['pickle']``
         pipeline_description_path: Path to the file that contains the
             pipeline description.
-        **kwargs: these kwargs are passed to the function that handles
+        **kwargs: These kwargs are passed to the function that handles
             the writing of the data to disk for the specified `type`.
             For example: ``pickle.dump(data, fname, **kwargs)``.
 
@@ -139,10 +139,10 @@ def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
     """Receives data from disk.
 
     Args:
-        step_uuid: the UUID of the step from which to receive its data.
-        type: file extension determining how to read the data from disk.
+        step_uuid: The UUID of the step from which to receive its data.
+        type: File extension determining how to read the data from disk.
             Available options are: ``['pickle']``
-        **kwargs: these kwargs are passed to the function that handles
+        **kwargs: These kwargs are passed to the function that handles
             the reading of the data from disk for the specified `type`.
             For example: ``pickle.load(fname, **kwargs)``.
 
@@ -175,7 +175,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     method.
 
     Args:
-        step_uuid: the UUID of the step to resolve its most recent write
+        step_uuid: The UUID of the step to resolve its most recent write
             to disk.
 
     Returns:
@@ -322,13 +322,13 @@ def send_memory(data: Any,
             data cannot be serialized by ``pyarrow.serialize``.
         disk_fallback: If True, then sending through disk is used when
             the `data` does not fit in memory. If False, then a
-                :exc:`MemoryError` is thrown.
+            :exc:`MemoryError` is thrown.
         store_socket_name: Name of the socket file of the plasma store.
             It is used to connect the plasma client.
         pipeline_description_path: Path to the file that contains the
             pipeline description.
-        **kwargs: These kwargs are passed to the ``send_disk`` function
-            in case of a triggered `disk_fallback`.
+        **kwargs: These kwargs are passed to the :func:`send_disk`
+            function in case of a triggered `disk_fallback`.
 
     Raises:
         MemoryError: If the `data` does not fit in memory and
@@ -432,7 +432,7 @@ def receive_memory(step_uuid: str) -> Any:
     """Receives data from memory, managed by the Arrow Plasma Store.
 
     Args:
-        step_uuid: the UUID of the step from which to receive its data.
+        step_uuid: The UUID of the step from which to receive its data.
 
     Returns:
         Data from step identified by `step_uuid`.
@@ -473,7 +473,7 @@ def resolve_memory(step_uuid: str) -> Dict[str, Any]:
     :func:`receive_memory` method.
 
     Args:
-        step_uuid: the UUID of the step to resolve its most recent write
+        step_uuid: The UUID of the step to resolve its most recent write
             to memory.
 
     Returns:
@@ -563,15 +563,17 @@ def receive(pipeline_description_path: str = 'pipeline.json',
     """Receives all data sent from incoming steps.
 
     Args:
-        pipeline_description_path: path to the pipeline description that
+        pipeline_description_path: Path to the pipeline description that
             is used to determine what the incoming steps are.
-        verbose: if True print all the steps from which the current step
+        verbose: If True print all the steps from which the current step
             has received data.
 
     Returns:
         List of all the data in the specified order from the front-end.
 
     Example:
+        >>> # It does not matter how the data was send in steps 1 and 2.
+        >>> # It is resolved automatically by the receive method.
         >>> data_step_1, data_step_2 = receive()
     """
     with open(pipeline_description_path, 'r') as f:
@@ -621,6 +623,9 @@ def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
 
 def get_step_uuid(pipeline: Pipeline) -> str:
     """Gets the currently running script's step UUID.
+
+    Args:
+        pipeline: Pipeline object describing the pipeline and its steps.
 
     Returns:
         The UUID of the currently running step. May it be through an
