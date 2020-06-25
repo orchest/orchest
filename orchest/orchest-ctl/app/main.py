@@ -365,18 +365,19 @@ def status():
     # shut down containers
     running_containers = client.containers.list()
 
-    running_container_images = [
-        running_container.image.tags[0] for running_container in running_containers if len(running_container.image.tags) > 0
-    ]
-
+    orchest_container_names = [CONTAINER_MAPPING[container_key]['name'] for container_key in CONTAINER_MAPPING]
+ 
     running_prints = ['']
     not_running_prints = ['']
 
-    for image in IMAGES:
-        if image in running_container_images:
-            running_prints.append("Container image `%s` running." % image)
-        else:
-            not_running_prints.append("Container image `%s` NOT running." % image)
+    for container in running_containers:
+        if container.name in orchest_container_names:
+            running_prints.append("Container %s running." % container.name)
+            orchest_container_names.remove(container.name)
+    
+    for container_name in orchest_container_names:
+        not_running_prints.append("Container %s not running." % container_name)
+
 
     logging.info('\n'.join(running_prints))
     logging.info('\n'.join(not_running_prints))
