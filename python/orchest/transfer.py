@@ -1,4 +1,4 @@
-"""Transfer mechanisms to send and receive data from within steps."""
+"""Transfer mechanisms to send and receive data."""
 from datetime import datetime
 import json
 import os
@@ -74,9 +74,11 @@ def send_disk(data: Any,
       to disk via this function.
 
     Args:
-        data: data to send.
-        type: file extension determining how to save the data to disk.
+        data: Data to send.
+        type: File extension determining how to save the data to disk.
             Available options are: ``['pickle']``
+        pipeline_description_path: Path to the file that contains the
+            pipeline description.
         **kwargs: these kwargs are passed to the function that handles
             the writing of the data to disk for the specified `type`.
             For example: ``pickle.dump(data, fname, **kwargs)``.
@@ -140,7 +142,6 @@ def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
         step_uuid: the UUID of the step from which to receive its data.
         type: file extension determining how to read the data from disk.
             Available options are: ``['pickle']``
-
         **kwargs: these kwargs are passed to the function that handles
             the reading of the data from disk for the specified `type`.
             For example: ``pickle.load(fname, **kwargs)``.
@@ -211,12 +212,23 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     return res
 
 
-def _serialize_memory(obj, pickle_fallback=True):
+def _serialize_memory(
+    obj: Any,
+    pickle_fallback: bool = True
+) -> Tuple[pa.SerializedPyObject, bytes]:
+    """Serializes an object using ``pyarrow.serialize``.
+
+    Args:
+        obj: The object/data to be serialized.
+        pickle_fallback: True to use ``pickle`` as fallback
+            serialization if pyarrow cannot serialize the object. False
+            to not fall back on ``pickle``.
+    """
     try:
         # NOTE: experimental pyarrow function ``serialize``
         serialized = pa.serialize(obj)
 
-    except pa.SerializationCallbackError:
+    except pa.SerializationCallbackError as e:
         # TODO: this is very inefficient. We decided to pickle the
         #       object if pyarrow can not serialize it for us. However,
         #       there might very well be a better way to write the
@@ -226,6 +238,8 @@ def _serialize_memory(obj, pickle_fallback=True):
         if pickle_fallback:
             serialized = pa.serialize(pickle.dumps(obj))
             metadata = b'pickled'
+        else:
+            raise pa.SerializationCallbackError(e)
 
     else:
         metadata = b'not-pickled'
@@ -234,26 +248,30 @@ def _serialize_memory(obj, pickle_fallback=True):
 
 
 def _send_memory(obj: pa.SerializedPyObject,
-                 client,
-                 obj_id=None,
+                 client: plasma.PlasmaClient,
+                 obj_id: Optional[plasma.ObjectID] = None,
                  metadata: Optional[bytes] = None,
-                 memcopy_threads=6,
-                 **kwargs) -> None:
-    """Sends data to disk to the specified path.
+                 memcopy_threads: int = 6) -> plasma.ObjectID:
+    """Sends an object to memory, managed by the Arrow Plasma Store.
 
     Args:
-        data: data to send.
-        full_path: full path to save the data to.
-        type: file extension determining how to save the data to disk.
-            Available options are: ``['pickle']``
-        **kwargs: these kwargs are passed to the function that handles
-            the writing of the data to disk for the specified `type`.
-            For example: ``pickle.dump(data, fname, **kwargs)``.
+        obj: Object to send.
+        client: A PlasmaClient to interface with a plasma store and
+            manager.
+        obj_id: The ID to assign to the `obj` inside the plasma store.
+            If None is given then one is randomly generated.
+        metadata: Metadata to add to the `obj` inside the store.
+        memcopy_threads: The number of threads to use to write the
+            `obj` into the object store for large objects.
+
+    Returns:
+        The ID of the object inside the store. Either the given `obj_id`
+        or a randomly generated one.
 
     Raises:
-        ValueError: If the specified `type` is not one of ``['pickle']``
+        MemoryError: If the `obj` does not fit in memory.
     """
-    # Check whether the object to be passed in memory, actually fits in
+    # Check whether the object to be passed in memory actually fits in
     # memory. We check explicitely instead of trying to insert it,
     # because inserting an already full Plasma store will start evicting
     # objects to free up space. However, we want to maintain control
@@ -271,10 +289,12 @@ def _send_memory(obj: pa.SerializedPyObject,
     if total_size > available_size:
         raise MemoryError('Object does not fit in memory')
 
-    # Write the object to the Plasma store.
+    # In case no `obj_id` is specified, one has to be generated because
+    # an ID is required for an object to be inserted in the store.
     if obj_id is None:
         obj_id = plasma.ObjectID.from_random()
 
+    # Write the object to the plasma store.
     buffer = client.create(obj_id, obj.total_bytes, metadata=metadata)
     stream = pa.FixedSizeBufferWriter(buffer)
     stream.set_memcopy_threads(memcopy_threads)
@@ -286,31 +306,37 @@ def _send_memory(obj: pa.SerializedPyObject,
 
 
 def send_memory(data: Any,
-                pickle_fallback=True,
-                disk_fallback=True,
+                pickle_fallback: bool = True,
+                disk_fallback: bool = True,
                 store_socket_name: str = '/tmp/plasma',
                 pipeline_description_path: str = 'pipeline.json',
                 **kwargs) -> None:
-    """Sends data to disk.
+    """Sends data to memory, managed by the Arrow Plasma Store.
 
-    To manage sending the data to disk for the user, this function has
-    a side effect:
-
-    * Writes to a HEAD file alongside the actual data file. This file
-      serves a protocol that returns the timestamp of the latest write
-      to disk via this function.
+    To manage sending the data to memory for the user, this function has
+    uses metadata to add info to objects inside the plasma store.
 
     Args:
-        data: data to send.
-        type: file extension determining how to save the data to disk.
-            Available options are: ``['pickle']``
-        **kwargs: these kwargs are passed to the function that handles
-            the writing of the data to disk for the specified `type`.
-            For example: ``pickle.dump(data, fname, **kwargs)``.
+        data: Data to send.
+        pickle_fallback: True to use ``pickle`` as fallback in case the
+            data cannot be serialized by ``pyarrow.serialize``.
+        disk_fallback: If True, then sending through disk is used when
+            the `data` does not fit in memory. If False, then a
+                :exc:`MemoryError` is thrown.
+        store_socket_name: Name of the socket file of the plasma store.
+            It is used to connect the plasma client.
+        pipeline_description_path: Path to the file that contains the
+            pipeline description.
+        **kwargs: These kwargs are passed to the ``send_disk`` function
+            in case of a triggered `disk_fallback`.
+
+    Raises:
+        MemoryError: If the `data` does not fit in memory and
+            ``disk_fallback=False``.
 
     Example:
         >>> data = 'Data I would like to send'
-        >>> send_disk(data)
+        >>> send_memory(data)
     """
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
@@ -330,8 +356,6 @@ def send_memory(data: Any,
     try:
         obj_id = _send_memory(obj, client, obj_id=obj_id, metadata=metadata)
 
-    # TODO: Catch custom error that is raised in _send_memory if the obj
-    #       would not fit in plasma store without automatic eviction.
     except MemoryError:
         if not disk_fallback:
             raise MemoryError('Data does not fit in memory.')
@@ -344,12 +368,6 @@ def send_memory(data: Any,
         # TODO: since it calls send_disk there should be the
         #       possibility to set some of its kwargs in this method
         #       call.
-        # TODO: set custom type so it does not serialize again. Note
-        #       that this requires metadata for disk, since otherwise
-        #       it does not know whether to use pickle.load after
-        #       deserializing the content from the file. OR possibly
-        #       do type='arrowpickle' so that from
-        #       left to right is resolve order.
         if metadata == b'pickled':
             type_ = 'arrowpickle'
         elif metadata == b'not-pickled':
@@ -358,25 +376,29 @@ def send_memory(data: Any,
         return send_disk(
             obj,
             type=type_,
-            pipeline_description_path=pipeline_description_path
+            pipeline_description_path=pipeline_description_path,
+            **kwargs
         )
 
     return
 
 
-# TODO: Not yet implemented.
-def _get_metadata():
-    """Not yet implemented."""
-    # Return the metadata that the user added to the object in Plasma.
-    # Or added to disk.
-    pass
+def _receive_memory(obj_id: plasma.ObjectID,
+                    client: plasma.PlasmaClient) -> Any:
+    """Receives data from memory.
 
+    Args:
+        obj_id: The ID of the object to retrieve from the plasma store.
+        client: A PlasmaClient to interface with a plasma store and
+            manager.
 
-def _receive_memory(obj_id, client, **kwargs) -> Any:
-    """Receives data from disk.
+    Returns:
+        The unserialized data from the store, corresponding to the
+        `obj_id`.
 
     Raises:
-        ValueError: If the specified `type` is not one of ``['pickle']``
+        ObjectNotFoundError: If the specified `obj_id` is not in the
+            store.
     """
     obj_ids = [obj_id]
 
@@ -406,30 +428,17 @@ def _receive_memory(obj_id, client, **kwargs) -> Any:
     return obj
 
 
-# TODO: I don't think we should expose the store_socket_name here.
-#       Probably should just be determined inside this function. Because
-#       it has to be mounted at this location. So users that want to use
-#       this function inside Orchest do not have the possibility to
-#       specify a different socket name. -> Lets put it in the config,
-#       because then the test can specify it and the user can do it
-#       via a special configuration object.
-def receive_memory(step_uuid: str, **kwargs) -> Any:
-    """Receives data from disk.
+def receive_memory(step_uuid: str) -> Any:
+    """Receives data from memory, managed by the Arrow Plasma Store.
 
     Args:
         step_uuid: the UUID of the step from which to receive its data.
-        type: file extension determining how to read the data from disk.
-            Available options are: ``['pickle']``
-
-        **kwargs: these kwargs are passed to the function that handles
-            the reading of the data from disk for the specified `type`.
-            For example: ``pickle.load(fname, **kwargs)``.
 
     Returns:
         Data from step identified by `step_uuid`.
 
     Raises:
-        DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
+        MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
     """
     # TODO: could be good idea to put connecting to plasma in a class
     #       such that does not get called when no store is instantiated
@@ -448,7 +457,7 @@ def receive_memory(step_uuid: str, **kwargs) -> Any:
     #       removed because we look at size to see whether we can
     #       insert and not use the reference count).
     try:
-        return _receive_memory(obj_id, client, **kwargs)
+        return _receive_memory(obj_id, client)
     except ObjectNotFoundError:
         raise MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
@@ -457,15 +466,15 @@ def receive_memory(step_uuid: str, **kwargs) -> Any:
 
 
 def resolve_memory(step_uuid: str) -> Dict[str, Any]:
-    """Returns information of the most recent write to disk.
+    """Returns information of the most recent write to memory.
 
-    Resolves via the HEAD file the timestamp (that is used to determine
-    the most recent write) and arguments to call the :meth:`receive_disk`
-    method.
+    Resolves via the `create_time` attribute from the info of a plasma
+    store entry the timestamp. It also sets the arguments to call the
+    :func:`receive_memory` method.
 
     Args:
         step_uuid: the UUID of the step to resolve its most recent write
-            to disk.
+            to memory.
 
     Returns:
         Dictionary containing the information of the function to be
@@ -473,7 +482,7 @@ def resolve_memory(step_uuid: str) -> Dict[str, Any]:
         Additionally, returns fill-in arguments for the function.
 
     Raises:
-        DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
+        MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
     """
     client = plasma.connect(Config.STORE_SOCKET_NAME)
     obj_id = _convert_uuid_to_object_id(step_uuid)
@@ -482,13 +491,8 @@ def resolve_memory(step_uuid: str) -> Dict[str, Any]:
         # Dictionary from ObjectIDs to an "info" dictionary describing
         # the object.
         info = client.list()[obj_id]
-        # breakpoint()
 
     except KeyError:
-        # TODO: this error should be changed. Because if the user did
-        #       not send through memory, then maybe he used disk. Thus
-        #       here it should not throw an error unless we catch it
-        #       ourselves again. -> MemoryOutputNotFoundError
         raise MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             'Try rerunning it.'
@@ -521,17 +525,13 @@ def resolve(step_uuid: str) -> Tuple[Any]:
     #       over difining that same list inside this function. Arguably
     #       defining it outside the function allows for easier
     #       extendability.
-    global _receive_methods
-    # method_info = [method(step_uuid) for method in _receive_methods]
+    global _resolve_methods
 
-    # TODO: since the resolve methods throw an error the code should
-    #       become something like this
     method_infos = []
-    for method in _receive_methods:
+    for method in _resolve_methods:
         try:
             method_info = method(step_uuid)
 
-        # TODO: Define this new custom error
         except OutputNotFoundError:
             # We know now that the user did not use this method to send
             # thus we can just skip it and continue.
@@ -550,8 +550,8 @@ def resolve(step_uuid: str) -> Tuple[Any]:
     # Get the method that was most recently used based on its logged
     # timestamp.
     # NOTE: if multiple methods have the same timestamp then the method
-    # that is highest in the `_receive_methods` list will be returned.
-    # Since `max` returns the first occurrence of the maximum.
+    # that is highest in the `_resolve_methods` list will be returned.
+    # Since `max` returns the first occurrence of the maximum value.
     most_recent = max(method_infos, key=lambda x: x['timestamp'])
     return (most_recent['method_to_call'],
             most_recent['method_args'],
@@ -560,7 +560,7 @@ def resolve(step_uuid: str) -> Tuple[Any]:
 
 def receive(pipeline_description_path: str = 'pipeline.json',
             verbose: bool = False) -> List[Any]:
-    """Receives all data send from incoming steps.
+    """Receives all data sent from incoming steps.
 
     Args:
         pipeline_description_path: path to the pipeline description that
@@ -595,7 +595,6 @@ def receive(pipeline_description_path: str = 'pipeline.json',
         parent_uuid = parent.properties['uuid']
         receive_method, args, kwargs = resolve(parent_uuid)
 
-        # TODO: The parent_uuid should be inside the *args
         incoming_step_data = receive_method(*args, **kwargs)
 
         if verbose:
@@ -607,7 +606,15 @@ def receive(pipeline_description_path: str = 'pipeline.json',
     return data
 
 
-def _convert_uuid_to_object_id(step_uuid):
+def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
+    """Converts a UUID to a plasma.ObjectID.
+
+    Args:
+        step_uuid: UUID of a step.
+
+    Returns:
+        An ObjectID of the first 20 characters of the `step_uuid`.
+    """
     binary_uuid = str.encode(str(step_uuid))
     return plasma.ObjectID(binary_uuid[:20])
 
@@ -693,10 +700,9 @@ def _request_json(url: str) -> Dict[Any, Any]:
     return json.loads(data)
 
 
-# TODO: shouldn't the name be "_resolve_methods" ?
 # NOTE: All "resolve_{method}" functions have to be included in this
-# list.
-_receive_methods = [
+# list. It is used to resolve what what "receive_..." method to invoke.
+_resolve_methods = [
     resolve_memory,
     resolve_disk
 ]
