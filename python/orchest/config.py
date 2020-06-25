@@ -1,6 +1,6 @@
 class Config:
     STORE_SOCKET_NAME = '/tmp/plasma'
-    STEP_DATA_DIR = '.data/{step_uuid}'
+    STEP_DATA_DIR = '.orchest/data/{step_uuid}'
 
     @classmethod
     def get_step_data_dir(cls, step_uuid):
