@@ -55,6 +55,10 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
                         if not output_text.endswith('\n'):
                             output_text = ''.join([output_text, '\n'])
 
+                        # process output text with ansi2html to prep for output
+                        # in html log viewer
+                        output_text = ansi2html(output_text)
+
                         self.log_file.write("[%i] %s" % (cell['execution_count'], output_text))
                     self.log_file.flush()
                     

@@ -134,30 +134,6 @@ class DataSourceEditView extends React.Component {
                         }
                     ]
                 },
-                "database-aws-rds": {
-                    "groups": [
-                        {
-                            "name": "Connection details",
-                            "fields": [
-                                {
-                                    "label": "URL",
-                                    "name": "url",
-                                    "type": "textfield",
-                                },
-                                {
-                                    "label": "Username",
-                                    "name": "username",
-                                    "type": "textfield",
-                                },
-                                {
-                                    "label": "Password",
-                                    "name": "password",
-                                    "type": "password",
-                                }
-                            ]
-                        }
-                    ]
-                },
                 "objectstorage-aws-s3": {
                     "groups": [
                         {
@@ -340,7 +316,6 @@ class DataSourceEditView extends React.Component {
                     ["database-mysql", "MySQL"],
                     ["database-postgresql", "PostgreSQL"],
                     ["database-aws-redshift", "AWS Redshift"],
-                    ["database-aws-rds", "AWS RDS"],
                     ["objectstorage-aws-s3", "AWS S3"],
                 ]} />
 
