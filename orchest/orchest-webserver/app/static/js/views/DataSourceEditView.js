@@ -116,8 +116,13 @@ class DataSourceEditView extends React.Component {
                             "name": "Connection details",
                             "fields": [
                                 {
-                                    "label": "URL",
-                                    "name": "url",
+                                    "label": "Host",
+                                    "name": "host",
+                                    "type": "textfield",
+                                },
+                                {
+                                    "label": "Database name",
+                                    "name": "database_name",
                                     "type": "textfield",
                                 },
                                 {
@@ -141,7 +146,7 @@ class DataSourceEditView extends React.Component {
                             "fields": [
                                 {
                                     "label": "AWS Bucket name",
-                                    "name": "AWS_BUCKET_NAME",
+                                    "name": "bucket",
                                     "type": "textfield",
                                 },
                                 {
