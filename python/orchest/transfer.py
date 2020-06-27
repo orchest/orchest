@@ -1,4 +1,15 @@
-"""Transfer mechanisms to send and receive data."""
+"""Transfer mechanisms to send and receive data.
+
+Using memory transfer requires running a Plasma Store. One can be
+started using
+
+.. code-block:: bash
+
+    plasma_store -m 1000000000 -s /tmp/plasma
+
+TODO: something about our plasma manager for eviction.
+
+"""
 from datetime import datetime
 import json
 import os
@@ -9,7 +20,6 @@ import urllib
 import pyarrow as pa
 import pyarrow.plasma as plasma
 
-# from orchest.config import Config
 from orchest import Config
 from orchest.errors import (
     DiskOutputNotFoundError,
@@ -237,12 +247,12 @@ def _serialize_memory(
         #       (on which we can call certain methods).
         if pickle_fallback:
             serialized = pa.serialize(pickle.dumps(obj))
-            metadata = b'pickled'
+            metadata = b'1;pickled'
         else:
             raise pa.SerializationCallbackError(e)
 
     else:
-        metadata = b'not-pickled'
+        metadata = b'1;not-pickled'
 
     return serialized, metadata
 
@@ -282,6 +292,9 @@ def _send_memory(obj: pa.SerializedPyObject,
         obj['data_size'] + obj['metadata_size']
         for obj in client.list().values()
     )
+    # NOTE: TODO: do this percentage since we send a special object
+    #       to do eviction. And there should always be space for this
+    #       object.
     # TODO: maybe use a percentage of maximum capacity. Better be safe
     #       than sorry.
     available_size = client.store_capacity() - occupied_size
@@ -295,6 +308,9 @@ def _send_memory(obj: pa.SerializedPyObject,
         obj_id = plasma.ObjectID.from_random()
 
     # Write the object to the plasma store.
+    # TODO: if the obj_id already exists, then it first has to be
+    #       deleted. And then the new one can be inserted, just like the
+    #       data on disk that gets overwritten.
     buffer = client.create(obj_id, obj.total_bytes, metadata=metadata)
     stream = pa.FixedSizeBufferWriter(buffer)
     stream.set_memcopy_threads(memcopy_threads)
@@ -313,7 +329,7 @@ def send_memory(data: Any,
                 **kwargs) -> None:
     """Sends data to memory, managed by the Arrow Plasma Store.
 
-    To manage sending the data to memory for the user, this function has
+    To manage sending the data to memory for the user, this function
     uses metadata to add info to objects inside the plasma store.
 
     Args:
@@ -351,6 +367,15 @@ def send_memory(data: Any,
     # Serialize the object and collect the serialization metadata.
     obj, metadata = _serialize_memory(data, pickle_fallback=pickle_fallback)
     obj_id = _convert_uuid_to_object_id(step_uuid)
+
+    # TODO: Get the store socket name from the Config. And pass it to
+    #       _send_memory which will then connect to it. Although better
+    #       if it connects more high level since otherwise if you want
+    #       to use low-level the code will connect everytime instead of
+    #       being able to reuse the same client. But still good idea to
+    #       get it from the config in this function. Maybe set the kwarg
+    #       to None default, so that if it is None then use config and
+    #       otherwise the given value.
     client = plasma.connect(store_socket_name)
 
     try:
@@ -368,9 +393,9 @@ def send_memory(data: Any,
         # TODO: since it calls send_disk there should be the
         #       possibility to set some of its kwargs in this method
         #       call.
-        if metadata == b'pickled':
+        if metadata == b'1;pickled':
             type_ = 'arrowpickle'
-        elif metadata == b'not-pickled':
+        elif metadata == b'1;not-pickled':
             type_ = 'arrow'
 
         return send_disk(
@@ -422,13 +447,13 @@ def _receive_memory(obj_id: plasma.ObjectID,
 
     # If the metadata stated that the object was pickled, then we need
     # to additionally unpickle the obj.
-    if metadata == b'pickled':
+    if metadata == b'1;pickled':
         obj = pickle.loads(obj)
 
     return obj
 
 
-def receive_memory(step_uuid: str) -> Any:
+def receive_memory(step_uuid: str, receiver: str = None) -> Any:
     """Receives data from memory, managed by the Arrow Plasma Store.
 
     Args:
@@ -450,22 +475,40 @@ def receive_memory(step_uuid: str) -> Any:
     client = plasma.connect(Config.STORE_SOCKET_NAME)
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
-    # TODO: After receiving the object. Check whether it has to be
-    #       evicted. (Once all other steps have received the object
-    #       also.) Without this eviction it will currently always
-    #       fall back to disk when sending (because the object is never
-    #       removed because we look at size to see whether we can
-    #       insert and not use the reference count).
     try:
-        return _receive_memory(obj_id, client)
+        obj = _receive_memory(obj_id, client)
+
+    # TODO: if a step receives from multiple other steps. Then this
+    #       error will make the entire receive operation fail. Thus
+    #       having done all the deserialization of the other steps for
+    #       nothing. Maybe we can do a check beforehand so we can throw
+    #       this error earlier.
     except ObjectNotFoundError:
         raise MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             'Try rerunning it.'
         )
 
+    else:
+        # TODO: note somewhere (maybe in the docstring) that it might
+        #       although very unlikely raise MemoryError, because the
+        #       receive is now actually also sending data.
+        # TODO: send message to plasma if received from memory to do the
+        #       eviction.
+        # TODO: this ENV variable is set in the orchest-api. Now we
+        #       always know when we are running inside a jupyter kernel
+        #       interactively. And in that case we never want to do
+        #       eviction.
+        if os.getenv('PLASMA_MANAGER') is not None:
+            empty_obj, _ = _serialize_memory('')
+            msg = f'2;{step_uuid},{receiver}'
+            metadata = bytes(msg, 'utf-8')
+            _send_memory(empty_obj, client, metadata=metadata)
 
-def resolve_memory(step_uuid: str) -> Dict[str, Any]:
+    return obj
+
+
+def resolve_memory(step_uuid: str, receiver: str = None) -> Dict[str, Any]:
     """Returns information of the most recent write to memory.
 
     Resolves via the `create_time` attribute from the info of a plasma
@@ -505,13 +548,18 @@ def resolve_memory(step_uuid: str) -> Dict[str, Any]:
         'timestamp': timestamp,
         'method_to_call': receive_memory,
         'method_args': (step_uuid,),
-        'method_kwargs': {}
+        'method_kwargs': {
+            'receiver': receiver
+        }
     }
     return res
 
 
-def resolve(step_uuid: str) -> Tuple[Any]:
+def resolve(step_uuid: str, receiver: str = None) -> Tuple[Any]:
     """Resolves the most recently used tranfer method of the given step.
+
+    Additionally, resolves all the *args and **kwargs the receiving
+    transfer method has to be called with.
 
     Args:
         step_uuid: UUID of the step to resolve its most recent write.
@@ -530,7 +578,10 @@ def resolve(step_uuid: str) -> Tuple[Any]:
     method_infos = []
     for method in _resolve_methods:
         try:
-            method_info = method(step_uuid)
+            if method.__name__ == 'resolve_memory':
+                method_info = method(step_uuid, receiver=receiver)
+            else:
+                method_info = method(step_uuid)
 
         except OutputNotFoundError:
             # We know now that the user did not use this method to send
@@ -595,7 +646,7 @@ def receive(pipeline_description_path: str = 'pipeline.json',
     data = []
     for parent in pipeline.get_step_by_uuid(step_uuid).parents:
         parent_uuid = parent.properties['uuid']
-        receive_method, args, kwargs = resolve(parent_uuid)
+        receive_method, args, kwargs = resolve(parent_uuid, receiver=step_uuid)
 
         incoming_step_data = receive_method(*args, **kwargs)
 
@@ -617,7 +668,7 @@ def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
     Returns:
         An ObjectID of the first 20 characters of the `step_uuid`.
     """
-    binary_uuid = str.encode(str(step_uuid))
+    binary_uuid = str.encode(step_uuid)
     return plasma.ObjectID(binary_uuid[:20])
 
 

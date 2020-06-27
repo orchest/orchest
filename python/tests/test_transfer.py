@@ -1,6 +1,7 @@
 """
 uuid-1, uuid-3 --> uuid-2
 """
+import os
 import shutil
 import time
 from unittest.mock import patch
@@ -212,9 +213,17 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
 # TODO: probably can parametrize this test as well
 @patch('orchest.transfer.get_step_uuid')
 @patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
-def test_memory_eviction_fit(mock_get_step_uuid, plasma_store):
+def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
+    breakpoint()
+
+    # Setup environment variables.
+    envs = {
+        'PLASMA_MANAGER': 'True'
+    }
+    monkeypatch.setattr(os, 'environ', envs)
+
     # Do as if we are uuid-1
-    data_1 = generate_data(0.7*PLASMA_KILOBYTES * KILOBYTE)
+    data_1 = generate_data(0.6*PLASMA_KILOBYTES * KILOBYTE)
     mock_get_step_uuid.return_value = 'uuid-1______________'
     transfer.send_memory(
         data_1,
@@ -231,7 +240,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store):
     # Pretend to be executing something.
     time.sleep(1)
 
-    data_2 = generate_data(0.2*PLASMA_KILOBYTES * KILOBYTE)
+    data_2 = generate_data(0.1*PLASMA_KILOBYTES * KILOBYTE)
     transfer.send_memory(
         data_2,
         disk_fallback=False,
@@ -248,7 +257,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store):
     # Pretend to be executing something.
     time.sleep(1)
 
-    data_3 = generate_data(0.5*PLASMA_KILOBYTES * KILOBYTE)
+    data_3 = generate_data(0.6*PLASMA_KILOBYTES * KILOBYTE)
     res = transfer.send_memory(
         data_3,
         disk_fallback=False,
