@@ -32,11 +32,45 @@ from orchest.errors import (
 from orchest.pipeline import Pipeline
 
 
-def _output_to_disk(data: Any,
+# TODO: make public?
+def _serialize(
+    obj: Any,
+    pickle_fallback: bool = True
+) -> Tuple[pa.SerializedPyObject, str]:
+    """Serializes an object using ``pyarrow.serialize``.
+
+    Args:
+        obj: The object/data to be serialized.
+        pickle_fallback: True to use ``pickle`` as fallback
+            serialization if pyarrow cannot serialize the object. False
+            to not fall back on ``pickle``.
+    """
+    try:
+        # NOTE: experimental pyarrow function ``serialize``
+        serialized = pa.serialize(obj)
+
+    except pa.SerializationCallbackError as e:
+        # TODO: this is very inefficient. We decided to pickle the
+        #       object if pyarrow can not serialize it for us. However,
+        #       there might very well be a better way to write the
+        #       pickled object to the buffer instead of serializing the
+        #       pickled object again so that we get a SerializedPyObject
+        #       (on which we can call certain methods).
+        if pickle_fallback:
+            serialized = pa.serialize(pickle.dumps(obj))
+            serialization = 'arrowpickle'
+        else:
+            raise pa.SerializationCallbackError(e)
+
+    else:
+        serialization = 'arrow'
+
+    return serialized, serialization
+
+
+def _output_to_disk(obj: pa.SerializedPyObject,
                     full_path: str,
-                    type: str = 'pickle',
-                    already_serialized: bool = False,
-                    **kwargs) -> None:
+                    serialization: str = 'arrow') -> None:
     """Outputs data to disk to the specified path.
 
     Args:
@@ -44,7 +78,7 @@ def _output_to_disk(data: Any,
         full_path: Full path to save the data to.
         type: File extension determining how to save the data to disk.
             Available options are: ``['pickle']``
-        already_serialized: False if the object passed is not already
+        is_serialized: False if the object passed is not already
             serialized. True otherwise.
         **kwargs: These kwargs are passed to the function that handles
             the writing of the data to disk for the specified `type`.
@@ -53,43 +87,25 @@ def _output_to_disk(data: Any,
     Raises:
         ValueError: If the specified `type` is not one of ``['pickle']``
     """
-    if already_serialized:
-        with open(f'{full_path}.{type}', 'wb') as f:
-            if type in ['arrow', 'arrowpickle']:
-                if isinstance(data, pa.SerializedPyObject):
-                    data.write_to(f)
-                else:
-                    raise TypeError(
-                        "Input type of 'data' has to be pa.SerializedPyObject "
-                        "for 'type' of 'arrow' or 'arrowpickle' when specifying "
-                        "'already_serialized=True'."
-                    )
-
-            else:
-                f.write(data)
-
-        return
-
-    if type == 'pickle':
-        with open(f'{full_path}.{type}', 'wb') as f:
-            pickle.dump(data, f, **kwargs)
-
-    elif type in ['arrow', 'arrowpickle']:
-        serialized = pa.serialize(data)
-        with open(f'{full_path}.{type}', 'wb') as f:
-            serialized.write_to(f)
+    if serialization in ['arrow', 'arrowpickle']:
+        with open(f'{full_path}.{serialization}', 'wb') as f:
+            obj.write_to(f)
 
     else:
-        raise ValueError("Function not defined for specified 'type'")
+        raise ValueError("Function not defined for specified 'serialization'")
 
     return
 
 
+# TODO: serialization is in case the object is already serialized. Should
+#       this option also be given to the output_to_memory? I don't think
+#       so because we only use it internally. Although it is not that nice
+#       that it is exposed to the user. But the user CAN use it if he
+#       serialized it before using the _serialize method.
 def output_to_disk(data: Any,
-                   type: str = 'pickle',
+                   pickle_fallback: bool = True,
                    pipeline_description_path: str = 'pipeline.json',
-                   already_serialized: bool = False,
-                   **kwargs) -> None:
+                   serialization: Optional[str] = None) -> None:
     """Outputs data to disk.
 
     To manage outputing the data to disk for the user, this function has
@@ -102,10 +118,10 @@ def output_to_disk(data: Any,
     Args:
         data: Data to output.
         type: File extension determining how to save the data to disk.
-            Available options are: ``['pickle']``
+            Available options are: ``['arrow', 'arrowpickle']``
         pipeline_description_path: Path to the file that contains the
             pipeline description.
-        already_serialized: False if the object passed is not already
+        is_serialized: False if the object passed is not already
             serialized. True otherwise.
         **kwargs: These kwargs are passed to the function that handles
             the writing of the data to disk for the specified `type`.
@@ -125,6 +141,9 @@ def output_to_disk(data: Any,
     except StepUUIDResolveError:
         raise StepUUIDResolveError('Failed to determine where to output data to.')
 
+    if serialization is None:
+        data, serialization = _serialize(data, pickle_fallback=pickle_fallback)
+
     # Recursively create any directories if they do not already exists.
     step_data_dir = Config.get_step_data_dir(step_uuid)
     os.makedirs(step_data_dir, exist_ok=True)
@@ -133,38 +152,30 @@ def output_to_disk(data: Any,
     head_file = os.path.join(step_data_dir, 'HEAD')
     with open(head_file, 'w') as f:
         current_time = datetime.utcnow()
-        f.write(f'{current_time.isoformat(timespec="seconds")}, {type}')
+        f.write(f'{current_time.isoformat(timespec="seconds")}, {serialization}')
 
     # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
 
-    return _output_to_disk(data, full_path, type=type,
-                           already_serialized=already_serialized, **kwargs)
+    return _output_to_disk(data, full_path, serialization=serialization)
 
 
-def _get_output_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
+def _get_output_disk(full_path: str, serialization: str = 'arrow', **kwargs) -> Any:
     """Gets data from disk.
 
     Raises:
         ValueError: If the specified `type` is not one of ``['pickle']``
     """
-    if type == 'pickle':
-        with open(f'{full_path}.{type}', 'rb') as f:
-            return pickle.load(f, **kwargs)
+    with open(f'{full_path}.{serialization}', 'rb') as f:
+        data = pa.deserialize_from(f, base=None)
 
-    elif type == 'arrow':
-        with open(f'{full_path}.{type}', 'rb') as f:
-            return pa.deserialize_from(f, base=None)
+    if serialization == 'arrowpickle':
+        return pickle.loads(data)
 
-    elif type == 'arrowpickle':
-        with open(f'{full_path}.{type}', 'rb') as f:
-            data = pa.deserialize_from(f, base=None)
-            return pickle.loads(data)
-
-    raise ValueError("Function not defined for specified 'type'")
+    return data
 
 
-def get_output_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
+def get_output_disk(step_uuid: str, serialization: str = 'arrow') -> Any:
     """Gets data from disk.
 
     Args:
@@ -185,7 +196,7 @@ def get_output_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
     full_path = os.path.join(step_data_dir, step_uuid)
 
     try:
-        return _get_output_disk(full_path, type=type, **kwargs)
+        return _get_output_disk(full_path, serialization=serialization)
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
@@ -220,7 +231,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
 
     try:
         with open(head_file, 'r') as f:
-            timestamp, type = f.read().split(', ')
+            timestamp, serialization = f.read().split(', ')
 
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
@@ -235,45 +246,10 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
         'method_to_call': get_output_disk,
         'method_args': (step_uuid,),
         'method_kwargs': {
-            'type': type
+            'serialization': serialization
         }
     }
     return res
-
-
-def _serialize_memory(
-    obj: Any,
-    pickle_fallback: bool = True
-) -> Tuple[pa.SerializedPyObject, bytes]:
-    """Serializes an object using ``pyarrow.serialize``.
-
-    Args:
-        obj: The object/data to be serialized.
-        pickle_fallback: True to use ``pickle`` as fallback
-            serialization if pyarrow cannot serialize the object. False
-            to not fall back on ``pickle``.
-    """
-    try:
-        # NOTE: experimental pyarrow function ``serialize``
-        serialized = pa.serialize(obj)
-
-    except pa.SerializationCallbackError as e:
-        # TODO: this is very inefficient. We decided to pickle the
-        #       object if pyarrow can not serialize it for us. However,
-        #       there might very well be a better way to write the
-        #       pickled object to the buffer instead of serializing the
-        #       pickled object again so that we get a SerializedPyObject
-        #       (on which we can call certain methods).
-        if pickle_fallback:
-            serialized = pa.serialize(pickle.dumps(obj))
-            metadata = b'1;pickled'
-        else:
-            raise pa.SerializationCallbackError(e)
-
-    else:
-        metadata = b'1;not-pickled'
-
-    return serialized, metadata
 
 
 def _output_to_memory(obj: pa.SerializedPyObject,
@@ -349,8 +325,7 @@ def output_to_memory(data: Any,
                      pickle_fallback: bool = True,
                      disk_fallback: bool = True,
                      store_socket_name: str = '/tmp/plasma',
-                     pipeline_description_path: str = 'pipeline.json',
-                     **kwargs) -> None:
+                     pipeline_description_path: str = 'pipeline.json') -> None:
     """Outputs data to memory, managed by the Apache Arrow Plasma Store.
 
     To manage outputing the data to memory for the user, this function
@@ -389,8 +364,10 @@ def output_to_memory(data: Any,
         raise StepUUIDResolveError('Failed to determine where to output data to.')
 
     # Serialize the object and collect the serialization metadata.
-    obj, metadata = _serialize_memory(data, pickle_fallback=pickle_fallback)
     obj_id = _convert_uuid_to_object_id(step_uuid)
+
+    obj, serialization = _serialize(data, pickle_fallback=pickle_fallback)
+    metadata = bytes(f'1;{serialization}', 'utf-8')
 
     # TODO: Get the store socket name from the Config. And pass it to
     #       _output_to_memory which will then connect to it. Although better
@@ -417,17 +394,10 @@ def output_to_memory(data: Any,
         # TODO: since it calls output_to_disk there should be the
         #       possibility to set some of its kwargs in this method
         #       call.
-        if metadata == b'1;pickled':
-            type_ = 'arrowpickle'
-        elif metadata == b'1;not-pickled':
-            type_ = 'arrow'
-
         return output_to_disk(
             obj,
-            type=type_,
+            serialization=serialization,
             pipeline_description_path=pipeline_description_path,
-            already_serialized=True,
-            **kwargs
         )
 
     return
@@ -472,7 +442,7 @@ def _get_output_memory(obj_id: plasma.ObjectID,
 
     # If the metadata stated that the object was pickled, then we need
     # to additionally unpickle the obj.
-    if metadata == b'1;pickled':
+    if metadata == b'1;arrowpickle':
         obj = pickle.loads(obj)
 
     return obj
@@ -526,7 +496,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         #       interactively. And in that case we never want to do
         #       eviction.
         if os.getenv('PLASMA_MANAGER') is not None:
-            empty_obj, _ = _serialize_memory('')
+            empty_obj, _ = _serialize('')
             msg = f'2;{step_uuid},{consumer}'
             metadata = bytes(msg, 'utf-8')
             _output_to_memory(empty_obj, client, metadata=metadata)
