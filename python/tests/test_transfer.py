@@ -99,9 +99,9 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+    input_data = transfer.get_inputs('tests/userdir/pipeline-basic.json')
 
-    assert (received_data == data_1).all()
+    assert (input_data == data_1).all()
 
 
 # TODO: add tests for other kwargs
@@ -137,9 +137,9 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+    input_data = transfer.get_inputs('tests/userdir/pipeline-basic.json')
 
-    assert (received_data == data_1).all()
+    assert (input_data == data_1).all()
 
 
 @patch('orchest.transfer.get_step_uuid')
@@ -179,9 +179,9 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+    input_data = transfer.get_inputs('tests/userdir/pipeline-basic.json')
 
-    assert (received_data[0] == data_1).all()
+    assert (input_data[0] == data_1).all()
 
 
 @patch('orchest.transfer.get_step_uuid')
@@ -205,16 +205,16 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+    input_data = transfer.get_inputs('tests/userdir/pipeline-basic.json')
 
-    assert received_data[0] == data_1
+    assert input_data[0] == data_1
 
 
 # TODO: probably can parametrize this test as well
 @patch('orchest.transfer.get_step_uuid')
 @patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
 def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
-    breakpoint()
+    # breakpoint()
 
     # Setup environment variables.
     envs = {
@@ -234,8 +234,8 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data_2 = transfer.receive('tests/userdir/pipeline-eviction.json')
-    assert (received_data_2[0] == data_1).all()
+    input_data_2 = transfer.get_inputs('tests/userdir/pipeline-eviction.json')
+    assert (input_data_2[0] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
@@ -251,8 +251,8 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
     # Do as if we are uuid-3. It should fit in memory, since the receive
     # method here should evict the data from "uuid-1" afterwards.
     mock_get_step_uuid.return_value = 'uuid-3______________'
-    received_data_3 = transfer.receive('tests/userdir/pipeline-eviction.json')
-    assert (received_data_3[0] == data_1).all()
+    input_data_3 = transfer.get_inputs('tests/userdir/pipeline-eviction.json')
+    assert (input_data_3[0] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
@@ -283,8 +283,8 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data_2 = transfer.receive('tests/userdir/pipeline-eviction.json')
-    assert (received_data_2[0] == data_1).all()
+    input_data_2 = transfer.get_inputs('tests/userdir/pipeline-eviction.json')
+    assert (input_data_2[0] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
@@ -300,8 +300,8 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-3. It should fit in memory, since the receive
     # method here should evict the data from "uuid-1" afterwards.
     mock_get_step_uuid.return_value = 'uuid-3______________'
-    received_data_3 = transfer.receive('tests/userdir/pipeline-eviction.json')
-    assert (received_data_3[0] == data_1).all()
+    input_data_3 = transfer.get_inputs('tests/userdir/pipeline-eviction.json')
+    assert (input_data_3[0] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
@@ -343,9 +343,9 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+    input_data = transfer.get_inputs('tests/userdir/pipeline-basic.json')
 
-    assert (received_data[0] == data_1_new).all()
+    assert (input_data[0] == data_1_new).all()
 
 
 @patch('orchest.transfer.get_step_uuid')
@@ -375,9 +375,9 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline-basic.json')
+    input_data = transfer.get_inputs('tests/userdir/pipeline-basic.json')
 
-    assert (received_data[0] == data_1_new).all()
+    assert (input_data[0] == data_1_new).all()
 
 
 @patch('orchest.transfer.get_step_uuid')
@@ -409,7 +409,7 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = 'uuid-2______________'
-    received_data = transfer.receive('tests/userdir/pipeline-order.json')
+    input_data = transfer.get_inputs('tests/userdir/pipeline-order.json')
 
-    assert (received_data[0] == data_1).all()
-    assert (received_data[1] == data_3).all()
+    assert (input_data[0] == data_1).all()
+    assert (input_data[1] == data_3).all()

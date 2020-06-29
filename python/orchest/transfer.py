@@ -1,4 +1,4 @@
-"""Transfer mechanisms to output and receive data.
+"""Transfer mechanisms to output and get data.
 
 Using memory transfer requires running a Plasma Store. One can be
 started using
@@ -35,6 +35,7 @@ from orchest.pipeline import Pipeline
 def _output_to_disk(data: Any,
                     full_path: str,
                     type: str = 'pickle',
+                    already_serialized: bool = False,
                     **kwargs) -> None:
     """Outputs data to disk to the specified path.
 
@@ -43,6 +44,8 @@ def _output_to_disk(data: Any,
         full_path: Full path to save the data to.
         type: File extension determining how to save the data to disk.
             Available options are: ``['pickle']``
+        already_serialized: False if the object passed is not already
+            serialized. True otherwise.
         **kwargs: These kwargs are passed to the function that handles
             the writing of the data to disk for the specified `type`.
             For example: ``pickle.dump(data, fname, **kwargs)``.
@@ -50,19 +53,31 @@ def _output_to_disk(data: Any,
     Raises:
         ValueError: If the specified `type` is not one of ``['pickle']``
     """
+    if already_serialized:
+        with open(f'{full_path}.{type}', 'wb') as f:
+            if type in ['arrow', 'arrowpickle']:
+                if isinstance(data, pa.SerializedPyObject):
+                    data.write_to(f)
+                else:
+                    raise TypeError(
+                        "Input type of 'data' has to be pa.SerializedPyObject "
+                        "for 'type' of 'arrow' or 'arrowpickle' when specifying "
+                        "'already_serialized=True'."
+                    )
+
+            else:
+                f.write(data)
+
+        return
+
     if type == 'pickle':
         with open(f'{full_path}.{type}', 'wb') as f:
             pickle.dump(data, f, **kwargs)
 
     elif type in ['arrow', 'arrowpickle']:
-        if isinstance(data, pa.SerializedPyObject):
-            with open(f'{full_path}.{type}', 'wb') as f:
-                data.write_to(f)
-        else:
-            raise TypeError(
-                "Input type of 'data' has to be pa.SerializedPyObject "
-                "for 'type' of 'arrow'."
-            )
+        serialized = pa.serialize(data)
+        with open(f'{full_path}.{type}', 'wb') as f:
+            serialized.write_to(f)
 
     else:
         raise ValueError("Function not defined for specified 'type'")
@@ -73,6 +88,7 @@ def _output_to_disk(data: Any,
 def output_to_disk(data: Any,
                    type: str = 'pickle',
                    pipeline_description_path: str = 'pipeline.json',
+                   already_serialized: bool = False,
                    **kwargs) -> None:
     """Outputs data to disk.
 
@@ -89,6 +105,8 @@ def output_to_disk(data: Any,
             Available options are: ``['pickle']``
         pipeline_description_path: Path to the file that contains the
             pipeline description.
+        already_serialized: False if the object passed is not already
+            serialized. True otherwise.
         **kwargs: These kwargs are passed to the function that handles
             the writing of the data to disk for the specified `type`.
             For example: ``pickle.dump(data, fname, **kwargs)``.
@@ -120,11 +138,12 @@ def output_to_disk(data: Any,
     # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
 
-    return _output_to_disk(data, full_path, type=type, **kwargs)
+    return _output_to_disk(data, full_path, type=type,
+                           already_serialized=already_serialized, **kwargs)
 
 
-def _receive_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
-    """Receives data from disk.
+def _get_output_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
+    """Gets data from disk.
 
     Raises:
         ValueError: If the specified `type` is not one of ``['pickle']``
@@ -145,11 +164,11 @@ def _receive_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
     raise ValueError("Function not defined for specified 'type'")
 
 
-def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
-    """Receives data from disk.
+def get_output_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
+    """Gets data from disk.
 
     Args:
-        step_uuid: The UUID of the step from which to receive its data.
+        step_uuid: The UUID of the step to get output data from.
         type: File extension determining how to read the data from disk.
             Available options are: ``['pickle']``
         **kwargs: These kwargs are passed to the function that handles
@@ -166,7 +185,7 @@ def receive_disk(step_uuid: str, type: str = 'pickle', **kwargs) -> Any:
     full_path = os.path.join(step_data_dir, step_uuid)
 
     try:
-        return _receive_disk(full_path, type=type, **kwargs)
+        return _get_output_disk(full_path, type=type, **kwargs)
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
@@ -181,8 +200,8 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     """Returns information of the most recent write to disk.
 
     Resolves via the HEAD file the timestamp (that is used to determine
-    the most recent write) and arguments to call the :meth:`receive_disk`
-    method.
+    the most recent write) and arguments to call the
+    :meth:`get_output_disk` method.
 
     Args:
         step_uuid: The UUID of the step to resolve its most recent write
@@ -190,8 +209,8 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
 
     Returns:
         Dictionary containing the information of the function to be
-        called to receive the most recent data from the step.
-        Additionally, returns fill-in arguments for the function.
+        called to get the most recent data from the step. Additionally,
+        returns fill-in arguments for the function.
 
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
@@ -213,7 +232,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
 
     res = {
         'timestamp': timestamp,
-        'method_to_call': receive_disk,
+        'method_to_call': get_output_disk,
         'method_args': (step_uuid,),
         'method_kwargs': {
             'type': type
@@ -262,7 +281,7 @@ def _output_to_memory(obj: pa.SerializedPyObject,
                       obj_id: Optional[plasma.ObjectID] = None,
                       metadata: Optional[bytes] = None,
                       memcopy_threads: int = 6) -> plasma.ObjectID:
-    """Outputs an object to memory, managed by the Arrow Plasma Store.
+    """Outputs an object to memory, managed by the Apache Arrow Plasma Store.
 
     Args:
         obj: Object to output.
@@ -325,13 +344,14 @@ def _output_to_memory(obj: pa.SerializedPyObject,
     return obj_id
 
 
+# TODO: want to add `is_serialized=False` ?
 def output_to_memory(data: Any,
                      pickle_fallback: bool = True,
                      disk_fallback: bool = True,
                      store_socket_name: str = '/tmp/plasma',
                      pipeline_description_path: str = 'pipeline.json',
                      **kwargs) -> None:
-    """Outputs data to memory, managed by the Arrow Plasma Store.
+    """Outputs data to memory, managed by the Apache Arrow Plasma Store.
 
     To manage outputing the data to memory for the user, this function
     uses metadata to add info to objects inside the plasma store.
@@ -406,15 +426,16 @@ def output_to_memory(data: Any,
             obj,
             type=type_,
             pipeline_description_path=pipeline_description_path,
+            already_serialized=True,
             **kwargs
         )
 
     return
 
 
-def _receive_memory(obj_id: plasma.ObjectID,
-                    client: plasma.PlasmaClient) -> Any:
-    """Receives data from memory.
+def _get_output_memory(obj_id: plasma.ObjectID,
+                       client: plasma.PlasmaClient) -> Any:
+    """Gets data from memory.
 
     Args:
         obj_id: The ID of the object to retrieve from the plasma store.
@@ -457,11 +478,12 @@ def _receive_memory(obj_id: plasma.ObjectID,
     return obj
 
 
-def receive_memory(step_uuid: str, receiver: str = None) -> Any:
-    """Receives data from memory, managed by the Arrow Plasma Store.
+def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
+    """Gets data from memory, managed by the Apache Arrow Plasma Store.
 
     Args:
-        step_uuid: The UUID of the step from which to receive its data.
+        step_uuid: The UUID of the step to get output data from.
+        consumer: The consumer of the output data.
 
     Returns:
         Data from step identified by `step_uuid`.
@@ -480,7 +502,7 @@ def receive_memory(step_uuid: str, receiver: str = None) -> Any:
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
     try:
-        obj = _receive_memory(obj_id, client)
+        obj = _get_output_memory(obj_id, client)
 
     # TODO: if a step receives from multiple other steps. Then this
     #       error will make the entire receive operation fail. Thus
@@ -505,28 +527,29 @@ def receive_memory(step_uuid: str, receiver: str = None) -> Any:
         #       eviction.
         if os.getenv('PLASMA_MANAGER') is not None:
             empty_obj, _ = _serialize_memory('')
-            msg = f'2;{step_uuid},{receiver}'
+            msg = f'2;{step_uuid},{consumer}'
             metadata = bytes(msg, 'utf-8')
             _output_to_memory(empty_obj, client, metadata=metadata)
 
     return obj
 
 
-def resolve_memory(step_uuid: str, receiver: str = None) -> Dict[str, Any]:
+def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     """Returns information of the most recent write to memory.
 
     Resolves via the `create_time` attribute from the info of a plasma
     store entry the timestamp. It also sets the arguments to call the
-    :func:`receive_memory` method.
+    :func:`get_output_memory` method.
 
     Args:
         step_uuid: The UUID of the step to resolve its most recent write
             to memory.
+        consumer: The consumer of the output data.
 
     Returns:
         Dictionary containing the information of the function to be
-        called to receive the most recent data from the step.
-        Additionally, returns fill-in arguments for the function.
+        called to get the most recent data from the step. Additionally,
+        returns fill-in arguments for the function.
 
     Raises:
         MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
@@ -550,16 +573,16 @@ def resolve_memory(step_uuid: str, receiver: str = None) -> Dict[str, Any]:
 
     res = {
         'timestamp': timestamp,
-        'method_to_call': receive_memory,
+        'method_to_call': get_output_memory,
         'method_args': (step_uuid,),
         'method_kwargs': {
-            'receiver': receiver
+            'consumer': consumer
         }
     }
     return res
 
 
-def resolve(step_uuid: str, receiver: str = None) -> Tuple[Any]:
+def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
     """Resolves the most recently used tranfer method of the given step.
 
     Additionally, resolves all the *args and **kwargs the receiving
@@ -567,11 +590,12 @@ def resolve(step_uuid: str, receiver: str = None) -> Tuple[Any]:
 
     Args:
         step_uuid: UUID of the step to resolve its most recent write.
+        consumer: The consumer of the output data.
 
     Returns:
         Tuple containing the information of the function to be called
-        to receive the most recent data from the step. Additionally,
-        returns fill-in arguments for the function.
+        to get the most recent data from the step. Additionally, returns
+        fill-in arguments for the function.
     """
     # TODO: not completely sure whether this global approach is prefered
     #       over difining that same list inside this function. Arguably
@@ -583,7 +607,7 @@ def resolve(step_uuid: str, receiver: str = None) -> Tuple[Any]:
     for method in _resolve_methods:
         try:
             if method.__name__ == 'resolve_memory':
-                method_info = method(step_uuid, receiver=receiver)
+                method_info = method(step_uuid, consumer=consumer)
             else:
                 method_info = method(step_uuid)
 
@@ -613,23 +637,23 @@ def resolve(step_uuid: str, receiver: str = None) -> Tuple[Any]:
             most_recent['method_kwargs'])
 
 
-def receive(pipeline_description_path: str = 'pipeline.json',
-            verbose: bool = False) -> List[Any]:
-    """Receives all data sent from incoming steps.
+def get_inputs(pipeline_description_path: str = 'pipeline.json',
+               verbose: bool = False) -> List[Any]:
+    """Gets all data sent from incoming steps.
 
     Args:
         pipeline_description_path: Path to the pipeline description that
             is used to determine what the incoming steps are.
         verbose: If True print all the steps from which the current step
-            has received data.
+            has retrieved data.
 
     Returns:
         List of all the data in the specified order from the front-end.
 
     Example:
         >>> # It does not matter how the data was output in steps 1 and 2.
-        >>> # It is resolved automatically by the receive method.
-        >>> data_step_1, data_step_2 = receive()
+        >>> # It is resolved automatically by the get_inputs method.
+        >>> data_step_1, data_step_2 = get_inputs()
     """
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
@@ -638,7 +662,7 @@ def receive(pipeline_description_path: str = 'pipeline.json',
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine from where to receive data.')
+        raise StepUUIDResolveError('Failed to determine from where to get data.')
 
     # TODO: maybe instead of for loop we could first get the receive
     #       method and then do batch receive. For example memory allows
@@ -650,13 +674,13 @@ def receive(pipeline_description_path: str = 'pipeline.json',
     data = []
     for parent in pipeline.get_step_by_uuid(step_uuid).parents:
         parent_uuid = parent.properties['uuid']
-        receive_method, args, kwargs = resolve(parent_uuid, receiver=step_uuid)
+        get_output_method, args, kwargs = resolve(parent_uuid, consumer=step_uuid)
 
-        incoming_step_data = receive_method(*args, **kwargs)
+        incoming_step_data = get_output_method(*args, **kwargs)
 
         if verbose:
             parent_title = parent.properties['title']
-            print(f'Received input from step: "{parent_title}"')
+            print(f'Retrieved input from step: "{parent_title}"')
 
         data.append(incoming_step_data)
 
@@ -761,7 +785,7 @@ def _request_json(url: str) -> Dict[Any, Any]:
 
 
 # NOTE: All "resolve_{method}" functions have to be included in this
-# list. It is used to resolve what what "receive_..." method to invoke.
+# list. It is used to resolve what what "get_output_..." method to invoke.
 _resolve_methods = [
     resolve_memory,
     resolve_disk
