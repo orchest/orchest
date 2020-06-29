@@ -78,7 +78,7 @@ def test_assert_object_is_unserializable_by_pyarrow():
 )
 @pytest.mark.parametrize('test_transfer', [
         {
-            'method': transfer.send_disk,
+            'method': transfer.output_to_disk,
             'kwargs': {}
         },
     ],
@@ -113,7 +113,7 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 )
 @pytest.mark.parametrize('test_transfer', [
         {
-            'method': transfer.send_memory,
+            'method': transfer.output_to_memory,
             'kwargs': {
                 'disk_fallback': False,
             }
@@ -153,7 +153,7 @@ def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = 'uuid-1______________'
 
     with pytest.raises(MemoryError):
-        transfer.send_memory(
+        transfer.output_to_memory(
             data_1,
             disk_fallback=False,
             store_socket_name=plasma_store,
@@ -170,7 +170,7 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
     assert data_size > PLASMA_STORE_CAPACITY
 
     mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_1,
         disk_fallback=True,
         store_socket_name=plasma_store,
@@ -196,7 +196,7 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
 
     # Do as if we are uuid-1
     mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_1,
         disk_fallback=True,
         store_socket_name=plasma_store,
@@ -225,7 +225,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
     # Do as if we are uuid-1
     data_1 = generate_data(0.6*PLASMA_KILOBYTES * KILOBYTE)
     mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_1,
         disk_fallback=False,
         store_socket_name=plasma_store,
@@ -241,7 +241,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
     time.sleep(1)
 
     data_2 = generate_data(0.1*PLASMA_KILOBYTES * KILOBYTE)
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_2,
         disk_fallback=False,
         store_socket_name=plasma_store,
@@ -258,7 +258,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
     time.sleep(1)
 
     data_3 = generate_data(0.6*PLASMA_KILOBYTES * KILOBYTE)
-    res = transfer.send_memory(
+    res = transfer.output_to_memory(
         data_3,
         disk_fallback=False,
         store_socket_name=plasma_store,
@@ -274,7 +274,7 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-1
     data_1 = generate_data(0.2*PLASMA_KILOBYTES * KILOBYTE)
     mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_1,
         disk_fallback=False,
         store_socket_name=plasma_store,
@@ -290,7 +290,7 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
     time.sleep(1)
 
     data_2 = generate_data(0.6*PLASMA_KILOBYTES * KILOBYTE)
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_2,
         disk_fallback=False,
         store_socket_name=plasma_store,
@@ -308,7 +308,7 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
 
     data_3 = generate_data(0.6*PLASMA_KILOBYTES * KILOBYTE)
     with pytest.raises(MemoryError):
-        transfer.send_memory(
+        transfer.output_to_memory(
             data_3,
             disk_fallback=False,
             store_socket_name=plasma_store,
@@ -323,18 +323,18 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = 'uuid-1______________'
 
     data_1 = generate_data(KILOBYTE)
-    transfer.send_disk(
+    transfer.output_to_disk(
         data_1,
         pipeline_description_path='tests/userdir/pipeline-basic.json'
     )
 
-    # It is very unlikely you will send through memory and disk in quick
+    # It is very unlikely you will output through memory and disk in quick
     # succession. In addition, the resolve order has a precision of
     # seconds. Thus we need to ensure that indeed it can be resolved.
     time.sleep(1)
 
     data_1_new = generate_data(KILOBYTE)
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_1_new,
         disk_fallback=False,
         store_socket_name=plasma_store,
@@ -355,20 +355,20 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = 'uuid-1______________'
 
     data_1 = generate_data(KILOBYTE)
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_1,
         disk_fallback=False,
         store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-basic.json'
     )
 
-    # It is very unlikely you will send through memory and disk in quick
+    # It is very unlikely you will output through memory and disk in quick
     # succession. In addition, the resolve order has a precision of
     # seconds. Thus we need to ensure that indeed it can be resolved.
     time.sleep(1)
 
     data_1_new = generate_data(KILOBYTE)
-    transfer.send_disk(
+    transfer.output_to_disk(
         data_1_new,
         pipeline_description_path='tests/userdir/pipeline-basic.json'
     )
@@ -385,14 +385,14 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
 def test_receive_input_order(mock_get_step_uuid, plasma_store):
     """Test the order of the inputs of the receiving step.
 
-    Note that the order in which the data is send does not determine the
+    Note that the order in which the data is output does not determine the
     "receive order", it is the order in which it is defined in the
     pipeline.json (for the "incoming-connections").
     """
     # Do as if we are uuid-3
     data_3 = generate_data(KILOBYTE)
     mock_get_step_uuid.return_value = 'uuid-3______________'
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_3,
         store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-order.json'
@@ -401,7 +401,7 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-1
     data_1 = generate_data(KILOBYTE)
     mock_get_step_uuid.return_value = 'uuid-1______________'
-    transfer.send_memory(
+    transfer.output_to_memory(
         data_1,
         store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-order.json'

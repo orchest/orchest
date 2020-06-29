@@ -1,4 +1,4 @@
-"""Transfer mechanisms to send and receive data.
+"""Transfer mechanisms to output and receive data.
 
 Using memory transfer requires running a Plasma Store. One can be
 started using
@@ -32,14 +32,14 @@ from orchest.errors import (
 from orchest.pipeline import Pipeline
 
 
-def _send_disk(data: Any,
-               full_path: str,
-               type: str = 'pickle',
-               **kwargs) -> None:
-    """Sends data to disk to the specified path.
+def _output_to_disk(data: Any,
+                    full_path: str,
+                    type: str = 'pickle',
+                    **kwargs) -> None:
+    """Outputs data to disk to the specified path.
 
     Args:
-        data: Data to send.
+        data: Data to output.
         full_path: Full path to save the data to.
         type: File extension determining how to save the data to disk.
             Available options are: ``['pickle']``
@@ -70,13 +70,13 @@ def _send_disk(data: Any,
     return
 
 
-def send_disk(data: Any,
-              type: str = 'pickle',
-              pipeline_description_path: str = 'pipeline.json',
-              **kwargs) -> None:
-    """Sends data to disk.
+def output_to_disk(data: Any,
+                   type: str = 'pickle',
+                   pipeline_description_path: str = 'pipeline.json',
+                   **kwargs) -> None:
+    """Outputs data to disk.
 
-    To manage sending the data to disk for the user, this function has
+    To manage outputing the data to disk for the user, this function has
     a side effect:
 
     * Writes to a HEAD file alongside the actual data file. This file
@@ -84,7 +84,7 @@ def send_disk(data: Any,
       to disk via this function.
 
     Args:
-        data: Data to send.
+        data: Data to output.
         type: File extension determining how to save the data to disk.
             Available options are: ``['pickle']``
         pipeline_description_path: Path to the file that contains the
@@ -94,8 +94,8 @@ def send_disk(data: Any,
             For example: ``pickle.dump(data, fname, **kwargs)``.
 
     Example:
-        >>> data = 'Data I would like to send'
-        >>> send_disk(data)
+        >>> data = 'Data I would like to output'
+        >>> output_to_disk(data)
     """
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
@@ -105,7 +105,7 @@ def send_disk(data: Any,
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine where to send data to.')
+        raise StepUUIDResolveError('Failed to determine where to output data to.')
 
     # Recursively create any directories if they do not already exists.
     step_data_dir = Config.get_step_data_dir(step_uuid)
@@ -120,7 +120,7 @@ def send_disk(data: Any,
     # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
 
-    return _send_disk(data, full_path, type=type, **kwargs)
+    return _output_to_disk(data, full_path, type=type, **kwargs)
 
 
 def _receive_disk(full_path: str, type: str = 'pickle', **kwargs) -> Any:
@@ -257,15 +257,15 @@ def _serialize_memory(
     return serialized, metadata
 
 
-def _send_memory(obj: pa.SerializedPyObject,
+def _output_to_memory(obj: pa.SerializedPyObject,
                  client: plasma.PlasmaClient,
                  obj_id: Optional[plasma.ObjectID] = None,
                  metadata: Optional[bytes] = None,
                  memcopy_threads: int = 6) -> plasma.ObjectID:
-    """Sends an object to memory, managed by the Arrow Plasma Store.
+    """Outputs an object to memory, managed by the Arrow Plasma Store.
 
     Args:
-        obj: Object to send.
+        obj: Object to output.
         client: A PlasmaClient to interface with a plasma store and
             manager.
         obj_id: The ID to assign to the `obj` inside the plasma store.
@@ -292,7 +292,7 @@ def _send_memory(obj: pa.SerializedPyObject,
         obj['data_size'] + obj['metadata_size']
         for obj in client.list().values()
     )
-    # NOTE: TODO: do this percentage since we send a special object
+    # NOTE: TODO: do this percentage since we output a special object
     #       to do eviction. And there should always be space for this
     #       object.
     # TODO: maybe use a percentage of maximum capacity. Better be safe
@@ -321,29 +321,29 @@ def _send_memory(obj: pa.SerializedPyObject,
     return obj_id
 
 
-def send_memory(data: Any,
-                pickle_fallback: bool = True,
-                disk_fallback: bool = True,
-                store_socket_name: str = '/tmp/plasma',
-                pipeline_description_path: str = 'pipeline.json',
-                **kwargs) -> None:
-    """Sends data to memory, managed by the Arrow Plasma Store.
+def output_to_memory(data: Any,
+                     pickle_fallback: bool = True,
+                     disk_fallback: bool = True,
+                     store_socket_name: str = '/tmp/plasma',
+                     pipeline_description_path: str = 'pipeline.json',
+                     **kwargs) -> None:
+    """Outputs data to memory, managed by the Arrow Plasma Store.
 
-    To manage sending the data to memory for the user, this function
+    To manage outputing the data to memory for the user, this function
     uses metadata to add info to objects inside the plasma store.
 
     Args:
-        data: Data to send.
+        data: Data to output.
         pickle_fallback: True to use ``pickle`` as fallback in case the
             data cannot be serialized by ``pyarrow.serialize``.
-        disk_fallback: If True, then sending through disk is used when
-            the `data` does not fit in memory. If False, then a
+        disk_fallback: If True, then outputing to disk is used when the
+            `data` does not fit in memory. If False, then a
             :exc:`MemoryError` is thrown.
         store_socket_name: Name of the socket file of the plasma store.
             It is used to connect the plasma client.
         pipeline_description_path: Path to the file that contains the
             pipeline description.
-        **kwargs: These kwargs are passed to the :func:`send_disk`
+        **kwargs: These kwargs are passed to the :func:`output_to_disk`
             function in case of a triggered `disk_fallback`.
 
     Raises:
@@ -351,8 +351,8 @@ def send_memory(data: Any,
             ``disk_fallback=False``.
 
     Example:
-        >>> data = 'Data I would like to send'
-        >>> send_memory(data)
+        >>> data = 'Data I would like to output'
+        >>> output_to_memory(data)
     """
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
@@ -362,14 +362,14 @@ def send_memory(data: Any,
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine where to send data to.')
+        raise StepUUIDResolveError('Failed to determine where to output data to.')
 
     # Serialize the object and collect the serialization metadata.
     obj, metadata = _serialize_memory(data, pickle_fallback=pickle_fallback)
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
     # TODO: Get the store socket name from the Config. And pass it to
-    #       _send_memory which will then connect to it. Although better
+    #       _output_to_memory which will then connect to it. Although better
     #       if it connects more high level since otherwise if you want
     #       to use low-level the code will connect everytime instead of
     #       being able to reuse the same client. But still good idea to
@@ -379,7 +379,7 @@ def send_memory(data: Any,
     client = plasma.connect(store_socket_name)
 
     try:
-        obj_id = _send_memory(obj, client, obj_id=obj_id, metadata=metadata)
+        obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
 
     except MemoryError:
         if not disk_fallback:
@@ -390,7 +390,7 @@ def send_memory(data: Any,
         #       user, once disk also supports passing metadata.
         # TODO: pass on certain kwargs that can be passed to the
         #       pickle module.
-        # TODO: since it calls send_disk there should be the
+        # TODO: since it calls output_to_disk there should be the
         #       possibility to set some of its kwargs in this method
         #       call.
         if metadata == b'1;pickled':
@@ -398,7 +398,7 @@ def send_memory(data: Any,
         elif metadata == b'1;not-pickled':
             type_ = 'arrow'
 
-        return send_disk(
+        return output_to_disk(
             obj,
             type=type_,
             pipeline_description_path=pipeline_description_path,
@@ -492,8 +492,8 @@ def receive_memory(step_uuid: str, receiver: str = None) -> Any:
     else:
         # TODO: note somewhere (maybe in the docstring) that it might
         #       although very unlikely raise MemoryError, because the
-        #       receive is now actually also sending data.
-        # TODO: send message to plasma if received from memory to do the
+        #       receive is now actually also outputing data.
+        # TODO: output message to plasma if received from memory to do the
         #       eviction.
         # TODO: this ENV variable is set in the orchest-api. Now we
         #       always know when we are running inside a jupyter kernel
@@ -503,7 +503,7 @@ def receive_memory(step_uuid: str, receiver: str = None) -> Any:
             empty_obj, _ = _serialize_memory('')
             msg = f'2;{step_uuid},{receiver}'
             metadata = bytes(msg, 'utf-8')
-            _send_memory(empty_obj, client, metadata=metadata)
+            _output_to_memory(empty_obj, client, metadata=metadata)
 
     return obj
 
@@ -584,7 +584,7 @@ def resolve(step_uuid: str, receiver: str = None) -> Tuple[Any]:
                 method_info = method(step_uuid)
 
         except OutputNotFoundError:
-            # We know now that the user did not use this method to send
+            # We know now that the user did not use this method to output
             # thus we can just skip it and continue.
             pass
         else:
@@ -623,7 +623,7 @@ def receive(pipeline_description_path: str = 'pipeline.json',
         List of all the data in the specified order from the front-end.
 
     Example:
-        >>> # It does not matter how the data was send in steps 1 and 2.
+        >>> # It does not matter how the data was output in steps 1 and 2.
         >>> # It is resolved automatically by the receive method.
         >>> data_step_1, data_step_2 = receive()
     """
