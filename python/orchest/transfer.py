@@ -33,21 +33,30 @@ from orchest.pipeline import Pipeline
 
 
 # TODO: make public?
-def _serialize(
-    obj: Any,
+def serialize(
+    data: Any,
     pickle_fallback: bool = True
 ) -> Tuple[pa.SerializedPyObject, str]:
     """Serializes an object using ``pyarrow.serialize``.
 
     Args:
-        obj: The object/data to be serialized.
-        pickle_fallback: True to use ``pickle`` as fallback
+        data: The object/data to be serialized.
+        pickle_fallback: If True fall back on ``pickle`` for
             serialization if pyarrow cannot serialize the object. False
             to not fall back on ``pickle``.
+
+    Returns:
+        Tuple of the serialized data and the serialization that was
+        used, where ``'arrowpickle'`` stands for that the data was first
+        pickled and then serialized using `pyarrow`.
+
+    Raises:
+        pa.SerializationCallbackError: If ``pa.serialize`` cannot
+            serialize the given data.
     """
     try:
         # NOTE: experimental pyarrow function ``serialize``
-        serialized = pa.serialize(obj)
+        serialized = pa.serialize(data)
 
     except pa.SerializationCallbackError as e:
         # TODO: this is very inefficient. We decided to pickle the
@@ -57,7 +66,7 @@ def _serialize(
         #       pickled object again so that we get a SerializedPyObject
         #       (on which we can call certain methods).
         if pickle_fallback:
-            serialized = pa.serialize(pickle.dumps(obj))
+            serialized = pa.serialize(pickle.dumps(data))
             serialization = 'arrowpickle'
         else:
             raise pa.SerializationCallbackError(e)
@@ -71,18 +80,13 @@ def _serialize(
 def _output_to_disk(obj: pa.SerializedPyObject,
                     full_path: str,
                     serialization: str = 'arrow') -> None:
-    """Outputs data to disk to the specified path.
+    """Outputs a serialized object to disk to the specified path.
 
     Args:
-        data: Data to output.
+        obj: Object to output to disk.
         full_path: Full path to save the data to.
-        type: File extension determining how to save the data to disk.
-            Available options are: ``['pickle']``
-        is_serialized: False if the object passed is not already
-            serialized. True otherwise.
-        **kwargs: These kwargs are passed to the function that handles
-            the writing of the data to disk for the specified `type`.
-            For example: ``pickle.dump(data, fname, **kwargs)``.
+        serialization: Serialization of the `obj`. Currently supported
+            values are: ``['arrow', 'arrowpickle']``.
 
     Raises:
         ValueError: If the specified `type` is not one of ``['pickle']``
@@ -108,27 +112,27 @@ def output_to_disk(data: Any,
                    serialization: Optional[str] = None) -> None:
     """Outputs data to disk.
 
-    To manage outputing the data to disk for the user, this function has
-    a side effect:
+    To manage outputing the data to disk, this function has a side
+    effect:
 
     * Writes to a HEAD file alongside the actual data file. This file
-      serves a protocol that returns the timestamp of the latest write
-      to disk via this function.
+      serves as a protocol that returns the timestamp of the latest
+      write to disk via this function alongside the used serialization.
 
     Args:
-        data: Data to output.
-        type: File extension determining how to save the data to disk.
-            Available options are: ``['arrow', 'arrowpickle']``
+        data: Data to output to disk.
+        pickle_fallback: This option is passed to :meth:`serialize`. If
+            ``pyarrow`` cannot serialize the data, then it will fall
+            back to using ``pickle``. This is helpful for custom data
+            types.
         pipeline_description_path: Path to the file that contains the
             pipeline description.
-        is_serialized: False if the object passed is not already
-            serialized. True otherwise.
-        **kwargs: These kwargs are passed to the function that handles
-            the writing of the data to disk for the specified `type`.
-            For example: ``pickle.dump(data, fname, **kwargs)``.
+        serialization: Serialization of the `data` in case it is already
+            serialized. Currently supported values are:
+            ``['arrow', 'arrowpickle']``.
 
     Example:
-        >>> data = 'Data I would like to output'
+        >>> data = 'Data I would like to use in my next step'
         >>> output_to_disk(data)
     """
     with open(pipeline_description_path, 'r') as f:
@@ -141,8 +145,10 @@ def output_to_disk(data: Any,
     except StepUUIDResolveError:
         raise StepUUIDResolveError('Failed to determine where to output data to.')
 
+    # In case the data is not already serialized, then we need to
+    # serialize it.
     if serialization is None:
-        data, serialization = _serialize(data, pickle_fallback=pickle_fallback)
+        data, serialization = serialize(data, pickle_fallback=pickle_fallback)
 
     # Recursively create any directories if they do not already exists.
     step_data_dir = Config.get_step_data_dir(step_uuid)
@@ -160,12 +166,8 @@ def output_to_disk(data: Any,
     return _output_to_disk(data, full_path, serialization=serialization)
 
 
-def _get_output_disk(full_path: str, serialization: str = 'arrow', **kwargs) -> Any:
-    """Gets data from disk.
-
-    Raises:
-        ValueError: If the specified `type` is not one of ``['pickle']``
-    """
+def _get_output_disk(full_path: str, serialization: str = 'arrow') -> Any:
+    """Gets data from disk."""
     with open(f'{full_path}.{serialization}', 'rb') as f:
         data = pa.deserialize_from(f, base=None)
 
@@ -180,14 +182,11 @@ def get_output_disk(step_uuid: str, serialization: str = 'arrow') -> Any:
 
     Args:
         step_uuid: The UUID of the step to get output data from.
-        type: File extension determining how to read the data from disk.
-            Available options are: ``['pickle']``
-        **kwargs: These kwargs are passed to the function that handles
-            the reading of the data from disk for the specified `type`.
-            For example: ``pickle.load(fname, **kwargs)``.
+        serialization: The serialization of the output. Has to be
+            specified in order to deserialize correctly.
 
     Returns:
-        Data from step identified by `step_uuid`.
+        Data from the step identified by `step_uuid`.
 
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
@@ -257,14 +256,14 @@ def _output_to_memory(obj: pa.SerializedPyObject,
                       obj_id: Optional[plasma.ObjectID] = None,
                       metadata: Optional[bytes] = None,
                       memcopy_threads: int = 6) -> plasma.ObjectID:
-    """Outputs an object to memory, managed by the Apache Arrow Plasma Store.
+    """Outputs an object to memory.
 
     Args:
-        obj: Object to output.
-        client: A PlasmaClient to interface with a plasma store and
-            manager.
+        obj: Object to output to memory.
+        client: A PlasmaClient to interface with the in-memory object
+            store.
         obj_id: The ID to assign to the `obj` inside the plasma store.
-            If None is given then one is randomly generated.
+            If ``None`` then one is randomly generated.
         metadata: Metadata to add to the `obj` inside the store.
         memcopy_threads: The number of threads to use to write the
             `obj` into the object store for large objects.
@@ -287,12 +286,10 @@ def _output_to_memory(obj: pa.SerializedPyObject,
         obj['data_size'] + obj['metadata_size']
         for obj in client.list().values()
     )
-    # NOTE: TODO: do this percentage since we output a special object
-    #       to do eviction. And there should always be space for this
-    #       object.
-    # TODO: maybe use a percentage of maximum capacity. Better be safe
-    #       than sorry.
-    available_size = client.store_capacity() - occupied_size
+    # Take a percentage of the maximum capacity such that the message
+    # for object eviction always fits inside the store.
+    store_capacity = Config.MAX_RELATIVE_STORE_CAPACITY * client.store_capacity()
+    available_size = store_capacity - occupied_size
 
     if total_size > available_size:
         raise MemoryError('Object does not fit in memory')
@@ -333,24 +330,25 @@ def output_to_memory(data: Any,
 
     Args:
         data: Data to output.
-        pickle_fallback: True to use ``pickle`` as fallback in case the
-            data cannot be serialized by ``pyarrow.serialize``.
+        pickle_fallback: This option is passed to :meth:`serialize`. If
+            ``pyarrow`` cannot serialize the data, then it will fall
+            back to using ``pickle``. This is helpful for custom data
+            types.
         disk_fallback: If True, then outputing to disk is used when the
             `data` does not fit in memory. If False, then a
             :exc:`MemoryError` is thrown.
         store_socket_name: Name of the socket file of the plasma store.
-            It is used to connect the plasma client.
+            The socket is used by the plasma client to connect to the
+            store.
         pipeline_description_path: Path to the file that contains the
             pipeline description.
-        **kwargs: These kwargs are passed to the :func:`output_to_disk`
-            function in case of a triggered `disk_fallback`.
 
     Raises:
         MemoryError: If the `data` does not fit in memory and
             ``disk_fallback=False``.
 
     Example:
-        >>> data = 'Data I would like to output'
+        >>> data = 'Data I would like to use in my next step'
         >>> output_to_memory(data)
     """
     with open(pipeline_description_path, 'r') as f:
@@ -366,7 +364,7 @@ def output_to_memory(data: Any,
     # Serialize the object and collect the serialization metadata.
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
-    obj, serialization = _serialize(data, pickle_fallback=pickle_fallback)
+    obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
     metadata = bytes(f'1;{serialization}', 'utf-8')
 
     # TODO: Get the store socket name from the Config. And pass it to
@@ -389,11 +387,6 @@ def output_to_memory(data: Any,
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        # TODO: pass on certain kwargs that can be passed to the
-        #       pickle module.
-        # TODO: since it calls output_to_disk there should be the
-        #       possibility to set some of its kwargs in this method
-        #       call.
         return output_to_disk(
             obj,
             serialization=serialization,
@@ -409,11 +402,11 @@ def _get_output_memory(obj_id: plasma.ObjectID,
 
     Args:
         obj_id: The ID of the object to retrieve from the plasma store.
-        client: A PlasmaClient to interface with a plasma store and
-            manager.
+        client: A PlasmaClient to interface with the in-memory object
+            store.
 
     Returns:
-        The unserialized data from the store, corresponding to the
+        The unserialized data from the store corresponding to the
         `obj_id`.
 
     Raises:
@@ -449,11 +442,14 @@ def _get_output_memory(obj_id: plasma.ObjectID,
 
 
 def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
-    """Gets data from memory, managed by the Apache Arrow Plasma Store.
+    """Gets data from memory.
 
     Args:
         step_uuid: The UUID of the step to get output data from.
-        consumer: The consumer of the output data.
+        consumer: The consumer of the output data. This is put inside
+            the metadata of an empty object to trigger a notification in
+            the plasma store, which is then used to manage eviction of
+            objects.
 
     Returns:
         Data from step identified by `step_uuid`.
@@ -463,11 +459,8 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
     """
     # TODO: could be good idea to put connecting to plasma in a class
     #       such that does not get called when no store is instantiated
-    #       or allocated.
-    # TODO: maybe we should only set the client_connection_URI here and
-    #       pass the to the _receive_method that then connects to the
-    #       client. Since the metadata we can get together with the
-    #       buffers.
+    #       or allocated. Additionally, we don't want to be connecting
+    #       to the store multiple times.
     client = plasma.connect(Config.STORE_SOCKET_NAME)
     obj_id = _convert_uuid_to_object_id(step_uuid)
 
@@ -489,14 +482,12 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         # TODO: note somewhere (maybe in the docstring) that it might
         #       although very unlikely raise MemoryError, because the
         #       receive is now actually also outputing data.
-        # TODO: output message to plasma if received from memory to do the
-        #       eviction.
         # TODO: this ENV variable is set in the orchest-api. Now we
         #       always know when we are running inside a jupyter kernel
         #       interactively. And in that case we never want to do
         #       eviction.
         if os.getenv('PLASMA_MANAGER') is not None:
-            empty_obj, _ = _serialize('')
+            empty_obj, _ = serialize('')
             msg = f'2;{step_uuid},{consumer}'
             metadata = bytes(msg, 'utf-8')
             _output_to_memory(empty_obj, client, metadata=metadata)
@@ -507,14 +498,17 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
 def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     """Returns information of the most recent write to memory.
 
-    Resolves via the `create_time` attribute from the info of a plasma
-    store entry the timestamp. It also sets the arguments to call the
-    :func:`get_output_memory` method.
+    Resolves the timestamp via the `create_time` attribute from the info
+    of the plasma store. It also sets the arguments to call the
+    :func:`get_output_memory` method with.
 
     Args:
         step_uuid: The UUID of the step to resolve its most recent write
             to memory.
-        consumer: The consumer of the output data.
+        consumer: The consumer of the output data. This is put inside
+            the metadata of an empty object to trigger a notification in
+            the plasma store, which is then used to manage eviction of
+            objects.
 
     Returns:
         Dictionary containing the information of the function to be
@@ -560,7 +554,10 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
 
     Args:
         step_uuid: UUID of the step to resolve its most recent write.
-        consumer: The consumer of the output data.
+        consumer: The consumer of the output data. This is put inside
+            the metadata of an empty object to trigger a notification in
+            the plasma store, which is then used to manage eviction of
+            objects.
 
     Returns:
         Tuple containing the information of the function to be called

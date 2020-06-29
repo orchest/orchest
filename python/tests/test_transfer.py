@@ -193,7 +193,7 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
         UnserializableByPyarrowObject(generate_data(KILOBYTE))
         for _ in range(PLASMA_KILOBYTES + 1)
     ]
-    serialized, _ = transfer._serialize(data_1)
+    serialized, _ = transfer.serialize(data_1)
     assert serialized.total_bytes > PLASMA_STORE_CAPACITY
 
     # Do as if we are uuid-1
