@@ -258,10 +258,10 @@ def _serialize_memory(
 
 
 def _output_to_memory(obj: pa.SerializedPyObject,
-                 client: plasma.PlasmaClient,
-                 obj_id: Optional[plasma.ObjectID] = None,
-                 metadata: Optional[bytes] = None,
-                 memcopy_threads: int = 6) -> plasma.ObjectID:
+                      client: plasma.PlasmaClient,
+                      obj_id: Optional[plasma.ObjectID] = None,
+                      metadata: Optional[bytes] = None,
+                      memcopy_threads: int = 6) -> plasma.ObjectID:
     """Outputs an object to memory, managed by the Arrow Plasma Store.
 
     Args:
@@ -307,11 +307,15 @@ def _output_to_memory(obj: pa.SerializedPyObject,
     if obj_id is None:
         obj_id = plasma.ObjectID.from_random()
 
-    # Write the object to the plasma store.
-    # TODO: if the obj_id already exists, then it first has to be
-    #       deleted. And then the new one can be inserted, just like the
-    #       data on disk that gets overwritten.
-    buffer = client.create(obj_id, obj.total_bytes, metadata=metadata)
+    # Write the object to the plasma store. If the obj_id already
+    # exists, then it first has to be deleted. Essentially we are
+    # overwriting the data (just like we do for disk)
+    try:
+        buffer = client.create(obj_id, obj.total_bytes, metadata=metadata)
+    except plasma.PlasmaObjectExists:
+        client.delete([obj_id])
+        buffer = client.create(obj_id, obj.total_bytes, metadata=metadata)
+
     stream = pa.FixedSizeBufferWriter(buffer)
     stream.set_memcopy_threads(memcopy_threads)
 
