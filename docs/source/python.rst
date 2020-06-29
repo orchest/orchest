@@ -44,8 +44,8 @@ Example of passing data, where the pipeline (defined inside the :code:`pipeline.
    data = transfer.get_inputs()  # data = [[1, 2, 3]]
 
 
-API guide
----------
+API
+---
 
 orchest.transfer
 ~~~~~~~~~~~~~~~~
