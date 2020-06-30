@@ -126,7 +126,6 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 @patch('orchest.transfer.get_step_uuid')
 @patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
 def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
-    test_transfer['kwargs']['store_socket_name'] = plasma_store
 
     # Do as if we are uuid-1. Note the trailing underscores. This is to
     # make the plasma.ObjectID the required 20 characters.
@@ -158,7 +157,6 @@ def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
         transfer.output_to_memory(
             data_1,
             disk_fallback=False,
-            store_socket_name=plasma_store,
             pipeline_description_path='tests/userdir/pipeline-basic.json'
         )
 
@@ -175,7 +173,6 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
     transfer.output_to_memory(
         data_1,
         disk_fallback=True,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-basic.json'
     )
 
@@ -201,7 +198,6 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
     transfer.output_to_memory(
         data_1,
         disk_fallback=True,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-basic.json'
     )
 
@@ -230,7 +226,6 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
     transfer.output_to_memory(
         data_1,
         disk_fallback=False,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-eviction.json'
     )
 
@@ -246,7 +241,6 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
     transfer.output_to_memory(
         data_2,
         disk_fallback=False,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-eviction.json'
     )
 
@@ -263,7 +257,6 @@ def test_memory_eviction_fit(mock_get_step_uuid, plasma_store, monkeypatch):
     res = transfer.output_to_memory(
         data_3,
         disk_fallback=False,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-eviction.json'
     )
 
@@ -279,7 +272,6 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
     transfer.output_to_memory(
         data_1,
         disk_fallback=False,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-eviction.json'
     )
 
@@ -295,7 +287,6 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
     transfer.output_to_memory(
         data_2,
         disk_fallback=False,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-eviction.json'
     )
 
@@ -313,7 +304,6 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, plasma_store):
         transfer.output_to_memory(
             data_3,
             disk_fallback=False,
-            store_socket_name=plasma_store,
             pipeline_description_path='tests/userdir/pipeline-eviction.json'
         )
 
@@ -339,7 +329,6 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
     transfer.output_to_memory(
         data_1_new,
         disk_fallback=False,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-basic.json'
     )
 
@@ -360,7 +349,6 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
     transfer.output_to_memory(
         data_1,
         disk_fallback=False,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-basic.json'
     )
 
@@ -396,7 +384,6 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = 'uuid-3______________'
     transfer.output_to_memory(
         data_3,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-order.json'
     )
 
@@ -405,7 +392,6 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = 'uuid-1______________'
     transfer.output_to_memory(
         data_1,
-        store_socket_name=plasma_store,
         pipeline_description_path='tests/userdir/pipeline-order.json'
     )
 

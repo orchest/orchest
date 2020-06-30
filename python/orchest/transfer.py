@@ -214,7 +214,6 @@ def get_output_disk(step_uuid: str, serialization: str = 'arrow') -> Any:
         )
 
 
-# TODO: maybe should add the option to specify custom step_data_dir
 def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     """Returns information of the most recent write to disk.
 
@@ -329,7 +328,6 @@ def _output_to_memory(obj: pa.SerializedPyObject,
 def output_to_memory(data: Any,
                      pickle_fallback: bool = True,
                      disk_fallback: bool = True,
-                     store_socket_name: str = '/tmp/plasma',
                      pipeline_description_path: str = 'pipeline.json') -> None:
     """Outputs data to memory, managed by the Apache Arrow Plasma Store.
 
@@ -345,9 +343,6 @@ def output_to_memory(data: Any,
         disk_fallback: If True, then outputing to disk is used when the
             `data` does not fit in memory. If False, then a
             :exc:`MemoryError` is thrown.
-        store_socket_name: Name of the socket file of the plasma store.
-            The socket is used by the plasma client to connect to the
-            store.
         pipeline_description_path: Path to the file that contains the
             pipeline description.
 
@@ -385,7 +380,7 @@ def output_to_memory(data: Any,
     #       to None default, so that if it is None then use config and
     #       otherwise the given value.
     try:
-        client = plasma.connect(store_socket_name)
+        client = plasma.connect(Config.STORE_SOCKET_NAME)
     except OSError:
         raise OrchestNetworkError('Failed to connect to in-memory object store.')
 
