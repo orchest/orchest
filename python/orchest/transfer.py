@@ -1,13 +1,20 @@
-"""Transfer mechanisms to output and get data.
+"""Transfer mechanisms to output data and get data.
 
-Using memory transfer requires running a Plasma Store. One can be
-started using
+A few notes on in-memory data passing:
+
+* Transfering data through memory requires running a Plasma Store, which
+  can be started using:
 
 .. code-block:: bash
 
     plasma_store -m 1000000000 -s /tmp/plasma
 
-TODO: something about our plasma manager for eviction.
+* Since memory resources are scarce we have implemented a custom
+  eviction manager for the store as part of the
+  `Orchest platform <http://www.github.com/orchest/orchest>`_.
+  Without it, objects do not get evicted from the store (even when an
+  object has no reference) and will eventually lead to the store
+  reaching its maximum capacity with no room for new data.
 
 """
 from datetime import datetime
@@ -143,6 +150,12 @@ def output_to_disk(data: Any,
     Example:
         >>> data = 'Data I would like to use in my next step'
         >>> output_to_disk(data)
+
+    Note:
+        Calling ``output_to_disk`` multiple times within the same script
+        will overwrite the output. Generally speaking you therefore want
+        to be only calling the function once.
+
     """
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
@@ -360,6 +373,12 @@ def output_to_memory(data: Any,
     Example:
         >>> data = 'Data I would like to use in my next step'
         >>> output_to_memory(data)
+
+    Note:
+        Calling ``output_to_memory`` multiple times within the same
+        script will overwrite the output. Generally speaking you
+        therefore want to be only calling the function once.
+
     """
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
@@ -660,6 +679,12 @@ def get_inputs(pipeline_description_path: str = 'pipeline.json',
         >>> # It does not matter how the data was output in steps 1 and 2.
         >>> # It is resolved automatically by the get_inputs method.
         >>> data_step_1, data_step_2 = get_inputs()
+
+    Warning:
+        Only call ``get_inputs`` once! When auto eviction is
+        configured data might no longer be available. Either cache the
+        data or maintain a copy yourself.
+
     """
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
