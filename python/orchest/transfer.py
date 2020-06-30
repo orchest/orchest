@@ -65,6 +65,14 @@ def serialize(
     Raises:
         pa.SerializationCallbackError: If ``pa.serialize`` cannot
             serialize the given data.
+
+    Note:
+        ``pickle`` does not include the code of custom functions or
+        classes, it only pickles their names. Following to the official
+        `Python Docs <https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_:
+        "Thus the defining module must be importable in the unpickling
+        environment, and the module must contain the named object,
+        otherwise an exception will be raised."
     """
     try:
         # NOTE: experimental pyarrow function ``serialize``

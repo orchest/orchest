@@ -1,6 +1,6 @@
 # Orchest SDK
 [Docs](https://orchest-sdk.readthedocs.io/en/latest/)
-— [Gitter](https://gitter.im/orchest)
+— [Community forum](https://community.orchest.io)
 
 Orchest SDK for data passing between pipeline steps in the 
 [Orchest platform](https://github.com/orchest/orchest). The SDK manages the target and source
