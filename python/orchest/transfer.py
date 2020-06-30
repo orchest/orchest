@@ -32,12 +32,17 @@ from orchest.errors import (
 from orchest.pipeline import Pipeline
 
 
-# TODO: make public?
+# First line of the docstring is for sphinx-autodoc. Otherwise the third
+# party type `pa.SerializedPyObject` has to be mocked and therefore will
+# not show up in the RTD documentation.
 def serialize(
     data: Any,
     pickle_fallback: bool = True
 ) -> Tuple[pa.SerializedPyObject, str]:
-    """Serializes an object using ``pyarrow.serialize``.
+    """serialize(data: Any, pickle_fallback: bool = True) \
+    -> Tuple[pa.SerializedPyObject, str]
+
+    Serializes an object using ``pyarrow.serialize``.
 
     Args:
         data: The object/data to be serialized.
@@ -48,7 +53,7 @@ def serialize(
     Returns:
         Tuple of the serialized data and the serialization that was
         used, where ``'arrowpickle'`` stands for that the data was first
-        pickled and then serialized using `pyarrow`.
+        pickled and then serialized using ``pyarrow``.
 
     Raises:
         pa.SerializationCallbackError: If ``pa.serialize`` cannot
@@ -130,6 +135,10 @@ def output_to_disk(data: Any,
         serialization: Serialization of the `data` in case it is already
             serialized. Currently supported values are:
             ``['arrow', 'arrowpickle']``.
+
+    Raises:
+        StepUUIDResolveError: The step's UUID cannot be resolved and
+            thus it cannot determine where to output data to.
 
     Example:
         >>> data = 'Data I would like to use in my next step'
@@ -317,7 +326,6 @@ def _output_to_memory(obj: pa.SerializedPyObject,
     return obj_id
 
 
-# TODO: want to add `is_serialized=False` ?
 def output_to_memory(data: Any,
                      pickle_fallback: bool = True,
                      disk_fallback: bool = True,
@@ -346,6 +354,13 @@ def output_to_memory(data: Any,
     Raises:
         MemoryError: If the `data` does not fit in memory and
             ``disk_fallback=False``.
+        OrchestNetworkError: Could not connect to the
+            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
+            might be because the specified value was wrong or the store
+            died.
+        StepUUIDResolveError: The step's UUID cannot be resolved and
+            thus it cannot set the correct ID to identify the data in
+            the memory store.
 
     Example:
         >>> data = 'Data I would like to use in my next step'
@@ -361,12 +376,6 @@ def output_to_memory(data: Any,
     except StepUUIDResolveError:
         raise StepUUIDResolveError('Failed to determine where to output data to.')
 
-    # Serialize the object and collect the serialization metadata.
-    obj_id = _convert_uuid_to_object_id(step_uuid)
-
-    obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
-    metadata = bytes(f'1;{serialization}', 'utf-8')
-
     # TODO: Get the store socket name from the Config. And pass it to
     #       _output_to_memory which will then connect to it. Although better
     #       if it connects more high level since otherwise if you want
@@ -375,7 +384,15 @@ def output_to_memory(data: Any,
     #       get it from the config in this function. Maybe set the kwarg
     #       to None default, so that if it is None then use config and
     #       otherwise the given value.
-    client = plasma.connect(store_socket_name)
+    try:
+        client = plasma.connect(store_socket_name)
+    except OSError:
+        raise OrchestNetworkError('Failed to connect to in-memory object store.')
+
+    # Serialize the object and collect the serialization metadata.
+    obj_id = _convert_uuid_to_object_id(step_uuid)
+    obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
+    metadata = bytes(f'1;{serialization}', 'utf-8')
 
     try:
         obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
@@ -456,14 +473,21 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
 
     Raises:
         MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
+        OrchestNetworkError: Could not connect to the
+            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
+            might be because the specified value was wrong or the store
+            died.
     """
     # TODO: could be good idea to put connecting to plasma in a class
     #       such that does not get called when no store is instantiated
     #       or allocated. Additionally, we don't want to be connecting
     #       to the store multiple times.
-    client = plasma.connect(Config.STORE_SOCKET_NAME)
-    obj_id = _convert_uuid_to_object_id(step_uuid)
+    try:
+        client = plasma.connect(Config.STORE_SOCKET_NAME)
+    except OSError:
+        raise OrchestNetworkError('Failed to connect to in-memory object store.')
 
+    obj_id = _convert_uuid_to_object_id(step_uuid)
     try:
         obj = _get_output_memory(obj_id, client)
 
@@ -517,10 +541,17 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
 
     Raises:
         MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
+        OrchestNetworkError: Could not connect to the
+            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
+            might be because the specified value was wrong or the store
+            died.
     """
-    client = plasma.connect(Config.STORE_SOCKET_NAME)
-    obj_id = _convert_uuid_to_object_id(step_uuid)
+    try:
+        client = plasma.connect(Config.STORE_SOCKET_NAME)
+    except OSError:
+        raise OrchestNetworkError('Failed to connect to in-memory object store.')
 
+    obj_id = _convert_uuid_to_object_id(step_uuid)
     try:
         # Dictionary from ObjectIDs to an "info" dictionary describing
         # the object.
@@ -549,8 +580,8 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
 def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
     """Resolves the most recently used tranfer method of the given step.
 
-    Additionally, resolves all the *args and **kwargs the receiving
-    transfer method has to be called with.
+    Additionally, resolves all the ``*args`` and ``**kwargs`` the
+    receiving transfer method has to be called with.
 
     Args:
         step_uuid: UUID of the step to resolve its most recent write.
@@ -563,6 +594,11 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
         Tuple containing the information of the function to be called
         to get the most recent data from the step. Additionally, returns
         fill-in arguments for the function.
+
+    Raises:
+        OutputNotFoundError: If no output can be found of the given
+            `step_uuid`. Either no output was generated or the in-memory
+            object store died (and therefore lost all its data).
     """
     # TODO: not completely sure whether this global approach is prefered
     #       over difining that same list inside this function. Arguably
@@ -581,6 +617,10 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
         except OutputNotFoundError:
             # We know now that the user did not use this method to output
             # thus we can just skip it and continue.
+            pass
+        except OrchestNetworkError:
+            # If no in-memory store is running, then getting the data
+            # from memory obviously will not work.
             pass
         else:
             method_infos.append(method_info)
@@ -616,6 +656,10 @@ def get_inputs(pipeline_description_path: str = 'pipeline.json',
 
     Returns:
         List of all the data in the specified order from the front-end.
+
+    Raises:
+        StepUUIDResolveError: The step's UUID cannot be resolved and
+            thus it cannot determine what inputs to get.
 
     Example:
         >>> # It does not matter how the data was output in steps 1 and 2.
