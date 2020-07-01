@@ -11,6 +11,6 @@ Orchest platform (the `pipeline.json` file).
 
 
 ## Roadmap
-- [X] Transfer methods other than over disk, such as through memory (probably powered by 
+- [X] Transfer methods other than over disk, such as through memory (powered by 
   [Apache Arrow](https://github.com/apache/arrow)).
 - [ ] Support for other popular programming languages in the data science stack, such as R.

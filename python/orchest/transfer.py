@@ -532,7 +532,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         #       always know when we are running inside a jupyter kernel
         #       interactively. And in that case we never want to do
         #       eviction.
-        if os.getenv('PLASMA_MANAGER') is not None:
+        if os.getenv('AUTO_EVICTION', False):
             empty_obj, _ = serialize('')
             msg = f'2;{step_uuid},{consumer}'
             metadata = bytes(msg, 'utf-8')
