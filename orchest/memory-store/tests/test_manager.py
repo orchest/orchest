@@ -1,6 +1,5 @@
 import os
 import subprocess
-import sys
 import time
 from unittest.mock import patch
 
@@ -10,10 +9,8 @@ import pytest
 
 # Add the folder to the path to not break imports. This has to do with
 # imports that work differently when started via a subprocess.
-sys.path.insert(0, os.path.abspath('app'))
-
-import config
-
+# import sys
+# sys.path.insert(0, os.path.abspath('app'))
 
 KILOBYTE = 1 << 10
 MEGABYTE = KILOBYTE * KILOBYTE
@@ -59,7 +56,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
 
     # Setup environment variables.
     envs = {
-        'PLASMA_MANAGER': 'True'
+        'AUTO_EVICTION': 'True'
     }
     monkeypatch.setattr(os, 'environ', envs)
 
