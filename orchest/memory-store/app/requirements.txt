@@ -1,0 +1,2 @@
+networkx==2.4
+-e git+https://github.com/orchest/orchest-sdk.git@feature-memory#egg=orchest&subdirectory=python
