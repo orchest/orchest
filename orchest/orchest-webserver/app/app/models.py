@@ -12,3 +12,12 @@ class DataSource(db.Model):
 
     def __repr__(self):
         return f'<DataSource {self.name}:{self.source_type}>'
+
+class Experiment(db.Model):
+    __tablename__ = 'experiments'
+
+    name = db.Column(db.String(255), unique=False, nullable=False)
+    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
+    pipeline_uuid = db.Column(db.String(255), unique=False, nullable=False)
+    pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)

@@ -13,27 +13,14 @@ from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
 from app.utils import get_hash
-from app.models import DataSource
+from app.models import DataSource, Experiment
 
 
 logging.basicConfig(level=logging.DEBUG)
 
-
-def register_rest(app, db):
-
-    ma = Marshmallow(app)
-
-    errors = {
-        'DataSourceNameInUse': {
-            'message': "A data source with this name already exists.",
-            'status': 409,
-        },
-    }
-
+def register_datasources(db, api, ma):
     class DataSourceNameInUse(HTTPException):
         pass
-
-    api = Api(app, errors = errors)
 
     class DataSourceSchema(ma.Schema):
         class Meta:
@@ -89,6 +76,87 @@ def register_rest(app, db):
     api.add_resource(DataSourcesResource, '/store/datasources')
     api.add_resource(DataSourceResource, '/store/datasources/<string:name>')
 
+
+def register_experiments(db, api, ma):
+
+    class ExperimentUuidInUse(HTTPException):
+        pass
+    
+    class ExperimentSchema(ma.Schema):
+        class Meta:
+            fields = ("name", "uuid", "pipeline_uuid", "pipeline_name", "created")
+
+    experiment_schema = ExperimentSchema()
+    experiments_schema = ExperimentSchema(many=True)
+
+    class ExperimentsResource(Resource):
+
+        def get(self):
+            experiments = Experiment.query.all()
+            return experiments_schema.dump(experiments)
+
+    class ExperimentResource(Resource):
+
+        def put(self, uuid):
+
+            ex = Experiment.query.filter(Experiment.uuid==uuid).first()
+            ex.name = request.json["name"]
+            ex.uuid = request.json["uuid"]
+            ex.pipeline_uuid = request.json["pipeline_uuid"]
+            ex.pipeline_name = request.json["pipeline_name"]
+            db.session.commit()
+
+            return experiment_schema.dump(ex)
+
+        def get(self, uuid):
+            ex = Experiment.query.filter(Experiment.uuid==uuid).first()
+            return experiment_schema.dump(ex)
+
+        def delete(self, uuid):
+            Experiment.query.filter(Experiment.uuid==uuid).delete()
+            db.session.commit()
+
+        def post(self, uuid):
+
+            if Experiment.query.filter(Experiment.uuid == uuid).count() > 0:
+                raise ExperimentUuidInUse()
+
+            new_ex = Experiment(
+                uuid=uuid,
+                name=request.json['name'],
+                pipeline_uuid=request.json['pipeline_uuid'],
+                pipeline_name=request.json['pipeline_name']
+            )
+
+            db.session.add(new_ex)
+            db.session.commit()
+
+            return experiment_schema.dump(new_ex)
+
+
+    api.add_resource(ExperimentsResource, '/store/experiments')
+    api.add_resource(ExperimentResource, '/store/experiments/<string:uuid>')
+
+
+def register_rest(app, db):
+
+    ma = Marshmallow(app)
+
+    errors = {
+        'DataSourceNameInUse': {
+            'message': "A data source with this name already exists.",
+            'status': 409,
+        },
+        'ExperimentUuidInUse': {
+            'message': "An experiment with this UUID already exists.",
+            'status': 409,
+        },
+    }
+
+    api = Api(app, errors = errors)
+
+    register_datasources(db, api, ma)
+    register_experiments(db, api, ma)
 
 def register_views(app, db):
 
