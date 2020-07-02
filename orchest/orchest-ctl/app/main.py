@@ -72,7 +72,7 @@ CONTAINER_MAPPING = {
     "orchestsoftware/orchest-webserver:latest": {
         "name": "orchest-webserver",
         "environment": {
-            "HOST_USER_DIR": HOST_USER_DIR
+            "HOST_USER_DIR": HOST_USER_DIR,
         },
         "mounts": [
             {
@@ -200,6 +200,11 @@ def start():
                 
                 logging.info("Starting image %s" % container_image)
 
+                command = []
+
+                if 'command' in container_spec:
+                    command = container_spec['command']
+
                 client.containers.run(
                     image=container_image,
                     name=container_spec['name'],
@@ -209,6 +214,7 @@ def start():
                     environment=environment,
                     ports=ports,
                     hostname=hostname,
+                    command=command
                 )
 
         log_server_url()
@@ -349,13 +355,27 @@ def log_server_url():
 
 def dev_mount_inject():
 
-    CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]['mounts'] += [
+    orchest_webserver_spec = CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]
+
+    orchest_webserver_spec['mounts'] += [
         {
-            "source": os.path.join(os.environ.get("HOST_PWD"), "orchest", "orchest-webserver", "app"),
+            "source": os.path.join(
+                os.environ.get("HOST_PWD"), 
+                "orchest", 
+                "orchest-webserver", 
+                "app"),
             "target": "/app"
         }
     ]
 
+    orchest_webserver_spec['environment']["FLASK_APP"] = "main.py"
+    orchest_webserver_spec['environment']["FLASK_DEBUG"] = "1"
+    orchest_webserver_spec['command'] = [
+       "flask",
+       "run",
+       "--host=0.0.0.0",
+       "--port=80"
+    ]
 
 def status():
 

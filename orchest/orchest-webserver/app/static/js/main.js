@@ -63,7 +63,8 @@ function Orchest() {
             if(result.success && result.result.length > 0){
                 let firstPipeline = result.result[0];
                 // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
-                this.loadView(DataSourcesView);
+                // this.loadView(DataSourcesView);
+                this.loadView(PipelinesView);
             }else{
                 console.warn("Could not load a first pipeline");
                 console.log(result);
