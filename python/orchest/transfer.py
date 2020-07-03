@@ -733,7 +733,7 @@ def output(data: Any,
            pipeline_description_path: str = 'pipeline.json') -> None:
     """Outputs data so that it can be retrieved by the next step.
 
-    It first tries to ouput to memory and if it does not fit in memory,
+    It first tries to output to memory and if it does not fit in memory,
     then disk will be used.
 
     Args:
