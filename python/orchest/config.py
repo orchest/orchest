@@ -7,7 +7,10 @@ class Config:
     # trying to use 100% might therefore raise a MemoryError.
     MAX_RELATIVE_STORE_CAPACITY = 0.95
     STEP_DATA_DIR = '.orchest/data/{step_uuid}'
-    STORE_SOCKET_NAME = '/tmp/plasma'
+
+    # Where all the functions will look for the plasma.sock file.
+    # NOTE: this is not the location where the socket is created.
+    STORE_SOCKET_NAME = '/notebooks/plasma.sock'
 
     @classmethod
     def get_step_data_dir(cls, step_uuid):
