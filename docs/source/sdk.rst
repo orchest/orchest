@@ -20,6 +20,9 @@ Python package to pass data between pipeline steps in the Orchest platform.
 
 Installation
 ~~~~~~~~~~~~
+.. note::
+   The SDK comes pre-installed when using the Orchest platform.
+
 Currently the recommended method for installing the Orchest SDK is through the GitHub repository
 using :code:`pip`
 
@@ -41,12 +44,8 @@ Example of passing data, where the pipeline (defined inside the :code:`pipeline.
 
    data = [1, 2, 3]
 
-   # Note that you do not need to specify what step you want to output
-   # the data to. This is managed through your pipeline definition.
-   transfer.output_to_disk(data)
-
-   # Alternatively, you can also output the data to memory.
-   # transfer.output_to_memory(data)
+   # Output the data so that Step 2 can retrieve it.
+   transfer.output(data)
 
 
 .. code-block:: python
@@ -54,6 +53,5 @@ Example of passing data, where the pipeline (defined inside the :code:`pipeline.
    """Step 2"""
    from orchest import transfer
 
-   # You will receive the same data, regardless of the output method 
-   # used in Step 1. 
+   # Get the input for Step 2, i.e. the output of Step 1.
    data = transfer.get_inputs()  # data = [[1, 2, 3]]
