@@ -209,7 +209,7 @@ class PipelineStepRunner:
         # TODO: error handling?
         self._status = 'STARTED'
         await update_status(self._status, task_id, session, type='step',
-                            run_endpoint=run_config['run_endpoint'], 
+                            run_endpoint=run_config['run_endpoint'],
                             uuid=self.properties['uuid'])
 
         data = await container.wait()

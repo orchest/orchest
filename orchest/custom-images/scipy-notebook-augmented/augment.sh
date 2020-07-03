@@ -1,7 +1,8 @@
 # pip install torch torchvision tensorflow
 
 # install orchest-sdk
-pip install git+https://github.com/orchest/orchest-sdk.git#subdirectory=python
+# The input will be the name of the branch of the orchest-sdk to install.
+pip install git+https://github.com/orchest/orchest-sdk.git@$1#subdirectory=python
 
 # install mysqlclient dependencies
 pip install mysqlclient

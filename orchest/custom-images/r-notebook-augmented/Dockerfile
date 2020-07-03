@@ -5,4 +5,5 @@ COPY augment.sh .
 RUN chmod +x ./augment.sh
 
 USER $NB_UID
-RUN ./augment.sh
+ARG sdk_branch=master
+RUN ./augment.sh ${sdk_branch}

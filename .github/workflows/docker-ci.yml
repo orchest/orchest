@@ -24,6 +24,20 @@ jobs:
         tags: latest
         path: orchest/nginx-proxy/
       
+  memory-server:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push memory-server
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: orchestsoftware/memory-server
+        tags: latest
+        path: orchest/memory-server/
+
   celery-worker:
     runs-on: ubuntu-latest
   
@@ -53,7 +67,7 @@ jobs:
         tags: latest
         path: orchest/orchest-ctl/
 
-  images:
+  custom-images:
     runs-on: ubuntu-latest
   
     steps:
@@ -232,3 +246,9 @@ jobs:
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/orchest-webserver
         README_FILEPATH: orchest/orchest-webserver/README.md
+
+    - name: Push README files to DockerHub memory-server
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/memory-server
+        README_FILEPATH: orchest/memory-server/README.md
