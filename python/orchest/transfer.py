@@ -350,7 +350,7 @@ def output_to_memory(data: Any,
                      pickle_fallback: bool = True,
                      disk_fallback: bool = True,
                      pipeline_description_path: str = 'pipeline.json') -> None:
-    """Outputs data to memory, managed by the Apache Arrow Plasma Store.
+    """Outputs data to memory.
 
     To manage outputing the data to memory for the user, this function
     uses metadata to add info to objects inside the plasma store.
@@ -388,6 +388,8 @@ def output_to_memory(data: Any,
         therefore want to be only calling the function once.
 
     """
+    # TODO: we might want to wrap this so we can throw a custom error,
+    #       if the file cannot be found, i.e. FileNotFoundError.
     with open(pipeline_description_path, 'r') as f:
         pipeline_description = json.load(f)
 
@@ -724,6 +726,47 @@ def get_inputs(pipeline_description_path: str = 'pipeline.json',
         data.append(incoming_step_data)
 
     return data
+
+
+def output(data: Any,
+           pickle_fallback: bool = True,
+           pipeline_description_path: str = 'pipeline.json') -> None:
+    """Outputs data so that it can be retrieved by the next step.
+
+    It first tries to ouput to memory and if it does not fit in memory,
+    then disk will be used.
+
+    Args:
+        data: Data to output.
+        pickle_fallback: This option is passed to :meth:`serialize`. If
+            ``pyarrow`` cannot serialize the data, then it will fall
+            back to using ``pickle``. This is helpful for custom data
+            types.
+        pipeline_description_path: Path to the file that contains the
+            pipeline description.
+
+    Raises:
+        OrchestNetworkError: Could not connect to the
+            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
+            might be because the specified value was wrong or the store
+            died.
+        StepUUIDResolveError: The step's UUID cannot be resolved and
+            thus data cannot be outputted.
+
+    Example:
+        >>> data = 'Data I would like to use in my next step'
+        >>> output(data)
+
+    Note:
+        Calling ``output`` multiple times within the same script will
+        generally overwrite the output. Therefore want to be only
+        calling the function once.
+
+    """
+    return output_to_memory(data,
+                            pickle_fallback=pickle_fallback,
+                            disk_fallback=True,
+                            pipeline_description_path=pipeline_description_path)
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
