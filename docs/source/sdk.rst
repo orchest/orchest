@@ -31,7 +31,8 @@ using :code:`pip`
 
 Code example
 ~~~~~~~~~~~~
-Example for sending through disk, where `Step 1` -> `Step 2`.
+Example of passing data, where the pipeline (defined inside the :code:`pipeline.json`) is 
+`Step 1` -> `Step 2`.
 
 .. code-block:: python
 
@@ -40,9 +41,12 @@ Example for sending through disk, where `Step 1` -> `Step 2`.
 
    data = [1, 2, 3]
 
-   # Note that you do not need to specify what step you want to send the
-   # data to. This is managed through your pipeline definition.
-   transfer.send_disk(data)
+   # Note that you do not need to specify what step you want to output
+   # the data to. This is managed through your pipeline definition.
+   transfer.output_to_disk(data)
+
+   # Alternatively, you can also output the data to memory.
+   # transfer.output_to_memory(data)
 
 
 .. code-block:: python
@@ -50,5 +54,6 @@ Example for sending through disk, where `Step 1` -> `Step 2`.
    """Step 2"""
    from orchest import transfer
 
-   # Now we will get: data = [[1, 2, 3]]
-   data = transfer.receive()
+   # You will receive the same data, regardless of the output method 
+   # used in Step 1. 
+   data = transfer.get_inputs()  # data = [[1, 2, 3]]
