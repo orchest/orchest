@@ -42,7 +42,7 @@ HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
 
 DURABLE_QUEUES_DIR = ".durable_queues"
 
-# Set to `True` if you want to pull images from Dockerhub 
+# Set to `True` if you want to pull images from Dockerhub
 # instead of using local equivalents
 
 CONTAINER_MAPPING = {
@@ -54,7 +54,7 @@ CONTAINER_MAPPING = {
                 "target": "/var/run/docker.sock"
             },
             {
-                # NOTE: The API container needs to copy pipeline directories into 
+                # NOTE: The API container needs to copy pipeline directories into
                 # 'userdir/scheduled_runs{pipeline_uuid}/{run_uuid}'
                 # to make read-only pipeline copies.
                 "source": HOST_USER_DIR,
@@ -110,13 +110,15 @@ CONTAINER_MAPPING = {
     }
 }
 
+# TODO: shutting down can be done easier by just shutting down all the
+#       containers inside the "orchest" docker network.
 # images in CONTAINER_MAPPING need to be run in the application on start
 # additional images below are necessary for dynamically creating containers
 # in Orchest for the pipeline steps / Jupyter server / Enterprise Gateway
 
 IMAGES = list(CONTAINER_MAPPING.keys())
 IMAGES += [
-    "elyra/enterprise-gateway:2.1.1", 
+    "elyra/enterprise-gateway:2.1.1",
     "orchestsoftware/jupyter-server:latest",
     "orchestsoftware/r-notebook-augmented:latest",
     "orchestsoftware/r-notebook-runnable:latest",
@@ -124,6 +126,7 @@ IMAGES += [
     "orchestsoftware/scipy-notebook-augmented:latest",
     "orchestsoftware/custom-base-kernel-py:latest",
     "orchestsoftware/custom-base-kernel-r:latest",
+    "orchestsoftware/memory-server:latest",
 ]
 
 
@@ -138,7 +141,7 @@ def clean_containers():
            container.status == "exited":
             logging.info("Removing exited container `%s`" % container.name)
             container.remove()
-        
+
 
 def start():
     logging.info("Starting Orchest...")
@@ -154,7 +157,7 @@ def start():
 
         # start by cleaning up old containers lingering
         clean_containers()
-        
+
         # start containers from CONTAINER_MAPPING that haven't started
         running_containers = client.containers.list()
 
@@ -164,8 +167,8 @@ def start():
         ]
 
         images_to_start = [
-            image_name 
-            for image_name in CONTAINER_MAPPING.keys() 
+            image_name
+            for image_name in CONTAINER_MAPPING.keys()
             if image_name not in running_container_images
         ]
 
@@ -197,7 +200,7 @@ def start():
                 hostname = None
                 if 'hostname' in container_spec:
                     hostname = container_spec['hostname']
-                
+
                 logging.info("Starting image %s" % container_image)
 
                 client.containers.run(
@@ -246,7 +249,7 @@ def install_complete():
     docker_client = docker.from_env()
 
     missing_images = check_images()
-    
+
     if len(missing_images) > 0:
         logging.warning("Missing images: %s" % missing_images)
         return False
@@ -274,12 +277,12 @@ def check_images():
             missing_images.append(image)
         except docker.errors.APIError as e:
             raise e
-    
+
     return missing_images
 
 
 def install_images():
-    
+
     client = docker.from_env()
 
     for image in IMAGES:
@@ -301,9 +304,9 @@ def get_application_url():
     try:
         # raise Exception if not found
         client.containers.get("orchest-webserver")
-        
+
         return "http://localhost:8000"
-        
+
     except Exception as e:
         print(e)
         return ""
@@ -366,7 +369,7 @@ def status():
     running_containers = client.containers.list()
 
     orchest_container_names = [CONTAINER_MAPPING[container_key]['name'] for container_key in CONTAINER_MAPPING]
- 
+
     running_prints = ['']
     not_running_prints = ['']
 
@@ -374,7 +377,7 @@ def status():
         if container.name in orchest_container_names:
             running_prints.append("Container %s running." % container.name)
             orchest_container_names.remove(container.name)
-    
+
     for container_name in orchest_container_names:
         not_running_prints.append("Container %s not running." % container_name)
 
@@ -444,7 +447,7 @@ def main():
         help_func()
         return
 
-    
+
     command_to_func[command]()
 
 

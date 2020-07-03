@@ -80,6 +80,22 @@ class JupyterDockerManager(DockerManager):
             type='bind'
         )
 
+        # TODO: For now the memory-server will be booted when jupyter
+        #       is started. This will change in the near future.
+        store_dir_mount = Mount(
+            target='/tmp',
+            source=pipeline_dir,
+            type='bind'
+        )
+        memory_server_container = self.client.containers.run(
+            image='orchestsoftware/memory-server:latest',
+            detach=True,
+            mounts=[pipeline_dir_mount, store_dir_mount],
+            name='memory-server',
+            network=self.network,
+            shm_size=int(1.2e9)  # need to overalocate to get 1G
+        )
+
         # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
         # started by the EG are on the same docker network as the EG.
         EG_container = self.client.containers.run(
@@ -139,6 +155,11 @@ class JupyterDockerManager(DockerManager):
         # TODO: error when given pipeline is not running.
         # TODO: Not removing containers, but restarting them?
         for container in self.client.containers.list(filters={'name': pattern}):
+            container.stop()
+            container.remove()
+
+        # TODO: Will be managed some place else in the near future.
+        for container in self.client.containers.list(filters={'name': 'memory-server'}):
             container.stop()
             container.remove()
 
