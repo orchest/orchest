@@ -26,5 +26,5 @@ jobs:
 
     - name: pytest
       run: |
-        python -m pytest
+        python -m pytest -v
       working-directory: ./python
