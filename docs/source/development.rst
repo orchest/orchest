@@ -5,7 +5,7 @@ Implementation details
 ----------------------
 The :meth:`orchest.transfer.get_inputs` method calls :meth:`orchest.transfer.resolve` which, in
 order to resolve what output data the user most likely wants to get, needs a timestamp of the most
-recent ouput for every transfer type. E.g. if some step outputs to disk at 1pm and later outputs to
+recent output for every transfer type. E.g. if some step outputs to disk at 1pm and later outputs to
 memory at 2pm, then it is very likely that output data should be retrieved from memory. Therefore,
 we adhere to a certain "protocol" for transfers through disk and memory as can be read below.
 
