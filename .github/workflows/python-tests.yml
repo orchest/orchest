@@ -74,10 +74,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest
-        if [ -f app/requirements.txt ]; then pip install -r app/requirements.txt; fi
-      working-directory: ./orchest/memory-server
+        if [ -f memory-server/requirements.txt ]; then pip install -r memory-server/requirements.txt; fi
+      working-directory: ./orchest
 
     - name: Test with pytest
       run: |
         python -m pytest -v
-      working-directory: ./orchest/memory-server/app
+      working-directory: ./orchest/memory-server
