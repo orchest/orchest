@@ -46,6 +46,12 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+# Autodoc configurations.
+# Mock dependencies that are not available at build time.
+autodoc_mock_imports = ['pyarrow']
+# The first line of the docstring can be considered to be the function's
+# signature (if it looks like one).
+autodoc_docstring_signature = True
 
 # -- Options for HTML output -------------------------------------------------
 

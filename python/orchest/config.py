@@ -1,9 +1,17 @@
-# Template full path to write data of individual steps to.
-STEP_DATA_DIR = '.data/{step_uuid}'
+# TODO: make sure the user can actually configure by using this object.
+# TODO: put configuration options inside the docstring so we can use it
+#       for the autodoc generation.
+class Config:
+    # Only fill the Plasma store to 95% capacity. Otherwise the
+    # additional messages for eviction cannot be inserted. NOTE:
+    # trying to use 100% might therefore raise a MemoryError.
+    MAX_RELATIVE_STORE_CAPACITY = 0.95
+    STEP_DATA_DIR = '.orchest/data/{step_uuid}'
 
+    # Where all the functions will look for the plasma.sock file.
+    # NOTE: this is not the location where the socket is created.
+    STORE_SOCKET_NAME = '/notebooks/plasma.sock'
 
-# NOTE: without this function the "STEP_DATA_DIR" variable cannot be
-# patched within the tests to allow for a custom location. This probably
-# has something to do with the fact that `.format` is called.
-def get_step_data_dir(step_uuid):
-    return STEP_DATA_DIR.format(step_uuid=step_uuid)
+    @classmethod
+    def get_step_data_dir(cls, step_uuid):
+        return cls.STEP_DATA_DIR.format(step_uuid=step_uuid)
