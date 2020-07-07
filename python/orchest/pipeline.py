@@ -45,6 +45,9 @@ class PipelineStep:
         self.parents = parents if parents is not None else []
         self.children: List['PipelineStep'] = []
 
+    def get_params(self) -> Optional[Dict[str: Any]]:
+        return self.properties.get('parameters')
+
     def __str__(self) -> str:
         if self.properties:
             return f'<PipelineStep: {self.properties["name"]}>'
@@ -92,7 +95,8 @@ class Pipeline:
 
         properties = {
             'name': description['name'],
-            'uuid': description['uuid']
+            'uuid': description['uuid'],
+            'settings': description.get('settings'),
         }
         return cls(list(steps.values()), properties)
 
