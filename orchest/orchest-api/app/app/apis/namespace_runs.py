@@ -40,7 +40,6 @@ class RunList(Resource):
         post_data = request.get_json()
         post_data['run_config']['run_endpoint'] = 'runs'
 
-        # Construct pipeline.
         pipeline = construct_pipeline(**post_data)
 
         # Create Celery object with the Flask context and construct the

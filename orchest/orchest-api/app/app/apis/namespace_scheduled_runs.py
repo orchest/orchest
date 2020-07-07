@@ -7,20 +7,26 @@ from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
-from app.connections import db
-import app.models as models
 from app.celery_app import make_celery
+from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.schema import step_status, status_update, scheduled_run_configuration, scheduled_run, scheduled_runs
+from app.schema import (
+    scheduled_run,
+    scheduled_run_configuration,
+    scheduled_runs,
+    status_update,
+    step_status,
+)
+import app.models as models
 
 
 api = Namespace('scheduled_runs', description='Managing (partial) scheduled runs')
 
-api.models[step_status.name] = step_status
-api.models[status_update.name] = status_update
-api.models[scheduled_run_configuration.name] = scheduled_run_configuration
 api.models[scheduled_run.name] = scheduled_run
+api.models[scheduled_run_configuration.name] = scheduled_run_configuration
 api.models[scheduled_runs.name] = scheduled_runs
+api.models[status_update.name] = status_update
+api.models[step_status.name] = step_status
 
 
 @api.route('/')
@@ -29,10 +35,11 @@ class ScheduledRunList(Resource):
     @api.marshal_with(scheduled_runs)
     def get(self):
         """Fetch all scheduled runs.
+
         Either in the queue, running or already completed.
         """
         scheduled_runs = models.ScheduledRun.query.all()
-        return {'scheduled_runs': [scheduled_run.as_dict() for scheduled_run in scheduled_runs]}, 200
+        return {'scheduled_runs': [run.as_dict() for run in scheduled_runs]}, 200
 
     @api.doc('start_scheduled_run')
     @api.expect(scheduled_run_configuration)
@@ -41,40 +48,40 @@ class ScheduledRunList(Resource):
         """Schedule a new run"""
         post_data = request.get_json()
 
-        # run_uuid is the same as celery task_id in this context.
-        # the celery uuid is usually created by celery itself with send_task and returned to us
-        # but it needs to be created ahead of time because it is used to copy the pipeline
-        # directory to its new location. This new pipeline directory is then passed to the
-        # send_task call as a keyword arguments.
+        # Generates UUID for the run instead of having Celery generate
+        # one, because we need it ahead of time to create the directory
+        # on which the pipeline run will operate. Creation is done by
+        # copying the original pipeline directory so some new location
+        # and renaming it to the `run_uuid`.
         run_uuid = uuid()
+
+        # TODO: the pipeline_dir can be gotten from the `run_config`
+        # TODO: specify how the pipeline_dir path is given inside the
+        #       schema.
         pipeline_uuid = post_data['pipeline_description']['uuid']
+        pipeline_dir = os.path.join('/userdir', 'pipelines', pipeline_uuid)
+        # pipeline_dir: str = run_config['pipeline_dir']
 
-        # TODO: abstract to a general function once namespace_experiments is
-        # started so it can be reused.
-        old_pipeline_dir = os.path.join('/userdir', 'pipelines', pipeline_uuid)
-
-        # setup new directory hierarchy
+        # TODO: Now that the copying is done here we need the mount of
+        #       the userdir, this can be removed once Celery takes care
+        #       of this.
+        # Make copy of `pipeline_dir` to `run_dir`.
+        # /userdir/pipelines/{pipeline_uuid}/
+        # -> /userdir/scheduled_runs/{pipeline_uuid}/{run_uuid}/
         scheduled_runs_dir = os.path.join('/userdir', 'scheduled_runs')
-        pipeline_dir = os.path.join(scheduled_runs_dir, pipeline_uuid)
-        run_dir = os.path.join(pipeline_dir, run_uuid)
+        run_base_dir = os.path.join(scheduled_runs_dir, pipeline_uuid)
+        run_dir = os.path.join(run_base_dir, run_uuid)
+        os.makedirs(run_base_dir, exist_ok=True)
+        copytree(pipeline_dir, run_dir)
 
-        # pipeline_dir may already exist
-        if not os.path.exists(pipeline_dir):
-            os.makedirs(pipeline_dir)
-        # /userdir/pipelines/{pipeline_uuid}/ -> /userdir/scheduled_runs/{pipeline_uuid}/{run_uuid}/
-        copytree(old_pipeline_dir, run_dir)
-
-        # need to update the host pipeline_dir to reflect the new directory
+        # Update `pipeline_dir` in `run_config`.
+        run_config = post_data['run_config']
         scheduled_run_subpath = os.path.join('scheduled_runs', pipeline_uuid, run_uuid)
-        post_data['run_config']['pipeline_dir'] = os.path.join(post_data['run_config']['host_user_dir'], scheduled_run_subpath)
+        run_config['pipeline_dir'] = os.path.join(run_config['host_user_dir'],
+                                                  scheduled_run_subpath)
 
+        run_config['run_endpoint'] = 'scheduled_runs'
 
-        post_data['run_config']['run_endpoint'] = 'scheduled_runs'
-
-        scheduled_date_time_string = post_data['scheduled_date_time']
-        scheduled_date_time = datetime.fromisoformat(scheduled_date_time_string.replace('Z', '+00:00'))
-
-        # Construct pipeline.
         pipeline = construct_pipeline(**post_data)
 
         # Create Celery object with the Flask context and construct the
@@ -82,16 +89,20 @@ class ScheduledRunList(Resource):
         celery = make_celery(current_app)
         celery_job_kwargs = {
             'pipeline_description': pipeline.to_dict(),
-            'run_config': post_data['run_config'],
+            'run_config': run_config,
         }
 
         # Start the run as a background task on Celery. Due to circular
         # imports we send the task by name instead of importing the
         # function directly.
+        scheduled_date_time = post_data['scheduled_date_time']
+        scheduled_date_time = scheduled_date_time.replace('Z', '+00:00')
+        scheduled_date_time = datetime.fromisoformat(scheduled_date_time)
+
         celery.send_task('app.core.runners.run_partial',
-                                task_id = run_uuid,
-                                eta=scheduled_date_time,
-                               kwargs=celery_job_kwargs)
+                         task_id=run_uuid,
+                         eta=scheduled_date_time,
+                         kwargs=celery_job_kwargs)
 
         scheduled_run = {
            'run_uuid': run_uuid,
@@ -101,11 +112,12 @@ class ScheduledRunList(Resource):
         }
         db.session.add(models.ScheduledRun(**scheduled_run))
 
+        # TODO: this code is also in `namespace_runs`. Maybe move it to
+        #       a function so that it can be reused and the code becomes
+        #       dry.
         # Set an initial value for the status of the pipline steps that
         # will be run.
         step_uuids = [s.properties['uuid'] for s in pipeline.steps]
-
-        # TODO: create function(s) to increase DRY in regards to runespace_runs and namespace_scheduled_runs
         step_statuses = []
         for step_uuid in step_uuids:
             step_statuses.append(models.ScheduledStepStatus(**{
@@ -114,11 +126,11 @@ class ScheduledRunList(Resource):
                 'status': 'PENDING'
             }))
         db.session.bulk_save_objects(step_statuses)
-
         db.session.commit()
 
         scheduled_run['step_statuses'] = step_statuses
         return scheduled_run, 201
+
 
 @api.route('/<string:run_uuid>')
 @api.param('run_uuid', 'UUID for Scheduled Run')
@@ -128,7 +140,8 @@ class ScheduledRun(Resource):
     @api.marshal_with(scheduled_run, code=200)
     def get(self, run_uuid):
         """Fetch a run given its UUID."""
-        run = models.ScheduledRun.query.get_or_404(run_uuid, description='Run not found')
+        run = models.ScheduledRun.query.get_or_404(run_uuid,
+                                                   description='Run not found')
         return run.__dict__
 
     @api.doc('set_scheduled_run_status')
@@ -178,8 +191,12 @@ class ScheduledRun(Resource):
         return {'message': 'Run termination was successful'}, 200
 
 
-@api.route('/<string:run_uuid>/<string:step_uuid>',
-           doc={'description': 'Set and get execution status of steps of scheduled runs.'})
+@api.route(
+    '/<string:run_uuid>/<string:step_uuid>',
+    doc={
+        'description': 'Set and get execution status of steps of scheduled runs.'
+    }
+)
 @api.param('run_uuid', 'UUID for Run')
 @api.param('step_uuid', 'UUID of Pipeline Step')
 @api.response(404, 'Pipeline step not found')
