@@ -24,7 +24,7 @@ def construct_pipeline(pipeline_fname='pipeline.json'):
     # Create and add edges with weight zero.
     all_edges = []
     for uuid, info in steps.items():
-        edges = [(uuid, conn, 0) for conn in info['outgoing_connections']]
+        edges = [(conn, uuid, 0) for conn in info['incoming_connections']]
         all_edges.extend(edges)
 
     pipeline.add_weighted_edges_from(all_edges)
