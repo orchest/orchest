@@ -128,7 +128,6 @@ def _output_to_disk(obj: pa.SerializedPyObject,
 #       serialized it before using the _serialize method.
 def output_to_disk(data: Any,
                    pickle_fallback: bool = True,
-                   pipeline_description_path: str = 'pipeline.json',
                    serialization: Optional[str] = None) -> None:
     """Outputs data to disk.
 
@@ -145,8 +144,6 @@ def output_to_disk(data: Any,
             ``pyarrow`` cannot serialize the data, then it will fall
             back to using ``pickle``. This is helpful for custom data
             types.
-        pipeline_description_path: Path to the file that contains the
-            pipeline description.
         serialization: Serialization of the `data` in case it is already
             serialized. Currently supported values are:
             ``['arrow', 'arrowpickle']``.
@@ -165,7 +162,7 @@ def output_to_disk(data: Any,
         to be only calling the function once.
 
     """
-    with open(pipeline_description_path, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -348,8 +345,7 @@ def _output_to_memory(obj: pa.SerializedPyObject,
 
 def output_to_memory(data: Any,
                      pickle_fallback: bool = True,
-                     disk_fallback: bool = True,
-                     pipeline_description_path: str = 'pipeline.json') -> None:
+                     disk_fallback: bool = True) -> None:
     """Outputs data to memory.
 
     To manage outputing the data to memory for the user, this function
@@ -364,8 +360,6 @@ def output_to_memory(data: Any,
         disk_fallback: If True, then outputing to disk is used when the
             `data` does not fit in memory. If False, then a
             :exc:`MemoryError` is thrown.
-        pipeline_description_path: Path to the file that contains the
-            pipeline description.
 
     Raises:
         MemoryError: If the `data` does not fit in memory and
@@ -390,7 +384,7 @@ def output_to_memory(data: Any,
     """
     # TODO: we might want to wrap this so we can throw a custom error,
     #       if the file cannot be found, i.e. FileNotFoundError.
-    with open(pipeline_description_path, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -430,9 +424,7 @@ def output_to_memory(data: Any,
         #       user, once disk also supports passing metadata.
         return output_to_disk(
             obj,
-            serialization=serialization,
-            pipeline_description_path=pipeline_description_path,
-        )
+            serialization=serialization)
 
     return
 
@@ -668,13 +660,10 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
             most_recent['method_kwargs'])
 
 
-def get_inputs(pipeline_description_path: str = 'pipeline.json',
-               verbose: bool = False) -> List[Any]:
+def get_inputs(verbose: bool = False) -> List[Any]:
     """Gets all data sent from incoming steps.
 
     Args:
-        pipeline_description_path: Path to the pipeline description that
-            is used to determine what the incoming steps are.
         verbose: If True print all the steps from which the current step
             has retrieved data.
 
@@ -696,7 +685,7 @@ def get_inputs(pipeline_description_path: str = 'pipeline.json',
         data or maintain a copy yourself.
 
     """
-    with open(pipeline_description_path, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -729,8 +718,7 @@ def get_inputs(pipeline_description_path: str = 'pipeline.json',
 
 
 def output(data: Any,
-           pickle_fallback: bool = True,
-           pipeline_description_path: str = 'pipeline.json') -> None:
+           pickle_fallback: bool = True) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
     It first tries to output to memory and if it does not fit in memory,
@@ -742,8 +730,6 @@ def output(data: Any,
             ``pyarrow`` cannot serialize the data, then it will fall
             back to using ``pickle``. This is helpful for custom data
             types.
-        pipeline_description_path: Path to the file that contains the
-            pipeline description.
 
     Raises:
         OrchestNetworkError: Could not connect to the
@@ -765,8 +751,7 @@ def output(data: Any,
     """
     return output_to_memory(data,
                             pickle_fallback=pickle_fallback,
-                            disk_fallback=True,
-                            pipeline_description_path=pipeline_description_path)
+                            disk_fallback=True)
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
