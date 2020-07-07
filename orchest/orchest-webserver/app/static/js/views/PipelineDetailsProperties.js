@@ -3,6 +3,7 @@ import { extensionFromFilename, filenameWithoutExtension } from "../utils/all";
 import MDCSelectReact from "../mdc-components/MDCSelectReact";
 import MDCTextFieldReact from "../mdc-components/MDCTextFieldReact";
 import MDCTextFieldAreaReact from "../mdc-components/MDCTextFieldAreaReact";
+import ExperimentView from './ExperimentView';
 
 class ConnectionItem extends React.Component {
     componentDidMount() {
@@ -66,13 +67,19 @@ class PipelineDetailsProperties extends React.Component {
         this.props.onSave(this);
     }
 
-    onChangeExperimentJSON(updatedExperimentJSON){
-        this.state.step.experiment_json = updatedExperimentJSON;
-        this.setState({
-            "step": this.state.step
-        });
-
-        this.props.onSave(this);
+    onChangeParameterJSON(updatedParameterJSON){
+        try{
+            this.state.step.parameters = JSON.parse(updatedParameterJSON);
+            this.setState({
+                "step": this.state.step
+            });
+    
+            this.props.onSave(this);
+        }
+        catch (err) {
+            console.log("Failed to store parameter JSON")
+            console.log(err);
+        }
     }
 
     onChangeMemory(updatedMemory) {
@@ -360,13 +367,13 @@ class PipelineDetailsProperties extends React.Component {
             </div>
 
             <div className="input-group">
-                <h3>Experiment</h3>
+                <h3>Parameters</h3>
 
                 <MDCTextFieldAreaReact
                     disabled={this.props.readOnly}
-                    onChange={this.onChangeExperimentJSON.bind(this)}
-                    label="JSON argument description"
-                    value={this.state.step.experiment_json}
+                    onChange={this.onChangeParameterJSON.bind(this)}
+                    label="JSON parameter description"
+                    value={JSON.stringify(this.state.step.parameters)}
                 />
 
             </div>

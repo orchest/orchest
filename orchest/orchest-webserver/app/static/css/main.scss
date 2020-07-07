@@ -2,8 +2,13 @@
 
 @import "../node_modules/material-components-web/material-components-web";
 
+@import '@material/react-text-field/index.scss';
+@import '@material/react-radio/index.scss';
+
+
+@import '../node_modules/codemirror/lib/codemirror.css';
+
 @import "scrollbar";
-@import "fonts";
 @import "ansi";
 
 $generalPadding: 20px;
@@ -22,7 +27,7 @@ $borderColor: rgba(0, 0, 0, 0.15);
 html,
 body {
   font-size: 17px;
-  font-family: "Avenir", sans-serif;
+  font-family: $mdc-typography-font-family;
   height: 100%;
   padding: 0;
   margin: 0;
@@ -30,6 +35,10 @@ body {
 
 .mdc-drawer__content {
   position: relative;
+}
+
+.mdc-drawer .mdc-list-item {
+  font-weight: 400;
 }
 
 aside.mdc-drawer {
@@ -40,13 +49,12 @@ aside.mdc-drawer {
   }
 }
 
-h1 {
-  font-family: "Sofia Pro", sans-serif;
+h1, h2, h3 {
   font-weight: 400;
 }
 
-h1, h2, h3 {
-  font-weight: 400;
+.mdc-checkbox {
+  --mdc-theme-primary: #{$mdc-theme-secondary};
 }
 
 .view-page {
@@ -61,8 +69,47 @@ h1, h2, h3 {
   h2 {
     padding-bottom: $generalPadding;
   }
+
+  &.experiments-page {
+    .mdc-data-table {
+      width: 100%;
+
+    }
+
+    .experiment-actions {
+      margin: $generalPadding 0;
+    }
+
+    
+  }
 }
 
+.datetime-input {
+  > div {
+    margin-bottom: $generalPadding;
+  }
+}
+
+
+// rounded notched buttons
+.mdc-text-field--outlined {
+
+  .mdc-text-field__input {
+    padding-left: 32px;
+  }
+
+  .mdc-notched-outline {
+
+    .mdc-notched-outline__leading {
+      border-radius: 28px 0 0 28px;
+      width: 28px;
+    }
+
+    .mdc-notched-outline__trailing {
+      border-radius: 0 28px 28px 0;
+    }
+  }
+} 
 
 
 aside.mdc-drawer {
@@ -239,21 +286,126 @@ h2.header {
 
 }
 
-.fullwidth {
-  width: 100%;
+.experiment-view {
+
+  .tab-view {
+    padding: $generalPadding 0;
+  }
+
+  .top-labels {
+    padding: $generalPadding 0;
+    font-size: 14px;
+
+    h3 {
+      font-size: 21px;
+    }
+  }
+  
+  .mdc-tab-bar {
+    margin-top: $generalPadding;
+  }
+
+  .json-warning {
+    color: orangered;
+    padding: 20px 0;
+
+    .material-icons {
+      float: left;
+      margin-right: 10px;
+      margin-top: -2px;
+    }
+  }
+
+  .parameter-editor {
+
+    b {
+      font-weight: 500;
+      display: inline-block;
+      margin: 10px 0;
+
+      &:first-of-type {
+        margin-top: 0;
+      }
+    }
+
+    .parameter-key, .parameter-value {
+      display: inline-block;
+    }
+    .parameter-key {
+      margin-left: 20px;
+    }
+
+    .parameter-row {
+      margin-bottom: 5px;
+    }
+  
+    .parameter-value {
+      color: $mdc-theme-secondary;
+      text-decoration: underline;
+      padding-left: 5px;
+      cursor: pointer;
+    }
+  }
 }
 
-.mdc-data-table__header-cell {
-  font-weight: 800;
+.columns {
+  overflow: auto;
+
+  .column {
+    width: 50%;
+    float: left;
+  }
+}
+
+
+.fullwidth {
+  width: 100%;
 }
 
 .mdc-top-app-bar .mdc-top-app-bar__navigation-icon{
   z-index: 9
 }
 
-.experiment-list {
-  .mdc-data-table {
+.modal {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 99;
+
+  .fullscreen-overlay {
+    background: rgba(0, 0, 0, 0.15);
     width: 100%;
+    height: 100%;
+    position: absolute;
+  }
+
+  .modal-body {
+    border-radius: 3px;
+    background: #fff;
+    position: absolute;
+    padding: $generalPadding * 2;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+
+    box-shadow: 0px 10px 20px rgba(0,0,0,0.15);
+
+    .mdc-select__anchor {
+      width: 100%;
+    }
+
+    .mdc-select, .mdc-text-field {
+      margin-bottom: 20px;
+    }
+
+    button.mdc-button--raised {
+      background: $mdc-theme-secondary;
+    }
+    button {
+      margin-right: 20px;
+    }
   }
 }
 
@@ -271,6 +423,7 @@ h2.header {
   }
 
 }
+
 
 .pipeline-view {
   position: relative;

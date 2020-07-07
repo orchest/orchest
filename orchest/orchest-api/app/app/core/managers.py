@@ -85,6 +85,7 @@ class JupyterDockerManager(DockerManager):
         EG_container = self.client.containers.run(
                 image='elyra/enterprise-gateway:2.1.1',  # TODO: make not static.
                 detach=True,
+                auto_remove=True,
                 mounts=[docker_sock_mount, kernelspec_mount],
                 name=f'jupyter-EG-{uuid}',
                 environment=[
@@ -104,6 +105,7 @@ class JupyterDockerManager(DockerManager):
         server_container = self.client.containers.run(
                 image='orchestsoftware/jupyter-server:latest',  # TODO: make not static.
                 detach=True,
+                auto_remove=True,
                 mounts=[pipeline_dir_mount],
                 name=f'jupyter-server-{uuid}',
                 network=self.network,

@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 
 import PipelineView from "./PipelineView";
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 import CheckItemList from '../components/CheckItemList';
+import Modal from '../components/Modal';
 import { makeRequest } from '../utils/all';
+import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 
 
 class PipelinesView extends React.Component {
@@ -16,7 +19,8 @@ class PipelinesView extends React.Component {
         super(props);
 
         this.state = {
-            loaded: false
+            loaded: false,
+            createModal: false,
         }
     }
 
@@ -33,6 +37,7 @@ class PipelinesView extends React.Component {
         makeRequest("GET", '/async/pipelines').then((response) => {
             let data = JSON.parse(response);            
             this.setState({loaded: true, listData: data.result})
+            this.refs.pipelineListView.deselectAll()
         })
     }
 
@@ -75,7 +80,22 @@ class PipelinesView extends React.Component {
     }
 
     onCreateClick(){
-        let pipelineName = prompt("Enter a pipeline name");
+        this.setState({
+            createModal: true
+        })
+
+        this.refs.createPipelineNameTextField.focus();
+    }
+
+    onForkClick(){
+        alert("Forking is not yet supported.")
+    }
+
+    componentDidUpdate(prevProps, prevState, snapshot) {
+    }
+
+    onSubmitModal(){
+        let pipelineName = this.refs.createPipelineNameTextField.mdc.value;
 
         if(!pipelineName){
             alert("Please enter a name.")
@@ -92,19 +112,37 @@ class PipelinesView extends React.Component {
             // reload list once creation succeeds
             this.fetchList()
         })
+
+        this.setState({
+            createModal: false
+        })
     }
 
-    onForkClick(){
-        alert("Forking is not yet supported.")
+    onCancelModal(){
+        this.setState({
+            createModal: false
+        })
     }
-
-    componentDidUpdate(prevProps, prevState, snapshot) {
-    }
-
 
     render() {
         if(this.state.loaded){
             return <div className={"view-page"}>
+
+            {(() => {
+                if(this.state.createModal){
+                    return <Modal body={
+                        <Fragment>
+                            <h2>Create a new pipeline</h2>
+                            <MDCTextFieldReact ref={'createPipelineNameTextField'} classNames={['fullwidth']} label="Experiment name" />
+                            
+                            <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />
+                            
+                            <MDCButtonReact icon="close" label="Cancel" onClick={this.onCancelModal.bind(this)} />
+                        </Fragment>
+                    } />
+                }
+            })() }
+
                 <h2>Pipelines</h2>
                 <div className={"pipeline-actions"}>
                     <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />

@@ -355,6 +355,8 @@ def log_server_url():
 
 def dev_mount_inject():
 
+    logging.info("Orchest starting in DEV mode. This mounts host directories to monitor for source code changes.")
+
     orchest_webserver_spec = CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]
 
     orchest_webserver_spec['mounts'] += [

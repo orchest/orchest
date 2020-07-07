@@ -30,7 +30,7 @@ class MDCSelectReact extends React.Component {
 
         let listItems = this.props.options.map((item, key) => {
             // if only single entry is passed instead of value, display value
-            if(item.length == 0){
+            if(item.length == 1){
                 item[1] = item[0];
             }
 
@@ -57,7 +57,7 @@ class MDCSelectReact extends React.Component {
                 <div className="mdc-line-ripple"></div>
             </div>
 
-            <div className="mdc-select__menu mdc-menu mdc-menu-surface demo-width-class">
+            <div className="mdc-select__menu mdc-menu mdc-menu-surface">
                 <ul className="mdc-list">
                     {listItems}
                 </ul>

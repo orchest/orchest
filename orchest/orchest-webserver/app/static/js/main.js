@@ -5,6 +5,7 @@ import PipelinesView from "./views/PipelinesView";
 import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
 import DataSourceEditView from "./views/DataSourceEditView";
+import ExperimentsView from "./views/ExperimentsView";
 import HeaderButtons from "./views/HeaderButtons";
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -13,6 +14,7 @@ import Jupyter from "./jupyter/Jupyter";
 import {makeRequest} from "./utils/all";
 
 import './lib/overflowing';
+import ExperimentView from "./views/ExperimentView";
  
 function Orchest() {
 
@@ -24,6 +26,8 @@ function Orchest() {
         "DataSourceEditView": DataSourceEditView,
         "PipelineView": PipelineView,
         "SettingsView": SettingsView,
+        "ExperimentsView": ExperimentsView,
+        "ExperimentView": ExperimentView,
     };
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
@@ -47,6 +51,7 @@ function Orchest() {
     this.loadView = function(TagName, dynamicProps){
         // make sure reactRoot is not hidden
         $(this.reactRoot).removeClass("hidden");
+
         if(this.jupyter){
             this.jupyter.hide();
         }
@@ -64,7 +69,23 @@ function Orchest() {
                 let firstPipeline = result.result[0];
                 // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
                 // this.loadView(DataSourcesView);
-                this.loadView(PipelinesView);
+                // this.loadView(PipelinesView);
+
+                makeRequest("GET", "/async/pipelines/json/get/" + firstPipeline.uuid, {
+                }).then((response) => {
+        
+                    let result = JSON.parse(response);
+                    if (result.success) {
+
+                        this.loadView(ExperimentView, {"pipeline": JSON.parse(result['pipeline_json']), "experiment": {"name": "My First Experiment TM"} });
+        
+                    } else {
+                        console.warn("Could not load pipeline.json");
+                        console.log(result);
+                    }
+                });
+
+                
             }else{
                 console.warn("Could not load a first pipeline");
                 console.log(result);
@@ -83,7 +104,6 @@ function Orchest() {
 
       drawer.open = !drawer.open;
     });
-
 
 
     // persist nav menu to localStorage

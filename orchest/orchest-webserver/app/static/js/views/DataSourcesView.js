@@ -82,7 +82,7 @@ class DataSourcesView extends React.Component {
 
   render() {
     return <div className={"view-page"}>
-      <h2>Configured data sources</h2>
+      <h2>Data sources</h2>
       <div className={"data-source-actions"}>
         <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
         <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />

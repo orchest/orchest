@@ -170,7 +170,7 @@ class PipelineView extends React.Component {
         this.state = {
             openedStep: undefined,
             selectedSteps: [],
-            runUuid: undefined,
+            runUUID: undefined,
             unsavedChanges: false,
             stepSelector: {
                 active: false,
@@ -283,6 +283,12 @@ class PipelineView extends React.Component {
                     if(key[0] === "_"){
                         delete step.meta_data[key];
                     }
+                }
+
+                // we do not encode outgoing connections explicitly according to
+                // pipeline.json spec.
+                if(step['outgoing_connections']){
+                    delete step['outgoing_connections'];
                 }
                 
                 pipelineJSON["steps"][step.uuid] = step;
@@ -897,7 +903,7 @@ class PipelineView extends React.Component {
             // "memory": "1024",
             // "vcpus": "1",
             // "gpus": "0",
-            "experiment_json": "",
+            "parameters": "",
             "meta_data": {
                 "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height() / 2],
                 "_dragged": false,
@@ -1040,9 +1046,9 @@ class PipelineView extends React.Component {
 
     pollPipelineStepStatuses() {
 
-        if (this.state.runUuid) {
+        if (this.state.runUUID) {
 
-            makeRequest("GET", "/api-proxy/api/runs/" + this.state.runUuid).then((response) => {
+            makeRequest("GET", "/api-proxy/api/runs/" + this.state.runUUID).then((response) => {
                 let result = JSON.parse(response);
 
                 this.parseRunStatuses(result);
@@ -1069,10 +1075,10 @@ class PipelineView extends React.Component {
 
 
     runSelectedSteps() {
-        this.runStepUuids(this.state.selectedSteps, "selection");
+        this.runStepUUIDs(this.state.selectedSteps, "selection");
     }
 
-    runStepUuids(uuids, type) {
+    runStepUUIDs(uuids, type) {
 
         if (this.state.pipelineRunning) {
             alert("The pipeline is currently executing, please wait until it completes.");
@@ -1096,7 +1102,7 @@ class PipelineView extends React.Component {
             this.parseRunStatuses(result);
 
             this.setState({
-                runUuid: result.run_uuid
+                runUUID: result.run_uuid
             });
 
             // initialize interval
@@ -1105,7 +1111,7 @@ class PipelineView extends React.Component {
     }
 
     onRunIncoming() {
-        this.runStepUuids(this.state.selectedSteps, "incoming");
+        this.runStepUUIDs(this.state.selectedSteps, "incoming");
     }
 
     onCloseDetails() {
@@ -1359,7 +1365,7 @@ class PipelineView extends React.Component {
                             <MDCButtonReact
                                 onClick={this.launchPipeline.bind(this)}
                                 classNames={this.getPowerButtonClasses()}
-                                label="Jupyter Server"
+                                label="Session"
                                 icon={this.state.backend.working ? "hourglass_empty" : "power_settings_new"}
                             />
 
