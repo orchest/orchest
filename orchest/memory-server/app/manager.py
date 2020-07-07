@@ -9,7 +9,11 @@ def construct_pipeline(pipeline_fname='pipeline.json'):
     with open(pipeline_fname, 'r') as f:
         description = json.load(f)
 
-    auto_eviction = description['settings'].get('auto-eviction', False)
+    try:
+        auto_eviction = description['settings'].get('auto-eviction', False)
+    except KeyError:
+        auto_eviction = False
+
     pipeline = nx.DiGraph(auto_eviction=auto_eviction)
 
     # Create and add nodes.
