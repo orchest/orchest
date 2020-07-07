@@ -1,6 +1,9 @@
-from flask_restplus import Model, fields, Resource
+from flask_restplus import Model, fields
 
 
+# TODO: make logic ordering and rename models to be in line with our new
+#       namings, e.g. pipeline runs instead of runs, session instead of
+#       launch.
 step_status = Model('Pipeline Step', {
     'run_uuid': fields.String(
         required=True,
@@ -11,7 +14,7 @@ step_status = Model('Pipeline Step', {
     'status': fields.String(
         required=True,
         description='Status of the step',
-        enum=['SCHEDULED', 'PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
+        enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
     'started_time': fields.String(
         required=True,
         description='Time at which the step was started'),
@@ -61,6 +64,7 @@ run = Model('Run', {
         fields.Nested(step_status),
         description='Status of each pipeline step')
 })
+
 runs = Model('Runs', {
     'runs': fields.List(
         fields.Nested(run),
@@ -75,7 +79,7 @@ scheduled_run_configuration = run_configuration.inherit('Scheduled Run Configura
 })
 
 scheduled_run = run.inherit('Scheduled Run', {
-    "scheduled_start": fields.String(
+    'scheduled_start': fields.String(
         required=True,
         description='Time at which the run is scheduled to start'),
 })
@@ -88,7 +92,9 @@ scheduled_runs = Model('Scheduled Runs', {
 
 # namespace_experiments
 experiment = Model('Experiment', {
-    'id': fields.Integer(required=True, description='UUID for Experiment')
+    'id': fields.Integer(
+        required=True,
+        description='UUID for Experiment')
 })
 
 # Models for RESTful API.
