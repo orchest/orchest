@@ -105,10 +105,22 @@ scheduled_run = run.inherit('Scheduled Run', {
         description='Time at which the run is scheduled to start'),
 })
 
-scheduled_runs = Model('Scheduled Runs', {
-    'scheduled_runs': fields.List(
+experiment = Model('Experiment', {
+    'experiment_uuid': fields.String(
+        required=True,
+        description='UUID for experiment'),
+    'pipeline_uuid': fields.String(
+        required=True,
+        description='UUID of pipeline'),
+    'pipeline_runs': fields.List(
         fields.Nested(scheduled_run),
-        description='past, present and running scheduled_runs')
+        description='Collection of pipeline runs part of the experiment')
+})
+
+experiments = Model('Experiments', {
+    'experiments': fields.List(
+        fields.Nested(experiment),
+        description='Collection of all experiments'),
 })
 
 # Models for RESTful API.

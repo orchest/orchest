@@ -1,8 +1,5 @@
 from datetime import datetime
-import os
-from shutil import copytree
 
-from celery import uuid
 from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
@@ -13,7 +10,8 @@ from app.core.pipelines import construct_pipeline
 from app.schema import (
     scheduled_run,
     experiment_configuration,
-    scheduled_runs,
+    experiment,
+    experiments,
     status_update,
     step_status,
 )
@@ -23,8 +21,9 @@ import app.models as models
 api = Namespace('experiments', description='Managing experiments')
 
 api.models[scheduled_run.name] = scheduled_run
+api.models[experiment.name] = experiment
 api.models[experiment_configuration.name] = experiment_configuration
-api.models[scheduled_runs.name] = scheduled_runs
+api.models[experiments.name] = experiments
 api.models[status_update.name] = status_update
 api.models[step_status.name] = step_status
 
@@ -32,7 +31,7 @@ api.models[step_status.name] = step_status
 @api.route('/')
 class ExperimentList(Resource):
     @api.doc('get_experiments')
-    @api.marshal_with(scheduled_runs)
+    @api.marshal_with(experiments)
     def get(self):
         """Fetches all experiments.
 
@@ -40,12 +39,12 @@ class ExperimentList(Resource):
         completed.
 
         """
-        scheduled_runs = models.ScheduledRun.query.all()
-        return {'scheduled_runs': [run.as_dict() for run in scheduled_runs]}, 200
+        experiments = models.ScheduledRun.query.all()
+        return {'experiments': [exp.as_dict() for exp in experiments]}, 200
 
     @api.doc('start_experiment')
     @api.expect(experiment_configuration)
-    @api.marshal_with(scheduled_run, code=201, description='Queued experiment')
+    @api.marshal_with(experiment, code=201, description='Queued experiment')
     def post(self):
         """Queues a new experiment."""
         post_data = request.get_json()
@@ -108,16 +107,20 @@ class ExperimentList(Resource):
             scheduled_run['step_statuses'] = step_statuses
             pipeline_runs.append(scheduled_run)
 
-        # TODO: return a collection of all these scheduled runs
-        return pipeline_runs, 201
+        experiment = {
+            'experiment_uuid': post_data['experiment_uuid'],
+            'pipeline_uuid': post_data['pipeline_uuid'],
+            'pipeline_runs': pipeline_runs,
+        }
+        return experiment, 201
 
 
-@api.route('/<string:run_uuid>')
-@api.param('run_uuid', 'UUID for Scheduled Run')
+@api.route('/<string:experiment_uuid>')
+@api.param('experiment_uuid', 'UUID of experiment')
 @api.response(404, 'Experiment not found')
-class ScheduledRun(Resource):
+class Experiment(Resource):
     @api.doc('get_experiment')
-    @api.marshal_with(scheduled_run, code=200)
+    @api.marshal_with(experiment, code=200)
     def get(self, run_uuid):
         """Fetches an experiment given its UUID."""
         run = models.ScheduledRun.query.get_or_404(run_uuid,
@@ -139,6 +142,8 @@ class ScheduledRun(Resource):
 
         return {'message': 'Status was updated successfully'}, 200
 
+    # TODO: We will make it possible to stop an entire experiment, but
+    #       not stopping a particular pipeline run of an experiment.
     @api.doc('delete_experiment')
     @api.response(200, 'Experiment terminated')
     def delete(self, run_uuid):
@@ -172,19 +177,19 @@ class ScheduledRun(Resource):
 
 
 @api.route(
-    '/<string:run_uuid>/<string:step_uuid>',
+    '/<string:experiment_uuid>/<string:run_uuid>',
     doc={
-        'description': 'Set and get execution status of steps of scheduled runs.'
+        'description': 'Set and get execution status of pipeline runs in an experiment.'
     }
 )
-@api.param('run_uuid', 'UUID for Run')
-@api.param('step_uuid', 'UUID of Pipeline Step')
+@api.param('experiment_uuid', 'UUID of Experiment')
+@api.param('run_uuid', 'UUID of Run')
 @api.response(404, 'Pipeline step not found')
-class ScheduledStepStatus(Resource):
-    @api.doc('get_step_status')
-    @api.marshal_with(step_status, code=200)
+class PipelineRun(Resource):
+    @api.doc('get_pipeline_run')
+    @api.marshal_with(run, code=200)
     def get(self, run_uuid, step_uuid):
-        """Fetch a step of a given scheduled run given their ids."""
+        """Fetch a pipeline run of an experiment given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if
         #       the step is not executed yet.
         step = models.ScheduledStepStatus.query.get_or_404(
@@ -193,7 +198,63 @@ class ScheduledStepStatus(Resource):
         )
         return step.__dict__
 
-    @api.doc('set_step_status')
+    @api.doc('set_pipeline_run_status')
+    @api.expect(status_update)
+    def put(self, run_uuid, step_uuid):
+        """Set the status of a scheduleld run step."""
+        post_data = request.get_json()
+
+        # TODO: don't we want to do this async? Since otherwise the API
+        #       call might be blocking another since they both execute
+        #       on the database? SQLite can only have one process write
+        #       to the db. If this becomes an issue than we could also
+        #       use an in-memory db (since that is a lot faster than
+        #       disk). Otherwise we might have to use PostgreSQL.
+        # TODO: first check the status and make sure it says PENDING or
+        #       whatever. Because if is empty then this would write it
+        #       and then get overwritten afterwards with "PENDING".
+
+        data = post_data
+        if data['status'] == 'STARTED':
+            data['started_time'] = datetime.fromisoformat(data['started_time'])
+        elif data['status'] in ['SUCCESS', 'FAILURE']:
+            data['ended_time'] = datetime.fromisoformat(data['ended_time'])
+
+        res = models.ScheduledStepStatus.query.filter_by(
+            run_uuid=run_uuid, step_uuid=step_uuid
+        ).update(data)
+
+        if res:
+            db.session.commit()
+
+        return {'message': 'Status was updated successfully'}, 200
+
+
+@api.route(
+    '/<string:experiment_uuid>/<string:run_uuid>/<string:step_uuid>',
+    doc={
+        'description': ('Set and get execution status of individual steps of '
+                        'pipeline runs in an experiment.')
+    }
+)
+@api.param('experiment_uuid', 'UUID of Experiment')
+@api.param('run_uuid', 'UUID of Run')
+@api.param('step_uuid', 'UUID of Step')
+@api.response(404, 'Pipeline step not found')
+class PipelineStepStatus(Resource):
+    @api.doc('get_pipeline_run')
+    @api.marshal_with(run, code=200)
+    def get(self, run_uuid, step_uuid):
+        """Fetch a pipeline run of an experiment given their ids."""
+        # TODO: Returns the status and logs. Of course logs are empty if
+        #       the step is not executed yet.
+        step = models.ScheduledStepStatus.query.get_or_404(
+            ident=(run_uuid, step_uuid),
+            description='Scheduled run and step combination not found'
+        )
+        return step.__dict__
+
+    @api.doc('set_pipeline_run_status')
     @api.expect(status_update)
     def put(self, run_uuid, step_uuid):
         """Set the status of a scheduleld run step."""
