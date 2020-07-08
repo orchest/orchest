@@ -77,3 +77,55 @@ def run_partial(self,
     # TODO: The commented line below is once we can introduce sessions.
     # session = run_partial.session
     return asyncio.run(pipeline.run(self.request.id, run_config=run_config))
+
+
+@celery.task(bind=True)
+def start_non_interactive_pipeline_run(
+    self,
+    experiment_uuid,
+    pipeline_description: PipelineDescription,
+    run_config: Dict[str, Union[str, Dict[str, str]]]
+) -> None:
+    """Starts a non-interactive pipeline run.
+
+    It is a pipeline run that is part of an experiment.
+
+    """
+    # # TODO: the pipeline_dir can be gotten from the `run_config`
+    # # TODO: specify how the pipeline_dir path is given inside the
+    # #       schema.
+    # pipeline_uuid = post_data['pipeline_description']['uuid']
+    # pipeline_dir = os.path.join('/userdir', 'pipelines', pipeline_uuid)
+    # # pipeline_dir: str = run_config['pipeline_dir']
+
+    # # TODO: Now that the copying is done here we need the mount of
+    # #       the userdir, this can be removed once Celery takes care
+    # #       of this.
+    # # Make copy of `pipeline_dir` to `run_dir`.
+    # # /userdir/pipelines/{pipeline_uuid}/
+    # # -> /userdir/scheduled_runs/{pipeline_uuid}/{run_uuid}/
+    # scheduled_runs_dir = os.path.join('/userdir', 'scheduled_runs')
+    # run_base_dir = os.path.join(scheduled_runs_dir, pipeline_uuid)
+    # run_dir = os.path.join(run_base_dir, run_uuid)
+    # os.makedirs(run_base_dir, exist_ok=True)
+    # copytree(pipeline_dir, run_dir)
+
+    # # Update `pipeline_dir` in `run_config`.
+    # run_config = post_data['run_config']
+    # scheduled_run_subpath = os.path.join('scheduled_runs', pipeline_uuid, run_uuid)
+    # run_config['pipeline_dir'] = os.path.join(run_config['host_user_dir'],
+    #                                           scheduled_run_subpath)
+
+    # run_config['run_endpoint'] = 'experiments'
+
+    # Copy the snapshot to its own location.
+    # Use self.request.id
+
+    # Fix the parameters
+
+    # Update the pipeline_dir that is part of the run_config to its new
+    # location.
+
+    # do `run_partial`
+
+    pass

@@ -44,7 +44,7 @@ run_configuration = Model('Run Configuration', {
         enum=['full', 'selection', 'incoming']),
     'pipeline_description': fields.Raw(
         required=True,
-        description='Pipeline definition in JSON'),
+        description='Pipeline description in JSON'),
     'run_config': fields.Raw(  # TODO: must be pipeline_dir and mapping
         required=True,
         description='Configuration for compute backend')
@@ -72,10 +72,31 @@ runs = Model('Runs', {
 })
 
 # namespace_scheduled_runs
-scheduled_run_configuration = run_configuration.inherit('Scheduled Run Configuration', {
-    "scheduled_start": fields.String(
+experiment_configuration = Model('Experiment Configuration', {
+    'experiment_uuid': fields.String(
         required=True,
-        description='Time at which the run is scheduled to start'),
+        description='UUID for experiment'),
+    'pipeline_uuid': fields.String(
+        required=True,
+        description='UUID of pipeline'),
+    'pipeline_descriptions': fields.List(
+        fields.Raw(
+            description='Pipeline description in JSON'
+        ),
+        required=True,
+        description='Collection of pipeline descriptions',
+    ),
+    'run_config': fields.Raw(  # TODO: must be pipeline_dir and mapping
+        required=True,
+        description='Configuration for compute backend'),
+    'scheduled_start': fields.String(
+        required=True,
+        description='Time at which the experiment is scheduled to start'),
+    'run_type': fields.String(  # TODO: for now only "full"
+        required=False,
+        default='full',
+        description='Type of run',
+        enum=['full', 'selection', 'incoming']),
 })
 
 scheduled_run = run.inherit('Scheduled Run', {
@@ -88,13 +109,6 @@ scheduled_runs = Model('Scheduled Runs', {
     'scheduled_runs': fields.List(
         fields.Nested(scheduled_run),
         description='past, present and running scheduled_runs')
-})
-
-# namespace_experiments
-experiment = Model('Experiment', {
-    'id': fields.Integer(
-        required=True,
-        description='UUID for Experiment')
 })
 
 # Models for RESTful API.

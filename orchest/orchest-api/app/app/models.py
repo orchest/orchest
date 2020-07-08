@@ -1,3 +1,4 @@
+from datetime import datetime
 from app.connections import db
 
 
@@ -80,8 +81,15 @@ class StepStatus(BaseModel, db.Model):
         return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'
 
 
-# TODO: Let `ScheduledRun` inherit from `Run`, but make sure the use
-#       seperate bind keys.
+# TODO: We want dynamic binds so that the exact same model can be used
+#       for pipeline runs that are part of an experiment and ones that
+#       are run interactively. Possibly we can use:
+#       https://github.com/pallets/flask-sqlalchemy/issues/107
+#       Additionally, the `scheduled_start` would have to be added to
+#       the `Run` model together with ``default=datetime.utcnow``.
+#       https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#custom-vertical-partitioning
+#       NOTE: binds are specified at a model's declaration time, thus we
+#       need a way to do dynamic binds.
 class ScheduledRun(BaseModel, db.Model):
     __tablename__ = 'scheduled_runs'
     __bind_key__ = 'persistent_db'
