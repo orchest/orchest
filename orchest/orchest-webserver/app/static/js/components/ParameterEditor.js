@@ -62,11 +62,16 @@ class ParameterEditor extends React.Component {
         return <div className='parameter-editor tab-view'>
             <div className="columns">
                 <div className="column">
+                    {(() => {
+                        if(Object.keys(this.state.parameterizedSteps).length == 0){
+                            return <p>This pipeline does't define any parameters on its steps.</p>;
+                        }
+                    })()}
                     {treeView}
                 </div>
                 <div className="column">
                     {(() => {
-                        if(this.state.activeParameter !== undefined){
+                        if(this.state.activeParameter !== undefined && this.props.readOnly !== true){
                             return <Fragment>
                                 <CodeMirror 
                                     value={
@@ -102,6 +107,17 @@ class ParameterEditor extends React.Component {
                                     }
                                 })()}
                             </Fragment>
+                        }else if(this.state.activeParameter !== undefined && this.props.readOnly === true){
+                            return <CodeMirror 
+                                value={
+                                    this.state.parameterizedSteps[this.state.activeParameter.uuid].parameters[this.state.activeParameter.key]
+                                }
+                                options={{
+                                    mode: 'application/json',
+                                    theme: 'default',
+                                    lineNumbers: true
+                                }}
+                            />
                         }
                     })()}
                 </div>

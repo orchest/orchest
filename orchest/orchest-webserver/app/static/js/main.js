@@ -1,21 +1,22 @@
-import {MDCTopAppBar} from "@material/top-app-bar";
-import {MDCDrawer} from "@material/drawer";
+import { MDCTopAppBar } from "@material/top-app-bar";
+import { MDCDrawer } from "@material/drawer";
 
 import PipelinesView from "./views/PipelinesView";
 import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
 import DataSourceEditView from "./views/DataSourceEditView";
 import ExperimentsView from "./views/ExperimentsView";
+import CreateExperimentView from "./views/CreateExperimentView";
 import HeaderButtons from "./views/HeaderButtons";
 import React from 'react';
 import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import Jupyter from "./jupyter/Jupyter";
-import {makeRequest} from "./utils/all";
+import { makeRequest } from "./utils/all";
 
 import './lib/overflowing';
 import ExperimentView from "./views/ExperimentView";
- 
+
 function Orchest() {
 
     this.reactRoot = document.querySelector(".react-view-root");
@@ -28,6 +29,7 @@ function Orchest() {
         "SettingsView": SettingsView,
         "ExperimentsView": ExperimentsView,
         "ExperimentView": ExperimentView,
+        "CreateExperimentView": CreateExperimentView,
     };
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
@@ -37,7 +39,7 @@ function Orchest() {
     this.headerBarComponent = ReactDOM.render(<HeaderButtons />, this.headerBar);
 
     drawer.list.singleSelection = true;
-    
+
     drawer.listen("MDCList:action", (e) => {
         let selectedIndex = e.detail.index;
 
@@ -48,11 +50,11 @@ function Orchest() {
         this.loadView(this.Components[viewName]);
     });
 
-    this.loadView = function(TagName, dynamicProps){
+    this.loadView = function (TagName, dynamicProps) {
         // make sure reactRoot is not hidden
         $(this.reactRoot).removeClass("hidden");
 
-        if(this.jupyter){
+        if (this.jupyter) {
             this.jupyter.hide();
         }
 
@@ -60,33 +62,18 @@ function Orchest() {
     };
 
 
-    this.initializeFirstView = function(){
+    this.initializeFirstView = function () {
         // load first pipeline
         makeRequest("GET", "/async/pipelines", {
         }).then((response) => {
             let result = JSON.parse(response);
-            if(result.success && result.result.length > 0){
+            if (result.success && result.result.length > 0) {
                 let firstPipeline = result.result[0];
                 // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
                 // this.loadView(DataSourcesView);
-                // this.loadView(PipelinesView);
+                this.loadView(ExperimentsView);
 
-                makeRequest("GET", "/async/pipelines/json/get/" + firstPipeline.uuid, {
-                }).then((response) => {
-        
-                    let result = JSON.parse(response);
-                    if (result.success) {
-
-                        this.loadView(ExperimentView, {"pipeline": JSON.parse(result['pipeline_json']), "experiment": {"name": "My First Experiment TM"} });
-        
-                    } else {
-                        console.warn("Could not load pipeline.json");
-                        console.log(result);
-                    }
-                });
-
-                
-            }else{
+            } else {
                 console.warn("Could not load a first pipeline");
                 console.log(result);
             }
@@ -100,17 +87,17 @@ function Orchest() {
     topAppBar.setScrollTarget(document.getElementById('main-content'));
     topAppBar.listen('MDCTopAppBar:nav', () => {
 
-      window.localStorage.setItem("topAppBar.open", "" + !drawer.open);
+        window.localStorage.setItem("topAppBar.open", "" + !drawer.open);
 
-      drawer.open = !drawer.open;
+        drawer.open = !drawer.open;
     });
 
 
     // persist nav menu to localStorage
-    if(window.localStorage.getItem("topAppBar.open") !== null){
-        if(window.localStorage.getItem("topAppBar.open") === "true"){
+    if (window.localStorage.getItem("topAppBar.open") !== null) {
+        if (window.localStorage.getItem("topAppBar.open") === "true") {
             drawer.open = true;
-        }else{
+        } else {
             drawer.open = false;
         }
     }
@@ -120,7 +107,7 @@ function Orchest() {
 
     this.jupyter = new Jupyter($(".persistent-view.jupyter"));
 
-    this.showJupyter = function(){
+    this.showJupyter = function () {
         this.jupyter.show();
 
         // hide reactDOM

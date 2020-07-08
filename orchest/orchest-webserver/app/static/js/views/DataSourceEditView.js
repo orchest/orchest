@@ -326,7 +326,7 @@ class DataSourceEditView extends React.Component {
 
                 {dynamicFormElements}
 
-                <MDCButtonReact onClick={this.saveDataSource.bind(this)} label="Save" icon="save" />
+                <MDCButtonReact classNames={['mdc-button--raised']} onClick={this.saveDataSource.bind(this)} label="Save" icon="save" />
             </form>
             
         </div>;

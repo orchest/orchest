@@ -1,15 +1,18 @@
+@use "@material/data-table/mdc-data-table";
+
+
 @import "vars";
 
-@import "../node_modules/material-components-web/material-components-web";
+@import "material-components-web/material-components-web";
 
 @import '@material/react-text-field/index.scss';
 @import '@material/react-radio/index.scss';
-
-
-@import '../node_modules/codemirror/lib/codemirror.css';
+@import '@material/react-button/index.scss';
+@import 'codemirror/lib/codemirror';
 
 @import "scrollbar";
 @import "ansi";
+
 
 $generalPadding: 20px;
 $borderColor: rgba(0, 0, 0, 0.15);
@@ -57,6 +60,14 @@ h1, h2, h3 {
   --mdc-theme-primary: #{$mdc-theme-secondary};
 }
 
+.mdc-data-table {
+  &.row-clickable {
+    tr {
+      cursor: pointer;
+    }
+  }
+}
+
 .view-page {
   padding: $generalPadding;
   overflow-y: auto;
@@ -75,6 +86,8 @@ h1, h2, h3 {
       width: 100%;
 
     }
+
+    
 
     .experiment-actions {
       margin: $generalPadding 0;
@@ -288,8 +301,42 @@ h2.header {
 
 .experiment-view {
 
+  display: flex;
+  flex-direction: column;
+
+  .pipeline-tab-view {
+    .search {
+      margin-bottom: $generalPadding;
+    }
+  }
+
+  button.mdc-button--raised {
+    background-color: $mdc-theme-secondary;
+  }
+
+  .buttons {
+    background: #fff;
+
+    button {
+      margin-right: $generalPadding;
+
+      &:last-of-type {
+        margin-right: 0;
+      }
+    }
+  }
+
+  .existing-pipeline-runs {
+    &.mdc-data-table {
+      $sizes: 5%, 10%, 65%, 20%;
+      @include mdc-data-table-column-widths($sizes);
+    }
+  }
+
   .tab-view {
     padding: $generalPadding 0;
+    flex: 1;
+    overflow: auto;
   }
 
   .top-labels {

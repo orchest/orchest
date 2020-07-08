@@ -1,45 +1,19 @@
 import React from 'react';
 import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
+import MDCDataTableReact from '../mdc-components/MDCDataTableReact';
+import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import ParameterEditor from '../components/ParameterEditor';
-import DateTimeInput from '../components/DateTimeInput';
-import PipelineRunsList from '../components/PipelineRunsList';
-import Radio, { NativeRadioControl } from '@material/react-radio';
-
 
 class ExperimentView extends React.Component {
 
     constructor(props) {
         super(props);
 
-        let parameterizedSteps = {};
-
-        for (const stepUUID in this.props.pipeline.steps) {
-            let parameterizedStep = JSON.parse(
-                JSON.stringify(this.props.pipeline.steps[stepUUID])
-            );
-
-            if (parameterizedStep.parameters && Object.keys(parameterizedStep.parameters).length > 0) {
-                for (const paramKey in parameterizedStep.parameters) {
-
-                    // Note: the list of parameters for each key will always be
-                    // a string in the 'parameterizedSteps' data structure. This
-                    // facilitates preserving user added indendation.
-
-                    // Validity of the user string as JSON is checked client
-                    // side (for now).
-                    parameterizedStep.parameters[paramKey] =
-                        JSON.stringify([parameterizedStep.parameters[paramKey]]);
-                }
-
-                parameterizedSteps[stepUUID] = parameterizedStep;
-            }
-        }
-
         this.state = {
             'selectedTabIndex': 0,
-            'parameterizedSteps': parameterizedSteps,
-            'generatedPipelineRuns': [],
-            'scheduleOption': 'now'
+            'parameterizedSteps': this.props.parameterizedSteps,
+            'selectedIndices': [0, 0],
+            'pipelineRuns': [[1, "lr: 0.01", "Completed"], [2, "lr: 0.02", "Running"]]
         }
 
     }
@@ -51,73 +25,12 @@ class ExperimentView extends React.Component {
     }
 
     componentDidMount(){
-        this.onParameterChange();
+
     }
 
-    onParameterChange(){
-
-        // flatten and JSONify parameterizedSteps to prep data structure for algo
-        let flatParameters = {};
-        
-        for(const stepUUID in this.state.parameterizedSteps){
-            for(const paramKey in this.state.parameterizedSteps[stepUUID].parameters){
-                let fullParam = stepUUID + "#" +  paramKey;
-
-                flatParameters[fullParam] = JSON.parse(
-                    this.state.parameterizedSteps[stepUUID].parameters[paramKey]
-                );
-            }
-        }
-
-        let recursivelyGenerate = function(params, accum, unpacked){
-
-            // deep clone unpacked
-            unpacked = JSON.parse(JSON.stringify(unpacked));
-
-            for(const fullParam in params){
-                if(unpacked.indexOf(fullParam) === -1){
-
-                    unpacked.push(fullParam);
-
-                    for(const idx in params[fullParam]){
-
-                        // deep clone params
-                        let localParams = JSON.parse(JSON.stringify(params));
-
-                        // collapse param list to paramValue
-                        localParams[fullParam] = params[fullParam][idx];
-
-                        recursivelyGenerate(localParams, accum, unpacked)
-                    }
-                    return
-                }
-            }
-
-            accum.push(params);
-        }
-
-        let pipelineRuns = [];
-
-        recursivelyGenerate(flatParameters, pipelineRuns, []);
-
-        // transform pipelineRuns for generatedPipelineRuns DataTable format
-        let generatedPipelineRuns = [];
-
-        for(let idx in pipelineRuns){
-            let params = pipelineRuns[idx];
-
-            let pipelineRunRow = [];
-
-            for(let fullParam in params){
-                let paramName = fullParam.split("#").slice(1).join("");
-                pipelineRunRow.push(paramName + ": " + params[fullParam])
-            }
-
-            generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
-        }
-
+    onPipelineRunsSelectionChanged(selectedIndices){
         this.setState({
-            generatedPipelineRuns: generatedPipelineRuns
+            selectedIndices: selectedIndices
         })
     }
 
@@ -127,41 +40,15 @@ class ExperimentView extends React.Component {
 
         switch (this.state.selectedTabIndex) {
             case 0:
-                tabView = <ParameterEditor onParameterChange={this.onParameterChange.bind(this)} parameterizedSteps={this.state.parameterizedSteps} />
+                tabView = <div className="pipeline-tab-view">
+                    <MDCTextFieldReact classNames={['search mdc-text-field--outlined fullwidth']} notched={true} label="Search" />
+                    
+                    <MDCDataTableReact classNames={['fullwidth existing-pipeline-runs']} headers={['ID', 'Parameters', 'Status']} rows={this.state.pipelineRuns} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
+                </div>
+                
                 break;
             case 1:
-                tabView = <div className='tab-view'>
-                    <div>
-                        <Radio label='Now' key='now'>
-                            <NativeRadioControl
-                                name='time'
-                                id="now"
-                                value='now'
-                                checked={this.state.scheduleOption === "now"}
-                                onChange={(e) => {
-                                    this.setState({ scheduleOption: e.target.value })}}
-                            />
-                        </Radio>
-                    </div>
-                    <div>
-                        <Radio label='Scheduled' key='scheduled'>
-                            <NativeRadioControl
-                                name='time'
-                                id="scheduled"
-                                value='scheduled'
-                                checked={this.state.scheduleOption === "scheduled"}
-                                onChange={(e) => {
-                                    this.setState({ scheduleOption: e.target.value })}}
-                            />
-                        </Radio>
-
-                        <DateTimeInput onFocus={() => this.setState({ scheduleOption: 'scheduled' })}></DateTimeInput>
-
-                    </div>
-                </div>
-                break;
-            case 2:
-                tabView = <PipelineRunsList pipelineRuns={this.state.generatedPipelineRuns}></PipelineRunsList>
+                tabView = <ParameterEditor readOnly parameterizedSteps={this.state.parameterizedSteps} />
                 break;
         }
 
@@ -181,14 +68,12 @@ class ExperimentView extends React.Component {
                 selectedIndex={this.state.selectedTabIndex}
                 ref={"tabBar"}
                 items={[
+                    'Pipeline runs ('+ this.state.pipelineRuns.length + ")",
                     'Parameters',
-                    'Scheduling',
-                    'Pipeline runs (' + this.state.generatedPipelineRuns.length + ")",
                 ]}
                 icons={[
-                    'tune',
-                    'schedule',
                     'list',
+                    'tune',
                 ]}
                 onChange={this.onSelectSubview.bind(this)}
             />
