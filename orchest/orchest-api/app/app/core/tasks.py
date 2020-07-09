@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from shutil import copytree
 from typing import Dict, Union
@@ -93,41 +94,38 @@ def start_non_interactive_pipeline_run(
     It is a pipeline run that is part of an experiment.
 
     """
-    # # TODO: the pipeline_dir can be gotten from the `run_config`
-    # # TODO: specify how the pipeline_dir path is given inside the
-    # #       schema.
-    # pipeline_uuid = post_data['pipeline_description']['uuid']
-    # pipeline_dir = os.path.join('/userdir', 'pipelines', pipeline_uuid)
-    # # pipeline_dir: str = run_config['pipeline_dir']
+    pipeline_uuid = pipeline_description['uuid']
+    experiment_base_dir = os.path.join('/userdir', 'experiments',
+                                       pipeline_uuid, experiment_uuid)
+    snapshot_dir = os.path.join(experiment_base_dir, 'snapshot')
+    run_dir = os.path.join(experiment_base_dir, self.request.id)
 
-    # # TODO: Now that the copying is done here we need the mount of
-    # #       the userdir, this can be removed once Celery takes care
-    # #       of this.
-    # # Make copy of `pipeline_dir` to `run_dir`.
-    # # /userdir/pipelines/{pipeline_uuid}/
-    # # -> /userdir/scheduled_runs/{pipeline_uuid}/{run_uuid}/
-    # scheduled_runs_dir = os.path.join('/userdir', 'scheduled_runs')
-    # run_base_dir = os.path.join(scheduled_runs_dir, pipeline_uuid)
-    # run_dir = os.path.join(run_base_dir, run_uuid)
-    # os.makedirs(run_base_dir, exist_ok=True)
-    # copytree(pipeline_dir, run_dir)
+    # Copy the contents of `snapshot_dir` to the new (not yet existing
+    # folder) `run_dir` (that will then be created by `copytree`).
+    copytree(snapshot_dir, run_dir)
 
     # # Update `pipeline_dir` in `run_config`.
     # run_config = post_data['run_config']
     # scheduled_run_subpath = os.path.join('scheduled_runs', pipeline_uuid, run_uuid)
     # run_config['pipeline_dir'] = os.path.join(run_config['host_user_dir'],
     #                                           scheduled_run_subpath)
+    # TODO: check how the `pipeline_dir` is passed everywhere. This is
+    #       very confusing right now and we should decide exactly how.
+    # NOTE: the `pipeline_dir` inside the `run_config` has to be the abs
+    # path w.r.t. the host because it is used by the `docker.sock` when
+    # mounting the dir to the container of a step.
+    host_base_user_dir = os.path.split(run_config['host_user_dir'])[0]
+    run_config['pipeline_dir'] = os.path.join(host_base_user_dir, run_dir)
+    run_config['run_endpoint'] = 'experiments'
 
-    # run_config['run_endpoint'] = 'experiments'
+    # Overwrite the `pipeline.json` from the snapshot with the new
+    # `pipeline.json` that contains the new parameters for every step.
+    pipeline_json = os.path.join(run_dir, 'pipeline.json')
+    with open(pipeline_json, 'w') as f:
+        json.dump(pipeline_description, f)
 
-    # Copy the snapshot to its own location.
-    # Use self.request.id
-
-    # Fix the parameters
-
-    # Update the pipeline_dir that is part of the run_config to its new
-    # location.
-
-    # do `run_partial`
-
-    pass
+    # TODO: `run_partial` does not yet support the `experiment_uuid`,
+    #       but we need it to correctly update the status of the steps.
+    #       Maybe we can incorporate it in the `run_endpoint` of
+    #       `run_config` by doing ``f'experiments/{experiment_uuid}'``.
+    return run_partial(pipeline_description, run_config)
