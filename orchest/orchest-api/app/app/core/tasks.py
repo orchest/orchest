@@ -105,6 +105,7 @@ def start_non_interactive_pipeline_run(
 
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir` (that will then be created by `copytree`).
+    # TODO: It should not copy all directories, e.g. not "data".
     copytree(snapshot_dir, run_dir)
 
     # # Update `pipeline_dir` in `run_config`.
@@ -117,6 +118,8 @@ def start_non_interactive_pipeline_run(
     # NOTE: the `pipeline_dir` inside the `run_config` has to be the abs
     # path w.r.t. the host because it is used by the `docker.sock` when
     # mounting the dir to the container of a step.
+    # TODO: this `host_user_dir` is obviously temporary.
+    run_config['host_user_dir'] = '/home/yannick/Documents/Orchest/orchest/orchest/userdir'
     host_base_user_dir = os.path.split(run_config['host_user_dir'])[0]
     run_config['pipeline_dir'] = os.path.join(host_base_user_dir, run_dir)
     run_config['run_endpoint'] = 'experiments'

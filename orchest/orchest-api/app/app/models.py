@@ -161,10 +161,10 @@ class Experiment(BaseModel, db.Model):
         db.String(36),
         primary_key=True
     )
-    # pipeline_uuid = db.Column(
-    #     db.String(36),
-    #     primary_key=True
-    # )
+    pipeline_uuid = db.Column(
+        db.String(36),
+        primary_key=False
+    )
     status = db.Column(
         db.String(15),
         unique=False,
@@ -179,6 +179,10 @@ class Experiment(BaseModel, db.Model):
         db.DateTime,
         unique=False,
         nullable=True
+    )
+    scheduled_start = db.Column(
+        db.DateTime,
+        nullable=False
     )
     pipeline_runs = db.relationship('NonInteractiveRun', lazy='joined')
 

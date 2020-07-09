@@ -65,13 +65,13 @@ class ExperimentList(Resource):
         #       do not have to parse it here.
         #       https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.fields.DateTime
         scheduled_start = post_data['scheduled_start']
-        scheduled_start = scheduled_start.replace('Z', '+00:00')
+        # scheduled_start = scheduled_start.replace('Z', '+00:00')
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
         pipeline_runs = []
         for pipeline_description in post_data['pipeline_descriptions']:
-            pipeline = construct_pipeline(pipeline_description=pipeline_description,
-                                          **post_data['pipeline_run_spec'])
+            post_data['pipeline_run_spec']['pipeline_description'] = pipeline_description
+            pipeline = construct_pipeline(**post_data['pipeline_run_spec'])
 
             # Create Celery object with the Flask context and construct the
             # kwargs for the job.
@@ -86,7 +86,7 @@ class ExperimentList(Resource):
             # imports we send the task by name instead of importing the
             # function directly.
             res = celery.send_task(
-                'app.core.runners.start_non_interactive_pipeline_run',
+                'app.core.tasks.start_non_interactive_pipeline_run',
                 eta=scheduled_start,
                 kwargs=celery_job_kwargs
             )
@@ -94,7 +94,7 @@ class ExperimentList(Resource):
             non_interactive_run = {
                 'experiment_uuid': post_data['experiment_uuid'],
                 'run_uuid': res.id,
-                'pipeline_uuid': pipeline.properties['uuid'],
+                # 'pipeline_uuid': pipeline.properties['uuid'],
                 'status': 'PENDING',
                 'scheduled_start': scheduled_start,
             }
@@ -123,9 +123,12 @@ class ExperimentList(Resource):
         experiment = {
             'experiment_uuid': post_data['experiment_uuid'],
             'pipeline_uuid': post_data['pipeline_uuid'],
-            'pipeline_runs': pipeline_runs,
             'scheduled_start': scheduled_start,
         }
+        db.session.add(models.Experiment(**experiment))
+        db.session.commit()
+
+        experiment['pipeline_runs'] = pipeline_runs
         return experiment, 201
 
 
