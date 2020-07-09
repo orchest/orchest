@@ -47,18 +47,18 @@ DURABLE_QUEUES_DIR = ".durable_queues"
 
 CONTAINER_MAPPING = {
     "orchestsoftware/orchest-api:latest": {
+        "environment": {},
+        "command": None,
         "name": "orchest-api",
         "mounts": [
             {
-                "source": "/var/run/docker.sock",
-                "target": "/var/run/docker.sock"
-            },
-            {
-                # NOTE: The API container needs to copy pipeline directories into
-                # 'userdir/scheduled_runs{pipeline_uuid}/{run_uuid}'
-                # to make read-only pipeline copies.
+                # Needed for persistent db.
                 "source": HOST_USER_DIR,
                 "target": "/userdir"
+            },
+            {
+                "source": "/var/run/docker.sock",
+                "target": "/var/run/docker.sock"
             },
         ],
 
@@ -95,6 +95,12 @@ CONTAINER_MAPPING = {
             {
                 "source": "/var/run/docker.sock",
                 "target": "/var/run/docker.sock"
+            },
+            {
+                # Mount in needed for copying the snapshot dir to
+                # pipeline run dirs for experiments.
+                "source": HOST_USER_DIR,
+                "target": "/userdir"
             },
         ]
     },
@@ -201,10 +207,13 @@ def start():
                 if 'hostname' in container_spec:
                     hostname = container_spec['hostname']
 
+                command = container_spec.get('command')
+
                 logging.info("Starting image %s" % container_image)
 
                 client.containers.run(
                     image=container_image,
+                    command=command,
                     name=container_spec['name'],
                     detach=True,
                     mounts=mounts,
@@ -352,11 +361,36 @@ def log_server_url():
 
 def dev_mount_inject():
 
-    CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]['mounts'] += [
+    # CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]['mounts'] += [
+    #     {
+    #         "source": os.path.join(os.environ.get("HOST_PWD"), "orchest", "orchest-webserver", "app"),
+    #         "target": "/app"
+    #     }
+    # ]
+
+    # orchest-api
+    orchest_api_spec = CONTAINER_MAPPING["orchestsoftware/orchest-api:latest"]
+    orchest_api_spec['mounts'] += [
         {
-            "source": os.path.join(os.environ.get("HOST_PWD"), "orchest", "orchest-webserver", "app"),
-            "target": "/app"
+            "source": os.path.join(
+                os.environ.get("HOST_PWD"),
+                "orchest",
+                "orchest-api",
+                "app",
+                "app"),
+            "target": "/app/app"
         }
+    ]
+    orchest_api_spec['ports'] = {
+        "80/tcp": 8080
+    }
+    orchest_api_spec['environment']["FLASK_APP"] = "main.py"
+    orchest_api_spec['environment']["FLASK_ENV"] = "development"
+    orchest_api_spec['command'] = [
+       "flask",
+       "run",
+       "--host=0.0.0.0",
+       "--port=80"
     ]
 
 
