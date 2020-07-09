@@ -48,8 +48,10 @@ class ExperimentList(Resource):
         completed.
 
         """
+        # TODO: the nested pipeline_runs should be shown.
         experiments = models.Experiment.query.all()
-        return {'experiments': [exp.as_dict() for exp in experiments]}, 200
+        # return {'experiments': [exp.as_dict() for exp in experiments]}, 200
+        return {'experiments': [exp.__dict__ for exp in experiments]}, 200
 
     @api.doc('start_experiment')
     @api.expect(experiment_spec)
@@ -205,19 +207,19 @@ class Experiment(Resource):
 class PipelineRun(Resource):
     @api.doc('get_pipeline_run')
     @api.marshal_with(pipeline_run, code=200)
-    def get(self, run_uuid, step_uuid):
+    def get(self, experiment_uuid, run_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if
         #       the step is not executed yet.
-        step = models.ScheduledStepStatus.query.get_or_404(
-            ident=(run_uuid, step_uuid),
+        step = models.NonInteractiveRun.query.get_or_404(
+            ident=(experiment_uuid, run_uuid),
             description='Scheduled run and step combination not found'
         )
         return step.__dict__
 
     @api.doc('set_pipeline_run_status')
     @api.expect(status_update)
-    def put(self, run_uuid, step_uuid):
+    def put(self, experiment_uuid, run_uuid):
         """Set the status of a scheduleld run step."""
         post_data = request.get_json()
 
@@ -237,8 +239,8 @@ class PipelineRun(Resource):
         elif data['status'] in ['SUCCESS', 'FAILURE']:
             data['ended_time'] = datetime.fromisoformat(data['ended_time'])
 
-        res = models.ScheduledStepStatus.query.filter_by(
-            run_uuid=run_uuid, step_uuid=step_uuid
+        res = models.NonInteractiveRun.query.filter_by(
+            experiment_uuid=experiment_uuid, run_uuid=run_uuid
         ).update(data)
 
         if res:
@@ -261,19 +263,19 @@ class PipelineRun(Resource):
 class PipelineStepStatus(Resource):
     @api.doc('get_pipeline_run')
     @api.marshal_with(pipeline_run, code=200)
-    def get(self, run_uuid, step_uuid):
+    def get(self, experiment_uuid, run_uuid, step_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if
         #       the step is not executed yet.
-        step = models.ScheduledStepStatus.query.get_or_404(
-            ident=(run_uuid, step_uuid),
+        step = models.NonInteractiveRunStep.query.get_or_404(
+            ident=(experiment_uuid, run_uuid, step_uuid),
             description='Scheduled run and step combination not found'
         )
         return step.__dict__
 
     @api.doc('set_pipeline_run_status')
     @api.expect(status_update)
-    def put(self, run_uuid, step_uuid):
+    def put(self, experiment_uuid, run_uuid, step_uuid):
         """Set the status of a scheduleld run step."""
         post_data = request.get_json()
 
@@ -293,8 +295,10 @@ class PipelineStepStatus(Resource):
         elif data['status'] in ['SUCCESS', 'FAILURE']:
             data['ended_time'] = datetime.fromisoformat(data['ended_time'])
 
-        res = models.ScheduledStepStatus.query.filter_by(
-            run_uuid=run_uuid, step_uuid=step_uuid
+        res = models.NonInteractiveRunStep.query.filter_by(
+            experiment_uuid=experiment_uuid,
+            run_uuid=run_uuid,
+            step_uuid=step_uuid,
         ).update(data)
 
         if res:

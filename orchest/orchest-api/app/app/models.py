@@ -165,21 +165,21 @@ class Experiment(BaseModel, db.Model):
         db.String(36),
         primary_key=False
     )
-    status = db.Column(
-        db.String(15),
-        unique=False,
-        nullable=True
-    )
-    started_time = db.Column(
-        db.DateTime,
-        unique=False,
-        nullable=True
-    )
-    ended_time = db.Column(
-        db.DateTime,
-        unique=False,
-        nullable=True
-    )
+    # status = db.Column(
+    #     db.String(15),
+    #     unique=False,
+    #     nullable=True
+    # )
+    # started_time = db.Column(
+    #     db.DateTime,
+    #     unique=False,
+    #     nullable=True
+    # )
+    # ended_time = db.Column(
+    #     db.DateTime,
+    #     unique=False,
+    #     nullable=True
+    # )
     scheduled_start = db.Column(
         db.DateTime,
         nullable=False
