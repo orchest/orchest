@@ -10,6 +10,7 @@ from app.core.pipelines import construct_pipeline
 import app.models as models
 from app.schema import (
     pipeline_run,
+    pipeline_run_config,
     pipeline_run_spec,
     pipeline_runs,
     pipeline_step,
@@ -20,6 +21,7 @@ from app.schema import (
 api = Namespace('runs', description='Managing (partial) runs')
 
 api.models[pipeline_run.name] = pipeline_run
+api.models[pipeline_run_config.name] = pipeline_run_config
 api.models[pipeline_run_spec.name] = pipeline_run_spec
 api.models[pipeline_runs.name] = pipeline_runs
 api.models[pipeline_step.name] = pipeline_step

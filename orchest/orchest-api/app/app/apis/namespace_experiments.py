@@ -9,6 +9,8 @@ from app.connections import db
 from app.core.pipelines import construct_pipeline
 from app.schema import (
     pipeline_run,
+    pipeline_run_config,
+    pipeline_run_spec,
     experiment_spec,
     experiment,
     experiments,
@@ -20,7 +22,14 @@ import app.models as models
 
 api = Namespace('experiments', description='Managing experiments')
 
+# NOTE: even though some models are not directly, they are `Nested`
+# inside others and therefore have to be defined here. E.g.
+# `experiment_spec` uses `pipeline_run_spec` which uses
+# `pipeline_run_config` (both of which are not directly used in this
+# namespace).
 api.models[pipeline_run.name] = pipeline_run
+api.models[pipeline_run_config.name] = pipeline_run_config
+api.models[pipeline_run_spec.name] = pipeline_run_spec
 api.models[experiment.name] = experiment
 api.models[experiment_spec.name] = experiment_spec
 api.models[experiments.name] = experiments

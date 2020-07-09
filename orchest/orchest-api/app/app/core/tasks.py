@@ -57,6 +57,9 @@ class APITask(Task):
         return self._session
 
 
+# TODO: rename this function maybe? `start_pipeline_run` since it no
+#       longer constructs the partial, the construct is already done
+#       in the API.
 # @celery.task(bind=True, base=APITask)
 @celery.task(bind=True)
 def run_partial(self,
@@ -128,4 +131,6 @@ def start_non_interactive_pipeline_run(
     #       but we need it to correctly update the status of the steps.
     #       Maybe we can incorporate it in the `run_endpoint` of
     #       `run_config` by doing ``f'experiments/{experiment_uuid}'``.
+    # TODO: Have to make sure that somewhere a memory-server is started
+    #       so that the pipeline run gets its own memory store.
     return run_partial(pipeline_description, run_config)
