@@ -4,7 +4,7 @@ from flask_restplus import Model, fields
 # TODO: make logic ordering and rename models to be in line with our new
 #       namings, e.g. pipeline runs instead of runs, session instead of
 #       launch.
-step_status = Model('Pipeline Step', {
+pipeline_step = Model('Pipeline Step', {
     'run_uuid': fields.String(
         required=True,
         description='UUID for run'),
@@ -26,53 +26,69 @@ step_status = Model('Pipeline Step', {
 status_update = Model('Status Update', {
     'status': fields.String(
         required=True,
-        description='New status of the step',
+        description='New status of executable, e.g. pipeline',
         enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
 })
 
-# TODO: The fields.Raw have to be replaced later. But since we are still
-#       actively chaning this. It is a waste of time to do it now.
 # namespace_runs
-run_configuration = Model('Run Configuration', {
+pipeline_run_config = Model('Pipeline Run Configuration', {
+    'pipeline_dir': fields.String(
+        required=True,
+        description='Path to pipeline files'),
+    'runnable_image_mapping': fields.Raw(
+        required=True,
+        description='Mapping from used image to runnable image'),
+})
+
+pipeline_run_spec = Model('Pipeline Run Specification', {
     'uuids': fields.List(
         fields.String(),
         required=False,
         description='UUIDs of pipeline steps'),
     'run_type': fields.String(
-        required=True,
+        required=False,
+        default='full',  # TODO: check whether default is used if required=False
         description='Type of run',
         enum=['full', 'selection', 'incoming']),
     'pipeline_description': fields.Raw(
-        required=True,
+        required=False,  # TODO: it is actually required here but not in the nested experiment_config
         description='Pipeline description in JSON'),
-    'run_config': fields.Raw(  # TODO: must be pipeline_dir and mapping
+    'run_config': fields.Nested(
+        model=pipeline_run_config,
         required=True,
-        description='Configuration for compute backend')
+        description='Configuration for compute backend'),
+    'scheduled_start': fields.String(  # TODO: make DateTime
+        required=False,
+        # default=datetime.utcnow().isoformat(),
+        description='Time at which the run is scheduled to start'),
 })
 
-run = Model('Run', {
+pipeline_run = Model('Run', {
     'run_uuid': fields.String(
         required=True,
-        description='UUID for run'),
+        description='UUID of run'),
     'pipeline_uuid': fields.String(
         required=True,
-        description='UUID of a pipeline step'),
+        description='UUID of pipeline'),
     'status': fields.String(
         required=True,
         description='Status of the run'),
-    'step_statuses': fields.List(
-        fields.Nested(step_status),
-        description='Status of each pipeline step')
+    'step_statuses': fields.List(  # TODO: rename
+        fields.Nested(pipeline_step),
+        description='Status of each pipeline step'),
+    'scheduled_start': fields.String(  # TODO: make DateTime
+        required=True,
+        description='Time at which the run is scheduled to start'),
 })
 
-runs = Model('Runs', {
+pipeline_runs = Model('Runs', {
     'runs': fields.List(
-        fields.Nested(run),
+        fields.Nested(pipeline_run),
         description='Ran and running tasks')
 })
 
 # namespace_scheduled_runs
-experiment_configuration = Model('Experiment Configuration', {
+experiment_spec = Model('Experiment Configuration', {
     'experiment_uuid': fields.String(
         required=True,
         description='UUID for experiment'),
@@ -86,23 +102,13 @@ experiment_configuration = Model('Experiment Configuration', {
         required=True,
         description='Collection of pipeline descriptions',
     ),
-    'run_config': fields.Raw(  # TODO: must be pipeline_dir and mapping
+    'pipeline_run_spec': fields.Nested(
+        model=pipeline_run_spec,
         required=True,
-        description='Configuration for compute backend'),
+        description='Specification of the pipeline runs, e.g. "full", "incoming" etc'),
     'scheduled_start': fields.String(
         required=True,
         description='Time at which the experiment is scheduled to start'),
-    'run_type': fields.String(  # TODO: for now only "full"
-        required=False,
-        default='full',
-        description='Type of run',
-        enum=['full', 'selection', 'incoming']),
-})
-
-scheduled_run = run.inherit('Scheduled Run', {
-    'scheduled_start': fields.String(
-        required=True,
-        description='Time at which the run is scheduled to start'),
 })
 
 experiment = Model('Experiment', {
@@ -113,8 +119,11 @@ experiment = Model('Experiment', {
         required=True,
         description='UUID of pipeline'),
     'pipeline_runs': fields.List(
-        fields.Nested(scheduled_run),
-        description='Collection of pipeline runs part of the experiment')
+        fields.Nested(pipeline_run),
+        description='Collection of pipeline runs part of the experiment'),
+    'scheduled_start': fields.String(
+        required=True,
+        description='Time at which the experiment is scheduled to start'),
 })
 
 experiments = Model('Experiments', {

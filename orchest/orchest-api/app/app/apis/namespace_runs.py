@@ -7,23 +7,29 @@ from flask_restplus import Namespace, Resource
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.schema import step_status, status_update, run_configuration, run, runs
 import app.models as models
+from app.schema import (
+    pipeline_run,
+    pipeline_run_spec,
+    pipeline_runs,
+    pipeline_step,
+    status_update,
+)
 
 
 api = Namespace('runs', description='Managing (partial) runs')
 
-api.models[run.name] = run
-api.models[runs.name] = runs
-api.models[step_status.name] = step_status
+api.models[pipeline_run.name] = pipeline_run
+api.models[pipeline_run_spec.name] = pipeline_run_spec
+api.models[pipeline_runs.name] = pipeline_runs
+api.models[pipeline_step.name] = pipeline_step
 api.models[status_update.name] = status_update
-api.models[run_configuration.name] = run_configuration
 
 
 @api.route('/')
 class RunList(Resource):
     @api.doc('get_runs')
-    @api.marshal_with(runs)
+    @api.marshal_with(pipeline_runs)
     def get(self):
         """Fetch all runs.
 
@@ -33,8 +39,8 @@ class RunList(Resource):
         return {'runs': [run.as_dict() for run in runs]}, 200
 
     @api.doc('start_run')
-    @api.expect(run_configuration)
-    @api.marshal_with(run, code=201, description='Run started')
+    @api.expect(pipeline_run_spec)
+    @api.marshal_with(pipeline_run, code=201, description='Run started')
     def post(self):
         """Start a new run."""
         post_data = request.get_json()
@@ -98,7 +104,7 @@ class RunList(Resource):
 @api.response(404, 'Run not found')
 class Run(Resource):
     @api.doc('get_run')
-    @api.marshal_with(run, code=200)
+    @api.marshal_with(pipeline_run, code=200)
     def get(self, run_uuid):
         """Fetch a run given its UUID."""
         run = models.Run.query.get_or_404(run_uuid, description='Run not found')
@@ -145,7 +151,7 @@ class Run(Resource):
 @api.response(404, 'Pipeline step not found')
 class StepStatus(Resource):
     @api.doc('get_step_status')
-    @api.marshal_with(step_status, code=200)
+    @api.marshal_with(pipeline_step, code=200)
     def get(self, run_uuid, step_uuid):
         """Fetch a step of a given run given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if

@@ -151,3 +151,119 @@ class ScheduledStepStatus(BaseModel, db.Model):
 
     def __repr__(self):
         return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'
+
+
+class Experiment(BaseModel, db.Model):
+    __tablename__ = 'experiments'
+    __bind_key__ = 'persistent_db'
+
+    experiment_uuid = db.Column(
+        db.String(36),
+        primary_key=True
+    )
+    # pipeline_uuid = db.Column(
+    #     db.String(36),
+    #     primary_key=True
+    # )
+    status = db.Column(
+        db.String(15),
+        unique=False,
+        nullable=True
+    )
+    started_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=True
+    )
+    ended_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=True
+    )
+    pipeline_runs = db.relationship('NonInteractiveRun', lazy='joined')
+
+    def __repr__(self):
+        return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'
+
+
+class NonInteractiveRun(BaseModel, db.Model):
+    __tablename__ = 'non_interactive_runs'
+    __bind_key__ = 'persistent_db'
+
+    experiment_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey('experiments.experiment_uuid'),
+        primary_key=True
+    )
+    run_uuid = db.Column(
+        db.String(36),
+        primary_key=True
+    )
+    # pipeline_uuid = db.Column(
+    #     db.String(36),
+    #     unique=False,
+    #     nullable=False
+    # )
+    status = db.Column(
+        db.String(15),
+        unique=False,
+        nullable=True
+    )
+    step_statuses = db.relationship('NonInteractiveRunStep', lazy='joined')
+
+    scheduled_start = db.Column(
+        db.DateTime,
+        nullable=False
+    )
+
+    started_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=True
+    )
+    ended_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=True
+    )
+
+    def __repr__(self):
+        return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'
+
+
+class NonInteractiveRunStep(BaseModel, db.Model):
+    __tablename__ = 'non_interactive_run_steps'
+    __bind_key__ = 'persistent_db'
+
+    experiment_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey('experiments.experiment_uuid'),
+        primary_key=True
+    )
+    run_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey('non_interactive_runs.run_uuid'),
+        primary_key=True
+    )
+    step_uuid = db.Column(
+        db.String(36),
+        primary_key=True
+    )
+    status = db.Column(
+        db.String(15),
+        unique=False,
+        nullable=True
+    )
+    started_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=True
+    )
+    ended_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=True
+    )
+
+    def __repr__(self):
+        return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'

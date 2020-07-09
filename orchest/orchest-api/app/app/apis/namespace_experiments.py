@@ -8,24 +8,24 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
 from app.schema import (
-    scheduled_run,
-    experiment_configuration,
+    pipeline_run,
+    experiment_spec,
     experiment,
     experiments,
     status_update,
-    step_status,
+    pipeline_step,
 )
 import app.models as models
 
 
 api = Namespace('experiments', description='Managing experiments')
 
-api.models[scheduled_run.name] = scheduled_run
+api.models[pipeline_run.name] = pipeline_run
 api.models[experiment.name] = experiment
-api.models[experiment_configuration.name] = experiment_configuration
+api.models[experiment_spec.name] = experiment_spec
 api.models[experiments.name] = experiments
 api.models[status_update.name] = status_update
-api.models[step_status.name] = step_status
+api.models[pipeline_step.name] = pipeline_step
 
 
 @api.route('/')
@@ -39,14 +39,17 @@ class ExperimentList(Resource):
         completed.
 
         """
-        experiments = models.ScheduledRun.query.all()
+        experiments = models.Experiment.query.all()
         return {'experiments': [exp.as_dict() for exp in experiments]}, 200
 
     @api.doc('start_experiment')
-    @api.expect(experiment_configuration)
+    @api.expect(experiment_spec)
     @api.marshal_with(experiment, code=201, description='Queued experiment')
     def post(self):
         """Queues a new experiment."""
+        # TODO: possible use marshal() on the post_data
+        # https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.marshal
+        #       to make sure the default values etc. are filled in.
         post_data = request.get_json()
 
         # TODO: maybe we can expect a datetime (in the schema) so we
@@ -58,17 +61,16 @@ class ExperimentList(Resource):
 
         pipeline_runs = []
         for pipeline_description in post_data['pipeline_descriptions']:
-            # TODO: support the full / selection / incoming here.
-            pipeline = construct_pipeline(**post_data)
+            pipeline = construct_pipeline(pipeline_description=pipeline_description,
+                                          **post_data['pipeline_run_spec'])
 
             # Create Celery object with the Flask context and construct the
             # kwargs for the job.
             celery = make_celery(current_app)
             celery_job_kwargs = {
                 'experiment_uuid': post_data['experiment_uuid'],
-                # 'pipeline_description': pipeline.to_dict(),
-                'pipeline_description': pipeline_description,
-                'run_config': post_data['run_config'],
+                'pipeline_description': pipeline.to_dict(),
+                'run_config': post_data['pipeline_run_spec']['run_config'],
             }
 
             # Start the run as a background task on Celery. Due to circular
@@ -80,13 +82,14 @@ class ExperimentList(Resource):
                 kwargs=celery_job_kwargs
             )
 
-            scheduled_run = {
-               'run_uuid': res.id,
-               'pipeline_uuid': pipeline.properties['uuid'],
-               'status': 'PENDING',
-               'scheduled_start': scheduled_start,
+            non_interactive_run = {
+                'experiment_uuid': post_data['experiment_uuid'],
+                'run_uuid': res.id,
+                'pipeline_uuid': pipeline.properties['uuid'],
+                'status': 'PENDING',
+                'scheduled_start': scheduled_start,
             }
-            db.session.add(models.ScheduledRun(**scheduled_run))
+            db.session.add(models.NonInteractiveRun(**non_interactive_run))
 
             # TODO: this code is also in `namespace_runs`. Maybe move it to
             #       a function so that it can be reused and the code becomes
@@ -96,7 +99,8 @@ class ExperimentList(Resource):
             step_uuids = [s.properties['uuid'] for s in pipeline.steps]
             step_statuses = []
             for step_uuid in step_uuids:
-                step_statuses.append(models.ScheduledStepStatus(**{
+                step_statuses.append(models.NonInteractiveRunStep(**{
+                    'experiment_uuid': post_data['experiment_uuid'],
                     'run_uuid': res.id,
                     'step_uuid': step_uuid,
                     'status': 'PENDING'
@@ -104,13 +108,14 @@ class ExperimentList(Resource):
             db.session.bulk_save_objects(step_statuses)
             db.session.commit()
 
-            scheduled_run['step_statuses'] = step_statuses
-            pipeline_runs.append(scheduled_run)
+            non_interactive_run['step_statuses'] = step_statuses
+            pipeline_runs.append(non_interactive_run)
 
         experiment = {
             'experiment_uuid': post_data['experiment_uuid'],
             'pipeline_uuid': post_data['pipeline_uuid'],
             'pipeline_runs': pipeline_runs,
+            'scheduled_start': scheduled_start,
         }
         return experiment, 201
 
@@ -187,7 +192,7 @@ class Experiment(Resource):
 @api.response(404, 'Pipeline step not found')
 class PipelineRun(Resource):
     @api.doc('get_pipeline_run')
-    @api.marshal_with(run, code=200)
+    @api.marshal_with(pipeline_run, code=200)
     def get(self, run_uuid, step_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if
@@ -243,7 +248,7 @@ class PipelineRun(Resource):
 @api.response(404, 'Pipeline step not found')
 class PipelineStepStatus(Resource):
     @api.doc('get_pipeline_run')
-    @api.marshal_with(run, code=200)
+    @api.marshal_with(pipeline_run, code=200)
     def get(self, run_uuid, step_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if
