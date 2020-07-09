@@ -31,8 +31,6 @@ RUN npm install
 RUN ./compile-js.sh
 
 # Compile style
-WORKDIR /app/static/css/
-
-# Compile style, compile-sass.sh and prestart.sh need LF line endings
 RUN ./compile-sass.sh
+
 WORKDIR /app
