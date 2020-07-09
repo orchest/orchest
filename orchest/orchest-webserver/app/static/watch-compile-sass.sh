@@ -1,3 +1,3 @@
 #!/bin/bash
 
-npx sass main.scss --load-path=../node_modules/ main.css --watch
+npx sass css/main.scss --load-path=node_modules/ css/main.css --watch
