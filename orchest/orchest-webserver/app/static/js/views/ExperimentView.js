@@ -3,6 +3,7 @@ import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
 import MDCDataTableReact from '../mdc-components/MDCDataTableReact';
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import ParameterEditor from '../components/ParameterEditor';
+import SearchableTable from '../components/SearchableTable';
 
 class ExperimentView extends React.Component {
 
@@ -40,10 +41,10 @@ class ExperimentView extends React.Component {
 
         switch (this.state.selectedTabIndex) {
             case 0:
-                tabView = <div className="pipeline-tab-view">
-                    <MDCTextFieldReact classNames={['search mdc-text-field--outlined fullwidth']} notched={true} label="Search" />
-                    
-                    <MDCDataTableReact classNames={['fullwidth existing-pipeline-runs']} headers={['ID', 'Parameters', 'Status']} rows={this.state.pipelineRuns} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
+                tabView = <div className="pipeline-tab-view existing-pipeline-runs">
+
+                    <SearchableTable rows={this.state.pipelineRuns} headers={['ID', 'Parameters', 'Status']} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
+
                 </div>
                 
                 break;
@@ -62,7 +63,7 @@ class ExperimentView extends React.Component {
                     <label>Pipeline</label>
                     <h3>{this.props.pipeline.name}</h3>
                 </div>
-            </div>
+            </div>            
 
             <MDCTabBarReact
                 selectedIndex={this.state.selectedTabIndex}

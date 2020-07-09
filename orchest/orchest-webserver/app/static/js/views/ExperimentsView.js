@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 
-import MDCDataTableReact from '../mdc-components/MDCDataTableReact';
+import SearchableTable from '../components/SearchableTable';
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import Modal from '../components/Modal';
@@ -15,8 +15,18 @@ class ExperimentsView extends React.Component {
     constructor(props) {
         super(props);
 
+        let experiments = [
+            ["LR search", "Training MNIST", "26 Jul. 2020"],
+            ["Feature aug.", "Training MNIST", "24 Jul. 2020"],
+            ["Feature aug.", "Training MNIST", "24 Jul. 2020"],
+            ["Feature aug.", "LSAT solve", "24 Jul. 2020"],
+            ["Small train set.", "LSAT solve", "21 Jul. 2020"],
+        ];
+
         this.state = {
             createModal: false,
+            experiments: experiments,
+            experimentsSearchMask: new Array(experiments.length).fill(1)
         }
 
     }
@@ -143,15 +153,9 @@ class ExperimentsView extends React.Component {
 
     }
 
-    render() {
+   
 
-        let experiments = [
-            ["LR search", "Training MNIST", "26 Jul. 2020"],
-            ["Feature aug.", "Training MNIST", "24 Jul. 2020"],
-            ["Feature aug.", "Training MNIST", "24 Jul. 2020"],
-            ["Feature aug.", "LSAT solve", "24 Jul. 2020"],
-            ["Small train set.", "LSAT solve", "21 Jul. 2020"],
-        ]
+    render() {
 
         return <div className={"view-page experiments-page"}>
 
@@ -174,14 +178,12 @@ class ExperimentsView extends React.Component {
                 }
             })() }
 
-            <MDCTextFieldReact classNames={['mdc-text-field--outlined fullwidth']} notched={true} label="Search" />
-
             <div className={"experiment-actions"}>
                 <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
                 <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
             </div>
 
-            <MDCDataTableReact onRowClick={this.onRowClick.bind(this)} classNames={['fullwidth']} headers={['Experiment', 'Pipeline', 'Date created']} rows={experiments} />
+            <SearchableTable selectable={true} onRowClick={this.onRowClick.bind(this)} rows={this.state.experiments} headers={['Experiment', 'Pipeline', 'Date created']} />
 
         </div>;
     }

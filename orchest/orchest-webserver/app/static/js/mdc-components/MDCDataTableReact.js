@@ -3,54 +3,90 @@ import {MDCDataTable} from '@material/data-table';
 
 class MDCDataTableReact extends React.Component {
 
+    constructor(props){
+      super(props);
+
+      this.mdcInvalidated = false;
+    }
+
     componentDidMount() {
-        this.mdc = new MDCDataTable(this.refs.dataTable);
+      this.initializeMDC()
+    }
 
-        if(this.props.selectedIndices){
+    initializeMDC(){
+      let listenersExist = false;
 
-          let selectedRowIDs = [];
-  
-          for(let x = 0; x < this.props.selectedIndices.length; x++){
-            if(this.props.selectedIndices[x] === 1){
-              selectedRowIDs.push("u" + x);
-            }
-          }
-          
-          if(selectedRowIDs.length > 0){
-            this.mdc.setSelectedRowIds(selectedRowIDs);
-          }
-        }
+      if(this.mdc !== undefined){
+        listenersExist = true;
+      }
+      this.mdc = new MDCDataTable(this.refs.dataTable);
 
-        this.mdc.listen("MDCDataTable:rowSelectionChanged", (event) => {
-          this.callSelectionChanged();
-        })
+      if(!listenersExist){
+        this.mdc.listen("MDCDataTable:rowSelectionChanged", this.selectionChangedListener.bind(this))
+        this.mdc.listen("MDCDataTable:selectedAll", this.selectionChangedListener.bind(this))
+        this.mdc.listen("MDCDataTable:unselectedAll", this.selectionChangedListener.bind(this))
+      }
+      
+      this.updateSelection()
+    }
 
-        this.mdc.listen("MDCDataTable:selectedAll", (event) => {
-          this.callSelectionChanged();
-        })
-
-        this.mdc.listen("MDCDataTable:unselectedAll", (event) => {
-          this.callSelectionChanged();
-        })
+    selectionChangedListener(){
+      this.callSelectionChanged();
     }
 
     callSelectionChanged(){
       if(this.props.onSelectionChanged){
-        let selectedIndices = Array(this.props.rows.length);
+
+        let selectedRows = [];
 
         let selectedRowIDs = this.mdc.getSelectedRowIds();
 
         // 'u0' => 0
         for(let x = 0; x < selectedRowIDs.length; x++){
-          selectedIndices[parseInt(selectedRowIDs[x].slice(1))] = 1;
+          selectedRows.push(this.props.rows[parseInt(selectedRowIDs[x].slice(1))]);
         }
 
-        this.props.onSelectionChanged(selectedIndices)
+        this.props.onSelectionChanged(selectedRows, this.props.rows)
+      }
+    }
+
+    shouldComponentUpdate(nextProps, nextState){
+      if(nextProps.rows.length != this.props.rows.length){
+        this.mdcInvalidated = true;
+      }
+
+      return true
+    }
+
+    componentDidUpdate(){
+      if(this.mdcInvalidated){
+
+        if(this.props.rows.length > 0){
+          this.initializeMDC()
+        }
+
+        this.mdcInvalidated = false;
+      }
+    }
+
+    updateSelection(){
+      if(this.props.selectedIndices){
+
+        let selectedRowIDs = [];
+
+        for(let x = 0; x < this.props.selectedIndices.length; x++){
+          if(this.props.selectedIndices[x] === 1){
+            selectedRowIDs.push("u" + x);
+          }
+        }
+        
+        if(selectedRowIDs.length > 0){
+          this.mdc.setSelectedRowIds(selectedRowIDs);
+        }
       }
     }
 
     rowClick(row, e){
-
 
       if(e.target && e.target.tagName !== "INPUT" && this.props.onRowClick !== undefined){
         this.props.onRowClick(row);
@@ -107,7 +143,8 @@ class MDCDataTableReact extends React.Component {
             tableRows.push(
                 <tr onClick={this.rowClick.bind(this, this.props.rows[x])} key={x} data-row-id={"u" + x} className="mdc-data-table__row">
 
-                    <td className="mdc-data-table__cell mdc-data-table__cell--checkbox">
+                    { (() => { if (this.props.selectable){
+                      return <td className="mdc-data-table__cell mdc-data-table__cell--checkbox">
                         <div className="mdc-checkbox mdc-data-table__row-checkbox">
                             <input type="checkbox" className="mdc-checkbox__native-control" aria-labelledby="u0" />
                             <div className="mdc-checkbox__background">
@@ -119,6 +156,7 @@ class MDCDataTableReact extends React.Component {
                             <div className="mdc-checkbox__ripple"></div>
                         </div>
                     </td>
+                    } })() }
                     
                     {rowCells}
               </tr>
@@ -128,21 +166,25 @@ class MDCDataTableReact extends React.Component {
 
         return <div className={topClasses} ref="dataTable">
         <div className="mdc-data-table__table-container">
-          <table className="mdc-data-table__table" aria-label="Dessert calories">
+          <table className="mdc-data-table__table" aria-label="Data table">
             <thead>
               <tr className="mdc-data-table__header-row">
-                <th className="mdc-data-table__header-cell mdc-data-table__header-cell--checkbox" role="columnheader" scope="col">
-                  <div className="mdc-checkbox mdc-data-table__header-row-checkbox mdc-checkbox--selected">
-                    <input type="checkbox" className="mdc-checkbox__native-control" aria-label="Toggle all rows"/>
-                    <div className="mdc-checkbox__background">
-                      <svg className="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                        <path className="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59" />
-                      </svg>
-                      <div className="mdc-checkbox__mixedmark"></div>
+
+                { (() => { if (this.props.selectable){
+                  return <th className="mdc-data-table__header-cell mdc-data-table__header-cell--checkbox" role="columnheader" scope="col">
+                    <div className="mdc-checkbox mdc-data-table__header-row-checkbox mdc-checkbox--selected">
+                      <input type="checkbox" className="mdc-checkbox__native-control" aria-label="Toggle all rows"/>
+                      <div className="mdc-checkbox__background">
+                        <svg className="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                          <path className="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59" />
+                        </svg>
+                        <div className="mdc-checkbox__mixedmark"></div>
+                      </div>
+                      <div className="mdc-checkbox__ripple"></div>
                     </div>
-                    <div className="mdc-checkbox__ripple"></div>
-                  </div>
-                </th>
+                  </th>
+                } })() }
+
                 {tableHeaders}
               </tr>
             </thead>

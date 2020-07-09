@@ -28,7 +28,7 @@ WORKDIR /app/static/
 RUN npm install
 
 # Compile front-end code with npx
-RUN npx webpack
+RUN ./compile-js.sh
 
 # Compile style
 WORKDIR /app/static/css/

@@ -40,6 +40,7 @@ body {
   position: relative;
 }
 
+
 .mdc-drawer .mdc-list-item {
   font-weight: 400;
 }
@@ -87,10 +88,12 @@ h1, h2, h3 {
 
     }
 
-    
+    .mdc-text-field--outlined.search {
+      margin-bottom: $generalPadding;
+    } 
 
     .experiment-actions {
-      margin: $generalPadding 0;
+      margin-bottom: $generalPadding;
     }
 
     
@@ -327,7 +330,7 @@ h2.header {
   }
 
   .existing-pipeline-runs {
-    &.mdc-data-table {
+    .mdc-data-table {
       $sizes: 5%, 10%, 65%, 20%;
       @include mdc-data-table-column-widths($sizes);
     }

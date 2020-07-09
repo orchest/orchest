@@ -7,6 +7,7 @@ import ParameterEditor from '../components/ParameterEditor';
 import DateTimeInput from '../components/DateTimeInput';
 import Radio, { NativeRadioControl } from '@material/react-radio';
 import ExperimentsView from "./ExperimentsView";
+import SearchableTable from '../components/SearchableTable';
 
 class CreateExperimentView extends React.Component {
 
@@ -19,7 +20,8 @@ class CreateExperimentView extends React.Component {
                 JSON.stringify(this.props.pipeline.steps[stepUUID])
             );
 
-            if (parameterizedStep.parameters && Object.keys(parameterizedStep.parameters).length > 0) {
+            if (parameterizedStep.parameters && 
+                Object.keys(parameterizedStep.parameters).length > 0) {
                 for (const paramKey in parameterizedStep.parameters) {
 
                     // Note: the list of parameters for each key will always be
@@ -134,7 +136,23 @@ class CreateExperimentView extends React.Component {
         orchest.loadView(ExperimentsView);
     }
 
-    onPipelineRunsSelectionChanged(selectedIndices){
+    onPipelineRunsSelectionChanged(selectedRows, rows){
+
+        // map selectedRows to selectedIndices
+        let selectedIndices = this.state.selectedIndices;
+
+        // for indexOf to work on arrays in this.generatedPipelineRuns it
+        // depends on the object being the same (same reference)
+        for(let x = 0; x < rows.length; x++){
+            let index = this.state.generatedPipelineRuns.indexOf(rows[x]);
+            
+            if(selectedRows.indexOf(rows[x]) !== -1){
+                selectedIndices[index] = 1;
+            }else{
+                selectedIndices[index] = 0;
+            }
+        }
+
         this.setState({
             selectedIndices: selectedIndices
         })
@@ -146,7 +164,9 @@ class CreateExperimentView extends React.Component {
 
         switch (this.state.selectedTabIndex) {
             case 0:
-                tabView = <ParameterEditor onParameterChange={this.onParameterChange.bind(this)} parameterizedSteps={this.state.parameterizedSteps} />
+                tabView = <ParameterEditor 
+                    onParameterChange={this.onParameterChange.bind(this)} 
+                    parameterizedSteps={this.state.parameterizedSteps} />
                 break;
             case 1:
                 tabView = <div className='tab-view'>
@@ -174,15 +194,20 @@ class CreateExperimentView extends React.Component {
                             />
                         </Radio>
 
-                        <DateTimeInput onFocus={() => this.setState({ scheduleOption: 'scheduled' })} />
+                        <DateTimeInput 
+                            onFocus={() => this.setState({ scheduleOption: 'scheduled' })} />
 
                     </div>
                 </div>
                 break;
             case 2:
                 tabView = <div className="pipeline-tab-view">
-                    <MDCTextFieldReact classNames={['search mdc-text-field--outlined fullwidth']} notched={true} label="Search" />
-                    <MDCDataTableReact classNames={['fullwidth']} headers={['Parameters']} rows={this.state.generatedPipelineRuns} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
+                    <SearchableTable 
+                        selectable={true}
+                        headers={['Parameters']} 
+                        rows={this.state.generatedPipelineRuns} 
+                        selectedIndices={this.state.selectedIndices} 
+                        onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
                 </div>
                 break;
         }
