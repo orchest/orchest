@@ -38,6 +38,12 @@ pipeline_run_config = Model('Pipeline Run Configuration', {
     'runnable_image_mapping': fields.Raw(
         required=True,
         description='Mapping from used image to runnable image'),
+    # Needed for the celery-worker to set the new pipeline-dir for
+    # experiments. Note that the `orchest-webserver` has this value
+    # stored in the ENV variable `HOST_USER_DIR`.
+    'host_user_dir': fields.String(
+        required=False,
+        description='Path to the /userdir on the host'),
 })
 
 pipeline_run_spec = Model('Pipeline Run Specification', {

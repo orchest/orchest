@@ -100,34 +100,30 @@ def start_non_interactive_pipeline_run(
 
     """
     pipeline_uuid = pipeline_description['uuid']
-    experiment_base_dir = os.path.join('/userdir', 'experiments',
-                                       pipeline_uuid, experiment_uuid)
-    snapshot_dir = os.path.join(experiment_base_dir, 'snapshot')
-    run_dir = os.path.join(experiment_base_dir, self.request.id)
+    experiment_dir = os.path.join('/userdir', 'experiments',
+                                  pipeline_uuid, experiment_uuid)
+    snapshot_dir = os.path.join(experiment_dir, 'snapshot')
+    run_dir = os.path.join(experiment_dir, self.request.id)
 
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir` (that will then be created by `copytree`).
     # TODO: It should not copy all directories, e.g. not "data".
     copytree(snapshot_dir, run_dir)
 
-    # # Update `pipeline_dir` in `run_config`.
-    # run_config = post_data['run_config']
-    # scheduled_run_subpath = os.path.join('scheduled_runs', pipeline_uuid, run_uuid)
-    # run_config['pipeline_dir'] = os.path.join(run_config['host_user_dir'],
-    #                                           scheduled_run_subpath)
-    # TODO: check how the `pipeline_dir` is passed everywhere. This is
-    #       very confusing right now and we should decide exactly how.
+    # Update the `run_config` for the interactive pipeline run. The
+    # pipeline run should execute on the `run_dir` as its `pipeline_dir`
     # NOTE: the `pipeline_dir` inside the `run_config` has to be the abs
     # path w.r.t. the host because it is used by the `docker.sock` when
     # mounting the dir to the container of a step.
-    # TODO: this `host_user_dir` is obviously temporary.
-    run_config['host_user_dir'] = '/home/yannick/Documents/Orchest/orchest/orchest/userdir'
     host_base_user_dir = os.path.split(run_config['host_user_dir'])[0]
-    run_config['pipeline_dir'] = os.path.join(host_base_user_dir, run_dir)
+    # To join the paths, the `run_dir` cannot start with `/userdir/...`
+    # but should start as `userdir/...`
+    run_config['pipeline_dir'] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config['run_endpoint'] = f'experiments/{experiment_uuid}'
 
-    # Overwrite the `pipeline.json` from the snapshot with the new
-    # `pipeline.json` that contains the new parameters for every step.
+    # Overwrite the `pipeline.json`, that was copied from the snapshot,
+    # with the new `pipeline.json` that contains the new parameters for
+    # every step.
     pipeline_json = os.path.join(run_dir, 'pipeline.json')
     with open(pipeline_json, 'w') as f:
         json.dump(pipeline_description, f)

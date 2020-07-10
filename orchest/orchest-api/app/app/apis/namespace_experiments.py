@@ -71,17 +71,22 @@ class ExperimentList(Resource):
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
         pipeline_runs = []
+        pipeline_run_spec = post_data['pipeline_run_spec']
         for pipeline_description in post_data['pipeline_descriptions']:
-            post_data['pipeline_run_spec']['pipeline_description'] = pipeline_description
+            pipeline_run_spec['pipeline_description'] = pipeline_description
             pipeline = construct_pipeline(**post_data['pipeline_run_spec'])
 
+            # TODO: This can be made more efficient, since the pipeline
+            #       is the same for all pipeline runs. The only
+            #       difference is the parameters. So all the jobs could
+            #       be created in batch.
             # Create Celery object with the Flask context and construct the
             # kwargs for the job.
             celery = make_celery(current_app)
             celery_job_kwargs = {
                 'experiment_uuid': post_data['experiment_uuid'],
                 'pipeline_description': pipeline.to_dict(),
-                'run_config': post_data['pipeline_run_spec']['run_config'],
+                'run_config': pipeline_run_spec['run_config'],
             }
 
             # Start the run as a background task on Celery. Due to circular
@@ -140,19 +145,21 @@ class ExperimentList(Resource):
 class Experiment(Resource):
     @api.doc('get_experiment')
     @api.marshal_with(experiment, code=200)
-    def get(self, run_uuid):
+    def get(self, experiment_uuid):
         """Fetches an experiment given its UUID."""
-        run = models.ScheduledRun.query.get_or_404(run_uuid,
-                                                   description='Run not found')
+        run = models.Experiment.query.get_or_404(experiment_uuid,
+                                                 description='Run not found')
         return run.__dict__
 
     @api.doc('set_experiment_status')
     @api.expect(status_update)
-    def put(self, run_uuid):
+    def put(self, experiment_uuid):
         """Sets the status of an experiment."""
         post_data = request.get_json()
 
-        res = models.ScheduledRun.query.filter_by(run_uuid=run_uuid).update({
+        res = models.Experiment.query.filter_by(
+            experiment_uuid=experiment_uuid
+        ).update({
             'status': post_data['status']
         })
 
