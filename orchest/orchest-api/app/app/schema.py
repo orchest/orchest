@@ -70,6 +70,11 @@ pipeline_run_spec = Model('Pipeline Run Specification', {
 })
 
 pipeline_run = Model('Run', {
+    # A pipeline run does not have to be part of an experiment, although
+    # it can be.
+    'experiment_uuid': fields.String(
+        required=False,
+        description='UUID for experiment'),
     'run_uuid': fields.String(
         required=True,
         description='UUID of run'),

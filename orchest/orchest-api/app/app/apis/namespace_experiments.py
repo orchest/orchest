@@ -101,7 +101,7 @@ class ExperimentList(Resource):
             non_interactive_run = {
                 'experiment_uuid': post_data['experiment_uuid'],
                 'run_uuid': res.id,
-                # 'pipeline_uuid': pipeline.properties['uuid'],
+                'pipeline_uuid': pipeline.properties['uuid'],
                 'status': 'PENDING',
                 'scheduled_start': scheduled_start,
             }

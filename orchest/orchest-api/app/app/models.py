@@ -203,11 +203,11 @@ class NonInteractiveRun(BaseModel, db.Model):
         db.String(36),
         primary_key=True
     )
-    # pipeline_uuid = db.Column(
-    #     db.String(36),
-    #     unique=False,
-    #     nullable=False
-    # )
+    pipeline_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False
+    )
     status = db.Column(
         db.String(15),
         unique=False,
