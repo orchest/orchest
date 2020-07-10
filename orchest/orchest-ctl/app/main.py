@@ -109,6 +109,7 @@ CONTAINER_MAPPING = {
         "hostname": "rabbitmq-hostname",
         "mounts": [
             {
+                # Persisting RabbitMQ Queues.
                 "source": os.path.join(HOST_USER_DIR, DURABLE_QUEUES_DIR),
                 "target": "/var/lib/rabbitmq/mnesia",
             }
@@ -370,7 +371,7 @@ def dev_mount_inject():
 
     # orchest-api
     orchest_api_spec = CONTAINER_MAPPING["orchestsoftware/orchest-api:latest"]
-    orchest_api_spec['mounts'] += [
+    orchest_api_spec["mounts"] += [
         {
             "source": os.path.join(
                 os.environ.get("HOST_PWD"),
@@ -381,12 +382,12 @@ def dev_mount_inject():
             "target": "/app/app"
         }
     ]
-    orchest_api_spec['ports'] = {
+    orchest_api_spec["ports"] = {
         "80/tcp": 8080
     }
-    orchest_api_spec['environment']["FLASK_APP"] = "main.py"
-    orchest_api_spec['environment']["FLASK_ENV"] = "development"
-    orchest_api_spec['command'] = [
+    orchest_api_spec["environment"]["FLASK_APP"] = "main.py"
+    orchest_api_spec["environment"]["FLASK_ENV"] = "development"
+    orchest_api_spec["command"] = [
        "flask",
        "run",
        "--host=0.0.0.0",
