@@ -90,6 +90,7 @@ class JupyterDockerManager(DockerManager):
         memory_server_container = self.client.containers.run(
             image='orchestsoftware/memory-server:latest',
             detach=True,
+            auto_remove=True,
             mounts=[pipeline_dir_mount, store_dir_mount],
             name='memory-server',
             network=self.network,
@@ -101,6 +102,7 @@ class JupyterDockerManager(DockerManager):
         EG_container = self.client.containers.run(
                 image='elyra/enterprise-gateway:2.1.1',  # TODO: make not static.
                 detach=True,
+                auto_remove=True,
                 mounts=[docker_sock_mount, kernelspec_mount],
                 name=f'jupyter-EG-{uuid}',
                 environment=[
@@ -120,6 +122,7 @@ class JupyterDockerManager(DockerManager):
         server_container = self.client.containers.run(
                 image='orchestsoftware/jupyter-server:latest',  # TODO: make not static.
                 detach=True,
+                auto_remove=True,
                 mounts=[pipeline_dir_mount],
                 name=f'jupyter-server-{uuid}',
                 network=self.network,
@@ -156,11 +159,9 @@ class JupyterDockerManager(DockerManager):
         # TODO: Not removing containers, but restarting them?
         for container in self.client.containers.list(filters={'name': pattern}):
             container.stop()
-            container.remove()
 
         # TODO: Will be managed some place else in the near future.
         for container in self.client.containers.list(filters={'name': 'memory-server'}):
             container.stop()
-            container.remove()
 
         return
