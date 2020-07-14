@@ -118,6 +118,27 @@ async def update_status(status: str,
         return await response.json()
 
 
+def get_dynamic_binds():
+    binds = []
+
+    try:
+        response = requests.get('http://orchest-webserver/store/datasources')
+        response.raise_for_status()
+
+        datasources = response.json()
+        for datasource in datasources:
+            if datasource['source_type'] != 'host-directory':
+                continue
+
+            binds.append(f'{datasource["connection_details"]["absolute_host_path"]}'
+                         f':/data/{datasource["name"]}')
+
+    except Exception as e:
+        print(e)
+
+    return binds
+
+
 class PipelineStepRunner:
     """Runs a PipelineStep on a chosen backend.
 
@@ -177,12 +198,9 @@ class PipelineStepRunner:
         pipeline_dir: str = run_config['pipeline_dir']
 
         image: str = run_config['runnable_image_mapping'][self.properties['image']]
-        
 
-        # Generate binds
-        binds = [f'{pipeline_dir}:/notebooks']
-        dynamic_binds = self.get_dynamic_binds()
-        binds = binds + dynamic_binds
+        # Generate binds.
+        binds = [f'{pipeline_dir}:/notebooks'] + get_dynamic_binds()
 
         config = {
             'Image': image,
@@ -209,7 +227,7 @@ class PipelineStepRunner:
         # TODO: error handling?
         self._status = 'STARTED'
         await update_status(self._status, task_id, session, type='step',
-                            run_endpoint=run_config['run_endpoint'], 
+                            run_endpoint=run_config['run_endpoint'],
                             uuid=self.properties['uuid'])
 
         data = await container.wait()
@@ -297,25 +315,6 @@ class PipelineStepRunner:
     async def run_ancestors_on_kubernetes(self):
         # Call the run_on_kubernetes internally.
         pass
-
-    def get_dynamic_binds(self):
-        binds = []
-
-        try:
-            response = requests.get("http://orchest-webserver/store/datasources")
-            response.raise_for_status()
-
-            datasources = response.json()
-
-            for datasource in datasources:
-                if datasource["source_type"] == "host-directory":
-
-                    binds.append(f'{datasource["connection_details"]["absolute_host_path"]}:{"/data/%s" % datasource["name"]}')
-
-        except Exception as e:
-            print(e)
-
-        return binds
 
 
 class PipelineStep(PipelineStepRunner):

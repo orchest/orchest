@@ -1,5 +1,8 @@
 import asyncio
-from typing import Dict, Union
+import json
+import os
+from shutil import copytree
+from typing import Dict, Optional, Union
 
 import aiohttp
 from celery import Task
@@ -10,10 +13,11 @@ from app.core.pipelines import Pipeline, PipelineDescription
 from config import CONFIG_CLASS
 
 
-# TODO: create_app is called twice, meaning create_all (create databases) is 
-# called twice, which means celery-worker needs the /userdir bind to access the DB
-# which is probably not a good idea. create_all should only be called once per app right?
-celery = make_celery(create_app(CONFIG_CLASS, use_db = False))
+# TODO: create_app is called twice, meaning create_all (create
+# databases) is called twice, which means celery-worker needs the
+# /userdir bind to access the DB which is probably not a good idea.
+# create_all should only be called once per app right?
+celery = make_celery(create_app(CONFIG_CLASS, use_db=False))
 
 
 # This will not work yet, because Celery does not yet support asyncio
@@ -53,11 +57,15 @@ class APITask(Task):
         return self._session
 
 
+# TODO: rename this function maybe? `start_pipeline_run` since it no
+#       longer constructs the partial, the construct is already done
+#       in the API.
 # @celery.task(bind=True, base=APITask)
 @celery.task(bind=True)
 def run_partial(self,
                 pipeline_description: PipelineDescription,
-                run_config: Dict[str, Union[str, Dict[str, str]]]) -> None:
+                run_config: Dict[str, Union[str, Dict[str, str]]],
+                task_id: Optional[str] = None) -> None:
     """Runs a pipeline partially.
 
     A partial run is described by the pipeline description The
@@ -70,9 +78,60 @@ def run_partial(self,
     """
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
-    
+
     # Run the subgraph in parallel. And pass the id of the AsyncResult
     # object.
     # TODO: The commented line below is once we can introduce sessions.
     # session = run_partial.session
-    return asyncio.run(pipeline.run(self.request.id, run_config=run_config))
+    task_id = task_id if task_id is not None else self.request.id
+    return asyncio.run(pipeline.run(task_id, run_config=run_config))
+
+
+@celery.task(bind=True)
+def start_non_interactive_pipeline_run(
+    self,
+    experiment_uuid,
+    pipeline_description: PipelineDescription,
+    run_config: Dict[str, Union[str, Dict[str, str]]]
+) -> None:
+    """Starts a non-interactive pipeline run.
+
+    It is a pipeline run that is part of an experiment.
+
+    """
+    pipeline_uuid = pipeline_description['uuid']
+    experiment_dir = os.path.join('/userdir', 'experiments',
+                                  pipeline_uuid, experiment_uuid)
+    snapshot_dir = os.path.join(experiment_dir, 'snapshot')
+    run_dir = os.path.join(experiment_dir, self.request.id)
+
+    # Copy the contents of `snapshot_dir` to the new (not yet existing
+    # folder) `run_dir` (that will then be created by `copytree`).
+    # TODO: It should not copy all directories, e.g. not "data".
+    copytree(snapshot_dir, run_dir)
+
+    # Update the `run_config` for the interactive pipeline run. The
+    # pipeline run should execute on the `run_dir` as its `pipeline_dir`
+    # NOTE: the `pipeline_dir` inside the `run_config` has to be the abs
+    # path w.r.t. the host because it is used by the `docker.sock` when
+    # mounting the dir to the container of a step.
+    host_base_user_dir = os.path.split(run_config['host_user_dir'])[0]
+    # To join the paths, the `run_dir` cannot start with `/userdir/...`
+    # but should start as `userdir/...`
+    run_config['pipeline_dir'] = os.path.join(host_base_user_dir, run_dir[1:])
+    run_config['run_endpoint'] = f'experiments/{experiment_uuid}'
+
+    # Overwrite the `pipeline.json`, that was copied from the snapshot,
+    # with the new `pipeline.json` that contains the new parameters for
+    # every step.
+    pipeline_json = os.path.join(run_dir, 'pipeline.json')
+    with open(pipeline_json, 'w') as f:
+        json.dump(pipeline_description, f)
+
+    # TODO: `run_partial` does not yet support the `experiment_uuid`,
+    #       but we need it to correctly update the status of the steps.
+    #       Maybe we can incorporate it in the `run_endpoint` of
+    #       `run_config` by doing ``f'experiments/{experiment_uuid}'``.
+    # TODO: Have to make sure that somewhere a memory-server is started
+    #       so that the pipeline run gets its own memory store.
+    return run_partial(pipeline_description, run_config, task_id=self.request.id)

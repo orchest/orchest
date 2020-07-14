@@ -20,6 +20,9 @@ Python package to pass data between pipeline steps in the Orchest platform.
 
 Installation
 ~~~~~~~~~~~~
+.. note::
+   The SDK comes pre-installed when using the Orchest platform.
+
 Currently the recommended method for installing the Orchest SDK is through the GitHub repository
 using :code:`pip`
 
@@ -31,7 +34,8 @@ using :code:`pip`
 
 Code example
 ~~~~~~~~~~~~
-Example for sending through disk, where `Step 1` -> `Step 2`.
+Example of passing data, where the pipeline (defined inside the :code:`pipeline.json`) is 
+`Step 1` -> `Step 2`.
 
 .. code-block:: python
 
@@ -40,9 +44,8 @@ Example for sending through disk, where `Step 1` -> `Step 2`.
 
    data = [1, 2, 3]
 
-   # Note that you do not need to specify what step you want to send the
-   # data to. This is managed through your pipeline definition.
-   transfer.send_disk(data)
+   # Output the data so that Step 2 can retrieve it.
+   transfer.output(data)
 
 
 .. code-block:: python
@@ -50,5 +53,5 @@ Example for sending through disk, where `Step 1` -> `Step 2`.
    """Step 2"""
    from orchest import transfer
 
-   # Now we will get: data = [[1, 2, 3]]
-   data = transfer.receive()
+   # Get the input for Step 2, i.e. the output of Step 1.
+   data = transfer.get_inputs()  # data = [[1, 2, 3]]

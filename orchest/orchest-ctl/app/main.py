@@ -42,23 +42,23 @@ HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
 
 DURABLE_QUEUES_DIR = ".durable_queues"
 
-# Set to `True` if you want to pull images from Dockerhub 
+# Set to `True` if you want to pull images from Dockerhub
 # instead of using local equivalents
 
 CONTAINER_MAPPING = {
     "orchestsoftware/orchest-api:latest": {
+        "environment": {},
+        "command": None,
         "name": "orchest-api",
         "mounts": [
             {
-                "source": "/var/run/docker.sock",
-                "target": "/var/run/docker.sock"
-            },
-            {
-                # NOTE: The API container needs to copy pipeline directories into 
-                # 'userdir/scheduled_runs{pipeline_uuid}/{run_uuid}'
-                # to make read-only pipeline copies.
+                # Needed for persistent db.
                 "source": HOST_USER_DIR,
                 "target": "/userdir"
+            },
+            {
+                "source": "/var/run/docker.sock",
+                "target": "/var/run/docker.sock"
             },
         ],
 
@@ -96,6 +96,12 @@ CONTAINER_MAPPING = {
                 "source": "/var/run/docker.sock",
                 "target": "/var/run/docker.sock"
             },
+            {
+                # Mount in needed for copying the snapshot dir to
+                # pipeline run dirs for experiments.
+                "source": HOST_USER_DIR,
+                "target": "/userdir"
+            },
         ]
     },
     "rabbitmq:3": {
@@ -103,6 +109,7 @@ CONTAINER_MAPPING = {
         "hostname": "rabbitmq-hostname",
         "mounts": [
             {
+                # Persisting RabbitMQ Queues.
                 "source": os.path.join(HOST_USER_DIR, DURABLE_QUEUES_DIR),
                 "target": "/var/lib/rabbitmq/mnesia",
             }
@@ -110,13 +117,15 @@ CONTAINER_MAPPING = {
     }
 }
 
+# TODO: shutting down can be done easier by just shutting down all the
+#       containers inside the "orchest" docker network.
 # images in CONTAINER_MAPPING need to be run in the application on start
 # additional images below are necessary for dynamically creating containers
 # in Orchest for the pipeline steps / Jupyter server / Enterprise Gateway
 
 IMAGES = list(CONTAINER_MAPPING.keys())
 IMAGES += [
-    "elyra/enterprise-gateway:2.1.1", 
+    "elyra/enterprise-gateway:2.1.1",
     "orchestsoftware/jupyter-server:latest",
     "orchestsoftware/r-notebook-augmented:latest",
     "orchestsoftware/r-notebook-runnable:latest",
@@ -124,6 +133,7 @@ IMAGES += [
     "orchestsoftware/scipy-notebook-augmented:latest",
     "orchestsoftware/custom-base-kernel-py:latest",
     "orchestsoftware/custom-base-kernel-r:latest",
+    "orchestsoftware/memory-server:latest",
 ]
 
 
@@ -138,7 +148,7 @@ def clean_containers():
            container.status == "exited":
             logging.info("Removing exited container `%s`" % container.name)
             container.remove()
-        
+
 
 def start():
     logging.info("Starting Orchest...")
@@ -154,7 +164,7 @@ def start():
 
         # start by cleaning up old containers lingering
         clean_containers()
-        
+
         # start containers from CONTAINER_MAPPING that haven't started
         running_containers = client.containers.list()
 
@@ -164,8 +174,8 @@ def start():
         ]
 
         images_to_start = [
-            image_name 
-            for image_name in CONTAINER_MAPPING.keys() 
+            image_name
+            for image_name in CONTAINER_MAPPING.keys()
             if image_name not in running_container_images
         ]
 
@@ -186,27 +196,16 @@ def start():
                         for mount in container_spec['mounts']
                     ]
 
-                environment = {}
-                if 'environment' in container_spec:
-                    environment = container_spec['environment']
+                environment = container_spec.get('environment', {})
+                ports = container_spec.get('ports', {})
+                hostname = container_spec.get('hostname')
+                command = container_spec.get('command')
 
-                ports = {}
-                if 'ports' in container_spec:
-                    ports = container_spec['ports']
-
-                hostname = None
-                if 'hostname' in container_spec:
-                    hostname = container_spec['hostname']
-                
                 logging.info("Starting image %s" % container_image)
-
-                command = []
-
-                if 'command' in container_spec:
-                    command = container_spec['command']
 
                 client.containers.run(
                     image=container_image,
+                    command=command,
                     name=container_spec['name'],
                     detach=True,
                     mounts=mounts,
@@ -214,7 +213,6 @@ def start():
                     environment=environment,
                     ports=ports,
                     hostname=hostname,
-                    command=command
                 )
 
         log_server_url()
@@ -252,7 +250,7 @@ def install_complete():
     docker_client = docker.from_env()
 
     missing_images = check_images()
-    
+
     if len(missing_images) > 0:
         logging.warning("Missing images: %s" % missing_images)
         return False
@@ -280,12 +278,12 @@ def check_images():
             missing_images.append(image)
         except docker.errors.APIError as e:
             raise e
-    
+
     return missing_images
 
 
 def install_images():
-    
+
     client = docker.from_env()
 
     for image in IMAGES:
@@ -307,9 +305,9 @@ def get_application_url():
     try:
         # raise Exception if not found
         client.containers.get("orchest-webserver")
-        
+
         return "http://localhost:8000"
-        
+
     except Exception as e:
         print(e)
         return ""
@@ -357,8 +355,9 @@ def dev_mount_inject():
 
     logging.info("Orchest starting in DEV mode. This mounts host directories to monitor for source code changes.")
 
-    orchest_webserver_spec = CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]
 
+    # orchest-webserver dev mount
+    orchest_webserver_spec = CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
         {
             "source": os.path.join(
@@ -366,7 +365,7 @@ def dev_mount_inject():
                 "orchest", 
                 "orchest-webserver", 
                 "app"),
-            "target": "/app"
+            "target": "/app" 
         }
     ]
 
@@ -379,6 +378,33 @@ def dev_mount_inject():
        "--port=80"
     ]
 
+    # orchest-api dev mount
+    orchest_api_spec = CONTAINER_MAPPING["orchestsoftware/orchest-api:latest"]
+    orchest_api_spec["mounts"] += [
+        {
+            "source": os.path.join(
+                os.environ.get("HOST_PWD"),
+                "orchest",
+                "orchest-api",
+                "app",
+                "app"),
+            "target": "/app/app"
+        }
+    ]
+    orchest_api_spec["ports"] = {
+        "80/tcp": 8080
+    }
+    orchest_api_spec["environment"]["FLASK_APP"] = "main.py"
+    orchest_api_spec["environment"]["FLASK_ENV"] = "development"
+    orchest_api_spec["command"] = [
+       "flask",
+       "run",
+       "--host=0.0.0.0",
+       "--port=80"
+    ]
+
+    
+
 def status():
 
     # view conntainer status
@@ -388,7 +414,7 @@ def status():
     running_containers = client.containers.list()
 
     orchest_container_names = [CONTAINER_MAPPING[container_key]['name'] for container_key in CONTAINER_MAPPING]
- 
+
     running_prints = ['']
     not_running_prints = ['']
 
@@ -396,7 +422,7 @@ def status():
         if container.name in orchest_container_names:
             running_prints.append("Container %s running." % container.name)
             orchest_container_names.remove(container.name)
-    
+
     for container_name in orchest_container_names:
         not_running_prints.append("Container %s not running." % container_name)
 
@@ -466,7 +492,7 @@ def main():
         help_func()
         return
 
-    
+
     command_to_func[command]()
 
 

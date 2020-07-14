@@ -1,4 +1,5 @@
 pipelines
+experiments
 .ipynb_checkpoints
 *.db
 .durable_queues
