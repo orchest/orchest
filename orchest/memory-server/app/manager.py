@@ -9,10 +9,10 @@ def construct_pipeline(pipeline_fname='pipeline.json'):
     with open(pipeline_fname, 'r') as f:
         description = json.load(f)
 
-    settings = description.get('settings')
-    auto_eviction = False
-    if settings is not None:
-        auto_eviction = settings.get('auto-eviction', auto_eviction)
+    try:
+        auto_eviction = description['settings'].get('auto-eviction', False)
+    except KeyError:
+        auto_eviction = False
 
     pipeline = nx.DiGraph(auto_eviction=auto_eviction)
 
@@ -24,7 +24,7 @@ def construct_pipeline(pipeline_fname='pipeline.json'):
     # Create and add edges with weight zero.
     all_edges = []
     for uuid, info in steps.items():
-        edges = [(uuid, conn, 0) for conn in info['outgoing_connections']]
+        edges = [(conn, uuid, 0) for conn in info['incoming_connections']]
         all_edges.extend(edges)
 
     pipeline.add_weighted_edges_from(all_edges)
