@@ -491,6 +491,12 @@ class PipelineView extends React.Component {
             }
             _this.newConnection = undefined;
 
+
+            // always check unsavedChanges on mouseup
+            _this.setState({
+                unsavedChanges: _this.state.unsavedChanges
+            })
+
         });
 
 
@@ -552,14 +558,22 @@ class PipelineView extends React.Component {
 
                         _this.state.steps[uuid].meta_data.position[0] += delta[0];
                         _this.state.steps[uuid].meta_data.position[1] += delta[1];
+                        
+                        _this.refs[uuid].updatePosition(_this.state.steps[uuid].meta_data.position);
+                        
+                        // note: state will be assigned in mouseup event for view updating
+                        _this.state.unsavedChanges = true;
                     }
                 } else if (_this.selectedItem !== undefined) {
 
                     step.meta_data.position[0] += delta[0];
                     step.meta_data.position[1] += delta[1];
-                }
 
-                _this.setState({ "steps": _this.state.steps, "unsavedChanges": true });
+                    _this.refs[step.uuid].updatePosition(step.meta_data.position);
+                    
+                    // note: state will be assigned in mouseup event for view updating
+                    _this.state.unsavedChanges = true;
+                }
 
                 _this.renderConnections(_this.connections);
 

@@ -3,16 +3,13 @@ import React from 'react';
 
 class PipelineStep extends React.Component {
 
-    // refresh every second for status update
     componentDidMount(){
-        // refresh in a second
-        this.componentUpdateInterval = setInterval(() => {
-            this.forceUpdate();
-        }, 1000);
+        this.updatePosition(this.props.step.meta_data.position)
     }
 
-    componentWillUnmount(){
-        clearInterval(this.componentUpdateInterval);
+    updatePosition(position){
+        // note: outside of normal React loop for performance
+        this.refs.container.style.transform = "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
     }
 
     render() {
@@ -48,11 +45,8 @@ class PipelineStep extends React.Component {
             stateText = "Aborted";
         }
 
-        let style = {
-            transform: "translateX(" + this.props.step.meta_data.position[0] + "px) translateY(" + this.props.step.meta_data.position[1] + "px)"
-        }
 
-        return <div data-uuid={this.props.step.uuid} ref={"container"} className={classNames.join(" ")} style={style}>
+        return <div data-uuid={this.props.step.uuid} ref={"container"} className={classNames.join(" ")} >
             <div className={"incoming-connections connection-point"}>
                 <div className="inner-dot"></div>
             </div>
