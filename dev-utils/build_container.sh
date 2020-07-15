@@ -26,7 +26,7 @@ done
 # If no images are specified, we want to build all of them.
 if [ ${#IMGS[@]} -eq 0 ]; then
     BUILD_ALL=true
-    IMGS+=("Placeholder")
+    IMGS+=("All images")
 else
     BUILD_ALL=false
 fi

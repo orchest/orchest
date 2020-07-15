@@ -27,6 +27,11 @@ class Config:
 
     RESOURCE_DIR = os.path.join(dir_path, "res")
 
+    IMAGE_MAPPING = {
+        "orchestsoftware/scipy-notebook-augmented": "orchestsoftware/scipy-notebook-runnable",
+        "orchestsoftware/r-notebook-augmented": "orchestsoftware/r-notebook-runnable"
+    }
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

@@ -100,11 +100,11 @@ class PipelineDetails extends React.Component {
                 {(() => {
                     if(!this.props.readOnly){
                         return <div className={"notebook-actions"}>
-                            <MDCButtonReact icon="launch" classNames={["mdc-button--raised"]}  label="Open in Jupyter" onClick={this.onOpenNotebook.bind(this)} />
+                            <MDCButtonReact icon="launch" classNames={["mdc-button--raised", "themed-secondary"]}  label="Open in Jupyter" onClick={this.onOpenNotebook.bind(this)} />
                         </div>
                     }else{
                         return <div className={"notebook-actions"}>
-                            <MDCButtonReact icon="visibility" classNames={["mdc-button--raised"]}  label="View Notebook" onClick={this.onOpenNotebookPreview.bind(this)} />
+                            <MDCButtonReact icon="visibility" classNames={["mdc-button--raised", "themed-secondary"]}  label="View Notebook" onClick={this.onOpenNotebookPreview.bind(this)} />
                         </div>
                     }
                 })()}

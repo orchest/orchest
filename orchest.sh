@@ -1,7 +1,7 @@
 #!/bin/bash
 
 HOST_CONFIG_DIR=$HOME/.config/orchest
-HOST_USER_DIR=$PWD/orchest/userdir/
+HOST_USER_DIR=$PWD/orchest/userdir
 
 # create config dir if it doesn't exist
 mkdir -p $HOST_CONFIG_DIR

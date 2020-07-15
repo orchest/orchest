@@ -4,6 +4,7 @@ import MDCDataTableReact from '../mdc-components/MDCDataTableReact';
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import ParameterEditor from '../components/ParameterEditor';
 import SearchableTable from '../components/SearchableTable';
+import { makeRequest, uuidv4 } from '../utils/all';
 
 class ExperimentView extends React.Component {
 
@@ -14,7 +15,7 @@ class ExperimentView extends React.Component {
             'selectedTabIndex': 0,
             'parameterizedSteps': this.props.parameterizedSteps,
             'selectedIndices': [0, 0],
-            'pipelineRuns': [[1, "lr: 0.01", "Completed"], [2, "lr: 0.02", "Running"]]
+            'pipelineRuns': []
         }
 
     }
@@ -26,13 +27,39 @@ class ExperimentView extends React.Component {
     }
 
     componentDidMount(){
+        this.fetchPipelineRuns();
+    }
 
+    fetchPipelineRuns(){
+        makeRequest("GET", "/api-proxy/api/experiments/" + this.props.experiment.uuid).then((response) => {
+            
+            let result = JSON.parse(response);
+
+            this.setState({
+                pipelineRuns: result.pipeline_runs
+            });
+        })
     }
 
     onPipelineRunsSelectionChanged(selectedIndices){
         this.setState({
             selectedIndices: selectedIndices
         })
+    }
+
+    pipelineRunsToTableData(pipelineRuns){
+        let rows = [];
+
+        for(let x = 0; x < pipelineRuns.length; x++){
+            rows.push(
+                [
+                    (x + 1),
+                    pipelineRuns[x].status
+                ]
+            )
+        }
+
+        return rows;
     }
 
     render() {
@@ -43,7 +70,7 @@ class ExperimentView extends React.Component {
             case 0:
                 tabView = <div className="pipeline-tab-view existing-pipeline-runs">
 
-                    <SearchableTable rows={this.state.pipelineRuns} headers={['ID', 'Parameters', 'Status']} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
+                    <SearchableTable rows={this.pipelineRunsToTableData(this.state.pipelineRuns)} headers={['ID', 'Status']} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
 
                 </div>
                 

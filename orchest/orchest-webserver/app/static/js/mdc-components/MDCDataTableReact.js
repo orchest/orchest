@@ -34,6 +34,22 @@ class MDCDataTableReact extends React.Component {
       this.callSelectionChanged();
     }
 
+    getSelectedRowIndices(){
+      let selectedRowIndices = [];
+      let selectedRowIDs = this.mdc.getSelectedRowIds();
+
+      // 'u0' => 0
+      for(let x = 0; x < selectedRowIDs.length; x++){
+        selectedRowIndices.push(parseInt(selectedRowIDs[x].slice(1)));
+      }
+
+      return selectedRowIndices;
+    }
+
+    setSelectedRowIds(rowIds){
+      this.mdc.setSelectedRowIds(rowIds);
+    }
+
     callSelectionChanged(){
       if(this.props.onSelectionChanged){
 
@@ -86,10 +102,10 @@ class MDCDataTableReact extends React.Component {
       }
     }
 
-    rowClick(row, e){
+    rowClick(row, idx, e){
 
       if(e.target && e.target.tagName !== "INPUT" && this.props.onRowClick !== undefined){
-        this.props.onRowClick(row);
+        this.props.onRowClick(row, idx, e);
       }
 
     }
@@ -141,7 +157,7 @@ class MDCDataTableReact extends React.Component {
             }
 
             tableRows.push(
-                <tr onClick={this.rowClick.bind(this, this.props.rows[x])} key={x} data-row-id={"u" + x} className="mdc-data-table__row">
+                <tr onClick={this.rowClick.bind(this, this.props.rows[x], x)} key={x} data-row-id={"u" + x} className="mdc-data-table__row">
 
                     { (() => { if (this.props.selectable){
                       return <td className="mdc-data-table__cell mdc-data-table__cell--checkbox">
@@ -173,7 +189,7 @@ class MDCDataTableReact extends React.Component {
                 { (() => { if (this.props.selectable){
                   return <th className="mdc-data-table__header-cell mdc-data-table__header-cell--checkbox" role="columnheader" scope="col">
                     <div className="mdc-checkbox mdc-data-table__header-row-checkbox mdc-checkbox--selected">
-                      <input type="checkbox" className="mdc-checkbox__native-control" aria-label="Toggle all rows"/>
+                      <input type="checkbox" disabled={this.props.rows.length == 0} className="mdc-checkbox__native-control" aria-label="Toggle all rows"/>
                       <div className="mdc-checkbox__background">
                         <svg className="mdc-checkbox__checkmark" viewBox="0 0 24 24">
                           <path className="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59" />

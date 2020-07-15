@@ -7,6 +7,7 @@ import Modal from '../components/Modal';
 import { makeRequest } from '../utils/all';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
+import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
 
 
 class PipelinesView extends React.Component {
@@ -87,10 +88,6 @@ class PipelinesView extends React.Component {
         this.refs.createPipelineNameTextField.focus();
     }
 
-    onForkClick(){
-        alert("Forking is not yet supported.")
-    }
-
     componentDidUpdate(prevProps, prevState, snapshot) {
     }
 
@@ -135,7 +132,7 @@ class PipelinesView extends React.Component {
                             <h2>Create a new pipeline</h2>
                             <MDCTextFieldReact ref={'createPipelineNameTextField'} classNames={['fullwidth']} label="Experiment name" />
                             
-                            <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />
+                            <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised", "themed-secondary"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />
                             
                             <MDCButtonReact icon="close" label="Cancel" onClick={this.onCancelModal.bind(this)} />
                         </Fragment>
@@ -147,14 +144,13 @@ class PipelinesView extends React.Component {
                 <div className={"pipeline-actions"}>
                     <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
                     <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
-                    <MDCIconButtonToggleReact icon="call_split" onClick={this.onForkClick.bind(this)} />
                 </div>
                 <CheckItemList ref={"pipelineListView"} onClickListItem={this.onClickListItem.bind(this)} items={this.state.listData} />
             </div>;
         }else{
             return <div className={"view-page"}>
                 <h2>Pipelines</h2>
-                <p>Loading...</p>
+                <MDCLinearProgressReact />
             </div>;
         }
 

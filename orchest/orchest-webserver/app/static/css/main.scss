@@ -61,6 +61,12 @@ h1, h2, h3 {
   --mdc-theme-primary: #{$mdc-theme-secondary};
 }
 
+.create-experiment-modal {
+  .mdc-linear-progress {
+    margin: $generalPadding 0;
+  }
+}
+
 .mdc-data-table {
   &.row-clickable {
     tr {
@@ -225,30 +231,6 @@ iframe.notebook-iframe {
     }
   }
 
-  .snapshot-list  {
-    .snapshot-item {
-      padding: $generalPadding;
-
-      i {
-        float: left;
-        margin-right: 10px;
-        margin-top: -3px;
-      }
-
-      button {
-        background-color: $mdc-theme-secondary;
-        float: right;
-      }
-
-      .details {
-        float: left;
-
-        h4 {
-          margin: 0;
-        }
-      }
-    }
-  }
 }
 
 h2.header {
@@ -311,10 +293,6 @@ h2.header {
     .search {
       margin-bottom: $generalPadding;
     }
-  }
-
-  button.mdc-button--raised {
-    background-color: $mdc-theme-secondary;
   }
 
   .buttons {
@@ -408,6 +386,17 @@ h2.header {
 }
 
 
+button.themed-secondary {
+ 
+  &:not(:disabled){
+    background-color: $mdc-theme-secondary;
+  }
+
+  &:disabled {
+    background: rgba(0, 0, 0, 0.12);
+  }
+}
+
 .fullwidth {
   width: 100%;
 }
@@ -450,30 +439,12 @@ h2.header {
       margin-bottom: 20px;
     }
 
-    button.mdc-button--raised {
-      background: $mdc-theme-secondary;
-    }
+    
     button {
       margin-right: 20px;
     }
   }
 }
-
-.experiment-list, .new-experiment {
-
-  h2 {
-    button {
-      &.experiment-button {
-        &.mdc-button--raised:not(:disabled) {
-          background-color: $mdc-theme-secondary;
-        }
-      }
-      float: right;
-    }
-  }
-
-}
-
 
 .pipeline-view {
   position: relative;
@@ -513,9 +484,6 @@ h2.header {
         display: inline-block;
         padding-left: $generalPadding;
 
-        button {
-          background-color: $mdc-theme-secondary;
-        }
       }
       
     }
@@ -844,7 +812,6 @@ h2.header {
         margin-bottom: $generalPadding;
 
         button {
-          background-color: $mdc-theme-secondary;
           margin-right: $generalPadding;
         }
       }

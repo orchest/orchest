@@ -21,3 +21,5 @@ class Experiment(db.Model):
     pipeline_uuid = db.Column(db.String(255), unique=False, nullable=False)
     pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    strategy_json = db.Column(db.Text, nullable=False)
+    

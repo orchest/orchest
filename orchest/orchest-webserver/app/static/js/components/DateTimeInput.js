@@ -14,6 +14,10 @@ class DateTimeInput extends React.Component {
         }
     }
 
+    getISOString(){
+        return new Date(this.state.dateValue + " " + this.state.timeValue).toISOString()
+    }
+
     render() {
         return <div className="datetime-input">
             <div>

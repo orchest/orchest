@@ -1,4 +1,3 @@
-import shutil
 import json
 import os
 import uuid
@@ -18,147 +17,304 @@ from app.models import DataSource, Experiment
 
 logging.basicConfig(level=logging.DEBUG)
 
-def register_datasources(db, api, ma):
-    class DataSourceNameInUse(HTTPException):
-        pass
 
-    class DataSourceSchema(ma.Schema):
-        class Meta:
-            fields = ("name", "source_type", "connection_details")
-
-    datasource_schema = DataSourceSchema()
-    datasources_schema = DataSourceSchema(many=True)
-
-    class DataSourcesResource(Resource):
-
-        def get(self):
-            datasources = DataSource.query.all()
-            return datasources_schema.dump(datasources)
-
-
-    class DataSourceResource(Resource):
-
-        def put(self, name):
-
-            ds = DataSource.query.filter(DataSource.name==name).first()
-            ds.name = request.json["name"]
-            ds.source_type = request.json["source_type"]
-            ds.connection_details = request.json["connection_details"]
-            db.session.commit()
-
-            return datasource_schema.dump(ds)
-
-        def get(self, name):
-            ds = DataSource.query.filter(DataSource.name==name).first()
-            return datasource_schema.dump(ds)
-
-        def delete(self, name):
-            DataSource.query.filter(DataSource.name==name).delete()
-            db.session.commit()
-
-        def post(self, name):
-
-            if DataSource.query.filter(DataSource.name == name).count() > 0:
-                raise DataSourceNameInUse()
-
-            new_ds = DataSource(
-                name=name,
-                source_type=request.json['source_type'],
-                connection_details=request.json['connection_details']
-            )
-
-            db.session.add(new_ds)
-            db.session.commit()
-
-            return datasource_schema.dump(new_ds)
-
-
-    api.add_resource(DataSourcesResource, '/store/datasources')
-    api.add_resource(DataSourceResource, '/store/datasources/<string:name>')
-
-
-def register_experiments(db, api, ma):
-
-    class ExperimentUuidInUse(HTTPException):
-        pass
-    
-    class ExperimentSchema(ma.Schema):
-        class Meta:
-            fields = ("name", "uuid", "pipeline_uuid", "pipeline_name", "created")
-
-    experiment_schema = ExperimentSchema()
-    experiments_schema = ExperimentSchema(many=True)
-
-    class ExperimentsResource(Resource):
-
-        def get(self):
-            experiments = Experiment.query.all()
-            return experiments_schema.dump(experiments)
-
-    class ExperimentResource(Resource):
-
-        def put(self, uuid):
-
-            ex = Experiment.query.filter(Experiment.uuid==uuid).first()
-            ex.name = request.json["name"]
-            ex.uuid = request.json["uuid"]
-            ex.pipeline_uuid = request.json["pipeline_uuid"]
-            ex.pipeline_name = request.json["pipeline_name"]
-            db.session.commit()
-
-            return experiment_schema.dump(ex)
-
-        def get(self, uuid):
-            ex = Experiment.query.filter(Experiment.uuid==uuid).first()
-            return experiment_schema.dump(ex)
-
-        def delete(self, uuid):
-            Experiment.query.filter(Experiment.uuid==uuid).delete()
-            db.session.commit()
-
-        def post(self, uuid):
-
-            if Experiment.query.filter(Experiment.uuid == uuid).count() > 0:
-                raise ExperimentUuidInUse()
-
-            new_ex = Experiment(
-                uuid=uuid,
-                name=request.json['name'],
-                pipeline_uuid=request.json['pipeline_uuid'],
-                pipeline_name=request.json['pipeline_name']
-            )
-
-            db.session.add(new_ex)
-            db.session.commit()
-
-            return experiment_schema.dump(new_ex)
-
-
-    api.add_resource(ExperimentsResource, '/store/experiments')
-    api.add_resource(ExperimentResource, '/store/experiments/<string:uuid>')
-
-
-def register_rest(app, db):
-
-    ma = Marshmallow(app)
-
-    errors = {
-        'DataSourceNameInUse': {
-            'message': "A data source with this name already exists.",
-            'status': 409,
-        },
-        'ExperimentUuidInUse': {
-            'message': "An experiment with this UUID already exists.",
-            'status': 409,
-        },
-    }
-
-    api = Api(app, errors = errors)
-
-    register_datasources(db, api, ma)
-    register_experiments(db, api, ma)
 
 def register_views(app, db):
+
+    def return_404(reason = ""):
+        json_string = json.dumps(
+            {"success": False, "reason": reason})
+
+        return json_string, 404, {'content-type': 'application/json'}
+
+
+    def generate_gateway_kernel_name(image, kernel):
+        base_image = image
+        # derive gateway kernel from kernel + image name
+        # (dynamic instead of hardcoded mapping for now)
+        # base image: i.e. jupyter/scipy-notebook gets reduced to scipy-notebook
+        if "/" in base_image:
+            base_image = base_image.replace("/", "-")
+
+        return base_image + "_docker_" + kernel
+
+
+    def pipeline_set_notebook_kernels(pipeline_json):
+
+        # for each step set correct notebook kernel if it exists
+        pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
+
+        steps = pipeline_json["steps"].keys()
+
+        for key in steps:
+            step = pipeline_json["steps"][key]
+
+            if "ipynb" == step["file_path"].split(".")[-1]:
+
+                notebook_path = os.path.join(pipeline_directory, step["file_path"])
+
+                if os.path.isfile(notebook_path):
+
+                    gateway_kernel = generate_gateway_kernel_name(step['image'], step['kernel']['name'])
+
+                    notebook_json = None
+
+                    with open(notebook_path, "r") as file:
+                        notebook_json = json.load(file)
+
+                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+
+                    with open(notebook_path, "w") as file:
+                        file.write(json.dumps(notebook_json))
+                else:
+                    logging.debug("pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
+
+
+    def get_experiment_args_from_pipeline_json(pipeline_json):
+        experiment_args = {}
+
+        for key in pipeline_json['steps'].keys():
+            step = pipeline_json['steps'][key]
+
+            if len(step['experiment_json'].strip()) > 0:
+                experiment_json = json.loads(step['experiment_json'])
+
+                experiment_args[step['uuid']] = {
+                    "name": step['name'],
+                    "experiment_json": experiment_json
+                }
+
+        return experiment_args
+
+    def get_pipeline_directory_by_uuid(uuid, host_path=False):
+
+        pipeline_dir = os.path.join(get_pipelines_dir(host_path=host_path), uuid)
+
+        return pipeline_dir
+
+
+    def get_pipelines_dir(host_path=False):
+
+        USER_DIR = app.config['USER_DIR']
+
+        if host_path:
+            USER_DIR = app.config['HOST_USER_DIR']
+
+        pipeline_dir = os.path.join(USER_DIR, "pipelines")
+        # create pipeline dir if it doesn't exist but only when not getting host path (that's not relative to this OS)
+        if not host_path:
+            os.makedirs(pipeline_dir, exist_ok=True)
+
+        return pipeline_dir
+
+
+    def generate_ipynb_from_template(step):
+
+        # TODO: support additional languages to Python and R
+        if "python" in step["kernel"]["name"].lower():
+            template_json = json.load(
+                open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
+        else:
+            template_json = json.load(
+                open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template_r.json"), "r"))
+
+        template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"]["display_name"]
+        template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(step['image'], step["kernel"]["name"])
+
+        return json.dumps(template_json)
+
+
+    def create_pipeline_files(pipeline_json):
+
+        pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
+
+        # Currently, we check per step whether the file exists.
+        # If not, we create it (empty by default).
+        # In case the file has an .ipynb extension we generate the file from a
+        # template with a kernel based on the kernel description in the JSON step.
+
+        # Iterate over steps
+        steps = pipeline_json["steps"].keys()
+
+        for key in steps:
+            step = pipeline_json["steps"][key]
+
+            file_name = step["file_path"]
+
+            full_file_path = os.path.join(pipeline_directory, file_name)
+
+            if not os.path.isfile(full_file_path):
+                file_name_split = file_name.split(".")
+                file_name_without_ext = '.'.join(file_name_split[:-1])
+                ext = file_name_split[-1]
+
+                if len(file_name_without_ext) > 0:
+                    file_content = ""
+
+                    if ext == "ipynb":
+                        file_content = generate_ipynb_from_template(step)
+
+                    file = open(full_file_path, "w")
+
+                    file.write(file_content)
+
+
+    def create_experiment_directory(experiment_uuid, pipeline_uuid):
+        
+        experiment_path = os.path.join(app.config["USER_DIR"], "experiments", pipeline_uuid, experiment_uuid)
+
+        os.makedirs(experiment_path)
+
+        snapshot_path = os.path.join(experiment_path, "snapshot")
+        pipeline_path = os.path.join(app.config["USER_DIR"], "pipelines", pipeline_uuid)
+
+        os.system("cp -R %s %s" % (pipeline_path, snapshot_path))
+        
+
+    def register_datasources(db, api, ma):
+        class DataSourceNameInUse(HTTPException):
+            pass
+
+        class DataSourceSchema(ma.Schema):
+            class Meta:
+                fields = ("name", "source_type", "connection_details")
+
+        datasource_schema = DataSourceSchema()
+        datasources_schema = DataSourceSchema(many=True)
+
+        class DataSourcesResource(Resource):
+
+            def get(self):
+                datasources = DataSource.query.all()
+                return datasources_schema.dump(datasources)
+
+
+        class DataSourceResource(Resource):
+
+            def put(self, name):
+
+                ds = DataSource.query.filter(DataSource.name==name).first()
+                ds.name = request.json["name"]
+                ds.source_type = request.json["source_type"]
+                ds.connection_details = request.json["connection_details"]
+                db.session.commit()
+
+                return datasource_schema.dump(ds)
+
+            def get(self, name):
+                ds = DataSource.query.filter(DataSource.name==name).first()
+                return datasource_schema.dump(ds)
+
+            def delete(self, name):
+                DataSource.query.filter(DataSource.name==name).delete()
+                db.session.commit()
+
+            def post(self, name):
+
+                if DataSource.query.filter(DataSource.name == name).count() > 0:
+                    raise DataSourceNameInUse()
+
+                new_ds = DataSource(
+                    name=name,
+                    source_type=request.json['source_type'],
+                    connection_details=request.json['connection_details']
+                )
+
+                db.session.add(new_ds)
+                db.session.commit()
+
+                return datasource_schema.dump(new_ds)
+
+
+        api.add_resource(DataSourcesResource, '/store/datasources')
+        api.add_resource(DataSourceResource, '/store/datasources/<string:name>')
+
+
+    def register_experiments(db, api, ma):
+
+        class ExperimentUuidInUse(HTTPException):
+            pass
+        
+        class ExperimentSchema(ma.Schema):
+            class Meta:
+                fields = ("name", "uuid", "pipeline_uuid", "pipeline_name", "created", "strategy_json")
+
+        experiment_schema = ExperimentSchema()
+        experiments_schema = ExperimentSchema(many=True)
+
+        class ExperimentsResource(Resource):
+
+            def get(self):
+                experiments = Experiment.query.all()
+                return experiments_schema.dump(experiments)
+
+        class ExperimentResource(Resource):
+
+            def put(self, experiment_uuid):
+
+                ex = Experiment.query.filter(Experiment.uuid==uuid).first()
+                ex.name = request.json["name"]
+                ex.uuid = request.json["uuid"]
+                ex.pipeline_uuid = request.json["pipeline_uuid"]
+                ex.pipeline_name = request.json["pipeline_name"]
+                ex.strategy_json = request.json["strategy_json"]
+                db.session.commit()
+
+                return experiment_schema.dump(ex)
+
+            def get(self, experiment_uuid):
+                ex = Experiment.query.filter(Experiment.uuid==experiment_uuid).first()
+                return experiment_schema.dump(ex)
+
+            def delete(self, experiment_uuid):
+                Experiment.query.filter(Experiment.uuid==experiment_uuid).delete()
+                db.session.commit()
+
+            def post(self, experiment_uuid):
+
+                if Experiment.query.filter(Experiment.uuid == experiment_uuid).count() > 0:
+                    raise ExperimentUuidInUse()
+
+                new_ex = Experiment(
+                    uuid=experiment_uuid,
+                    name=request.json['name'],
+                    pipeline_uuid=request.json['pipeline_uuid'],
+                    pipeline_name=request.json['pipeline_name'],
+                    strategy_json=request.json['strategy_json'],
+                )
+
+                db.session.add(new_ex)
+                db.session.commit()
+
+                return experiment_schema.dump(new_ex)
+
+
+        api.add_resource(ExperimentsResource, '/store/experiments')
+        api.add_resource(ExperimentResource, '/store/experiments/<string:experiment_uuid>')
+
+
+    def register_rest(app, db):
+
+        ma = Marshmallow(app)
+
+        errors = {
+            'DataSourceNameInUse': {
+                'message': "A data source with this name already exists.",
+                'status': 409,
+            },
+            'ExperimentUuidInUse': {
+                'message': "An experiment with this UUID already exists.",
+                'status': 409,
+            },
+        }
+
+        api = Api(app, errors = errors)
+
+        register_datasources(db, api, ma)
+        register_experiments(db, api, ma)
+
+    register_rest(app, db)
+
 
     @app.route("/", methods=["GET"])
     def index():
@@ -176,19 +332,30 @@ def register_views(app, db):
 
         # add image mapping
         # TODO: replace with dynamic mapping instead of hardcoded
-        image_mapping = {
-            "orchestsoftware/scipy-notebook-augmented": "orchestsoftware/scipy-notebook-runnable",
-            "orchestsoftware/r-notebook-augmented": "orchestsoftware/r-notebook-runnable"
-        }
-
         json_obj['run_config'] = {
-            'runnable_image_mapping': image_mapping,
+            'runnable_image_mapping': app.config["IMAGE_MAPPING"],
             'pipeline_dir': get_pipeline_directory_by_uuid(json_obj['pipeline_description']['uuid'], host_path=True)
         }
 
 
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
+
+    @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
+    def catch_api_proxy_experiments():
+
+        json_obj = request.json
+
+        json_obj["pipeline_run_spec"]['run_config'] = {
+            'runnable_image_mapping': app.config["IMAGE_MAPPING"],
+            'host_user_dir': app.config["HOST_USER_DIR"]
+        }
+
+        resp = requests.post(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/", json=json_obj, stream=True)
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
@@ -206,6 +373,13 @@ def register_views(app, db):
 
         return jsonify({"success": True})
 
+
+    @app.route("/async/experiments/create", methods=["POST"])
+    def experiments_create():
+        
+        create_experiment_directory(request.json['experiment_uuid'], request.json['pipeline_uuid'])
+        
+        return jsonify({"success": True})
 
     @app.route("/async/pipelines/create", methods=["POST"])
     def pipelines_create():
@@ -332,13 +506,6 @@ def register_views(app, db):
         return json_string, 200, {'content-type': 'application/json'}
 
 
-    def return_404(reason = ""):
-        json_string = json.dumps(
-            {"success": False, "reason": reason})
-
-        return json_string, 404, {'content-type': 'application/json'}
-
-
     @app.route("/async/notebook_html/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
     def notebook_html_get(pipeline_uuid, step_uuid):
 
@@ -408,79 +575,6 @@ def register_views(app, db):
             return json_string, 404, {'content-type': 'application/json'}
 
 
-    def get_pipeline_directory_by_uuid(uuid, host_path=False):
-
-        pipeline_dir = os.path.join(get_pipelines_dir(host_path=host_path), uuid)
-
-        return pipeline_dir
-
-
-    def get_pipelines_dir(host_path=False):
-
-        USER_DIR = app.config['USER_DIR']
-
-        if host_path:
-            USER_DIR = app.config['HOST_USER_DIR']
-
-        pipeline_dir = os.path.join(USER_DIR, "pipelines")
-        # create pipeline dir if it doesn't exist but only when not getting host path (that's not relative to this OS)
-        if not host_path:
-            os.makedirs(pipeline_dir, exist_ok=True)
-
-        return pipeline_dir
-
-
-    def generate_ipynb_from_template(step):
-
-        # TODO: support additional languages to Python and R
-        if "python" in step["kernel"]["name"].lower():
-            template_json = json.load(
-                open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template.json"), "r"))
-        else:
-            template_json = json.load(
-                open(os.path.join(app.config['RESOURCE_DIR'], "ipynb_template_r.json"), "r"))
-
-        template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"]["display_name"]
-        template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(step['image'], step["kernel"]["name"])
-
-        return json.dumps(template_json)
-
-
-    def create_pipeline_files(pipeline_json):
-
-        pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
-
-        # Currently, we check per step whether the file exists.
-        # If not, we create it (empty by default).
-        # In case the file has an .ipynb extension we generate the file from a
-        # template with a kernel based on the kernel description in the JSON step.
-
-        # Iterate over steps
-        steps = pipeline_json["steps"].keys()
-
-        for key in steps:
-            step = pipeline_json["steps"][key]
-
-            file_name = step["file_path"]
-
-            full_file_path = os.path.join(pipeline_directory, file_name)
-
-            if not os.path.isfile(full_file_path):
-                file_name_split = file_name.split(".")
-                file_name_without_ext = '.'.join(file_name_split[:-1])
-                ext = file_name_split[-1]
-
-                if len(file_name_without_ext) > 0:
-                    file_content = ""
-
-                    if ext == "ipynb":
-                        file_content = generate_ipynb_from_template(step)
-
-                    file = open(full_file_path, "w")
-
-                    file.write(file_content)
-
-
     @app.route("/async/pipelines/json/save", methods=["POST"])
     def pipelines_json_save():
 
@@ -498,65 +592,6 @@ def register_views(app, db):
             json_file.write(json.dumps(pipeline_json))
 
         return jsonify({"success": True})
-
-
-    def generate_gateway_kernel_name(image, kernel):
-        base_image = image
-        # derive gateway kernel from kernel + image name
-        # (dynamic instead of hardcoded mapping for now)
-        # base image: i.e. jupyter/scipy-notebook gets reduced to scipy-notebook
-        if "/" in base_image:
-            base_image = base_image.replace("/", "-")
-
-        return base_image + "_docker_" + kernel
-
-
-    def pipeline_set_notebook_kernels(pipeline_json):
-
-        # for each step set correct notebook kernel if it exists
-        pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
-
-        steps = pipeline_json["steps"].keys()
-
-        for key in steps:
-            step = pipeline_json["steps"][key]
-
-            if "ipynb" == step["file_path"].split(".")[-1]:
-
-                notebook_path = os.path.join(pipeline_directory, step["file_path"])
-
-                if os.path.isfile(notebook_path):
-
-                    gateway_kernel = generate_gateway_kernel_name(step['image'], step['kernel']['name'])
-
-                    notebook_json = None
-
-                    with open(notebook_path, "r") as file:
-                        notebook_json = json.load(file)
-
-                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
-
-                    with open(notebook_path, "w") as file:
-                        file.write(json.dumps(notebook_json))
-                else:
-                    logging.debug("pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
-
-
-    def get_experiment_args_from_pipeline_json(pipeline_json):
-        experiment_args = {}
-
-        for key in pipeline_json['steps'].keys():
-            step = pipeline_json['steps'][key]
-
-            if len(step['experiment_json'].strip()) > 0:
-                experiment_json = json.loads(step['experiment_json'])
-
-                experiment_args[step['uuid']] = {
-                    "name": step['name'],
-                    "experiment_json": experiment_json
-                }
-
-        return experiment_args
 
 
     @app.route("/async/pipelines/json/experiments/<pipeline_uuid>", methods=["GET"])

@@ -40,6 +40,20 @@ class SearchableTable extends React.Component {
 
     }
 
+    componentDidUpdate(prevProps){
+        if(this.props.rows !== prevProps.rows){
+            this.setState({"rowSearchMask": new Array(this.props.rows.length).fill(1)});
+        }
+    }    
+
+    getSelectedRowIndices(){
+        return this.refs.table.getSelectedRowIndices();
+    }
+    
+    setSelectedRowIds(rowIds){
+        this.refs.table.setSelectedRowIds(rowIds);
+    }
+
     filteredRows(rows){
         if(!rows){
             return
@@ -61,7 +75,7 @@ class SearchableTable extends React.Component {
 
             <MDCTextFieldReact onChange={this.onSearchChange.bind(this)} classNames={['mdc-text-field--outlined', 'fullwidth', 'search']} notched={true} label="Search" />
 
-            <MDCDataTableReact selectable={this.props.selectable} selectedIndices={this.filteredRows(this.props.selectedIndices)} onSelectionChanged={this.props.onSelectionChanged} onRowClick={this.props.onRowClick} classNames={['fullwidth']} headers={this.props.headers} rows={this.filteredRows(this.props.rows)} />
+            <MDCDataTableReact ref="table" selectable={this.props.selectable} selectedIndices={this.filteredRows(this.props.selectedIndices)} onSelectionChanged={this.props.onSelectionChanged} onRowClick={this.props.onRowClick} classNames={['fullwidth']} headers={this.props.headers} rows={this.filteredRows(this.props.rows)} />
             
         </Fragment>
     }

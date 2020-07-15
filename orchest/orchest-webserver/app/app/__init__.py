@@ -21,7 +21,7 @@ import atexit
 from app.analytics import analytics_ping
 from subprocess import Popen
 
-from app.views import register_views, register_rest
+from app.views import register_views
 from app.connections import db
 
 def create_app():
@@ -53,7 +53,6 @@ def create_app():
         return send_from_directory("../static", path)
 
     register_views(app, db)
-    register_rest(app, db)
 
 
     if "TELEMETRY_DISABLED" not in app.config:

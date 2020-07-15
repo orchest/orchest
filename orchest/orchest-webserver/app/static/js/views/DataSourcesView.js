@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 import DataSourceEditView from "./DataSourceEditView";
 import CheckItemList from '../components/CheckItemList';
 import { makeRequest } from '../utils/all';
+import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
 
 class DataSourcesView extends React.Component {
 
@@ -83,14 +84,18 @@ class DataSourcesView extends React.Component {
   render() {
     return <div className={"view-page"}>
       <h2>Data sources</h2>
-      <div className={"data-source-actions"}>
-        <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
-        <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
-      </div>
 
       {(() => {
         if(this.state.dataSources){
-          return <CheckItemList ref="checkItemList" items={this.state.dataSources} onClickListItem={this.onClickListItem.bind(this)} />
+          return <Fragment>
+              <div className={"data-source-actions"}>
+                <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
+                <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
+              </div>
+              <CheckItemList ref="checkItemList" items={this.state.dataSources} onClickListItem={this.onClickListItem.bind(this)} />
+            </Fragment>
+        }else{
+          return <MDCLinearProgressReact />
         }
       })()}
       

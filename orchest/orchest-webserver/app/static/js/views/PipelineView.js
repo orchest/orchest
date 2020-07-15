@@ -1365,8 +1365,8 @@ class PipelineView extends React.Component {
                     {(() => {
                         if (this.state.selectedSteps.length > 0 && !this.state.stepSelector.active && !this.props.readOnly) {
                             return <div className="selection-buttons">
-                                <MDCButtonReact classNames={["mdc-button--raised"]} onClick={this.runSelectedSteps.bind(this)} label="Run selected steps" />
-                                <MDCButtonReact classNames={["mdc-button--raised"]} onClick={this.onRunIncoming.bind(this)} label="Run incoming steps" />
+                                <MDCButtonReact classNames={["mdc-button--raised", "themed-secondary"]} onClick={this.runSelectedSteps.bind(this)} label="Run selected steps" />
+                                <MDCButtonReact classNames={["mdc-button--raised", "themed-secondary"]} onClick={this.onRunIncoming.bind(this)} label="Run incoming steps" />
                             </div>;
                         }
                     })()}
