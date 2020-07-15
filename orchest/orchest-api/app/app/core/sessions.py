@@ -1,8 +1,34 @@
 from abc import abstractmethod
+from contextlib import contextmanager
 from typing import NamedTuple, Optional
 import os
 
 from docker.types import Mount
+
+
+@contextmanager
+def launch_session(docker_client, pipeline_uuid, pipeline_dir, interactive=False):
+    """Launch session for a particular pipeline.
+
+    Args:
+        docker_client (docker.client.DockerClient): docker client to
+            manage Docker resources.
+        pipeline_uuid: UUID of pipeline that the session is started for.
+        pipeline_dir: Path to the `pipeline_dir`, which has to be
+            mounted into the containers so that the user can interact
+            with the files.
+        interactive: If True then launch :class:`InteractiveSession`, if
+            False then launch :class:`NonInteractiveSession`.
+
+    """
+    session = InteractiveSession if interactive else NonInteractiveSession
+
+    session = session(docker_client, network='orchest')
+    session.launch(pipeline_uuid, pipeline_dir)
+    try:
+        yield session
+    finally:
+        session.shutdown()
 
 
 class IP(NamedTuple):
@@ -23,6 +49,8 @@ class Session:
             Docker resources.
         network: name of docker network to manage resources on.
     """
+    _resources: Optional[list] = None
+
     def __init__(self, client, network: Optional[str] = None):
         self.client = client
         self.network = network
@@ -149,10 +177,15 @@ class InteractiveSession(Session):
         return IP(self._get_container_IP(self.containers['jupyter-EG']),
                   self._get_container_IP(self.containers['jupyter-server']))
 
-    def reboot_memory_server(self):
+    def restart_resource(self, resource_name='memory-server'):
         # TODO: should be possible to clear the memory store. So either
         #       clear or reboot it.
-        pass
+        container = self.containers[resource_name]
+
+        # TODO: make sure the .sock still gets cleaned and a new one is
+        #       created. In other words, make sure cleanup code is still
+        #       called.
+        container.restart(timeout=5)  # timeout in sec before killing
 
 
 class NonInteractiveSession(Session):
@@ -206,6 +239,7 @@ def _get_mounts(pipeline_dir):
 
 
 def _get_container_specs(uuid, pipeline_dir, network):
+    # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
     mounts = _get_mounts(pipeline_dir)
 
