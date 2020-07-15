@@ -526,7 +526,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         #       always know when we are running inside a jupyter kernel
         #       interactively. And in that case we never want to do
         #       eviction.
-        if os.getenv('EVICTION_OPTIONALITY', 0):
+        if os.getenv('EVICTION_OPTIONALITY') is not None:
             empty_obj, _ = serialize('')
             msg = f'2;{step_uuid},{consumer}'
             metadata = bytes(msg, 'utf-8')
