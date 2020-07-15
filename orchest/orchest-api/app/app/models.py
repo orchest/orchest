@@ -56,7 +56,7 @@ class InteractiveSession(BaseModel, db.Model):
         nullable=False
     )  # IPv4
     # Used to connect to Jupyter notebook server.
-    jupyter_server_info = db.Column(
+    notebook_server_info = db.Column(
         db.JSON,
         unique=True,
         nullable=False

@@ -158,15 +158,15 @@ class InteractiveSession(Session):
     def __init__(self, client, network):
         super().__init__(client, network)
 
-        self._jupyter_server_info = None
+        self._notebook_server_info = None
 
     @property
-    def jupyter_server_info(self):
+    def notebook_server_info(self):
         # TODO: maybe error if launch was not called yet
-        if self._jupyter_server_info is None:
+        if self._notebook_server_info is None:
             pass
 
-        return self._jupyter_server_info
+        return self._notebook_server_info
 
     def _get_container_IP(self, container) -> str:
         """Get IP address of container.
@@ -184,6 +184,7 @@ class InteractiveSession(Session):
         return container.attrs['NetworkSettings']['Networks'][self.network]['IPAddress']
 
     # TODO: rename to `get_resources_IP` ?
+    # TODO: make into property? `.ips` Same goes for `get_container_IDs`
     def get_containers_IP(self) -> IP:
         """Launches a configured Jupyter server and Jupyter EG.
 
@@ -236,10 +237,19 @@ class InteractiveSession(Session):
             else:
                 break
 
-        self._jupyter_server_info = r.json()
+        self._notebook_server_info = r.json()
         return
 
     def shutdown(self) -> None:
+        # NOTE: this request will block the API. However, this is
+        # desired as the front-end would otherwise need to poll whether
+        # the Jupyter launch has been shut down (to be able to show its
+        # status in the UI).
+        # Uses the API inside the container that is also running the
+        # Jupyter server to shut the server down and clean all running
+        # kernels that are associated with the server.
+        # The request is blocking and returns after all kernels and
+        # server have been shut down.
         # TODO: make sure a graceful shutdown is instantiated via a
         #       DELETE request to the flask API inside the jupyter-server
         IP = self.get_containers_IP()
