@@ -27,7 +27,7 @@ class LaunchList(Resource):
     @api.marshal_with(launches)
     def get(self):
         """Fetch all launches."""
-        query = models.Launch.query
+        query = models.InteractiveSession.query
 
         if "pipeline_uuid" in request.args:
             query = query.filter_by(pipeline_uuid=request.args.get('pipeline_uuid'))

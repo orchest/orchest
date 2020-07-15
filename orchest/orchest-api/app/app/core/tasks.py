@@ -1,7 +1,6 @@
 import asyncio
 import json
 import os
-from shutil import copytree
 from typing import Dict, Optional, Union
 
 import aiohttp

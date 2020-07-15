@@ -811,20 +811,22 @@ class PipelineView extends React.Component {
 
             if(result.launches.length > 0){
                 let launch = result.launches[0];
-                this.state.backend.server_ip = launch.server_ip;
-                this.state.backend.server_info = launch.server_info;
+                this.state.backend.jupyter_server_ip = launch.jupyter_server_ip;
+                this.state.backend.notebook_server_info = launch.notebook_server_info;
                 this.state.backend.running = true;
 
                 this.setState({ "backend": this.state.backend });
                 this.updateJupyterInstance();
+            }else{
+                this.launchPipeline();
             }
         });
 
     }
 
     updateJupyterInstance() {
-        let baseAddress = "http://" + window.location.host + "/jupyter_" + this.state.backend.server_ip.replace(/\./g, "_") + "/";
-        let token = this.state.backend.server_info.token;
+        let baseAddress = "http://" + window.location.host + "/jupyter_" + this.state.backend.jupyter_server_ip.replace(/\./g, "_") + "/";
+        let token = this.state.backend.notebook_server_info.token;
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
 
@@ -866,8 +868,8 @@ class PipelineView extends React.Component {
                     this.state.backend.running = true;
                     this.state.backend.working = false;
 
-                    this.state.backend.server_ip = json.server_ip;
-                    this.state.backend.server_info = json.server_info;
+                    this.state.backend.jupyter_server_ip = json.jupyter_server_ip;
+                    this.state.backend.notebook_server_info = json.notebook_server_info;
 
                     this.setState({ "backend": this.state.backend });
 
@@ -882,7 +884,7 @@ class PipelineView extends React.Component {
                 "backend": this.state.backend
             })
 
-            makeRequest('DELETE', "/api-proxy/api/launches/" + this.props.pipeline.uuid).then((response) => {
+            makeRequest("DELETE", "/api-proxy/api/launches/" + this.props.pipeline.uuid).then((response) => {
                 let result = JSON.parse(response);
                 console.log("API delete result");
                 console.log(result);
@@ -1028,7 +1030,7 @@ class PipelineView extends React.Component {
             orchest.showJupyter();
             orchest.headerBarComponent.showBack();
         } else {
-            alert("Please start the back-end before opening the Notebook in Jupyter");
+            alert("Please start the session before opening the Notebook in Jupyter");
         }
     }
 
@@ -1093,6 +1095,10 @@ class PipelineView extends React.Component {
     }
 
     runStepUUIDs(uuids, type) {
+
+        if(!this.state.backend.running){
+            alert("There is no active session. Please start the session first.");
+        }
 
         if (this.state.pipelineRunning) {
             alert("The pipeline is currently executing, please wait until it completes.");

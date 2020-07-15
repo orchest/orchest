@@ -361,7 +361,7 @@ def _get_container_specs(uuid, pipeline_dir, network):
             mounts['memory_server_sock'],
         ],
         # TODO: name not unique... and uuid cannot be used.
-        'name': 'memory-server-{uuid}',
+        'name': f'memory-server-{uuid}',
         'network': network,
         'shm_size': int(1.2e9),  # need to overalocate to get 1G
     }
