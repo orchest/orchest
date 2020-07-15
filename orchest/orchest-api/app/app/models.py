@@ -1,4 +1,3 @@
-from datetime import datetime
 from app.connections import db
 
 
@@ -19,6 +18,45 @@ class Launch(BaseModel, db.Model):
         nullable=False
     )  # IPv4
     server_info = db.Column(
+        db.JSON,
+        unique=True,
+        nullable=False
+    )
+
+    def __repr__(self):
+        return f'<Launch {self.pipeline_uuid}>'
+
+
+class InteractiveSession(BaseModel, db.Model):
+    __tablename__ = 'interactive_sessions'
+    pipeline_uuid = db.Column(
+        db.String(36),
+        primary_key=True
+    )
+    # Docker container IDs.
+    memory_server = db.Column(
+        db.String(30),
+        unique=False,
+        nullable=False,
+    )
+    jupyter_EG = db.Column(
+        db.String(30),
+        unique=False,
+        nullable=False,
+    )
+    jupyter_server = db.Column(
+        db.String(30),
+        unique=False,
+        nullable=False,
+    )
+    # Used to connect to Jupyter notebook server.
+    jupyter_server_ip = db.Column(
+        db.String(15),
+        unique=True,
+        nullable=False
+    )  # IPv4
+    # Used to connect to Jupyter notebook server.
+    jupyter_server_info = db.Column(
         db.JSON,
         unique=True,
         nullable=False

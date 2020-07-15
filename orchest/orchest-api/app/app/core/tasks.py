@@ -59,7 +59,7 @@ class APITask(Task):
 
 # TODO: rename this function maybe? `start_pipeline_run` since it no
 #       longer constructs the partial, the construct is already done
-#       in the API.
+#       in the API. `run_pipeline` sounds even better to me
 # @celery.task(bind=True, base=APITask)
 @celery.task(bind=True)
 def run_partial(self,

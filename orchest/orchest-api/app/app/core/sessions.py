@@ -1,9 +1,16 @@
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import NamedTuple, Optional
+import logging
+import sys
+import time
+from typing import Dict, NamedTuple, Optional
 import os
 
 from docker.types import Mount
+import requests
+
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 @contextmanager
@@ -86,8 +93,13 @@ class Session:
 
         return self._containers
 
-    def get_container_IDs(self):
-        """Gets container IDs of running resources of this Session."""
+    def get_container_IDs(self) -> Dict[str, str]:
+        """Gets container IDs of running resources of this Session.
+
+        Returns:
+            Mapping from resource (name) to container ID.
+
+        """
         # The API can use this to get the IDs to then later give them
         # back so that it can use the IDs to do the shutdown.
         res = {}
@@ -126,6 +138,8 @@ class Session:
             shut down successfully.
         """
         for resource, container in self.containers.items():
+            # TODO: this depends on whether or not auto_remove is
+            #       enabled in the container specs.
             container.stop()
             container.remove()
 
@@ -143,6 +157,16 @@ class InteractiveSession(Session):
 
     def __init__(self, client, network):
         super().__init__(client, network)
+
+        self._jupyter_server_info = None
+
+    @property
+    def jupyter_server_info(self):
+        # TODO: maybe error if launch was not called yet
+        if self._jupyter_server_info is None:
+            pass
+
+        return self._jupyter_server_info
 
     def _get_container_IP(self, container) -> str:
         """Get IP address of container.
@@ -177,7 +201,55 @@ class InteractiveSession(Session):
         return IP(self._get_container_IP(self.containers['jupyter-EG']),
                   self._get_container_IP(self.containers['jupyter-server']))
 
+    def launch(self, uuid: str, pipeline_dir: str) -> None:
+        super().launch(uuid, pipeline_dir)
+
+        # TODO: This session should manage additionally that the jupyter
+        #       notebook server is started through the little flask API
+        #       that is running inside the container.
+
+        IP = self.get_containers_IP()
+        # The launched jupyter-server container is only running the API
+        # and waits for instructions before the Jupyter server is
+        # started. Tries to start the Jupyter server, by waiting for the
+        # API to be running after container launch.
+        logging.info('Starting Jupyter Server on %s with Enterprise '
+                     'Gateway on %s' % (IP.jupyter_server, IP.jupyter_EG))
+        payload = {
+            'gateway-url': f'http://{IP.jupyter_EG}:8888',
+            'NotebookApp.base_url': f'/jupyter_{IP.jupyter_server.replace(".", "_")}/'
+        }
+        for i in range(10):
+            try:
+                # Starts the Jupyter server and connects it to the given
+                # Enterprise Gateway.
+                r = requests.post(
+                    f'http://{IP.jupyter_server}:80/api/servers/',
+                    json=payload
+                )
+            except requests.ConnectionError:
+                # TODO: there is probably a robuster way than a sleep.
+                #       Does the EG url have to given at startup? Because
+                #       else we don't need a time-out and simply give it
+                #       later.
+                time.sleep(0.5)
+            else:
+                break
+
+        self._jupyter_server_info = r.json()
+        return
+
+    def shutdown(self) -> None:
+        # TODO: make sure a graceful shutdown is instantiated via a
+        #       DELETE request to the flask API inside the jupyter-server
+        IP = self.get_containers_IP()
+        requests.delete(f'http://{IP.jupyter_server}:80/api/servers/')
+
+        return super().shutdown()
+
     def restart_resource(self, resource_name='memory-server'):
+        # TODO: make sure the InteractiveSession db.Model had an updated
+        #       docker ID if it changes on restart.
         # TODO: should be possible to clear the memory store. So either
         #       clear or reboot it.
         container = self.containers[resource_name]
@@ -185,6 +257,7 @@ class InteractiveSession(Session):
         # TODO: make sure the .sock still gets cleaned and a new one is
         #       created. In other words, make sure cleanup code is still
         #       called.
+        # NOTE: Docker ID does not change when restarting the container.
         container.restart(timeout=5)  # timeout in sec before killing
 
 
