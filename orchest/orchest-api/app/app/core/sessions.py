@@ -1,8 +1,42 @@
 from abc import abstractmethod
-from typing import NamedTuple, Optional
+from contextlib import contextmanager
+import logging
+import sys
+import time
+from typing import Dict, NamedTuple, Optional
+from uuid import uuid4
 import os
 
 from docker.types import Mount
+import requests
+
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+
+@contextmanager
+def launch_session(docker_client, pipeline_uuid, pipeline_dir, interactive=False):
+    """Launch session for a particular pipeline.
+
+    Args:
+        docker_client (docker.client.DockerClient): docker client to
+            manage Docker resources.
+        pipeline_uuid: UUID of pipeline that the session is started for.
+        pipeline_dir: Path to the `pipeline_dir`, which has to be
+            mounted into the containers so that the user can interact
+            with the files.
+        interactive: If True then launch :class:`InteractiveSession`, if
+            False then launch :class:`NonInteractiveSession`.
+
+    """
+    session = InteractiveSession if interactive else NonInteractiveSession
+
+    session = session(docker_client, network='orchest')
+    session.launch(pipeline_uuid, pipeline_dir)
+    try:
+        yield session
+    finally:
+        session.shutdown()
 
 
 class IP(NamedTuple):
@@ -23,6 +57,8 @@ class Session:
             Docker resources.
         network: name of docker network to manage resources on.
     """
+    _resources: Optional[list] = None
+
     def __init__(self, client, network: Optional[str] = None):
         self.client = client
         self.network = network
@@ -58,8 +94,13 @@ class Session:
 
         return self._containers
 
-    def get_container_IDs(self):
-        """Gets container IDs of running resources of this Session."""
+    def get_container_IDs(self) -> Dict[str, str]:
+        """Gets container IDs of running resources of this Session.
+
+        Returns:
+            Mapping from resource (name) to container ID.
+
+        """
         # The API can use this to get the IDs to then later give them
         # back so that it can use the IDs to do the shutdown.
         res = {}
@@ -98,6 +139,8 @@ class Session:
             shut down successfully.
         """
         for resource, container in self.containers.items():
+            # TODO: this depends on whether or not auto_remove is
+            #       enabled in the container specs.
             container.stop()
             container.remove()
 
@@ -116,6 +159,16 @@ class InteractiveSession(Session):
     def __init__(self, client, network):
         super().__init__(client, network)
 
+        self._notebook_server_info = None
+
+    @property
+    def notebook_server_info(self):
+        # TODO: maybe error if launch was not called yet
+        if self._notebook_server_info is None:
+            pass
+
+        return self._notebook_server_info
+
     def _get_container_IP(self, container) -> str:
         """Get IP address of container.
 
@@ -132,6 +185,7 @@ class InteractiveSession(Session):
         return container.attrs['NetworkSettings']['Networks'][self.network]['IPAddress']
 
     # TODO: rename to `get_resources_IP` ?
+    # TODO: make into property? `.ips` Same goes for `get_container_IDs`
     def get_containers_IP(self) -> IP:
         """Launches a configured Jupyter server and Jupyter EG.
 
@@ -149,10 +203,73 @@ class InteractiveSession(Session):
         return IP(self._get_container_IP(self.containers['jupyter-EG']),
                   self._get_container_IP(self.containers['jupyter-server']))
 
-    def reboot_memory_server(self):
+    def launch(self, pipeline_uuid: str, pipeline_dir: str) -> None:
+        super().launch(pipeline_uuid, pipeline_dir)
+
+        # TODO: This session should manage additionally that the jupyter
+        #       notebook server is started through the little flask API
+        #       that is running inside the container.
+
+        IP = self.get_containers_IP()
+        # The launched jupyter-server container is only running the API
+        # and waits for instructions before the Jupyter server is
+        # started. Tries to start the Jupyter server, by waiting for the
+        # API to be running after container launch.
+        logging.info('Starting Jupyter Server on %s with Enterprise '
+                     'Gateway on %s' % (IP.jupyter_server, IP.jupyter_EG))
+        payload = {
+            'gateway-url': f'http://{IP.jupyter_EG}:8888',
+            'NotebookApp.base_url': f'/jupyter_{IP.jupyter_server.replace(".", "_")}/'
+        }
+        for i in range(10):
+            try:
+                # Starts the Jupyter server and connects it to the given
+                # Enterprise Gateway.
+                r = requests.post(
+                    f'http://{IP.jupyter_server}:80/api/servers/',
+                    json=payload
+                )
+            except requests.ConnectionError:
+                # TODO: there is probably a robuster way than a sleep.
+                #       Does the EG url have to given at startup? Because
+                #       else we don't need a time-out and simply give it
+                #       later.
+                time.sleep(0.5)
+            else:
+                break
+
+        self._notebook_server_info = r.json()
+        return
+
+    def shutdown(self) -> None:
+        # NOTE: this request will block the API. However, this is
+        # desired as the front-end would otherwise need to poll whether
+        # the Jupyter launch has been shut down (to be able to show its
+        # status in the UI).
+        # Uses the API inside the container that is also running the
+        # Jupyter server to shut the server down and clean all running
+        # kernels that are associated with the server.
+        # The request is blocking and returns after all kernels and
+        # server have been shut down.
+        # TODO: make sure a graceful shutdown is instantiated via a
+        #       DELETE request to the flask API inside the jupyter-server
+        IP = self.get_containers_IP()
+        requests.delete(f'http://{IP.jupyter_server}:80/api/servers/')
+
+        return super().shutdown()
+
+    def restart_resource(self, resource_name='memory-server'):
+        # TODO: make sure the InteractiveSession db.Model had an updated
+        #       docker ID if it changes on restart.
         # TODO: should be possible to clear the memory store. So either
         #       clear or reboot it.
-        pass
+        container = self.containers[resource_name]
+
+        # TODO: make sure the .sock still gets cleaned and a new one is
+        #       created. In other words, make sure cleanup code is still
+        #       called.
+        # NOTE: Docker ID does not change when restarting the container.
+        container.restart(timeout=5)  # timeout in sec before killing
 
 
 class NonInteractiveSession(Session):
@@ -164,6 +281,27 @@ class NonInteractiveSession(Session):
 
     def __init__(self, client, network):
         super().__init__(client, network)
+
+        self._session_uuid = str(uuid4())
+
+    def launch(self, uuid: str, pipeline_dir: str) -> None:
+        """
+
+        Since multiple memory-servers are started for the same pipeline,
+        the have to get unique docker names. Since 1:1 for memory-server
+        and session, we can use a session_uuid.
+
+        For experiments this uuid should be experiment_uuid for example.
+
+        Args:
+            uuid: should probably not be pipeline uuid. Because of the
+                reason stated above.
+
+        """
+        if uuid is None:
+            uuid = self._session_uuid
+
+        return super().launch(uuid, pipeline_dir)
 
 
 def _get_mounts(pipeline_dir):
@@ -206,6 +344,12 @@ def _get_mounts(pipeline_dir):
 
 
 def _get_container_specs(uuid, pipeline_dir, network):
+    """
+    Args:
+        uuid: can be pipeline_uuid or some uuid to identify the
+            session.
+    """
+    # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
     mounts = _get_mounts(pipeline_dir)
 
@@ -216,7 +360,8 @@ def _get_container_specs(uuid, pipeline_dir, network):
             mounts['pipeline_dir'],
             mounts['memory_server_sock'],
         ],
-        'name': 'memory-server',
+        # TODO: name not unique... and uuid cannot be used.
+        'name': 'memory-server-{uuid}',
         'network': network,
         'shm_size': int(1.2e9),  # need to overalocate to get 1G
     }

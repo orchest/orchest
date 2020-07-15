@@ -182,13 +182,13 @@ launch = Model('Launch', {
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
-    'server_ip': fields.String(
+    'jupyter_server_ip': fields.String(
         required=True,
-        description='IP of the Jupyter server'),
-    'server_info': fields.Nested(
+        description='IP of the jupyter-server'),
+    'notebook_server_info': fields.Nested(
         server,
         required=True,
-        description='Jupyter connection info')
+        description='Jupyter notebook server connection info')
 })
 
 launches = Model('Launches', {
