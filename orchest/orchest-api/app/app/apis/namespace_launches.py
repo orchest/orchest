@@ -51,13 +51,12 @@ class LaunchList(Resource):
         session.launch(post_data['pipeline_uuid'], post_data['pipeline_dir'])
 
         IP = session.get_containers_IP()
-        container_ids = session.get_container_IDs()
         interactive_session = {
             'pipeline_uuid': post_data['pipeline_uuid'],
+            'container_ids': session.get_container_IDs(),
             'jupyter_server_ip': IP.jupyter_server,
             'notebook_server_info': session.notebook_server_info,
         }
-        interactive_session.update(container_ids)
         db.session.add(models.InteractiveSession(**interactive_session))
         db.session.commit()
 
@@ -90,18 +89,9 @@ class Launch(Resource):
         session = models.InteractiveSession.query.get_or_404(
             pipeline_uuid, description='Launch not found'
         )
-
-        # TODO: if possible the db should contain a column where all its
-        #       entries are mappings containing all the resources's
-        #       container ids.
-        ids = {
-            'memory-server': session.memory_server,
-            'jupyter-server': session.jupyter_server,
-            'jupyter-EG': session.jupyter_EG,
-        }
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,
-            container_IDs=ids,
+            container_IDs=session.container_ids,
             network='orchest',
         )
 

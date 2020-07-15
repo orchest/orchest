@@ -34,18 +34,8 @@ class InteractiveSession(BaseModel, db.Model):
         primary_key=True
     )
     # Docker container IDs.
-    memory_server = db.Column(
-        db.String(30),
-        unique=False,
-        nullable=False,
-    )
-    jupyter_EG = db.Column(
-        db.String(30),
-        unique=False,
-        nullable=False,
-    )
-    jupyter_server = db.Column(
-        db.String(30),
+    container_ids = db.Column(
+        db.JSON,
         unique=False,
         nullable=False,
     )
