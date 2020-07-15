@@ -9,7 +9,9 @@ from celery import Task
 
 from app import create_app
 from app.celery_app import make_celery
+from app.connections import docker_client
 from app.core.pipelines import Pipeline, PipelineDescription
+from app.core.sessions import launch_session
 from config import CONFIG_CLASS
 
 
@@ -65,7 +67,7 @@ class APITask(Task):
 def run_partial(self,
                 pipeline_description: PipelineDescription,
                 run_config: Dict[str, Union[str, Dict[str, str]]],
-                task_id: Optional[str] = None) -> None:
+                task_id: Optional[str] = None) -> str:
     """Runs a pipeline partially.
 
     A partial run is described by the pipeline description The
@@ -75,6 +77,9 @@ def run_partial(self,
     Args:
         pipeline_description: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
+
+    Returns:
+        Status of the pipeline run. "FAILURE" or "SUCCESS".
     """
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
@@ -134,4 +139,13 @@ def start_non_interactive_pipeline_run(
     #       `run_config` by doing ``f'experiments/{experiment_uuid}'``.
     # TODO: Have to make sure that somewhere a memory-server is started
     #       so that the pipeline run gets its own memory store.
-    return run_partial(pipeline_description, run_config, task_id=self.request.id)
+
+    with launch_session(
+        docker_client,
+        experiment_uuid,
+        run_config['pipeline_dir'],
+        interactive=False,
+    ) as session:
+        status = run_partial(pipeline_description, run_config, task_id=self.request.id)
+
+    return status

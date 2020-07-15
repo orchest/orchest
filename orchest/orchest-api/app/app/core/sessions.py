@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 from typing import Dict, NamedTuple, Optional
+from uuid import uuid4
 import os
 
 from docker.types import Mount
@@ -202,8 +203,8 @@ class InteractiveSession(Session):
         return IP(self._get_container_IP(self.containers['jupyter-EG']),
                   self._get_container_IP(self.containers['jupyter-server']))
 
-    def launch(self, uuid: str, pipeline_dir: str) -> None:
-        super().launch(uuid, pipeline_dir)
+    def launch(self, pipeline_uuid: str, pipeline_dir: str) -> None:
+        super().launch(pipeline_uuid, pipeline_dir)
 
         # TODO: This session should manage additionally that the jupyter
         #       notebook server is started through the little flask API
@@ -281,6 +282,27 @@ class NonInteractiveSession(Session):
     def __init__(self, client, network):
         super().__init__(client, network)
 
+        self._session_uuid = str(uuid4())
+
+    def launch(self, uuid: str, pipeline_dir: str) -> None:
+        """
+
+        Since multiple memory-servers are started for the same pipeline,
+        the have to get unique docker names. Since 1:1 for memory-server
+        and session, we can use a session_uuid.
+
+        For experiments this uuid should be experiment_uuid for example.
+
+        Args:
+            uuid: should probably not be pipeline uuid. Because of the
+                reason stated above.
+
+        """
+        if uuid is None:
+            uuid = self._session_uuid
+
+        return super().launch(uuid, pipeline_dir)
+
 
 def _get_mounts(pipeline_dir):
     mounts = {}
@@ -322,6 +344,11 @@ def _get_mounts(pipeline_dir):
 
 
 def _get_container_specs(uuid, pipeline_dir, network):
+    """
+    Args:
+        uuid: can be pipeline_uuid or some uuid to identify the
+            session.
+    """
     # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
     mounts = _get_mounts(pipeline_dir)
@@ -333,7 +360,8 @@ def _get_container_specs(uuid, pipeline_dir, network):
             mounts['pipeline_dir'],
             mounts['memory_server_sock'],
         ],
-        'name': 'memory-server',
+        # TODO: name not unique... and uuid cannot be used.
+        'name': 'memory-server-{uuid}',
         'network': network,
         'shm_size': int(1.2e9),  # need to overalocate to get 1G
     }

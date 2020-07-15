@@ -582,8 +582,11 @@ class Pipeline:
     async def run(self,
                   task_id: str,
                   *,
-                  run_config: Dict[str, Any]) -> None:
+                  run_config: Dict[str, Any]) -> str:
         """Runs the Pipeline asynchronously.
+
+        Returns:
+            Status
 
         TODO:
             The function should also take the argument `compute_backend`
