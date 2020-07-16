@@ -1,13 +1,20 @@
+"""Module to interact with the parameters inside the ``pipeline.json``."""
 import json
 from typing import Any, Dict
 
+from orchest.config import Config
 from orchest.errors import StepUUIDResolveError
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
 
-def get_params(pipeline_description_path: str = 'pipeline.json') -> Dict[str, Any]:
-    with open(pipeline_description_path, 'r') as f:
+def get_params() -> Dict[str, Any]:
+    """Gets the parameters of the current step.
+
+    Returns:
+        The parameters of the current step.
+    """
+    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -22,17 +29,24 @@ def get_params(pipeline_description_path: str = 'pipeline.json') -> Dict[str, An
     return params
 
 
-def update_params(
-    params: Dict[str, Any],
-    pipeline_description_path: str = 'pipeline.json'
-) -> Dict[str, Any]:
-    """Update parameters of current step.
+def update_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Updates the parameters of the current step.
 
     Additionally, you can set new parameters by giving parameters that
-    do not yet exist in the `parameters` property of the pipeline step.
+    do not yet exist in the current parameters of the pipeline step.
+
+    Internally the updating is done by calling the ``dict.update``
+    method. This further explains the behavior of this method.
+
+    Args:
+        params: The parameters to update. Either updating their values
+            or adding new parameter keys.
+
+    Returns:
+        The updated parameters mapping.
 
     """
-    with open(pipeline_description_path, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -49,7 +63,7 @@ def update_params(
     curr_params = step.get_params()
     curr_params.update(params)
 
-    with open(pipeline_description_path, 'w') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, 'w') as f:
         json.dump(pipeline.to_dict(), f)
 
-    return
+    return curr_params

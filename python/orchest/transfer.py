@@ -1,22 +1,4 @@
-"""Transfer mechanisms to output data and get data.
-
-A few notes on in-memory data passing:
-
-* Transfering data through memory requires running a Plasma Store, which
-  can be started using:
-
-.. code-block:: bash
-
-    plasma_store -m 1000000000 -s /tmp/plasma
-
-* Since memory resources are scarce we have implemented a custom
-  eviction manager for the store as part of the
-  `Orchest platform <http://www.github.com/orchest/orchest>`_.
-  Without it, objects do not get evicted from the store (even when an
-  object has no reference) and will eventually lead to the store
-  reaching its maximum capacity with no room for new data.
-
-"""
+"""Transfer mechanisms to output data and get data."""
 from datetime import datetime
 import json
 import os
@@ -26,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pyarrow as pa
 import pyarrow.plasma as plasma
 
-from orchest import Config
+from orchest.config import Config
 from orchest.errors import (
     DiskOutputNotFoundError,
     OutputNotFoundError,
