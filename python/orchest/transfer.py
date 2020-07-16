@@ -376,6 +376,9 @@ def output_to_memory(data: Any,
     except StepUUIDResolveError:
         raise StepUUIDResolveError('Failed to determine where to output data to.')
 
+    # Serialize the object and collect the serialization metadata.
+    obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
+
     # TODO: Get the store socket name from the Config. And pass it to
     #       _output_to_memory which will then connect to it. Although better
     #       if it connects more high level since otherwise if you want
@@ -387,11 +390,18 @@ def output_to_memory(data: Any,
     try:
         client = plasma.connect(Config.STORE_SOCKET_NAME)
     except OSError:
-        raise OrchestNetworkError('Failed to connect to in-memory object store.')
+        if not disk_fallback:
+            raise OrchestNetworkError('Failed to connect to in-memory object store.')
 
-    # Serialize the object and collect the serialization metadata.
+        # TODO: note that metadata is lost when falling back to disk.
+        #       Therefore we will only support metadata added by the
+        #       user, once disk also supports passing metadata.
+        return output_to_disk(
+            obj,
+            serialization=serialization)
+
+    # Try to output to memory.
     obj_id = _convert_uuid_to_object_id(step_uuid)
-    obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
     metadata = bytes(f'1;{serialization}', 'utf-8')
 
     try:

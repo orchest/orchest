@@ -297,3 +297,26 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
 
     assert (input_data[0] == data_1).all()
     assert (input_data[1] == data_3).all()
+
+
+@patch('orchest.transfer.get_step_uuid')
+@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+def test_output_no_memory_store(mock_get_step_uuid):
+    """Test the order of the inputs of the receiving step.
+
+    Note that the order in which the data is output does not determine the
+    "receive order", it is the order in which it is defined in the
+    pipeline.json (for the "incoming-connections").
+    """
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+
+    # Do as if we are uuid-1
+    data_1 = generate_data(KILOBYTE)
+    mock_get_step_uuid.return_value = 'uuid-1______________'
+    transfer.output(data_1)
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = 'uuid-2______________'
+    input_data = transfer.get_inputs()
+
+    assert (input_data[0] == data_1).all()
