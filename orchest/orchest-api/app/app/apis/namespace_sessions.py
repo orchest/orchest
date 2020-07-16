@@ -8,43 +8,43 @@ from flask_restplus import Resource
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 import app.models as models
-from app.schema import server, launch, launches, pipeline
+from app.schema import server, session, sessions, pipeline
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-api = Namespace('launches', description='Launches of pipelines for development')
+api = Namespace('sessions', description='Manage interactive sessions')
 
 api.models[server.name] = server
-api.models[launch.name] = launch
-api.models[launches.name] = launches
+api.models[session.name] = session
+api.models[sessions.name] = sessions
 api.models[pipeline.name] = pipeline
 
 
 @api.route('/')
-class LaunchList(Resource):
-    @api.doc('fetch_launches')
-    @api.marshal_with(launches)
+class SessionList(Resource):
+    @api.doc('fetch_sessions')
+    @api.marshal_with(sessions)
     def get(self):
-        """Fetch all launches."""
+        """Fetches all sessions."""
         query = models.InteractiveSession.query
 
-        if "pipeline_uuid" in request.args:
+        if 'pipeline_uuid' in request.args:
             query = query.filter_by(pipeline_uuid=request.args.get('pipeline_uuid'))
 
-        launches = query.all()
+        sessions = query.all()
 
-        return {'launches': [launch.as_dict() for launch in launches]}, 200
+        return {'sessions': [session.as_dict() for session in sessions]}, 200
 
     # TODO: create new schema. Maybe nice to not include the IDs in the
     #       schema as it does not matter to the front-end. Should be
     #       done automatically through the marshel_with. Note that the
     #       attr server_ip is not jupyter_server_ip etc.
-    @api.doc('launch_pipeline')
+    @api.doc('launch_session')
     @api.expect(pipeline)
-    @api.marshal_with(launch, code=201, description='Pipeline launched')
+    @api.marshal_with(session, code=201, description='Session launched.')
     def post(self):
-        """Launch a pipeline for development."""
+        """Launches an interactive session."""
         post_data = request.get_json()
 
         session = InteractiveSession(docker_client, network='orchest')
@@ -65,29 +65,29 @@ class LaunchList(Resource):
 
 @api.route('/<string:pipeline_uuid>')
 @api.param('pipeline_uuid', 'UUID of pipeline')
-@api.response(404, 'Launch not found')
-class Launch(Resource):
-    """Launched pipelines for development.
+@api.response(404, 'Session not found')
+class Session(Resource):
+    """Manages interactive sessions.
 
-    Individual pipelines can only be launched once, therefore the UUID
-    of a pipeline also uniquely identifies a launch.
+    There can only be 1 interactive session per pipeline. Interactive
+    sessions are uniquely identified by the pipeline's UUID.
     """
-    @api.doc('get_launch')
-    @api.marshal_with(launch)
+    @api.doc('get_session')
+    @api.marshal_with(session)
     def get(self, pipeline_uuid):
-        """Fetch a launch given its UUID."""
+        """Fetch a session given the pipeline UUID."""
         session = models.InteractiveSession.query.get_or_404(
-            pipeline_uuid, description='Launch not found'
+            pipeline_uuid, description='Session not found.'
         )
         return session.as_dict()
 
-    @api.doc('shutdown_launch')
-    @api.response(200, 'Launch stopped')
-    @api.response(404, 'Launch not found')
+    @api.doc('shutdown_session')
+    @api.response(200, 'Session stopped')
+    @api.response(404, 'Session not found')
     def delete(self, pipeline_uuid):
-        """Shutdown launch"""
+        """Shutdowns session."""
         session = models.InteractiveSession.query.get_or_404(
-            pipeline_uuid, description='Launch not found'
+            pipeline_uuid, description='Session not found'
         )
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,

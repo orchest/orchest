@@ -2,8 +2,7 @@ from flask_restplus import Model, fields
 
 
 # TODO: make logic ordering and rename models to be in line with our new
-#       namings, e.g. pipeline runs instead of runs, session instead of
-#       launch.
+#       namings, e.g. pipeline runs instead of runs.
 pipeline_step = Model('Pipeline Step', {
     'run_uuid': fields.String(
         required=True,
@@ -178,7 +177,7 @@ server = Model('Server', {
         description='PID'),
 })
 
-launch = Model('Launch', {
+session = Model('Session', {
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
@@ -191,10 +190,10 @@ launch = Model('Launch', {
         description='Jupyter notebook server connection info')
 })
 
-launches = Model('Launches', {
-    'launches': fields.List(
-        fields.Nested(launch),
-        description='Currently running launches')
+sessions = Model('Sessions', {
+    'sessions': fields.List(
+        fields.Nested(session),
+        description='Currently running sessions')
 })
 
 pipeline = Model('Pipeline', {

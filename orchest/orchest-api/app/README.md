@@ -2,7 +2,7 @@
 Make sure the `install_orchest.py` is run before launching the API.
 
 
-## /launches
+## /sessions
 During development (or before a good fix), some manual labor has to be conducted before a pipeline
 can be launched. That is:
 * `chmod -R 0777 /var/run/docker.sock`: let docker containers be spawned from inside other containers.

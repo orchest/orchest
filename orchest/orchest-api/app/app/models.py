@@ -6,27 +6,6 @@ class BaseModel:
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
-class Launch(BaseModel, db.Model):
-    __tablename__ = 'launches'
-    pipeline_uuid = db.Column(
-        db.String(36),
-        primary_key=True
-    )
-    server_ip = db.Column(
-        db.String(15),
-        unique=True,
-        nullable=False
-    )  # IPv4
-    server_info = db.Column(
-        db.JSON,
-        unique=True,
-        nullable=False
-    )
-
-    def __repr__(self):
-        return f'<Launch {self.pipeline_uuid}>'
-
-
 class InteractiveSession(BaseModel, db.Model):
     __tablename__ = 'interactive_sessions'
     pipeline_uuid = db.Column(
