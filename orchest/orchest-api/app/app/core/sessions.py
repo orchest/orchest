@@ -156,7 +156,7 @@ class InteractiveSession(Session):
         'jupyter-server',
     ]
 
-    def __init__(self, client, network):
+    def __init__(self, client, network = None):
         super().__init__(client, network)
 
         self._notebook_server_info = None
@@ -279,7 +279,7 @@ class NonInteractiveSession(Session):
         'memory-server',
     ]
 
-    def __init__(self, client, network):
+    def __init__(self, client, network = None):
         super().__init__(client, network)
 
         self._session_uuid = str(uuid4())

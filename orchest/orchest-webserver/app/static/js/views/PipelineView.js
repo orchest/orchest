@@ -805,12 +805,12 @@ class PipelineView extends React.Component {
         });
 
         // get backend status
-        makeRequest("GET", "/api-proxy/api/launches/?pipeline_uuid=" + this.props.pipeline.uuid).then((response) => {
+        makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + this.props.pipeline.uuid).then((response) => {
 
             let result = JSON.parse(response);
 
-            if(result.launches.length > 0){
-                let launch = result.launches[0];
+            if(result.sessions.length > 0){
+                let launch = result.sessions[0];
                 this.state.backend.jupyter_server_ip = launch.jupyter_server_ip;
                 this.state.backend.notebook_server_info = launch.notebook_server_info;
                 this.state.backend.running = true;
@@ -859,7 +859,7 @@ class PipelineView extends React.Component {
 
                 this.setState({ "backend": this.state.backend });
 
-                makeRequest("POST", "/api-proxy/api/launches/", {"type": "json", content: data}).then((response) => {
+                makeRequest("POST", "/api-proxy/api/sessions/", {"type": "json", content: data}).then((response) => {
                     let json = JSON.parse(response);
 
                     console.log("API launch result");
@@ -884,7 +884,7 @@ class PipelineView extends React.Component {
                 "backend": this.state.backend
             })
 
-            makeRequest("DELETE", "/api-proxy/api/launches/" + this.props.pipeline.uuid).then((response) => {
+            makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline.uuid).then((response) => {
                 let result = JSON.parse(response);
                 console.log("API delete result");
                 console.log(result);
