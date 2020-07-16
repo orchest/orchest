@@ -35,6 +35,9 @@ class DataSource:
             connect_args={'connect_timeout': self.connection_timeout}
         )
 
+        self._connection = None
+
+    # TODO: should also not be exposed to all inheriting classes.
     @property
     def connection(self):
         if self._connection is None:
