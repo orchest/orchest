@@ -201,13 +201,21 @@ class CreateExperimentView extends React.Component {
             // after storing on the web server trigger the Orchest API
             let result = JSON.parse(response);
 
+            let pipelineDescriptions = this.generatePipelineDescriptions(
+                this.state.pipeline, 
+                this.state.generatedPipelineRuns,
+                this.state.selectedIndices);
+
+            let pipelineRunIds = new Array(pipelineDescriptions.length);
+            for(let x = 0; pipelineRunIds.length; x++){
+                pipelineRunIds[x] = x + 1;
+            }
+
             let apiExperimentData = {
                 experiment_uuid: result.uuid,
                 pipeline_uuid: this.state.pipeline.uuid,
-                pipeline_descriptions: this.generatePipelineDescriptions(
-                    this.state.pipeline, 
-                    this.state.generatedPipelineRuns,
-                    this.state.selectedIndices),
+                pipeline_descriptions: pipelineDescriptions,
+                pipeline_run_ids: pipelineRunIds,
                 pipeline_run_spec: {
                     run_type: "full",
                     uuids: []

@@ -112,6 +112,13 @@ experiment_spec = Model('Experiment Configuration', {
         required=True,
         description='Collection of pipeline descriptions',
     ),
+    'pipeline_run_ids': fields.List(
+        fields.Integer(
+            description='Pipeline index corresponding to respective list entries in pipeline_descriptions.'
+        ),
+        required=True,
+        description='Collection of pipeline description indices.',
+    ),
     'pipeline_run_spec': fields.Nested(
         model=pipeline_run_spec,
         required=True,

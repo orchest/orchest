@@ -13,6 +13,7 @@ class DataSource(db.Model):
     def __repr__(self):
         return f'<DataSource {self.name}:{self.source_type}>'
 
+
 class Experiment(db.Model):
     __tablename__ = 'experiments'
 
@@ -22,4 +23,11 @@ class Experiment(db.Model):
     pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     strategy_json = db.Column(db.Text, nullable=False)
-    
+
+
+class PipelineRun(db.Model):
+    __tablename__ = 'pipelineruns'
+
+    id = db.Column(db.Integer(), unique=False)
+    experiment = db.Column(db.ForeignKey(Experiment))
+    parameter_json = db.Column(db.Text, nullable=False)
