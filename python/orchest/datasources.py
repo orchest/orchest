@@ -47,7 +47,7 @@ class MySQLDataSource(DataSource):
             connection_details["database_name"]
         )
 
-        self.engine = create_engine(self.connection_string, 
+        self.engine = create_engine(self.connection_string,
             connect_args={'connect_timeout': self.connection_timeout})
 
         self.connection = self.engine.connect()
@@ -116,7 +116,7 @@ class AWSObjectStorageS3(DataSource):
 
     def __init__(self, data):
 
-        self.s3 = boto3.resource('s3', 
+        self.s3 = boto3.resource('s3',
             aws_access_key_id=data["connection_details"]["access_key"],
             aws_secret_access_key=data["connection_details"]["secret_key"])
 
@@ -125,16 +125,16 @@ class AWSObjectStorageS3(DataSource):
             aws_secret_access_key=data["connection_details"]["secret_key"])
 
         self.bucket = self.s3.Bucket(data["connection_details"]["bucket"])
-    
 
-def get(name):
+
+def get_datasource(name):
 
     try:
         response = requests.get("http://orchest-webserver/store/datasources/%s" % name)
         response.raise_for_status()
 
         datasource = response.json()
-        
+
         return DataSource.from_json(datasource)
 
     except HTTPError as http_err:
