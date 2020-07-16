@@ -288,14 +288,11 @@ def install_images():
 
     for image in IMAGES:
         try:
-            try:
-                client.images.get(image)
-            except docker.errors.ImageNotFound as e:
-                logging.info("Pulling image `%s` ..." % image)
-                client.images.pull(image)
-                logging.info("Pulled image `%s`." % image)
-        except Exception as e:
-            raise(e)
+            client.images.get(image)
+        except docker.errors.ImageNotFound as e:
+            logging.info("Pulling image `%s` ..." % image)
+            client.images.pull(image)
+            logging.info("Pulled image `%s`." % image)
 
 
 def get_application_url():
@@ -454,15 +451,12 @@ def update():
 
     for image in IMAGES:
         try:
-            try:
-                logging.info("Pulling image `%s` ..." % image)
-                client.images.pull(image)
-                logging.info("Pulled image `%s`." % image)
-            except Exception as e:
-                logging.error("Something went wrong while pulling image %s error: %s" % (image, e))
-
+            logging.info("Pulling image `%s` ..." % image)
+            client.images.pull(image)
+            logging.info("Pulled image `%s`." % image)
         except Exception as e:
-            raise(e)
+            logging.error("Something went wrong while pulling image %s error: %s" % (image, e))
+
 
 
 def main():
