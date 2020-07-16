@@ -28,6 +28,7 @@ class Experiment(db.Model):
 class PipelineRun(db.Model):
     __tablename__ = 'pipelineruns'
 
+    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     id = db.Column(db.Integer(), unique=False)
-    experiment = db.Column(db.ForeignKey(Experiment))
+    experiment = db.Column(db.ForeignKey("experiments.uuid"))
     parameter_json = db.Column(db.Text, nullable=False)
