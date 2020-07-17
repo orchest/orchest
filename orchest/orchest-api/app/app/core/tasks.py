@@ -79,10 +79,14 @@ def run_partial(self,
 
     Returns:
         Status of the pipeline run. "FAILURE" or "SUCCESS".
+
     """
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
 
+    # TODO: don't think this task_id is needed anymore. It was
+    #       introduced as part of the scheduled runs which we don't use
+    #       anymore.
     # Run the subgraph in parallel. And pass the id of the AsyncResult
     # object.
     # TODO: The commented line below is once we can introduce sessions.
@@ -97,10 +101,18 @@ def start_non_interactive_pipeline_run(
     experiment_uuid,
     pipeline_description: PipelineDescription,
     run_config: Dict[str, Union[str, Dict[str, str]]]
-) -> None:
+) -> str:
     """Starts a non-interactive pipeline run.
 
     It is a pipeline run that is part of an experiment.
+
+    Args:
+        experiment_uuid: UUID of the experiment.
+        pipeline_description: A json description of the pipeline.
+        run_config: Configuration of the run for the compute backend.
+
+    Returns:
+        Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
     pipeline_uuid = pipeline_description['uuid']

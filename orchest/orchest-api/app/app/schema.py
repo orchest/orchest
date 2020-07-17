@@ -77,6 +77,9 @@ pipeline_run = Model('Run', {
     'run_uuid': fields.String(
         required=True,
         description='UUID of run'),
+    'pipeline_run_id': fields.Integer(
+        required=False,
+        description='Respective run ID in experiment'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),

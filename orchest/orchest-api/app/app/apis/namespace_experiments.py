@@ -72,7 +72,8 @@ class ExperimentList(Resource):
 
         pipeline_runs = []
         pipeline_run_spec = post_data['pipeline_run_spec']
-        for pipeline_description in post_data['pipeline_descriptions']:
+        for pipeline_description, id_ in zip(post_data['pipeline_descriptions'],
+                                             post_data['pipeline_run_ids']):
             pipeline_run_spec['pipeline_description'] = pipeline_description
             pipeline = construct_pipeline(**post_data['pipeline_run_spec'])
 
@@ -101,6 +102,7 @@ class ExperimentList(Resource):
             non_interactive_run = {
                 'experiment_uuid': post_data['experiment_uuid'],
                 'run_uuid': res.id,
+                'pipeline_run_id': id_,
                 'pipeline_uuid': pipeline.properties['uuid'],
                 'status': 'PENDING',
                 'scheduled_start': scheduled_start,
