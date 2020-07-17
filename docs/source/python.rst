@@ -78,3 +78,11 @@ orchest.parameters
 
 .. automodule:: orchest.parameters
     :members:
+
+
+orchest.datasources
+~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: orchest.datasources
+    :members:
+    :inherited-members:

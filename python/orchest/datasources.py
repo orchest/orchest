@@ -10,114 +10,155 @@ from orchest.errors import (
 )
 
 
-class DataSource:
-    connection_string: Optional[str] = None
-    connection_timeout = 5
+class _DB:
+    """Database datasource.
 
-    # TODO: Actually connecting might not be best inside the __init__.
-    #       Could give some properties or maybe convert into
-    #       ContextManager. Otherwise the connection will be left open
-    #       and the user is explicetely responsible for closing it.
-    def __init__(self, data):
-        connection_details = data["connection_details"]
+    Args:
+        data: Data containing `connection_details` to format the
+            `connection_string` (see `Attributes` section).
+        **kwargs: Passed to the ``sqlalchemy.create_engine`` method.
+
+    Attributes:
+        connection_string (str): Format for the connection string.
+            SQLAlchemy calls this the URL (that indicates database
+            dialect). It is passed to ``sqlalchemy.create_engine`` as
+            the first positional argument.
+        engine (sqlalchemy.engine.Engine): Underlying engine instance
+            to connect to the database.
+
+    """
+    connection_string: Optional[str] = None
+
+    # Settings that are passed to `create_engine` in __init__.
+    _connection_timeout = 5
+
+    def __init__(self, data, **kwargs):
+        connection_details = data['connection_details']
 
         self._connection_string = self.connection_string.format(
-            username=connection_details["username"],
-            password=connection_details["password"],
-            host=connection_details["host"],
-            db_name=connection_details["database_name"]
+            username=connection_details['username'],
+            password=connection_details['password'],
+            host=connection_details['host'],
+            db_name=connection_details['database_name']
         )
 
-        # TODO: seems like this is already connecting to the db
-        # https://docs.sqlalchemy.org/en/13/core/connections.html#sqlalchemy.engine.Engine
         self.engine = create_engine(
             self._connection_string,
-            connect_args={'connect_timeout': self.connection_timeout}
+            connect_args={'connect_timeout': self._connection_timeout},
+            **kwargs
         )
 
-        self._connection = None
+    def connect(self, **kwargs):
+        """Returns a new ``sqlalchemy.engine.Connection`` object.
 
-    # TODO: should also not be exposed to all inheriting classes.
-    @property
-    def connection(self):
-        if self._connection is None:
-            self._connection = self.engine.connect()
+        Directly wraps ``sqlalchemy.engine.Engine.connect``.
 
-        return self._connection
+        For transactions, look into ``Connection.begin()`` and
+        ``Engine.begin()`` in the SQLAlchemy docs.
 
-    # TODO: Doesn't seem to be the correct way to me. Since the childs
-    #       also get this classmethod due to inheritance. But then it
-    #       doesn't make a lot of sense since an S3 then can create a
-    #       HostDirectory datasource.
-    @classmethod
-    def from_json(cls, datasource_json):
-        if datasource_json["source_type"] == "host-directory":
-            return HostDirectoryDataSource(datasource_json)
-        elif datasource_json["source_type"] == "database-mysql":
-            return MySQLDataSource(datasource_json)
-        elif datasource_json["source_type"] == "database-postgresql":
-            return PostgreSQLDataSource(datasource_json)
-        elif datasource_json["source_type"] == "database-aws-redshift":
-            return AWSRedshiftDataSource(datasource_json)
-        elif datasource_json["source_type"] == "objectstorage-aws-s3":
-            return AWSObjectStorageS3(datasource_json)
+        Examples:
+            In the example below ``DB`` should be substituted with the
+            name of this class.
 
-    def __del__(self):
-        try:
-            self.connection.close()
-        except Exception as e:
-            print(e)
+            >>> db = DB(data)
+            >>> with db.connect() as conn:
+            ...     result = conn.execute('select * from users')
+
+            Alternatively.
+
+            >>> conn = db.connect()
+
+        """
+        return self.engine.connect(**kwargs)
 
 
-class HostDirectoryDataSource(DataSource):
+class MySQL(_DB):
+    """MySQL database datasource.
+
+    Args:
+        data: Data containing `connection_details` to format the
+            `connection_string` (see `Attributes` section).
+        **kwargs: Passed to the ``sqlalchemy.create_engine`` method.
+
+    Attributes:
+        connection_string (str): Format for the connection string.
+            SQLAlchemy calls this the URL (that indicates database
+            dialect). It is passed to ``sqlalchemy.create_engine`` as
+            the first positional argument.
+        engine (sqlalchemy.engine.Engine): Underlying engine instance
+            to connect to the database.
+
+    """
+    connection_string = 'mysql://{username}:{password}@{host}/{db_name}'
+
+
+class PostgreSQL(_DB):
+    """PostgreSQL database datasource.
+
+    Args:
+        data: Data containing `connection_details` to format the
+            `connection_string` (see `Attributes` section).
+        **kwargs: Passed to the ``sqlalchemy.create_engine`` method.
+
+    Attributes:
+        connection_string (str): Format for the connection string.
+            SQLAlchemy calls this the URL (that indicates database
+            dialect). It is passed to ``sqlalchemy.create_engine`` as
+            the first positional argument.
+        engine (sqlalchemy.engine.Engine): Underlying engine instance
+            to connect to the database.
+
+    """
+    connection_string = 'postgresql://{username}:{password}@{host}/{db_name}'
+
+
+class AWSRedshift(_DB):
+    """AWSRedshift database datasource.
+
+    Args:
+        data: Data containing `connection_details` to format the
+            `connection_string` (see `Attributes` section).
+        **kwargs: Passed to the ``sqlalchemy.create_engine`` method.
+
+    Attributes:
+        connection_string (str): Format for the connection string.
+            SQLAlchemy calls this the URL (that indicates database
+            dialect). It is passed to ``sqlalchemy.create_engine`` as
+            the first positional argument.
+        engine (sqlalchemy.engine.Engine): Underlying engine instance
+            to connect to the database.
+
+    """
+    connection_string = 'redshift+psycopg2://{username}:{password}@{host}/{db_name}'
+
+
+class HostDirectory:
 
     def __init__(self, data):
-        self.path = "/data/" + data["name"]
-
-    # TODO: Should maybe not inherit from DataSource. Now we have to
-    #       overwrite its __del__ method to not do anything. Doesn't
-    #       seem like a "proper" child.
-    def __del__(self):
-        pass
+        self.path = '/data/' + data['name']
 
 
-# TODO: Even though different datasources all inherit from the
-#       parent DataSource class, they have different attributes.
-#       This is confusing.
-class MySQLDataSource(DataSource):
-    connection_string = "mysql://{username}:{password}@{host}/{db_name}"
-
-
-class PostgreSQLDataSource(DataSource):
-    connection_string = "postgresql://{username}:{password}@{host}/{db_name}"
-
-
-class AWSRedshiftDataSource(DataSource):
-    connection_string = "redshift+psycopg2://{username}:{password}@{host}/{db_name}"
-
-
-class AWSObjectStorageS3(DataSource):
+class AWSObjectStorageS3:
 
     def __init__(self, data):
         self.s3 = boto3.resource(
             's3',
-            aws_access_key_id=data["connection_details"]["access_key"],
-            aws_secret_access_key=data["connection_details"]["secret_key"],
+            aws_access_key_id=data['connection_details']['access_key'],
+            aws_secret_access_key=data['connection_details']['secret_key'],
         )
 
         self.client = boto3.client(
             's3',
-            aws_access_key_id=data["connection_details"]["access_key"],
-            aws_secret_access_key=data["connection_details"]["secret_key"],
+            aws_access_key_id=data['connection_details']['access_key'],
+            aws_secret_access_key=data['connection_details']['secret_key'],
         )
 
-        self.bucket = self.s3.Bucket(data["connection_details"]["bucket"])
-
-    def __del__(self):
-        pass
+        self.bucket = self.s3.Bucket(data['connection_details']['bucket'])
 
 
-def get_datasource(name: str) -> DataSource:
+# TODO: put the name as attribute in the class.
+# TODO: set a return type, maybe use Union[..., ...]
+def get_datasource(name: str):
     """Gets a datasource by name.
 
     The name coincides with the datasource name as defined in the UI on
@@ -127,16 +168,16 @@ def get_datasource(name: str) -> DataSource:
         name: The name of the datasource.
 
     Returns:
-        A DataSource object.
+        A datasource object.
 
     """
     try:
-        response = requests.get("http://orchest-webserver/store/datasources/%s" % name)
+        # TODO: A user should only EVER be able to get credentials to
+        # his/her own configured datasources. Even then it is debetable,
+        # since someone could just copy paste this requests line and
+        # request whatever.
+        response = requests.get('http://orchest-webserver/store/datasources/%s' % name)
         response.raise_for_status()
-
-        datasource = response.json()
-
-        return DataSource.from_json(datasource)
 
     # TODO: These should be improved since they are directly user
     #       facing.
@@ -144,3 +185,17 @@ def get_datasource(name: str) -> DataSource:
         raise OrchestNetworkError(f'HTTP error occurred: {http_err}')
     except Exception as err:
         print(f'Other error occurred: {err}')
+        return
+
+    datasources = {
+        'host-directory': HostDirectory,
+        'database-mysql': MySQL,
+        'database-postgresql': PostgreSQL,
+        'database-aws-redshift': AWSRedshift,
+        'objectstorage-aws-s3': AWSObjectStorageS3,
+    }
+
+    datasource_spec = response.json()
+    source_type = datasource_spec['source_type']
+    datasource = datasources[source_type]
+    return datasource(datasource_spec)
