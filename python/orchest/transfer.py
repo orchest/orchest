@@ -139,7 +139,7 @@ def output_to_disk(data: Any,
         >>> output_to_disk(data)
 
     Note:
-        Calling ``output_to_disk`` multiple times within the same script
+        Calling :meth:`output_to_disk` multiple times within the same script
         will overwrite the output. Generally speaking you therefore want
         to be only calling the function once.
 
@@ -359,7 +359,7 @@ def output_to_memory(data: Any,
         >>> output_to_memory(data)
 
     Note:
-        Calling ``output_to_memory`` multiple times within the same
+        Calling :meth:`output_to_memory` multiple times within the same
         script will overwrite the output. Generally speaking you
         therefore want to be only calling the function once.
 
@@ -672,7 +672,7 @@ def get_inputs(verbose: bool = False) -> List[Any]:
         >>> data_step_1, data_step_2 = get_inputs()
 
     Warning:
-        Only call ``get_inputs`` once! When auto eviction is
+        Only call :meth:`get_inputs` once! When auto eviction is
         configured data might no longer be available. Either cache the
         data or maintain a copy yourself.
 
@@ -736,7 +736,7 @@ def output(data: Any,
         >>> output(data)
 
     Note:
-        Calling ``output`` multiple times within the same script will
+        Calling :meth:`output` multiple times within the same script will
         generally overwrite the output. Therefore want to be only
         calling the function once.
 

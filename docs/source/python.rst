@@ -63,6 +63,22 @@ Parameters
    orchest.update_params(params)
 
 
+Datasources
+~~~~~~~~~~~
+.. code-block:: python
+
+   import orchest
+   import pandas as pd
+
+   # Note that the "example-mysql-db" is created in the UI first under
+   # "Datasources" in the left hand panel.
+   mysql = orchest.get_datasource('example-mysql-db')
+
+   # Use a connection object to execute an SQL query.
+   with mysql.connect() as conn:
+      df = pd.read_sql('SELECT * FROM users', conn)
+
+
 API
 ---
 

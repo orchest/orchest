@@ -62,7 +62,7 @@ class _DB:
 
             >>> db = DB(data)
             >>> with db.connect() as conn:
-            ...     result = conn.execute('select * from users')
+            ...     result = conn.execute('SELECT * FROM users')
 
             Alternatively.
 
@@ -133,12 +133,62 @@ class AWSRedshift(_DB):
 
 
 class HostDirectory:
+    """Host directory data source.
+
+    A path from the host that is mounted onto a specific path so it can
+    be accessed from within the pipeline steps.
+
+    Args:
+        data:
+
+    Attributes:
+        path (str): Path at which the host directory data source is
+            mounted.
+
+    Example:
+        List files inside the mounted datasource.
+
+        >>> datasource = HostDirectory(data)
+        >>> os.listdir(datasource.path)
+        ['image-1.png', 'file-1.txt']
+
+    """
 
     def __init__(self, data):
         self.path = '/data/' + data['name']
 
 
+# TODO: could extend this class. Could create multiple classes that
+#       manage AWS resources. Can all be done via `boto3`
 class AWSObjectStorageS3:
+    """Amazon S3 Storage Service datasource.
+
+    Args:
+        data: Data containing `connection_details` to format the
+            `connection_string` (see `Attributes` section).
+
+    Attributes:
+        s3: An "s3" resource service client.
+            `boto3.resource docs
+            <https://boto3.amazonaws.com/v1/documentation/api/latest/reference/core/session.html#boto3.session.Session.resource>`_.
+        client: A low-level client representing Amazon Simple Storage
+            Service (S3).
+            `boto3.client docs
+            <https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#client>`_.
+        bucket: A resource representing an Amazon Simple Storage Service
+            (S3) Bucket.
+            `s3.bucket docs
+            <https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#bucket>`_.
+
+    Example:
+        Print all the objects inside a bucket on S3.
+
+        >>> object_storage = AWSObjectStorageS3(data)
+        >>> for obj in object_storage.bucket.objects.all():
+        ...     print(obj)
+        s3.ObjectSummary(bucket_name='orchest-s3', key='some-key')
+
+    """
 
     def __init__(self, data):
         self.s3 = boto3.resource(
