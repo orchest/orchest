@@ -43,7 +43,7 @@ def get_step_uuid(pipeline: Pipeline) -> str:
     jupyter_api_url = jupyter_api_url.format(
         ip=launch_data['jupyter_server_ip'],
         port=launch_data['notebook_server_info']['port'],
-        proxy_prefix='jupyter_' + launch_data['server_ip'].replace('.', '_'),
+        proxy_prefix='jupyter_' + launch_data['jupyter_server_ip'].replace('.', '_'),
         token=launch_data['notebook_server_info']['token']
     )
     jupyter_sessions = _request_json(jupyter_api_url)
