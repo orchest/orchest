@@ -3,7 +3,7 @@ from contextlib import contextmanager
 import logging
 import sys
 import time
-from typing import Dict, NamedTuple, Optional
+from typing import Dict, NamedTuple, Optional, Union
 from uuid import uuid4
 import os
 
@@ -11,32 +11,8 @@ from docker.types import Mount
 import requests
 
 
+# TODO: logging should probably be done toplevel instead of here.
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
-
-@contextmanager
-def launch_session(docker_client, pipeline_uuid, pipeline_dir, interactive=False):
-    """Launch session for a particular pipeline.
-
-    Args:
-        docker_client (docker.client.DockerClient): docker client to
-            manage Docker resources.
-        pipeline_uuid: UUID of pipeline that the session is started for.
-        pipeline_dir: Path to the `pipeline_dir`, which has to be
-            mounted into the containers so that the user can interact
-            with the files.
-        interactive: If True then launch :class:`InteractiveSession`, if
-            False then launch :class:`NonInteractiveSession`.
-
-    """
-    session = InteractiveSession if interactive else NonInteractiveSession
-
-    session = session(docker_client, network='orchest')
-    session.launch(pipeline_uuid, pipeline_dir)
-    try:
-        yield session
-    finally:
-        session.shutdown()
 
 
 class IP(NamedTuple):
@@ -44,18 +20,23 @@ class IP(NamedTuple):
     jupyter_server: str
 
 
-# TODO: possibly make contextlib session.
+# TODO: possibly make contextlib session by implementing __enter__ and
+#       __exit__
 class Session:
     """Manages resources for a session.
 
-    A session is ...
+    A session is used to launch and shutdown particular resources.
+    For example during an interactive session the Jupyter environment is
+    booted together with a memory-server. The session directly manages
+    the lifecycle of these resources.
 
-    Manages Docker containers.
+    In essence simply manages Docker containers.
 
     Attributes:
-        client (docker.client.DockerClient): docker client to manage
+        client (docker.client.DockerClient): Docker client to manage
             Docker resources.
-        network: name of docker network to manage resources on.
+        network: Name of docker network to manage resources on.
+
     """
     _resources: Optional[list] = None
 
@@ -66,16 +47,31 @@ class Session:
         self._containers = {}
 
     @classmethod
-    def from_container_IDs(cls, client, container_IDs, network=None):
-        """
+    def from_container_IDs(cls,
+                           client,
+                           container_IDs: Dict[str, str],
+                           network: Optional[str] = None) -> 'Session':
+        """Constructs a session object from container IDs.
 
         If `network` is ``None``, then the network is infered based on
         the network of the first respectively given container.
+
+        Args:
+            client (docker.client.DockerClient): Docker client to manage
+                Docker resources.
+            network: Name of docker network to manage resources on.
+
+        Returns:
+            Instantiated Session object.
+
         """
         session = cls(client)
         for resource, ID in container_IDs.items():
             container = session.client.containers.get(ID)
 
+            # Infer the network by taking a random network from its
+            # settings. Often it contains only one network, thus popping
+            # a random network simply returns the only network.
             if network is None:
                 network, _ = container.attrs['NetworkSettings']['Networks'].popitem()
 
@@ -86,7 +82,13 @@ class Session:
         return session
 
     @property
-    def containers(self) -> dict:
+    def containers(self) -> Dict[str, 'docker.models.containers.Container']:
+        """Returns the running containers for the current session.
+
+        Containers are identified by a short version of their name. The
+        names are equal to the specifics class ``_resources`` attribute.
+
+        """
         if not self._containers:
             # TODO: filter and get the containers for this session.
             #       Maybe make use of some session-uuid.
@@ -94,6 +96,7 @@ class Session:
 
         return self._containers
 
+    # TODO: possible make into property "ids"
     def get_container_IDs(self) -> Dict[str, str]:
         """Gets container IDs of running resources of this Session.
 
@@ -110,13 +113,18 @@ class Session:
         return res
 
     def launch(self, uuid: str, pipeline_dir: str) -> None:
-        """Launches a configured Jupyter server and Jupyter EG.
+        """Launches pre-configured resources.
 
         All containers are run in detached mode.
 
         Args:
-            uuid: UUID of pipeline that is launched.
-            pipeline_dir: path to pipeline files.
+            uuid: UUID to identify the session with. It is passed to the
+                :meth:`_get_container_specs` method. Meaning `uuid` is
+                recommended to be either a pipeline UUID (for
+                interactive sessions) or experiment UUID (for non-
+                interactive sessions).
+            pipeline_dir: Path to pipeline directory.
+
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
         container_specs = _get_container_specs(uuid, pipeline_dir, self.network)
@@ -128,15 +136,15 @@ class Session:
 
     @abstractmethod
     def shutdown(self) -> None:
-        """Shuts down launched pipeline with given UUID.
+        """Shuts down session.
 
-        Stops and removes containers. Containers are removed such that
-        the same container name can be used when the pipeline is
-        relaunched.
+        Stops and removes containers. Containers are removed so that the
+        same container name can be used when the pipeline is relaunched.
 
         Returns:
-            None. If no error is raised, then it means the pipeline was
-            shut down successfully.
+            None if no error is raised meaning the pipeline shutdown was
+            successful.
+
         """
         for resource, container in self.containers.items():
             # TODO: this depends on whether or not auto_remove is
@@ -163,6 +171,7 @@ class InteractiveSession(Session):
 
     @property
     def notebook_server_info(self):
+        """Contains the information to connect to the notebook server."""
         # TODO: maybe error if launch was not called yet
         if self._notebook_server_info is None:
             pass
@@ -177,7 +186,8 @@ class InteractiveSession(Session):
                 which to get the IP address.
 
         Returns:
-            The IPAdress of the container inside the network.
+            The IP address of the container inside the network.
+
         """
         # The containers have to be reloaded as otherwise cached "attrs"
         # is used, which might not be up-to-date.
@@ -187,11 +197,12 @@ class InteractiveSession(Session):
     # TODO: rename to `get_resources_IP` ?
     # TODO: make into property? `.ips` Same goes for `get_container_IDs`
     def get_containers_IP(self) -> IP:
-        """Launches a configured Jupyter server and Jupyter EG.
+        """Gets the IP addresses of the jupyter server and EG.
 
         Returns:
-            A namedtuple of the IPs of the jupyter-EG container
-            and jupyter-server container respectively.
+            A namedtuple of the IPs of the `jupyter-EG` container and
+            `jupyter-server` container respectively.
+
         """
         # TODO: Do we want a restart_policy when containers die
         #       "on_failure"?
@@ -204,6 +215,15 @@ class InteractiveSession(Session):
                   self._get_container_IP(self.containers['jupyter-server']))
 
     def launch(self, pipeline_uuid: str, pipeline_dir: str) -> None:
+        """Launches the interactive session.
+
+        Additionally connects the launched `jupyter-server` with the
+        `jupyter-enterprise-gateway` (shot `jupyter-EG`).
+
+        Args:
+            See `Args` section in parent class :class:`Session`.
+
+        """
         super().launch(pipeline_uuid, pipeline_dir)
 
         # TODO: This session should manage additionally that the jupyter
@@ -242,6 +262,13 @@ class InteractiveSession(Session):
         return
 
     def shutdown(self) -> None:
+        """Shuts down the launch.
+
+        Additionally issues a DELETE request to the `jupyter-server` to
+        have it shut down gracefully. Meaning that all its running
+        kernels are shut down as well.
+
+        """
         # NOTE: this request will block the API. However, this is
         # desired as the front-end would otherwise need to poll whether
         # the Jupyter launch has been shut down (to be able to show its
@@ -259,6 +286,15 @@ class InteractiveSession(Session):
         return super().shutdown()
 
     def restart_resource(self, resource_name='memory-server'):
+        """Restarts a resource by name.
+
+        Especially for the `memory-server` this comes in handy. Because
+        the user should be able to clear the server. Which internally we
+        do by restarting it, since clearing would also lose all state.
+        Note that restarting the `memory-server` resets its eviction
+        state, which is exactly what we want.
+
+        """
         # TODO: make sure the InteractiveSession db.Model had an updated
         #       docker ID if it changes on restart.
         # TODO: should be possible to clear the memory store. So either
@@ -284,18 +320,20 @@ class NonInteractiveSession(Session):
 
         self._session_uuid = str(uuid4())
 
-    def launch(self, uuid: str, pipeline_dir: str) -> None:
+    def launch(self, uuid: Optional[str], pipeline_dir: str) -> None:
         """
 
         Since multiple memory-servers are started for the same pipeline,
-        the have to get unique docker names. Since 1:1 for memory-server
-        and session, we can use a session_uuid.
+        since their can be multiple pipeline runs, every pipeline run
+        and therefore session needs to have a unique docker container
+        name for its memory-server.
 
-        For experiments this uuid should be experiment_uuid for example.
+        For experiments a good option for the `uuid` would be the
+        experiment UUID. If none is given
 
         Args:
-            uuid: should probably not be pipeline uuid. Because of the
-                reason stated above.
+            uuid: Some UUID. If ``None`` then a randomly generated UUID
+                is used.
 
         """
         if uuid is None:
@@ -304,7 +342,59 @@ class NonInteractiveSession(Session):
         return super().launch(uuid, pipeline_dir)
 
 
-def _get_mounts(pipeline_dir):
+@contextmanager
+def launch_session(
+    docker_client,
+    pipeline_uuid: str,
+    pipeline_dir: str,
+    interactive: bool = False
+) -> Union[InteractiveSession, NonInteractiveSession]:
+    """Launch session for a particular pipeline.
+
+    Args:
+        docker_client (docker.client.DockerClient): docker client to
+            manage Docker resources.
+        pipeline_uuid: UUID of pipeline that the session is started for.
+        pipeline_dir: Path to the `pipeline_dir`, which has to be
+            mounted into the containers so that the user can interact
+            with the files.
+        interactive: If True then launch :class:`InteractiveSession`, if
+            False then launch :class:`NonInteractiveSession`.
+
+    Yields:
+        A Session object that has already launched its resources.
+
+    """
+    session = InteractiveSession if interactive else NonInteractiveSession
+
+    session = session(docker_client, network='orchest')
+    session.launch(pipeline_uuid, pipeline_dir)
+    try:
+        yield session
+    finally:
+        session.shutdown()
+
+
+def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
+    """Constructs the mounts for all resources.
+
+    Resources refer to the union of all possible resources over all
+    types of session objects.
+
+    Args:
+        pipeline_dir: Pipeline directory w.r.t. the host. Needed to
+            construct the mounts.
+
+    Returns:
+        Mapping from mount name to actual ``docker.types.Mount`` object.
+        The return dict looks as follows:
+            mounts = {
+                'kernelspec': Mount,
+                'docker_sock': Mount,
+                'pipeline_dir': Mount,
+            }
+
+    """
     mounts = {}
 
     # TODO: the kernelspec should be put inside the image for the EG
@@ -343,11 +433,30 @@ def _get_mounts(pipeline_dir):
     return mounts
 
 
-def _get_container_specs(uuid, pipeline_dir, network):
-    """
+def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str, dict]:
+    """Constructs the container specifications for all resources.
+
+    These specifications can be unpacked into the
+    ``docker.client.DockerClient.containers.run`` method.
+
     Args:
-        uuid: can be pipeline_uuid or some uuid to identify the
-            session.
+        uuid: Some UUID to identify the session with. For interactive
+            runs using the pipeline UUID is recommended, for non-
+            interactive runs we recommend using the experiment UUID.
+        pipeline_dir: Pipeline directory w.r.t. the host. Needed to
+            construct the mounts.
+        network: Docker network. This is put directly into the specs, so
+            that the containers are started on the specified network.
+
+    Returns:
+        Mapping from container name to container specification for the
+        run method. The return dict looks as follows:
+            mounts = {
+                'memory-server': spec dict,
+                'jupyter-EG': spec dict,
+                'jupyter-server': spec dict,
+            }
+
     """
     # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
