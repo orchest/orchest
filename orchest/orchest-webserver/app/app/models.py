@@ -32,4 +32,4 @@ class PipelineRun(db.Model):
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     id = db.Column(db.Integer(), unique=False)
     experiment = db.Column(db.ForeignKey("experiments.uuid"))
-    parameter_json = db.Column(db.Text, nullable=False)
+    parameter_json = db.Column(db.JSON, nullable=False)

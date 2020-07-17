@@ -24,7 +24,7 @@ class PipelineSettingsView extends React.Component {
 
     componentDidMount() {
 
-        makeRequest("GET", "/async/pipelines/json/get/" + this.props.pipeline.uuid).then((response) => {
+        makeRequest("GET", "/async/pipelines/json/get/" + this.props.pipeline_uuid).then((response) => {
             let result = JSON.parse(response);
 
             if (result.success) {

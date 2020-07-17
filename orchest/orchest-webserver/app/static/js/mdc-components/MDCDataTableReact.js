@@ -106,8 +106,10 @@ class MDCDataTableReact extends React.Component {
 
   rowClick(row, idx, e) {
 
-    if (e.target && e.target.tagName !== "INPUT" && this.props.onRowClick !== undefined) {
-      this.props.onRowClick(row, idx, e);
+    if (e.target && e.target.tagName !== "INPUT") {
+      if(this.props.onRowClick !== undefined){
+        this.props.onRowClick(row, idx, e);
+      }
 
       // update detail state
       let state = {};
@@ -132,7 +134,7 @@ class MDCDataTableReact extends React.Component {
       topClasses = topClasses.concat(this.props.classNames)
     }
 
-    if (this.props.onRowClick !== undefined) {
+    if (this.props.onRowClick !== undefined || this.props.detailRows !== undefined) {
       topClasses.push('row-clickable');
     }
 

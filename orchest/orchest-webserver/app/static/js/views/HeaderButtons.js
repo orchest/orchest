@@ -9,7 +9,7 @@ class HeaderButtons extends React.Component {
         super(props);
 
         this.state = {
-            pipeline: undefined,
+            pipeline_uuid: undefined,
             showBack: false
         }
     }
@@ -25,7 +25,7 @@ class HeaderButtons extends React.Component {
     }
 
     openView() {
-        orchest.loadView(PipelineView, {"pipeline": {"uuid": this.state.pipeline.uuid}});
+        orchest.loadView(PipelineView, {pipeline_uuid: this.state.pipeline.uuid});
 
         this.setState({
             "showBack": false

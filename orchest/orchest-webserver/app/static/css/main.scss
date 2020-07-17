@@ -15,6 +15,7 @@
 
 
 $generalPadding: 20px;
+$mdcComponentPadding: 16px;
 $borderColor: rgba(0, 0, 0, 0.15);
 
 * {
@@ -286,6 +287,8 @@ h2.header {
 
 .experiment-view {
 
+  
+
   display: flex;
   flex-direction: column;
 
@@ -309,8 +312,40 @@ h2.header {
 
   .existing-pipeline-runs {
     .mdc-data-table {
-      $sizes: 5%, 10%, 65%, 20%;
+      $sizes: 5%, 65%, 30%;
       @include mdc-data-table-column-widths($sizes);
+
+      @for $i from 1 through length($sizes) {
+        .mdc-data-table__header-cell:nth-child(#{$i}) {
+          width: nth($sizes, $i);
+        }
+      }
+
+      .pipeline-run-detail {
+        overflow: hidden;
+
+        button {
+          margin-top: $generalPadding;
+        }
+      }
+
+      table {
+        width: 100%;
+        table-layout: fixed;
+      }
+      th {
+
+      }
+      th, td {
+        overflow: hidden;
+        display: inline-block;
+        max-width: 100%;
+        padding: $mdcComponentPadding;
+      }
+    }
+
+    button {
+      margin-top: $generalPadding;
     }
   }
 
@@ -346,33 +381,40 @@ h2.header {
 
   .parameter-editor {
 
-    b {
-      font-weight: 500;
-      display: inline-block;
-      margin: 10px 0;
+    
+  }
+}
 
-      &:first-of-type {
-        margin-top: 0;
-      }
-    }
+.parameter-tree {
+  b {
+    font-weight: 500;
+    display: inline-block;
+    margin: 10px 0;
 
-    .parameter-key, .parameter-value {
-      display: inline-block;
+    &:first-of-type {
+      margin-top: 0;
     }
-    .parameter-key {
-      margin-left: 20px;
-    }
+  }
 
-    .parameter-row {
-      margin-bottom: 5px;
-    }
-  
-    .parameter-value {
+  .parameter-key, .parameter-value {
+    display: inline-block;
+  }
+  .parameter-key {
+    margin-left: 20px;
+  }
+
+  .parameter-row {
+    margin-bottom: 5px;
+  }
+
+  .parameter-value {
+    &.editable{
       color: $mdc-theme-secondary;
       text-decoration: underline;
-      padding-left: 5px;
       cursor: pointer;
     }
+    
+    padding-left: 5px;
   }
 }
 

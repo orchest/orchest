@@ -27,7 +27,7 @@ class PipelineStep extends React.Component {
         
             let seconds = Math.round((this.props.executionState.ended_time - this.props.executionState.started_time)/1000);
 
-            stateText = "Success (" + seconds + " sec.)";
+            stateText = "Completed (" + seconds + " sec.)";
         }
         if(this.props.executionState.status === "FAILURE"){
             let seconds = Math.round((this.props.executionState.ended_time - this.props.executionState.started_time)/1000);

@@ -1,5 +1,6 @@
 import React, { Fragment } from 'react';
 import {Controlled as CodeMirror} from 'react-codemirror2'
+import ParamTree from './ParamTree';
 require('codemirror/mode/javascript/javascript');
 
 class ParameterEditor extends React.Component {
@@ -13,61 +14,18 @@ class ParameterEditor extends React.Component {
         }
     }
 
-    truncateParameterValue(value){
-        let maxLength = 50;
-        return value.length > maxLength ? value.substring(0, maxLength - 1) + "…" : value
-    }
-
     editParameter(key, uuid){        
         this.setState({
             activeParameter: {"key": key, "uuid": uuid}
         })
     }
 
-    generateParameterStep(parameterizedStep){
-        let elements = [];
-
-        elements.push(<b key={parameterizedStep.uuid}>{parameterizedStep.title}</b>);
-
-        for(let parameterKey in parameterizedStep.parameters){
-            elements.push(<div key={parameterKey + "-" + parameterizedStep.uuid} className="parameter-row">
-                <div className='parameter-key'>
-                    {parameterKey}:
-                </div>
-                <div className='parameter-value' onClick={this.editParameter.bind(this, parameterKey, parameterizedStep.uuid)}>
-                    {this.truncateParameterValue(
-                        parameterizedStep.parameters[parameterKey]
-                    )}
-                </div>
-            </div>)
-        }
-
-        return elements;
-    }
-
-    generateParameterTree(parameterizedSteps){
-        let elements = [];
-        
-        for(const stepUUID in parameterizedSteps){
-            elements = elements.concat(this.generateParameterStep(parameterizedSteps[stepUUID]));
-        }
-
-        return elements;
-    }
-
     render() {
 
-        let treeView = this.generateParameterTree(this.state.parameterizedSteps);
-        
         return <div className='parameter-editor tab-view'>
             <div className="columns">
                 <div className="column">
-                    {(() => {
-                        if(Object.keys(this.state.parameterizedSteps).length == 0){
-                            return <p>This pipeline does't define any parameters on its steps.</p>;
-                        }
-                    })()}
-                    {treeView}
+                    <ParamTree parameterizedSteps={this.state.parameterizedSteps} editParameter={this.editParameter.bind(this)} />
                 </div>
                 <div className="column">
                     {(() => {

@@ -46,10 +46,10 @@ class PipelinesView extends React.Component {
 
         // load pipeline view
         let props = {
-            "pipeline": pipeline,
+            "pipeline_uuid": pipeline.uuid,
         }
 
-        if(e.ctrlKey){
+        if(e.ctrlKey || e.metaKey){
             props.readOnly = true;
         }
 

@@ -67,21 +67,6 @@ function Orchest() {
 
         this.loadView(PipelinesView);
 
-        // makeRequest("GET", "/async/pipelines", {
-        // }).then((response) => {
-        //     let result = JSON.parse(response);
-        //     if (result.success && result.result.length > 0) {
-        //         let firstPipeline = result.result[0];
-                
-        //         // this.loadView(PipelineView, {"uuid": firstPipeline.uuid });
-        //         // this.loadView(DataSourcesView);
-        //         // this.loadView(ExperimentsView);
-
-        //     } else {
-        //         console.warn("Could not load a first pipeline");
-        //         console.log(result);
-        //     }
-        // });
     }
 
     setTimeout(() =>{

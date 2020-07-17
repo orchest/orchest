@@ -26,7 +26,13 @@ class PipelineDetailsLogs extends React.Component {
 
   fetchLog() {
 
-    makeRequest("GET", "/async/logs/" + this.props.pipeline.uuid + "/" + this.props.step.uuid).then((response) => {
+    let logURL = "/async/logs/" + this.props.pipeline.uuid + "/" + this.props.step.uuid;
+
+    if(this.props.pipelineRun){
+      logURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+    }
+
+    makeRequest("GET", logURL).then((response) => {
       let json = JSON.parse(response);
       if (json.success) {
         this.setState({

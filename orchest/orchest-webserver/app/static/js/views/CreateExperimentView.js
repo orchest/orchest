@@ -190,9 +190,10 @@ class CreateExperimentView extends React.Component {
             pipeline_name: this.state.pipeline.name,
             name: this.props.experiment.name,
             strategy_json: JSON.stringify(this.state.parameterizedSteps),
+            draft: false,
         };
 
-        makeRequest("POST", "/store/experiments/" + this.props.experiment.uuid, {
+        makeRequest("PUT", "/store/experiments/" + this.props.experiment.uuid, {
             "type": "json", 
             content: experimentData
         }).then(
@@ -201,18 +202,20 @@ class CreateExperimentView extends React.Component {
             // after storing on the web server trigger the Orchest API
             let result = JSON.parse(response);
 
+            let experimentUUID = result.uuid;
+
             let pipelineDescriptions = this.generatePipelineDescriptions(
                 this.state.pipeline, 
                 this.state.generatedPipelineRuns,
                 this.state.selectedIndices);
 
             let pipelineRunIds = new Array(pipelineDescriptions.length);
-            for(let x = 0; pipelineRunIds.length; x++){
+            for(let x = 0; x < pipelineRunIds.length; x++){
                 pipelineRunIds[x] = x + 1;
             }
 
             let apiExperimentData = {
-                experiment_uuid: result.uuid,
+                experiment_uuid: experimentUUID,
                 pipeline_uuid: this.state.pipeline.uuid,
                 pipeline_descriptions: pipelineDescriptions,
                 pipeline_run_ids: pipelineRunIds,
@@ -224,11 +227,28 @@ class CreateExperimentView extends React.Component {
             };
 
             makeRequest("POST", "/catch/api-proxy/api/experiments/", {
-                "type": "json", 
+                type: "json", 
                 content: apiExperimentData
             }).then((response) => {
-                
-                orchest.loadView(ExperimentsView);
+
+                let result = JSON.parse(response);
+
+                // TODO: instead of bouncing three requests 
+                // (orchest-webserver, orchest-api, orchest-webserver)
+                // perhaps wrap this into one larger request that goes straight 
+                // to orchest-webserver (more ACID? - no partial success)
+                makeRequest("POST", "/async/pipelineruns/create", {
+                    type: "json",
+                    content: {
+                        experiment_uuid: experimentUUID,
+                        generated_pipeline_runs: this.state.generatedPipelineRuns,
+                        experiment_json: result
+                    }
+                }).then(() => {
+                    orchest.loadView(ExperimentsView);
+                }).catch((e) => {
+                    console.log(e)
+                })
                 
             }).catch((e) => {
                 console.log(e);

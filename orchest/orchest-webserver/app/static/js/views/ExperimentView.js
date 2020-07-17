@@ -5,6 +5,9 @@ import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import ParameterEditor from '../components/ParameterEditor';
 import SearchableTable from '../components/SearchableTable';
 import { makeRequest, uuidv4 } from '../utils/all';
+import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import ParamTree from '../components/ParamTree';
+import PipelineView from './PipelineView';
 
 class ExperimentView extends React.Component {
 
@@ -15,7 +18,8 @@ class ExperimentView extends React.Component {
             'selectedTabIndex': 0,
             'parameterizedSteps': this.props.parameterizedSteps,
             'selectedIndices': [0, 0],
-            'pipelineRuns': []
+            'pipelineRuns': [],
+            'refreshing': false,
         }
 
     }
@@ -31,20 +35,44 @@ class ExperimentView extends React.Component {
     }
 
     fetchPipelineRuns(){
-        makeRequest("GET", "/api-proxy/api/experiments/" + this.props.experiment.uuid).then((response) => {
+        makeRequest("GET", "/catch/api-proxy/api/experiments/" + this.props.experiment.uuid).then((response) => {
             
             let result = JSON.parse(response);
 
             this.setState({
-                pipelineRuns: result.pipeline_runs
+                pipelineRuns: result.pipeline_runs,
+                refreshing: false,
+            });
+        }).catch((e) => {
+            this.setState({
+                refreshing: false,
             });
         })
+    }
+
+    reload(){
+        this.setState({
+            refreshing: true,
+        });
+        this.fetchPipelineRuns();
     }
 
     onPipelineRunsSelectionChanged(selectedIndices){
         this.setState({
             selectedIndices: selectedIndices
         })
+    }
+
+    formatPipelineParamJSON(paramJSON){
+        let keyValuePairs = [];
+
+        for(let key in paramJSON){
+            let splitKey = key.split("#");
+            let paramName = splitKey.slice(1).join("#");
+            keyValuePairs.push(paramName + ": " + paramJSON[key]);
+        }
+
+        return keyValuePairs.join(", ");
     }
 
     pipelineRunsToTableData(pipelineRuns){
@@ -54,12 +82,62 @@ class ExperimentView extends React.Component {
             rows.push(
                 [
                     (x + 1),
-                    pipelineRuns[x].status
+                    this.formatPipelineParamJSON(pipelineRuns[x].parameters),
+                    pipelineRuns[x].status,
                 ]
             )
         }
 
         return rows;
+    }
+
+    parameterValueOverride(parameterizedSteps, parameters){
+        for(let key in parameters){
+
+            let splitKey = key.split("#");
+            let stepUUID = splitKey[0];
+            let paramKey = splitKey.slice(1).join("#");
+            let paramValue = parameters[key];
+
+            parameterizedSteps[stepUUID]['parameters'][paramKey] = paramValue;
+        }
+
+        return parameterizedSteps;
+    }
+
+    onDetailPipelineView(pipelineRun){
+
+        orchest.loadView(PipelineView, { 
+            pipelineRun: pipelineRun, 
+            pipeline_uuid: pipelineRun.pipeline_uuid,
+            readOnly: true,
+        });
+
+    }
+
+    detailRows(pipelineRuns){
+        let detailElements = [];
+
+        // override values in fields through param fields
+        for(let x = 0; x < pipelineRuns.length; x++){
+            let pipelineRun = pipelineRuns[x];
+            let parameterizedSteps = JSON.parse(JSON.stringify(this.props.parameterizedSteps));
+            
+            parameterizedSteps = this.parameterValueOverride(parameterizedSteps, pipelineRun.parameters);
+            
+            detailElements.push(
+                <div className="pipeline-run-detail">
+                    <ParamTree parameterizedSteps={parameterizedSteps} />
+                    <MDCButtonReact 
+                        label="View pipeline" 
+                        classNames={["mdc-button--raised", "themed-secondary"]} 
+                        icon="visibility"
+                        onClick={this.onDetailPipelineView.bind(this, pipelineRun)} />
+                </div>
+            )
+        }
+
+        return detailElements;
     }
 
     render() {
@@ -70,8 +148,9 @@ class ExperimentView extends React.Component {
             case 0:
                 tabView = <div className="pipeline-tab-view existing-pipeline-runs">
 
-                    <SearchableTable rows={this.pipelineRunsToTableData(this.state.pipelineRuns)} headers={['ID', 'Status']} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
+                    <SearchableTable rows={this.pipelineRunsToTableData(this.state.pipelineRuns)} detailRows={this.detailRows(this.state.pipelineRuns)} headers={['ID', 'Parameters', 'Status']} selectedIndices={this.state.selectedIndices} onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
 
+                    <MDCButtonReact disabled={this.state.refreshing} label="Refresh" icon="refresh"  onClick={this.reload.bind(this)} />
                 </div>
                 
                 break;
@@ -109,6 +188,7 @@ class ExperimentView extends React.Component {
             <div className="tab-view">
                 {tabView}
             </div>
+
         </div>;
 
     }

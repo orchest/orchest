@@ -100,8 +100,14 @@ class ExperimentsView extends React.Component {
 
     onSubmitModal(){
 
-        let pipeline_uuid = this.refs.formPipeline.mdc.value;
-        let experiment_uuid = uuidv4();
+        let pipelineUUID = this.refs.formPipeline.mdc.value;
+        let pipelineName;
+        for(let x = 0; x < this.state.pipelines.length; x++){
+            if(this.state.pipelines[x].uuid === pipelineUUID){
+                pipelineName = this.state.pipelines[x].name
+                break;
+            }
+        }
 
         // TODO: in this part of the flow copy the pipeline directory to make
         // sure the pipeline no longer changes
@@ -112,26 +118,22 @@ class ExperimentsView extends React.Component {
         makeRequest("POST", "/async/experiments/create", {
             type: 'json',
             content: {
-                pipeline_uuid: pipeline_uuid,
-                experiment_uuid: experiment_uuid
+                pipeline_uuid: pipelineUUID,
+                pipeline_name: pipelineName,
+                name: this.refs.formExperimentName.mdc.value,
             }
         }).then((response) => {
 
-            let result = JSON.parse(response);
-            if (result.success) {
+            let experiment = JSON.parse(response);
 
-                orchest.loadView(CreateExperimentView, {
-                    "experiment": {
-                        "name": this.refs.formExperimentName.mdc.value,
-                        "pipeline_uuid": pipeline_uuid,
-                        "uuid": experiment_uuid,
-                    }
-                });
+            orchest.loadView(CreateExperimentView, {
+                "experiment": {
+                    "name": experiment.name,
+                    "pipeline_uuid": experiment.pipeline_uuid,
+                    "uuid": experiment.uuid,
+                }
+            });
 
-            } else {
-                console.warn("Could not load pipeline.json");
-                console.log(result);
-            }
         });
     }
     onCancelModal(){
@@ -144,25 +146,37 @@ class ExperimentsView extends React.Component {
 
         let experiment = this.state.experiments[idx];
 
-        makeRequest("GET", "/async/pipelines/json/get/" + experiment.pipeline_uuid, {
-        }).then((response) => {
+        if(experiment.draft === true){
 
-            let result = JSON.parse(response);
-            if (result.success) {
+            orchest.loadView(CreateExperimentView, {
+                "experiment": {
+                    "name": experiment.name,
+                    "pipeline_uuid": experiment.pipeline_uuid,
+                    "uuid": experiment.uuid,
+                }
+            });
 
-                let pipeline = JSON.parse(result['pipeline_json']);
-
-                orchest.loadView(ExperimentView, {
-                    "pipeline": pipeline,
-                    "experiment": experiment,
-                    "parameterizedSteps": JSON.parse(experiment.strategy_json)
-                });
-
-            } else {
-                console.warn("Could not load pipeline.json");
-                console.log(result);
-            }
-        });
+        }else{
+            makeRequest("GET", "/async/pipelines/json/get/" + experiment.pipeline_uuid, {
+            }).then((response) => {
+    
+                let result = JSON.parse(response);
+                if (result.success) {
+    
+                    let pipeline = JSON.parse(result['pipeline_json']);
+    
+                    orchest.loadView(ExperimentView, {
+                        "pipeline": pipeline,
+                        "experiment": experiment,
+                        "parameterizedSteps": JSON.parse(experiment.strategy_json)
+                    });
+    
+                } else {
+                    console.warn("Could not load pipeline.json");
+                    console.log(result);
+                }
+            });
+        }
 
     }
 
@@ -173,6 +187,7 @@ class ExperimentsView extends React.Component {
                 experiments[x].name,
                 experiments[x].pipeline_name,
                 experiments[x].created,
+                experiments[x].draft ? "Draft" : "Started",
             ])
         }
         return rows;
@@ -232,7 +247,7 @@ class ExperimentsView extends React.Component {
                             <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
                         </div>
 
-                        <SearchableTable ref="experimentTable" selectable={true} onRowClick={this.onRowClick.bind(this)} rows={this.experimentListToTableData(this.state.experiments)} headers={['Experiment', 'Pipeline', 'Date created']} />
+                        <SearchableTable ref="experimentTable" selectable={true} onRowClick={this.onRowClick.bind(this)} rows={this.experimentListToTableData(this.state.experiments)} headers={['Experiment', 'Pipeline', 'Date created', 'Status']} />
                     </Fragment>
                 }else{
                     return <MDCLinearProgressReact />

@@ -9,7 +9,7 @@ class NotebookPreviewView extends React.Component {
   }
 
   loadPipelineView(){
-    orchest.loadView(PipelineView, { "pipeline": this.props.pipeline, readOnly: true });
+    orchest.loadView(PipelineView, { "pipeline_uuid": this.props.pipeline_uuid, readOnly: true });
   }
 
   componentDidMount(){
@@ -25,13 +25,20 @@ class NotebookPreviewView extends React.Component {
   }
 
   componentDidUpdate(prevProps){
-    if(this.props.step_uuid !== prevProps.step_uuid && this.props.pipeline.uuid !== prevProps.pipeline.uuid){
+    if(this.props.step_uuid !== prevProps.step_uuid && this.props.pipeline_uuid !== prevProps.pipeline_uuid){
       this.fetchNotebookHtml()
     }
   }
 
   fetchNotebookHtml(){
-    makeRequest("GET", "/async/notebook_html/" + this.props.pipeline.uuid + "/" + this.props.step_uuid).then((response) => {
+
+    let notebookURL = "/async/notebook_html/" + this.props.pipeline_uuid + "/" + this.props.step_uuid;
+
+    if(this.props.pipelineRun){
+      notebookURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+    }
+
+    makeRequest("GET", notebookURL).then((response) => {
       
       // filter HTML to remove box-shadow CSS rules
       const regex = /(box\-shadow\:|\-webkit\-box-shadow\:)[\d\s\w\,\)\(\-\.]*\;/gm;

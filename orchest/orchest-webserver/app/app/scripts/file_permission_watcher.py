@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import pyinotify
 import os
 import sys
@@ -30,7 +32,7 @@ def walk_dir(path):
 if __name__ == "__main__":
 
     logger = logging.getLogger('permission_app')
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     # create file handler which logs even debug messages
     fh = logging.FileHandler('permission-app.log')
@@ -40,6 +42,9 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         logger.debug("No directory specified")
         raise Exception("No directory specified")
+
+
+    logger.info("Started permission logging")
 
     while True:
         walk_dir(sys.argv[1])

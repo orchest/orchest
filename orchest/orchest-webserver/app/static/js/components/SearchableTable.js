@@ -75,7 +75,7 @@ class SearchableTable extends React.Component {
 
             <MDCTextFieldReact onChange={this.onSearchChange.bind(this)} classNames={['mdc-text-field--outlined', 'fullwidth', 'search']} notched={true} label="Search" />
 
-            <MDCDataTableReact ref="table" selectable={this.props.selectable} selectedIndices={this.filteredRows(this.props.selectedIndices)} onSelectionChanged={this.props.onSelectionChanged} onRowClick={this.props.onRowClick} classNames={['fullwidth']} headers={this.props.headers} rows={this.filteredRows(this.props.rows)} />
+            <MDCDataTableReact ref="table" selectable={this.props.selectable} selectedIndices={this.filteredRows(this.props.selectedIndices)} onSelectionChanged={this.props.onSelectionChanged} onRowClick={this.props.onRowClick} classNames={['fullwidth']} headers={this.props.headers} rows={this.filteredRows(this.props.rows)} detailRows={this.filteredRows(this.props.detailRows)} />
             
         </Fragment>
     }

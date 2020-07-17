@@ -70,10 +70,21 @@ def create_app():
     # Start threaded file_permission_watcher
     # TODO: reconsider file permission approach
     # Note: process is never cleaned up, this is permissible because it's only
-    # executed inside a container. 
-    file_dir = os.path.dirname(os.path.realpath(__file__))
-    permission_process = Popen(
-        ["python3", os.path.join(file_dir,"scripts", "file_permission_watcher.py"), app.config["USER_DIR"]]
-    )
+    # executed inside a container.
+    
+    watcher_file = "/tmp/file_permission_watcher_active" 
+
+    # guarantee no two python file permission watchers are started
+    if not os.path.isfile(watcher_file):
+        with open(watcher_file, "w") as file:
+            file.write("1")
+        
+        file_dir = os.path.dirname(os.path.realpath(__file__))
+        permission_process = Popen(
+            [os.path.join(file_dir, "scripts", "file_permission_watcher.py"), app.config["USER_DIR"]]
+        )
+
+        logging.info("Started file_permission_watcher.py")
+
     
     return app

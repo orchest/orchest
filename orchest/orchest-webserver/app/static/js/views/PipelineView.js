@@ -1,5 +1,4 @@
 import React from 'react';
-import { MDCRipple } from '@material/ripple';
 
 import { uuidv4, intersectRect, globalMDCVars, extensionFromFilename, nodeCenter, correctedPosition, makeRequest } from "../utils/all";
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -233,40 +232,42 @@ class PipelineView extends React.Component {
 
     savePipeline() {
 
-        let pipelineJSON = this.encodeJSON();
+        if(!this.props.readOnly){
+            let pipelineJSON = this.encodeJSON();
 
+            // validate pipelineJSON
+            let pipelineValidation = this.validatePipelineJSON(pipelineJSON);
 
-        // validate pipelineJSON
-        let pipelineValidation = this.validatePipelineJSON(pipelineJSON);
+            // if invalid
+            if(pipelineValidation.valid !== true){
 
-        // if invalid
-        if(pipelineValidation.valid !== true){
+                for(let x = 0; x < pipelineValidation.errors.length; x++){
+                    alert(pipelineValidation.errors[x]);
+                }
 
-            for(let x = 0; x < pipelineValidation.errors.length; x++){
-                alert(pipelineValidation.errors[x]);
+            }else{
+                // store pipeline.json
+                let formData = new FormData();
+                formData.append("pipeline_json", JSON.stringify(pipelineJSON));
+                formData.append("pipeline_uuid", pipelineJSON.uuid);
+
+                // perform POST to save
+                makeRequest("POST", "/async/pipelines/json/save", {type: "FormData", content: formData});
+
+                this.setState({
+                    "unsavedChanges": false
+                })
             }
-
         }else{
-            // store pipeline.json
-            let formData = new FormData();
-            formData.append("pipeline_json", JSON.stringify(pipelineJSON));
-            formData.append("pipeline_uuid", pipelineJSON.uuid);
-
-            // perform POST to save
-            makeRequest("POST", "/async/pipelines/json/save", {type: "FormData", content: formData});
-
-            this.setState({
-                "unsavedChanges": false
-            })
+            console.error("savePipeline should be uncallable in readOnly mode.")
         }
-
     }
 
     encodeJSON() {
         // generate JSON representation using the internal state of React components describing the pipeline
         let pipelineJSON = {
             "name": this.state.pipelineJson.name,
-            "uuid": this.props.pipeline.uuid,
+            "uuid": this.props.pipeline_uuid,
             "steps": {}
         };
 
@@ -330,11 +331,11 @@ class PipelineView extends React.Component {
     }
 
     openSettings() {
-        orchest.loadView(PipelineSettingsView, { "pipeline": this.props.pipeline });
+        orchest.loadView(PipelineSettingsView, { "pipeline_uuid": this.props.pipeline_uuid });
     }
 
     onOpenNotebookPreview(step_uuid) {
-        orchest.loadView(NotebookPreviewView, { "pipeline": this.props.pipeline, "step_uuid": step_uuid });
+        orchest.loadView(NotebookPreviewView, { "pipeline_uuid": this.props.pipeline_uuid, pipelineRun: this.props.pipelineRun, "step_uuid": step_uuid });
     }
 
     componentDidMount() {
@@ -780,15 +781,19 @@ class PipelineView extends React.Component {
     componentDidUpdate(prevProps, prevState, snapshot) {
 
         // fetch pipeline when uuid changed
-        if (this.props.pipeline.uuid !== prevProps.pipeline.uuid) {
+        if (this.props.pipeline_uuid !== prevProps.pipeline_uuid) {
             this.fetchPipelineAndInitialize()
         }
     }
 
     fetchPipelineAndInitialize() {
+        let pipelineURL = "/async/pipelines/json/get/" + this.props.pipeline_uuid;
 
-        makeRequest("GET", "/async/pipelines/json/get/" + this.props.pipeline.uuid, {
-        }).then((response) => {
+        if(this.props.pipelineRun){
+            pipelineURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+        }
+
+        makeRequest("GET", pipelineURL).then((response) => {
 
             let result = JSON.parse(response);
             if (result.success) {
@@ -805,22 +810,25 @@ class PipelineView extends React.Component {
         });
 
         // get backend status
-        makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + this.props.pipeline.uuid).then((response) => {
+        if(!this.props.readOnly){
+            makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + this.props.pipeline_uuid).then((response) => {
 
-            let result = JSON.parse(response);
-
-            if(result.sessions.length > 0){
-                let launch = result.sessions[0];
-                this.state.backend.jupyter_server_ip = launch.jupyter_server_ip;
-                this.state.backend.notebook_server_info = launch.notebook_server_info;
-                this.state.backend.running = true;
-
-                this.setState({ "backend": this.state.backend });
-                this.updateJupyterInstance();
-            }else{
-                this.launchPipeline();
-            }
-        });
+                let result = JSON.parse(response);
+    
+                if(result.sessions.length > 0){
+                    let launch = result.sessions[0];
+                    this.state.backend.jupyter_server_ip = launch.jupyter_server_ip;
+                    this.state.backend.notebook_server_info = launch.notebook_server_info;
+                    this.state.backend.running = true;
+    
+                    this.setState({ "backend": this.state.backend });
+                    this.updateJupyterInstance();
+                }else{
+                    this.launchPipeline();
+                }
+            });
+        }
+        
 
     }
 
@@ -840,41 +848,29 @@ class PipelineView extends React.Component {
         if (!this.state.backend.running) {
 
             // send launch request to API
+            let data = {
+                "pipeline_uuid": this.props.pipeline_uuid,
+            };
 
-            // perform POST to save
+            this.state.backend.working = true;
 
-            // get pipeline dir from webserver
-            makeRequest("GET", "/async/pipelines/get_directory/" + this.props.pipeline.uuid).then((response) => {
+            this.setState({ "backend": this.state.backend });
 
+            makeRequest("POST", "/catch/api-proxy/api/sessions/", {"type": "json", content: data}).then((response) => {
                 let json = JSON.parse(response);
 
-                let userdir_pipeline = json.result;
+                console.log("API launch result");
+                console.log(json);
 
-                let data = {
-                    "pipeline_uuid": this.props.pipeline.uuid,
-                    "pipeline_dir": userdir_pipeline
-                };
+                this.state.backend.running = true;
+                this.state.backend.working = false;
 
-                this.state.backend.working = true;
+                this.state.backend.jupyter_server_ip = json.jupyter_server_ip;
+                this.state.backend.notebook_server_info = json.notebook_server_info;
 
                 this.setState({ "backend": this.state.backend });
 
-                makeRequest("POST", "/api-proxy/api/sessions/", {"type": "json", content: data}).then((response) => {
-                    let json = JSON.parse(response);
-
-                    console.log("API launch result");
-                    console.log(json);
-
-                    this.state.backend.running = true;
-                    this.state.backend.working = false;
-
-                    this.state.backend.jupyter_server_ip = json.jupyter_server_ip;
-                    this.state.backend.notebook_server_info = json.notebook_server_info;
-
-                    this.setState({ "backend": this.state.backend });
-
-                    this.updateJupyterInstance();
-                });
+                this.updateJupyterInstance();
             })
 
         } else {
@@ -884,7 +880,7 @@ class PipelineView extends React.Component {
                 "backend": this.state.backend
             })
 
-            makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline.uuid).then((response) => {
+            makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid).then((response) => {
                 let result = JSON.parse(response);
                 console.log("API delete result");
                 console.log(result);
@@ -966,7 +962,7 @@ class PipelineView extends React.Component {
         if (this.state.stepExecutionState[stepUUID]) {
             return this.state.stepExecutionState[stepUUID];
         } else {
-            return { status: "idle", time: new Date() };
+            return { status: "idle" };
         }
     }
 
@@ -1446,7 +1442,8 @@ class PipelineView extends React.Component {
                         connections={connections_list}
                         defaultViewIndex={this.state.defaultDetailViewIndex}
                         onChangeView={this.onDetailsChangeView.bind(this)}
-                        pipeline={this.props.pipeline}
+                        pipeline={this.state.pipelineJson}
+                        pipelineRun={this.props.pipelineRun}
                         step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
                 }
             })()}
