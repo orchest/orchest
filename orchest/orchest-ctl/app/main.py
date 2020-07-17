@@ -40,7 +40,7 @@ def slash_sub(path):
 HOST_USER_DIR = slash_sub(HOST_USER_DIR)
 HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
 
-DURABLE_QUEUES_DIR = ".durable_queues"
+DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 
 # Set to `True` if you want to pull images from Dockerhub
 # instead of using local equivalents
