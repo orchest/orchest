@@ -237,7 +237,7 @@ def register_views(app, db):
         
         class ExperimentSchema(ma.Schema):
             class Meta:
-                fields = ("name", "uuid", "pipeline_uuid", "pipeline_name", "created", "strategy_json")
+                fields = ("name", "uuid", "pipeline_uuid", "pipeline_name", "created", "strategy_json", "draft")
 
         experiment_schema = ExperimentSchema()
         experiments_schema = ExperimentSchema(many=True)
@@ -258,6 +258,7 @@ def register_views(app, db):
                 ex.pipeline_uuid = request.json["pipeline_uuid"]
                 ex.pipeline_name = request.json["pipeline_name"]
                 ex.strategy_json = request.json["strategy_json"]
+                ex.draft = request.json["draft"]
                 db.session.commit()
 
                 return experiment_schema.dump(ex)
@@ -281,6 +282,7 @@ def register_views(app, db):
                     pipeline_uuid=request.json['pipeline_uuid'],
                     pipeline_name=request.json['pipeline_name'],
                     strategy_json=request.json['strategy_json'],
+                    draft=request.json['draft'],
                 )
 
                 db.session.add(new_ex)
