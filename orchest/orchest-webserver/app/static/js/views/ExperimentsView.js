@@ -187,7 +187,7 @@ class ExperimentsView extends React.Component {
                 experiments[x].name,
                 experiments[x].pipeline_name,
                 experiments[x].created,
-                experiments[x].draft ? "Draft" : "Started",
+                experiments[x].draft ? "Draft" : "",
             ])
         }
         return rows;
@@ -229,7 +229,10 @@ class ExperimentsView extends React.Component {
 
                                             {(() => {
                                                 if(this.state.createModelLoading){
-                                                    return <MDCLinearProgressReact />
+                                                    return <Fragment>
+                                                            <MDCLinearProgressReact />
+                                                            <p className="padding-bottom">Copying pipeline directory...</p>
+                                                        </Fragment>
                                                 }
                                             })()}
 

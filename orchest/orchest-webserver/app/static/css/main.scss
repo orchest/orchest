@@ -37,6 +37,17 @@ body {
   margin: 0;
 }
 
+p {
+  font-size: 15px;
+
+  &.padding-top {
+    padding-top: $generalPadding;
+  }
+  &.padding-bottom {
+    padding-bottom: $generalPadding;
+  }
+}
+
 .mdc-drawer__content {
   position: relative;
 }
