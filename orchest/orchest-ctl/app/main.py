@@ -146,11 +146,6 @@ def clean_containers():
 def start():
     logging.info("Starting Orchest...")
 
-    # need '.durable_queues' to put the rabbitmq queue backups into while tasks are scheduled
-    durable_queues_path = os.path.join('/userdir', DURABLE_QUEUES_DIR)
-    if not os.path.exists(durable_queues_path):
-        os.makedirs(durable_queues_path)
-
     # check if all images are present
     if install_complete():
         client = docker.from_env()

@@ -1,5 +1,2 @@
-pipelines
 .ipynb_checkpoints
 *.db
-.durable_queues
-scheduled_runs
