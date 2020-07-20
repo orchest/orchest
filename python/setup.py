@@ -11,8 +11,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         'pyarrow>=0.17.1',
-        'boto3>=1.14.23',
-        'requests>=2.24.0',
+        'boto3>=1.13.26',
+        'requests>=2.23.0',
         'SQLAlchemy>=1.3.18',
     ],
 
