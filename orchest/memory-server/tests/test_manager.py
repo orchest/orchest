@@ -53,10 +53,11 @@ def memory_store(monkeypatch):
 @patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
 def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     store_socket_name, pipeline_fname = memory_store
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = pipeline_fname
 
     # Setup environment variables.
     envs = {
-        'AUTO_EVICTION': 'True'
+        'EVICTION_OPTIONALITY': 'True'
     }
     monkeypatch.setattr(os, 'environ', envs)
 
@@ -66,7 +67,6 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     orchest.transfer.output_to_memory(
         data_1,
         disk_fallback=False,
-        pipeline_description_path=pipeline_fname
     )
 
     # Do as if we are uuid-2
@@ -81,7 +81,6 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     orchest.transfer.output_to_memory(
         data_2,
         disk_fallback=False,
-        pipeline_description_path=pipeline_fname
     )
 
     # Do as if we are uuid-3. It should fit in memory, since the receive
@@ -97,7 +96,6 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     res = orchest.transfer.output_to_memory(
         data_3,
         disk_fallback=False,
-        pipeline_description_path=pipeline_fname
     )
 
     assert res is None
@@ -108,13 +106,14 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
 def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
     store_socket_name, pipeline_fname = memory_store
 
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = pipeline_fname
+
     # Do as if we are uuid-1
     data_1 = generate_data(0.6*PLASMA_KILOBYTES * KILOBYTE)
     mock_get_step_uuid.return_value = 'uuid-1______________'
     orchest.transfer.output_to_memory(
         data_1,
         disk_fallback=False,
-        pipeline_description_path=pipeline_fname
     )
 
     # Do as if we are uuid-2
@@ -129,7 +128,6 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
     orchest.transfer.output_to_memory(
         data_2,
         disk_fallback=False,
-        pipeline_description_path=pipeline_fname
     )
 
     # Do as if we are uuid-3. It should fit in memory, since the receive
@@ -146,5 +144,4 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
         orchest.transfer.output_to_memory(
             data_3,
             disk_fallback=False,
-            pipeline_description_path=pipeline_fname
         )
