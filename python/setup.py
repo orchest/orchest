@@ -10,7 +10,10 @@ setuptools.setup(
     version='0.1.0',
     packages=setuptools.find_packages(),
     install_requires=[
-        'pyarrow>=0.17.1'
+        'pyarrow>=0.17.1',
+        'boto3>=1.14.23',
+        'requests>=2.24.0',
+        'SQLAlchemy>=1.3.18',
     ],
 
     # Metadata to display on PyPI.
