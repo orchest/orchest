@@ -154,7 +154,7 @@ def start_non_interactive_pipeline_run(
 
     with launch_session(
         docker_client,
-        experiment_uuid,
+        self.request.id,
         run_config['pipeline_dir'],
         interactive=False,
     ) as session:

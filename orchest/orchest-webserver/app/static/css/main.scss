@@ -321,6 +321,12 @@ h2.header {
     }
   }
 
+  .pipeline-runs {
+    .pipeline-run-detail {
+      padding: $mdcComponentPadding;
+    }
+  }
+
   .existing-pipeline-runs {
     .mdc-data-table {
       $sizes: 5%, 65%, 30%;

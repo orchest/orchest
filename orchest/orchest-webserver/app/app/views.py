@@ -420,16 +420,19 @@ def register_views(app, db):
         for pipeline_run in pipeline_runs:
             pipeline_runs_dict[pipeline_run.id] = pipeline_run
 
+        # TODO: sort pipeline_runs
+        json_return = resp.json()
+
+        json_return["pipeline_runs"] = sorted(json_return['pipeline_runs'], key= lambda x: x["pipeline_run_id"])
+
         # augment response with parameter values that are stored on the webserver
         if resp.status_code == 200:
-
-            json_return = resp.json()
 
             try:
                 logging.info(json_return)
 
-                for idx, run in enumerate(json_return["pipeline_runs"], start=1):
-                    run["parameters"] = pipeline_runs_dict[idx].parameter_json
+                for run in json_return["pipeline_runs"]:
+                    run["parameters"] = pipeline_runs_dict[run["pipeline_run_id"]].parameter_json
 
                 return jsonify(json_return)
             except Exception as e:
@@ -484,13 +487,13 @@ def register_views(app, db):
         PipelineRun.query.filter(
             PipelineRun.experiment == experiment_uuid).delete()
 
-        for idx, pipeline_run in enumerate(request.json["generated_pipeline_runs"], start=1):
+        for idx, pipeline_run in enumerate(request.json["generated_pipeline_runs"]):
 
             pr = PipelineRun(
-                uuid=request.json["experiment_json"]["pipeline_runs"][idx - 1]["run_uuid"],
+                uuid=request.json["experiment_json"]["pipeline_runs"][idx]["run_uuid"],
                 experiment=experiment_uuid,
                 parameter_json=pipeline_run,
-                id=idx
+                id=request.json["pipeline_run_ids"][idx]
             )
 
             db.session.add(pr)

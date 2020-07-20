@@ -81,7 +81,7 @@ class ExperimentView extends React.Component {
         for(let x = 0; x < pipelineRuns.length; x++){
             rows.push(
                 [
-                    (x + 1),
+                    pipelineRuns[x].pipeline_run_id,
                     this.formatPipelineParamJSON(pipelineRuns[x].parameters),
                     pipelineRuns[x].status,
                 ]

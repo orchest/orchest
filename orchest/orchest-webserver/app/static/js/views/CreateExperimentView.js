@@ -8,6 +8,7 @@ import ExperimentsView from "./ExperimentsView";
 import SearchableTable from '../components/SearchableTable';
 import { makeRequest } from '../utils/all';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
+import ParamTree from '../components/ParamTree';
 
 class CreateExperimentView extends React.Component {
 
@@ -242,7 +243,8 @@ class CreateExperimentView extends React.Component {
                     content: {
                         experiment_uuid: experimentUUID,
                         generated_pipeline_runs: this.state.generatedPipelineRuns,
-                        experiment_json: result
+                        experiment_json: result,
+                        pipeline_run_ids: pipelineRunIds,
                     }
                 }).then(() => {
                     orchest.loadView(ExperimentsView);
@@ -295,7 +297,11 @@ class CreateExperimentView extends React.Component {
         // for indexOf to work on arrays in this.generatedPipelineRuns it
         // depends on the object being the same (same reference)
         for (let x = 0; x < rows.length; x++) {
-            let index = this.state.generatedPipelineRuns.indexOf(rows[x]);
+            let index = this.state.generatedPipelineRunRows.indexOf(rows[x]);
+
+            if(index === -1){
+                console.error("row should always be in generatedPipelineRunRows");
+            }
 
             if (selectedRows.indexOf(rows[x]) !== -1) {
                 selectedIndices[index] = 1;
@@ -307,6 +313,40 @@ class CreateExperimentView extends React.Component {
         this.setState({
             selectedIndices: selectedIndices
         })
+    }
+
+    parameterValueOverride(parameterizedSteps, parameters){
+        for(let key in parameters){
+
+            let splitKey = key.split("#");
+            let stepUUID = splitKey[0];
+            let paramKey = splitKey.slice(1).join("#");
+            let paramValue = parameters[key];
+
+            parameterizedSteps[stepUUID]['parameters'][paramKey] = paramValue;
+        }
+
+        return parameterizedSteps;
+    }
+
+    detailRows(pipelineParameters){
+        let detailElements = [];
+
+        // override values in fields through param fields
+        for(let x = 0; x < pipelineParameters.length; x++){
+            let parameters = pipelineParameters[x];
+            let parameterizedSteps = JSON.parse(JSON.stringify(this.state.parameterizedSteps));
+            
+            parameterizedSteps = this.parameterValueOverride(parameterizedSteps, parameters);
+
+            detailElements.push(
+                <div className="pipeline-run-detail">
+                    <ParamTree parameterizedSteps={parameterizedSteps} />
+                </div>
+            )
+        }
+
+        return detailElements;
     }
 
     render() {
@@ -357,10 +397,11 @@ class CreateExperimentView extends React.Component {
                     </div>
                     break;
                 case 2:
-                    tabView = <div className="pipeline-tab-view">
+                    tabView = <div className="pipeline-tab-view pipeline-runs">
                         <SearchableTable
                             selectable={true}
                             headers={['Parameters']}
+                            detailRows={this.detailRows(this.state.generatedPipelineRuns)}
                             rows={this.state.generatedPipelineRunRows}
                             selectedIndices={this.state.selectedIndices}
                             onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(this)} />
