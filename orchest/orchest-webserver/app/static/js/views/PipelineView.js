@@ -141,6 +141,7 @@ class PipelineView extends React.Component {
         $(document).off("mouseup.initializePipeline");
         $(document).off("keyup.initializePipeline");
         $(document).off("keydown.initializePipeline");
+        clearInterval(this.pipelineStepStatusPollingInterval);
     }
 
     constructor(props) {
@@ -170,6 +171,7 @@ class PipelineView extends React.Component {
             openedStep: undefined,
             selectedSteps: [],
             runUUID: undefined,
+            runStatusEndpoint: "/api-proxy/api/runs/",
             unsavedChanges: false,
             stepSelector: {
                 active: false,
@@ -188,6 +190,17 @@ class PipelineView extends React.Component {
             }
         }
 
+        if(this.props.pipelineRun){
+            try {
+                this.state.runUUID = this.props.pipelineRun.run_uuid;
+                this.state.runStatusEndpoint = "/api-proxy/api/experiments/" + this.props.pipelineRun.experiment_uuid + "/";
+                this.pollPipelineStepStatuses();
+                this.startStatusInterval();
+            } catch {
+                console.log("this.props.pipelineRun.run_uuid is not defined")
+            }
+        }
+        
     }
 
     validatePipelineJSON(pipelineJSON){
@@ -335,7 +348,7 @@ class PipelineView extends React.Component {
     }
 
     onOpenNotebookPreview(step_uuid) {
-        orchest.loadView(NotebookPreviewView, { "pipeline_uuid": this.props.pipeline_uuid, pipelineRun: this.props.pipelineRun, "step_uuid": step_uuid });
+        orchest.loadView(NotebookPreviewView, { "pipeline_uuid": this.props.pipeline_uuid, pipelineRun: this.props.pipelineRun, "step_uuid": step_uuid, "pipelineRun": this.props.pipelineRun });
     }
 
     componentDidMount() {
@@ -774,7 +787,6 @@ class PipelineView extends React.Component {
         }
 
 
-
     }
 
 
@@ -1060,7 +1072,7 @@ class PipelineView extends React.Component {
 
         if (this.state.runUUID) {
 
-            makeRequest("GET", "/api-proxy/api/runs/" + this.state.runUUID).then((response) => {
+            makeRequest("GET", this.state.runStatusEndpoint + this.state.runUUID).then((response) => {
                 let result = JSON.parse(response);
 
                 this.parseRunStatuses(result);
@@ -1121,9 +1133,14 @@ class PipelineView extends React.Component {
                 runUUID: result.run_uuid
             });
 
-            // initialize interval
-            this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
+            this.startStatusInterval();
+            
         })
+    }
+
+    startStatusInterval(){
+        // initialize interval
+        this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
     }
 
     onRunIncoming() {

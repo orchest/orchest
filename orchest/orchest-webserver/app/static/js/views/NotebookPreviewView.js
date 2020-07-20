@@ -9,7 +9,7 @@ class NotebookPreviewView extends React.Component {
   }
 
   loadPipelineView(){
-    orchest.loadView(PipelineView, { "pipeline_uuid": this.props.pipeline_uuid, readOnly: true });
+    orchest.loadView(PipelineView, { "pipeline_uuid": this.props.pipeline_uuid, readOnly: true, pipelineRun: this.props.pipelineRun });
   }
 
   componentDidMount(){
