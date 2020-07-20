@@ -3,12 +3,12 @@ import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import ParameterEditor from '../components/ParameterEditor';
 import DateTimeInput from '../components/DateTimeInput';
-import Radio, { NativeRadioControl } from '@material/react-radio';
 import ExperimentsView from "./ExperimentsView";
 import SearchableTable from '../components/SearchableTable';
 import { makeRequest } from '../utils/all';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
 import ParamTree from '../components/ParamTree';
+import MDCRadioReact from '../mdc-components/MDCRadioReact';
 
 class CreateExperimentView extends React.Component {
 
@@ -365,30 +365,26 @@ class CreateExperimentView extends React.Component {
                 case 1:
                     tabView = <div className='tab-view'>
                         <div>
-                            <Radio label='Now' key='now'>
-                                <NativeRadioControl
-                                    name='time'
-                                    id="now"
-                                    value='now'
-                                    checked={this.state.scheduleOption === "now"}
-                                    onChange={(e) => {
-                                        this.setState({ scheduleOption: e.target.value })
-                                    }}
-                                />
-                            </Radio>
+                            <MDCRadioReact
+                                label="Now"
+                                value="now"
+                                name="time"
+                                checked={this.state.scheduleOption === "now"}
+                                onChange={(e) => {
+                                    this.setState({ scheduleOption: e.target.value })
+                                }}
+                            />
                         </div>
                         <div>
-                            <Radio label='Scheduled' key='scheduled'>
-                                <NativeRadioControl
-                                    name='time'
-                                    id="scheduled"
-                                    value='scheduled'
-                                    checked={this.state.scheduleOption === "scheduled"}
-                                    onChange={(e) => {
-                                        this.setState({ scheduleOption: e.target.value })
-                                    }}
-                                />
-                            </Radio>
+                            <MDCRadioReact
+                                label="Scheduled"
+                                value="scheduled"
+                                name="time"
+                                checked={this.state.scheduleOption === "scheduled"}
+                                onChange={(e) => {
+                                    this.setState({ scheduleOption: e.target.value })
+                                }}
+                            />
 
                             <DateTimeInput ref="scheduledDateTime"
                                 onFocus={() => this.setState({ scheduleOption: 'scheduled' })} />

@@ -1,15 +1,8 @@
-@use "@material/data-table/mdc-data-table";
-
-
 @import "vars";
 
 @import "material-components-web/material-components-web";
-
-@import '@material/react-text-field/index.scss';
-@import '@material/react-radio/index.scss';
-@import '@material/react-button/index.scss';
 @import 'codemirror/lib/codemirror';
-
+ 
 @import "scrollbar";
 @import "ansi";
 
@@ -129,7 +122,7 @@ h1, h2, h3 {
 .mdc-text-field--outlined {
 
   .mdc-text-field__input {
-    padding-left: 32px;
+    padding-left: $mdcComponentPadding * 2;
   }
 
   .mdc-notched-outline {
@@ -149,7 +142,7 @@ h1, h2, h3 {
 aside.mdc-drawer {
   //max-width: 325px;
   //width: 20%;
-  @include mdc-drawer-width(325px);
+  --mdc-drawer-width: 325px;
   padding: 20px;
   height: 100%;
   text-align: center;
@@ -294,11 +287,9 @@ h2.header {
     }
   }
 
-}
+} 
 
 .experiment-view {
-
-  
 
   display: flex;
   flex-direction: column;
@@ -330,10 +321,15 @@ h2.header {
   .existing-pipeline-runs {
     .mdc-data-table {
       $sizes: 5%, 65%, 30%;
-      @include mdc-data-table-column-widths($sizes);
 
       @for $i from 1 through length($sizes) {
         .mdc-data-table__header-cell:nth-child(#{$i}) {
+          width: nth($sizes, $i);
+        }
+      }
+
+      @for $i from 1 through length($sizes) {
+        .mdc-data-table__cell:nth-child(#{$i}) {
           width: nth($sizes, $i);
         }
       }

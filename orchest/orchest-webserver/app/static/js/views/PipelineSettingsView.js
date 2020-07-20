@@ -55,7 +55,7 @@ class PipelineSettingsView extends React.Component {
     }
 
     closeSettings() {
-        orchest.loadView(PipelineView, { "pipeline": this.props.pipeline });
+        orchest.loadView(PipelineView, { "pipeline_uuid": this.props.pipeline_uuid });
     }
 
     saveGeneralForm(e) {

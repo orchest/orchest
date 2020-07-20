@@ -42,6 +42,10 @@ class MDCTextFieldReact extends React.Component {
             formType = "password";
         }
 
+        if(this.props.icon){
+            topClasses.push("mdc-text-field--with-trailing-icon");
+        }
+
         if (this.props.disabled === true) {
             topClasses.push("mdc-text-field--disabled");
         }
@@ -52,7 +56,6 @@ class MDCTextFieldReact extends React.Component {
 
         let label = <Fragment>
             <label className="mdc-floating-label" htmlFor={randomFor}>{this.props.label}</label>
-            <div className="mdc-line-ripple"></div>
         </Fragment>;
 
         if (this.props.notched === true) {
@@ -61,7 +64,7 @@ class MDCTextFieldReact extends React.Component {
                     <div className="mdc-notched-outline__leading"></div>
                     <div className="mdc-notched-outline__notch">
                         <label className="mdc-floating-label" htmlFor={randomFor}>
-                                {this.props.label}
+                            {this.props.label}
                         </label>
                     </div>
                     <div className="mdc-notched-outline__trailing"></div>
@@ -74,6 +77,17 @@ class MDCTextFieldReact extends React.Component {
                 type={formType}
                 id={randomFor} />
             {label}
+            {(() => {
+                if (this.props.icon) {
+                    return <i class="material-icons mdc-text-field__icon" tabindex="0" role="button">{this.props.icon}</i>
+                }
+            })()}
+            {(() => {
+                if (!this.props.notched) {
+                    return <div className="mdc-line-ripple"></div>
+                }
+            })()}
+
         </div>;
     }
 }

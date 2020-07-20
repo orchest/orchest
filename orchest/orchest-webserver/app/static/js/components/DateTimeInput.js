@@ -1,6 +1,5 @@
 import React from 'react';
-import TextField, { Input } from '@material/react-text-field';
-import MaterialIcon from '@material/react-material-icon';
+import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 
 class DateTimeInput extends React.Component {
 
@@ -21,26 +20,10 @@ class DateTimeInput extends React.Component {
     render() {
         return <div className="datetime-input">
             <div>
-                <TextField
-                    label='Time'
-                    trailingIcon={<MaterialIcon role="button" icon="schedule" />}
-                >
-                    <Input
-                        value={this.state.timeValue}
-                        onChange={(e) => this.setState({ timeValue: e.currentTarget.value })}
-                        onFocus={this.props.onFocus} />
-                </TextField>
+                <MDCTextFieldReact label="Time" icon="schedule" value={this.state.timeValue} onChange={(value) => {this.setState({timeValue: value})}} onFocus={this.props.onFocus} />
             </div>
             <div>
-                <TextField
-                    label='Date'
-                    trailingIcon={<MaterialIcon role="button" icon="event" />}
-                >
-                    <Input
-                        value={this.state.dateValue}
-                        onChange={(e) => this.setState({ dateValue: e.currentTarget.value })}
-                        onFocus={this.props.onFocus} />
-                </TextField>
+                <MDCTextFieldReact label="Date" icon="event" value={this.state.dateValue} onChange={(value) => {this.setState({dateValue: value})}} onFocus={this.props.onFocus} />
             </div>
         </div>;
     }

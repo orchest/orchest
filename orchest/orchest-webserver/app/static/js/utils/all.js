@@ -102,8 +102,10 @@ export function correctedPosition(x, y, el) {
 }
 
 
-import variables from '../../css/vars.scss';
-
 export function globalMDCVars(){
-  return variables
+  return {
+    mdcthemeprimary: "#000000",
+    mdcthemesecondary: "#0a6df7",
+    mdcthemebackground: "#fff",
+  };
 }
