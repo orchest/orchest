@@ -1,2 +1,0 @@
-networkx==2.4
--e git+https://github.com/orchest/orchest-sdk.git@master#egg=orchest&subdirectory=python
