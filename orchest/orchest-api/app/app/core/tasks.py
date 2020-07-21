@@ -121,18 +121,20 @@ def start_non_interactive_pipeline_run(
     snapshot_dir = os.path.join(experiment_dir, 'snapshot')
     run_dir = os.path.join(experiment_dir, self.request.id)
 
+    # TODO: It should not copy all directories, e.g. not "data".
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir` (that will then be created by `copytree`).
-    # TODO: It should not copy all directories, e.g. not "data".
     # copytree(snapshot_dir, run_dir)
     os.system("cp -R %s %s" % (snapshot_dir, run_dir))
 
     # Update the `run_config` for the interactive pipeline run. The
-    # pipeline run should execute on the `run_dir` as its `pipeline_dir`
-    # NOTE: the `pipeline_dir` inside the `run_config` has to be the abs
-    # path w.r.t. the host because it is used by the `docker.sock` when
-    # mounting the dir to the container of a step.
+    # pipeline run should execute on the `run_dir` as its
+    # `pipeline_dir`. Note that the `pipeline_dir` inside the
+    # `run_config` has to be the abs path w.r.t. the host because it is
+    # used by the `docker.sock` when mounting the dir to the container
+    # of a step.
     host_base_user_dir = os.path.split(run_config['host_user_dir'])[0]
+
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
     run_config['pipeline_dir'] = os.path.join(host_base_user_dir, run_dir[1:])
@@ -144,13 +146,6 @@ def start_non_interactive_pipeline_run(
     pipeline_json = os.path.join(run_dir, 'pipeline.json')
     with open(pipeline_json, 'w') as f:
         json.dump(pipeline_description, f)
-
-    # TODO: `run_partial` does not yet support the `experiment_uuid`,
-    #       but we need it to correctly update the status of the steps.
-    #       Maybe we can incorporate it in the `run_endpoint` of
-    #       `run_config` by doing ``f'experiments/{experiment_uuid}'``.
-    # TODO: Have to make sure that somewhere a memory-server is started
-    #       so that the pipeline run gets its own memory store.
 
     with launch_session(
         docker_client,

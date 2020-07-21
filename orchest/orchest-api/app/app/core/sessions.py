@@ -121,7 +121,7 @@ class Session:
             uuid: UUID to identify the session with. It is passed to the
                 :meth:`_get_container_specs` method. Meaning `uuid` is
                 recommended to be either a pipeline UUID (for
-                interactive sessions) or experiment UUID (for non-
+                interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
             pipeline_dir: Path to pipeline directory.
 
@@ -329,7 +329,7 @@ class NonInteractiveSession(Session):
         name for its memory-server.
 
         For experiments a good option for the `uuid` would be the
-        experiment UUID. If none is given
+        pipeline run UUID. If none is given
 
         Args:
             uuid: Some UUID. If ``None`` then a randomly generated UUID
@@ -442,7 +442,7 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
     Args:
         uuid: Some UUID to identify the session with. For interactive
             runs using the pipeline UUID is recommended, for non-
-            interactive runs we recommend using the experiment UUID.
+            interactive runs we recommend using the pipeline run UUID.
         pipeline_dir: Pipeline directory w.r.t. the host. Needed to
             construct the mounts.
         network: Docker network. This is put directly into the specs, so

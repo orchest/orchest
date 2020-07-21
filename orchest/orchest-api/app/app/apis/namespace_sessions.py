@@ -102,3 +102,24 @@ class Session(Resource):
         db.session.commit()
 
         return {'message': 'Session shutdown was successful'}, 200
+
+    @api.doc('restart_memory_server_of_session')
+    @api.response(200, 'Session resource memory-server restarted')
+    @api.response(404, 'Session not found')
+    def put(self, pipeline_uuid):
+        """Restarts the memory-server of session."""
+        session = models.InteractiveSession.query.get_or_404(
+            pipeline_uuid, description='Session not found'
+        )
+        session_obj = InteractiveSession.from_container_IDs(
+            docker_client,
+            container_IDs=session.container_ids,
+            network='orchest',
+        )
+
+        # NOTE: The entry in the database does not have to be updated
+        # since restarting the `memory-server` does not change its
+        # Docker ID.
+        session_obj.restart_resource(resource_name='memory-server')
+
+        return {'message': 'Session shutdown was successful'}, 200
