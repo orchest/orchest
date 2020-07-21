@@ -56,6 +56,10 @@ function Orchest() {
 
         if (this.jupyter) {
             this.jupyter.hide();
+
+            if(TagName !== PipelineView){
+                this.jupyter.unload();
+            }
         }
 
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);

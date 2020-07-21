@@ -21,8 +21,11 @@ class Jupyter {
     }
     hide(){
         // unload JupyterLab page on hide to avoid background activity
-        this.iframe.src = "about:blank";
+        
         this.jupyterHolder.addClass("hidden");
+    }
+    unload(){
+        this.iframe.src = "about:blank";
     }
 
     setJupyterAddress(url){
@@ -30,7 +33,11 @@ class Jupyter {
     }
 
     navigateTo(filePath){
-        this.setJupyterAddress(this.baseAddress + "lab/workspaces/main/tree/" + filePath + "?token=" + this.token);
+        if(this.iframe.src.indexOf(this.baseAddress) !== -1){
+            this.iframe.contentWindow._orchest_docmanager.openOrReveal(filePath);
+        }else{
+            this.setJupyterAddress(this.baseAddress + "lab/workspaces/main/tree/" + filePath + "?token=" + this.token);
+        }
     }
 
     initializeJupyter(){
