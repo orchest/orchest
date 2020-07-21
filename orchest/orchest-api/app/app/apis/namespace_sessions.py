@@ -122,4 +122,4 @@ class Session(Resource):
         # Docker ID.
         session_obj.restart_resource(resource_name='memory-server')
 
-        return {'message': 'Session shutdown was successful'}, 200
+        return {'message': 'Session restart was successful'}, 200
