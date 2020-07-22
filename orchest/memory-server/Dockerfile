@@ -7,7 +7,7 @@ ARG sdk_branch=master
 RUN pip3 install git+https://github.com/orchest/orchest-sdk.git@${sdk_branch}#subdirectory=python \
     networkx==2.4
 
-COPY ./app /app
+COPY ./orchest/memory-server/app /app
 
 WORKDIR /app
 

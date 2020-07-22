@@ -15,7 +15,7 @@ RUN pip3 install aiodocker==0.18.3 \
     requests==2.22.0 \
     Werkzeug==0.16.0
 
-COPY ./app /app
+COPY ./orchest/orchest-api/app /app
 
 WORKDIR /app
 

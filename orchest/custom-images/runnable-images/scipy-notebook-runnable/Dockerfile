@@ -7,7 +7,7 @@ RUN [ "mkdir", "/runner"]
 
 WORKDIR /runner
 
-COPY run.py .
+COPY ./orchest/custom-images/runnable-images/run.py .
 
 RUN ["chmod", "+x", "run.py"]
 
