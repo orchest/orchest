@@ -1096,6 +1096,12 @@ class PipelineView extends React.Component {
                 this.parseRunStatuses(result);
 
                 if (result.status === "SUCCESS") {
+
+                    // make sure stale opened files are reloaded in active
+                    // Jupyter instance
+                    
+                    orchest.jupyter.reloadFilesFromDisk();
+
                     this.setState({
                         pipelineRunning: false
                     });
