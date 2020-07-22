@@ -225,7 +225,7 @@ def install_network():
 
     docker_client = docker.from_env()
 
-    logging.info("Orchest sends an anonimized ping to analytics.orchest.io. You can disable this by adding { \"TELEMETRY_DISABLED\": true } to config.json in %s" % HOST_CONFIG_DIR)
+    logging.info("Orchest sends an anonymized ping to analytics.orchest.io. You can disable this by adding { \"TELEMETRY_DISABLED\": true } to config.json in %s" % HOST_CONFIG_DIR)
 
     try:
         docker_client.networks.get(DOCKER_NETWORK)
