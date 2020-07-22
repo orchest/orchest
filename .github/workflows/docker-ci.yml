@@ -13,6 +13,8 @@ jobs:
   nginx-proxy:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'nginx-proxy'
+    env:
+      DOCKER_BUILDKIT: 1
   
     steps:
     - uses: actions/checkout@v2
@@ -23,11 +25,13 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/nginx-proxy
         tags: latest
-        path: orchest/nginx-proxy/
+        dockerfile: orchest/nginx-proxy/Dockerfile
       
   memory-server:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'memory-server' || github.event.client_payload.jobs == 'sdk'
+    env:
+      DOCKER_BUILDKIT: 1
   
     steps:
     - uses: actions/checkout@v2
@@ -38,11 +42,13 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/memory-server
         tags: latest
-        path: orchest/memory-server/
+        dockerfile: orchest/memory-server/Dockerfile
 
   celery-worker:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'celery-worker'
+    env:
+      DOCKER_BUILDKIT: 1
   
     steps:
     - uses: actions/checkout@v2
@@ -53,12 +59,13 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/celery-worker
         tags: latest
-        path: orchest/orchest-api/
         dockerfile: orchest/orchest-api/Dockerfile_celery
 
   orchest-ctl:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'orchest-ctl'
+    env:
+      DOCKER_BUILDKIT: 1
   
     steps:
     - uses: actions/checkout@v2
@@ -69,11 +76,13 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/orchest-ctl
         tags: latest
-        path: orchest/orchest-ctl/
+        dockerfile: orchest/orchest-ctl/Dockerfile
 
   custom-images:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'custom-images' || github.event.client_payload.jobs == 'sdk'
+    env:
+      DOCKER_BUILDKIT: 1
   
     steps:
     - uses: actions/checkout@v2
@@ -84,7 +93,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/r-notebook-augmented
         tags: latest
-        path: orchest/custom-images/r-notebook-augmented/
+        dockerfile: orchest/custom-images/r-notebook-augmented/Dockerfile
 
     - name: Build and push scipy-notebook-augmented
       uses: docker/build-push-action@v1
@@ -93,7 +102,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/scipy-notebook-augmented
         tags: latest
-        path: orchest/custom-images/scipy-notebook-augmented/
+        dockerfile: orchest/custom-images/scipy-notebook-augmented/Dockerfile
 
     - name: Build and push r-notebook-runnable
       uses: docker/build-push-action@v1
@@ -102,7 +111,6 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/r-notebook-runnable
         tags: latest
-        path: orchest/custom-images/runnable-images/
         dockerfile: orchest/custom-images/runnable-images/r-notebook-runnable/Dockerfile
 
     - name: Build and push scipy-notebook-runnable
@@ -112,12 +120,13 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/scipy-notebook-runnable
         tags: latest
-        path: orchest/custom-images/runnable-images/
         dockerfile: orchest/custom-images/runnable-images/scipy-notebook-runnable/Dockerfile
 
   kernels:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'kernels' || github.event.client_payload.jobs == 'sdk'
+    env:
+      DOCKER_BUILDKIT: 1
   
     steps:
     - uses: actions/checkout@v2
@@ -128,7 +137,6 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/custom-base-kernel-r
         tags: latest
-        path: orchest/custom-images/r-notebook-augmented/
         dockerfile: orchest/custom-images/custom-base-kernel-r/Dockerfile
 
     - name: Build and push custom-base-kernel-py
@@ -138,12 +146,13 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/custom-base-kernel-py
         tags: latest
-        path: orchest/custom-images/scipy-notebook-augmented/
         dockerfile: orchest/custom-images/custom-base-kernel-py/Dockerfile
 
   web-applications:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'web-applications'
+    env:
+      DOCKER_BUILDKIT: 1
   
     steps:
     - uses: actions/checkout@v2
@@ -154,7 +163,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/orchest-api
         tags: latest
-        path: orchest/orchest-api/
+        dockerfile: orchest/orchest-api/Dockerfile
 
     - name: Build and push jupyter-server
       uses: docker/build-push-action@v1
@@ -163,7 +172,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/jupyter-server
         tags: latest
-        path: orchest/jupyter-server/
+        dockerfile: orchest/jupyter-server/Dockerfile
     
     - name: Build and push orchest-webserver
       uses: docker/build-push-action@v1
@@ -172,7 +181,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/orchest-webserver
         tags: latest
-        path: orchest/orchest-webserver/
+        dockerfile: orchest/orchest-webserver/Dockerfile
   
   push-readme:
     runs-on: ubuntu-latest
