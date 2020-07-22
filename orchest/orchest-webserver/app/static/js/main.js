@@ -12,7 +12,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import Jupyter from "./jupyter/Jupyter";
-import { makeRequest } from "./utils/all";
 
 import './lib/overflowing';
 import ExperimentView from "./views/ExperimentView";
