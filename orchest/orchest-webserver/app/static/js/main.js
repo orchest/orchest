@@ -15,6 +15,7 @@ import Jupyter from "./jupyter/Jupyter";
 
 import './lib/overflowing';
 import ExperimentView from "./views/ExperimentView";
+import PipelineSettingsView from "./views/PipelineSettingsView";
 
 function Orchest() {
 
@@ -56,7 +57,7 @@ function Orchest() {
         if (this.jupyter) {
             this.jupyter.hide();
 
-            if(TagName !== PipelineView){
+            if(TagName !== PipelineView && TagName !== PipelineSettingsView){
                 this.jupyter.unload();
             }
         }
