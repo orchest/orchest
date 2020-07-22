@@ -845,7 +845,7 @@ class PipelineView extends React.Component {
     }
 
     updateJupyterInstance() {
-        let baseAddress = "http://" + window.location.host + "/jupyter_" + this.state.backend.jupyter_server_ip.replace(/\./g, "_") + "/";
+        let baseAddress = "//" + window.location.host + "/jupyter_" + this.state.backend.jupyter_server_ip.replace(/\./g, "_") + "/";
         let token = this.state.backend.notebook_server_info.token;
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
@@ -1099,7 +1099,7 @@ class PipelineView extends React.Component {
 
                     // make sure stale opened files are reloaded in active
                     // Jupyter instance
-                    
+
                     orchest.jupyter.reloadFilesFromDisk();
 
                     this.setState({

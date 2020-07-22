@@ -66,7 +66,8 @@ CONTAINER_MAPPING = {
     "orchestsoftware/nginx-proxy:latest": {
         "name": "nginx-proxy",
         "ports": {
-            "80/tcp": 8000
+            "80/tcp": 8000,
+            "443/tcp": 443,
         }
     },
     "orchestsoftware/orchest-webserver:latest": {

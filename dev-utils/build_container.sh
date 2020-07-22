@@ -7,7 +7,7 @@ NO_CACHE=false
 VERBOSE=false
 
 # Read flags.
-while getopts ":s:i:n:v" opt; do
+while getopts "s:i:nv" opt; do
   case $opt in
     s)
       SDK_BRANCH=$OPTARG
@@ -171,6 +171,7 @@ do
         build=(docker build \
             -t orchestsoftware/nginx-proxy \
             --no-cache=$NO_CACHE \
+            --build-arg enable_ssl=false \
             $DIR/../orchest/nginx-proxy/)
     fi
 
