@@ -396,6 +396,12 @@ def dev_mount_inject():
        "--port=80"
     ]
 
+    # nginx-proxy
+    nginx_proxy_spec = CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]
+    nginx_proxy_spec['ports'] = {
+        "80/tcp": 80,
+        "443/tcp": 443
+    }
     
 
 def status():

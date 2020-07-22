@@ -1,5 +1,5 @@
-listen 443 ssl;
-listen [::]:443 ssl;
+  listen 443 ssl;
+  listen [::]:443 ssl;
 
-ssl_certificate     /etc/ssl/certs/server.crt;
-ssl_certificate_key /etc/ssl/certs/server.key;
+  ssl_certificate     /etc/ssl/certs/server.crt;
+  ssl_certificate_key /etc/ssl/certs/server.key;
