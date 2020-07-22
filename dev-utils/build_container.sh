@@ -24,6 +24,7 @@ while getopts "s:i:nve" opt; do
     e)
       # 'e' for encryption
       ENABLE_SSL=true
+      ;;
     v)
       VERBOSE=true
       ;;
