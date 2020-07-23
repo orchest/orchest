@@ -7,16 +7,18 @@ class Config:
     STEP_DATA_DIR = '.orchest/data/{step_uuid}'
 
     # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = 'pipeline.json'
+    PIPELINE_DESCRIPTION_PATH = '.orchest/pipeline.json'
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:
     # trying to use 100% might therefore raise a MemoryError.
     MAX_RELATIVE_STORE_CAPACITY = 0.95
 
-    # Where all the functions will look for the plasma.sock file.
-    # NOTE: this is not the location where the socket is created.
-    STORE_SOCKET_NAME = '/notebooks/plasma.sock'
+    # Where all the functions will look for the plasma.sock file. Note
+    # however, the plasma.sock file is not created by the sdk. This
+    # configuration value only specifies where the sdk will look for the
+    # socket to connect to the plasma store.
+    STORE_SOCKET_NAME = '/notebooks/.orchest/plasma.sock'
 
     @classmethod
     def get_step_data_dir(cls, step_uuid):
