@@ -402,7 +402,7 @@ def output_to_memory(data: Any,
 
     # Try to output to memory.
     obj_id = _convert_uuid_to_object_id(step_uuid)
-    metadata = bytes(f'1;{serialization}', 'utf-8')
+    metadata = bytes(f'{Config.IDENTIFIER_SERIALIZATION};{serialization}', 'utf-8')
 
     try:
         obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
@@ -460,7 +460,7 @@ def _get_output_memory(obj_id: plasma.ObjectID,
 
     # If the metadata stated that the object was pickled, then we need
     # to additionally unpickle the obj.
-    if metadata == b'1;arrowpickle':
+    if metadata == b'{Config.IDENTIFIER_SERIALIZATION};arrowpickle':
         obj = pickle.loads(obj)
 
     return obj
@@ -520,7 +520,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         #       eviction.
         if os.getenv('EVICTION_OPTIONALITY') is not None:
             empty_obj, _ = serialize('')
-            msg = f'2;{step_uuid},{consumer}'
+            msg = f'{Config.IDENTIFIER_EVICTION};{step_uuid},{consumer}'
             metadata = bytes(msg, 'utf-8')
             _output_to_memory(empty_obj, client, metadata=metadata)
 

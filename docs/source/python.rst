@@ -25,34 +25,57 @@ Quickstart
 
 Data passing
 ~~~~~~~~~~~~
-Example of passing data, where the pipeline (defined inside the :code:`pipeline.json`) is 
-`Step 1` -> `Step 2`.
+
+For this example we let the pipeline (defined inside the :code:`pipeline.json`) be as follows: 
+
+.. image:: img/pipeline.png
+  :width: 400
+  :alt: Alternative text
+  :align: center
+
+where the order of getting data by `step-3` is [`step-2`, `step-1`].
+
+.. note:: The order in which the data is retrieved in `step-3` is determined via the UI through the
+   `Connections` section in the pipeline step properties pane. Order is from top to bottom, where
+   the first element in the list (returned by ``get_inputs``) is the output of the top most step 
+   from the `Connections`.
+
 
 .. code-block:: python
 
-   """Step 1"""
+   """step-1"""
    import orchest
 
-   data = [1, 2, 3]
+   data = 'Hello, World!'
 
-   # Output the data so that Step 2 can retrieve it.
+   # Output the data so that step-3 can retrieve it.
    orchest.output(data)
 
 
 .. code-block:: python
 
-   """Step 2"""
+   """step-2"""
    import orchest
 
-   # Get the input for Step 2, i.e. the output of Step 1.
-   data = orchest.get_inputs()  # data = [[1, 2, 3]]
+   data = [3, 1, 4]
+
+   # Output the data so that step-3 can retrieve it.
+   orchest.output(data)
+
+
+.. code-block:: python
+
+   """step-3"""
+   import orchest
+
+   # Get the input for step-3, i.e. the output of step-1 and step-2.
+   data = orchest.get_inputs()  # data = [[3, 1, 4], 'Hello, World!']
 
 
 Parameters
 ~~~~~~~~~~
 .. code-block:: python
 
-   """Step 1"""
    import orchest
 
    # Get the parameters of the current step.
