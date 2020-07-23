@@ -1,5 +1,0 @@
-/app/tests
-__pycache__
-*/.mypy_cache
-*/*/.mypy_cache
-*/*/*/.mypy_cache

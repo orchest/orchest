@@ -1,6 +1,9 @@
 import os
 import logging
 
+from _orchest.internals import config as _config
+
+
 class Config:
     DEBUG = False
     TESTING = False
@@ -12,7 +15,7 @@ class Config:
 
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
-    LOG_DIR = ".logs"
+    LOG_DIR = _config.LOGS_PATH
     WEBSERVER_LOG_DIR = "/app/orchest-webserver.log"
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
@@ -20,7 +23,7 @@ class Config:
 
     DEBUG = True
 
-    TELEMETRY_INTERVAL = 15 # in minutes
+    TELEMETRY_INTERVAL = 15  # in minutes
 
     if DEBUG:
         logging.basicConfig(level=logging.INFO)

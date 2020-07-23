@@ -4,7 +4,7 @@ import networkx as nx
 import pyarrow.plasma as plasma
 
 
-def construct_pipeline(pipeline_fname='pipeline.json'):
+def construct_pipeline(pipeline_fname):
     """Construct pipeline from pipeline.json"""
     with open(pipeline_fname, 'r') as f:
         description = json.load(f)

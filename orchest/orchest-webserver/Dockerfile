@@ -15,13 +15,17 @@ RUN pip3 install Flask \
     nbconvert \
     Werkzeug==0.16.0
 
+# Install our internal libraries
+COPY ./lib /src
+RUN pip3 install -e /src/orchest-internals/
+
 # refresh SSL certificates
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
 
 # install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
-COPY ./app /app
+COPY ./orchest/orchest-webserver/app /app
 
 WORKDIR /app/static/
 

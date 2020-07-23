@@ -14,6 +14,8 @@ from nbconvert import HTMLExporter
 from app.utils import get_hash
 from app.models import DataSource, Experiment, PipelineRun
 
+from _orchest.internals import config as _config
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -133,7 +135,7 @@ def register_views(app, db):
         else:
             pipeline_run = PipelineRun.query.filter(
                 PipelineRun.uuid == pipeline_run_uuid).first()
-            
+
             experiment = Experiment.query.filter(Experiment.uuid == pipeline_run.experiment).first()
             pipeline_dir = os.path.join(
                 USER_DIR, "experiments", experiment.pipeline_uuid, pipeline_run.experiment)
@@ -516,7 +518,7 @@ def register_views(app, db):
 
         # copy directories
         fromDirectory = os.path.join(app.config["RESOURCE_DIR"], "kernels")
-        toDirectory = os.path.join(pipeline_dir, ".kernels")
+        toDirectory = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
 
         copy_tree(fromDirectory, toDirectory)
 
@@ -543,7 +545,7 @@ def register_views(app, db):
             "version": "1.0.0"
         }
 
-        with open(os.path.join(pipeline_dir, "pipeline.json"), "w") as pipeline_json_file:
+        with open(os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH), "w") as pipeline_json_file:
             pipeline_json_file.write(json.dumps(pipeline_json))
 
         return jsonify({"success": True})
@@ -553,10 +555,10 @@ def register_views(app, db):
 
         pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        if os.path.isdir(pipeline_dir) and os.path.isfile(os.path.join(pipeline_dir, "pipeline.json")):
+        if os.path.isdir(pipeline_dir) and os.path.isfile(os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH)):
 
             # rename pipeline in JSON file
-            pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
+            pipeline_json_path = os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH)
 
             with open(pipeline_json_path, "r") as json_file:
                 pipeline_json = json.load(json_file)
@@ -582,7 +584,7 @@ def register_views(app, db):
         else:
             pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
+        pipeline_json_path = os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH)
 
         if os.path.isfile(pipeline_json_path):
 
@@ -618,7 +620,7 @@ def register_views(app, db):
         for pipeline_uuid in pipeline_uuids:
 
             pipeline_json_path = os.path.join(
-                pipelines_dir, pipeline_uuid, "pipeline.json")
+                pipelines_dir, pipeline_uuid, _config.PIPELINE_DESCRIPTION_PATH)
 
             if os.path.isfile(pipeline_json_path):
                 with open(pipeline_json_path, "r") as json_file:
@@ -644,7 +646,7 @@ def register_views(app, db):
         else:
             pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
+        pipeline_json_path = os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH)
 
         if os.path.isfile(pipeline_json_path):
             with open(pipeline_json_path, "r") as json_file:
@@ -687,7 +689,7 @@ def register_views(app, db):
                 pipeline_uuid, pipeline_run_uuid=request.args.get("pipeline_run_uuid"))
         else:
             pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
-            
+
 
         log_path = os.path.join(
             pipeline_dir, app.config["LOG_DIR"], "%s.log" % step_uuid)
@@ -729,7 +731,7 @@ def register_views(app, db):
         # side effect: for each Notebook in de pipeline.json set the correct kernel
         pipeline_set_notebook_kernels(pipeline_json)
 
-        with open(os.path.join(pipeline_directory, "pipeline.json"), "w") as json_file:
+        with open(os.path.join(pipeline_directory, _config.PIPELINE_DESCRIPTION_PATH), "w") as json_file:
             json_file.write(json.dumps(pipeline_json))
 
         return jsonify({"success": True})
@@ -739,7 +741,7 @@ def register_views(app, db):
 
         pipeline_directory = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        pipeline_json_path = os.path.join(pipeline_directory, "pipeline.json")
+        pipeline_json_path = os.path.join(pipeline_directory, _config.PIPELINE_DESCRIPTION_PATH)
         if not os.path.isfile(pipeline_json_path):
             return jsonify({"success": False, "reason": "pipeline.json doesn't exist"}), 404
         else:
@@ -763,7 +765,7 @@ def register_views(app, db):
         else:
             pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        pipeline_json_path = os.path.join(pipeline_dir, "pipeline.json")
+        pipeline_json_path = os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH)
         if not os.path.isfile(pipeline_json_path):
             return jsonify({"success": False, "reason": "pipeline.json doesn't exist"}), 404
         else:

@@ -4,7 +4,7 @@ RUN python3 -m pip install docker
 
 USER root
 
-COPY ./app /app
+COPY ./orchest/orchest-ctl/app /app
 
 WORKDIR /app
 

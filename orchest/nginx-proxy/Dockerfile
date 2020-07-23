@@ -4,13 +4,13 @@ RUN apt-get update && apt-get install python3 -y
 
 RUN mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
 
-COPY ./*.conf* /etc/nginx/conf.d/
+COPY ./orchest/nginx-proxy/*.conf* /etc/nginx/conf.d/
 
 ARG enable_ssl=false
 
 RUN mkdir -p /etc/ssl/certs/
-COPY generate-dummy-certs.sh /etc/ssl/certs/
-COPY enable-ssl.py /etc/nginx/conf.d/
+COPY ./orchest/nginx-proxy/generate-dummy-certs.sh /etc/ssl/certs/
+COPY ./orchest/nginx-proxy/enable-ssl.py /etc/nginx/conf.d/
 
 # generate dummy certificates
 RUN if [ "${enable_ssl}" = true ] ; then \
