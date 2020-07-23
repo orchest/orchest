@@ -38,7 +38,7 @@ def analytics_ping(app):
 
 def check_active(app):
     try:
-        t = os.path.getmtime(app.config["WEBSERVER_LOG_DIR"])
+        t = os.path.getmtime(app.config["WEBSERVER_LOG"])
 
         diff_minutes = (time.time() - t) / 60
 
