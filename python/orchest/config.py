@@ -14,9 +14,11 @@ class Config:
     # trying to use 100% might therefore raise a MemoryError.
     MAX_RELATIVE_STORE_CAPACITY = 0.95
 
-    # Where all the functions will look for the plasma.sock file.
-    # NOTE: this is not the location where the socket is created.
-    STORE_SOCKET_NAME = '/notebooks/plasma.sock'
+    # Where all the functions will look for the plasma.sock file. Note
+    # however, the plasma.sock file is not created by the sdk. This
+    # configuration value only specifies where the sdk will look for the
+    # socket to connect to the plasma store.
+    STORE_SOCKET_NAME = '/notebooks/.orchest/plasma.sock'
 
     @classmethod
     def get_step_data_dir(cls, step_uuid):
