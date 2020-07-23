@@ -33,7 +33,7 @@ For this example we let the pipeline (defined inside the :code:`pipeline.json`) 
 
 .. image:: img/pipeline.png
   :width: 400
-  :alt: Alternative text
+  :alt: Pipeline defined as: step-1, step-2 --> step-3
   :align: center
 
 where the order of getting data by `step-3` is [`step-2`, `step-1`].
