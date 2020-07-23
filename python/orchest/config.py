@@ -20,8 +20,8 @@ class Config:
     # socket to connect to the plasma store.
     STORE_SOCKET_NAME = '/notebooks/.orchest/plasma.sock'
 
-    IDENTIFIER_SERIALIZATION = '1'
-    IDENTIFIER_EVICTION = '2'
+    IDENTIFIER_SERIALIZATION = 1
+    IDENTIFIER_EVICTION = 2
 
     @classmethod
     def get_step_data_dir(cls, step_uuid):

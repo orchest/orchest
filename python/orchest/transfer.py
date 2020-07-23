@@ -460,7 +460,7 @@ def _get_output_memory(obj_id: plasma.ObjectID,
 
     # If the metadata stated that the object was pickled, then we need
     # to additionally unpickle the obj.
-    if metadata == b'{Config.IDENTIFIER_SERIALIZATION};arrowpickle':
+    if metadata == bytes(f'{Config.IDENTIFIER_SERIALIZATION};arrowpickle', 'utf-8'):
         obj = pickle.loads(obj)
 
     return obj
