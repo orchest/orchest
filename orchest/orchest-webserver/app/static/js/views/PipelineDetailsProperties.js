@@ -175,12 +175,11 @@ class PipelineDetailsProperties extends React.Component {
         }
     }
 
-    // TODO: refactor state of properties to match novel React paradigm (no state as a function of props)
-    UNSAFE_componentWillReceiveProps(props){
-        this.setState({
+    static getDerivedStateFromProps(props){
+        return {
             "step": props.step,
-            "isNotebookStep": extensionFromFilename(props.step.file_path) == "ipynb",
-        })
+            "isNotebookStep": extensionFromFilename(props.step.file_path) == "ipynb"
+        };
     }
 
     setupConnectionListener(){

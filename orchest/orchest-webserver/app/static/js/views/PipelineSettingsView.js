@@ -1,9 +1,7 @@
 import React from 'react';
 import PipelineView from "./PipelineView";
-import { MDCTabBar } from '@material/tab-bar';
 import { MDCTextField } from "@material/textfield";
-import { MDCRipple } from '@material/ripple';
-import { makeRequest } from "../utils/all";
+import { makeRequest, uuidv4 } from "../utils/all";
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
 
@@ -14,7 +12,8 @@ class PipelineSettingsView extends React.Component {
         super(props);
 
         this.state = {
-            active_tab_index: 0
+            active_tab_index: 0,
+            restartingMemoryServer: false
         };
     }
 
@@ -68,17 +67,36 @@ class PipelineSettingsView extends React.Component {
         formData.append("name", pipelineName);
 
         // perform POST to save
-        makeRequest("POST", "/async/pipelines/rename/" + this.props.pipeline.uuid, {type: 'FormData', content: formData}).then((response) => {
-            
+        makeRequest("POST", "/async/pipelines/rename/" + this.props.pipeline_uuid, { type: 'FormData', content: formData }).then((response) => {
+
             let json = JSON.parse(response);
             console.log(json)
             if (json.success === true) {
                 // orchest.loadView(PipelineSettingsView, {name: pipelineName, uuid: this.props.uuid});
 
                 // TODO: evaluate: should we close PipelineSettingsView on save?
-                orchest.loadView(PipelineView, { "pipeline": this.props.pipeline });
+                orchest.loadView(PipelineView, { "pipeline_uuid": this.props.pipeline_uuid });
             }
         })
+    }
+
+    restartMemoryServer() {
+        if (!this.state.restartingMemoryServer) {
+            this.setState({
+                restartingMemoryServer: true
+            });
+
+            // perform POST to save
+            makeRequest("PUT", "/api-proxy/api/sessions/" + this.props.pipeline_uuid).then((response) => {
+
+                this.setState({
+                    restartingMemoryServer: false
+                });
+            })
+        } else {
+            console.error("Already busy restarting memory server. UI should prohibit this call.")
+        }
+
     }
 
     render() {
@@ -105,6 +123,16 @@ class PipelineSettingsView extends React.Component {
                                     <MDCButtonReact label="save" classNames={["mdc-button--raised"]} onClick={this.saveGeneralForm.bind(this)} />
 
                                 </form>
+
+                                <h3 className="push-up push-down">Memory server</h3>
+
+                                <MDCButtonReact disabled={this.state.restartingMemoryServer} label="Restart memory server" icon="memory" classNames={["mdc-button--raised"]} onClick={this.restartMemoryServer.bind(this)} />
+                                
+                                {(() => {
+                                    if(this.state.restartingMemoryServer){
+                                        return <p className="push-up">Restarting in progress...</p>
+                                    }
+                                })()}
                             </div>;
                     }
                 })()}

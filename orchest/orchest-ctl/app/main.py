@@ -66,7 +66,8 @@ CONTAINER_MAPPING = {
     "orchestsoftware/nginx-proxy:latest": {
         "name": "nginx-proxy",
         "ports": {
-            "80/tcp": 8000
+            "80/tcp": 8000,
+            "443/tcp": 443,
         }
     },
     "orchestsoftware/orchest-webserver:latest": {
@@ -223,6 +224,8 @@ def start():
 def install_network():
 
     docker_client = docker.from_env()
+
+    logging.info("Orchest sends an anonymized ping to analytics.orchest.io. You can disable this by adding { \"TELEMETRY_DISABLED\": true } to config.json in %s" % HOST_CONFIG_DIR)
 
     try:
         docker_client.networks.get(DOCKER_NETWORK)
@@ -395,6 +398,12 @@ def dev_mount_inject():
        "--port=80"
     ]
 
+    # nginx-proxy
+    nginx_proxy_spec = CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]
+    nginx_proxy_spec['ports'] = {
+        "80/tcp": 80,
+        "443/tcp": 443
+    }
     
 
 def status():

@@ -8,9 +8,10 @@ IMGS=()
 SDK_BRANCH="master"
 NO_CACHE=false
 VERBOSE=false
+ENABLE_SSL=false
 
 # Read flags.
-while getopts ":s:i:n:v" opt; do
+while getopts "s:i:nve" opt; do
   case $opt in
     s)
       SDK_BRANCH=$OPTARG
@@ -22,6 +23,10 @@ while getopts ":s:i:n:v" opt; do
     n)
       NO_CACHE=true
       echo "Cache disabled"
+      ;;
+    e)
+      # 'e' for encryption
+      ENABLE_SSL=true
       ;;
     v)
       VERBOSE=true
@@ -151,7 +156,6 @@ do
     fi
 
     # application images
-
     if [ $IMG == "orchest-api" ]; then
         build=(docker build \
             -t orchestsoftware/orchest-api \
@@ -180,6 +184,7 @@ do
         build=(docker build \
             -t orchestsoftware/nginx-proxy \
             --no-cache=$NO_CACHE \
+            --build-arg enable_ssl=$ENABLE_SSL \
             -f $DIR/../orchest/nginx-proxy/Dockerfile \
             $DIR/../)
     fi

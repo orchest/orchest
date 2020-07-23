@@ -12,10 +12,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import Jupyter from "./jupyter/Jupyter";
-import { makeRequest } from "./utils/all";
 
 import './lib/overflowing';
 import ExperimentView from "./views/ExperimentView";
+import PipelineSettingsView from "./views/PipelineSettingsView";
 
 function Orchest() {
 
@@ -56,6 +56,10 @@ function Orchest() {
 
         if (this.jupyter) {
             this.jupyter.hide();
+
+            if(TagName !== PipelineView && TagName !== PipelineSettingsView){
+                this.jupyter.unload();
+            }
         }
 
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);

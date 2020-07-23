@@ -24,11 +24,17 @@ RUN git config --global user.email "ricklamers@gmail.com" ; \
 RUN git am < 0001-Reconnect-a-websocket-when-a-kernel-is-restarted.patch
 RUN pip3 install -e .
 RUN mkdir /jupyter-extensions/
+
 RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/visual-tags
 RUN jlpm run add:sibling /jupyter-extensions/visual-tags
-RUN jlpm run build
-RUN jupyter labextension install /jupyter-extensions/visual-tags
 
+RUN git clone https://github.com/orchest/orchest-integration.git /jupyter-extensions/orchest-integration
+RUN jlpm run add:sibling /jupyter-extensions/orchest-integration
+
+RUN jlpm run build
+
+RUN jupyter labextension install /jupyter-extensions/visual-tags
+RUN jupyter labextension install /jupyter-extensions/orchest-integration
 RUN cp -r /custom-pip/jupyterlab/dev_mode/* /usr/local/share/jupyter/lab/
 
 # Swap dash for normal bash to get more full fledged terminal session in Jupyter

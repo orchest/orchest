@@ -845,7 +845,7 @@ class PipelineView extends React.Component {
     }
 
     updateJupyterInstance() {
-        let baseAddress = "http://" + window.location.host + "/jupyter_" + this.state.backend.jupyter_server_ip.replace(/\./g, "_") + "/";
+        let baseAddress = "//" + window.location.host + "/jupyter_" + this.state.backend.jupyter_server_ip.replace(/\./g, "_") + "/";
         let token = this.state.backend.notebook_server_info.token;
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
@@ -853,7 +853,11 @@ class PipelineView extends React.Component {
     launchPipeline() {
 
         if (this.state.backend.working) {
-            alert("Please wait, the pipeline is still busy.");
+            let statusText = "launching";
+            if(this.state.backend.running){
+                statusText = "shutting down";
+            }
+            alert("Please wait, the pipeline session is still " + statusText + ".");
             return
         }
 
@@ -883,6 +887,14 @@ class PipelineView extends React.Component {
                 this.setState({ "backend": this.state.backend });
 
                 this.updateJupyterInstance();
+            }).catch((e) => {
+
+                console.log(e)
+
+                this.state.backend.running = false;
+                this.state.backend.working = false;
+
+                this.setState({ "backend": this.state.backend });
             })
 
         } else {
@@ -903,6 +915,12 @@ class PipelineView extends React.Component {
             }).catch((err) => {
                 console.log("Error during request DELETEing launch to orchest-api.")
                 console.log(err);
+
+                this.state.backend.running = true;
+                this.state.backend.working = false;
+
+                this.setState({ "backend": this.state.backend });
+
             });
         }
     }
@@ -1078,6 +1096,12 @@ class PipelineView extends React.Component {
                 this.parseRunStatuses(result);
 
                 if (result.status === "SUCCESS") {
+
+                    // make sure stale opened files are reloaded in active
+                    // Jupyter instance
+
+                    orchest.jupyter.reloadFilesFromDisk();
+
                     this.setState({
                         pipelineRunning: false
                     });
