@@ -7,7 +7,7 @@ class Config:
     STEP_DATA_DIR = '.orchest/data/{step_uuid}'
 
     # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = 'pipeline.json'
+    PIPELINE_DESCRIPTION_PATH = '.orchest/pipeline.json'
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:
