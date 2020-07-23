@@ -50,6 +50,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install ./lib/orchest-internals
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       working-directory: ./orchest/orchest-api/app
 
@@ -74,6 +75,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest
+        pip install ./lib/orchest-internals
         if [ -f memory-server/requirements.txt ]; then pip install -r memory-server/requirements.txt; fi
       working-directory: ./orchest
 
