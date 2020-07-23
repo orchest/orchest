@@ -13,6 +13,8 @@ from app.core.pipelines import Pipeline, PipelineDescription
 from app.core.sessions import launch_session
 from config import CONFIG_CLASS
 
+from _orchest.internals import config as _config
+
 
 # TODO: create_app is called twice, meaning create_all (create
 # databases) is called twice, which means celery-worker needs the
@@ -143,7 +145,7 @@ def start_non_interactive_pipeline_run(
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
     # every step.
-    pipeline_json = os.path.join(run_dir, 'pipeline.json')
+    pipeline_json = os.path.join(run_dir, _config.PIPELINE_DESCRIPTION_PATH)
     with open(pipeline_json, 'w') as f:
         json.dump(pipeline_description, f)
 

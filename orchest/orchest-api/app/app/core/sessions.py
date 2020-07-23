@@ -402,8 +402,7 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
     # TODO: the kernelspec should be put inside the image for the EG
     #       but for now this is fine as at allows easy development
     #       and addition of new kernels on the fly.
-    print(_config.VALUE)
-    source_kernelspecs = os.path.join(pipeline_dir, '.kernels')
+    source_kernelspecs = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
     mounts['kernelspec'] = Mount(
         target='/usr/local/share/jupyter/kernels',
         source=source_kernelspecs,
@@ -425,11 +424,14 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
         type='bind'
     )
 
-    # TODO: For now the memory-server will be booted when jupyter
-    #       is started. This will change in the near future.
+    # The `memory-server` creates the `plasma.sock` file at
+    # `STORE_SOCKET_NAME` from its configuration file, which is
+    # currently ``/tmp/plasma.sock``. Thus to get the socket in the
+    # pipeline directory we need to mount the ``/tmp`` directory.
+    source_memory_server_sock = os.path.join(pipeline_dir, _config.SOCK_PATH)
     mounts['memory_server_sock'] = Mount(
-        target='/tmp',
-        source=pipeline_dir,
+        target=_config.MEMORY_SERVER_SOCK_PATH,
+        source=source_memory_server_sock,
         type='bind'
     )
 

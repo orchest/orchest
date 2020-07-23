@@ -1,5 +1,6 @@
 *
 
 !orchest/orchest-webserver/app/
+!lib
 
 **/node_modules*

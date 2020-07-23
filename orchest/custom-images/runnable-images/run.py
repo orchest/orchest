@@ -7,8 +7,11 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors.execute import CellExecutionError
 from nbconvert.filters import ansi2html
 
+from _orchest.internals import config as _config
+
+
 WORKING_DIR = "/notebooks"
-LOG_DIR = ".logs"
+LOG_DIR = _config.LOGS_PATH
 
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
@@ -16,13 +19,13 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
     def __init__(self, **kw):
         self.log_file = kw['log_file']
-        
+
         super(PartialExecutePreprocessor, self).__init__(**kw)
 
 
     def preprocess_cell(self, cell, resources, cell_index):
         """
-        Executes cells without 'skip' tag only. 
+        Executes cells without 'skip' tag only.
         If the tag is not found cell is not executed.
         """
 
@@ -33,7 +36,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         else:
 
             try:
-            
+
                 cell, resources = super().preprocess_cell(cell, resources, cell_index)
 
                 # cell output to STDOUT of this process
@@ -42,10 +45,10 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
                         output_text = ''
 
-                        # support multiple types of output: 
+                        # support multiple types of output:
                         # output['text'] (for output['output_type']=='stream')
                         # output['data']['text/plain'] (for output['output_type']=='execute_result')
-                        
+
                         # Note this means application/json and image/png are currently not supported for logging.
                         if 'text' in output:
                             output_text = output['text']
@@ -61,7 +64,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
                         self.log_file.write("[%i] %s" % (cell['execution_count'], output_text))
                     self.log_file.flush()
-                    
+
             except CellExecutionError as e:
 
                 self.log_file.write("%s" % ansi2html(e))
@@ -103,7 +106,7 @@ def run_notebook(file_path, step_uuid=None):
     }
 
     nb = None
-        
+
     with open(file_path) as f:
         nb = nbformat.read(f, as_version=4)
 
@@ -139,7 +142,7 @@ def run_process(command, filename, step_uuid=None):
         process.wait()
 
     return process.returncode
-    
+
 
 def create_pipeline_dir():
 

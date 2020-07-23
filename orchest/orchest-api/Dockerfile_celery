@@ -15,8 +15,11 @@ RUN pip3 install aiodocker==0.18.3 \
     requests==2.22.0 \
     Werkzeug==0.16.0
 
-COPY ./orchest/orchest-api/app /app
+# Install our internal libraries
+COPY ./lib /src
+RUN pip3 install -e /src/orchest-internals/
 
+COPY ./orchest/orchest-api/app /app
 WORKDIR /app
 
 # In case we forgot to update the first RUN command accordingly to the
