@@ -182,9 +182,12 @@ class Experiment(Resource):
         # TODO: https://stackoverflow.com/questions/39191238/revoke-a-task-from-celery
         # NOTE: delete new pipeline files that were created for this specific run?
 
-        # Stop the run, whether it is in the queue or whether it is
-        # actually running.
-        revoke(run_uuid, terminate=True)
+        # According to the Celery docs we should never programmatically
+        # set ``revoke(uuid, terminate=True)`` as it actually kills the
+        # worker process and it could already be running a new task.
+
+        # TODO: for all runs part of the experiment, revoke it.
+        revoke(run_uuid)
 
         run_res = models.ScheduledRun.query.filter_by(
             run_uuid=run_uuid

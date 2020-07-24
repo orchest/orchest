@@ -98,7 +98,7 @@ CONTAINER_MAPPING = {
                 "target": "/var/run/docker.sock"
             },
             {
-                # Mount in needed for copying the snapshot dir to
+                # Mount is needed for copying the snapshot dir to
                 # pipeline run dirs for experiments.
                 "source": HOST_USER_DIR,
                 "target": "/userdir"
@@ -356,11 +356,11 @@ def dev_mount_inject():
     orchest_webserver_spec['mounts'] += [
         {
             "source": os.path.join(
-                os.environ.get("HOST_PWD"), 
-                "orchest", 
-                "orchest-webserver", 
+                os.environ.get("HOST_PWD"),
+                "orchest",
+                "orchest-webserver",
                 "app"),
-            "target": "/app" 
+            "target": "/app"
         }
     ]
 
@@ -404,7 +404,7 @@ def dev_mount_inject():
         "80/tcp": 80,
         "443/tcp": 443
     }
-    
+
 
 def status():
 
