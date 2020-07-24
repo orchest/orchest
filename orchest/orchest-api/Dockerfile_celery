@@ -19,6 +19,9 @@ RUN pip3 install aiodocker==0.18.3 \
 COPY ./lib /src
 RUN pip3 install -e /src/orchest-internals/
 
+COPY ./orchest/orchest-api/start_celery_workers.sh .
+RUN ["chmod", "+x", "start_celery_workers.sh"]
+
 COPY ./orchest/orchest-api/app /app
 WORKDIR /app
 
@@ -27,4 +30,4 @@ WORKDIR /app
 # packages.
 RUN pip3 install -r requirements.txt
 
-CMD ["celery", "worker", "-A", "app.core.tasks", "-l", "INFO"]
+CMD ["./../start_celery_workers.sh"]
