@@ -48,9 +48,7 @@ class ExperimentList(Resource):
         completed.
 
         """
-        # TODO: the nested pipeline_runs should be shown.
         experiments = models.Experiment.query.all()
-        # return {'experiments': [exp.as_dict() for exp in experiments]}, 200
         return {'experiments': [exp.__dict__ for exp in experiments]}, 200
 
     @api.doc('start_experiment')
@@ -149,9 +147,11 @@ class Experiment(Resource):
     @api.marshal_with(experiment, code=200)
     def get(self, experiment_uuid):
         """Fetches an experiment given its UUID."""
-        run = models.Experiment.query.get_or_404(experiment_uuid,
-                                                 description='Run not found')
-        return run.__dict__
+        experiment = models.Experiment.query.get_or_404(
+            experiment_uuid,
+            description='Run not found',
+        )
+        return experiment.__dict__
 
     @api.doc('set_experiment_status')
     @api.expect(status_update)
@@ -174,35 +174,49 @@ class Experiment(Resource):
     #       not stopping a particular pipeline run of an experiment.
     @api.doc('delete_experiment')
     @api.response(200, 'Experiment terminated')
-    def delete(self, run_uuid):
+    def delete(self, experiment_uuid):
         """Stops an experiment given its UUID."""
         # TODO: we could specify more options when deleting the run.
         # TODO: error handling.
-        # TODO: possible set status of steps and Run to "REVOKED"
         # TODO: https://stackoverflow.com/questions/39191238/revoke-a-task-from-celery
-        # NOTE: delete new pipeline files that were created for this specific run?
 
-        # According to the Celery docs we should never programmatically
-        # set ``revoke(uuid, terminate=True)`` as it actually kills the
-        # worker process and it could already be running a new task.
+        # TODO: delete new pipeline files that were created for this
+        #       specific run?
+
+        experiment = models.Experiment.query.get_or_404(
+            experiment_uuid,
+            description='Run not found',
+        )
 
         # TODO: for all runs part of the experiment, revoke it.
-        revoke(run_uuid)
+        # For all runs that are part of the experiment, revoke the task.
+        for run in experiment.pipeline_runs:
+            # TODO: Not sure what happens when trying to revoke a task
+            #       that has already executed. Possibly first check its
+            #       status.
+            run_uuid = run.run_uuid
 
-        run_res = models.ScheduledRun.query.filter_by(
-            run_uuid=run_uuid
-        ).update({
-            'status': 'REVOKED'
-        })
+            # According to the Celery docs we should never
+            # programmatically set ``revoke(uuid, terminate=True)`` as
+            # it actually kills the worker process and it could already
+            # be running a new task.
+            revoke(run_uuid)
 
-        step_res = models.ScheduledStepStatus.query.filter_by(
-            run_uuid=run_uuid
-        ).update({
-            'status': 'REVOKED'
-        })
+            run_entry = models.NonInteractiveRun.query.filter_by(
+                experiment_uuid=experiment_uuid, run_uuid=run_uuid
+            ).update({
+                'status': 'REVOKED'
+            })
 
-        if run_res and step_res:
-            db.session.commit()
+            run_step_entry = models.NonInteractiveRunStep.query.filter_by(
+                experiment_uuid=experiment_uuid, run_uuid=run_uuid
+            ).update({
+                'status': 'REVOKED'
+            })
+
+        # TODO: check whether all responses were successfull.
+        # if run_res and step_res:
+        db.session.commit()
 
         return {'message': 'Run termination was successful'}, 200
 
@@ -221,13 +235,11 @@ class PipelineRun(Resource):
     @api.marshal_with(pipeline_run, code=200)
     def get(self, experiment_uuid, run_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
-        # TODO: Returns the status and logs. Of course logs are empty if
-        #       the step is not executed yet.
-        step = models.NonInteractiveRun.query.get_or_404(
+        pipeline_run = models.NonInteractiveRun.query.get_or_404(
             ident=(experiment_uuid, run_uuid),
-            description='Scheduled run and step combination not found'
+            description='Given experiment has no run with given run_uuid'
         )
-        return step.__dict__
+        return pipeline_run.__dict__
 
     @api.doc('set_pipeline_run_status')
     @api.expect(status_update)
@@ -281,7 +293,7 @@ class PipelineStepStatus(Resource):
         #       the step is not executed yet.
         step = models.NonInteractiveRunStep.query.get_or_404(
             ident=(experiment_uuid, run_uuid, step_uuid),
-            description='Scheduled run and step combination not found'
+            description='Combination of given experiment, run and step not found'
         )
         return step.__dict__
 
