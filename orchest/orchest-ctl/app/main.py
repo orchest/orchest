@@ -428,8 +428,11 @@ def status():
         not_running_prints.append("Container %s not running." % container_name)
 
 
-    logging.info('\n'.join(running_prints))
-    logging.info('\n'.join(not_running_prints))
+    if len(running_prints) > 1:
+        logging.info('\n'.join(running_prints))
+    
+    if len(not_running_prints) > 1:
+        logging.info('\n'.join(not_running_prints))
 
 
 def init_logger():
