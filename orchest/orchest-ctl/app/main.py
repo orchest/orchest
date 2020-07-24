@@ -301,7 +301,7 @@ def get_application_url():
         # raise Exception if not found
         client.containers.get("orchest-webserver")
 
-        return "http://localhost:8000"
+        return "http://localhost:%i" % CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["80/tcp"]
 
     except Exception as e:
         print(e)
@@ -430,8 +430,6 @@ def status():
 
     logging.info('\n'.join(running_prints))
     logging.info('\n'.join(not_running_prints))
-
-    log_server_url()
 
 
 def init_logger():
