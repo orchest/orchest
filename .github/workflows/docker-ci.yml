@@ -111,7 +111,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/r-notebook-runnable
         tags: latest
-        dockerfile: orchest/custom-images/runnable-images/r-notebook-runnable/Dockerfile
+        dockerfile: orchest/custom-images/r-notebook-runnable/Dockerfile
 
     - name: Build and push scipy-notebook-runnable
       uses: docker/build-push-action@v1
@@ -120,7 +120,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: orchestsoftware/scipy-notebook-runnable
         tags: latest
-        dockerfile: orchest/custom-images/runnable-images/scipy-notebook-runnable/Dockerfile
+        dockerfile: orchest/custom-images/scipy-notebook-runnable/Dockerfile
 
   kernels:
     runs-on: ubuntu-latest
