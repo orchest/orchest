@@ -417,7 +417,7 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
         type='bind'
     )
 
-    pipeline_dir_target_path = '/notebooks'
+    pipeline_dir_target_path = '/pipeline-dir'
     mounts['pipeline_dir'] = Mount(
         target=pipeline_dir_target_path,
         source=pipeline_dir,

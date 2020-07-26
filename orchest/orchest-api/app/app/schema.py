@@ -177,7 +177,7 @@ server = Model('Server', {
         description='Token for authentication'),
     'notebook_dir': fields.String(
         required=True,
-        default='/notebooks',
+        default='/pipeline-dir',
         description='Working directory'),
     'password': fields.Boolean(
         required=True,

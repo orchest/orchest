@@ -7,7 +7,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/resources.db'
     SQLALCHEMY_BINDS = {
         # /userdir works because it's mounted via docker
-        'persistent_db': 'sqlite:////userdir/persistent.db',
+        'persistent_db': 'sqlite:////userdir/.orchest/orchest-api.db',
     }
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False

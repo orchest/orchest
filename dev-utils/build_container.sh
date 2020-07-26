@@ -58,18 +58,20 @@ fi
 
 run_build () {
 
-    echo [Building] $IMG
+    echo [Building] $1
+
+    build=$2
 
     if $VERBOSE; then
-        "${build[@]}"
+        ${build[@]}
     else
         output=$("${build[@]}" 2>&1)
     fi
 
     if [ $? = 0 ]; then
-        echo [Building] $IMG succeeded.
+        echo [Building] $1 succeeded.
     else
-        echo [Building] $IMG failed.
+        echo [Building] $1 failed.
         echo "$output"
     fi
 }
@@ -98,41 +100,6 @@ do
             -f $DIR/../orchest/orchest-api/Dockerfile_celery \
             $DIR/../)
 
-    fi
-
-    # augmented images
-    # install orchest-sdk
-    if [ $IMG == "scipy-notebook-augmented" ]; then
-        build=(docker build \
-            -t orchestsoftware/scipy-notebook-augmented \
-            --build-arg sdk_branch=$SDK_BRANCH \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/custom-images/scipy-notebook-augmented/Dockerfile \
-            $DIR/../)
-    fi
-
-    if [ $IMG == "r-notebook-augmented" ]; then
-        build=(docker build \
-            -t orchestsoftware/r-notebook-augmented \
-            --build-arg sdk_branch=$SDK_BRANCH \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/custom-images/r-notebook-augmented/Dockerfile \
-            $DIR/../)
-    fi
-
-    # runnable images
-    if [ $IMG == "scipy-notebook-runnable" ]; then
-        build=(docker build -t orchestsoftware/scipy-notebook-runnable \
-            -f $DIR/../orchest/custom-images/runnable-images/scipy-notebook-runnable/Dockerfile \
-            --no-cache=$NO_CACHE \
-            $DIR/../)
-    fi
-
-    if [ $IMG == "r-notebook-runnable" ]; then
-        build=(docker build -t orchestsoftware/r-notebook-runnable \
-            -f $DIR/../orchest/custom-images/runnable-images/r-notebook-runnable/Dockerfile \
-            --no-cache=$NO_CACHE \
-            $DIR/../)
     fi
 
     # custom enterprise gateway kernel images
@@ -199,8 +166,51 @@ do
             $DIR/../)
     fi
 
+    # augmented images
+    # install orchest-sdk
+    if [ $IMG == "scipy-notebook-augmented" ]; then
+        build=(docker build \
+            -t orchestsoftware/scipy-notebook-augmented \
+            --build-arg sdk_branch=$SDK_BRANCH \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../orchest/custom-images/scipy-notebook-augmented/Dockerfile \
+            $DIR/../)
+        
+        run_build $IMG $build
+        unset build
+    fi
+
+    if [ $IMG == "r-notebook-augmented" ]; then
+        build=(docker build \
+            -t orchestsoftware/r-notebook-augmented \
+            --build-arg sdk_branch=$SDK_BRANCH \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../orchest/custom-images/r-notebook-augmented/Dockerfile \
+            $DIR/../)
+
+        run_build $IMG $build
+        unset build
+    fi
+
+    # runnable images
+    if [ $IMG == "scipy-notebook-runnable" ]; then
+        build=(docker build -t orchestsoftware/scipy-notebook-runnable \
+            -f $DIR/../orchest/custom-images/scipy-notebook-runnable/Dockerfile \
+            --no-cache=$NO_CACHE \
+            $DIR/../)
+    fi
+
+    if [ $IMG == "r-notebook-runnable" ]; then
+        build=(docker build -t orchestsoftware/r-notebook-runnable \
+            -f $DIR/../orchest/custom-images/r-notebook-runnable/Dockerfile \
+            --no-cache=$NO_CACHE \
+            $DIR/../)
+    fi
+
     if [ -n "$build" ]; then
-        run_build
+        run_build $IMG $build &
     fi
 
 done
+
+wait < <(jobs -p)

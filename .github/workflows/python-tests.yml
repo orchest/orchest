@@ -28,7 +28,7 @@ jobs:
 
     - name: Create test environment
       run: |
-        sudo mkdir /notebooks
+        sudo mkdir /pipeline-dir
 
     - name: Test with pytest
       run: |

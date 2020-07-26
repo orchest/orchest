@@ -21,7 +21,7 @@ def _write_server_info_to_file(server_info: Dict[str, Any],
             {
                 'base_url': '/',
                 'hostname': 'localhost',
-                'notebook_dir': '/notebooks',
+                'notebook_dir': '/pipeline-dir',
                 'password': False,
                 'pid': 94619,
                 'port': 8888,

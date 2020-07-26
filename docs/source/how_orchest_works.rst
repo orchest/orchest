@@ -3,7 +3,7 @@ How Orchest works
 
 Orchest is powered by your filesystem. Upon launching, Orchest will
 mount a directory called the `userdir`. Its default location is
-:code:`orchest/orchest/userdir/`. Inside this directory it will store the following
+:code:`orchest/userdir/`. Inside this directory it will store the following
 files `for each pipeline`:
 
 * Your scripts that make up the pipeline, for example :code:`.ipynb` files.

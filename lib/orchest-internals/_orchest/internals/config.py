@@ -4,7 +4,7 @@ import os
 # TODO: add notice that some of these values have effect on the sdk!.
 
 # PIPELINE_DIR = '/pipeline-dir'
-PIPELINE_DIR = '/notebooks'
+PIPELINE_DIR = '/pipeline-dir'
 
 # Pipeline directory.
 KERNELSPECS_PATH = '.orchest/kernels'

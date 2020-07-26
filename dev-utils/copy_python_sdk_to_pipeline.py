@@ -7,7 +7,7 @@ import sys
 PIPELINE_UUID = sys.argv[1]
 
 SDK_DIR = "../../orchest-sdk/python/orchest/"
-SDK_TARGET_DIR = "../orchest/userdir/pipelines/" + PIPELINE_UUID + "/orchest/"
+SDK_TARGET_DIR = "../userdir/pipelines/" + PIPELINE_UUID + "/orchest/"
 
 import pyinotify
 

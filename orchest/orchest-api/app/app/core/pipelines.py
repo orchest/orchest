@@ -200,7 +200,7 @@ class PipelineStepRunner:
         image: str = run_config['runnable_image_mapping'][self.properties['image']]
 
         # Generate binds.
-        binds = [f'{pipeline_dir}:/notebooks'] + get_dynamic_binds()
+        binds = [f'{pipeline_dir}:/pipeline-dir'] + get_dynamic_binds()
 
         config = {
             'Image': image,
