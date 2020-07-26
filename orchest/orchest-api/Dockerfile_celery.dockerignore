@@ -1,4 +1,5 @@
 *
 
 !orchest/orchest-api/app/
+!orchest/orchest-api/start_celery_workers.sh
 !lib
