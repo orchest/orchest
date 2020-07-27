@@ -8,6 +8,7 @@ import aiohttp
 import requests
 
 from config import CONFIG_CLASS
+from _orchest.internals import config as _config
 
 
 # TODO: supported in python3.8 But docker images run 3.7
@@ -200,7 +201,7 @@ class PipelineStepRunner:
         image: str = run_config['runnable_image_mapping'][self.properties['image']]
 
         # Generate binds.
-        binds = [f'{pipeline_dir}:/pipeline-dir'] + get_dynamic_binds()
+        binds = [f'{pipeline_dir}:{_config.PIPELINE_DIR}'] + get_dynamic_binds()
 
         config = {
             'Image': image,

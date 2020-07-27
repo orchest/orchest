@@ -1,8 +1,7 @@
-import argparse
 import json
 import os
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from jupyterlab.labapp import LabApp
 
