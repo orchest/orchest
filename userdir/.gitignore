@@ -1,2 +1,3 @@
 .ipynb_checkpoints
 *.db
+celery-state-db*
