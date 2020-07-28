@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { uuidv4, intersectRect, globalMDCVars, extensionFromFilename, nodeCenter, correctedPosition, makeRequest } from "../utils/all";
+import { uuidv4, intersectRect, globalMDCVars, extensionFromFilename, nodeCenter, correctedPosition, makeRequest, makeCancelable } from "../utils/all";
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
@@ -138,10 +138,15 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 class PipelineView extends React.Component {
 
     componentWillUnmount() {
+        
         $(document).off("mouseup.initializePipeline");
         $(document).off("keyup.initializePipeline");
         $(document).off("keydown.initializePipeline");
+
         clearInterval(this.pipelineStepStatusPollingInterval);
+        clearInterval(this.sessionPollingInterval);
+
+        this.cancelCancelablePromises();
     }
 
     constructor(props) {
@@ -165,7 +170,9 @@ class PipelineView extends React.Component {
         this.pipelineSteps = {};
         this.pipelineRefs = [];
         this.prevPosition = [];
+        this.cancelablePromises = [];
         this.pipelineStepStatusPollingInterval = undefined;
+        this.sessionPollingInterval = undefined;
 
         this.state = {
             openedStep: undefined,
@@ -798,6 +805,71 @@ class PipelineView extends React.Component {
         }
     }
 
+    initializeFetchSessionPolling(){
+        clearInterval(this.sessionPollingInterval);
+
+        this.sessionPollingInterval = setInterval(() => {
+            this.fetchSessionStatus();
+        }, this.STATUS_POLL_FREQUENCY);
+    }
+
+    fetchSessionStatus(callback){
+        let fetchSessionPromise = makeCancelable(makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + this.props.pipeline_uuid));
+
+        fetchSessionPromise.promise.then((response) => {
+            let session;
+
+            let result = JSON.parse(response);
+
+            if(result.sessions.length > 0){
+                 session = result.sessions[0];
+
+                if(session.status == "RUNNING"){
+
+                    this.state.backend.jupyter_server_ip = session.jupyter_server_ip;
+                    this.state.backend.notebook_server_info = session.notebook_server_info;
+                    this.state.backend.running = true;
+                    this.state.backend.working = false;
+                    this.updateJupyterInstance();
+
+                    clearInterval(this.sessionPollingInterval);
+
+                } else if (session.status == "LAUNCHING"){
+
+                    this.state.backend.running = false;
+                    this.state.backend.working = true;
+
+                    this.initializeFetchSessionPolling();
+
+                } else if (session.status == "STOPPING"){
+
+                    this.state.backend.jupyter_server_ip = session.jupyter_server_ip;
+                    this.state.backend.notebook_server_info = session.notebook_server_info;
+                    this.state.backend.running = true;
+                    this.state.backend.working = true;
+
+                    this.initializeFetchSessionPolling();
+
+                }
+            } else {
+                this.state.backend.running = false;
+                this.state.backend.working = false;
+
+                clearInterval(this.sessionPollingInterval);
+            }
+
+            this.setState({ "backend": this.state.backend });
+
+            if(callback){
+                callback(session);
+            }
+
+            this.clearCancelablePromise(fetchSessionPromise);    
+        });
+
+        this.appendCancelablePromise(fetchSessionPromise);
+    }
+
     fetchPipelineAndInitialize() {
         let pipelineURL = "/async/pipelines/json/get/" + this.props.pipeline_uuid;
 
@@ -805,7 +877,10 @@ class PipelineView extends React.Component {
             pipelineURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
         }
 
-        makeRequest("GET", pipelineURL).then((response) => {
+
+        let fetchPipelinePromise = makeCancelable(makeRequest("GET", pipelineURL));
+        
+        fetchPipelinePromise.promise.then((response) => {
 
             let result = JSON.parse(response);
             if (result.success) {
@@ -819,28 +894,20 @@ class PipelineView extends React.Component {
                 console.warn("Could not load pipeline.json");
                 console.log(result);
             }
+
+            this.clearCancelablePromise(fetchPipelinePromise);
         });
+
+        this.appendCancelablePromise(fetchPipelinePromise);
 
         // get backend status
         if(!this.props.readOnly){
-            makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + this.props.pipeline_uuid).then((response) => {
-
-                let result = JSON.parse(response);
-    
-                if(result.sessions.length > 0){
-                    let launch = result.sessions[0];
-                    this.state.backend.jupyter_server_ip = launch.jupyter_server_ip;
-                    this.state.backend.notebook_server_info = launch.notebook_server_info;
-                    this.state.backend.running = true;
-    
-                    this.setState({ "backend": this.state.backend });
-                    this.updateJupyterInstance();
-                }else{
+            this.fetchSessionStatus((session) => {
+                if(session === undefined){
                     this.launchPipeline();
                 }
-            });
+            })
         }
-        
 
     }
 
@@ -872,7 +939,9 @@ class PipelineView extends React.Component {
 
             this.setState({ "backend": this.state.backend });
 
-            makeRequest("POST", "/catch/api-proxy/api/sessions/", {"type": "json", content: data}).then((response) => {
+            let launchPromise = makeCancelable(makeRequest("POST", "/catch/api-proxy/api/sessions/", {"type": "json", content: data}));
+
+            launchPromise.promise.then((response) => {
                 let json = JSON.parse(response);
 
                 console.log("API launch result");
@@ -887,6 +956,8 @@ class PipelineView extends React.Component {
                 this.setState({ "backend": this.state.backend });
 
                 this.updateJupyterInstance();
+
+                this.clearCancelablePromise(launchPromise);
             }).catch((e) => {
 
                 console.log(e)
@@ -895,7 +966,11 @@ class PipelineView extends React.Component {
                 this.state.backend.working = false;
 
                 this.setState({ "backend": this.state.backend });
+
+                this.clearCancelablePromise(launchPromise);
             })
+
+            this.appendCancelablePromise(launchPromise);
 
         } else {
 
@@ -904,7 +979,9 @@ class PipelineView extends React.Component {
                 "backend": this.state.backend
             })
 
-            makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid).then((response) => {
+            let deletePromise = makeCancelable(makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid))
+            
+            deletePromise.promise.then((response) => {
                 let result = JSON.parse(response);
                 console.log("API delete result");
                 console.log(result);
@@ -912,16 +989,24 @@ class PipelineView extends React.Component {
                 this.state.backend.running = false;
                 this.state.backend.working = false;
                 this.setState({ "backend": this.state.backend });
+
+                this.clearCancelablePromise(deletePromise);
+
             }).catch((err) => {
                 console.log("Error during request DELETEing launch to orchest-api.")
                 console.log(err);
 
-                this.state.backend.running = true;
-                this.state.backend.working = false;
+                if(err === undefined || (err && err.isCanceled !== true)){
+                    this.state.backend.running = true;
+                    this.state.backend.working = false;
+    
+                    this.setState({ "backend": this.state.backend });
+                }
 
-                this.setState({ "backend": this.state.backend });
-
+                this.clearCancelablePromise(deletePromise);
             });
+
+            this.appendCancelablePromise(deletePromise);
         }
     }
 
@@ -1090,7 +1175,9 @@ class PipelineView extends React.Component {
 
         if (this.state.runUUID) {
 
-            makeRequest("GET", this.state.runStatusEndpoint + this.state.runUUID).then((response) => {
+            let pollPromise = makeCancelable(makeRequest("GET", this.state.runStatusEndpoint + this.state.runUUID))
+            
+            pollPromise.promise.then((response) => {
                 let result = JSON.parse(response);
 
                 this.parseRunStatuses(result);
@@ -1107,7 +1194,11 @@ class PipelineView extends React.Component {
                     });
                     clearInterval(this.pipelineStepStatusPollingInterval);
                 }
+
+                this.clearCancelablePromise(pollPromise);
             });
+
+            this.appendCancelablePromise(pollPromise);
         }
     }
 
@@ -1124,6 +1215,21 @@ class PipelineView extends React.Component {
 
     runSelectedSteps() {
         this.runStepUUIDs(this.state.selectedSteps, "selection");
+    }
+
+    appendCancelablePromise(cancelablePromise){
+        this.cancelablePromises.push(cancelablePromise);
+    }
+
+    cancelCancelablePromises(){
+        for(let cancelablePromise of this.cancelablePromises){
+            cancelablePromise.cancel();
+        }
+    }
+
+    clearCancelablePromise(cancelablePromise){
+        let index = this.cancelablePromises.indexOf(cancelablePromise);
+        this.cancelablePromises.splice(index, 1);
     }
 
     runStepUUIDs(uuids, type) {
@@ -1147,8 +1253,10 @@ class PipelineView extends React.Component {
             "run_type": type,
             "pipeline_description": this.getPipelineJSON()
         };
+        
+        let runStepUUIDsPromise = makeCancelable(makeRequest("POST", "/catch/api-proxy/api/runs/", {type: "json", content: data}));
 
-        makeRequest("POST", "/catch/api-proxy/api/runs/", {type: "json", content: data}).then((response) => {
+        runStepUUIDsPromise.promise.then((response) => {
             let result = JSON.parse(response);
 
             this.parseRunStatuses(result);
@@ -1158,8 +1266,11 @@ class PipelineView extends React.Component {
             });
 
             this.startStatusInterval();
-            
+
+            this.appendCancelablePromise(runStepUUIDsPromise);
         })
+
+        this.cancelablePromises.push(runStepUUIDsPromise);
     }
 
     startStatusInterval(){
