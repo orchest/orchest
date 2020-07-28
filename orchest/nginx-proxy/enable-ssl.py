@@ -11,7 +11,7 @@ with open("ssl.conf-template") as f:
 with open("orchest.conf", 'r') as f:
     file = f.read()
     file = file.replace("# enable-ssl", ssl_conf)
-    file = file.replace("server_name localhost;", sys.argv[1])
+    file = file.replace("server_name localhost;", "server_name %s;" % sys.argv[1])
 
 with open("orchest.conf", "w") as f:
     f.write(file)
