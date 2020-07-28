@@ -10,25 +10,29 @@ class InteractiveSession(BaseModel, db.Model):
     __tablename__ = 'interactive_sessions'
     pipeline_uuid = db.Column(
         db.String(36),
-        primary_key=True
+        primary_key=True,
+    )
+    status = db.Column(
+        db.String(10),
+        primary_key=False,
     )
     # Docker container IDs.
     container_ids = db.Column(
         db.JSON,
         unique=False,
-        nullable=False,
+        nullable=True,
     )
     # Used to connect to Jupyter notebook server.
     jupyter_server_ip = db.Column(
         db.String(15),
         unique=True,
-        nullable=False
+        nullable=True,
     )  # IPv4
     # Used to connect to Jupyter notebook server.
     notebook_server_info = db.Column(
         db.JSON,
         unique=True,
-        nullable=False
+        nullable=True,
     )
 
     def __repr__(self):

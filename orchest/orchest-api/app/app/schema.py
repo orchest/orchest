@@ -1,5 +1,7 @@
 from flask_restplus import Model, fields
 
+from _orchest.internals import config as _config
+
 
 # TODO: make logic ordering and rename models to be in line with our new
 #       namings, e.g. pipeline runs instead of runs.
@@ -177,7 +179,7 @@ server = Model('Server', {
         description='Token for authentication'),
     'notebook_dir': fields.String(
         required=True,
-        default='/pipeline-dir',
+        default=_config.PIPELINE_DIR,
         description='Working directory'),
     'password': fields.Boolean(
         required=True,

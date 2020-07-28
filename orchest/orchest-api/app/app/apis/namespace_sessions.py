@@ -47,17 +47,37 @@ class SessionList(Resource):
         """Launches an interactive session."""
         post_data = request.get_json()
 
-        session = InteractiveSession(docker_client, network='orchest')
-        session.launch(post_data['pipeline_uuid'], post_data['pipeline_dir'])
+        # TODO: error handling. If it does not succeed then the initial
+        #       entry has to be removed from the database as otherwise
+        #       no session can be started in the future due to unique
+        #       constraint.
+        # TODO: use the model object that is first added to update the
+        #       entry instead of querying it again.
 
-        IP = session.get_containers_IP()
+        # Add initial entry to database.
+        pipeline_uuid = post_data['pipeline_uuid']
         interactive_session = {
-            'pipeline_uuid': post_data['pipeline_uuid'],
+            'pipeline_uuid': pipeline_uuid,
+            'status': 'LAUNCHING',
+        }
+        db.session.add(models.InteractiveSession(**interactive_session))
+        db.session.commit()
+
+        session = InteractiveSession(docker_client, network='orchest')
+        session.launch(pipeline_uuid, post_data['pipeline_dir'])
+
+        # Update the database entry with information to connect to the
+        # launched resources.
+        IP = session.get_containers_IP()
+        interactive_session.update({
+            'status': 'RUNNING',
             'container_ids': session.get_container_IDs(),
             'jupyter_server_ip': IP.jupyter_server,
             'notebook_server_info': session.notebook_server_info,
-        }
-        db.session.add(models.InteractiveSession(**interactive_session))
+        })
+        models.InteractiveSession.query \
+            .filter_by(pipeline_uuid=pipeline_uuid) \
+            .update(interactive_session)
         db.session.commit()
 
         return interactive_session, 201
@@ -89,6 +109,9 @@ class Session(Resource):
         session = models.InteractiveSession.query.get_or_404(
             pipeline_uuid, description='Session not found'
         )
+        session.status = 'STOPPING'
+        db.session.commit()
+
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,
             container_IDs=session.container_ids,

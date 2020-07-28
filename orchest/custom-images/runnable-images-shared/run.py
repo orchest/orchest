@@ -10,7 +10,7 @@ from nbconvert.filters import ansi2html
 from _orchest.internals import config as _config
 
 
-WORKING_DIR = "/pipeline-dir"
+WORKING_DIR = _config.PIPELINE_DIR
 LOG_DIR = _config.LOGS_PATH
 
 
