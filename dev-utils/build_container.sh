@@ -29,6 +29,7 @@ while getopts "s:i:nve" opt; do
       ENABLE_SSL=true
       ;;
     v)
+      echo "Verbose mode. Disabling parallel building."
       VERBOSE=true
       ;;
     \?)
@@ -208,7 +209,11 @@ do
     fi
 
     if [ -n "$build" ]; then
-        run_build $IMG $build &
+        if $VERBOSE; then
+            run_build $IMG $build
+        else
+            run_build $IMG $build &
+        fi
     fi
 
 done
