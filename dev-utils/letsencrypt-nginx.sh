@@ -69,4 +69,4 @@ docker build \
     $DIR/../
 
 # clean up tmp
-rmdir -r /tmp/letsencrypt
+rm -r /tmp/letsencrypt
