@@ -47,7 +47,6 @@ virtualenv venv
 source venv/bin/activate
 
 pip install certbot
-#pip install cryptography==2.8
 certbot certonly --noninteractive --standalone --agree-tos -m $EMAIL -d $SITE_DOMAIN
 
 # LE generated certificates should now live in
