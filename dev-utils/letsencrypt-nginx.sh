@@ -56,4 +56,5 @@ KEY_PATH=/etc/letsencrypt/live/$SITE_DOMAIN/privkey.pem
 check_file $CHAIN_PATH
 check_file $KEY_PATH
 
-
+# clean up tmp
+rmdir -r /tmp/letsencrypt
