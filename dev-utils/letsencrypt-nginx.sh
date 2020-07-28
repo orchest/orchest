@@ -25,6 +25,7 @@ if [ -z "$2" ]; then
     exit 1
 fi
 
+export DOCKER_BUILDKIT=1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SITE_DOMAIN=$1
 EMAIL=$2
