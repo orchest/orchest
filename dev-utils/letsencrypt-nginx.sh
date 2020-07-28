@@ -49,12 +49,24 @@ pip install certbot
 #pip install cryptography==2.8
 certbot certonly --noninteractive --standalone --agree-tos -m $EMAIL -d $SITE_DOMAIN
 
-# certificates should now live in
+# LE generated certificates should now live in
 CHAIN_PATH=/etc/letsencrypt/live/$SITE_DOMAIN/fullchain.pem
 KEY_PATH=/etc/letsencrypt/live/$SITE_DOMAIN/privkey.pem
 
 check_file $CHAIN_PATH
 check_file $KEY_PATH
+
+# copy certificates to nginx-proxy certs folders
+cp $CHAIN_PATH $DIR/../orchest/nginx-proxy/certs/server.crt
+cp $KEY_PATH $DIR/../orchest/nginx-proxy/certs/server.key
+
+# build nginx container with letsencrypt certs
+docker build \
+    -t orchestsoftware/nginx-proxy \
+    --build-arg enable_ssl=true \
+    --build-arg domain=$SITE_DOMAIN \
+    -f $DIR/../orchest/nginx-proxy/Dockerfile \
+    $DIR/../
 
 # clean up tmp
 rmdir -r /tmp/letsencrypt
