@@ -190,6 +190,9 @@ server = Model('Server', {
 })
 
 session = Model('Session', {
+    'status': fields.String(
+        required=True,
+        description='Status of session'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
