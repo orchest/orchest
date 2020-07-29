@@ -4,43 +4,22 @@ from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
+from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.schema import (
-    pipeline_run,
-    pipeline_run_config,
-    pipeline_run_spec,
-    experiment_spec,
-    experiment,
-    experiments,
-    status_update,
-    pipeline_step,
-)
+from app.utils import register_schema
 import app.models as models
 
 
 api = Namespace('experiments', description='Managing experiments')
-
-# NOTE: even though some models are not used directly, they are `Nested`
-# inside others and therefore have to be defined here. E.g.
-# `experiment_spec` uses `pipeline_run_spec` which uses
-# `pipeline_run_config` (both of which are not directly used in this
-# namespace).
-api.models[pipeline_step.name] = pipeline_step
-api.models[pipeline_run.name] = pipeline_run
-api.models[pipeline_run_config.name] = pipeline_run_config
-api.models[pipeline_run_spec.name] = pipeline_run_spec
-api.models[experiment_spec.name] = experiment_spec
-api.models[experiment.name] = experiment
-api.models[experiments.name] = experiments
-api.models[status_update.name] = status_update
+api = register_schema(api)
 
 
 @api.route('/')
 class ExperimentList(Resource):
     @api.doc('get_experiments')
-    @api.marshal_with(experiments)
+    @api.marshal_with(schema.experiments)
     def get(self):
         """Fetches all experiments.
 
@@ -52,8 +31,8 @@ class ExperimentList(Resource):
         return {'experiments': [exp.__dict__ for exp in experiments]}, 200
 
     @api.doc('start_experiment')
-    @api.expect(experiment_spec)
-    @api.marshal_with(experiment, code=201, description='Queued experiment')
+    @api.expect(schema.experiment_spec)
+    @api.marshal_with(schema.experiment, code=201, description='Queued experiment')
     def post(self):
         """Queues a new experiment."""
         # TODO: possible use marshal() on the post_data
@@ -144,7 +123,7 @@ class ExperimentList(Resource):
 @api.response(404, 'Experiment not found')
 class Experiment(Resource):
     @api.doc('get_experiment')
-    @api.marshal_with(experiment, code=200)
+    @api.marshal_with(schema.experiment, code=200)
     def get(self, experiment_uuid):
         """Fetches an experiment given its UUID."""
         experiment = models.Experiment.query.get_or_404(
@@ -154,7 +133,7 @@ class Experiment(Resource):
         return experiment.__dict__
 
     @api.doc('set_experiment_status')
-    @api.expect(status_update)
+    @api.expect(schema.status_update)
     def put(self, experiment_uuid):
         """Sets the status of an experiment."""
         post_data = request.get_json()
@@ -232,17 +211,17 @@ class Experiment(Resource):
 @api.response(404, 'Pipeline step not found')
 class PipelineRun(Resource):
     @api.doc('get_pipeline_run')
-    @api.marshal_with(pipeline_run, code=200)
+    @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
-        pipeline_run = models.NonInteractiveRun.query.get_or_404(
+        non_interactive_run = models.NonInteractiveRun.query.get_or_404(
             ident=(experiment_uuid, run_uuid),
             description='Given experiment has no run with given run_uuid'
         )
-        return pipeline_run.__dict__
+        return non_interactive_run.__dict__
 
     @api.doc('set_pipeline_run_status')
-    @api.expect(status_update)
+    @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid):
         """Set the status of a scheduleld run step."""
         post_data = request.get_json()
@@ -286,7 +265,7 @@ class PipelineRun(Resource):
 @api.response(404, 'Pipeline step not found')
 class PipelineStepStatus(Resource):
     @api.doc('get_pipeline_run')
-    @api.marshal_with(pipeline_run, code=200)
+    @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid, step_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if
@@ -298,7 +277,7 @@ class PipelineStepStatus(Resource):
         return step.__dict__
 
     @api.doc('set_pipeline_run_status')
-    @api.expect(status_update)
+    @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid, step_uuid):
         """Set the status of a scheduleld run step."""
         post_data = request.get_json()

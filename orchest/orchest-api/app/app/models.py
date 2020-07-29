@@ -3,6 +3,7 @@
 TODO:
     * Start using declarative base so we don't have to keep repeating
       the primary keys, relationships and foreignkeys.
+      https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
     * Possibly add `pipeline_uuid` to the primary key.
 
 """
@@ -30,12 +31,6 @@ class InteractiveSession(BaseModel):
         db.String(10),
         primary_key=False,
     )
-    # Docker container IDs.
-    container_ids = db.Column(
-        db.JSON,
-        unique=False,
-        nullable=True,
-    )
     # Used to connect to Jupyter notebook server.
     jupyter_server_ip = db.Column(
         db.String(15),
@@ -46,6 +41,13 @@ class InteractiveSession(BaseModel):
     notebook_server_info = db.Column(
         db.JSON,
         unique=True,
+        nullable=True,
+    )
+    # Docker container IDs. Used internally to identify the resources of
+    # a specific session.
+    container_ids = db.Column(
+        db.JSON,
+        unique=False,
         nullable=True,
     )
 
@@ -69,13 +71,13 @@ class PipelineRun(BaseModel):
 
     # @declared_attr
     # def step_statuses(cls):
-    #     return db.relationship('PipelineStep', lazy='joined')
+    #     return db.relationship('PipelineRunPipelineStep', lazy='joined')
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: {self.run_uuid}>'
 
 
-class PipelineStep(BaseModel):
+class PipelineRunPipelineStep(BaseModel):
     __abstract__ = True
 
     step_uuid = db.Column(
@@ -102,7 +104,7 @@ class PipelineStep(BaseModel):
         return f'<{self.__class__.__name__}: {self.run_uuid}.{self.step_uuid}>'
 
 
-class InteractiveRunPipelineStep(PipelineStep):
+class InteractiveRunPipelineStep(PipelineRunPipelineStep):
     __tablename__ = 'interactive_run_pipeline_steps'
 
     run_uuid = db.Column(
@@ -154,7 +156,7 @@ class NonInteractiveRun(PipelineRun):
     step_statuses = db.relationship('NonInteractiveRunPipelineStep', lazy='joined')
 
 
-class NonInteractiveRunPipelineStep(PipelineStep):
+class NonInteractiveRunPipelineStep(PipelineRunPipelineStep):
     __tablename__ = 'non_interactive_run_pipeline_steps'
     __bind_key__ = 'persistent_db'
 

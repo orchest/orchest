@@ -4,34 +4,22 @@ from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
+from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
+from app.utils import register_schema
 import app.models as models
-from app.schema import (
-    pipeline_run,
-    pipeline_run_config,
-    pipeline_run_spec,
-    pipeline_runs,
-    pipeline_step,
-    status_update,
-)
 
 
 api = Namespace('runs', description='Manages interactive pipeline runs')
-
-api.models[pipeline_step.name] = pipeline_step
-api.models[pipeline_run_config.name] = pipeline_run_config
-api.models[pipeline_run_spec.name] = pipeline_run_spec
-api.models[pipeline_run.name] = pipeline_run
-api.models[pipeline_runs.name] = pipeline_runs
-api.models[status_update.name] = status_update
+api = register_schema(api)
 
 
 @api.route('/')
 class RunList(Resource):
     @api.doc('get_runs')
-    @api.marshal_with(pipeline_runs)
+    @api.marshal_with(schema.interactive_runs)
     def get(self):
         """Fetches all (interactive) pipeline runs.
 
@@ -42,8 +30,8 @@ class RunList(Resource):
         return {'runs': [run.as_dict() for run in runs]}, 200
 
     @api.doc('start_run')
-    @api.expect(pipeline_run_spec)
-    @api.marshal_with(pipeline_run, code=201, description='Run started')
+    @api.expect(schema.interactive_run_spec)
+    @api.marshal_with(schema.interactive_run, code=201, description='Run started')
     def post(self):
         """Starts a new (interactive) pipeline run."""
         post_data = request.get_json()
@@ -107,14 +95,14 @@ class RunList(Resource):
 @api.response(404, 'Run not found')
 class Run(Resource):
     @api.doc('get_run')
-    @api.marshal_with(pipeline_run, code=200)
+    @api.marshal_with(schema.interactive_run, code=200)
     def get(self, run_uuid):
         """Fetches a pipeline run given its UUID."""
         run = models.InteractiveRun.query.get_or_404(run_uuid, description='Run not found')
         return run.__dict__
 
     @api.doc('set_run_status')
-    @api.expect(status_update)
+    @api.expect(schema.status_update)
     def put(self, run_uuid):
         """Sets the status of a pipeline run."""
         post_data = request.get_json()
@@ -153,7 +141,7 @@ class Run(Resource):
 @api.response(404, 'Pipeline step not found')
 class StepStatus(Resource):
     @api.doc('get_step_status')
-    @api.marshal_with(pipeline_step, code=200)
+    @api.marshal_with(schema.pipeline_run_pipeline_step, code=200)
     def get(self, run_uuid, step_uuid):
         """Fetches the status of a pipeline step of a specific run."""
         # TODO: Returns the status and logs. Of course logs are empty if
@@ -165,7 +153,7 @@ class StepStatus(Resource):
         return step.__dict__
 
     @api.doc('set_step_status')
-    @api.expect(status_update)
+    @api.expect(schema.status_update)
     def put(self, run_uuid, step_uuid):
         """Sets the status of a pipeline step."""
         post_data = request.get_json()
