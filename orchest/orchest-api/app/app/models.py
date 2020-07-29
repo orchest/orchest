@@ -101,69 +101,6 @@ class StepStatus(BaseModel, db.Model):
 #       https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#custom-vertical-partitioning
 #       NOTE: binds are specified at a model's declaration time, thus we
 #       need a way to do dynamic binds.
-class ScheduledRun(BaseModel, db.Model):
-    __tablename__ = 'scheduled_runs'
-    __bind_key__ = 'persistent_db'
-
-    run_uuid = db.Column(
-        db.String(36),
-        primary_key=True
-    )
-    pipeline_uuid = db.Column(
-        db.String(36),
-        unique=False,
-        nullable=False
-    )
-    status = db.Column(
-        db.String(15),
-        unique=False,
-        nullable=True
-    )
-    scheduled_start = db.Column(
-        db.DateTime,
-        nullable=False
-    )
-    step_statuses = db.relationship('ScheduledStepStatus', lazy='joined')
-
-    def __repr__(self):
-        return f'<ScheduledRun {self.run_uuid}>'
-
-
-# TODO: ScheduledStepStatus should just be StepStatus. Need to have
-# StepStatus exist in two seperate databases at a time, where one has a
-# foreign key to Run and the other has a foreign key to ScheduledRun
-class ScheduledStepStatus(BaseModel, db.Model):
-    __tablename__ = 'scheduled_stepstatus'
-    __bind_key__ = 'persistent_db'
-    run_uuid = db.Column(
-        db.String(36),
-        db.ForeignKey('scheduled_runs.run_uuid'),
-        primary_key=True
-    )
-    step_uuid = db.Column(
-        db.String(36),
-        primary_key=True
-    )
-    status = db.Column(
-        db.String(15),
-        unique=False,
-        nullable=True
-    )
-    started_time = db.Column(
-        db.DateTime,
-        unique=False,
-        nullable=True
-    )
-    ended_time = db.Column(
-        db.DateTime,
-        unique=False,
-        nullable=True
-    )
-
-    def __repr__(self):
-        return f'<StepStatus {self.run_uuid}.{self.step_uuid}>'
-
-
 class Experiment(BaseModel, db.Model):
     __tablename__ = 'experiments'
     __bind_key__ = 'persistent_db'
@@ -176,21 +113,6 @@ class Experiment(BaseModel, db.Model):
         db.String(36),
         primary_key=False
     )
-    # status = db.Column(
-    #     db.String(15),
-    #     unique=False,
-    #     nullable=True
-    # )
-    # started_time = db.Column(
-    #     db.DateTime,
-    #     unique=False,
-    #     nullable=True
-    # )
-    # ended_time = db.Column(
-    #     db.DateTime,
-    #     unique=False,
-    #     nullable=True
-    # )
     scheduled_start = db.Column(
         db.DateTime,
         nullable=False

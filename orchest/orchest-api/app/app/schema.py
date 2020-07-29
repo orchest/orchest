@@ -8,20 +8,20 @@ from _orchest.internals import config as _config
 pipeline_step = Model('Pipeline Step', {
     'run_uuid': fields.String(
         required=True,
-        description='UUID for run'),
+        description='UUID of the run'),
     'step_uuid': fields.String(
         required=True,
-        description='UUID of a pipeline step'),
+        description='UUID of the pipeline step'),
     'status': fields.String(
         required=True,
         description='Status of the step',
         enum=['PENDING', 'STARTED', 'SUCCESS', 'FAILURE', 'ABORTED', 'REVOKED']),
     'started_time': fields.String(
         required=True,
-        description='Time at which the step was started'),
+        description='Time at which the step started executing'),
     'ended_time': fields.String(
         required=True,
-        description='Time at which the step ended execution'),
+        description='Time at which the step finished executing'),
 })
 
 status_update = Model('Status Update', {

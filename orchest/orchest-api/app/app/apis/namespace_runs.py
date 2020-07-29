@@ -18,13 +18,13 @@ from app.schema import (
 )
 
 
-api = Namespace('runs', description='Managing (partial) runs')
+api = Namespace('runs', description='Manages interactive pipeline runs')
 
-api.models[pipeline_run.name] = pipeline_run
+api.models[pipeline_step.name] = pipeline_step
 api.models[pipeline_run_config.name] = pipeline_run_config
 api.models[pipeline_run_spec.name] = pipeline_run_spec
+api.models[pipeline_run.name] = pipeline_run
 api.models[pipeline_runs.name] = pipeline_runs
-api.models[pipeline_step.name] = pipeline_step
 api.models[status_update.name] = status_update
 
 
@@ -33,9 +33,10 @@ class RunList(Resource):
     @api.doc('get_runs')
     @api.marshal_with(pipeline_runs)
     def get(self):
-        """Fetch all runs.
+        """Fetches all (interactive) pipeline runs.
 
-        Either in the queue, running or already completed.
+        These pipeline runs are either pending, running or have already
+        completed.
         """
         runs = models.Run.query.all()
         return {'runs': [run.as_dict() for run in runs]}, 200
@@ -44,7 +45,7 @@ class RunList(Resource):
     @api.expect(pipeline_run_spec)
     @api.marshal_with(pipeline_run, code=201, description='Run started')
     def post(self):
-        """Start a new run."""
+        """Starts a new pipeline run."""
         post_data = request.get_json()
         post_data['run_config']['run_endpoint'] = 'runs'
 
@@ -102,20 +103,20 @@ class RunList(Resource):
 
 
 @api.route('/<string:run_uuid>')
-@api.param('run_uuid', 'UUID for Run')
+@api.param('run_uuid', 'UUID of Run')
 @api.response(404, 'Run not found')
 class Run(Resource):
     @api.doc('get_run')
     @api.marshal_with(pipeline_run, code=200)
     def get(self, run_uuid):
-        """Fetch a run given its UUID."""
+        """Fetches a pipeline run given its UUID."""
         run = models.Run.query.get_or_404(run_uuid, description='Run not found')
         return run.__dict__
 
     @api.doc('set_run_status')
     @api.expect(status_update)
     def put(self, run_uuid):
-        """Set the status of a run."""
+        """Sets the status of a pipeline run."""
         post_data = request.get_json()
 
         res = models.Run.query.filter_by(run_uuid=run_uuid).update({
@@ -130,7 +131,7 @@ class Run(Resource):
     @api.doc('delete_run')
     @api.response(200, 'Run terminated')
     def delete(self, run_uuid):
-        """Stop a run given its UUID."""
+        """Stops a pipeline run given its UUID."""
         # TODO: we could specify more options when deleting the run.
         # TODO: error handling.
         # TODO: possible set status of steps and Run to "REVOKED"
@@ -146,16 +147,15 @@ class Run(Resource):
         return {'message': 'Run termination was successful'}, 200
 
 
-@api.route('/<string:run_uuid>/<string:step_uuid>',
-           doc={'description': 'Set and get execution status of steps.'})
-@api.param('run_uuid', 'UUID for Run')
+@api.route('/<string:run_uuid>/<string:step_uuid>')
+@api.param('run_uuid', 'UUID of Run')
 @api.param('step_uuid', 'UUID of Pipeline Step')
 @api.response(404, 'Pipeline step not found')
 class StepStatus(Resource):
     @api.doc('get_step_status')
     @api.marshal_with(pipeline_step, code=200)
     def get(self, run_uuid, step_uuid):
-        """Fetch a step of a given run given their ids."""
+        """Fetches the status of a pipeline step of a specific run."""
         # TODO: Returns the status and logs. Of course logs are empty if
         #       the step is not executed yet.
         step = models.StepStatus.query.get_or_404(
@@ -167,7 +167,7 @@ class StepStatus(Resource):
     @api.doc('set_step_status')
     @api.expect(status_update)
     def put(self, run_uuid, step_uuid):
-        """Set the status of a step."""
+        """Sets the status of a pipeline step."""
         post_data = request.get_json()
 
         # TODO: don't we want to do this async? Since otherwise the API
