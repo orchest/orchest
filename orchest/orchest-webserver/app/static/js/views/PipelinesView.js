@@ -3,11 +3,11 @@ import React, { Fragment } from 'react';
 import PipelineView from "./PipelineView";
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 import CheckItemList from '../components/CheckItemList';
-import Modal from '../components/Modal';
 import { makeRequest } from '../utils/all';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
+import MDCDialogReact from '../mdc-components/MDCDialogReact';
 
 
 class PipelinesView extends React.Component {
@@ -62,11 +62,11 @@ class PipelinesView extends React.Component {
         let selectedIndex = this.refs.pipelineListView.customSelectedIndex();
         
         if(selectedIndex.length === 0){
-            alert("You haven't selected a pipeline.")
+            orchest.alert("Error", "You haven't selected a pipeline.")
             return;
         }
 
-        if(confirm("Are you certain that you want to delete this pipeline? Note: this action is irreversible.")){
+        orchest.confirm("Warning", "Are you certain that you want to delete this pipeline? (This cannot be undone.)", () => {
 
             selectedIndex.forEach((item, index) => {
                 let pipeline_uuid = this.state.listData[item].uuid;
@@ -77,7 +77,7 @@ class PipelinesView extends React.Component {
                     this.fetchList();
                 })
             });
-        }
+        })
     }
 
     onCreateClick(){
@@ -95,7 +95,7 @@ class PipelinesView extends React.Component {
         let pipelineName = this.refs.createPipelineNameTextField.mdc.value;
 
         if(!pipelineName){
-            alert("Please enter a name.")
+            orchest.alert("Error", "Please enter a name.")
             return;
         }
 
@@ -127,14 +127,13 @@ class PipelinesView extends React.Component {
 
             {(() => {
                 if(this.state.createModal){
-                    return <Modal body={
-                        <Fragment>
-                            <h2>Create a new pipeline</h2>
+                    return <MDCDialogReact title="Create a new pipeline" 
+                        content={
                             <MDCTextFieldReact ref={'createPipelineNameTextField'} classNames={['fullwidth']} label="Experiment name" />
-                            
-                            <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised", "themed-secondary"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />
-                            
-                            <MDCButtonReact icon="close" label="Cancel" onClick={this.onCancelModal.bind(this)} />
+                    } actions={
+                        <Fragment>
+                            <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised", "themed-secondary"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />                            
+                            <MDCButtonReact icon="close" label="Cancel" classNames={["push-left"]} onClick={this.onCancelModal.bind(this)} />
                         </Fragment>
                     } />
                 }

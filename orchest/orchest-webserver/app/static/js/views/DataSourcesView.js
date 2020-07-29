@@ -62,8 +62,7 @@ class DataSourcesView extends React.Component {
 
     let selectedIndices = this.refs.checkItemList.customSelectedIndex();
 
-    if(confirm("Are you sure you want to delete the selected data sources? (Warning: this cannot be undone.)")){
-      
+    orchest.confirm("Warning", "Are you sure you want to delete the selected data sources? (This cannot be undone.)", () => {
       let promises = [];
       for(let x = 0; x < selectedIndices.length; x++){
         promises.push(makeRequest("DELETE", "/store/datasources/" + this.state.dataSources[selectedIndices[x]].name));
@@ -72,8 +71,7 @@ class DataSourcesView extends React.Component {
       Promise.all(promises).then(() => {
         this.fetchDataSources();
       });
-
-    }
+    })
 
   }
 

@@ -3,13 +3,13 @@ import React, { Fragment } from 'react';
 import SearchableTable from '../components/SearchableTable';
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
-import Modal from '../components/Modal';
 import MDCSelectReact from '../mdc-components/MDCSelectReact';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import CreateExperimentView from './CreateExperimentView';
 import { makeRequest, uuidv4 } from '../utils/all';
 import ExperimentView from './ExperimentView';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
+import MDCDialogReact from '../mdc-components/MDCDialogReact';
 
 class ExperimentsView extends React.Component {
 
@@ -31,7 +31,7 @@ class ExperimentsView extends React.Component {
         // retrieve pipelines once on component render
         makeRequest("GET", "/async/pipelines").then((response) => {
             let result = JSON.parse(response);
-            
+
             this.setState({
                 "pipelines": result.result
             });
@@ -45,7 +45,7 @@ class ExperimentsView extends React.Component {
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
-        
+
     }
 
     fetchList() {
@@ -57,7 +57,7 @@ class ExperimentsView extends React.Component {
                 experiments: result,
                 experimentsSearchMask: new Array(result.length).fill(1)
             });
-            
+
         }).catch((e) => {
             console.log(e);
         })
@@ -74,15 +74,19 @@ class ExperimentsView extends React.Component {
         })
     }
 
-    onDeleteClick(){
+    onDeleteClick() {
 
         // get experiment selection
         let selectedRows = this.refs.experimentTable.getSelectedRowIndices();
-        
+
+        if(selectedRows.length == 0){
+            return;
+        }
+
         // delete indices
         let promises = [];
 
-        for(let x = 0; x < selectedRows.length; x++){
+        for (let x = 0; x < selectedRows.length; x++) {
             promises.push(
                 makeRequest(
                     "DELETE", "/store/experiments/" + this.state.experiments[selectedRows[x]].uuid
@@ -98,15 +102,25 @@ class ExperimentsView extends React.Component {
 
     }
 
-    onSubmitModal(){
+    onSubmitModal() {
 
         let pipelineUUID = this.refs.formPipeline.mdc.value;
         let pipelineName;
-        for(let x = 0; x < this.state.pipelines.length; x++){
-            if(this.state.pipelines[x].uuid === pipelineUUID){
+        for (let x = 0; x < this.state.pipelines.length; x++) {
+            if (this.state.pipelines[x].uuid === pipelineUUID) {
                 pipelineName = this.state.pipelines[x].name
                 break;
             }
+        }
+
+        if(this.refs.formExperimentName.mdc.value.length == 0){
+            orchest.alert("Error", "Please enter a name for your experiment.");
+            return;
+        }
+
+        if(this.refs.formPipeline.mdc.value == ''){
+            orchest.alert("Error", "Please choose a pipeline.");
+            return;
         }
 
         // TODO: in this part of the flow copy the pipeline directory to make
@@ -136,17 +150,17 @@ class ExperimentsView extends React.Component {
 
         });
     }
-    onCancelModal(){
+    onCancelModal() {
         this.setState({
             createModal: false
         });
     }
 
-    onRowClick(row, idx, event){
+    onRowClick(row, idx, event) {
 
         let experiment = this.state.experiments[idx];
 
-        if(experiment.draft === true){
+        if (experiment.draft === true) {
 
             orchest.loadView(CreateExperimentView, {
                 "experiment": {
@@ -156,21 +170,21 @@ class ExperimentsView extends React.Component {
                 }
             });
 
-        }else{
+        } else {
             makeRequest("GET", "/async/pipelines/json/get/" + experiment.pipeline_uuid, {
             }).then((response) => {
-    
+
                 let result = JSON.parse(response);
                 if (result.success) {
-    
+
                     let pipeline = JSON.parse(result['pipeline_json']);
-    
+
                     orchest.loadView(ExperimentView, {
                         "pipeline": pipeline,
                         "experiment": experiment,
                         "parameterizedSteps": JSON.parse(experiment.strategy_json)
                     });
-    
+
                 } else {
                     console.warn("Could not load pipeline.json");
                     console.log(result);
@@ -180,9 +194,9 @@ class ExperimentsView extends React.Component {
 
     }
 
-    experimentListToTableData(experiments){
+    experimentListToTableData(experiments) {
         let rows = [];
-        for(let x = 0; x < experiments.length; x++){
+        for (let x = 0; x < experiments.length; x++) {
             rows.push([
                 experiments[x].name,
                 experiments[x].pipeline_name,
@@ -193,16 +207,16 @@ class ExperimentsView extends React.Component {
         return rows;
     }
 
-    generatePipelineOptions(pipelines){
+    generatePipelineOptions(pipelines) {
         let pipelineOptions = [];
 
-        for(let x = 0; x < pipelines.length; x++){
+        for (let x = 0; x < pipelines.length; x++) {
             pipelineOptions.push([
                 pipelines[x].uuid,
                 pipelines[x].name
             ])
         }
-        
+
         return pipelineOptions
     }
 
@@ -214,36 +228,35 @@ class ExperimentsView extends React.Component {
 
             {(() => {
 
-                if(this.state.experiments && this.state.pipelines){
+                if (this.state.experiments && this.state.pipelines) {
                     return <Fragment>
                         {(() => {
-                            if(this.state.createModal){
-                                return <Modal body={
+                            if (this.state.createModal) {
+                                return <MDCDialogReact title="Create a new experiment" content={
                                     <Fragment>
                                         <div className="create-experiment-modal">
-                                            <h2>Create a new experiment</h2>
-                                            
-                                            <MDCTextFieldReact ref="formExperimentName" classNames={['fullwidth']} label="Experiment name" />
-                                            
-                                            <MDCSelectReact ref="formPipeline" label="Pipeline" options={this.generatePipelineOptions(this.state.pipelines)} />
+
+                                            <MDCTextFieldReact ref="formExperimentName" classNames={["fullwidth push-down"]} label="Experiment name" />
+
+                                            <MDCSelectReact ref="formPipeline" label="Pipeline" classNames={["fullwidth"]} options={this.generatePipelineOptions(this.state.pipelines)} />
 
                                             {(() => {
-                                                if(this.state.createModelLoading){
+                                                if (this.state.createModelLoading) {
                                                     return <Fragment>
-                                                            <MDCLinearProgressReact />
-                                                            <p className="padding-bottom">Copying pipeline directory...</p>
-                                                        </Fragment>
+                                                        <MDCLinearProgressReact />
+                                                        <p>Copying pipeline directory...</p>
+                                                    </Fragment>
                                                 }
                                             })()}
 
-                                            <MDCButtonReact disabled={this.state.createModelLoading} icon="science" classNames={["mdc-button--raised", "themed-secondary"]} label="Create experiment" onClick={this.onSubmitModal.bind(this)} />
-                                            
-                                            <MDCButtonReact icon="close" label="Cancel" onClick={this.onCancelModal.bind(this)} />
                                         </div>
                                     </Fragment>
-                                } />
+                                } actions={<Fragment>
+                                    <MDCButtonReact disabled={this.state.createModelLoading} icon="science" classNames={["mdc-button--raised", "themed-secondary"]} label="Create experiment" onClick={this.onSubmitModal.bind(this)} />
+                                    <MDCButtonReact icon="close" classNames={["push-left"]} label="Cancel" onClick={this.onCancelModal.bind(this)} />
+                                </Fragment>} />
                             }
-                        })() }
+                        })()}
 
                         <div className={"experiment-actions"}>
                             <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
@@ -252,13 +265,13 @@ class ExperimentsView extends React.Component {
 
                         <SearchableTable ref="experimentTable" selectable={true} onRowClick={this.onRowClick.bind(this)} rows={this.experimentListToTableData(this.state.experiments)} headers={['Experiment', 'Pipeline', 'Date created', 'Status']} />
                     </Fragment>
-                }else{
+                } else {
                     return <MDCLinearProgressReact />
                 }
 
             })()}
 
-            
+
 
         </div>;
     }

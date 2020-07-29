@@ -16,6 +16,7 @@ import Jupyter from "./jupyter/Jupyter";
 import './lib/overflowing';
 import ExperimentView from "./views/ExperimentView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
+import Dialogs from "./components/Dialogs";
 
 function Orchest() {
 
@@ -107,6 +108,17 @@ function Orchest() {
         // hide reactDOM
         $(this.reactRoot).addClass('hidden');
     };
+
+    this.dialogHolder = document.querySelector(".dialogs");
+
+    let dialogs = ReactDOM.render(<Dialogs />, this.dialogHolder);
+
+    this.alert = function(title, content){
+        dialogs.alert(title, content);
+    }
+    this.confirm = function(title, content, cb){
+        dialogs.confirm(title, content, cb);
+    }
 
 }
 

@@ -262,7 +262,7 @@ class PipelineView extends React.Component {
             if(pipelineValidation.valid !== true){
 
                 for(let x = 0; x < pipelineValidation.errors.length; x++){
-                    alert(pipelineValidation.errors[x]);
+                    orchest.alert("Error", pipelineValidation.errors[x]);
                 }
 
             }else{
@@ -484,7 +484,7 @@ class PipelineView extends React.Component {
                 }
 
                 if (connectionCreatesCycle) {
-                    alert("Error: Connecting this step will create a cycle in your pipeline which is not supported.");
+                    orchest.alert("Error", "Connecting this step will create a cycle in your pipeline which is not supported.");
                 }
 
                 if (dragEndedInIcomingConnectionsElement && noConnectionExists && !connectionCreatesCycle) {
@@ -503,7 +503,7 @@ class PipelineView extends React.Component {
                     _this.connections.splice(_this.connections.indexOf(_this.newConnection), 1);
 
                     if(!noConnectionExists){
-                        alert("These steps are already connected. No new connection has been created.");
+                        orchest.alert("Error", "These steps are already connected. No new connection has been created.");
                     }
                 }
 
@@ -924,7 +924,7 @@ class PipelineView extends React.Component {
             if(this.state.backend.running){
                 statusText = "shutting down";
             }
-            alert("Please wait, the pipeline session is still " + statusText + ".");
+            orchest.alert("Error", "Please wait, the pipeline session is still " + statusText + ".");
             return
         }
 
@@ -1141,7 +1141,7 @@ class PipelineView extends React.Component {
             orchest.showJupyter();
             orchest.headerBarComponent.showBack();
         } else {
-            alert("Please start the session before opening the Notebook in Jupyter");
+            orchest.alert("Error", "Please start the session before opening the Notebook in Jupyter");
         }
     }
 
@@ -1235,11 +1235,11 @@ class PipelineView extends React.Component {
     runStepUUIDs(uuids, type) {
 
         if(!this.state.backend.running){
-            alert("There is no active session. Please start the session first.");
+            orchest.alert("Error", "There is no active session. Please start the session first.");
         }
 
         if (this.state.pipelineRunning) {
-            alert("The pipeline is currently executing, please wait until it completes.");
+            orchest.alert("Error", "The pipeline is currently executing, please wait until it completes.");
             return;
         }
 

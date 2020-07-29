@@ -262,13 +262,13 @@ class DataSourceEditView extends React.Component {
         e.preventDefault();
 
         // form validation
-        if(this.state.dataSource.name.length == 1){
-            alert("Please fill in a data source name.");
+        if(this.state.dataSource.name.length < 1){
+            orchest.alert("Error", "Please fill in a data source name.");
             return;
         }
 
         if(this.state.dynamicForm === undefined){
-            alert("Please choose a data source type.");
+            orchest.alert("Error", "Please choose a data source type.");
             return;
         }
         
@@ -293,7 +293,7 @@ class DataSourceEditView extends React.Component {
             console.log(error);
 
             try {
-                alert(JSON.parse(error.body)["message"]);
+                console.error(JSON.parse(error.body)["message"]);
             }catch (error){
                 console.log(error);
                 console.log("Couldn't get error message from response.");
