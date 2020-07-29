@@ -38,14 +38,14 @@ class RunList(Resource):
         These pipeline runs are either pending, running or have already
         completed.
         """
-        runs = models.Run.query.all()
+        runs = models.InteractiveRun.query.all()
         return {'runs': [run.as_dict() for run in runs]}, 200
 
     @api.doc('start_run')
     @api.expect(pipeline_run_spec)
     @api.marshal_with(pipeline_run, code=201, description='Run started')
     def post(self):
-        """Starts a new pipeline run."""
+        """Starts a new (interactive) pipeline run."""
         post_data = request.get_json()
         post_data['run_config']['run_endpoint'] = 'runs'
 
@@ -81,7 +81,7 @@ class RunList(Resource):
            'pipeline_uuid': pipeline.properties['uuid'],
            'status': 'PENDING',
         }
-        db.session.add(models.Run(**run))
+        db.session.add(models.InteractiveRun(**run))
 
         # Set an initial value for the status of the pipline steps that
         # will be run.
@@ -89,7 +89,7 @@ class RunList(Resource):
 
         step_statuses = []
         for step_uuid in step_uuids:
-            step_statuses.append(models.StepStatus(**{
+            step_statuses.append(models.InteractiveRunPipelineStep(**{
                 'run_uuid': res.id,
                 'step_uuid': step_uuid,
                 'status': 'PENDING'
@@ -110,7 +110,7 @@ class Run(Resource):
     @api.marshal_with(pipeline_run, code=200)
     def get(self, run_uuid):
         """Fetches a pipeline run given its UUID."""
-        run = models.Run.query.get_or_404(run_uuid, description='Run not found')
+        run = models.InteractiveRun.query.get_or_404(run_uuid, description='Run not found')
         return run.__dict__
 
     @api.doc('set_run_status')
@@ -119,7 +119,7 @@ class Run(Resource):
         """Sets the status of a pipeline run."""
         post_data = request.get_json()
 
-        res = models.Run.query.filter_by(run_uuid=run_uuid).update({
+        res = models.InteractiveRun.query.filter_by(run_uuid=run_uuid).update({
             'status': post_data['status']
         })
 
@@ -158,7 +158,7 @@ class StepStatus(Resource):
         """Fetches the status of a pipeline step of a specific run."""
         # TODO: Returns the status and logs. Of course logs are empty if
         #       the step is not executed yet.
-        step = models.StepStatus.query.get_or_404(
+        step = models.InteractiveRunPipelineStep.query.get_or_404(
             ident=(run_uuid, step_uuid),
             description='Run and step combination not found'
         )
@@ -185,7 +185,7 @@ class StepStatus(Resource):
         elif data['status'] in ['SUCCESS', 'FAILURE']:
             data['ended_time'] = datetime.fromisoformat(data['ended_time'])
 
-        res = models.StepStatus.query.filter_by(
+        res = models.InteractiveRunPipelineStep.query.filter_by(
             run_uuid=run_uuid, step_uuid=step_uuid
         ).update(data)
 

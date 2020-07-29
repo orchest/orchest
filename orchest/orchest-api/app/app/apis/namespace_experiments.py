@@ -103,7 +103,7 @@ class ExperimentList(Resource):
                 'pipeline_run_id': id_,
                 'pipeline_uuid': pipeline.properties['uuid'],
                 'status': 'PENDING',
-                'scheduled_start': scheduled_start,
+                # 'scheduled_start': scheduled_start,
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
 
@@ -115,7 +115,7 @@ class ExperimentList(Resource):
             step_uuids = [s.properties['uuid'] for s in pipeline.steps]
             step_statuses = []
             for step_uuid in step_uuids:
-                step_statuses.append(models.NonInteractiveRunStep(**{
+                step_statuses.append(models.NonInteractiveRunPipelineStep(**{
                     'experiment_uuid': post_data['experiment_uuid'],
                     'run_uuid': res.id,
                     'step_uuid': step_uuid,
@@ -208,7 +208,7 @@ class Experiment(Resource):
                 'status': 'REVOKED'
             })
 
-            run_step_entry = models.NonInteractiveRunStep.query.filter_by(
+            run_step_entry = models.NonInteractiveRunPipelineStep.query.filter_by(
                 experiment_uuid=experiment_uuid, run_uuid=run_uuid
             ).update({
                 'status': 'REVOKED'
@@ -291,7 +291,7 @@ class PipelineStepStatus(Resource):
         """Fetch a pipeline run of an experiment given their ids."""
         # TODO: Returns the status and logs. Of course logs are empty if
         #       the step is not executed yet.
-        step = models.NonInteractiveRunStep.query.get_or_404(
+        step = models.NonInteractiveRunPipelineStep.query.get_or_404(
             ident=(experiment_uuid, run_uuid, step_uuid),
             description='Combination of given experiment, run and step not found'
         )
@@ -319,7 +319,7 @@ class PipelineStepStatus(Resource):
         elif data['status'] in ['SUCCESS', 'FAILURE']:
             data['ended_time'] = datetime.fromisoformat(data['ended_time'])
 
-        res = models.NonInteractiveRunStep.query.filter_by(
+        res = models.NonInteractiveRunPipelineStep.query.filter_by(
             experiment_uuid=experiment_uuid,
             run_uuid=run_uuid,
             step_uuid=step_uuid,
