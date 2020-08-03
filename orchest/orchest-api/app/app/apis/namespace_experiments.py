@@ -4,43 +4,22 @@ from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
+from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.schema import (
-    pipeline_run,
-    pipeline_run_config,
-    pipeline_run_spec,
-    experiment_spec,
-    experiment,
-    experiments,
-    status_update,
-    pipeline_step,
-)
+from app.utils import register_schema, update_status_db
 import app.models as models
 
 
 api = Namespace('experiments', description='Managing experiments')
-
-# NOTE: even though some models are not directly, they are `Nested`
-# inside others and therefore have to be defined here. E.g.
-# `experiment_spec` uses `pipeline_run_spec` which uses
-# `pipeline_run_config` (both of which are not directly used in this
-# namespace).
-api.models[pipeline_run.name] = pipeline_run
-api.models[pipeline_run_config.name] = pipeline_run_config
-api.models[pipeline_run_spec.name] = pipeline_run_spec
-api.models[experiment.name] = experiment
-api.models[experiment_spec.name] = experiment_spec
-api.models[experiments.name] = experiments
-api.models[status_update.name] = status_update
-api.models[pipeline_step.name] = pipeline_step
+api = register_schema(api)
 
 
 @api.route('/')
 class ExperimentList(Resource):
     @api.doc('get_experiments')
-    @api.marshal_with(experiments)
+    @api.marshal_with(schema.experiments)
     def get(self):
         """Fetches all experiments.
 
@@ -52,11 +31,11 @@ class ExperimentList(Resource):
         return {'experiments': [exp.__dict__ for exp in experiments]}, 200
 
     @api.doc('start_experiment')
-    @api.expect(experiment_spec)
-    @api.marshal_with(experiment, code=201, description='Queued experiment')
+    @api.expect(schema.experiment_spec)
+    @api.marshal_with(schema.experiment, code=201, description='Queued experiment')
     def post(self):
         """Queues a new experiment."""
-        # TODO: possible use marshal() on the post_data
+        # TODO: possibly use marshal() on the post_data
         # https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.marshal
         #       to make sure the default values etc. are filled in.
         post_data = request.get_json()
@@ -65,7 +44,6 @@ class ExperimentList(Resource):
         #       do not have to parse it here.
         #       https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.fields.DateTime
         scheduled_start = post_data['scheduled_start']
-        # scheduled_start = scheduled_start.replace('Z', '+00:00')
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
         pipeline_runs = []
@@ -103,28 +81,26 @@ class ExperimentList(Resource):
                 'pipeline_run_id': id_,
                 'pipeline_uuid': pipeline.properties['uuid'],
                 'status': 'PENDING',
-                'scheduled_start': scheduled_start,
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
 
-            # TODO: this code is also in `namespace_runs`. Maybe move it to
-            #       a function so that it can be reused and the code becomes
-            #       dry.
+            # TODO: this code is also in `namespace_runs`. Could
+            #       potentially be put in a function for modularity.
             # Set an initial value for the status of the pipline steps that
             # will be run.
             step_uuids = [s.properties['uuid'] for s in pipeline.steps]
-            step_statuses = []
+            pipeline_steps = []
             for step_uuid in step_uuids:
-                step_statuses.append(models.NonInteractiveRunStep(**{
+                pipeline_steps.append(models.NonInteractiveRunPipelineStep(**{
                     'experiment_uuid': post_data['experiment_uuid'],
                     'run_uuid': res.id,
                     'step_uuid': step_uuid,
                     'status': 'PENDING'
                 }))
-            db.session.bulk_save_objects(step_statuses)
+            db.session.bulk_save_objects(pipeline_steps)
             db.session.commit()
 
-            non_interactive_run['step_statuses'] = step_statuses
+            non_interactive_run['pipeline_steps'] = pipeline_steps
             pipeline_runs.append(non_interactive_run)
 
         experiment = {
@@ -144,17 +120,17 @@ class ExperimentList(Resource):
 @api.response(404, 'Experiment not found')
 class Experiment(Resource):
     @api.doc('get_experiment')
-    @api.marshal_with(experiment, code=200)
+    @api.marshal_with(schema.experiment, code=200)
     def get(self, experiment_uuid):
         """Fetches an experiment given its UUID."""
         experiment = models.Experiment.query.get_or_404(
             experiment_uuid,
-            description='Run not found',
+            description='Experiment not found',
         )
         return experiment.__dict__
 
     @api.doc('set_experiment_status')
-    @api.expect(status_update)
+    @api.expect(schema.status_update)
     def put(self, experiment_uuid):
         """Sets the status of an experiment."""
         post_data = request.get_json()
@@ -176,19 +152,14 @@ class Experiment(Resource):
     @api.response(200, 'Experiment terminated')
     def delete(self, experiment_uuid):
         """Stops an experiment given its UUID."""
-        # TODO: we could specify more options when deleting the run.
-        # TODO: error handling.
-        # TODO: https://stackoverflow.com/questions/39191238/revoke-a-task-from-celery
-
         # TODO: delete new pipeline files that were created for this
         #       specific run?
 
         experiment = models.Experiment.query.get_or_404(
             experiment_uuid,
-            description='Run not found',
+            description='Experiment not found',
         )
 
-        # TODO: for all runs part of the experiment, revoke it.
         # For all runs that are part of the experiment, revoke the task.
         for run in experiment.pipeline_runs:
             # TODO: Not sure what happens when trying to revoke a task
@@ -208,67 +179,53 @@ class Experiment(Resource):
                 'status': 'REVOKED'
             })
 
-            run_step_entry = models.NonInteractiveRunStep.query.filter_by(
+            run_step_entry = models.NonInteractiveRunPipelineStep.query.filter_by(
                 experiment_uuid=experiment_uuid, run_uuid=run_uuid
             ).update({
                 'status': 'REVOKED'
             })
 
         # TODO: check whether all responses were successfull.
-        # if run_res and step_res:
+            # if run_res and step_res:
         db.session.commit()
 
-        return {'message': 'Run termination was successful'}, 200
+        return {'message': 'Experiment termination was successful'}, 200
 
 
 @api.route(
     '/<string:experiment_uuid>/<string:run_uuid>',
     doc={
-        'description': 'Set and get execution status of pipeline runs in an experiment.'
+        'description': ('Set and get execution status of pipeline runs '
+                        'in an experiment.')
     }
 )
 @api.param('experiment_uuid', 'UUID of Experiment')
 @api.param('run_uuid', 'UUID of Run')
-@api.response(404, 'Pipeline step not found')
+@api.response(404, 'Pipeline run not found')
 class PipelineRun(Resource):
     @api.doc('get_pipeline_run')
-    @api.marshal_with(pipeline_run, code=200)
+    @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
-        pipeline_run = models.NonInteractiveRun.query.get_or_404(
+        non_interactive_run = models.NonInteractiveRun.query.get_or_404(
             ident=(experiment_uuid, run_uuid),
             description='Given experiment has no run with given run_uuid'
         )
-        return pipeline_run.__dict__
+        return non_interactive_run.__dict__
 
     @api.doc('set_pipeline_run_status')
-    @api.expect(status_update)
+    @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid):
-        """Set the status of a scheduleld run step."""
-        post_data = request.get_json()
+        """Set the status of a pipeline run."""
+        status_update = request.get_json()
 
-        # TODO: don't we want to do this async? Since otherwise the API
-        #       call might be blocking another since they both execute
-        #       on the database? SQLite can only have one process write
-        #       to the db. If this becomes an issue than we could also
-        #       use an in-memory db (since that is a lot faster than
-        #       disk). Otherwise we might have to use PostgreSQL.
-        # TODO: first check the status and make sure it says PENDING or
-        #       whatever. Because if is empty then this would write it
-        #       and then get overwritten afterwards with "PENDING".
-
-        data = post_data
-        if data['status'] == 'STARTED':
-            data['started_time'] = datetime.fromisoformat(data['started_time'])
-        elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['ended_time'] = datetime.fromisoformat(data['ended_time'])
-
-        res = models.NonInteractiveRun.query.filter_by(
-            experiment_uuid=experiment_uuid, run_uuid=run_uuid
-        ).update(data)
-
-        if res:
-            db.session.commit()
+        filter_by = {
+            'experiment_uuid': experiment_uuid,
+            'run_uuid': run_uuid,
+        }
+        update_status_db(status_update,
+                         model=models.NonInteractiveRun,
+                         filter_by=filter_by)
 
         return {'message': 'Status was updated successfully'}, 200
 
@@ -285,47 +242,29 @@ class PipelineRun(Resource):
 @api.param('step_uuid', 'UUID of Step')
 @api.response(404, 'Pipeline step not found')
 class PipelineStepStatus(Resource):
-    @api.doc('get_pipeline_run')
-    @api.marshal_with(pipeline_run, code=200)
+    @api.doc('get_pipeline_run_pipeline_step')
+    @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid, step_uuid):
-        """Fetch a pipeline run of an experiment given their ids."""
-        # TODO: Returns the status and logs. Of course logs are empty if
-        #       the step is not executed yet.
-        step = models.NonInteractiveRunStep.query.get_or_404(
+        """Fetch a pipeline step of a run of an experiment given uuids."""
+        step = models.NonInteractiveRunPipelineStep.query.get_or_404(
             ident=(experiment_uuid, run_uuid, step_uuid),
             description='Combination of given experiment, run and step not found'
         )
         return step.__dict__
 
-    @api.doc('set_pipeline_run_status')
-    @api.expect(status_update)
+    @api.doc('set_pipeline_run_pipeline_step_status')
+    @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid, step_uuid):
-        """Set the status of a scheduleld run step."""
-        post_data = request.get_json()
+        """Set the status of a pipeline step of a pipeline run."""
+        status_update = request.get_json()
 
-        # TODO: don't we want to do this async? Since otherwise the API
-        #       call might be blocking another since they both execute
-        #       on the database? SQLite can only have one process write
-        #       to the db. If this becomes an issue than we could also
-        #       use an in-memory db (since that is a lot faster than
-        #       disk). Otherwise we might have to use PostgreSQL.
-        # TODO: first check the status and make sure it says PENDING or
-        #       whatever. Because if is empty then this would write it
-        #       and then get overwritten afterwards with "PENDING".
-
-        data = post_data
-        if data['status'] == 'STARTED':
-            data['started_time'] = datetime.fromisoformat(data['started_time'])
-        elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['ended_time'] = datetime.fromisoformat(data['ended_time'])
-
-        res = models.NonInteractiveRunStep.query.filter_by(
-            experiment_uuid=experiment_uuid,
-            run_uuid=run_uuid,
-            step_uuid=step_uuid,
-        ).update(data)
-
-        if res:
-            db.session.commit()
+        filter_by = {
+            'experiment_uuid': experiment_uuid,
+            'run_uuid': run_uuid,
+            'step_uuid': step_uuid,
+        }
+        update_status_db(status_update,
+                         model=models.NonInteractiveRunPipelineStep,
+                         filter_by=filter_by)
 
         return {'message': 'Status was updated successfully'}, 200
