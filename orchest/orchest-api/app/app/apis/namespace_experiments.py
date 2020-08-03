@@ -125,7 +125,7 @@ class Experiment(Resource):
         """Fetches an experiment given its UUID."""
         experiment = models.Experiment.query.get_or_404(
             experiment_uuid,
-            description='Run not found',
+            description='Experiment not found',
         )
         return experiment.__dict__
 
@@ -157,7 +157,7 @@ class Experiment(Resource):
 
         experiment = models.Experiment.query.get_or_404(
             experiment_uuid,
-            description='Run not found',
+            description='Experiment not found',
         )
 
         # For all runs that are part of the experiment, revoke the task.
@@ -189,7 +189,7 @@ class Experiment(Resource):
             # if run_res and step_res:
         db.session.commit()
 
-        return {'message': 'Run termination was successful'}, 200
+        return {'message': 'Experiment termination was successful'}, 200
 
 
 @api.route(
@@ -201,7 +201,7 @@ class Experiment(Resource):
 )
 @api.param('experiment_uuid', 'UUID of Experiment')
 @api.param('run_uuid', 'UUID of Run')
-@api.response(404, 'Pipeline step not found')
+@api.response(404, 'Pipeline run not found')
 class PipelineRun(Resource):
     @api.doc('get_pipeline_run')
     @api.marshal_with(schema.non_interactive_run, code=200)
@@ -216,7 +216,7 @@ class PipelineRun(Resource):
     @api.doc('set_pipeline_run_status')
     @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid):
-        """Set the status of a scheduleld run step."""
+        """Set the status of a pipeline run."""
         status_update = request.get_json()
 
         filter_by = {
@@ -242,20 +242,20 @@ class PipelineRun(Resource):
 @api.param('step_uuid', 'UUID of Step')
 @api.response(404, 'Pipeline step not found')
 class PipelineStepStatus(Resource):
-    @api.doc('get_pipeline_run')
+    @api.doc('get_pipeline_run_pipeline_step')
     @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid, step_uuid):
-        """Fetch a pipeline run of an experiment given their ids."""
+        """Fetch a pipeline step of a run of an experiment given uuids."""
         step = models.NonInteractiveRunPipelineStep.query.get_or_404(
             ident=(experiment_uuid, run_uuid, step_uuid),
             description='Combination of given experiment, run and step not found'
         )
         return step.__dict__
 
-    @api.doc('set_pipeline_run_status')
+    @api.doc('set_pipeline_run_pipeline_step_status')
     @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid, step_uuid):
-        """Set the status of a scheduleld run step."""
+        """Set the status of a pipeline step of a pipeline run."""
         status_update = request.get_json()
 
         filter_by = {
