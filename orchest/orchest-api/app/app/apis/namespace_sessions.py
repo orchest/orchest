@@ -33,10 +33,6 @@ class SessionList(Resource):
 
         return {'sessions': [session.as_dict() for session in sessions]}, 200
 
-    # TODO: create new schema. Maybe nice to not include the IDs in the
-    #       schema as it does not matter to the front-end. Should be
-    #       done automatically through the marshel_with. Note that the
-    #       attr server_ip is not jupyter_server_ip etc.
     @api.doc('launch_session')
     @api.expect(schema.pipeline)
     @api.marshal_with(schema.session, code=201, description='Session launched.')
@@ -48,8 +44,6 @@ class SessionList(Resource):
         #       entry has to be removed from the database as otherwise
         #       no session can be started in the future due to unique
         #       constraint.
-        # TODO: use the model object that is first added to update the
-        #       entry instead of querying it again.
 
         # Add initial entry to database.
         pipeline_uuid = post_data['pipeline_uuid']
@@ -127,7 +121,7 @@ class Session(Resource):
     @api.response(200, 'Session resource memory-server restarted')
     @api.response(404, 'Session not found')
     def put(self, pipeline_uuid):
-        """Restarts the memory-server of session."""
+        """Restarts the memory-server of the session."""
         session = models.InteractiveSession.query.get_or_404(
             pipeline_uuid, description='Session not found'
         )
@@ -137,7 +131,7 @@ class Session(Resource):
             network='orchest',
         )
 
-        # NOTE: The entry in the database does not have to be updated
+        # Note: The entry in the database does not have to be updated
         # since restarting the `memory-server` does not change its
         # Docker ID.
         session_obj.restart_resource(resource_name='memory-server')

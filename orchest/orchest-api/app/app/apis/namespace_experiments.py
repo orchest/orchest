@@ -35,7 +35,7 @@ class ExperimentList(Resource):
     @api.marshal_with(schema.experiment, code=201, description='Queued experiment')
     def post(self):
         """Queues a new experiment."""
-        # TODO: possible use marshal() on the post_data
+        # TODO: possibly use marshal() on the post_data
         # https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.marshal
         #       to make sure the default values etc. are filled in.
         post_data = request.get_json()
@@ -44,7 +44,6 @@ class ExperimentList(Resource):
         #       do not have to parse it here.
         #       https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.fields.DateTime
         scheduled_start = post_data['scheduled_start']
-        # scheduled_start = scheduled_start.replace('Z', '+00:00')
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
         pipeline_runs = []
@@ -82,7 +81,6 @@ class ExperimentList(Resource):
                 'pipeline_run_id': id_,
                 'pipeline_uuid': pipeline.properties['uuid'],
                 'status': 'PENDING',
-                # 'scheduled_start': scheduled_start,
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
 
@@ -155,10 +153,6 @@ class Experiment(Resource):
     @api.response(200, 'Experiment terminated')
     def delete(self, experiment_uuid):
         """Stops an experiment given its UUID."""
-        # TODO: we could specify more options when deleting the run.
-        # TODO: error handling.
-        # TODO: https://stackoverflow.com/questions/39191238/revoke-a-task-from-celery
-
         # TODO: delete new pipeline files that were created for this
         #       specific run?
 
@@ -167,7 +161,6 @@ class Experiment(Resource):
             description='Run not found',
         )
 
-        # TODO: for all runs part of the experiment, revoke it.
         # For all runs that are part of the experiment, revoke the task.
         for run in experiment.pipeline_runs:
             # TODO: Not sure what happens when trying to revoke a task
@@ -194,7 +187,7 @@ class Experiment(Resource):
             })
 
         # TODO: check whether all responses were successfull.
-        # if run_res and step_res:
+            # if run_res and step_res:
         db.session.commit()
 
         return {'message': 'Run termination was successful'}, 200
@@ -203,7 +196,8 @@ class Experiment(Resource):
 @api.route(
     '/<string:experiment_uuid>/<string:run_uuid>',
     doc={
-        'description': 'Set and get execution status of pipeline runs in an experiment.'
+        'description': ('Set and get execution status of pipeline runs '
+                        'in an experiment.')
     }
 )
 @api.param('experiment_uuid', 'UUID of Experiment')
@@ -225,16 +219,6 @@ class PipelineRun(Resource):
     def put(self, experiment_uuid, run_uuid):
         """Set the status of a scheduleld run step."""
         post_data = request.get_json()
-
-        # TODO: don't we want to do this async? Since otherwise the API
-        #       call might be blocking another since they both execute
-        #       on the database? SQLite can only have one process write
-        #       to the db. If this becomes an issue than we could also
-        #       use an in-memory db (since that is a lot faster than
-        #       disk). Otherwise we might have to use PostgreSQL.
-        # TODO: first check the status and make sure it says PENDING or
-        #       whatever. Because if is empty then this would write it
-        #       and then get overwritten afterwards with "PENDING".
 
         data = post_data
         if data['status'] == 'STARTED':
@@ -268,8 +252,6 @@ class PipelineStepStatus(Resource):
     @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid, step_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
-        # TODO: Returns the status and logs. Of course logs are empty if
-        #       the step is not executed yet.
         step = models.NonInteractiveRunPipelineStep.query.get_or_404(
             ident=(experiment_uuid, run_uuid, step_uuid),
             description='Combination of given experiment, run and step not found'
@@ -281,16 +263,6 @@ class PipelineStepStatus(Resource):
     def put(self, experiment_uuid, run_uuid, step_uuid):
         """Set the status of a scheduleld run step."""
         post_data = request.get_json()
-
-        # TODO: don't we want to do this async? Since otherwise the API
-        #       call might be blocking another since they both execute
-        #       on the database? SQLite can only have one process write
-        #       to the db. If this becomes an issue than we could also
-        #       use an in-memory db (since that is a lot faster than
-        #       disk). Otherwise we might have to use PostgreSQL.
-        # TODO: first check the status and make sure it says PENDING or
-        #       whatever. Because if is empty then this would write it
-        #       and then get overwritten afterwards with "PENDING".
 
         data = post_data
         if data['status'] == 'STARTED':

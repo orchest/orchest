@@ -1,3 +1,8 @@
+"""API endpoint to manage runs.
+
+Note: "run" is short for "interactive pipeline run".
+"""
+
 from datetime import datetime
 
 from celery.task.control import revoke
@@ -98,7 +103,10 @@ class Run(Resource):
     @api.marshal_with(schema.interactive_run, code=200)
     def get(self, run_uuid):
         """Fetches a pipeline run given its UUID."""
-        run = models.InteractiveRun.query.get_or_404(run_uuid, description='Run not found')
+        run = models.InteractiveRun.query.get_or_404(
+            run_uuid,
+            description='Run not found'
+        )
         return run.__dict__
 
     @api.doc('set_run_status')
@@ -120,17 +128,20 @@ class Run(Resource):
     @api.response(200, 'Run terminated')
     def delete(self, run_uuid):
         """Stops a pipeline run given its UUID."""
-        # TODO: we could specify more options when deleting the run.
-        # TODO: error handling.
-        # TODO: possible set status of steps and Run to "REVOKED"
+        # TODO: Decide what we want to do in case a pipeline run is
+        #       hanging. Currently, the user has to manually kill the
+        #       respectively running Docker containers.
 
-        # NOTE: The terminate option is a last resort for administrators
-        # when a task is stuck. It’s not for terminating the task, it’s
-        # for terminating the process that’s executing the task, and
-        # that process may have already started processing another task
-        # at the point when the signal is sent, so for this reason you
-        # must never call this programmatically.
+        # From the Celery docs:
+        # "The terminate option is a last resort for administrators when
+        # a task is stuck. It’s not for terminating the task, it’s for
+        # terminating the process that’s executing the task, and that
+        # process may have already started processing another task at
+        # the point when the signal is sent, so for this reason you must
+        # never call this programmatically."
         revoke(run_uuid)
+
+        # TODO: possibly set status of steps and Run to "REVOKED"
 
         return {'message': 'Run termination was successful'}, 200
 
@@ -144,8 +155,6 @@ class StepStatus(Resource):
     @api.marshal_with(schema.pipeline_run_pipeline_step, code=200)
     def get(self, run_uuid, step_uuid):
         """Fetches the status of a pipeline step of a specific run."""
-        # TODO: Returns the status and logs. Of course logs are empty if
-        #       the step is not executed yet.
         step = models.InteractiveRunPipelineStep.query.get_or_404(
             ident=(run_uuid, step_uuid),
             description='Run and step combination not found'
