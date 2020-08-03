@@ -75,18 +75,18 @@ class RunList(Resource):
         # will be run.
         step_uuids = [s.properties['uuid'] for s in pipeline.steps]
 
-        step_statuses = []
+        pipeline_steps = []
         for step_uuid in step_uuids:
-            step_statuses.append(models.InteractiveRunPipelineStep(**{
+            pipeline_steps.append(models.InteractiveRunPipelineStep(**{
                 'run_uuid': res.id,
                 'step_uuid': step_uuid,
                 'status': 'PENDING'
             }))
-        db.session.bulk_save_objects(step_statuses)
+        db.session.bulk_save_objects(pipeline_steps)
 
         db.session.commit()
 
-        run['step_statuses'] = step_statuses
+        run['pipeline_steps'] = pipeline_steps
         return run, 201
 
 
@@ -171,7 +171,7 @@ class StepStatus(Resource):
         if data['status'] == 'STARTED':
             data['started_time'] = datetime.fromisoformat(data['started_time'])
         elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['ended_time'] = datetime.fromisoformat(data['ended_time'])
+            data['finished_time'] = datetime.fromisoformat(data['finished_time'])
 
         res = models.InteractiveRunPipelineStep.query.filter_by(
             run_uuid=run_uuid, step_uuid=step_uuid

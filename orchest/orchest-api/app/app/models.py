@@ -69,10 +69,6 @@ class PipelineRun(BaseModel):
         nullable=True
     )
 
-    # @declared_attr
-    # def step_statuses(cls):
-    #     return db.relationship('PipelineRunPipelineStep', lazy='joined')
-
     def __repr__(self):
         return f'<{self.__class__.__name__}: {self.run_uuid}>'
 
@@ -94,7 +90,7 @@ class PipelineRunPipelineStep(BaseModel):
         unique=False,
         nullable=True
     )
-    ended_time = db.Column(
+    finished_time = db.Column(
         db.DateTime,
         unique=False,
         nullable=True
@@ -121,7 +117,8 @@ class InteractiveRun(PipelineRun):
         db.String(36),
         primary_key=True
     )
-    step_statuses = db.relationship('InteractiveRunPipelineStep', lazy='joined')
+
+    pipeline_steps = db.relationship('InteractiveRunPipelineStep', lazy='joined')
 
 
 class NonInteractiveRun(PipelineRun):
@@ -137,6 +134,8 @@ class NonInteractiveRun(PipelineRun):
         db.String(36),
         primary_key=True
     )
+    # This run_id is used to identify the pipeline run within the
+    # experiment and maintain a consistent ordering.
     pipeline_run_id = db.Column(
         db.Integer,
         unique=False,
@@ -147,13 +146,13 @@ class NonInteractiveRun(PipelineRun):
         unique=False,
         nullable=True
     )
-    ended_time = db.Column(
+    finished_time = db.Column(
         db.DateTime,
         unique=False,
         nullable=True
     )
 
-    step_statuses = db.relationship('NonInteractiveRunPipelineStep', lazy='joined')
+    pipeline_steps = db.relationship('NonInteractiveRunPipelineStep', lazy='joined')
 
 
 class NonInteractiveRunPipelineStep(PipelineRunPipelineStep):

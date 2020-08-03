@@ -138,7 +138,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 class PipelineView extends React.Component {
 
     componentWillUnmount() {
-        
+
         $(document).off("mouseup.initializePipeline");
         $(document).off("keyup.initializePipeline");
         $(document).off("keydown.initializePipeline");
@@ -207,7 +207,7 @@ class PipelineView extends React.Component {
                 console.log("this.props.pipelineRun.run_uuid is not defined")
             }
         }
-        
+
     }
 
     validatePipelineJSON(pipelineJSON){
@@ -293,7 +293,7 @@ class PipelineView extends React.Component {
 
         for (let key in this.state.steps) {
             if (this.state.steps.hasOwnProperty(key)) {
-                
+
                 // deep copy step
                 let step = JSON.parse(JSON.stringify(this.state.steps[key]));
 
@@ -311,7 +311,7 @@ class PipelineView extends React.Component {
                 if(step['outgoing_connections']){
                     delete step['outgoing_connections'];
                 }
-                
+
                 pipelineJSON["steps"][step.uuid] = step;
             }
         }
@@ -579,9 +579,9 @@ class PipelineView extends React.Component {
 
                         _this.state.steps[uuid].meta_data.position[0] += delta[0];
                         _this.state.steps[uuid].meta_data.position[1] += delta[1];
-                        
+
                         _this.refs[uuid].updatePosition(_this.state.steps[uuid].meta_data.position);
-                        
+
                         // note: state will be assigned in mouseup event for view updating
                         _this.state.unsavedChanges = true;
                     }
@@ -591,7 +591,7 @@ class PipelineView extends React.Component {
                     step.meta_data.position[1] += delta[1];
 
                     _this.refs[step.uuid].updatePosition(step.meta_data.position);
-                    
+
                     // note: state will be assigned in mouseup event for view updating
                     _this.state.unsavedChanges = true;
                 }
@@ -864,7 +864,7 @@ class PipelineView extends React.Component {
                 callback(session);
             }
 
-            this.clearCancelablePromise(fetchSessionPromise);    
+            this.clearCancelablePromise(fetchSessionPromise);
         });
 
         this.appendCancelablePromise(fetchSessionPromise);
@@ -879,7 +879,7 @@ class PipelineView extends React.Component {
 
 
         let fetchPipelinePromise = makeCancelable(makeRequest("GET", pipelineURL));
-        
+
         fetchPipelinePromise.promise.then((response) => {
 
             let result = JSON.parse(response);
@@ -980,7 +980,7 @@ class PipelineView extends React.Component {
             })
 
             let deletePromise = makeCancelable(makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid))
-            
+
             deletePromise.promise.then((response) => {
                 let result = JSON.parse(response);
                 console.log("API delete result");
@@ -999,7 +999,7 @@ class PipelineView extends React.Component {
                 if(err === undefined || (err && err.isCanceled !== true)){
                     this.state.backend.running = true;
                     this.state.backend.working = false;
-    
+
                     this.setState({ "backend": this.state.backend });
                 }
 
@@ -1147,24 +1147,24 @@ class PipelineView extends React.Component {
 
     parseRunStatuses(result) {
 
-        if (result.step_statuses === undefined || result.step_statuses.length === undefined) {
-            console.error("Did not contain step_statuses list. Invalid `result` object");
+        if (result.pipeline_steps === undefined || result.pipeline_steps.length === undefined) {
+            console.error("Did not contain pipeline_steps list. Invalid `result` object");
         }
 
-        for (let x = 0; x < result.step_statuses.length; x++) {
+        for (let x = 0; x < result.pipeline_steps.length; x++) {
 
-            // ended_time takes priority over started_time
+            // finished_time takes priority over started_time
             let started_time = undefined;
-            let ended_time = undefined;
+            let finished_time = undefined;
 
-            if (result.step_statuses[x].started_time) {
-                started_time = new Date(result.step_statuses[x].started_time + " GMT")
+            if (result.pipeline_steps[x].started_time) {
+                started_time = new Date(result.pipeline_steps[x].started_time + " GMT")
             }
-            if (result.step_statuses[x].ended_time) {
-                ended_time = new Date(result.step_statuses[x].ended_time + " GMT")
+            if (result.pipeline_steps[x].finished_time) {
+                finished_time = new Date(result.pipeline_steps[x].finished_time + " GMT")
             }
 
-            this.setStepExecutionState(result.step_statuses[x].step_uuid, { status: result.step_statuses[x].status, started_time: started_time, ended_time: ended_time })
+            this.setStepExecutionState(result.pipeline_steps[x].step_uuid, { status: result.pipeline_steps[x].status, started_time: started_time, finished_time: finished_time })
         }
 
     }
@@ -1176,7 +1176,7 @@ class PipelineView extends React.Component {
         if (this.state.runUUID) {
 
             let pollPromise = makeCancelable(makeRequest("GET", this.state.runStatusEndpoint + this.state.runUUID))
-            
+
             pollPromise.promise.then((response) => {
                 let result = JSON.parse(response);
 
@@ -1253,7 +1253,7 @@ class PipelineView extends React.Component {
             "run_type": type,
             "pipeline_description": this.getPipelineJSON()
         };
-        
+
         let runStepUUIDsPromise = makeCancelable(makeRequest("POST", "/catch/api-proxy/api/runs/", {type: "json", content: data}));
 
         runStepUUIDsPromise.promise.then((response) => {

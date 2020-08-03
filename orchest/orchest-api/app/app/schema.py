@@ -113,7 +113,7 @@ pipeline_run_pipeline_step = Model('PipelineRunPipelineStep', {
     'started_time': fields.String(
         required=True,
         description='Time at which the step started executing'),
-    'ended_time': fields.String(
+    'finished_time': fields.String(
         required=True,
         description='Time at which the step finished executing'),
 })
@@ -128,7 +128,7 @@ pipeline_run = Model('Run', {
     'status': fields.String(
         required=True,
         description='Status of the run'),
-    'step_statuses': fields.List(  # TODO: rename
+    'pipeline_steps': fields.List(  # TODO: rename
         fields.Nested(pipeline_run_pipeline_step),
         description='Status of each pipeline step'),
 })

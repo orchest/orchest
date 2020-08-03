@@ -20,17 +20,17 @@ class PipelineStep extends React.Component {
         }
 
         let stateText = "Ready";
-        
+
         classNames.push(this.props.executionState.status);
 
         if(this.props.executionState.status === "SUCCESS"){
-        
-            let seconds = Math.round((this.props.executionState.ended_time - this.props.executionState.started_time)/1000);
+
+            let seconds = Math.round((this.props.executionState.finished_time - this.props.executionState.started_time)/1000);
 
             stateText = "Completed (" + seconds + " sec.)";
         }
         if(this.props.executionState.status === "FAILURE"){
-            let seconds = Math.round((this.props.executionState.ended_time - this.props.executionState.started_time)/1000);
+            let seconds = Math.round((this.props.executionState.finished_time - this.props.executionState.started_time)/1000);
 
             stateText = "Failure (" + seconds + " sec.)";
         }

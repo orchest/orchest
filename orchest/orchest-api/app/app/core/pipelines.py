@@ -105,7 +105,7 @@ async def update_status(status: str,
     if data['status'] == 'STARTED':
         data['started_time'] = datetime.utcnow().isoformat()
     elif data['status'] in ['SUCCESS', 'FAILURE']:
-        data['ended_time'] = datetime.utcnow().isoformat()
+        data['finished_time'] = datetime.utcnow().isoformat()
 
     base_url = f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_endpoint}/{task_id}'
 

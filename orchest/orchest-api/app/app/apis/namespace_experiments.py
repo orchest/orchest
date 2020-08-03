@@ -92,18 +92,18 @@ class ExperimentList(Resource):
             # Set an initial value for the status of the pipline steps that
             # will be run.
             step_uuids = [s.properties['uuid'] for s in pipeline.steps]
-            step_statuses = []
+            pipeline_steps = []
             for step_uuid in step_uuids:
-                step_statuses.append(models.NonInteractiveRunPipelineStep(**{
+                pipeline_steps.append(models.NonInteractiveRunPipelineStep(**{
                     'experiment_uuid': post_data['experiment_uuid'],
                     'run_uuid': res.id,
                     'step_uuid': step_uuid,
                     'status': 'PENDING'
                 }))
-            db.session.bulk_save_objects(step_statuses)
+            db.session.bulk_save_objects(pipeline_steps)
             db.session.commit()
 
-            non_interactive_run['step_statuses'] = step_statuses
+            non_interactive_run['pipeline_steps'] = pipeline_steps
             pipeline_runs.append(non_interactive_run)
 
         experiment = {
@@ -240,7 +240,7 @@ class PipelineRun(Resource):
         if data['status'] == 'STARTED':
             data['started_time'] = datetime.fromisoformat(data['started_time'])
         elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['ended_time'] = datetime.fromisoformat(data['ended_time'])
+            data['finished_time'] = datetime.fromisoformat(data['finished_time'])
 
         res = models.NonInteractiveRun.query.filter_by(
             experiment_uuid=experiment_uuid, run_uuid=run_uuid
@@ -296,7 +296,7 @@ class PipelineStepStatus(Resource):
         if data['status'] == 'STARTED':
             data['started_time'] = datetime.fromisoformat(data['started_time'])
         elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['ended_time'] = datetime.fromisoformat(data['ended_time'])
+            data['finished_time'] = datetime.fromisoformat(data['finished_time'])
 
         res = models.NonInteractiveRunPipelineStep.query.filter_by(
             experiment_uuid=experiment_uuid,
