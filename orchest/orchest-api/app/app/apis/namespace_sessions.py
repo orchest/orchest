@@ -26,6 +26,9 @@ class SessionList(Resource):
         """Fetches all sessions."""
         query = models.InteractiveSession.query
 
+        # TODO: why is this used instead of the Session.get() ?
+        # Ability to query a specific session given its `pipeline_uuid`
+        # through the URL (using `request.args`).
         if 'pipeline_uuid' in request.args:
             query = query.filter_by(pipeline_uuid=request.args.get('pipeline_uuid'))
 

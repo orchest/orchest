@@ -8,7 +8,7 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.utils import register_schema
+from app.utils import register_schema, update_status_db
 import app.models as models
 
 
@@ -84,9 +84,8 @@ class ExperimentList(Resource):
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
 
-            # TODO: this code is also in `namespace_runs`. Maybe move it to
-            #       a function so that it can be reused and the code becomes
-            #       dry.
+            # TODO: this code is also in `namespace_runs`. Could
+            #       potentially be put in a function for modularity.
             # Set an initial value for the status of the pipline steps that
             # will be run.
             step_uuids = [s.properties['uuid'] for s in pipeline.steps]
@@ -218,20 +217,15 @@ class PipelineRun(Resource):
     @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid):
         """Set the status of a scheduleld run step."""
-        post_data = request.get_json()
+        status_update = request.get_json()
 
-        data = post_data
-        if data['status'] == 'STARTED':
-            data['started_time'] = datetime.fromisoformat(data['started_time'])
-        elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['finished_time'] = datetime.fromisoformat(data['finished_time'])
-
-        res = models.NonInteractiveRun.query.filter_by(
-            experiment_uuid=experiment_uuid, run_uuid=run_uuid
-        ).update(data)
-
-        if res:
-            db.session.commit()
+        filter_by = {
+            'experiment_uuid': experiment_uuid,
+            'run_uuid': run_uuid,
+        }
+        update_status_db(status_update,
+                         model=models.NonInteractiveRun,
+                         filter_by=filter_by)
 
         return {'message': 'Status was updated successfully'}, 200
 
@@ -262,21 +256,15 @@ class PipelineStepStatus(Resource):
     @api.expect(schema.status_update)
     def put(self, experiment_uuid, run_uuid, step_uuid):
         """Set the status of a scheduleld run step."""
-        post_data = request.get_json()
+        status_update = request.get_json()
 
-        data = post_data
-        if data['status'] == 'STARTED':
-            data['started_time'] = datetime.fromisoformat(data['started_time'])
-        elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['finished_time'] = datetime.fromisoformat(data['finished_time'])
-
-        res = models.NonInteractiveRunPipelineStep.query.filter_by(
-            experiment_uuid=experiment_uuid,
-            run_uuid=run_uuid,
-            step_uuid=step_uuid,
-        ).update(data)
-
-        if res:
-            db.session.commit()
+        filter_by = {
+            'experiment_uuid': experiment_uuid,
+            'run_uuid': run_uuid,
+            'step_uuid': step_uuid,
+        }
+        update_status_db(status_update,
+                         model=models.NonInteractiveRunPipelineStep,
+                         filter_by=filter_by)
 
         return {'message': 'Status was updated successfully'}, 200

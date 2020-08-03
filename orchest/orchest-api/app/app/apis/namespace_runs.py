@@ -3,8 +3,6 @@
 Note: "run" is short for "interactive pipeline run".
 """
 
-from datetime import datetime
-
 from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
@@ -13,7 +11,7 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.utils import register_schema
+from app.utils import register_schema, update_status_db
 import app.models as models
 
 
@@ -88,7 +86,6 @@ class RunList(Resource):
                 'status': 'PENDING'
             }))
         db.session.bulk_save_objects(pipeline_steps)
-
         db.session.commit()
 
         run['pipeline_steps'] = pipeline_steps
@@ -165,7 +162,7 @@ class StepStatus(Resource):
     @api.expect(schema.status_update)
     def put(self, run_uuid, step_uuid):
         """Sets the status of a pipeline step."""
-        post_data = request.get_json()
+        status_update = request.get_json()
 
         # TODO: don't we want to do this async? Since otherwise the API
         #       call might be blocking another since they both execute
@@ -176,17 +173,12 @@ class StepStatus(Resource):
         # TODO: first check the status and make sure it says PENDING or
         #       whatever. Because if is empty then this would write it
         #       and then get overwritten afterwards with "PENDING".
-        data = post_data
-        if data['status'] == 'STARTED':
-            data['started_time'] = datetime.fromisoformat(data['started_time'])
-        elif data['status'] in ['SUCCESS', 'FAILURE']:
-            data['finished_time'] = datetime.fromisoformat(data['finished_time'])
-
-        res = models.InteractiveRunPipelineStep.query.filter_by(
-            run_uuid=run_uuid, step_uuid=step_uuid
-        ).update(data)
-
-        if res:
-            db.session.commit()
+        filter_by = {
+            'run_uuid': run_uuid,
+            'step_uuid': step_uuid
+        }
+        update_status_db(status_update,
+                         model=models.InteractiveRunPipelineStep,
+                         filter_by=filter_by)
 
         return {'message': 'Status was updated successfully'}, 200
