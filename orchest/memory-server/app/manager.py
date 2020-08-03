@@ -16,8 +16,14 @@ def construct_pipeline(pipeline_fname):
 
     pipeline = nx.DiGraph(auto_eviction=auto_eviction)
 
+    # If an interactive session is started the first time on a newly
+    # created pipeline. Then the `pipeline.json` will not have a `steps`
+    # key, since the pipeline does not yet have steps.
+    steps = description.get('steps')
+    if steps is None:
+        return pipeline
+
     # Create and add nodes.
-    steps = description['steps']
     uuids = steps.keys()
     pipeline.add_nodes_from(uuids)
 
