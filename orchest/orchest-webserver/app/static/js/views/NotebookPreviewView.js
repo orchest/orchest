@@ -44,6 +44,7 @@ class NotebookPreviewView extends React.Component {
       const regex = /(box\-shadow\:|\-webkit\-box-shadow\:)[\d\s\w\,\)\(\-\.]*\;/gm;
         
       response = response.replace(regex, "");
+      response = response.replace("<body>\n", "<body style='padding-top:30px;'>\n");
 
       this.setState({
         "notebookHtml": response

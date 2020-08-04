@@ -1,0 +1,24 @@
+{
+  "language": "python",
+  "display_name": "Python on Docker",
+  "metadata": {
+    "process_proxy": {
+      "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",
+      "config": {
+        "image_name": "orchestsoftware/custom-base-kernel-py"
+      }
+    }
+  },
+  "env": {
+    "HOST_PIPELINE_DIR": "/home/rick/workspace/orchest/orchest/userdir/pipelines/6b55f1d1-5f8e-4744-83d8-dd7dbf2bec8c",
+    "ORCHEST_API_ADDRESS": "orchest-api"
+  },
+  "argv": [
+    "python",
+    "/usr/local/share/jupyter/kernels/launch_docker.py",
+    "--RemoteProcessProxy.kernel-id",
+    "{kernel_id}",
+    "--RemoteProcessProxy.response-address",
+    "{response_address}"
+  ]
+}

@@ -172,23 +172,19 @@ aside.mdc-drawer {
   &.jupyter {
     iframe {
       border: 0;
+      display: block;
     }
   }
 }
 
 iframe.borderless {
   border: 0;
+  display: block;
 }
 iframe.fullsize {
   width: 100%;
   height: 100%;
 }
-
-iframe.notebook-iframe {
-  margin-top: $generalPadding;
-}
-
-
 
 .hidden {
   display: none;
@@ -858,6 +854,10 @@ button.themed-secondary {
   }
 }
 
+
+.mdc-dialog {
+  z-index: 99;
+}
 
 .mdc-dialog__surface {
   overflow: visible;
