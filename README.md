@@ -1,8 +1,9 @@
 <img src='docs/source/img/logo.png' width="300px" />
 <br/>
 
-[Docs](https://orchest.readthedocs.io/en/latest/) 
-— [Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) 
+[Website](https://www.orchest.io) — 
+[Docs](https://orchest.readthedocs.io/en/latest/) — 
+[Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) 
 
 -----
 <img alt="Version badge 0.1.0"
@@ -86,5 +87,4 @@ for more details.
 We would love to hear what you think and potentially add features based on your ideas. Come chat
 with us at our [Community forum](https://community.orchest.io/).
 
-Want to stay updated? Subsribe to our (no spam, low traffic) mailinglist at
-[orchest.io](https://www.orchest.io/).
+Also check out our website: [orchest.io](https://www.orchest.io/).
