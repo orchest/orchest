@@ -3,7 +3,7 @@
 
 [Website](https://www.orchest.io) — 
 [Docs](https://orchest.readthedocs.io/en/latest/) — 
-[Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) -
+[Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) — 
 [Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
 -----
