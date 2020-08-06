@@ -86,4 +86,4 @@ for more details.
 
 ## We love your feedback
 We would love to hear what you think and potentially add features based on your ideas. Come chat
-with us at our [Community forum](https://community.orchest.io/).
+with us on [Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
