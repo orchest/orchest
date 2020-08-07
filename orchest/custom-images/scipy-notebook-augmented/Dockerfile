@@ -1,6 +1,4 @@
-FROM jupyter/scipy-notebook
-
-LABEL maintainer="Orchest <info@orchest.io>"
+FROM jupyter/scipy-notebook:04f7f60d34a6
 
 USER root
 COPY ./orchest/custom-images/scipy-notebook-augmented/augment.sh .
