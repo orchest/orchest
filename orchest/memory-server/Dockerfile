@@ -1,5 +1,10 @@
-FROM python:3.7-stretch
+FROM python:3.7-slim
 
+# Install git, because it is not included in the python-slim image.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && apt-get purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/*
 ARG sdk_branch=master
 
 # Installing the requirements here before copying, allows us to faster
