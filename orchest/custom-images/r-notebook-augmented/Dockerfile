@@ -1,4 +1,4 @@
-FROM jupyter/r-notebook
+FROM jupyter/r-notebook:04f7f60d34a6
 
 USER root
 COPY ./orchest/custom-images/r-notebook-augmented/augment.sh .

@@ -1,5 +1,5 @@
 # Ubuntu 18.04.1 LTS Bionic
-FROM elyra/kernel-r:2.1.1
+FROM elyra/kernel-r:2.2.0rc2
 
 # Run augment script (augmenting r-notebook)
 USER root

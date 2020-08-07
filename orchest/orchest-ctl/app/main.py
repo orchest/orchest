@@ -126,7 +126,7 @@ CONTAINER_MAPPING = {
 
 IMAGES = list(CONTAINER_MAPPING.keys())
 IMAGES += [
-    "elyra/enterprise-gateway:2.1.1",
+    "elyra/enterprise-gateway:2.2.0rc2",
     "orchestsoftware/jupyter-server:latest",
     "orchestsoftware/r-notebook-augmented:latest",
     "orchestsoftware/r-notebook-runnable:latest",
@@ -430,7 +430,7 @@ def status():
 
     if len(running_prints) > 1:
         logging.info('\n'.join(running_prints))
-    
+
     if len(not_running_prints) > 1:
         logging.info('\n'.join(not_running_prints))
 
