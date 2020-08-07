@@ -8,10 +8,7 @@
 
 -----
 <img alt="Version badge 0.1.0"
-src="https://img.shields.io/badge/version-0.1.0-blue" />  <a
-href="https://community.orchest.io/"><img alt="Orchest Discourse chat"
-src="https://img.shields.io/discourse/status?server=https%3A%2F%2Fcommunity.orchest.io"
-/></a>
+src="https://img.shields.io/badge/version-0.1.0-blue" />
 
 Orchest is a web based data science platform that works on top of your filesystem allowing you to use your
 editor of choice. With Orchest you get to focus on visually building and iterating on your
