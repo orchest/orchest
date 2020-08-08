@@ -5,12 +5,13 @@ Data passing SDK
 
 `API documentation of the Orchest SDK <https://orchest-sdk.readthedocs.io/en/latest/>`_.
 
-Orchest SDK for data passing between pipeline steps in the Orchest platform. The SDK manages the
-destination and source of the data, leaving the user only with the decision what data to send
-(because receiving automatically retrieves all the sent data).
+Orchest SDK for interacting with Orchest. What you can do using the SDK:
 
-The destination and source of the data are inferred through the defined pipeline definition in the
-platform (the `pipeline.json` file).
+* Data passing between pipeline steps. It manages the target and source of the data, leaving the
+  user only with the decision what data to pass. The target and source of the data are inferred
+  through the defined pipeline definition in the Orchest platform (the `pipeline.json` file).
+* Interacting with data sources, such as your regular MySQL databases but also Amazon S3 buckets.
+* Using the parametrized values of pipeline steps and updating them.
 
 We plan to also support other popular programming languages such as R.
 

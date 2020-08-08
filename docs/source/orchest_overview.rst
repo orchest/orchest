@@ -1,9 +1,8 @@
 Orchest overview
 ================
 
-Orchest is an open source, cloud native, development environment build for data science. Orchest
-enables you to develop, train and run your models on the cloud without any knowledge of cloud
-infrastructure.
+Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
+your models on the cloud without any knowledge of cloud infrastructure.
 
 
 The Orchest platform
@@ -41,6 +40,7 @@ With Orchest you get to:
 * Run any selection of pipeline steps. 
 * Select specific notebook cells to skip when running a pipeline through the pre-installed celltags
   extension of JupyterLab.
+* Parametrize your data science pipelines to experiment with different modeling ideas.
 
 What Orchest does for you:
 
@@ -55,8 +55,6 @@ Orchest roadmap
 
 Orchest is just beginning to take shape. In the near future you can expect the following features:
 
-* Scheduled experiments by parametrizing your pipeline steps.
 * Managed hosted version to easily try out the Orchest platform.
 * Integration to load in your existing projects from GitHub. Note that you can already setup Orchest
   for an existing project on your filesystem.
-* Alternatives for on disk data passing, e.g. in-memory powered by Apache Arrow.

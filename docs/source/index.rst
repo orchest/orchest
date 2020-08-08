@@ -10,9 +10,8 @@ Orchest
 -- `GitHub <http://www.github.com/orchest/orchest>`_
 -- `Community forum <https://community.orchest.io/>`_
 
-Orchest is an open source, cloud native, development environment built for data science. Orchest
-enables you to develop, train and run your models on the cloud without any knowledge of cloud
-infrastructure.
+Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
+your models on the cloud without any knowledge of cloud infrastructure.
 
 
 .. toctree::
