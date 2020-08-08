@@ -1,7 +1,7 @@
 # Python - Orchest SDK
 [Docs](https://orchest-sdk.readthedocs.io/en/latest/python.html)
 — [Quickstart](https://orchest-sdk.readthedocs.io/en/latest/python.html#quickstart)
-— [Community forum](https://community.orchest.io)
+— [Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
 
 Python package for interacting with [Orchest](https://github.com/orchest/orchest).

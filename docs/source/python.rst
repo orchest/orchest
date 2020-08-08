@@ -1,10 +1,10 @@
 Python
 ======
 
-Python package to pass data between pipeline steps in the Orchest platform.
+Python package to pass data between pipeline steps in Orchest.
 
 Since memory resources are scarce we have implemented a custom eviction manager for the store as
-part of the `Orchest platform <http://www.github.com/orchest/orchest>`_.  Without it, objects do not
+part of `Orchest <http://www.github.com/orchest/orchest>`_.  Without it, objects do not
 get evicted from the store (even when an object has no reference) and will eventually lead to the
 store reaching its maximum capacity with no room for new data.
 
