@@ -1,7 +1,5 @@
-# Notes
+# Services
 
-There are some hardcoded configurations reapeated inside the different project. These should be
-managed with some global configuration. Example would be the mounted `/pipeline-dir` path where the
-`jupyter-server` will start the Jupyter server. This path is repeated in:
-* `jupyter-server/app/app/core/start_server.py`
-* `orchest/orchest-api/api/core/managers.py`
+These are all the services that run when using Orchest. Every service has its own Dockerfile. The
+`custom-images` folder contains all the custom kernel images we use for running the pipeline steps
+(either interactively or non-interactively).
