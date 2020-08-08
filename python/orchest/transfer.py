@@ -741,9 +741,11 @@ def output(data: Any,
         calling the function once.
 
     """
-    return output_to_memory(data,
-                            pickle_fallback=pickle_fallback,
-                            disk_fallback=True)
+    return output_to_disk(data, pickle_fallback=pickle_fallback)
+    # TEMP: macOS doesn't seem to support /tmp/plasma.sock. Direct disk based transfer for now.
+    # return output_to_memory(data,
+    #                         pickle_fallback=pickle_fallback,
+    #                         disk_fallback=True)
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
