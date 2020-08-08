@@ -5,11 +5,11 @@ Orchest is a tool for creating data science pipelines. Orchest enables you to de
 your models on the cloud without any knowledge of cloud infrastructure.
 
 
-The Orchest platform
---------------------
+Orchest
+-------
 
 Orchest is not here to reinvent the wheel when it comes to your favorite editor, Orchest is a web
-based platform that works on top of your filesystem (similar to JupyterLab) allowing you to use your
+based tool that works on top of your filesystem (similar to JupyterLab) allowing you to use your
 editor of choice. With Orchest you get to focus on visually building and iterating on your
 pipelining ideas.
 
@@ -55,6 +55,6 @@ Orchest roadmap
 
 Orchest is just beginning to take shape. In the near future you can expect the following features:
 
-* Managed hosted version to easily try out the Orchest platform.
+* Managed hosted version to easily try out Orchest.
 * Integration to load in your existing projects from GitHub. Note that you can already setup Orchest
   for an existing project on your filesystem.
