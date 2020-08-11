@@ -16,8 +16,8 @@ pipeline steps.
 Installation steps
 ------------------
 
-Linux and macOS
-~~~~~~~~~~~~~~~
+Linux, macOS, and Windows (WSL 2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -26,17 +26,6 @@ Linux and macOS
    ./orchest.sh start
 
 
-Windows
-~~~~~~~
-
-.. code-block:: bash
-
-   git clone https://github.com/orchest/orchest.git
-   cd orchest
-   orchest start
-
-.. note::
-   On Windows, make sure to give Docker permission to mount the directory in which
-   you cloned Orchest. For more details check the `Windows Docker documentation 
-   <https://docs.docker.com/docker-for-windows/#resources>`_ 
-   (*Docker settings* > *Resources* > *File sharing* > Add directory that contains Orchest).
+**Note!** on Windows Docker should be configured to use WSL 2. Make sure you clone inside the
+Linux environment. More info about Docker + WSL 2 can be found here:
+https://docs.docker.com/docker-for-windows/wsl/.

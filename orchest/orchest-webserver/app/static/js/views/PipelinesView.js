@@ -129,7 +129,7 @@ class PipelinesView extends React.Component {
                 if(this.state.createModal){
                     return <MDCDialogReact title="Create a new pipeline" 
                         content={
-                            <MDCTextFieldReact ref={'createPipelineNameTextField'} classNames={['fullwidth']} label="Experiment name" />
+                            <MDCTextFieldReact ref={'createPipelineNameTextField'} classNames={['fullwidth']} label="Pipeline name" />
                     } actions={
                         <Fragment>
                             <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised", "themed-secondary"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />                            

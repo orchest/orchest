@@ -15,8 +15,7 @@ pipeline`:
   file to work.
 
 Orchest runs as a collection of Docker containers and only stores a global configuration file. The
-location for this config is :code:`~/.config/orchest/config.json` for Unix based systems and
-:code:`%UserProfile%\.orchest\config.json` for Windows.
+location for this config is :code:`~/.config/orchest/config.json`.
 
 
 Installing additional packages

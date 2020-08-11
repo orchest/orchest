@@ -25,12 +25,6 @@ Launch Orchest:
 
    ./orchest.sh start
 
-On Windows:
-
-.. code-block:: bash
-
-   orchest.bat start
-
 Build your pipeline. Create two steps and connect them.
 
 .. image:: https://user-images.githubusercontent.com/1309307/82610388-8ffc7580-9bbe-11ea-8886-d045ff6b76d0.gif

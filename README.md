@@ -39,22 +39,16 @@ Orchest lets you
 Requirements
 * Docker (tested on 19.03.9)
 
-Linux/macOS
+Linux/macOS/Windows(through WSL 2)
 ```bash
 git clone https://github.com/orchest/orchest.git
 cd orchest
 ./orchest.sh start
 ```
 
-Windows
-```bash
-git clone https://github.com/orchest/orchest.git
-cd orchest
-orchest.bat start
-```
-
-**Note!** On Windows, make sure to give Docker permission to mount the directory in which
-you cloned Orchest. For more details check the [Windows Docker documentation](https://docs.docker.com/docker-for-windows/#resources) (_Docker settings_ > _Resources_ > _File sharing_ > Add directory that contains Orchest).
+**Note!** on Windows Docker should be configured to use WSL 2. Make sure you clone inside the
+Linux environment. More info about Docker + WSL 2 can be found here:
+https://docs.docker.com/docker-for-windows/wsl/.
 
 
 ## Quickstart

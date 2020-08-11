@@ -28,18 +28,6 @@ if "HOST_CONFIG_DIR" in os.environ:
 else:
     raise("Need to set HOST_CONFIG_DIR!")
 
-
-# for Windows convert backslashes (\) to forward slashes (/) to make Docker Engine API work
-def capture_drive(match):
-     return '/host_mnt/' + match.group(1).lower() + '/'
-
-def slash_sub(path):
-    return re.sub(r'([A-Z]):\\', capture_drive, path).replace("\\","/")
-
-
-HOST_USER_DIR = slash_sub(HOST_USER_DIR)
-HOST_CONFIG_DIR = slash_sub(HOST_CONFIG_DIR)
-
 DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 
 # Set to `True` if you want to pull images from Dockerhub
@@ -225,11 +213,11 @@ def install_network():
 
     docker_client = docker.from_env()
 
-    logging.info("Orchest sends an anonymized ping to analytics.orchest.io. You can disable this by adding { \"TELEMETRY_DISABLED\": true } to config.json in %s" % HOST_CONFIG_DIR)
-
     try:
         docker_client.networks.get(DOCKER_NETWORK)
     except docker.errors.NotFound as e:
+
+        logging.info("Orchest sends an anonymized ping to analytics.orchest.io. You can disable this by adding { \"TELEMETRY_DISABLED\": true } to config.json in %s" % HOST_CONFIG_DIR)
 
         logging.info("Docker network %s doesn't exist: %s. Creating it." % (DOCKER_NETWORK, e))
         # Create Docker network named "orchest" with a custom subnet such that
@@ -349,7 +337,6 @@ def log_server_url():
 def dev_mount_inject():
 
     logging.info("Orchest starting in DEV mode. This mounts host directories to monitor for source code changes.")
-
 
     # orchest-webserver dev mount
     orchest_webserver_spec = CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]
