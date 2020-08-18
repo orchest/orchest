@@ -7,3 +7,9 @@ RUN pip3 install Flask==1.1.1 \
 
 COPY ./orchest/auth-server/app /app
 WORKDIR /app
+
+
+# In case we forgot to update the first RUN command accordingly to the
+# new requirements. Note that pip will not reinstall already installed
+# packages.
+RUN pip3 install -r requirements.txt
