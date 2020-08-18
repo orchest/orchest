@@ -285,3 +285,9 @@ jobs:
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/memory-server
         README_FILEPATH: orchest/memory-server/README.md
+
+    - name: Push README files to DockerHub auth-server
+        uses: peter-evans/dockerhub-description@v2
+        env:
+          DOCKERHUB_REPOSITORY: orchestsoftware/auth-server
+          README_FILEPATH: orchest/auth-server/README.md
