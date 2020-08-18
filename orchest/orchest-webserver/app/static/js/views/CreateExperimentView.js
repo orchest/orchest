@@ -5,7 +5,7 @@ import ParameterEditor from '../components/ParameterEditor';
 import DateTimeInput from '../components/DateTimeInput';
 import ExperimentsView from "./ExperimentsView";
 import SearchableTable from '../components/SearchableTable';
-import { makeRequest } from '../utils/all';
+import { makeRequest, PromiseManager } from '../utils/all';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
 import ParamTree from '../components/ParamTree';
 import MDCRadioReact from '../mdc-components/MDCRadioReact';
@@ -26,11 +26,12 @@ class CreateExperimentView extends React.Component {
             'runExperimentLoading': false,
         }
 
+        this.promiseManager = new PromiseManager();
     }
 
     fetchPipeline(){
 
-        makeRequest("GET", "/async/pipelines/json/get/" + this.props.experiment.pipeline_uuid).then((response) => {
+        let fetchPipelinePromise = makeRequest("GET", "/async/pipelines/json/get/" + this.props.experiment.pipeline_uuid).then((response) => {
 
             let result = JSON.parse(response);
             if (result.success) {
@@ -48,7 +49,12 @@ class CreateExperimentView extends React.Component {
                 console.warn("Could not load pipeline.json");
                 console.log(result);
             }
+
+            
         })
+
+        
+
     }
 
     generateParameterizedSteps(pipeline){

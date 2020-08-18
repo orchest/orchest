@@ -1,7 +1,7 @@
 import React from 'react';
 import PipelineView from "./PipelineView";
 import { MDCTextField } from "@material/textfield";
-import { makeRequest, uuidv4 } from "../utils/all";
+import { makeRequest, PromiseManager, makeCancelable } from "../utils/all";
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
 
@@ -15,15 +15,23 @@ class PipelineSettingsView extends React.Component {
             active_tab_index: 0,
             restartingMemoryServer: false
         };
+
+        this.promiseManager = new PromiseManager();
     }
 
     initComponent() {
         this.initiateMDCComponents()
     }
 
+    componentWillUnmount(){
+        this.promiseManager.cancelCancelablePromises();
+    }
+
     componentDidMount() {
 
-        makeRequest("GET", "/async/pipelines/json/get/" + this.props.pipeline_uuid).then((response) => {
+        let pipelinePromise = makeCancelable(makeRequest("GET", "/async/pipelines/json/get/" + this.props.pipeline_uuid), this.promiseManager);
+        
+        pipelinePromise.promise.then((response) => {
             let result = JSON.parse(response);
 
             if (result.success) {
@@ -37,7 +45,8 @@ class PipelineSettingsView extends React.Component {
                 console.warn("Could not load pipeline.json");
                 console.log(result);
             }
-        });
+
+        })
 
     }
 
@@ -87,12 +96,14 @@ class PipelineSettingsView extends React.Component {
             });
 
             // perform POST to save
-            makeRequest("PUT", "/api-proxy/api/sessions/" + this.props.pipeline_uuid).then((response) => {
-
+            let restartPromise = makeCancelable(makeRequest("PUT", "/api-proxy/api/sessions/" + this.props.pipeline_uuid),this.promiseManager);
+            
+            restartPromise.promise.then((response) => {
                 this.setState({
                     restartingMemoryServer: false
                 });
             })
+            
         } else {
             console.error("Already busy restarting memory server. UI should prohibit this call.")
         }

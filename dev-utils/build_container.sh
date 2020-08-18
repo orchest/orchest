@@ -54,6 +54,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "orchest-webserver"
         "nginx-proxy"
         "memory-server"
+        "auth-server"
     )
 fi
 
@@ -154,6 +155,14 @@ do
             --no-cache=$NO_CACHE \
             --build-arg enable_ssl=$ENABLE_SSL \
             -f $DIR/../orchest/nginx-proxy/Dockerfile \
+            $DIR/../)
+    fi
+
+    if [ $IMG == "auth-server" ]; then
+        build=(docker build \
+            -t orchestsoftware/auth-server \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../orchest/auth-server/Dockerfile \
             $DIR/../)
     fi
 

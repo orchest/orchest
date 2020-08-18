@@ -1,5 +1,5 @@
 import React from 'react';
-import { makeRequest } from "../utils/all";
+import { makeRequest, PromiseManager, makeCancelable } from "../utils/all";
 
 class PipelineDetailsLogs extends React.Component {
   constructor(props) {
@@ -8,6 +8,8 @@ class PipelineDetailsLogs extends React.Component {
     this.state = {
       logs: ''
     };
+
+    this.promiseManager = new PromiseManager();
   }
   componentDidMount() {
 
@@ -22,6 +24,8 @@ class PipelineDetailsLogs extends React.Component {
 
   componentWillUnmount() {
     clearInterval(this.logFetchInterval);
+
+    
   }
 
   fetchLog() {
@@ -32,7 +36,9 @@ class PipelineDetailsLogs extends React.Component {
       logURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
     }
 
-    makeRequest("GET", logURL).then((response) => {
+    let fetchLogPromise = makeCancelable(makeRequest("GET", logURL), this.promiseManager);
+    
+    fetchLogPromise.promise.then((response) => {
       let json = JSON.parse(response);
       if (json.success) {
         this.setState({
@@ -42,7 +48,9 @@ class PipelineDetailsLogs extends React.Component {
         console.warn("Could not fetch logs.");
         console.log(json);
       }
-    });
+    })
+
+    
   }
   render() {
     return <div className={"detail-subview"}>

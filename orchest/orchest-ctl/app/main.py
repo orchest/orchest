@@ -93,6 +93,9 @@ CONTAINER_MAPPING = {
             },
         ]
     },
+    "orchestsoftware/auth-server:latest": {
+        "name": "auth-server",
+    },
     "rabbitmq:3": {
         "name": "rabbitmq-server",
         "hostname": "rabbitmq-hostname",

@@ -1,11 +1,13 @@
 import React from 'react';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import PipelineView from './PipelineView';
-import { makeRequest } from '../utils/all';
+import { makeRequest, PromiseManager, makeCancelable } from '../utils/all';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
 
 class NotebookPreviewView extends React.Component {
+
   componentWillUnmount() {
+    
   }
 
   loadPipelineView(){
@@ -22,6 +24,8 @@ class NotebookPreviewView extends React.Component {
     this.state = {
       "notebookHtml": undefined
     }
+
+    this.promiseManager = new PromiseManager();
   }
 
   componentDidUpdate(prevProps){
@@ -38,7 +42,9 @@ class NotebookPreviewView extends React.Component {
       notebookURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
     }
 
-    makeRequest("GET", notebookURL).then((response) => {
+    let fetchNotebookPromise = makeCancelable(makeRequest("GET", notebookURL), this.promiseManager);
+    
+    fetchNotebookPromise.promise.then((response) => {
       
       // filter HTML to remove box-shadow CSS rules
       const regex = /(box\-shadow\:|\-webkit\-box-shadow\:)[\d\s\w\,\)\(\-\.]*\;/gm;
@@ -49,9 +55,11 @@ class NotebookPreviewView extends React.Component {
       this.setState({
         "notebookHtml": response
       });
+
     }).catch((err) => {
       console(err);
-    });
+    })
+
   }
 
   render() {

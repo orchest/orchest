@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 import DataSourceEditView from "./DataSourceEditView";
 import CheckItemList from '../components/CheckItemList';
-import { makeRequest } from '../utils/all';
+import { makeRequest, makeCancelable, PromiseManager } from '../utils/all';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
 
 class DataSourcesView extends React.Component {
@@ -13,12 +13,18 @@ class DataSourcesView extends React.Component {
     this.state = {
       "datasources": undefined,
     }
+    
+    this.promiseManager = new PromiseManager();
   }
 
   componentDidMount(){
 
     this.fetchDataSources();
 
+  }
+
+  componentWillUnmount(){
+    this.promiseManager.cancelCancelablePromises();
   }
 
   fetchDataSources(){
@@ -29,7 +35,9 @@ class DataSourcesView extends React.Component {
     }
 
     // fetch data sources
-    makeRequest("GET", "/store/datasources").then((result) => {
+    let datasourcesPromise = makeCancelable(makeRequest("GET", "/store/datasources"), this.promiseManager);
+    
+    datasourcesPromise.promise.then((result) => {
       try {
         let json = JSON.parse(result);
 
@@ -44,7 +52,8 @@ class DataSourcesView extends React.Component {
       
     }).catch((err) => {
       console.log("Error fetching DataSources", err);
-    });
+    })
+
   }
 
   onCreateClick(){

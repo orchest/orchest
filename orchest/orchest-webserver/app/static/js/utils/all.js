@@ -9,23 +9,59 @@ export function nameToFilename(name){
     return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
-export function makeCancelable(promise){
+export function makeCancelable(promise, promiseManager){
   let hasCanceled_ = false;
 
-  const wrappedPromise = new Promise((resolve, reject) => {
-    promise.then(
-      val => hasCanceled_ ? reject({isCanceled: true}) : resolve(val),
-      error => hasCanceled_ ? reject({isCanceled: true}) : reject(error)
-    );
-  });
-
-  return {
-    promise: wrappedPromise,
+  let cancelablePromise = {
     cancel() {
       hasCanceled_ = true;
     },
   };
+
+  const wrappedPromise = new Promise((resolve, reject) => {
+    promise.then(
+      val => {
+        hasCanceled_ ? reject({isCanceled: true}) : resolve(val);
+
+        promiseManager.clearCancelablePromise(cancelablePromise);
+      },
+      error => {
+        hasCanceled_ ? reject({isCanceled: true}) : reject(error);
+
+        promiseManager.clearCancelablePromise(cancelablePromise);
+      }
+    );
+  });
+
+  cancelablePromise.promise = wrappedPromise;
+
+  promiseManager.appendCancelablePromise(cancelablePromise);
+
+  return cancelablePromise
 };
+
+
+export class PromiseManager {
+
+  constructor(){
+    this.cancelablePromises = [];
+  }
+  
+  appendCancelablePromise(cancelablePromise){
+      this.cancelablePromises.push(cancelablePromise);
+  }
+
+  cancelCancelablePromises(){
+      for(let cancelablePromise of this.cancelablePromises){
+          cancelablePromise.cancel();
+      }
+  }
+
+  clearCancelablePromise(cancelablePromise){
+      let index = this.cancelablePromises.indexOf(cancelablePromise);
+      this.cancelablePromises.splice(index, 1);
+  }
+}
 
 export function extensionFromFilename(filename){
   if(filename.indexOf(".") === -1){
@@ -46,6 +82,8 @@ export function intersectRect(r1, r2) {
            r2.y > r1.y + r1.height ||
            r2.y + r2.height < r1.y);
 }
+
+
 
 export function makeRequest(method, url, body) {
   return new Promise(function (resolve, reject) {

@@ -4,7 +4,7 @@ import MDCDataTableReact from '../mdc-components/MDCDataTableReact';
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import ParameterEditor from '../components/ParameterEditor';
 import SearchableTable from '../components/SearchableTable';
-import { makeRequest, uuidv4 } from '../utils/all';
+import { makeRequest, uuidv4, PromiseManager, makeCancelable } from '../utils/all';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import ParamTree from '../components/ParamTree';
 import PipelineView from './PipelineView';
@@ -22,6 +22,12 @@ class ExperimentView extends React.Component {
             'refreshing': false,
         }
 
+        this.promiseManager = new PromiseManager();
+
+    }
+
+    componentWillUnmount(){
+        this.promiseManager.cancelCancelablePromises();
     }
 
     onSelectSubview(index) {
@@ -35,7 +41,9 @@ class ExperimentView extends React.Component {
     }
 
     fetchPipelineRuns(){
-        makeRequest("GET", "/catch/api-proxy/api/experiments/" + this.props.experiment.uuid).then((response) => {
+        let fetchRunsPromise = makeCancelable(makeRequest("GET", "/catch/api-proxy/api/experiments/" + this.props.experiment.uuid), this.promiseManager);
+        
+        fetchRunsPromise.promise.then((response) => {
             
             let result = JSON.parse(response);
 
@@ -43,11 +51,14 @@ class ExperimentView extends React.Component {
                 pipelineRuns: result.pipeline_runs,
                 refreshing: false,
             });
+
         }).catch((e) => {
             this.setState({
                 refreshing: false,
             });
         })
+
+        
     }
 
     reload(){

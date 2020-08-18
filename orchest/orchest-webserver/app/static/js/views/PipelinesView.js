@@ -3,7 +3,7 @@ import React, { Fragment } from 'react';
 import PipelineView from "./PipelineView";
 import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
 import CheckItemList from '../components/CheckItemList';
-import { makeRequest } from '../utils/all';
+import { makeRequest, makeCancelable, PromiseManager } from '../utils/all';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
@@ -19,10 +19,16 @@ class PipelinesView extends React.Component {
     constructor(props) {
         super(props);
 
+        this.promiseManager = new PromiseManager();
+
         this.state = {
             loaded: false,
             createModal: false,
         }
+    }
+
+    componentWillUnmount(){
+        this.promiseManager.cancelCancelablePromises();
     }
 
     componentDidMount() {
@@ -35,11 +41,14 @@ class PipelinesView extends React.Component {
 
     fetchList(){
         // initialize REST call for pipelines
-        makeRequest("GET", '/async/pipelines').then((response) => {
+        let fetchListPromise = makeCancelable(makeRequest("GET", '/async/pipelines'), this.promiseManager);
+        
+        fetchListPromise.promise.then((response) => {
             let data = JSON.parse(response);            
             this.setState({loaded: true, listData: data.result})
             this.refs.pipelineListView.deselectAll()
-        })
+            
+        });
     }
 
     onClickListItem(pipeline, e) {

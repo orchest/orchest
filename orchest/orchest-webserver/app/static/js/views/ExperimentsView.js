@@ -6,7 +6,7 @@ import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
 import MDCSelectReact from '../mdc-components/MDCSelectReact';
 import MDCButtonReact from '../mdc-components/MDCButtonReact';
 import CreateExperimentView from './CreateExperimentView';
-import { makeRequest, uuidv4 } from '../utils/all';
+import { makeRequest, uuidv4, PromiseManager, makeCancelable } from '../utils/all';
 import ExperimentView from './ExperimentView';
 import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
 import MDCDialogReact from '../mdc-components/MDCDialogReact';
@@ -24,12 +24,20 @@ class ExperimentsView extends React.Component {
             experimentsSearchMask: new Array(0).fill(1)
         }
 
+        this.promiseManager = new PromiseManager();
+
+    }
+
+    componentWillUnmount(){
+        this.promiseManager.cancelCancelablePromises();
     }
 
     componentDidMount() {
 
         // retrieve pipelines once on component render
-        makeRequest("GET", "/async/pipelines").then((response) => {
+        let pipelinePromise = makeCancelable(makeRequest("GET", "/async/pipelines"), this.promiseManager);
+        
+        pipelinePromise.promise.then((response) => {
             let result = JSON.parse(response);
 
             this.setState({
@@ -39,6 +47,7 @@ class ExperimentsView extends React.Component {
         }).catch((e) => {
             console.log(e);
         })
+
 
         // retrieve experiments
         this.fetchList()
@@ -50,7 +59,9 @@ class ExperimentsView extends React.Component {
 
     fetchList() {
 
-        makeRequest("GET", "/store/experiments").then((response) => {
+        let fetchListPromise = makeCancelable(makeRequest("GET", "/store/experiments"), this.promiseManager);
+        
+        fetchListPromise.promise.then((response) => {
             let result = JSON.parse(response);
 
             this.setState({
@@ -61,7 +72,6 @@ class ExperimentsView extends React.Component {
         }).catch((e) => {
             console.log(e);
         })
-
     }
 
     componentWillUnmount() {
