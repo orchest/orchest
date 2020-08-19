@@ -4,7 +4,7 @@ FROM orchestsoftware/scipy-notebook-augmented
 USER root
 
 # Install our internal libraries
-COPY ./lib /src
+COPY ./lib/python /src
 RUN pip install -e /src/orchest-internals/
 
 RUN [ "mkdir", "/runner"]
