@@ -28,7 +28,8 @@ RUN pip3 install -e /src/orchest-internals
 COPY ./orchest/orchest-webserver/app /app
 
 # Internal JS library
-COPY ./lib/javascript /app/static/js/lib
+RUN mkdir -p /app/static/js/lib/
+COPY ./lib/javascript/. /app/static/js/lib/
 
 WORKDIR /app/static/
 RUN npm install
