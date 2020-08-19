@@ -1,8 +1,8 @@
 import React from 'react';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import PipelineView from './PipelineView';
-import { makeRequest, PromiseManager, makeCancelable } from '../utils/all';
-import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
+import { makeRequest, PromiseManager, makeCancelable } from '../lib/utils/all';
+import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 
 class NotebookPreviewView extends React.Component {
 

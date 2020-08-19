@@ -1,8 +1,8 @@
 import React from 'react';
-import { extensionFromFilename, filenameWithoutExtension } from "../utils/all";
-import MDCSelectReact from "../mdc-components/MDCSelectReact";
-import MDCTextFieldReact from "../mdc-components/MDCTextFieldReact";
-import MDCTextFieldAreaReact from "../mdc-components/MDCTextFieldAreaReact";
+import { extensionFromFilename, filenameWithoutExtension } from "../lib/utils/all";
+import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
+import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
+import MDCTextFieldAreaReact from "../lib/mdc-components/MDCTextFieldAreaReact";
 import ExperimentView from './ExperimentView';
 
 class ConnectionItem extends React.Component {

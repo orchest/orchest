@@ -1,13 +1,13 @@
 import React, { Fragment } from 'react';
 
 import PipelineView from "./PipelineView";
-import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
+import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import CheckItemList from '../components/CheckItemList';
-import { makeRequest, makeCancelable, PromiseManager } from '../utils/all';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
-import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
-import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
-import MDCDialogReact from '../mdc-components/MDCDialogReact';
+import { makeRequest, makeCancelable, PromiseManager } from '../lib/utils/all';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
+import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
+import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
+import MDCDialogReact from '../lib/mdc-components/MDCDialogReact';
 
 
 class PipelinesView extends React.Component {

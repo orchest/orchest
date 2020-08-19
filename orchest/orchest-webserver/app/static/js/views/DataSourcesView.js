@@ -1,9 +1,9 @@
 import React, { Fragment } from 'react';
-import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
+import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import DataSourceEditView from "./DataSourceEditView";
 import CheckItemList from '../components/CheckItemList';
-import { makeRequest, makeCancelable, PromiseManager } from '../utils/all';
-import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
+import { makeRequest, makeCancelable, PromiseManager } from '../lib/utils/all';
+import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 
 class DataSourcesView extends React.Component {
 

@@ -1,8 +1,8 @@
 import React from 'react';
-import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
+import MDCTabBarReact from '../lib/mdc-components/MDCTabBarReact';
 import PipelineDetailsProperties from './PipelineDetailsProperties';
 import PipelineDetailsLogs from './PipelineDetailsLogs';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 
 
 class PipelineDetails extends React.Component {

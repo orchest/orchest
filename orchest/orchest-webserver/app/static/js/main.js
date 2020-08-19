@@ -13,7 +13,7 @@ import ReactDOM from 'react-dom';
 import PipelineView from "./views/PipelineView";
 import Jupyter from "./jupyter/Jupyter";
 
-import './lib/overflowing';
+import './utils/overflowing';
 import ExperimentView from "./views/ExperimentView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
@@ -35,20 +35,24 @@ function Orchest() {
 
     const drawer = MDCDrawer.attachTo(document.getElementById('main-drawer'));
 
-    // mount titlebare componenet
+    // mount titlebar component
     this.headerBar = document.querySelector(".header-bar-interactive");
     this.headerBarComponent = ReactDOM.render(<HeaderButtons />, this.headerBar);
 
     drawer.list.singleSelection = true;
 
     drawer.listen("MDCList:action", (e) => {
+
         let selectedIndex = e.detail.index;
 
         let listElement = drawer.list.listElements[selectedIndex];
 
-        let viewName = listElement.attributes.getNamedItem("data-react-view").value;
+        if(listElement.attributes.getNamedItem('data-react-view')){
+            let viewName = listElement.attributes.getNamedItem("data-react-view").value;
 
-        this.loadView(this.Components[viewName]);
+            this.loadView(this.Components[viewName]);
+        }
+        
     });
 
     this.loadView = function (TagName, dynamicProps) {

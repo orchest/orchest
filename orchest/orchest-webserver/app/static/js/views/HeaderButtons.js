@@ -1,7 +1,7 @@
 import React from 'react';
 import PipelineView from "./PipelineView";
 import {MDCRipple} from "@material/ripple";
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 
 class HeaderButtons extends React.Component {
 

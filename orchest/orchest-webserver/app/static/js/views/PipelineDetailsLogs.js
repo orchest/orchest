@@ -1,5 +1,5 @@
 import React from 'react';
-import { makeRequest, PromiseManager, makeCancelable } from "../utils/all";
+import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
 
 class PipelineDetailsLogs extends React.Component {
   constructor(props) {

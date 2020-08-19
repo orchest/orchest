@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
-import MDCDialogReact from '../mdc-components/MDCDialogReact';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import MDCDialogReact from '../lib/mdc-components/MDCDialogReact';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 
 class ConfirmDialog extends React.Component {
 

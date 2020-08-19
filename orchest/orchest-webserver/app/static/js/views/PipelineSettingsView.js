@@ -1,9 +1,9 @@
 import React from 'react';
 import PipelineView from "./PipelineView";
 import { MDCTextField } from "@material/textfield";
-import { makeRequest, PromiseManager, makeCancelable } from "../utils/all";
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
-import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
+import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
+import MDCTabBarReact from '../lib/mdc-components/MDCTabBarReact';
 
 
 class PipelineSettingsView extends React.Component {

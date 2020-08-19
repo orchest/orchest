@@ -1,10 +1,10 @@
 import React from 'react';
 
-import { uuidv4, intersectRect, globalMDCVars, extensionFromFilename, nodeCenter, correctedPosition, makeRequest, makeCancelable, PromiseManager } from "../utils/all";
+import { uuidv4, intersectRect, globalMDCVars, extensionFromFilename, nodeCenter, correctedPosition, makeRequest, makeCancelable, PromiseManager } from "../lib/utils/all";
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
-import MDCButtonReact from "../mdc-components/MDCButtonReact";
+import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import NotebookPreviewView from './NotebookPreviewView';
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
@@ -954,13 +954,14 @@ class PipelineView extends React.Component {
                 
             }).catch((e) => {
 
-                console.log(e)
+                if(!e.isCanceled){
+                    console.log(e)
 
-                this.state.backend.running = false;
-                this.state.backend.working = false;
-
-                this.setState({ "backend": this.state.backend });
-                
+                    this.state.backend.running = false;
+                    this.state.backend.working = false;
+    
+                    this.setState({ "backend": this.state.backend });
+                }
             })
 
             
@@ -984,14 +985,17 @@ class PipelineView extends React.Component {
                 this.setState({ "backend": this.state.backend });
 
             }).catch((err) => {
-                console.log("Error during request DELETEing launch to orchest-api.")
-                console.log(err);
 
-                if(err === undefined || (err && err.isCanceled !== true)){
-                    this.state.backend.running = true;
-                    this.state.backend.working = false;
-
-                    this.setState({ "backend": this.state.backend });
+                if(!err.isCanceled){
+                    console.log("Error during request DELETEing launch to orchest-api.")
+                    console.log(err);
+    
+                    if(err === undefined || (err && err.isCanceled !== true)){
+                        this.state.backend.running = true;
+                        this.state.backend.working = false;
+    
+                        this.setState({ "backend": this.state.backend });
+                    }
                 }
                 
             });

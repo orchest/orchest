@@ -11,9 +11,8 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash
+from app.utils import get_hash, get_user_conf
 from app.models import DataSource, Experiment, PipelineRun
-
 from _orchest.internals import config as _config
 
 
@@ -358,7 +357,7 @@ def register_views(app, db):
         css_bundle_path = os.path.join(
             app.config["STATIC_DIR"], "css", "main.css")
 
-        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path))
+        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf())
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
     def catch_api_proxy_runs():

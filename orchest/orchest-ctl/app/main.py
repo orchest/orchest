@@ -95,6 +95,17 @@ CONTAINER_MAPPING = {
     },
     "orchestsoftware/auth-server:latest": {
         "name": "auth-server",
+        "environment": {},
+        "mounts": [
+            {
+                "source": HOST_CONFIG_DIR,
+                "target": "/config"
+            },
+            {
+                "source": HOST_USER_DIR,
+                "target": "/userdir"
+            },
+        ],
     },
     "rabbitmq:3": {
         "name": "rabbitmq-server",
@@ -357,6 +368,28 @@ def dev_mount_inject():
     orchest_webserver_spec['environment']["FLASK_APP"] = "main.py"
     orchest_webserver_spec['environment']["FLASK_DEBUG"] = "1"
     orchest_webserver_spec['command'] = [
+       "flask",
+       "run",
+       "--host=0.0.0.0",
+       "--port=80"
+    ]
+
+    # auth-server dev mount
+    orchest_auth_server_spec = CONTAINER_MAPPING["orchestsoftware/auth-server:latest"]
+    orchest_auth_server_spec['mounts'] += [
+        {
+            "source": os.path.join(
+                os.environ.get("HOST_PWD"),
+                "orchest",
+                "auth-server",
+                "app"),
+            "target": "/app"
+        }
+    ]
+
+    orchest_auth_server_spec['environment']["FLASK_APP"] = "main.py"
+    orchest_auth_server_spec['environment']["FLASK_DEBUG"] = "1"
+    orchest_auth_server_spec['command'] = [
        "flask",
        "run",
        "--host=0.0.0.0",

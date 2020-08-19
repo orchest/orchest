@@ -3,6 +3,7 @@ import os
 import hashlib
 import random
 import string
+import logging
 
 def get_hash(path):
 	BLOCKSIZE = 8192 * 8
@@ -14,6 +15,21 @@ def get_hash(path):
 	        buf = afile.read(BLOCKSIZE)
 
 	return hasher.hexdigest()
+
+
+def get_user_conf():
+    conf_data = {}
+
+    # configure default value
+    conf_data['AUTH_ENABLED'] = False
+
+    try:
+        with open("/config/config.json", 'r') as f:
+            conf_data = json.load(f)
+    except Exception as e:
+        logging.debug(e)
+
+    return conf_data
 
 
 def write_config(app, key, value):
@@ -38,9 +54,9 @@ def write_config(app, key, value):
             try:
                 json.dump(conf_data, f)
             except Exception as e:
-                print(e)
+                logging.debug(e)
     except Exception as e:
-        print(e)
+        logging.debug(e)
 
 
     # always set rw permissions on file

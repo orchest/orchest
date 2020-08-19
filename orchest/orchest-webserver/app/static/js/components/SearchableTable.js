@@ -1,7 +1,7 @@
 
 import React, { Fragment } from 'react';
-import MDCDataTableReact from '../mdc-components/MDCDataTableReact';
-import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
+import MDCDataTableReact from '../lib/mdc-components/MDCDataTableReact';
+import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 
 class SearchableTable extends React.Component {
 

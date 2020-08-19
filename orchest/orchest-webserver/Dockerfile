@@ -21,8 +21,11 @@ RUN pip3 install Flask \
     Werkzeug==0.16.0
 
 # Install our internal libraries
-COPY ./lib /src
-RUN pip3 install -e /src/orchest-internals/
+COPY ./lib/python /src
+RUN pip3 install -e /src/orchest-internals
+
+# Internal JS library
+COPY ./lib/javascript /app/static/js/lib
 
 COPY ./orchest/orchest-webserver/app /app
 

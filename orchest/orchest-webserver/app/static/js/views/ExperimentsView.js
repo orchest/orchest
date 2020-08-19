@@ -1,15 +1,15 @@
 import React, { Fragment } from 'react';
 
 import SearchableTable from '../components/SearchableTable';
-import MDCIconButtonToggleReact from "../mdc-components/MDCIconButtonToggleReact";
-import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
-import MDCSelectReact from '../mdc-components/MDCSelectReact';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
+import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
+import MDCSelectReact from '../lib/mdc-components/MDCSelectReact';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import CreateExperimentView from './CreateExperimentView';
-import { makeRequest, uuidv4, PromiseManager, makeCancelable } from '../utils/all';
+import { makeRequest, uuidv4, PromiseManager, makeCancelable } from '../lib/utils/all';
 import ExperimentView from './ExperimentView';
-import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
-import MDCDialogReact from '../mdc-components/MDCDialogReact';
+import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
+import MDCDialogReact from '../lib/mdc-components/MDCDialogReact';
 
 class ExperimentsView extends React.Component {
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
+import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 
 class DateTimeInput extends React.Component {
 

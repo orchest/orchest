@@ -1,14 +1,14 @@
 import React, { Fragment } from 'react';
-import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import MDCTabBarReact from '../lib/mdc-components/MDCTabBarReact';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import ParameterEditor from '../components/ParameterEditor';
 import DateTimeInput from '../components/DateTimeInput';
 import ExperimentsView from "./ExperimentsView";
 import SearchableTable from '../components/SearchableTable';
-import { makeRequest, PromiseManager } from '../utils/all';
-import MDCLinearProgressReact from '../mdc-components/MDCLinearProgressReact';
+import { makeRequest, PromiseManager } from '../lib/utils/all';
+import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 import ParamTree from '../components/ParamTree';
-import MDCRadioReact from '../mdc-components/MDCRadioReact';
+import MDCRadioReact from '../lib/mdc-components/MDCRadioReact';
 
 class CreateExperimentView extends React.Component {
 

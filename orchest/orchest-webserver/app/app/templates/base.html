@@ -35,6 +35,12 @@
                 <i class="material-icons mdc-list-item__graphic" aria-hidden="true">settings</i>
                 <span class="mdc-list-item__text">Settings</span>
             </a>
+            {% if user_config['AUTH_ENABLED'] %}
+                <a class="mdc-list-item" href="/login/clear">
+                    <i class="material-icons mdc-list-item__graphic" aria-hidden="true">account_circle</i>
+                    <span class="mdc-list-item__text">Logout</span>
+                </a>
+            {% endif %}
         </nav>
         <h1 class="logo"><img src="public/image/logo.png" width="60%" /></h1>
     </div>
@@ -69,8 +75,6 @@
 {% endblock %}
 
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-<script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-
 <script type="module" src="public/js/dist/main.bundle.js?v={{ javascript_bundle_hash }}"></script>
 </body>
 </html>

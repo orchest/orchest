@@ -1,7 +1,7 @@
 
 import React from 'react';
 import AlertDialog from './AlertDialog';
-import { uuidv4 } from '../utils/all';
+import { uuidv4 } from '../lib/utils/all';
 import ConfirmDialog from './ConfirmDialog';
 
 class Dialogs extends React.Component {

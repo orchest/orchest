@@ -16,7 +16,7 @@ RUN pip3 install aiodocker==0.18.3 \
     Werkzeug==0.16.0
 
 # Install our internal libraries
-COPY ./lib /src
+COPY ./lib/python /src
 RUN pip3 install -e /src/orchest-internals/
 
 COPY ./orchest/orchest-api/start_celery_workers.sh .

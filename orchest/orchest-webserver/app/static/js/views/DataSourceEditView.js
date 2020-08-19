@@ -1,8 +1,8 @@
 import React from 'react';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
-import MDCSelectReact from '../mdc-components/MDCSelectReact';
-import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
-import { makeRequest } from '../utils/all';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
+import MDCSelectReact from '../lib/mdc-components/MDCSelectReact';
+import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
+import { makeRequest } from '../lib/utils/all';
 import DataSourcesView from './DataSourcesView';
 
 class DataSourceEditView extends React.Component {

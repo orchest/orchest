@@ -13,7 +13,7 @@ RUN pip3 install git+https://github.com/orchest/orchest-sdk.git@${sdk_branch}#su
     networkx==2.4
 
 # Install our internal libraries
-COPY ./lib /src
+COPY ./lib/python /src
 RUN pip3 install -e /src/orchest-internals/
 
 COPY ./orchest/memory-server/app /app

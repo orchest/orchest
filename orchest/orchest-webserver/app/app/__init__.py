@@ -6,9 +6,6 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
-from flask import Flask, send_from_directory
-from app.config import CONFIG_CLASS
-from apscheduler.schedulers.background import BackgroundScheduler
 
 import os
 import logging
@@ -18,11 +15,15 @@ import requests
 import uuid
 import atexit
 
+from flask import Flask, send_from_directory
+from app.config import CONFIG_CLASS
+from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
 from subprocess import Popen
-
 from app.views import register_views
 from app.connections import db
+from app.utils import get_user_conf
+
 
 def create_app():
 
@@ -33,9 +34,8 @@ def create_app():
 
     # read directory mount based config into Flask config
     try:
-        with open("/config/config.json", 'r') as f:
-            conf_data = json.load(f)
-            app.config.update(conf_data)
+        conf_data = get_user_conf()
+        app.config.update(conf_data)
     except Exception as e:
         logging.warning("Failed to load config.json")
 

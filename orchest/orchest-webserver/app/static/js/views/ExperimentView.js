@@ -1,11 +1,11 @@
 import React from 'react';
-import MDCTabBarReact from '../mdc-components/MDCTabBarReact';
-import MDCDataTableReact from '../mdc-components/MDCDataTableReact';
-import MDCTextFieldReact from '../mdc-components/MDCTextFieldReact';
+import MDCTabBarReact from '../lib/mdc-components/MDCTabBarReact';
+import MDCDataTableReact from '../lib/mdc-components/MDCDataTableReact';
+import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 import ParameterEditor from '../components/ParameterEditor';
 import SearchableTable from '../components/SearchableTable';
-import { makeRequest, uuidv4, PromiseManager, makeCancelable } from '../utils/all';
-import MDCButtonReact from '../mdc-components/MDCButtonReact';
+import { makeRequest, uuidv4, PromiseManager, makeCancelable } from '../lib/utils/all';
+import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import ParamTree from '../components/ParamTree';
 import PipelineView from './PipelineView';
 
@@ -53,9 +53,11 @@ class ExperimentView extends React.Component {
             });
 
         }).catch((e) => {
-            this.setState({
-                refreshing: false,
-            });
+            if(!e.isCanceled){
+                this.setState({
+                    refreshing: false,
+                });
+            }
         })
 
         
