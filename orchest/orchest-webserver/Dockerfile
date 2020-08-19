@@ -24,10 +24,11 @@ RUN pip3 install Flask \
 COPY ./lib/python /src
 RUN pip3 install -e /src/orchest-internals
 
+# Application
+COPY ./orchest/orchest-webserver/app /app
+
 # Internal JS library
 COPY ./lib/javascript /app/static/js/lib
-
-COPY ./orchest/orchest-webserver/app /app
 
 WORKDIR /app/static/
 RUN npm install

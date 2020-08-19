@@ -10,10 +10,12 @@ RUN pip3 install Flask==1.1.1 \
 COPY ./lib/python /src
 RUN pip3 install -e /src/orchest-internals/
 
+# Application
+COPY ./orchest/auth-server/app /app
+
 # Internal JS library
 COPY ./lib/javascript /app/app/static/js/src/lib
 
-COPY ./orchest/auth-server/app /app
 WORKDIR /app
 
 # In case we forgot to update the first RUN command accordingly to the
