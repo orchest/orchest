@@ -1,0 +1,13 @@
+Flask
+flask_sqlalchemy
+flask_restful
+flask-marshmallow
+marshmallow-sqlalchemy
+Flask-Migrate
+requests
+APScheduler
+pyinotify
+nbformat
+nbconvert
+Werkzeug==0.16.0
+-e ../../../lib/python/orchest-internals
