@@ -24,7 +24,9 @@ def get_user_conf():
 
     try:
         with open("/config/config.json", 'r') as f:
-            conf_data = json.load(f)
+            config = json.load(f)
+
+        conf_data.update(config)
     except Exception as e:
         logging.debug(e)
 
