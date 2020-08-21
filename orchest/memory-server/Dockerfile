@@ -5,17 +5,19 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && apt-get purge -y --auto-remove \
     && rm -rf /var/lib/apt/lists/*
+
+# We can simply copy the entire build context, because in the 
+# dockerignore we specified precisely what we want to include in the
+# image.
+COPY ./ /orchest/
+
+WORKDIR /orchest/orchest/memory-server
+RUN pip3 install -r requirements.txt
+
+# Since we want to be able to specify the SDK branch, we have to manually
+# install that too. Overwriting the default master branch from the 
+# requirements.txt
 ARG sdk_branch=master
+RUN pip3 install git+https://github.com/orchest/orchest-sdk.git@${sdk_branch}#subdirectory=python
 
-# Installing the requirements here before copying, allows us to faster
-# rebuild containers by using the cache.
-RUN pip3 install git+https://github.com/orchest/orchest-sdk.git@${sdk_branch}#subdirectory=python \
-    networkx==2.4
-
-# Install our internal libraries
-COPY ./lib/python /src
-RUN pip3 install -e /src/orchest-internals/
-
-COPY ./orchest/memory-server/app /app
-WORKDIR /app
-CMD ["python", "main.py"]
+CMD ["python", "app/main.py"]
