@@ -137,6 +137,7 @@ IMAGES += [
     "orchestsoftware/custom-base-kernel-py:latest",
     "orchestsoftware/custom-base-kernel-r:latest",
     "orchestsoftware/memory-server:latest",
+    "orchestsoftware/orchest-ctl:latest",
 ]
 
 
