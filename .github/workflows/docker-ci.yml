@@ -242,13 +242,13 @@ jobs:
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/r-notebook-runnable
-        README_FILEPATH: orchest/custom-images/runnable-images/r-notebook-runnable/README.md
+        README_FILEPATH: orchest/custom-images/r-notebook-runnable/README.md
 
     - name: Push README files to DockerHub scipy-notebook-runnable
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/scipy-notebook-runnable
-        README_FILEPATH: orchest/custom-images/runnable-images/scipy-notebook-runnable/README.md
+        README_FILEPATH: orchest/custom-images/scipy-notebook-runnable/README.md
 
     - name: Push README files to DockerHub custom-base-kernel-r
       uses: peter-evans/dockerhub-description@v2
