@@ -326,6 +326,11 @@ def stop():
 
     for running_container in running_containers:
         if len(running_container.image.tags) > 0 and running_container.image.tags[0] in IMAGES:
+            
+            # don't kill orchest-ctl itself
+            if running_container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
+                continue
+
             logging.info("Killing container %s" % running_container.name)
             try:
                 running_container.kill()
