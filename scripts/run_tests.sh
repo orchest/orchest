@@ -61,7 +61,7 @@ do
         virtualenv -p python3 "$VENV" > /dev/null 2>&1
     fi
 
-    if [ $USE_VENV ]; then
+    if $USE_VENV; then
         source $VENV/bin/activate
     fi
 
@@ -89,7 +89,7 @@ do
     python -m pytest -v --disable-warnings --tb=$TRACEBACK tests
 
     # Deactivate the virtualenv.
-    if [ $USE_VENV ]; then
+    if $USE_VENV; then
         deactivate
     fi
     echo
