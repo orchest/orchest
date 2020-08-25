@@ -41,10 +41,6 @@ def _write_server_info_to_file(server_info: Dict[str, Any],
 
 
 def main():
-    # This import should not be done w.r.t. the package. Instead this
-    # file is run as a module, since it is executed in a subprocess.
-    from config import NOTEBOOK_DIR
-
     # Add default options.
     # TODO: don't allow to run as root. But to make that work, the
     #       docker image has to be changed in order to allow another
@@ -55,7 +51,6 @@ def main():
         '--debug',
         '--ip=0.0.0.0',
         '--port=8888',
-        f'--notebook-dir={NOTEBOOK_DIR}'
     ]
 
     sys.argv.extend(formatted_args)

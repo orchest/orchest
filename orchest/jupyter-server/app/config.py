@@ -1,6 +1,12 @@
+import os
+
+
 class Config:
     DEBUG = False
     TESTING = False
+
+    # TODO: use internal libary
+    NOTEBOOK_DIR = '/pipeline-dir'
 
 
 class ProductionConfig(Config):
@@ -21,6 +27,9 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     # This config is used by the tests.
     TESTING = True
+
+    abs_path = os.path.dirname(os.path.abspath(__file__))
+    NOTEBOOK_DIR = os.path.join(abs_path, 'app', 'tmp')
 
 
 # ---- CONFIGURATIONS ----
