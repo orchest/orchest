@@ -1,6 +1,0 @@
-*
-
-!orchest/auth-server/app/
-!lib
-
-orchest/auth-server/app/app/static/js/src/lib/

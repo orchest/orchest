@@ -1,7 +1,0 @@
-*
-
-!orchest/orchest-webserver/app/
-!lib
-
-**/node_modules*
-orchest/orchest-webserver/app/static/js/lib/

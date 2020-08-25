@@ -6,10 +6,8 @@ RUN apt-get update \
     && apt-get purge -y --auto-remove \
     && rm -rf /var/lib/apt/lists/*
 
-# We can simply copy the entire build context, because in the 
-# dockerignore we specified precisely what we want to include in the
-# image.
-COPY ./ /orchest/
+RUN makedir -p /orchest/orchest/memory-server
+COPY ./ /orchest/orchest/memory-server/
 
 WORKDIR /orchest/orchest/memory-server
 RUN pip3 install -r requirements.txt

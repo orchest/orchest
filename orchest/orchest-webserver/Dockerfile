@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 # Install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
-# Get the orchest application, specifically the orchest-webserver
-COPY ./ /orchest/
+RUN makedir -p /orchest/orchest/orchest-webserver
+COPY ./ /orchest/orchest/orchest-webserver/
 WORKDIR /orchest/orchest/orchest-webserver/app
 
 RUN pip3 install -r requirements.txt

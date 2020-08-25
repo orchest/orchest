@@ -4,8 +4,9 @@ RUN python3 -m pip install docker
 
 USER root
 
-COPY ./orchest/orchest-ctl/app /app
+RUN makedir -p /orchest/orchest/orchest-ctl
+COPY ./ /orchest/orchest/orchest-ctl/
 
-WORKDIR /app
+WORKDIR /orchest/orchest/orchest-ctl/app
 
 ENTRYPOINT ["python3", "main.py"]
