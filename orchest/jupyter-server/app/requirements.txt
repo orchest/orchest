@@ -1,6 +1,5 @@
 flask-restplus==0.13.0
 Flask-SocketIO==4.2.1
 jupyterlab==2.1.0
-pytest==5.4.1
 requests==2.23.0
 Werkzeug==0.16.1

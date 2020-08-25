@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # To display help run this script with the "--help" option.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -55,7 +57,7 @@ mkdir -p $VENVS_DIR
 for SERVICE in ${SERVICES[@]}
 do
     VENV="$VENVS_DIR/$SERVICE"
-    if [ ! -d $VENV -a $USE_VENV ]; then
+    if [ ! -d $VENV ] && $USE_VENV; then
         echo "[$SERVICE]: Creating virtualenv..."
         # TODO: python3 should map to 3.7 specifically?
         virtualenv -p python3 "$VENV" > /dev/null 2>&1
@@ -82,7 +84,12 @@ do
     fi
 
     cd $REQ_DIR
-    pip install -r requirements.txt pytest > /dev/null 2>&1
+    if $USE_VENV; then
+        pip install -r requirements.txt pytest > /dev/null
+    else
+        pip install -r requirements.txt pytest
+    fi
+
 
     # Run tests.
     cd $TEST_DIR
