@@ -86,7 +86,7 @@ do
 
     # Run tests.
     cd $TEST_DIR
-    python -m pytest -v --disable-warnings --tb=$TRACEBACK
+    python -m pytest -v --disable-warnings --tb=$TRACEBACK tests
 
     # Deactivate the virtualenv.
     if [ $USE_VENV ]; then
