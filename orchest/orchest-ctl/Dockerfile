@@ -1,5 +1,4 @@
 FROM jupyter/minimal-notebook:04f7f60d34a6
-# FROM jupyter/base-notebook
 
 RUN python3 -m pip install docker
 

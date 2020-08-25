@@ -51,13 +51,6 @@ CONTAINER_MAPPING = {
         ],
 
     },
-    "orchestsoftware/nginx-proxy:latest": {
-        "name": "nginx-proxy",
-        "ports": {
-            "80/tcp": 8000,
-            "443/tcp": 443,
-        }
-    },
     "orchestsoftware/orchest-webserver:latest": {
         "name": "orchest-webserver",
         "environment": {
@@ -93,6 +86,17 @@ CONTAINER_MAPPING = {
             },
         ]
     },
+    "rabbitmq:3": {
+        "name": "rabbitmq-server",
+        "hostname": "rabbitmq-hostname",
+        "mounts": [
+            {
+                # Persisting RabbitMQ Queues.
+                "source": os.path.join(HOST_USER_DIR, DURABLE_QUEUES_DIR),
+                "target": "/var/lib/rabbitmq/mnesia",
+            }
+        ],
+    },
     "orchestsoftware/auth-server:latest": {
         "name": "auth-server",
         "environment": {},
@@ -107,17 +111,13 @@ CONTAINER_MAPPING = {
             },
         ],
     },
-    "rabbitmq:3": {
-        "name": "rabbitmq-server",
-        "hostname": "rabbitmq-hostname",
-        "mounts": [
-            {
-                # Persisting RabbitMQ Queues.
-                "source": os.path.join(HOST_USER_DIR, DURABLE_QUEUES_DIR),
-                "target": "/var/lib/rabbitmq/mnesia",
-            }
-        ],
-    }
+    "orchestsoftware/nginx-proxy:latest": {
+        "name": "nginx-proxy",
+        "ports": {
+            "80/tcp": 8000,
+            "443/tcp": 443,
+        }
+    },
 }
 
 # TODO: shutting down can be done easier by just shutting down all the
