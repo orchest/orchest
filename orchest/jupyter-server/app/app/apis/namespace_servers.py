@@ -1,10 +1,9 @@
 import asyncio
 import json
 import os
-import requests
 import subprocess
 
-from flask import request
+from flask import current_app, request
 from flask_restplus import Namespace, Resource, fields
 
 from app.utils import shutdown_jupyter_server
@@ -105,6 +104,7 @@ class Server(Resource):
             f'--{arg}={value}'
             for arg, value in post_data.items()
         ])
+        args.extend([f'--notebook-dir={current_app.config["NOTEBOOK_DIR"]}'])
 
         # Need to start a new event loop to start a subprocess.
         asyncio.set_event_loop(asyncio.new_event_loop())
