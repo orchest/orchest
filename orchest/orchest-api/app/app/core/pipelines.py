@@ -198,7 +198,7 @@ class PipelineStepRunner:
         # to check whether the resolve order of the pipeline is correct.
         pipeline_dir: str = run_config['pipeline_dir']
 
-        image: str = run_config['runnable_image_mapping'][self.properties['image']]
+        image: str = self.properties['image']
 
         # Generate binds.
         binds = [f'{pipeline_dir}:{_config.PIPELINE_DIR}'] + get_dynamic_binds()

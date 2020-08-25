@@ -495,8 +495,8 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
             'EG_MIRROR_WORKING_DIRS=True',
             'EG_LIST_KERNELS=True',
             ('EG_KERNEL_WHITELIST=['
-                '"orchestsoftware-scipy-notebook-augmented_docker_python",'
-                '"orchestsoftware-r-notebook-augmented_docker_ir"'
+                '"orchestsoftware_custom-base-kernel-py_docker_python",'
+                '"orchestsoftware_custom-base-kernel-r_docker_ir"'
             ']'),
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',

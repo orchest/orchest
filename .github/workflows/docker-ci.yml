@@ -95,50 +95,6 @@ jobs:
         tags: latest
         dockerfile: orchest/orchest-ctl/Dockerfile
 
-  custom-images:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'custom-images' || github.event.client_payload.jobs == 'sdk'
-    env:
-      DOCKER_BUILDKIT: 1
-  
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push r-notebook-augmented
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/r-notebook-augmented
-        tags: latest
-        dockerfile: orchest/custom-images/r-notebook-augmented/Dockerfile
-
-    - name: Build and push scipy-notebook-augmented
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/scipy-notebook-augmented
-        tags: latest
-        dockerfile: orchest/custom-images/scipy-notebook-augmented/Dockerfile
-
-    - name: Build and push r-notebook-runnable
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/r-notebook-runnable
-        tags: latest
-        dockerfile: orchest/custom-images/r-notebook-runnable/Dockerfile
-
-    - name: Build and push scipy-notebook-runnable
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/scipy-notebook-runnable
-        tags: latest
-        dockerfile: orchest/custom-images/scipy-notebook-runnable/Dockerfile
-
   kernels:
     runs-on: ubuntu-latest
     if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'kernels' || github.event.client_payload.jobs == 'sdk'
@@ -225,30 +181,6 @@ jobs:
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/orchest-ctl
         README_FILEPATH: orchest/orchest-ctl/README.md
-
-    - name: Push README files to DockerHub r-notebook-augmented
-      uses: peter-evans/dockerhub-description@v2
-      env:
-        DOCKERHUB_REPOSITORY: orchestsoftware/r-notebook-augmented
-        README_FILEPATH: orchest/custom-images/r-notebook-augmented/README.md
-
-    - name: Push README files to DockerHub scipy-notebook-augmented
-      uses: peter-evans/dockerhub-description@v2
-      env:
-        DOCKERHUB_REPOSITORY: orchestsoftware/scipy-notebook-augmented
-        README_FILEPATH: orchest/custom-images/scipy-notebook-augmented/README.md
-
-    - name: Push README files to DockerHub r-notebook-runnable
-      uses: peter-evans/dockerhub-description@v2
-      env:
-        DOCKERHUB_REPOSITORY: orchestsoftware/r-notebook-runnable
-        README_FILEPATH: orchest/custom-images/r-notebook-runnable/README.md
-
-    - name: Push README files to DockerHub scipy-notebook-runnable
-      uses: peter-evans/dockerhub-description@v2
-      env:
-        DOCKERHUB_REPOSITORY: orchestsoftware/scipy-notebook-runnable
-        README_FILEPATH: orchest/custom-images/scipy-notebook-runnable/README.md
 
     - name: Push README files to DockerHub custom-base-kernel-r
       uses: peter-evans/dockerhub-description@v2

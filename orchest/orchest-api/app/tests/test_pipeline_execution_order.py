@@ -79,9 +79,6 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     filler_for_task_id = '1'
     run_config = {
         'pipeline_dir': None,
-        'runnable_image_mapping': {
-            0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9
-        },
         'run_endpoint': None
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))

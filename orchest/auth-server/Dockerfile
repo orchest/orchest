@@ -9,6 +9,7 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -
 # Get the orchest application, specifically the auth-server
 RUN mkdir -p /orchest/orchest/auth-server/
 COPY ./ /orchest/orchest/auth-server/
+COPY ./lib /orchest/lib
 WORKDIR /orchest/orchest/auth-server/app
 
 RUN pip3 install -r requirements.txt

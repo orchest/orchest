@@ -1019,7 +1019,7 @@ class PipelineView extends React.Component {
                 "name": "python",
                 "display_name": "Python 3"
             },
-            "image": "orchestsoftware/scipy-notebook-augmented",
+            "image": "orchestsoftware/custom-base-kernel-py",
             // TODO: incorporate pipeline step level resource control
             // "memory": "1024",
             // "vcpus": "1",

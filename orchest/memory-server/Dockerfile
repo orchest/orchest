@@ -6,8 +6,9 @@ RUN apt-get update \
     && apt-get purge -y --auto-remove \
     && rm -rf /var/lib/apt/lists/*
 
-RUN makedir -p /orchest/orchest/memory-server
+RUN mkdir -p /orchest/orchest/memory-server
 COPY ./ /orchest/orchest/memory-server/
+COPY ./lib /orchest/lib
 
 WORKDIR /orchest/orchest/memory-server
 RUN pip3 install -r requirements.txt

@@ -130,10 +130,6 @@ IMAGES = list(CONTAINER_MAPPING.keys())
 IMAGES += [
     "elyra/enterprise-gateway:2.2.0rc2",
     "orchestsoftware/jupyter-server:latest",
-    "orchestsoftware/r-notebook-augmented:latest",
-    "orchestsoftware/r-notebook-runnable:latest",
-    "orchestsoftware/scipy-notebook-runnable:latest",
-    "orchestsoftware/scipy-notebook-augmented:latest",
     "orchestsoftware/custom-base-kernel-py:latest",
     "orchestsoftware/custom-base-kernel-r:latest",
     "orchestsoftware/memory-server:latest",

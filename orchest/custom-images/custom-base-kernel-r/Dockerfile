@@ -1,27 +1,28 @@
 # Ubuntu 18.04.1 LTS Bionic
 FROM elyra/kernel-r:2.2.0rc2
 
+USER root
+
 RUN [ "mkdir", "/orchest"]
 WORKDIR /orchest
 
-COPY ./orchest/custom-images/custom-base-kernel-r/augment.sh .
-COPY ./orchest/custom-images/runnable-images-shared/bootscript.sh .
+COPY ./custom-base-kernel-r/*.sh /orchest/
+COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 
 # Run augment script
-USER $NB_UID
 ARG sdk_branch=master
-RUN ./augment.sh ${sdk_branch}
+RUN ./augment-root.sh ${sdk_branch}
 
 # Install our internal libraries
-USER root
-COPY ./lib/python /src
-RUN pip install -e /src/orchest-internals/
+RUN mkdir -p /home/jovyan/src
+COPY ./lib/python /home/jovyan/src
+RUN pip install -e /home/jovyan/src/orchest-internals/
 
 # Copy run script
 RUN [ "mkdir", "/runner"]
 WORKDIR /runner
 
-COPY ./orchest/custom-images/runnable-images-shared/run.py .
+COPY ./runnable-shared/run.py /runner
 RUN ["chmod", "+x", "run.py"]
 
 USER $NB_UID
