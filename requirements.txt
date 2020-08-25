@@ -1,3 +1,0 @@
-# These requirements are for the util scripts (.sh and .py) in the root directory of the Orchest project
-pyinotify
-docker
