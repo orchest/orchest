@@ -236,7 +236,7 @@ class PipelineView extends React.Component {
                         if(otherStep.file_path === step.file_path){
                             pipelineValidation.valid = false;
                             pipelineValidation.errors.push(
-                                `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across Notebooks.`
+                                `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across pipeline steps.`
                             )
 
                             // found an error, stop checking

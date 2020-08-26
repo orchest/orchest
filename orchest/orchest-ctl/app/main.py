@@ -363,7 +363,7 @@ def dev_mount_inject():
                 "orchest",
                 "orchest-webserver",
                 "app"),
-            "target": "/app"
+            "target": "/orchest/orchest/orchest-webserver/app"
         }
     ]
 
@@ -385,7 +385,7 @@ def dev_mount_inject():
                 "orchest",
                 "auth-server",
                 "app"),
-            "target": "/app"
+            "target": "/orchest/orchest/auth-server/app"
         }
     ]
 
@@ -408,7 +408,7 @@ def dev_mount_inject():
                 "orchest-api",
                 "app",
                 "app"),
-            "target": "/app/app"
+            "target": "/orchest/orchest/orchest-api/app/app"
         }
     ]
     orchest_api_spec["ports"] = {
