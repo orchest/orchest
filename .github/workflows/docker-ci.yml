@@ -10,152 +10,29 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  nginx-proxy:
+  buildpush:
     runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'nginx-proxy'
     env:
-      DOCKER_BUILDKIT: 1
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+    strategy:
+      matrix:
+        image: [-i orchest-api -i orchest-webserver -i auth-server, \
+                -i jupyter-server, \
+                -i orchest-ctl -i custom-base-kernel-py -i custom-base-kernel-r, \
+                -i nginx-proxy, \
+                -i celery-worker -i memory-server]
   
     steps:
     - uses: actions/checkout@v2
-    - name: Build and push nginx-proxy
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/nginx-proxy
-        tags: latest
-        dockerfile: orchest/nginx-proxy/Dockerfile
+
+    - name: Build and push image
+      run: |
+          bash ./scripts/build_container.sh ${{ matrix.image }} -v
+          echo "-----------"
+          bash ./scripts/push_container.sh ${{ matrix.image }}
       
-  memory-server:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'memory-server' || github.event.client_payload.jobs == 'sdk'
-    env:
-      DOCKER_BUILDKIT: 1
-  
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push memory-server
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/memory-server
-        tags: latest
-        dockerfile: orchest/memory-server/Dockerfile
-
-  auth-server:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'auth-server'
-    env:
-      DOCKER_BUILDKIT: 1
-  
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push auth-server
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/auth-server
-        tags: latest
-        dockerfile: orchest/auth-server/Dockerfile
-
-  celery-worker:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'celery-worker'
-    env:
-      DOCKER_BUILDKIT: 1
-  
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push celery-worker
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/celery-worker
-        tags: latest
-        dockerfile: orchest/orchest-api/Dockerfile_celery
-
-  orchest-ctl:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'orchest-ctl'
-    env:
-      DOCKER_BUILDKIT: 1
-  
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push orchest-ctl
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/orchest-ctl
-        tags: latest
-        dockerfile: orchest/orchest-ctl/Dockerfile
-
-  kernels:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'kernels' || github.event.client_payload.jobs == 'sdk'
-    env:
-      DOCKER_BUILDKIT: 1
-  
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push custom-base-kernel-r
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/custom-base-kernel-r
-        tags: latest
-        dockerfile: orchest/custom-images/custom-base-kernel-r/Dockerfile
-
-    - name: Build and push custom-base-kernel-py
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/custom-base-kernel-py
-        tags: latest
-        dockerfile: orchest/custom-images/custom-base-kernel-py/Dockerfile
-
-  web-applications:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.jobs == 'all' || github.event.client_payload.jobs == 'web-applications'
-    env:
-      DOCKER_BUILDKIT: 1
-  
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push orchest-api
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/orchest-api
-        tags: latest
-        dockerfile: orchest/orchest-api/Dockerfile
-
-    - name: Build and push jupyter-server
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/jupyter-server
-        tags: latest
-        dockerfile: orchest/jupyter-server/Dockerfile
-    
-    - name: Build and push orchest-webserver
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: orchestsoftware/orchest-webserver
-        tags: latest
-        dockerfile: orchest/orchest-webserver/Dockerfile
-  
   push-readme:
     runs-on: ubuntu-latest
     env:

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Use another Docker backend for building.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 IMGS=()
@@ -72,7 +74,7 @@ containsElement () {
 }
 
 run_build () {
-    
+
     image=$1
     build=$2
     build_ctx=$3
@@ -103,7 +105,7 @@ run_build () {
         echo "$output"
     fi
 
-    
+
 }
 
 # Build the images.
@@ -146,7 +148,7 @@ do
             --build-arg sdk_branch=$SDK_BRANCH \
             --no-cache=$NO_CACHE \
             $build_ctx)
-        
+
     fi
 
     if [ $IMG == "custom-base-kernel-r" ]; then
@@ -250,14 +252,14 @@ D=0
 for i in "${CLEANUP_BUILD_CTX[@]}"
 do
     image=${CLEANUP_IMAGES[$D]}
-    
+
     if ! [ -z "$i" ]; then
 
         # silent fail because build context can be shared and cleanup can already have happend
         if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
-            rm -r $i/lib 2> /dev/null 
+            rm -r $i/lib 2> /dev/null
         fi
-        rm $i/.dockerignore 2> /dev/null 
+        rm $i/.dockerignore 2> /dev/null
     fi
     D=$(expr $D + 1)
 done
