@@ -1,0 +1,17 @@
+# Python
+**/*.pyc
+**/venv*
+**/__pycache__*
+**/.eggs*
+**/eggs*
+
+# MyPy
+**/.mypy_cache*
+**/.dmypy.json
+**/dmypy.json
+
+# Front end
+**/node_modules*
+
+# State
+**/*.db

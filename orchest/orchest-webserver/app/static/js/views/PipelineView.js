@@ -236,7 +236,7 @@ class PipelineView extends React.Component {
                         if(otherStep.file_path === step.file_path){
                             pipelineValidation.valid = false;
                             pipelineValidation.errors.push(
-                                `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across Notebooks.`
+                                `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across pipeline steps.`
                             )
 
                             // found an error, stop checking
@@ -1019,7 +1019,7 @@ class PipelineView extends React.Component {
                 "name": "python",
                 "display_name": "Python 3"
             },
-            "image": "orchestsoftware/scipy-notebook-augmented",
+            "image": "orchestsoftware/custom-base-kernel-py",
             // TODO: incorporate pipeline step level resource control
             // "memory": "1024",
             // "vcpus": "1",
@@ -1213,6 +1213,7 @@ class PipelineView extends React.Component {
 
         if(!this.state.backend.running){
             orchest.alert("Error", "There is no active session. Please start the session first.");
+            return;
         }
 
         if (this.state.pipelineRunning) {

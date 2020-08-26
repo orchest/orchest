@@ -198,7 +198,7 @@ class PipelineStepRunner:
         # to check whether the resolve order of the pipeline is correct.
         pipeline_dir: str = run_config['pipeline_dir']
 
-        image: str = run_config['runnable_image_mapping'][self.properties['image']]
+        image: str = self.properties['image']
 
         # Generate binds.
         binds = [f'{pipeline_dir}:{_config.PIPELINE_DIR}'] + get_dynamic_binds()
@@ -207,7 +207,7 @@ class PipelineStepRunner:
             'Image': image,
             'Env': [f'STEP_UUID={self.properties["uuid"]}'],
             'HostConfig': {'Binds': binds},
-            'Cmd': [self.properties['file_path']],
+            'Cmd': ["/orchest/bootscript.sh", "runnable", self.properties['file_path']],
             'NetworkingConfig': {
                 'EndpointsConfig': {
                     'orchest': {}  # TODO: should not be hardcoded.

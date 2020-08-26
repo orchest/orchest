@@ -24,10 +24,16 @@ class PipelineDetailsLogs extends React.Component {
 
   componentWillUnmount() {
     clearInterval(this.logFetchInterval);
-
-    
   }
 
+  componentDidUpdate(prevProps){
+    if(this.props.step.uuid != prevProps.step.uuid){
+      this.setState({
+        logs: ""
+      })
+    }
+  }
+  
   fetchLog() {
 
     let logURL = "/async/logs/" + this.props.pipeline.uuid + "/" + this.props.step.uuid;
@@ -48,8 +54,14 @@ class PipelineDetailsLogs extends React.Component {
         console.warn("Could not fetch logs.");
         console.log(json);
       }
+    }).catch((error) => {
+      if(!error.isCanceled){
+        // failed to fetch logs, clear log state
+        this.setState({
+          "logs": ""
+        })
+      }
     })
-
     
   }
   render() {

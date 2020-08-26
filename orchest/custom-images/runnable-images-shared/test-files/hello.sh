@@ -1,1 +1,0 @@
-echo "HELLO, GOOD SHELL"

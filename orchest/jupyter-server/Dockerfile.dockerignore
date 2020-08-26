@@ -1,8 +1,0 @@
-*
-
-!orchest/jupyter-server/app/
-!orchest/jupyter-server/jupyter_notebook_config.py
-!orchest/jupyter-server/package-lock.json
-!orchest/jupyter-server/patches/
-
-**/node_modules*

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Use another Docker backend for building.
-export DOCKER_BUILDKIT=1
+set -e
 
+# Use another Docker backend for building.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 IMGS=()
 SDK_BRANCH="master"
@@ -43,10 +43,6 @@ if [ ${#IMGS[@]} -eq 0 ]; then
     IMGS=(
         "jupyter-server"
         "celery-worker"
-        "scipy-notebook-augmented"
-        "r-notebook-augmented"
-        "scipy-notebook-runnable"
-        "r-notebook-runnable"
         "custom-base-kernel-py"
         "custom-base-kernel-r"
         "orchest-api"
@@ -58,11 +54,43 @@ if [ ${#IMGS[@]} -eq 0 ]; then
     )
 fi
 
+LIB_IMAGES=(
+    "custom-base-kernel-py"
+    "custom-base-kernel-r"
+    "orchest-api"
+    "orchest-webserver"
+    "memory-server"
+    "auth-server"
+)
+
+CLEANUP_BUILD_CTX=()
+CLEANUP_IMAGES=()
+
+containsElement () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
 run_build () {
 
-    echo [Building] $1
-
+    image=$1
     build=$2
+    build_ctx=$3
+
+    echo [Building] $image
+
+    # copy start
+    if ! [ -z "$build_ctx" ]; then
+
+        cp $DIR/../.dockerignore $build_ctx/.dockerignore
+
+        if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
+            cp -r $DIR/../lib $build_ctx/lib
+        fi
+    fi
+    # copy end
 
     if $VERBOSE; then
         ${build[@]}
@@ -76,155 +104,166 @@ run_build () {
         echo [Building] $1 failed.
         echo "$output"
     fi
+
+
 }
 
 # Build the images.
 for IMG in ${IMGS[@]}
 do
     unset build
+    unset build_ctx
 
     # JupyterLab server
     if [ $IMG == "jupyter-server" ]; then
 
+        build_ctx=$DIR/../orchest/jupyter-server
         build=(docker build \
             -t orchestsoftware/jupyter-server \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/jupyter-server/Dockerfile \
-            $DIR/../)
+            $build_ctx)
 
     fi
 
     if [ $IMG == "celery-worker" ]; then
 
+        build_ctx=$DIR/../orchest/orchest-api
         build=(docker build \
             -t orchestsoftware/celery-worker \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/orchest-api/Dockerfile_celery \
-            $DIR/../)
+            $build_ctx)
 
     fi
 
     # custom enterprise gateway kernel images
     # install orchest-sdk
     if [ $IMG == "custom-base-kernel-py" ]; then
+
+        build_ctx=$DIR/../orchest/custom-images
         build=(docker build \
             -t orchestsoftware/custom-base-kernel-py \
             -f $DIR/../orchest/custom-images/custom-base-kernel-py/Dockerfile \
             --build-arg sdk_branch=$SDK_BRANCH \
             --no-cache=$NO_CACHE \
-            $DIR/../)
+            $build_ctx)
+
     fi
 
     if [ $IMG == "custom-base-kernel-r" ]; then
+
+        build_ctx=$DIR/../orchest/custom-images
         build=(docker build \
             -t orchestsoftware/custom-base-kernel-r \
             -f $DIR/../orchest/custom-images/custom-base-kernel-r/Dockerfile \
             --build-arg sdk_branch=$SDK_BRANCH \
             --no-cache=$NO_CACHE \
-            $DIR/../)
+            $build_ctx)
     fi
 
     # application images
     if [ $IMG == "orchest-api" ]; then
+
+        build_ctx=$DIR/../orchest/orchest-api
         build=(docker build \
             -t orchestsoftware/orchest-api \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/orchest-api/Dockerfile \
-            $DIR/../)
+            $build_ctx)
     fi
 
     if [ $IMG == "orchest-ctl" ]; then
+
+        build_ctx=$DIR/../orchest/orchest-ctl
         build=(docker build \
             -t orchestsoftware/orchest-ctl \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/orchest-ctl/Dockerfile \
-            $DIR/../)
+            $build_ctx)
     fi
 
     if [ $IMG == "orchest-webserver" ]; then
+
+        # Cleanup dev symlinks
+        $DIR/dev_compile_cleanup.sh
+
+        build_ctx=$DIR/../orchest/orchest-webserver
         build=(docker build \
             -t orchestsoftware/orchest-webserver \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/orchest-webserver/Dockerfile \
-            $DIR/../)
+            $build_ctx)
     fi
 
     if [ $IMG == "nginx-proxy" ]; then
+        build_ctx=$DIR/../orchest/nginx-proxy
         build=(docker build \
             -t orchestsoftware/nginx-proxy \
             --no-cache=$NO_CACHE \
             --build-arg enable_ssl=$ENABLE_SSL \
             -f $DIR/../orchest/nginx-proxy/Dockerfile \
-            $DIR/../)
+            $build_ctx)
     fi
 
     if [ $IMG == "auth-server" ]; then
+
+        # Cleanup dev symlinks
+        $DIR/dev_compile_cleanup.sh
+
+        build_ctx=$DIR/../orchest/auth-server
         build=(docker build \
             -t orchestsoftware/auth-server \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/auth-server/Dockerfile \
-            $DIR/../)
+            $build_ctx)
     fi
 
     # installs orchest-sdk
     if [ $IMG == "memory-server" ]; then
+        build_ctx=$DIR/../orchest/memory-server
         build=(docker build \
             -t orchestsoftware/memory-server \
             --build-arg sdk_branch=$SDK_BRANCH \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/memory-server/Dockerfile \
-            $DIR/../)
-    fi
-
-    # augmented images
-    # install orchest-sdk
-    if [ $IMG == "scipy-notebook-augmented" ]; then
-        build=(docker build \
-            -t orchestsoftware/scipy-notebook-augmented \
-            --build-arg sdk_branch=$SDK_BRANCH \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/custom-images/scipy-notebook-augmented/Dockerfile \
-            $DIR/../)
-        
-        run_build $IMG $build
-        unset build
-    fi
-
-    if [ $IMG == "r-notebook-augmented" ]; then
-        build=(docker build \
-            -t orchestsoftware/r-notebook-augmented \
-            --build-arg sdk_branch=$SDK_BRANCH \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/custom-images/r-notebook-augmented/Dockerfile \
-            $DIR/../)
-
-        run_build $IMG $build
-        unset build
-    fi
-
-    # runnable images
-    if [ $IMG == "scipy-notebook-runnable" ]; then
-        build=(docker build -t orchestsoftware/scipy-notebook-runnable \
-            -f $DIR/../orchest/custom-images/scipy-notebook-runnable/Dockerfile \
-            --no-cache=$NO_CACHE \
-            $DIR/../)
-    fi
-
-    if [ $IMG == "r-notebook-runnable" ]; then
-        build=(docker build -t orchestsoftware/r-notebook-runnable \
-            -f $DIR/../orchest/custom-images/r-notebook-runnable/Dockerfile \
-            --no-cache=$NO_CACHE \
-            $DIR/../)
+            $build_ctx)
     fi
 
     if [ -n "$build" ]; then
+
+        CLEANUP_BUILD_CTX+=($build_ctx)
+        CLEANUP_IMAGES+=($IMG)
+
         if $VERBOSE; then
-            run_build $IMG $build
+            run_build $IMG $build $build_ctx
         else
-            run_build $IMG $build &
+            run_build $IMG $build $build_ctx &
         fi
     fi
 
 done
 
 wait < <(jobs -p)
+
+# build context clean up
+echo "Cleanup up build contexts..."
+D=0
+for i in "${CLEANUP_BUILD_CTX[@]}"
+do
+    image=${CLEANUP_IMAGES[$D]}
+
+    if ! [ -z "$i" ]; then
+
+        # silent fail because build context can be shared and cleanup can already have happend
+        if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
+            rm -r $i/lib 2> /dev/null
+        fi
+        rm $i/.dockerignore 2> /dev/null
+    fi
+    D=$(expr $D + 1)
+done
+# build context cleanup end
+
+echo "[Done]!"
+

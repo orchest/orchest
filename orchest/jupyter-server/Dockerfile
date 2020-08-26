@@ -15,7 +15,7 @@ RUN pip3 install flask_socketio \
 RUN mkdir /custom-pip
 WORKDIR /custom-pip
 RUN git clone  --branch v2.1.4 https://github.com/jupyterlab/jupyterlab.git
-COPY ./orchest/jupyter-server/patches/* /custom-pip/jupyterlab/
+COPY ./patches/* /custom-pip/jupyterlab/
 WORKDIR /custom-pip/jupyterlab/
 RUN git config --global user.email "ricklamers@gmail.com" ; \
     git config --global user.name "Rick Lamers"
@@ -39,6 +39,6 @@ RUN cp -r /custom-pip/jupyterlab/dev_mode/* /usr/local/share/jupyter/lab/
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 RUN mkdir /root/.jupyter/
-COPY ./orchest/jupyter-server/jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
+COPY ./jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 
-COPY ./orchest/jupyter-server/app /app
+COPY ./app /app

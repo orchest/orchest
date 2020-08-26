@@ -117,8 +117,5 @@ def test_pipeline_run_with_docker_containers(pipeline, monkeypatch):
     filler_for_task_id = '1'
     run_config = {
         'pipeline_dir': None,
-        'runnable_image_mapping': {
-            'hello-world': 'hello-world'
-        }
     }
     asyncio.run(pipeline.run(filler_for_task_id, run_config=run_config))

@@ -1,11 +1,28 @@
 # Ubuntu 18.04.1 LTS Bionic
 FROM elyra/kernel-r:2.2.0rc2
 
-# Run augment script (augmenting r-notebook)
 USER root
-COPY ./orchest/custom-images/r-notebook-augmented/augment.sh .
-RUN chmod +x ./augment.sh
 
-USER $NB_UID
+RUN [ "mkdir", "/orchest"]
+WORKDIR /orchest
+
+COPY ./custom-base-kernel-r/*.sh /orchest/
+COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
+
+# Run augment script
 ARG sdk_branch=master
-RUN ./augment.sh ${sdk_branch}
+RUN ./augment-root.sh ${sdk_branch}
+
+# Install our internal libraries
+RUN mkdir -p /home/jovyan/src
+COPY ./lib/python /home/jovyan/src
+RUN pip install -e /home/jovyan/src/orchest-internals/
+
+# Copy run script
+RUN [ "mkdir", "/runner"]
+WORKDIR /runner
+
+COPY ./runnable-shared/run.py /runner
+
+# Start bootscript that starts kernel or runnable
+CMD [ "/orchest/bootscript.sh" ]

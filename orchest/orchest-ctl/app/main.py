@@ -130,10 +130,6 @@ IMAGES = list(CONTAINER_MAPPING.keys())
 IMAGES += [
     "elyra/enterprise-gateway:2.2.0rc2",
     "orchestsoftware/jupyter-server:latest",
-    "orchestsoftware/r-notebook-augmented:latest",
-    "orchestsoftware/r-notebook-runnable:latest",
-    "orchestsoftware/scipy-notebook-runnable:latest",
-    "orchestsoftware/scipy-notebook-augmented:latest",
     "orchestsoftware/custom-base-kernel-py:latest",
     "orchestsoftware/custom-base-kernel-r:latest",
     "orchestsoftware/memory-server:latest",
@@ -367,7 +363,7 @@ def dev_mount_inject():
                 "orchest",
                 "orchest-webserver",
                 "app"),
-            "target": "/app"
+            "target": "/orchest/orchest/orchest-webserver/app"
         }
     ]
 
@@ -389,7 +385,7 @@ def dev_mount_inject():
                 "orchest",
                 "auth-server",
                 "app"),
-            "target": "/app"
+            "target": "/orchest/orchest/auth-server/app"
         }
     ]
 
@@ -412,7 +408,7 @@ def dev_mount_inject():
                 "orchest-api",
                 "app",
                 "app"),
-            "target": "/app/app"
+            "target": "/orchest/orchest/orchest-api/app/app"
         }
     ]
     orchest_api_spec["ports"] = {

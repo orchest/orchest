@@ -82,9 +82,6 @@ pipeline_run_config = Model('PipelineRunConfig', {
     'pipeline_dir': fields.String(
         required=True,
         description='Path to pipeline files'),
-    'runnable_image_mapping': fields.Raw(
-        required=True,
-        description='Mapping from used image to runnable image'),
 })
 
 pipeline_run_spec = Model('PipelineRunSpec', {

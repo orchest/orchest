@@ -26,6 +26,7 @@ def register_views(app, db):
     class DataSourceNameInUse(HTTPException):
         pass
 
+
     class DataSourceSchema(ma.Schema):
         class Meta:
             fields = ("name", "source_type", "connection_details")
@@ -33,8 +34,10 @@ def register_views(app, db):
     datasource_schema = DataSourceSchema()
     datasources_schema = DataSourceSchema(many=True)
 
+
     class ExperimentUuidInUse(HTTPException):
         pass
+
 
     class ExperimentSchema(ma.Schema):
         class Meta:
@@ -50,6 +53,7 @@ def register_views(app, db):
 
         return json_string, 404, {"content-type": "application/json"}
 
+
     def generate_gateway_kernel_name(image, kernel):
         base_image = image
         # derive gateway kernel from kernel + image name
@@ -59,6 +63,7 @@ def register_views(app, db):
             base_image = base_image.replace("/", "-")
 
         return base_image + "_docker_" + kernel
+
 
     def pipeline_set_notebook_kernels(pipeline_json):
 
@@ -94,6 +99,7 @@ def register_views(app, db):
                     logging.debug(
                         "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
 
+
     def get_experiment_args_from_pipeline_json(pipeline_json):
         experiment_args = {}
 
@@ -110,6 +116,7 @@ def register_views(app, db):
 
         return experiment_args
 
+
     def get_pipeline_directory_by_uuid(uuid, host_path=False, pipeline_run_uuid=None):
 
         pipelines_dir = get_pipelines_dir(
@@ -121,6 +128,7 @@ def register_views(app, db):
             pipeline_dir = os.path.join(pipelines_dir, pipeline_run_uuid)
 
         return pipeline_dir
+
 
     def get_pipelines_dir(host_path=False, pipeline_run_uuid=None):
 
@@ -145,6 +153,7 @@ def register_views(app, db):
 
         return pipeline_dir
 
+
     def generate_ipynb_from_template(step):
 
         # TODO: support additional languages to Python and R
@@ -160,6 +169,7 @@ def register_views(app, db):
             step["image"], step["kernel"]["name"])
 
         return json.dumps(template_json)
+
 
     def create_pipeline_files(pipeline_json):
 
@@ -196,6 +206,7 @@ def register_views(app, db):
 
                     file.write(file_content)
 
+
     def create_experiment_directory(experiment_uuid, pipeline_uuid):
         experiment_path = os.path.join(
             app.config["USER_DIR"], "experiments", pipeline_uuid, experiment_uuid)
@@ -204,6 +215,7 @@ def register_views(app, db):
         pipeline_path = os.path.join(
             app.config["USER_DIR"], "pipelines", pipeline_uuid)
         os.system("cp -R %s %s" % (pipeline_path, snapshot_path))
+
 
     def remove_experiment_directory(experiment_uuid, pipeline_uuid):
         experiment_pipeline_path = os.path.join(
@@ -217,6 +229,7 @@ def register_views(app, db):
         # remove pipeline directory if empty
         if os.path.isdir(experiment_pipeline_path) and not os.listdir(experiment_pipeline_path):
             os.system("rm -r %s" % (experiment_pipeline_path))
+
 
     def register_datasources(db, api, ma):
 
@@ -265,6 +278,7 @@ def register_views(app, db):
         api.add_resource(DataSourcesResource, "/store/datasources")
         api.add_resource(DataSourceResource,
                          "/store/datasources/<string:name>")
+
 
     def register_experiments(db, api, ma):
 
@@ -329,6 +343,7 @@ def register_views(app, db):
         api.add_resource(ExperimentResource,
                          "/store/experiments/<string:experiment_uuid>")
 
+
     def register_rest(app, db):
 
         errors = {
@@ -349,6 +364,7 @@ def register_views(app, db):
 
     register_rest(app, db)
 
+
     @app.route("/", methods=["GET"])
     def index():
 
@@ -359,6 +375,7 @@ def register_views(app, db):
 
         return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf())
 
+
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
     def catch_api_proxy_runs():
 
@@ -367,7 +384,6 @@ def register_views(app, db):
         # add image mapping
         # TODO: replace with dynamic mapping instead of hardcoded
         json_obj["run_config"] = {
-            "runnable_image_mapping": app.config["IMAGE_MAPPING"],
             "pipeline_dir": get_pipeline_directory_by_uuid(json_obj["pipeline_description"]["uuid"], host_path=True)
         }
 
@@ -375,6 +391,7 @@ def register_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
+
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
     def catch_api_proxy_sessions():
@@ -389,13 +406,13 @@ def register_views(app, db):
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
+
     @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
     def catch_api_proxy_experiments_post():
 
         json_obj = request.json
 
         json_obj["pipeline_run_spec"]["run_config"] = {
-            "runnable_image_mapping": app.config["IMAGE_MAPPING"],
             "host_user_dir": app.config["HOST_USER_DIR"]
         }
 
@@ -403,6 +420,7 @@ def register_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/", json=json_obj, stream=True)
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
+
 
     @app.route("/catch/api-proxy/api/experiments/<experiment_uuid>", methods=["GET"])
     def catch_api_proxy_experiments_get(experiment_uuid):
@@ -442,6 +460,7 @@ def register_views(app, db):
         else:
             return resp.raw.read(), resp.status_code
 
+
     @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
     def pipelines_delete(pipeline_uuid):
 
@@ -454,6 +473,7 @@ def register_views(app, db):
             os.system("rm -rf %s" % (pipeline_dir))
 
         return jsonify({"success": True})
+
 
     @app.route("/async/experiments/create", methods=["POST"])
     def experiments_create():
@@ -480,6 +500,7 @@ def register_views(app, db):
 
         return experiment_schema.dump(new_ex)
 
+
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():
 
@@ -502,6 +523,7 @@ def register_views(app, db):
         db.session.commit()
 
         return jsonify({"success": True})
+
 
     @app.route("/async/pipelines/create", methods=["POST"])
     def pipelines_create():
@@ -549,6 +571,7 @@ def register_views(app, db):
 
         return jsonify({"success": True})
 
+
     @app.route("/async/pipelines/rename/<string:pipeline_uuid>", methods=["POST"])
     def pipelines_rename(pipeline_uuid):
 
@@ -571,6 +594,7 @@ def register_views(app, db):
             return json_string, 200, {"content-type": "application/json"}
         else:
             return "", 404
+
 
     @app.route("/async/pipelines/get/<string:pipeline_uuid>", methods=["GET"])
     def pipelines_get_single(pipeline_uuid):
@@ -600,11 +624,13 @@ def register_views(app, db):
         else:
             return "", 404
 
+
     @app.route("/async/pipelines/get_directory/<string:pipeline_uuid>", methods=["GET"])
     def pipelines_get_directory(pipeline_uuid):
         json_string = json.dumps({"success": True, "result": get_pipeline_directory_by_uuid(
             pipeline_uuid, host_path=True)})
         return json_string, 200, {"content-type": "application/json"}
+
 
     @app.route("/async/pipelines", methods=["GET"])
     def pipelines_get():
@@ -633,6 +659,7 @@ def register_views(app, db):
         json_string = json.dumps(
             {"success": True, "result": pipelines})
         return json_string, 200, {"content-type": "application/json"}
+
 
     @app.route("/async/notebook_html/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
     def notebook_html_get(pipeline_uuid, step_uuid):
@@ -678,6 +705,7 @@ def register_views(app, db):
                     notebook_path, error))
                 return return_404("Could not find notebook file %s" % notebook_path)
 
+
     @app.route("/async/logs/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
     def logs_get(pipeline_uuid, step_uuid):
 
@@ -717,6 +745,7 @@ def register_views(app, db):
 
             return json_string, 404, {"content-type": "application/json"}
 
+
     @app.route("/async/pipelines/json/save", methods=["POST"])
     def pipelines_json_save():
 
@@ -735,6 +764,7 @@ def register_views(app, db):
 
         return jsonify({"success": True})
 
+
     @app.route("/async/pipelines/json/experiments/<pipeline_uuid>", methods=["GET"])
     def pipelines_json_experiments_get(pipeline_uuid):
 
@@ -752,6 +782,7 @@ def register_views(app, db):
                     pipeline_json)
 
                 return jsonify({"success": True, "experiment_args": experiment_args})
+
 
     @app.route("/async/pipelines/json/get/<pipeline_uuid>", methods=["GET"])
     def pipelines_json_get(pipeline_uuid):
