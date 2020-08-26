@@ -8,7 +8,7 @@ RUN apt-get update \
 
 RUN mkdir -p /orchest/orchest/memory-server
 COPY ./ /orchest/orchest/memory-server/
-COPY ./lib /orchest/lib
+RUN mv /orchest/orchest/memory-server/lib /orchest/lib
 
 WORKDIR /orchest/orchest/memory-server
 RUN pip3 install -r requirements.txt

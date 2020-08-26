@@ -4,8 +4,9 @@ FROM python:3.7-slim
 # dockerignore we specified precisely what we want to include in the
 # image.
 RUN mkdir -p /orchest/orchest/orchest-api
-COPY ./lib /orchest/lib
+
 COPY ./ /orchest/orchest/orchest-api/
+RUN mv /orchest/orchest/orchest-api/lib /orchest/lib
 
 # Setting this WORKDIR is required as the `start_celery_workers.sh` 
 # script otherwise does not have the correct context.
