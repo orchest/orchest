@@ -61,6 +61,7 @@ LIB_IMAGES=(
     "orchest-webserver"
     "memory-server"
     "auth-server"
+    "celery-worker"
 )
 
 CLEANUP_BUILD_CTX=()
