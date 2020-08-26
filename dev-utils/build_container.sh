@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Use another Docker backend for building.
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 IMGS=()
 SDK_BRANCH="master"
@@ -106,6 +105,9 @@ run_build () {
 
     
 }
+
+# Cleanup dev symlinks
+$DIR/dev_compile_cleanup.sh
 
 # Build the images.
 for IMG in ${IMGS[@]}
