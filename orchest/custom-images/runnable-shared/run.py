@@ -101,8 +101,8 @@ def run_notebook(file_path, step_uuid=None):
 
     # TODO: extend this mapping
     kernel_mapping = {
-        "orchestsoftware_custom-base-kernel-py_docker_python": "python",
-        "orchestsoftware_custom-base-kernel-r_docker_ir": "ir"
+        "orchestsoftware-custom-base-kernel-py_docker_python": "python",
+        "orchestsoftware-custom-base-kernel-r_docker_ir": "ir"
     }
 
     nb = None
