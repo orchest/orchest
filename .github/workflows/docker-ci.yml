@@ -18,10 +18,10 @@ jobs:
 
     strategy:
       matrix:
-        image: [-i orchest-api -i orchest-webserver -i auth-server, \
-                -i jupyter-server, \
-                -i orchest-ctl -i custom-base-kernel-py -i custom-base-kernel-r, \
-                -i nginx-proxy, \
+        image: [-i orchest-api -i orchest-webserver -i auth-server,
+                -i jupyter-server,
+                -i orchest-ctl -i custom-base-kernel-py -i custom-base-kernel-r,
+                -i nginx-proxy,
                 -i celery-worker -i memory-server]
   
     steps:
