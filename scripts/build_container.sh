@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 # Use another Docker backend for building.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 IMGS=()
