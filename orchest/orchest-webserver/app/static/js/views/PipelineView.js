@@ -1213,6 +1213,7 @@ class PipelineView extends React.Component {
 
         if(!this.state.backend.running){
             orchest.alert("Error", "There is no active session. Please start the session first.");
+            return;
         }
 
         if (this.state.pipelineRunning) {
