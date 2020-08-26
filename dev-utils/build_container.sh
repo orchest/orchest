@@ -106,9 +106,6 @@ run_build () {
     
 }
 
-# Cleanup dev symlinks
-$DIR/dev_compile_cleanup.sh
-
 # Build the images.
 for IMG in ${IMGS[@]}
 do
@@ -186,6 +183,9 @@ do
 
     if [ $IMG == "orchest-webserver" ]; then
 
+        # Cleanup dev symlinks
+        $DIR/dev_compile_cleanup.sh
+
         build_ctx=$DIR/../orchest/orchest-webserver
         build=(docker build \
             -t orchestsoftware/orchest-webserver \
@@ -205,6 +205,10 @@ do
     fi
 
     if [ $IMG == "auth-server" ]; then
+
+        # Cleanup dev symlinks
+        $DIR/dev_compile_cleanup.sh
+
         build_ctx=$DIR/../orchest/auth-server
         build=(docker build \
             -t orchestsoftware/auth-server \
