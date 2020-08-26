@@ -207,7 +207,7 @@ class PipelineStepRunner:
             'Image': image,
             'Env': [f'STEP_UUID={self.properties["uuid"]}'],
             'HostConfig': {'Binds': binds},
-            'Cmd': [self.properties['file_path']],
+            'Cmd': ["/orchest/bootscript.sh", "runnable", self.properties['file_path']],
             'NetworkingConfig': {
                 'EndpointsConfig': {
                     'orchest': {}  # TODO: should not be hardcoded.

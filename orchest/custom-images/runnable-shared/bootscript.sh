@@ -4,7 +4,7 @@
 # 2) the run.py to execute the container as a pipeline step.
 
 if [ "$1" = "runnable" ]; then 
-    sudo python run.py
+    python run.py $2
 else
     /usr/local/bin/bootstrap-kernel.sh
 fi

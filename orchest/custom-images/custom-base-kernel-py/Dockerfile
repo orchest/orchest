@@ -23,9 +23,6 @@ RUN [ "mkdir", "/runner"]
 WORKDIR /runner
 
 COPY ./runnable-shared/run.py /runner
-RUN ["chmod", "+x", "run.py"]
-
-USER $NB_UID
 
 # Start bootscript that starts kernel or runnable
 CMD [ "/orchest/bootscript.sh" ]
