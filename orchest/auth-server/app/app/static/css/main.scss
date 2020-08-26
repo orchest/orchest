@@ -70,12 +70,18 @@ h1, h2, h3 {
     width: 100%;
     display: flex;
 
+    img.logo {
+        width: 100%;
+        max-width: 200px;
+        margin-bottom: $generalPadding;
+    }
+
     .box {
-        padding: $generalPadding;
+        padding: $generalPadding * 2;
         box-shadow: 0 2px 12px -1px rgba(0, 0, 0, 0.15);
         display: inline-block;
         text-align: center;
-        border-radius: 3px;
+        border-radius: 6px;
 
         .mdc-text-field {
             margin-bottom: $generalPadding;

@@ -4,7 +4,7 @@ class Config:
 
     TOKEN_DURATION_HOURS = 24
 
-    STATIC_DIR = "/app/app/static"
+    STATIC_DIR = "/orchest/orchest/auth-server/app/app/static"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
