@@ -57,9 +57,10 @@ class Jupyter {
                 if(widget === undefined){
                     break;
                 }
-    
+
+                // Refresh active NotebookPanel widgets
                 // if users has unsaved state, don't reload file from disk
-                if(!widget.model.dirty){
+                if(widget.constructor.name == "NotebookPanel" && !widget.model.dirty){
                     // for each widget revert if not dirty
                     let ctx = docManager.contextForWidget(widget);
     

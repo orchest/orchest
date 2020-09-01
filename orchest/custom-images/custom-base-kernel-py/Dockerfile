@@ -7,7 +7,6 @@ RUN [ "mkdir", "/orchest"]
 WORKDIR /orchest
 
 COPY ./custom-base-kernel-py/*.sh /orchest/
-COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 
 # Run augment script
 ARG sdk_branch=master
@@ -25,4 +24,5 @@ WORKDIR /runner
 COPY ./runnable-shared/run.py /runner
 
 # Start bootscript that starts kernel or runnable
+COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 CMD [ "/orchest/bootscript.sh" ]
