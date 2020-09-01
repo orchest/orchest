@@ -427,14 +427,9 @@ def _get_mounts(uuid: str, pipeline_dir: str) -> Dict[str, Mount]:
         type='bind'
     )
 
-    # The `memory-server` creates the `plasma.sock` file at
-    # `STORE_SOCKET_NAME` from its configuration file, which is
-    # currently ``/tmp/plasma.sock``. Thus to get the socket in the
-    # pipeline directory we need to mount the ``/tmp`` directory.
-    temp_volume_source = f'tmp-{uuid}'
     mounts['temp_volume'] = Mount(
         target=_config.TEMP_DIRECTORY_PATH,
-        source=temp_volume_source,
+        source=f'tmp-{uuid}',
         type='volume'
     )
 
@@ -495,6 +490,7 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
         'name': f'jupyter-EG-{uuid}',
         'environment': [
             f'EG_DOCKER_NETWORK={network}',
+            'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID',
             'EG_MIRROR_WORKING_DIRS=True',
             'EG_LIST_KERNELS=True',
             ('EG_KERNEL_WHITELIST=['
@@ -504,6 +500,7 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             'EG_ALLOW_ORIGIN=*',
+            f'ORCHEST_PIPELINE_UUID={uuid}',
         ],
         'user': 'root',
         'network': network,

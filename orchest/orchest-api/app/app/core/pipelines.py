@@ -193,18 +193,22 @@ class PipelineStepRunner:
             # The step cannot be run yet.
             return self._status
 
-        # NOTE: Passing the UUID as a configuration parameter does not
-        # get used by the docker_client. However, we use it for testing
-        # to check whether the resolve order of the pipeline is correct.
-        pipeline_dir: str = run_config['pipeline_dir']
-
-        image: str = self.properties['image']
-
-        # Generate binds.
-        binds = [f'{pipeline_dir}:{_config.PIPELINE_DIR}'] + get_dynamic_binds()
-
+        # NOTE: Passing the UUID as a configuration parameter to
+        # `config` does not get used by the docker_client. However, we
+        # use it for testing to check whether the resolve order of the
+        # pipeline is correct.
+        if run_config['run_endpoint'] == 'runs':
+            tmp_uuid = run_config['pipeline_uuid']
+        elif run_config['run_endpoint'].startswith('experiments'):
+            tmp_uuid = task_id
+        temp_volume_name = f'tmp-{tmp_uuid}'
+        binds = [
+            f'{run_config["pipeline_dir"]}:{_config.PIPELINE_DIR}',
+            f'{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}',
+        ]
+        binds += get_dynamic_binds()
         config = {
-            'Image': image,
+            'Image': self.properties['image'],
             'Env': [f'STEP_UUID={self.properties["uuid"]}'],
             'HostConfig': {'Binds': binds},
             'Cmd': ["/orchest/bootscript.sh", "runnable", self.properties['file_path']],
@@ -585,6 +589,14 @@ class Pipeline:
                   *,
                   run_config: Dict[str, Any]) -> str:
         """Runs the Pipeline asynchronously.
+
+        Args:
+            run_config: Configuration of the run. Example
+                {
+                    'run_endpoint': 'runs',
+                    'pipeline_dir': '/home/../pipelines/uuid',
+                    'pipeline_uuid': 'some-uuid',
+                }
 
         Returns:
             Status

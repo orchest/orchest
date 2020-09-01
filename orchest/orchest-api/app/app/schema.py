@@ -130,7 +130,11 @@ pipeline_run = Model('Run', {
         description='Status of each pipeline step'),
 })
 
-interactive_run_config = pipeline_run_config.inherit('InteractiveRunConfig', {})
+interactive_run_config = pipeline_run_config.inherit('InteractiveRunConfig', {
+    'pipeline-dir': fields.String(
+        required=True,
+        description='Absolute path on the host to the "pipeline-dir"'),
+})
 
 interactive_run_spec = pipeline_run_spec.inherit('InteractiveRunSpec', {
     'pipeline_description': fields.Raw(

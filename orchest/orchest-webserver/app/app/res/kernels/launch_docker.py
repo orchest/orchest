@@ -34,9 +34,20 @@ def get_dynamic_mounts(param_env):
                 )
 
                 mounts.append(mount)
-                
+
     except Exception as e:
         print(e)
+
+    # TODO: Do we want to add our internal library to the EG just so
+    #       that we can use the `_config` values?
+    uuid = param_env.get('ORCHEST_PIPELINE_UUID')
+    temp_dir_mount = Mount(
+        # target=_config.TEMP_DIRECTORY_PATH,
+        target='/tmp',
+        source=f'tmp-{uuid}',
+        type='volume'
+    )
+    mounts.append(temp_dir_mount)
 
     return mounts
 
@@ -130,7 +141,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
 
         # dynamically mount host-dir sources
         dynamic_mounts = get_dynamic_mounts(param_env)
-        
+
         mounts = mounts + dynamic_mounts
 
         # print("container args: {}".format(kwargs))  # useful for debug
