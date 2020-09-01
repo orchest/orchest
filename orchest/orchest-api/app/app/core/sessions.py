@@ -377,13 +377,16 @@ def launch_session(
         session.shutdown()
 
 
-def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
+def _get_mounts(uuid: str, pipeline_dir: str) -> Dict[str, Mount]:
     """Constructs the mounts for all resources.
 
     Resources refer to the union of all possible resources over all
     types of session objects.
 
     Args:
+        uuid: Some UUID to identify the session with. For interactive
+            runs using the pipeline UUID is recommended, for non-
+            interactive runs we recommend using the pipeline run UUID.
         pipeline_dir: Pipeline directory w.r.t. the host. Needed to
             construct the mounts.
 
@@ -402,10 +405,10 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
     # TODO: the kernelspec should be put inside the image for the EG
     #       but for now this is fine as at allows easy development
     #       and addition of new kernels on the fly.
-    source_kernelspecs = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
+    source_kernelspec = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
     mounts['kernelspec'] = Mount(
         target='/usr/local/share/jupyter/kernels',
-        source=source_kernelspecs,
+        source=source_kernelspec,
         type='bind'
     )
 
@@ -417,9 +420,9 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
         type='bind'
     )
 
-    pipeline_dir_target_path = _config.PIPELINE_DIR
+    pipeline_dir_target = _config.PIPELINE_DIR
     mounts['pipeline_dir'] = Mount(
-        target=pipeline_dir_target_path,
+        target=pipeline_dir_target,
         source=pipeline_dir,
         type='bind'
     )
@@ -428,11 +431,11 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
     # `STORE_SOCKET_NAME` from its configuration file, which is
     # currently ``/tmp/plasma.sock``. Thus to get the socket in the
     # pipeline directory we need to mount the ``/tmp`` directory.
-    source_memory_server_sock = os.path.join(pipeline_dir, _config.SOCK_PATH)
-    mounts['memory_server_sock'] = Mount(
-        target=_config.MEMORY_SERVER_SOCK_PATH,
-        source=source_memory_server_sock,
-        type='bind'
+    temp_volume_source = f'tmp-{uuid}'
+    mounts['temp_volume'] = Mount(
+        target=_config.TEMP_DIRECTORY_PATH,
+        source=temp_volume_source,
+        type='volume'
     )
 
     return mounts
@@ -465,14 +468,14 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
     """
     # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
-    mounts = _get_mounts(pipeline_dir)
+    mounts = _get_mounts(uuid, pipeline_dir)
 
     container_specs['memory-server'] = {
         'image': 'orchestsoftware/memory-server:latest',
         'detach': True,
         'mounts': [
             mounts['pipeline_dir'],
-            mounts['memory_server_sock'],
+            mounts['temp_volume'],
         ],
         # TODO: name not unique... and uuid cannot be used.
         'name': f'memory-server-{uuid}',
