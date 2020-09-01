@@ -18,7 +18,7 @@ class Config:
     # however, the plasma.sock file is not created by the sdk. This
     # configuration value only specifies where the sdk will look for the
     # socket to connect to the plasma store.
-    STORE_SOCKET_NAME = '/pipeline-dir/.orchest/plasma.sock'
+    STORE_SOCKET_NAME = '/tmp/plasma.sock'
 
     IDENTIFIER_SERIALIZATION = 1
     IDENTIFIER_EVICTION = 2
