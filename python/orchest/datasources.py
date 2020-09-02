@@ -229,13 +229,10 @@ def get_datasource(name: str):
         response = requests.get('http://orchest-webserver/store/datasources/%s' % name)
         response.raise_for_status()
 
-    # TODO: These should be improved since they are directly user
-    #       facing.
     except HTTPError as http_err:
-        raise OrchestNetworkError(f'HTTP error occurred: {http_err}')
-    except Exception as err:
-        print(f'Other error occurred: {err}')
-        return
+        raise OrchestNetworkError(
+            f'Could not get the datasource from the webserver: {http_err}'
+        )
 
     datasources = {
         'host-directory': HostDirectory,
