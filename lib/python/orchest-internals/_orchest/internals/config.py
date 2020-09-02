@@ -4,7 +4,8 @@ import os
 # TODO: add notice that some of these values have effect on the sdk!.
 
 # General.
-TEMP_DIRECTORY_PATH = '/tmp'
+TEMP_DIRECTORY_PATH = '/tmp/orchest'
+TEMP_VOLUME_NAME = 'tmp-orchest-{uuid}'
 PIPELINE_DIR = '/pipeline-dir'
 
 # Relative to the `PIPELINE_DIR`.

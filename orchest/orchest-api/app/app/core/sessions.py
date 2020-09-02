@@ -429,7 +429,7 @@ def _get_mounts(uuid: str, pipeline_dir: str) -> Dict[str, Mount]:
 
     mounts['temp_volume'] = Mount(
         target=_config.TEMP_DIRECTORY_PATH,
-        source=f'tmp-{uuid}',
+        source=_config.TEMP_VOLUME_NAME.format(uuid=uuid),
         type='volume'
     )
 
