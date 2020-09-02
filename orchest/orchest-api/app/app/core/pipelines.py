@@ -119,25 +119,40 @@ async def update_status(status: str,
         return await response.json()
 
 
-def get_dynamic_binds():
-    binds = []
+def get_dynamic_mounts(run_config, task_id):
+    mounts = []
 
+    # Get mounts for the datasources.
     try:
         response = requests.get('http://orchest-webserver/store/datasources')
         response.raise_for_status()
-
+    except Exception as e:
+        # TODO: Improve exception and use logging instead of printing.
+        print(e)
+    else:
         datasources = response.json()
         for datasource in datasources:
             if datasource['source_type'] != 'host-directory':
                 continue
 
-            binds.append(f'{datasource["connection_details"]["absolute_host_path"]}'
-                         f':/data/{datasource["name"]}')
+            source = f'{datasource["connection_details"]["absolute_host_path"]}'
+            target = f'/data/{datasource["name"]}'
+            mounts.append(f'{source}:{target}')
 
-    except Exception as e:
-        print(e)
+    # Determine the appropriate name for the volume that shares
+    # temporary data amongst containers.
+    if run_config['run_endpoint'] == 'runs':
+        volume_uuid = run_config['pipeline_uuid']
+    elif run_config['run_endpoint'].startswith('experiments'):
+        volume_uuid = task_id
+    temp_volume_name = _config.TEMP_VOLUME_NAME.format(uuid=volume_uuid)
 
-    return binds
+    mounts.extend([
+        f'{run_config["pipeline_dir"]}:{_config.PIPELINE_DIR}',
+        f'{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}',
+    ])
+
+    return mounts
 
 
 class PipelineStepRunner:
@@ -193,26 +208,22 @@ class PipelineStepRunner:
             # The step cannot be run yet.
             return self._status
 
-        # NOTE: Passing the UUID as a configuration parameter does not
-        # get used by the docker_client. However, we use it for testing
-        # to check whether the resolve order of the pipeline is correct.
-        pipeline_dir: str = run_config['pipeline_dir']
-
-        image: str = self.properties['image']
-
-        # Generate binds.
-        binds = [f'{pipeline_dir}:{_config.PIPELINE_DIR}'] + get_dynamic_binds()
-
         config = {
-            'Image': image,
-            'Env': [f'STEP_UUID={self.properties["uuid"]}'],
-            'HostConfig': {'Binds': binds},
+            'Image': self.properties['image'],
+            'Env': [
+                f'STEP_UUID={self.properties["uuid"]}',
+            ],
+            'HostConfig': {
+                'Binds': get_dynamic_mounts(run_config, task_id),
+            },
             'Cmd': ["/orchest/bootscript.sh", "runnable", self.properties['file_path']],
             'NetworkingConfig': {
                 'EndpointsConfig': {
                     'orchest': {}  # TODO: should not be hardcoded.
                 }
             },
+            # NOTE: the `'tests-uuid'` key is only used for tests and
+            # gets ignored by the `docker_client`.
             'tests-uuid': self.properties['uuid']
         }
 
@@ -585,6 +596,14 @@ class Pipeline:
                   *,
                   run_config: Dict[str, Any]) -> str:
         """Runs the Pipeline asynchronously.
+
+        Args:
+            run_config: Configuration of the run. Example
+                {
+                    'run_endpoint': 'runs',
+                    'pipeline_dir': '/home/../pipelines/uuid',
+                    'pipeline_uuid': 'some-uuid',
+                }
 
         Returns:
             Status
