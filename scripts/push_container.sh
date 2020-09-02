@@ -16,7 +16,7 @@ while getopts "s:i:nve" opt; do
 done
 
 # Login to be able to push to DockerHub
-echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password--stdin
+echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
 for IMG in ${IMGS[@]}
 do
