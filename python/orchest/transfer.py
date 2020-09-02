@@ -499,11 +499,6 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
     try:
         obj = _get_output_memory(obj_id, client)
 
-    # TODO: if a step receives from multiple other steps. Then this
-    #       error will make the entire receive operation fail. Thus
-    #       having done all the deserialization of the other steps for
-    #       nothing. Maybe we can do a check beforehand so we can throw
-    #       this error earlier.
     except ObjectNotFoundError:
         raise MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
@@ -652,15 +647,23 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
             most_recent['method_kwargs'])
 
 
-def get_inputs(verbose: bool = False) -> List[Any]:
+def get_inputs(ignore_failure: bool = False,
+               verbose: bool = False) -> List[Any]:
     """Gets all data sent from incoming steps.
 
     Args:
+        ignore_failure: If True then the returned result can have
+            ``None`` values if the data of a step could not be
+            retrieved. If False, then this function will fail if any of
+            the incoming steps's data could not be retrieved. Example:
+            ``[None, 'Hello World!']`` vs :exc:`OutputNotFoundError`
         verbose: If True print all the steps from which the current step
             has retrieved data.
 
     Returns:
         List of all the data in the specified order from the front-end.
+
+        Example:
 
     Raises:
         StepUUIDResolveError: The step's UUID cannot be resolved and
@@ -698,11 +701,22 @@ def get_inputs(verbose: bool = False) -> List[Any]:
         parent_uuid = parent.properties['uuid']
         get_output_method, args, kwargs = resolve(parent_uuid, consumer=step_uuid)
 
-        incoming_step_data = get_output_method(*args, **kwargs)
+        # Either raise an error on failure of getting output or
+        # continue with other steps.
+        try:
+            incoming_step_data = get_output_method(*args, **kwargs)
+        except OutputNotFoundError as e:
+            if not ignore_failure:
+                raise OutputNotFoundError(e)
+
+            incoming_step_data = None
 
         if verbose:
             parent_title = parent.properties['title']
-            print(f'Retrieved input from step: "{parent_title}"')
+            if incoming_step_data is None:
+                print(f'Failed to retrieve input from step: "{parent_title}"')
+            else:
+                print(f'Retrieved input from step: "{parent_title}"')
 
         data.append(incoming_step_data)
 
