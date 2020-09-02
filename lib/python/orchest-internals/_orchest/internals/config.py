@@ -13,6 +13,10 @@ SOCK_PATH = '.orchest'
 PIPELINE_DESCRIPTION_FILE = 'pipeline.json'
 PIPELINE_DESCRIPTION_PATH = os.path.join('.orchest', PIPELINE_DESCRIPTION_FILE)
 
+DEFAULT_BASE_IMAGES = [
+    {"name": "orchestsoftware/custom-base-kernel-py", "language": "python"},
+    {"name": "orchestsoftware/custom-base-kernel-r", "language": "R"},
+]
 
 # memory-server
 MEMORY_SERVER_SOCK_PATH = '/tmp'

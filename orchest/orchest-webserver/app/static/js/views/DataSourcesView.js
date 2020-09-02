@@ -64,9 +64,6 @@ class DataSourcesView extends React.Component {
 
   onDeleteClick(){
 
-    console.log("Stub: deleting...");
-    console.log()
-
     // select indices
 
     let selectedIndices = this.refs.checkItemList.customSelectedIndex();

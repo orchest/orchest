@@ -32,6 +32,30 @@ def get_user_conf():
     return conf_data
 
 
+def name_to_tag(name):
+
+    name = str(name)
+
+    # According to Docker's website:
+    # A tag name must be valid ASCII and 
+    # may contain lowercase and 
+    # uppercase letters, digits, underscores, periods and dashes. 
+    # A tag name may not start with a period or a dash and
+    # may contain a maximum of 128 characters.
+
+    # replace all spaces by dashes
+    name = name.replace(" ", "-")
+
+    allowed_symbols = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-")
+    
+    name = ''.join([char if char in allowed_symbols else '-' for char in list(name)])
+
+    while len(name) > 0 and name[0] in set('.-'):
+        name = name[1:]
+
+    return name[0:128]
+
+
 def write_config(app, key, value):
 
     try:

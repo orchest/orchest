@@ -14,6 +14,29 @@ class DataSource(db.Model):
         return f'<DataSource {self.name}:{self.source_type}>'
 
 
+class Image(db.Model):
+    __tablename__ = 'images'
+    
+    name = db.Column(db.String(255), unique=True, nullable=False)
+    language = db.Column(db.String(255), nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Images {self.name}:{self.source_type}>'
+
+
+class Commit(db.Model):
+    __tablename__ = 'commits'
+    
+    tag = db.Column(db.String(255), unique=False, nullable=False)
+    name = db.Column(db.String(255), unique=False, nullable=False)
+    base_image = db.Column(db.ForeignKey("images.name"))
+    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Commit {self.name}:{self.tag}>'
+
+
 class Experiment(db.Model):
     __tablename__ = 'experiments'
 

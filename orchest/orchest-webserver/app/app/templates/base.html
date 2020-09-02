@@ -30,6 +30,10 @@
                 <i class="material-icons mdc-list-item__graphic" aria-hidden="true">storage</i>
                 <span class="mdc-list-item__text">Data sources</span>
             </a>
+            <a class="mdc-list-item" data-react-view="ImagesView" href="#">
+                <i class="material-icons mdc-list-item__graphic" aria-hidden="true">view_comfy</i>
+                <span class="mdc-list-item__text">Images</span>
+            </a>
             <li role="separator" class="mdc-list-divider"></li>
             <a class="mdc-list-item" data-react-view="SettingsView" href="#">
                 <i class="material-icons mdc-list-item__graphic" aria-hidden="true">settings</i>
@@ -51,11 +55,7 @@
         <div class="mdc-top-app-bar__row">
             <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
                 <button class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button">menu</button>
-
-                <div class="header-bar-interactive">
-
-                </div>
-                <!--          <span class="mdc-top-app-bar__title">Dismissible Drawer</span>-->
+                <div class="header-bar-interactive"></div>
             </section>
         </div>
     </header>
@@ -70,9 +70,9 @@
 
 <div class="dialogs"></div>
 
-{% block content %}
+    {% block content %}
 
-{% endblock %}
+    {% endblock %}
 
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 <script type="module" src="public/js/dist/main.bundle.js?v={{ javascript_bundle_hash }}"></script>

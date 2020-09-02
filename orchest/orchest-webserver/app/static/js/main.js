@@ -115,6 +115,9 @@ function Orchest() {
 
     this.dialogHolder = document.querySelector(".dialogs");
 
+    // avoid anchor link clicking default behavior
+    $("a[href='#']").click((e) => { e.preventDefault() });
+
     let dialogs = ReactDOM.render(<Dialogs />, this.dialogHolder);
 
     this.alert = function(title, content){

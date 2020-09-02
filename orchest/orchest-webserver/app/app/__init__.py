@@ -21,8 +21,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
 from subprocess import Popen
 from app.views import register_views
+from app.models import Image
 from app.connections import db
 from app.utils import get_user_conf
+from _orchest.internals import config as _config
 
 
 def create_app():
@@ -46,6 +48,15 @@ def create_app():
     # according to SQLAlchemy will only create tables if they do not exist
     with app.app_context():
         db.create_all()
+
+    # pre-populate the base images
+    image_names = [image.name for image in Image.query.all()]
+
+    for image in _config.DEFAULT_BASE_IMAGES:
+        if image.name not in image_names:
+            im = Image(name=image.name, language=image.language)
+            db.session.add(im)
+            db.session.commit()
 
     # static file serving
     @app.route('/public/<path:path>')

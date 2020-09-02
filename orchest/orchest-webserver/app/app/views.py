@@ -11,8 +11,8 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf
-from app.models import DataSource, Experiment, PipelineRun
+from app.utils import get_hash, get_user_conf, name_to_tag
+from app.models import DataSource, Experiment, PipelineRun, Image, Commit
 from _orchest.internals import config as _config
 
 
@@ -26,13 +26,32 @@ def register_views(app, db):
     class DataSourceNameInUse(HTTPException):
         pass
 
-
     class DataSourceSchema(ma.Schema):
         class Meta:
             fields = ("name", "source_type", "connection_details")
 
     datasource_schema = DataSourceSchema()
     datasources_schema = DataSourceSchema(many=True)
+
+    class CommitNameInUse(HTTPException):
+        pass
+
+    class CommitSchema(ma.Schema):
+        class Meta:
+            fields = ("name", "tag", "base_image")
+
+    commit_schema = CommitSchema()
+    commits_schema = CommitSchema(many=True)
+
+    class ImageNameInUse(HTTPException):
+        pass
+
+    class ImageSchema(ma.Schema):
+        class Meta:
+            fields = ("name", "language")
+
+    image_schema = ImageSchema()
+    images_schema = ImageSchema(many=True)
 
 
     class ExperimentUuidInUse(HTTPException):
@@ -231,6 +250,124 @@ def register_views(app, db):
             os.system("rm -r %s" % (experiment_pipeline_path))
 
 
+    def register_commits(db, api, ma):
+
+        class CommitsResource(Resource):
+
+            def get(self):
+                commits = Commit.query.all()
+                return commits_schema.dump(commits)
+
+        class CommitResource(Resource):
+
+            def put(self, image_name, tag):
+
+                # check image_name exists as a constraint
+                if Image.query.filter(name=image_name).count() == 0:
+                    return '', 404
+
+                commit = Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).first()
+                
+                if commit is None:
+                    return '', 404
+
+                commit.name = request.json["name"]
+                commit.tag = name_to_tag(request.json["name"])
+                commit.base_image = image_name
+                
+                db.session.commit()
+
+                return commit_schema.dump(commit)
+
+            def get(self, image_name, tag):
+                commit = Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).first()
+                return commit_schema.dump(commit)
+
+            def delete(self, image_name, tag):
+                Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).delete()
+                db.session.commit()
+
+            # note that the post request accepts the name instead of the tag
+            def post(self, image_name, name):
+
+                if Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).count() > 0:
+                    raise CommitNameInUse()
+
+                # check image_name exists as a constraint
+                if Image.query.filter(name=image_name).count() == 0:
+                    return '', 404
+
+                new_commit = Commit(
+                    name=name,
+                    tag=name_to_tag(name),
+                    base_image=image_name
+                )
+
+                db.session.add(new_commit)
+                db.session.commit()
+
+                return commit_schema.dump(new_commit)
+
+        api.add_resource(CommitsResource, "/store/commits")
+        api.add_resource(CommitResource,
+                         "/store/commits/<string:image_name>/<string:tag>")
+
+
+    def register_images(db, api, ma):
+
+        class ImagesResource(Resource):
+
+            def get(self):
+                images = Image.query.all()
+                return images_schema.dump(images)
+
+        class ImageResource(Resource):
+
+            def put(self, name):
+
+                im = Image.query.filter(Image.name == name).first()
+
+                if im is None:
+                    return '', 404
+
+                im.name = request.json["name"]
+                im.language = request.json["language"]
+                db.session.commit()
+
+                return image_schema.dump(im)
+
+            def get(self, name):
+                im = Image.query.filter(Image.name == name).first()
+
+                if im is None:
+                    return '', 404
+
+                return image_schema.dump(im)
+
+            def delete(self, name):
+                Image.query.filter(Image.name == name).delete()
+                db.session.commit()
+
+            def post(self, name):
+
+                if Image.query.filter(Image.name == name).count() > 0:
+                    raise ImageNameInUse()
+
+                new_im = Image(
+                    name=name,
+                    language=request.json["language"]
+                )
+
+                db.session.add(new_im)
+                db.session.commit()
+
+                return image_schema.dump(new_im)
+
+        api.add_resource(ImagesResource, "/store/images")
+        api.add_resource(ImageResource,
+                         "/store/images/<string:name>")
+
+
     def register_datasources(db, api, ma):
 
         class DataSourcesResource(Resource):
@@ -242,8 +379,11 @@ def register_views(app, db):
         class DataSourceResource(Resource):
 
             def put(self, name):
-
                 ds = DataSource.query.filter(DataSource.name == name).first()
+
+                if ds is None:
+                    return '', 404
+
                 ds.name = request.json["name"]
                 ds.source_type = request.json["source_type"]
                 ds.connection_details = request.json["connection_details"]
@@ -253,14 +393,22 @@ def register_views(app, db):
 
             def get(self, name):
                 ds = DataSource.query.filter(DataSource.name == name).first()
+
+                if ds is None:
+                    return '', 404
+
                 return datasource_schema.dump(ds)
 
             def delete(self, name):
-                DataSource.query.filter(DataSource.name == name).delete()
+                ds = DataSource.query.filter(DataSource.name == name).first()
+
+                if ds is None:
+                    return '', 404
+
+                db.session.delete(ds)
                 db.session.commit()
 
             def post(self, name):
-
                 if DataSource.query.filter(DataSource.name == name).count() > 0:
                     raise DataSourceNameInUse()
 
@@ -294,6 +442,10 @@ def register_views(app, db):
 
                 ex = Experiment.query.filter(
                     Experiment.uuid == experiment_uuid).first()
+
+                if ex is None:
+                    return '', 404
+
                 ex.name = request.json["name"]
                 ex.pipeline_uuid = request.json["pipeline_uuid"]
                 ex.pipeline_name = request.json["pipeline_name"]
@@ -307,6 +459,10 @@ def register_views(app, db):
             def get(self, experiment_uuid):
                 ex = Experiment.query.filter(
                     Experiment.uuid == experiment_uuid).first()
+
+                if ex is None:
+                    return '', 404
+
                 return experiment_schema.dump(ex)
 
             def delete(self, experiment_uuid):
@@ -314,6 +470,9 @@ def register_views(app, db):
                 # remove experiment directory
                 ex = Experiment.query.filter(
                     Experiment.uuid == experiment_uuid).first()
+
+                if ex is None:
+                    return '', 404
 
                 remove_experiment_directory(ex.uuid, ex.pipeline_uuid)
 
@@ -347,6 +506,14 @@ def register_views(app, db):
     def register_rest(app, db):
 
         errors = {
+            "CommitNameInUse": {
+                "message": "A commit with this name for this base image already exists.",
+                "status": 409,
+            },
+            "ImageNameInUse": {
+                "message": "An image with this name already exists.",
+                "status": 409,
+            },
             "DataSourceNameInUse": {
                 "message": "A data source with this name already exists.",
                 "status": 409,
@@ -361,6 +528,8 @@ def register_views(app, db):
 
         register_datasources(db, api, ma)
         register_experiments(db, api, ma)
+        register_images(db, api, ma)
+        register_commits(db, api, ma)
 
     register_rest(app, db)
 
@@ -459,6 +628,35 @@ def register_views(app, db):
 
         else:
             return resp.raw.read(), resp.status_code
+
+
+    @app.route("/async/images", methods=["GET"])
+    def images_get():
+
+        # pipelines_dir = get_pipelines_dir()
+
+        # pipeline_uuids = [f.path for f in os.scandir(
+        #     pipelines_dir) if f.is_dir()]
+
+        # pipelines = []
+
+        # for pipeline_uuid in pipeline_uuids:
+
+        #     pipeline_json_path = os.path.join(
+        #         pipelines_dir, pipeline_uuid, _config.PIPELINE_DESCRIPTION_PATH)
+
+        #     if os.path.isfile(pipeline_json_path):
+        #         with open(pipeline_json_path, "r") as json_file:
+        #             pipeline_json = json.load(json_file)
+
+        #             pipelines.append({
+        #                 "name": pipeline_json["name"],
+        #                 "uuid": pipeline_json["uuid"]
+        #             })
+
+        # json_string = json.dumps(
+        #     {"success": True, "result": pipelines})
+        return json_string, 200, {"content-type": "application/json"}
 
 
     @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
