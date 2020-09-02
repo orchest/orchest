@@ -1,13 +1,16 @@
+# TODO: would be great if SDK was in main repo so that we can use its
+#       internal library for the config values.
+
 # TODO: make sure the user can actually configure by using this object.
 # TODO: put configuration options inside the docstring so we can use it
 #       for the autodoc generation.
 class Config:
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
-    STEP_DATA_DIR = '.orchest/data/{step_uuid}'
+    STEP_DATA_DIR = '/pipeline-dir/.orchest/data/{step_uuid}'
 
     # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = '.orchest/pipeline.json'
+    PIPELINE_DESCRIPTION_PATH = '/pipeline-dir/.orchest/pipeline.json'
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:
@@ -18,7 +21,7 @@ class Config:
     # however, the plasma.sock file is not created by the sdk. This
     # configuration value only specifies where the sdk will look for the
     # socket to connect to the plasma store.
-    STORE_SOCKET_NAME = '/tmp/plasma.sock'
+    STORE_SOCKET_NAME = '/tmp/orchest/plasma.sock'
 
     IDENTIFIER_SERIALIZATION = 1
     IDENTIFIER_EVICTION = 2
