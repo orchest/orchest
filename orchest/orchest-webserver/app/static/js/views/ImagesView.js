@@ -1,7 +1,8 @@
 import React, { Fragment } from 'react';
-import CheckItemList from '../components/CheckItemList';
 import { makeRequest, makeCancelable, PromiseManager } from '../lib/utils/all';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
+import CommitsView from './CommitsView';
+import ItemList from '../components/ItemList';
 
 class ImagesView extends React.Component {
 
@@ -47,23 +48,6 @@ class ImagesView extends React.Component {
 
   }
 
-  onDeleteClick(){
-
-    let selectedIndices = this.refs.checkItemList.customSelectedIndex();
-
-    orchest.confirm("Warning", "Are you sure you want to delete the selected images? (This cannot be undone.)", () => {
-      let promises = [];
-      for(let x = 0; x < selectedIndices.length; x++){
-        promises.push(makeRequest("DELETE", "/store/images/" + this.state.images[selectedIndices[x]].name));
-      }
-
-      Promise.all(promises).then(() => {
-        this.fetchImages();
-      });
-    })
-
-  }
-
   onClickListItem(image, e){
     orchest.loadView(CommitsView, {image: image});
   }
@@ -75,7 +59,7 @@ class ImagesView extends React.Component {
       {(() => {
         if(this.state.images){
           return <Fragment>
-              <CheckItemList ref="checkItemList" items={this.state.images} onClickListItem={this.onClickListItem.bind(this)} />
+              <ItemList ref="itemList" items={this.state.images} onClickListItem={this.onClickListItem.bind(this)} />
             </Fragment>
         }else{
           return <MDCLinearProgressReact />

@@ -17,6 +17,7 @@ import './utils/overflowing';
 import ExperimentView from "./views/ExperimentView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
+import ImagesView from "./views/ImagesView";
 
 function Orchest() {
 
@@ -25,6 +26,7 @@ function Orchest() {
     this.Components = {
         "PipelinesView": PipelinesView,
         "DataSourcesView": DataSourcesView,
+        "ImagesView": ImagesView,
         "DataSourceEditView": DataSourceEditView,
         "PipelineView": PipelineView,
         "SettingsView": SettingsView,

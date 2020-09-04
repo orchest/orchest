@@ -9,6 +9,7 @@
 
 $generalPadding: 20px;
 $mdcComponentPadding: 16px;
+$codeSize: 14px;
 $borderColor: rgba(0, 0, 0, 0.15);
 
 * {
@@ -136,12 +137,31 @@ h1, h2, h3 {
       border-radius: 0 28px 28px 0;
     }
   }
-} 
+}
 
+.CodeMirror {
+  font-size: $codeSize;
+}
+
+.edit-commit {
+  .mdc-button {
+    margin-top: $generalPadding;
+    margin-right: $generalPadding;
+  }
+
+  .commit-uuid {
+    font-size: $codeSize;
+    color: #555;
+    display: inline-block;
+    margin-bottom: $generalPadding;
+  }
+
+  .CodeMirror {
+    height: auto;
+  }
+}
 
 aside.mdc-drawer {
-  //max-width: 325px;
-  //width: 20%;
   --mdc-drawer-width: 325px;
   padding: 20px;
   height: 100%;
@@ -899,6 +919,19 @@ button.themed-secondary {
   clear: both;
   display: block;
 }
+
+.commit-form {
+  width: 50%;
+
+  .mdc-select__anchor {
+    width: 100%;
+  }
+  > div {
+    width: 100%;
+  }
+}
+
+
 
 .connection-form {
   width: 50%;

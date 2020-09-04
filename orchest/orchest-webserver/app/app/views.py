@@ -38,7 +38,7 @@ def register_views(app, db):
 
     class CommitSchema(ma.Schema):
         class Meta:
-            fields = ("name", "tag", "base_image")
+            fields = ("name", "tag", "base_image", "uuid")
 
     commit_schema = CommitSchema()
     commits_schema = CommitSchema(many=True)
@@ -250,56 +250,71 @@ def register_views(app, db):
             os.system("rm -r %s" % (experiment_pipeline_path))
 
 
+    def remove_commit_shell(commit_uuid):
+
+        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit_uuid)
+        
+        if os.path.isdir(shell_file_dir):
+            os.system("rm -r %s" % (shell_file_dir))
+
     def register_commits(db, api, ma):
 
         class CommitsResource(Resource):
 
             def get(self):
-                commits = Commit.query.all()
+                if 'image_name' in request.args:
+                    commits = Commit.query.filter(Commit.base_image == request.args['image_name']).all()
+                else:
+                    commits = Commit.query.all()
+                    
                 return commits_schema.dump(commits)
 
         class CommitResource(Resource):
 
-            def put(self, image_name, tag):
+            def put(self, commit_uuid):
 
-                # check image_name exists as a constraint
-                if Image.query.filter(name=image_name).count() == 0:
-                    return '', 404
-
-                commit = Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).first()
+                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
                 
                 if commit is None:
                     return '', 404
 
                 commit.name = request.json["name"]
                 commit.tag = name_to_tag(request.json["name"])
-                commit.base_image = image_name
+                commit.base_image = request.json["image_name"]
                 
                 db.session.commit()
 
                 return commit_schema.dump(commit)
 
-            def get(self, image_name, tag):
-                commit = Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).first()
+            def get(self, commit_uuid):
+                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
                 return commit_schema.dump(commit)
 
-            def delete(self, image_name, tag):
-                Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).delete()
+            def delete(self, commit_uuid):
+                Commit.query.filter(Commit.uuid==commit_uuid).delete()
+
+                remove_commit_shell(commit_uuid)
+                
                 db.session.commit()
 
             # note that the post request accepts the name instead of the tag
-            def post(self, image_name, name):
+            def post(self, commit_uuid):
+                
+                name = request.json["name"]
+                tag = name_to_tag(name)
+                image_name = request.json["image_name"]
 
                 if Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).count() > 0:
                     raise CommitNameInUse()
 
                 # check image_name exists as a constraint
-                if Image.query.filter(name=image_name).count() == 0:
+                if Image.query.filter(Image.name == image_name).count() == 0:
                     return '', 404
 
                 new_commit = Commit(
+                    uuid=str(uuid.uuid4()),
                     name=name,
-                    tag=name_to_tag(name),
+                    tag=tag,
                     base_image=image_name
                 )
 
@@ -310,7 +325,7 @@ def register_views(app, db):
 
         api.add_resource(CommitsResource, "/store/commits")
         api.add_resource(CommitResource,
-                         "/store/commits/<string:image_name>/<string:tag>")
+                         "/store/commits/<string:commit_uuid>")
 
 
     def register_images(db, api, ma):
@@ -630,7 +645,7 @@ def register_views(app, db):
             return resp.raw.read(), resp.status_code
 
 
-    @app.route("/async/images", methods=["GET"])
+    @app.route("/async/synthesized-images", methods=["GET"])
     def images_get():
 
         # pipelines_dir = get_pipelines_dir()
@@ -902,6 +917,58 @@ def register_views(app, db):
                 logging.debug("Error opening notebook file %s error: %s" % (
                     notebook_path, error))
                 return return_404("Could not find notebook file %s" % notebook_path)
+
+
+    @app.route("/async/commits/shell/<string:commit_uuid>", methods=["GET", "POST"])
+    def commit_shell(commit_uuid):
+
+        commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
+        if commit is None:
+            json_string = json.dumps(
+                {"success": False, "reason": "Commit does not exist for UUID %s" % (commit_uuid)})
+
+            return json_string, 404, {"content-type": "application/json"}
+
+
+        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit_uuid)
+        shell_file_path = os.path.join(shell_file_dir, "shell.sh")
+
+        if request.method == "POST":
+
+            try:
+                if not os.path.isdir(shell_file_dir):
+                    os.makedirs(shell_file_dir)
+
+                with open(shell_file_path, "w") as file:
+                    file.write(request.json['shell'])
+
+                json_string = json.dumps({"success": True})
+
+                return json_string, 200, {"content-type": "application/json"}
+
+            except:
+                json_string = json.dumps(
+                    {"success": False, "reason": "Could not create shell file"})
+
+                return json_string, 500, {"content-type": "application/json"}
+
+        else:
+
+            if os.path.isfile(shell_file_path):
+
+                with open(shell_file_path, "r") as file:
+                    shell = file.read()
+
+                    json_string = json.dumps(
+                        {"success": True, "shell": shell})
+
+                    return json_string, 200, {"content-type": "application/json"}
+
+            else:
+                json_string = json.dumps(
+                    {"success": False, "reason": "Could not find shell file"})
+
+                return json_string, 404, {"content-type": "application/json"}
 
 
     @app.route("/async/logs/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])

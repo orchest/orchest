@@ -367,6 +367,16 @@ def dev_mount_inject():
         }
     ]
 
+    orchest_webserver_spec['mounts'] += [
+        {
+            "source": os.path.join(
+                os.environ.get("HOST_PWD"),
+                "lib",
+                "python"),
+            "target": "/orchest/lib/python"
+        }
+    ]
+
     orchest_webserver_spec['environment']["FLASK_APP"] = "main.py"
     orchest_webserver_spec['environment']["FLASK_DEBUG"] = "1"
     orchest_webserver_spec['command'] = [
@@ -388,6 +398,17 @@ def dev_mount_inject():
             "target": "/orchest/orchest/auth-server/app"
         }
     ]
+    
+    orchest_auth_server_spec['mounts'] += [
+        {
+            "source": os.path.join(
+                os.environ.get("HOST_PWD"),
+                "lib",
+                "python"),
+            "target": "/orchest/lib/python"
+        }
+    ]
+
 
     orchest_auth_server_spec['environment']["FLASK_APP"] = "main.py"
     orchest_auth_server_spec['environment']["FLASK_DEBUG"] = "1"
@@ -411,6 +432,17 @@ def dev_mount_inject():
             "target": "/orchest/orchest/orchest-api/app/app"
         }
     ]
+
+    orchest_api_spec['mounts'] += [
+        {
+            "source": os.path.join(
+                os.environ.get("HOST_PWD"),
+                "lib",
+                "python"),
+            "target": "/orchest/lib/python"
+        }
+    ]
+
     orchest_api_spec["ports"] = {
         "80/tcp": 8080
     }

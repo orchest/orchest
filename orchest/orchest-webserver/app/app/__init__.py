@@ -49,14 +49,14 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    # pre-populate the base images
-    image_names = [image.name for image in Image.query.all()]
+        # pre-populate the base images
+        image_names = [image.name for image in Image.query.all()]
 
-    for image in _config.DEFAULT_BASE_IMAGES:
-        if image.name not in image_names:
-            im = Image(name=image.name, language=image.language)
-            db.session.add(im)
-            db.session.commit()
+        for image in _config.DEFAULT_BASE_IMAGES:
+            if image["name"] not in image_names:
+                im = Image(name=image["name"], language=image["language"])
+                db.session.add(im)
+                db.session.commit()
 
     # static file serving
     @app.route('/public/<path:path>')

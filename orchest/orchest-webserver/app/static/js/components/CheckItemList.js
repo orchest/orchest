@@ -1,5 +1,6 @@
 import React from 'react';
-import ListCheckItemReact from "./ListCheckItemReact";
+import ListCheckItem from "./ListCheckItem";
+import { MDCList } from '@material/list';
 
 class CheckItemList extends React.Component {
 
@@ -21,10 +22,14 @@ class CheckItemList extends React.Component {
         }
     }
 
+    componentDidMount(){
+        this.mdc = new MDCList(this.refs.mdcList);
+    }
+
     render() {
 
         this.listItems = this.props.items.map((item, key) => (
-            <ListCheckItemReact item={item} ref={"listItem" + key} onClickListItem={this.props.onClickListItem} key={key} />
+            <ListCheckItem item={item} ref={"listItem" + key} onClickListItem={this.props.onClickListItem} key={key} />
         ));
 
         return <ul className="mdc-list" ref="mdcList" role="group" aria-label="List with checkbox items">
