@@ -1,0 +1,48 @@
+{
+    "name": "my-pipeline",
+    "uuid": "pipeline-uuid",
+    "steps": {
+        "uuid-1______________": {
+            "title": "step-1",
+            "uuid": "uuid-1______________",
+            "incoming_connections": [],
+            "file_path": "step-1.ipynb",
+            "kernel": {
+                "name": "python",
+                "display_name": "Python 3"
+            },
+            "image": "orchestsoftware/scipy-notebook-augmented",
+            "experiment_json": "",
+            "meta_data": {
+                "position": [
+                    3.75,
+                    395
+                ]
+            },
+            "outgoing_connections": [
+                "uuid-2______________"
+            ]
+        },
+        "uuid-2______________": {
+            "title": "step-2",
+            "uuid": "uuid-2______________",
+            "incoming_connections": [
+                "uuid-1______________"
+            ],
+            "file_path": "step-2.ipynb",
+            "kernel": {
+                "name": "python",
+                "display_name": "Python 3"
+            },
+            "image": "orchestsoftware/scipy-notebook-augmented",
+            "experiment_json": "",
+            "meta_data": {
+                "position": [
+                    297.81675,
+                    398.735
+                ]
+            },
+            "outgoing_connections": []
+        }
+    }
+}
