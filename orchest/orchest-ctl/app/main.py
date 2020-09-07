@@ -1,11 +1,11 @@
 import logging
-import sys
-import pprint
-import docker
 import os
-import re
+import sys
 
+import docker
 from docker.types import Mount
+
+from connections import docker_client
 
 
 VALID_COMMANDS = {
@@ -138,14 +138,13 @@ IMAGES += [
 
 
 def clean_containers():
-    client = docker.from_env()
-
-    running_containers = client.containers.list(all=True)
+    running_containers = docker_client.containers.list(all=True)
 
     for container in running_containers:
-        if len(container.image.tags) > 0 and \
-           container.image.tags[0] in IMAGES and \
-           container.status == "exited":
+        has_tags = len(container.image.tags) > 0
+        is_orchest_image = container.image.tags[0] in IMAGES
+        has_exited = container.status == "exited"
+        if has_tags and is_orchest_image and has_exited:
             logging.info("Removing exited container `%s`" % container.name)
             container.remove()
 
@@ -155,17 +154,17 @@ def start():
 
     # check if all images are present
     if install_complete():
-        client = docker.from_env()
-
         # start by cleaning up old containers lingering
         clean_containers()
 
         # start containers from CONTAINER_MAPPING that haven't started
-        running_containers = client.containers.list()
+        running_containers = docker_client.containers.list()
 
         # NOTE: is the repo tag always the first tag in the Docker Engine API?
         running_container_images = [
-            running_container.image.tags[0] for running_container in running_containers if len(running_container.image.tags) > 0
+            running_container.image.tags[0]
+            for running_container in running_containers
+            if len(running_container.image.tags) > 0
         ]
 
         images_to_start = [
@@ -198,7 +197,7 @@ def start():
 
                 logging.info("Starting image %s" % container_image)
 
-                client.containers.run(
+                docker_client.containers.run(
                     image=container_image,
                     command=command,
                     name=container_spec['name'],
@@ -221,9 +220,6 @@ def start():
 
 
 def install_network():
-
-    docker_client = docker.from_env()
-
     try:
         docker_client.networks.get(DOCKER_NETWORK)
     except docker.errors.NotFound as e:
@@ -243,9 +239,6 @@ def install_network():
 
 
 def install_complete():
-
-    docker_client = docker.from_env()
-
     missing_images = check_images()
 
     if len(missing_images) > 0:
@@ -262,14 +255,11 @@ def install_complete():
 
 
 def check_images():
-
-    client = docker.from_env()
-
     missing_images = []
 
     for image in IMAGES:
         try:
-            client.images.get(image)
+            docker_client.images.get(image)
             # logging.info("Image `%s` is installed." % image)
         except docker.errors.ImageNotFound as e:
             missing_images.append(image)
@@ -280,31 +270,25 @@ def check_images():
 
 
 def install_images():
-
-    client = docker.from_env()
-
     for image in IMAGES:
         try:
-            client.images.get(image)
+            docker_client.images.get(image)
         except docker.errors.ImageNotFound as e:
             logging.info("Pulling image `%s` ..." % image)
-            client.images.pull(image)
+            docker_client.images.pull(image)
             logging.info("Pulled image `%s`." % image)
 
 
 def get_application_url():
-
-    client = docker.from_env()
-
     try:
         # raise Exception if not found
-        client.containers.get("orchest-webserver")
-
-        return "http://localhost:%i" % CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["80/tcp"]
-
+        docker_client.containers.get("orchest-webserver")
     except Exception as e:
         print(e)
         return ""
+
+    port = CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["80/tcp"]
+    return "http://localhost:%i" % port
 
 
 def help_func():
@@ -313,16 +297,14 @@ def help_func():
 
 
 def stop():
-    client = docker.from_env()
-
     # shut down containers
-    running_containers = client.containers.list()
+    running_containers = docker_client.containers.list()
 
     container_names = [CONTAINER_MAPPING[container_key]['name'] for container_key in CONTAINER_MAPPING]
 
     for running_container in running_containers:
         if len(running_container.image.tags) > 0 and running_container.image.tags[0] in IMAGES:
-            
+
             # don't kill orchest-ctl itself
             if running_container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
                 continue
@@ -351,10 +333,17 @@ def log_server_url():
 
 
 def dev_mount_inject():
+    """Mounts to run Orchest in DEV mode.
 
-    logging.info("Orchest starting in DEV mode. This mounts host directories to monitor for source code changes.")
+    The code is mounted at the correct locations inside the containers,
+    so that you changes you make to the code are directly reflected in
+    the application.
 
-    # orchest-webserver dev mount
+    """
+    logging.info("Orchest starting in DEV mode. This mounts host directories "
+                 "to monitor for source code changes.")
+
+    # orchest-webserver
     orchest_webserver_spec = CONTAINER_MAPPING["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
         {
@@ -376,7 +365,7 @@ def dev_mount_inject():
        "--port=80"
     ]
 
-    # auth-server dev mount
+    # auth-server
     orchest_auth_server_spec = CONTAINER_MAPPING["orchestsoftware/auth-server:latest"]
     orchest_auth_server_spec['mounts'] += [
         {
@@ -398,7 +387,7 @@ def dev_mount_inject():
        "--port=80"
     ]
 
-    # orchest-api dev mount
+    # orchest-api
     orchest_api_spec = CONTAINER_MAPPING["orchestsoftware/orchest-api:latest"]
     orchest_api_spec["mounts"] += [
         {
@@ -432,14 +421,12 @@ def dev_mount_inject():
 
 
 def status():
+    running_containers = docker_client.containers.list()
 
-    # view conntainer status
-    client = docker.from_env()
-
-    # shut down containers
-    running_containers = client.containers.list()
-
-    orchest_container_names = [CONTAINER_MAPPING[container_key]['name'] for container_key in CONTAINER_MAPPING]
+    orchest_container_names = [
+        CONTAINER_MAPPING[container_key]['name']
+        for container_key in CONTAINER_MAPPING
+    ]
 
     running_prints = ['']
     not_running_prints = ['']
@@ -451,7 +438,6 @@ def status():
 
     for container_name in orchest_container_names:
         not_running_prints.append("Container %s not running." % container_name)
-
 
     if len(running_prints) > 1:
         logging.info('\n'.join(running_prints))
@@ -477,20 +463,17 @@ def init_logger():
 def update():
     logging.info("Updating Orchest...")
 
-    client = docker.from_env()
-
     for image in IMAGES:
         try:
             logging.info("Pulling image `%s` ..." % image)
-            client.images.pull(image)
+            docker_client.images.pull(image)
             logging.info("Pulled image `%s`." % image)
         except Exception as e:
-            logging.error("Something went wrong while pulling image %s error: %s" % (image, e))
-
+            logging.error("Something went wrong while pulling image "
+                          "%s error: %s" % (image, e))
 
 
 def main():
-
     init_logger()
 
     command_to_func = {
@@ -498,7 +481,7 @@ def main():
         "help": help_func,
         "stop": stop,
         "status": status,
-        "update": update
+        "update": update,
     }
 
     # default command
@@ -516,11 +499,8 @@ def main():
         help_func()
         return
 
-
     command_to_func[command]()
 
 
 if __name__ == '__main__':
-
-    # execute only if run as a script
     main()
