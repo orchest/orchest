@@ -22,7 +22,7 @@ your models on the cloud without any knowledge of cloud infrastructure.
    installation
    quickstart
    how_orchest_works
-   sdk
+   sdk/index
    development/index
    help
 

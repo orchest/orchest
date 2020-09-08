@@ -3,21 +3,16 @@ Python
 
 Python package to pass data between pipeline steps in Orchest.
 
-Since memory resources are scarce we have implemented a custom eviction manager for the store as
-part of `Orchest <http://www.github.com/orchest/orchest>`_.  Without it, objects do not
-get evicted from the store (even when an object has no reference) and will eventually lead to the
-store reaching its maximum capacity with no room for new data.
+Since memory resources are scarce we have implemented a custom eviction manager for the store.
+Without it, objects do not get evicted from the store (even when an object has no reference) and
+will eventually lead to the store reaching its maximum capacity with no room for new data. The
+eviction is handled by the `memory-server <https://github.com/orchest/orchest/memory-server>`_.
 
 
 Installation
 ------------
-Currently the recommended method for installing the Orchest SDK is through the GitHub repository
-using :code:`pip`
-
-.. code-block:: bash
-
-   # To get the latest release you can substitute "master" for "develop".
-   pip install git+https://github.com/orchest/orchest-sdk.git@master#subdirectory=python
+.. note::
+   The Orchest SDK comes pre-installed when using it in Orchest.
 
 
 Quickstart
@@ -28,7 +23,7 @@ Data passing
 
 For this example we let the pipeline (defined inside the :code:`pipeline.json`) be as follows: 
 
-.. image:: img/pipeline.png
+.. image:: ../img/pipeline.png
   :width: 400
   :alt: Pipeline defined as: step-1, step-2 --> step-3
   :align: center

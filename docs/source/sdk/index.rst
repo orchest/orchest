@@ -1,10 +1,7 @@
-Orchest SDK
-===========
+.. _sdk:
 
-`Website <https://www.orchest.io>`_
--- `GitHub <http://www.github.com/orchest/orchest-sdk>`_
--- `Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_
-
+Data passing - Orchest SDK
+==========================
 
 Orchest SDK for interacting with Orchest. What you can do using the SDK:
 
