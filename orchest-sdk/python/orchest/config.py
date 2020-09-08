@@ -1,10 +1,16 @@
-# TODO: would be great if SDK was in main repo so that we can use its
-#       internal library for the config values.
+"""
 
-# TODO: make sure the user can actually configure by using this object.
-# TODO: put configuration options inside the docstring so we can use it
-#       for the autodoc generation.
+CAUTION:
+    DO NOT USE THE INTERNAL LIBRARY IN THE CODE OF THE SDK. THIS CAN
+    CAUSE CONFLICTS WITH THE LICENSES.
+
+"""
+
+
 class Config:
+    # TODO: put configuration options inside the docstring so we can use
+    #       it for the autodoc generation.
+
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
     STEP_DATA_DIR = '/pipeline-dir/.orchest/data/{step_uuid}'
