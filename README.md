@@ -71,6 +71,13 @@ Please refer to our docs for a more comprehensive
 ![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
 
 
+## License
+The software in this repository is licensed as follows:
+* All content residing under the "orchest-sdk/" directory of this repository is licensed under the
+    "Apache-2.0" license as defined in "orchest-sdk/LICENSE".
+* Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
+
+
 ## Contributing
 Contributions are more than welcome! Please see our 
 [contributer guides](https://orchest.readthedocs.io/en/latest/development/contributer_guides.html)

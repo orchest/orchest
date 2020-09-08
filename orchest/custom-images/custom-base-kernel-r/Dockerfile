@@ -9,8 +9,7 @@ WORKDIR /orchest
 COPY ./custom-base-kernel-r/*.sh /orchest/
 
 # Run augment script
-ARG sdk_branch=master
-RUN ./augment-root.sh ${sdk_branch}
+RUN ./augment-root.sh
 
 # Install our internal libraries
 RUN mkdir -p /home/jovyan/src

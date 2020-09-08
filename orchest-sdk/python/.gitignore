@@ -1,0 +1,6 @@
+# Running setup.py sdist will copy the root License here as well. We do
+# not need this.
+LICENSE
+
+# Data directory created for tests.
+.data/
