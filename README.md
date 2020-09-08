@@ -72,7 +72,7 @@ Please refer to our docs for a more comprehensive
 
 
 ## License
-Portions of this software are licensed as follows:
+The software in this repository is licensed as follows:
 * All content residing under the "orchest-sdk/" directory of this repository is licensed under the
     "Apache-2.0" license as defined in "orchest-sdk/LICENSE".
 * Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
