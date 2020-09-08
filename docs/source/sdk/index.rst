@@ -1,7 +1,7 @@
 .. _sdk:
 
-Data passing - Orchest SDK
-==========================
+Orchest SDK
+===========
 
 Orchest SDK for interacting with Orchest. What you can do using the SDK:
 
