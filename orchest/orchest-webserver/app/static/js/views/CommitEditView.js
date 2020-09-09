@@ -4,12 +4,17 @@ import {Controlled as CodeMirror} from 'react-codemirror2'
 import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 import { makeRequest, PromiseManager, makeCancelable } from '../lib/utils/all';
 import CommitsView from './CommitsView';
+import { XTerm } from 'xterm-for-react';
+import io from 'socket.io-client';
+
 require('codemirror/mode/shell/shell');
 
 class CommitEditView extends React.Component {
 
     componentWillUnmount() {
-
+        if(this.socket){
+            this.socket.close();
+        }
     }
 
     constructor(props) {
@@ -50,7 +55,24 @@ class CommitEditView extends React.Component {
 
     componentDidMount(){
         this.fetchShell();
+        this.connectSocketIO();
     }
+
+
+    connectSocketIO(){
+
+        // disable polling
+        this.socket = io.connect("/pty", {"transports": ['websocket']});
+
+        this.socket.on('connect', () => {
+            console.log("SocketIO connected on /pty");
+        })
+
+        this.socket.on("pty-output", (data) => {
+            this.refs.term.terminal.write(data.output);
+        })
+    }
+
 
     componentDidUpdate(prevProps){
         if(this.props.commit && this.props.commit.uuid != prevProps.commit.uuid){
@@ -131,27 +153,27 @@ class CommitEditView extends React.Component {
                 <MDCTextFieldReact classNames={["push-down"]} label="Base image" disabled value={this.props.image.name} />
                 <MDCTextFieldReact classNames={["push-down"]} label="Commit name" value={this.state.commit.name} onChange={this.onChangeName.bind(this)} />
                 
-                <Fragment>
-                    <CodeMirror
-                        value={
-                            this.state.commit.shell
-                        }
-                        options={{
-                            mode: 'application/x-sh',
-                            theme: 'default',
-                            lineNumbers: true, 
-                            viewportMargin: Infinity
-                        }}
-                        onBeforeChange={(editor, data, value) => {
-                            this.state.commit.shell = value;
-                            
-                            this.setState({
-                                commit: this.state.commit
-                            })
+                <CodeMirror
+                    value={
+                        this.state.commit.shell
+                    }
+                    options={{
+                        mode: 'application/x-sh',
+                        theme: 'default',
+                        lineNumbers: true, 
+                        viewportMargin: Infinity
+                    }}
+                    onBeforeChange={(editor, data, value) => {
+                        this.state.commit.shell = value;
+                        
+                        this.setState({
+                            commit: this.state.commit
+                        })
 
-                        }}
-                    />
-                </Fragment>
+                    }}
+                />
+
+                <XTerm ref='term' />
 
                 <MDCButtonReact classNames={['mdc-button--raised', 'themed-secondary']} onClick={this.save.bind(this)} label="Save" icon="save" />
                 <MDCButtonReact classNames={['mdc-button--raised']} onClick={this.buildCommit.bind(this)} label="Build" icon="memory" />

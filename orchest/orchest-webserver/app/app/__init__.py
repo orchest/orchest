@@ -16,11 +16,13 @@ import uuid
 import atexit
 
 from flask import Flask, send_from_directory
+from flask_socketio import SocketIO
 from app.config import CONFIG_CLASS
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
 from subprocess import Popen
 from app.views import register_views
+from app.build_commits import register_build_views
 from app.models import Image
 from app.connections import db
 from app.utils import get_user_conf
@@ -33,6 +35,8 @@ def create_app():
 
     app = Flask(__name__)
     app.config.from_object(CONFIG_CLASS)
+
+    socketio = SocketIO(app, cors_allowed_origins="*")
 
     # read directory mount based config into Flask config
     try:
@@ -64,7 +68,7 @@ def create_app():
         return send_from_directory("../static", path)
 
     register_views(app, db)
-
+    register_build_views(app, db, socketio)
 
     if "TELEMETRY_DISABLED" not in app.config:
         # create thread for analytics
@@ -98,4 +102,4 @@ def create_app():
         logging.info("Started file_permission_watcher.py")
 
     
-    return app
+    return app, socketio

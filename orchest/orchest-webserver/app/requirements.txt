@@ -2,6 +2,8 @@ Flask
 flask_sqlalchemy
 flask_restful
 flask-marshmallow
+flask-socketio
+eventlet
 marshmallow-sqlalchemy
 Flask-Migrate
 requests

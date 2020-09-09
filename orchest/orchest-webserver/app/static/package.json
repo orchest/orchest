@@ -13,7 +13,9 @@
     "material-components-web": "^4.0.0",
     "react": "^16.13.1",
     "react-codemirror2": "^7.2.1",
-    "react-dom": "^16.13.1"
+    "react-dom": "^16.13.1",
+    "socket.io-client": "^2.3.0",
+    "xterm-for-react": "^1.0.4"
   },
   "devDependencies": {
     "@babel/core": "^7.9.6",
