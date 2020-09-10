@@ -3,14 +3,10 @@ import os
 import sys
 
 import docker
+from docker.types import Mount
 
+import config
 from connections import docker_client
-from config import (
-    DOCKER_NETWORK,
-    HOST_CONFIG_DIR,
-    ALL_IMAGES,
-    CONTAINER_MAPPING,
-)
 
 
 def init_logger():
@@ -35,9 +31,10 @@ def is_install_complete():
         return False
 
     try:
-        docker_client.networks.get(DOCKER_NETWORK)
+        docker_client.networks.get(config.DOCKER_NETWORK)
     except docker.errors.NotFound as e:
-        logging.warning("Docker network (%s) not installed: %s" % (DOCKER_NETWORK, e))
+        logging.warning("Docker network (%s) "
+                        "not installed: %s" % (config.DOCKER_NETWORK, e))
         return False
 
     return True
@@ -46,7 +43,7 @@ def is_install_complete():
 def check_images():
     missing_images = []
 
-    for image in ALL_IMAGES:
+    for image in config.ALL_IMAGES:
         try:
             docker_client.images.get(image)
             # logging.info("Image `%s` is installed." % image)
@@ -59,7 +56,7 @@ def check_images():
 
 
 def install_images():
-    for image in ALL_IMAGES:
+    for image in config.ALL_IMAGES:
         try:
             docker_client.images.get(image)
         except docker.errors.ImageNotFound:
@@ -70,22 +67,22 @@ def install_images():
 
 def install_network():
     try:
-        docker_client.networks.get(DOCKER_NETWORK)
+        docker_client.networks.get(config.DOCKER_NETWORK)
     except docker.errors.NotFound as e:
 
         logging.info("Orchest sends an anonymized ping to analytics.orchest.io. "
                      "You can disable this by adding "
                      "{ \"TELEMETRY_DISABLED\": true }"
-                     "to config.json in %s" % HOST_CONFIG_DIR)
+                     "to config.json in %s" % config.HOST_CONFIG_DIR)
 
         logging.info("Docker network %s doesn't exist: %s. "
-                     "Creating it." % (DOCKER_NETWORK, e))
+                     "Creating it." % (config.DOCKER_NETWORK, e))
         # Create Docker network named "orchest" with a custom subnet such that
         # containers can be spawned at custom static IP addresses.
         ipam_pool = docker.types.IPAMPool(subnet='172.31.0.0/16')
         ipam_config = docker.types.IPAMConfig(pool_configs=[ipam_pool])
         docker_client.networks.create(
-            DOCKER_NETWORK,
+            config.DOCKER_NETWORK,
             driver="bridge",
             ipam=ipam_config
         )
@@ -104,7 +101,7 @@ def clean_containers():
 
     for container in running_containers:
         has_tags = len(container.image.tags) > 0
-        is_orchest_image = has_tags and container.image.tags[0] in ALL_IMAGES
+        is_orchest_image = has_tags and container.image.tags[0] in config.ALL_IMAGES
         has_exited = container.status == "exited"
         if is_orchest_image and has_exited:
             logging.info("Removing exited container `%s`" % container.name)
@@ -113,18 +110,17 @@ def clean_containers():
 
 def get_application_url():
     try:
-        # raise Exception if not found
         docker_client.containers.get("orchest-webserver")
     except Exception as e:
         print(e)
         return ""
 
-    port = CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["80/tcp"]
+    port = config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["80/tcp"]
     return "http://localhost:%i" % port
 
 
 def dev_mount_inject(container_spec):
-    """Mounts to run Orchest in DEV mode.
+    """Injects mounts to run Orchest in DEV mode.
 
     The code is mounted at the correct locations inside the containers,
     so that you changes you make to the code are directly reflected in
@@ -206,3 +202,24 @@ def dev_mount_inject(container_spec):
         "80/tcp": 80,
         "443/tcp": 443
     }
+
+
+def convert_to_run_config(image_name, container_spec):
+    # Convert every mount specification to a docker.types.Mount
+    mounts = []
+    for ms in container_spec.get('mounts', []):
+        mount = Mount(target=ms['target'], source=ms['source'], type='bind')
+        mounts.append(mount)
+
+    run_config = {
+        'image': image_name,
+        'command': container_spec.get('command'),
+        'name': container_spec['name'],
+        'detach': True,
+        'mounts': mounts,
+        'network': config.DOCKER_NETWORK,
+        'environment': container_spec.get('environment', {}),
+        'ports': container_spec.get('ports', {}),
+        'hostname': container_spec.get('hostname'),
+    }
+    return run_config

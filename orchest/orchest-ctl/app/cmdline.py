@@ -1,23 +1,12 @@
 """Options for the command line."""
 import logging
 
-from docker.types import Mount
-
 import config
-from config import (
-    DOCKER_NETWORK,
-    CONTAINER_MAPPING,
-    ALL_IMAGES,
-)
+# Import the CONTAINER_MAPPING seperately because when Orchest is
+# started in DEV mode, then the mapping is changed in-place.
+from config import CONTAINER_MAPPING
 from connections import docker_client
-from utils import (
-    is_install_complete,
-    install_images,
-    install_network,
-    log_server_url,
-    clean_containers,
-    dev_mount_inject,
-)
+import utils
 
 
 def get_available_cmds():
@@ -26,80 +15,53 @@ def get_available_cmds():
 
 
 def start():
-    logging.info("Starting Orchest...")
+    # Make sure the installation is complete before starting Orchest.
+    if not utils.is_install_complete():
+        logging.info("Installation required. Starting installer.")
+        utils.install_images()
+        utils.install_network()
+        logging.info("Installation finished. Attempting to start...")
+        return start()
 
-    # TODO: put this in the right spot
     if config.RUN_MODE == "dev":
-        logging.info("Orchest starting in DEV mode. This mounts host directories "
+        logging.info("Starting Orchest in DEV mode. This mounts host directories "
                      "to monitor for source code changes.")
 
-        dev_mount_inject(CONTAINER_MAPPING)
-
-    # check if all images are present
-    if is_install_complete():
-        # start by cleaning up old containers lingering
-        clean_containers()
-
-        # start containers from CONTAINER_MAPPING that haven't started
-        running_containers = docker_client.containers.list()
-
-        # NOTE: is the repo tag always the first tag in the Docker Engine API?
-        running_container_images = [
-            running_container.image.tags[0]
-            for running_container in running_containers
-            if len(running_container.image.tags) > 0
-        ]
-
-        images_to_start = [
-            image_name
-            for image_name in CONTAINER_MAPPING.keys()
-            if image_name not in running_container_images
-        ]
-
-        for container_image in CONTAINER_MAPPING.keys():
-
-            if container_image in images_to_start:
-
-                container_spec = CONTAINER_MAPPING[container_image]
-
-                mounts = []
-                if 'mounts' in container_spec:
-                    mounts = [
-                        Mount(
-                            target=mount['target'],
-                            source=mount['source'],
-                            type='bind'
-                        )
-                        for mount in container_spec['mounts']
-                    ]
-
-                environment = container_spec.get('environment', {})
-                ports = container_spec.get('ports', {})
-                hostname = container_spec.get('hostname')
-                command = container_spec.get('command')
-
-                logging.info("Starting image %s" % container_image)
-
-                docker_client.containers.run(
-                    image=container_image,
-                    command=command,
-                    name=container_spec['name'],
-                    detach=True,
-                    mounts=mounts,
-                    network=DOCKER_NETWORK,
-                    environment=environment,
-                    ports=ports,
-                    hostname=hostname,
-                )
-
-        log_server_url()
-
+        utils.dev_mount_inject(CONTAINER_MAPPING)
     else:
-        logging.info("Installation required. Starting installer.")
-        install_images()
-        install_network()
-        logging.info("Installation finished. Attempting to start...")
-        start()
+        logging.info("Starting Orchest...")
+
+    # Clean up lingering, old images from previous starts.
+    utils.clean_containers()
+
+    # TODO: is the repo tag always the first tag in the Docker
+    #       Engine API?
+    # Determine the containers that are already running as we do not
+    # want to run these again.
+    running_containers = docker_client.containers.list()
+    running_container_images = [
+        running_container.image.tags[0]
+        for running_container in running_containers
+        if len(running_container.image.tags) > 0
+    ]
+
+    images_to_start = [
+        image_name
+        for image_name in config.ON_START_IMAGES
+        if image_name not in running_container_images
+    ]
+
+    # Run every container that is not already running. Additionally,
+    # use pre-defined container specifications if the container has
+    # any.
+    for container_image in images_to_start:
+        container_spec = CONTAINER_MAPPING.get(container_image, {})
+        run_config = utils.convert_to_run_config(container_image, container_spec)
+
+        logging.info("Starting image %s" % container_image)
+        docker_client.containers.run(**run_config)
+
+    utils.log_server_url()
 
 
 def help():
@@ -131,7 +93,7 @@ def stop():
 
     for running_container in running_containers:
         if (len(running_container.image.tags) and
-                running_container.image.tags[0] in ALL_IMAGES):
+                running_container.image.tags[0] in config.ALL_IMAGES):
             # don't kill orchest-ctl itself
             if running_container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
                 continue
@@ -180,7 +142,7 @@ def status():
 def update():
     logging.info("Updating Orchest...")
 
-    for image in ALL_IMAGES:
+    for image in config.ALL_IMAGES:
         try:
             logging.info("Pulling image `%s` ..." % image)
             docker_client.images.pull(image)
