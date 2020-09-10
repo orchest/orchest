@@ -57,7 +57,6 @@ LIB_IMAGES=(
     "celery-worker"
 )
 SDK_IMAGES=(
-    "memory-server"
     "custom-base-kernel-py"
     "custom-base-kernel-r"
 )
