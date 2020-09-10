@@ -41,4 +41,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 RUN mkdir /root/.jupyter/
 COPY ./jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 
+# TODO: Make the jupyter-server use the internal library. Do this once
+#       JupyterLab has a stable 3.0 version as this also no longer
+#       requires the patch.
 COPY ./app /app

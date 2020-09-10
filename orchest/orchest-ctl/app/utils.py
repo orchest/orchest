@@ -127,17 +127,20 @@ def dev_mount_inject(container_spec):
     the application.
 
     """
+    HOST_PWD = os.environ.get("HOST_PWD")
+
     # orchest-webserver
     orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
         {
-            "source": os.path.join(
-                os.environ.get("HOST_PWD"),
-                "orchest",
-                "orchest-webserver",
-                "app"),
+            "source": os.path.join(HOST_PWD, "orchest", "orchest-webserver", "app"),
             "target": "/orchest/orchest/orchest-webserver/app"
-        }
+        },
+        # Internal library.
+        {
+            "source": os.path.join(HOST_PWD, "lib"),
+            "target": "/orchest/lib"
+        },
     ]
 
     orchest_webserver_spec['environment']["FLASK_APP"] = "main.py"
@@ -153,11 +156,7 @@ def dev_mount_inject(container_spec):
     orchest_auth_server_spec = container_spec["orchestsoftware/auth-server:latest"]
     orchest_auth_server_spec['mounts'] += [
         {
-            "source": os.path.join(
-                os.environ.get("HOST_PWD"),
-                "orchest",
-                "auth-server",
-                "app"),
+            "source": os.path.join(HOST_PWD, "orchest", "auth-server", "app"),
             "target": "/orchest/orchest/auth-server/app"
         }
     ]
@@ -175,15 +174,16 @@ def dev_mount_inject(container_spec):
     orchest_api_spec = container_spec["orchestsoftware/orchest-api:latest"]
     orchest_api_spec["mounts"] += [
         {
-            "source": os.path.join(
-                os.environ.get("HOST_PWD"),
-                "orchest",
-                "orchest-api",
-                "app",
-                "app"),
-            "target": "/orchest/orchest/orchest-api/app/app"
-        }
+            "source": os.path.join(HOST_PWD, "orchest", "orchest-api", "app"),
+            "target": "/orchest/orchest/orchest-api/app"
+        },
+        # Internal library.
+        {
+            "source": os.path.join(HOST_PWD, "lib"),
+            "target": "/orchest/lib"
+        },
     ]
+    # Forward the port so that the Swagger API can be accessed at :8080/api
     orchest_api_spec["ports"] = {
         "80/tcp": 8080
     }
