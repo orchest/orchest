@@ -11,5 +11,6 @@ APScheduler
 pyinotify
 nbformat
 nbconvert
+docker
 Werkzeug==0.16.0
 -e ../../../lib/python/orchest-internals

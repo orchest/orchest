@@ -4,6 +4,9 @@ import hashlib
 import random
 import string
 import logging
+import uuid
+import tarfile
+import io
 
 def get_hash(path):
 	BLOCKSIZE = 8192 * 8
@@ -30,6 +33,31 @@ def get_user_conf():
         logging.debug(e)
 
     return conf_data
+
+
+def tar_from_path(path, filename):
+
+    tmp_file_path = os.path.join("/tmp", str(uuid.uuid4()))
+    tar = tarfile.open(tmp_file_path, "x")
+
+    with open(path, "rb") as f:
+
+        info = tarfile.TarInfo(filename)
+
+        f.seek(0, io.SEEK_END)
+        info.size = f.tell()
+        f.seek(0, io.SEEK_SET)
+
+        tar.addfile(info, f)
+        tar.close()
+
+    with open(tmp_file_path, "rb") as in_file:
+        data = in_file.read()
+
+    # remove tmp file
+    os.remove(tmp_file_path)
+
+    return data
 
 
 def name_to_tag(name):

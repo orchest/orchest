@@ -5,6 +5,8 @@ import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 import { makeRequest, PromiseManager, makeCancelable } from '../lib/utils/all';
 import CommitsView from './CommitsView';
 import { XTerm } from 'xterm-for-react';
+import { FitAddon } from 'xterm-addon-fit';
+
 import io from 'socket.io-client';
 
 require('codemirror/mode/shell/shell');
@@ -27,10 +29,13 @@ class CommitEditView extends React.Component {
                 "name": "", 
                 "tag": "",
                 "shell": "#!/bin/bash\n\n# Install any dependencies you have in this shell script.\n\n# E.g. pip install tensorflow\n\n\n",
-            },
+            }           
         }
 
         this.promiseManager = new PromiseManager();
+
+        // initialize Xterm addons
+        this.fitAddon = new FitAddon();
     }
 
     fetchShell(){
@@ -58,7 +63,6 @@ class CommitEditView extends React.Component {
         this.connectSocketIO();
     }
 
-
     connectSocketIO(){
 
         // disable polling
@@ -69,77 +73,118 @@ class CommitEditView extends React.Component {
         })
 
         this.socket.on("pty-output", (data) => {
-            this.refs.term.terminal.write(data.output);
+            
+            // ignore terminal outputs from other commit uuid's
+            if(data.commit_uuid == this.state.commit.uuid){
+                this.refs.term.terminal.write(data.output);
+            }
         })
     }
 
+    resizeTerminal(){
+        console.log('resized terminal')
+        this.socket.emit("resize", {
+            "rows": this.refs.term.terminal.rows,
+            "cols": this.refs.term.terminal.cols,
+            "commit_uuid": this.state.commit.uuid
+        })
+    }
 
     componentDidUpdate(prevProps){
         if(this.props.commit && this.props.commit.uuid != prevProps.commit.uuid){
             this.fetchShell();
         }
+
+        this.fitAddon.fit();
+    }
+
+    build(e){
+
+        e.nativeEvent.preventDefault();
+
+        this.refs.term.terminal.clear()
+
+        this.savePromise().then(() => {
+            let method = "POST";
+            let commitEndpoint = "/async/commits/build/" + this.state.commit.uuid;
+    
+            makeRequest(method, commitEndpoint, {type: 'json', content: {
+                'rows': this.refs.term.terminal.rows,
+                'cols': this.refs.term.terminal.cols,
+            }}).then((response) => {
+            }).catch((error) => {
+                console.log(error);
+            })
+        })
+
+    }
+
+
+    savePromise(){
+
+        return new Promise((resolve, reject) => {
+            let method = "POST";
+            let commitEndpoint = "/store/commits/" + this.state.commit.uuid;
+
+            if(this.state.newCommit === false){
+                method = "PUT";
+            }
+
+            makeRequest(method, commitEndpoint, {type: 'json', content: {
+                "name": this.state.commit.name,
+                "image_name": this.props.image.name,
+            }}).then((response) => {
+
+                let result = JSON.parse(response);
+
+                this.state.commit.uuid = result.uuid;
+
+                makeRequest("POST", "/async/commits/shell/" + this.state.commit.uuid, {
+                    type: "json",
+                    content: { 
+                        "shell": this.state.commit.shell
+                    }
+                }).then(() => {
+
+                    resolve();
+
+                }).catch((error) => {
+                    console.log(error);
+                    reject();
+                })
+
+            }).catch((error) => {
+                console.log(error);
+
+                try {
+                    console.error(JSON.parse(error.body)["message"]);
+                }catch (error){
+                    console.log(error);
+                    console.log("Couldn't get error message from response.");
+                }
+
+                reject();
+            })
+        })
+        
     }
 
     save(e){
 
         e.nativeEvent.preventDefault();
-
-        let method = "POST";
-        let commitEndpoint = "/store/commits/" + this.state.commit.uuid;
-
-        if(this.state.newCommit === false){
-            method = "PUT";
-        }
-
-        makeRequest(method, commitEndpoint, {type: 'json', content: {
-            "name": this.state.commit.name,
-            "image_name": this.props.image.name,
-        }}).then((response) => {
-
-            let result = JSON.parse(response);
-
-            this.state.commit.uuid = result.uuid;
-
-            this.setState({
-                commit: this.state.commit
-            })
-
-            makeRequest("POST", "/async/commits/shell/" + this.state.commit.uuid, {
-                type: "json",
-                content: { 
-                    "shell": this.state.commit.shell
-                }
-            }).then(() => {
-
-                orchest.loadView(CommitsView, {image: this.props.image});
-
-            }).catch((error) => {
-                console.log(error);
-            })
-
-        }).catch((error) => {
-            console.log(error);
-
-            try {
-                console.error(JSON.parse(error.body)["message"]);
-            }catch (error){
-                console.log(error);
-                console.log("Couldn't get error message from response.");
-            }
+        
+        this.savePromise().then(() => {
+            orchest.loadView(CommitsView, {image: this.props.image});
         })
-
     }
 
     onChangeName(value){
         this.state.commit.name = value;
     }
 
-    buildCommit(){
-
-    }
-
     render() {
 
+        
         return <div className={"view-page edit-commit"}>
             <h2>Edit commit</h2>
 
@@ -173,10 +218,10 @@ class CommitEditView extends React.Component {
                     }}
                 />
 
-                <XTerm ref='term' />
+                <XTerm addons={[this.fitAddon]} ref='term' onResize={this.resizeTerminal.bind(this)} />
 
                 <MDCButtonReact classNames={['mdc-button--raised', 'themed-secondary']} onClick={this.save.bind(this)} label="Save" icon="save" />
-                <MDCButtonReact classNames={['mdc-button--raised']} onClick={this.buildCommit.bind(this)} label="Build" icon="memory" />
+                <MDCButtonReact classNames={['mdc-button--raised']} onClick={this.build.bind(this)} label="Build" icon="memory" />
             </form>
             
         </div>;
