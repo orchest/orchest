@@ -212,6 +212,7 @@ class PipelineStepRunner:
             'Image': self.properties['image'],
             'Env': [
                 f'STEP_UUID={self.properties["uuid"]}',
+                'EVICTION_OPTIONALITY=1',
             ],
             'HostConfig': {
                 'Binds': get_dynamic_mounts(run_config, task_id),
