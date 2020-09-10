@@ -3,10 +3,10 @@ import logging
 
 from docker.types import Mount
 
+import config
 from config import (
     DOCKER_NETWORK,
     CONTAINER_MAPPING,
-    RUN_MODE,
     ALL_IMAGES,
 )
 from connections import docker_client
@@ -29,7 +29,10 @@ def start():
     logging.info("Starting Orchest...")
 
     # TODO: put this in the right spot
-    if RUN_MODE == "dev":
+    if config.RUN_MODE == "dev":
+        logging.info("Orchest starting in DEV mode. This mounts host directories "
+                     "to monitor for source code changes.")
+
         dev_mount_inject(CONTAINER_MAPPING)
 
     # check if all images are present

@@ -131,9 +131,6 @@ def dev_mount_inject(container_spec):
     the application.
 
     """
-    logging.info("Orchest starting in DEV mode. This mounts host directories "
-                 "to monitor for source code changes.")
-
     # orchest-webserver
     orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
