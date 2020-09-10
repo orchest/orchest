@@ -78,27 +78,31 @@ do
     echo "[$SERVICE]: Installing dependencies..."
 
     if [ $SERVICE == "jupyter-server" ]; then
-        REQ_DIR=$DIR/../orchest/jupyter-server/app
-        TEST_DIR=$REQ_DIR
+        TEST_DIR=$DIR/../orchest/jupyter-server/app
+        REQ_DIR=$TEST_DIR
+        REQ_FILE=$REQ_DIR/requirements.txt
     fi
     if [ $SERVICE == "memory-server" ]; then
-        REQ_DIR=$DIR/../orchest/memory-server
-        TEST_DIR=$REQ_DIR
+        TEST_DIR=$DIR/../orchest/memory-server
+        REQ_DIR=$TEST_DIR
+        REQ_FILE=$REQ_DIR/requirements-dev.txt
     fi
     if [ $SERVICE == "orchest-api" ]; then
-        REQ_DIR=$DIR/../orchest/orchest-api/app
-        TEST_DIR=$REQ_DIR
+        TEST_DIR=$DIR/../orchest/orchest-api/app
+        REQ_DIR=$TEST_DIR
+        REQ_FILE=$REQ_DIR/requirements.txt
     fi
     if [ $SERVICE == "orchest-sdk" ]; then
-        REQ_DIR=$DIR/../orchest-sdk/python
-        TEST_DIR=$REQ_DIR
+        TEST_DIR=$DIR/../orchest-sdk/python
+        REQ_DIR=$TEST_DIR
+        REQ_FILE=$REQ_DIR/requirements.txt
     fi
 
     cd $REQ_DIR
     if $USE_VENV; then
-        pip install -r requirements.txt pytest > /dev/null
+        pip install -r $REQ_FILE pytest > /dev/null
     else
-        pip install -r requirements.txt pytest
+        pip install -r $REQ_FILE pytest
     fi
 
 

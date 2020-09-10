@@ -21,6 +21,41 @@ from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
 
+class _PlasmaConnector:
+    """Manages the connection to the plasma in-memory store.
+
+    Allows for only one connection to make sure the different methods
+    don't all try to connect to the store individually.
+
+    """
+    _client: plasma.PlasmaClient = None
+
+    @property
+    def client(self):
+        """Connects to the plasma store if not already connected.
+
+        Returns:
+            A plasma slient.
+
+        Raises:
+            MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
+            OrchestNetworkError: Could not connect to the
+                ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
+                might be because the specified value was wrong or the store
+                died.
+        """
+        if self._client is not None:
+            return self._client
+
+        try:
+            self._client = plasma.connect(Config.STORE_SOCKET_NAME,
+                                          num_retries=Config.CONN_NUM_RETRIES)
+        except OSError:
+            raise OrchestNetworkError('Failed to connect to in-memory object store.')
+
+        return self._client
+
+
 # First line of the docstring is for sphinx-autodoc. Otherwise the third
 # party type `pa.SerializedPyObject` has to be mocked and therefore will
 # not show up in the RTD documentation.
@@ -379,19 +414,11 @@ def output_to_memory(data: Any,
     # Serialize the object and collect the serialization metadata.
     obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
 
-    # TODO: Get the store socket name from the Config. And pass it to
-    #       _output_to_memory which will then connect to it. Although better
-    #       if it connects more high level since otherwise if you want
-    #       to use low-level the code will connect everytime instead of
-    #       being able to reuse the same client. But still good idea to
-    #       get it from the config in this function. Maybe set the kwarg
-    #       to None default, so that if it is None then use config and
-    #       otherwise the given value.
     try:
-        client = plasma.connect(Config.STORE_SOCKET_NAME)
-    except OSError:
+        client = _PlasmaConnector().client
+    except OrchestNetworkError as e:
         if not disk_fallback:
-            raise OrchestNetworkError('Failed to connect to in-memory object store.')
+            raise OrchestNetworkError(e)
 
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
@@ -486,14 +513,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
             might be because the specified value was wrong or the store
             died.
     """
-    # TODO: could be good idea to put connecting to plasma in a class
-    #       such that does not get called when no store is instantiated
-    #       or allocated. Additionally, we don't want to be connecting
-    #       to the store multiple times.
-    try:
-        client = plasma.connect(Config.STORE_SOCKET_NAME)
-    except OSError:
-        raise OrchestNetworkError('Failed to connect to in-memory object store.')
+    client = _PlasmaConnector().client
 
     obj_id = _convert_uuid_to_object_id(step_uuid)
     try:
@@ -509,10 +529,10 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         # TODO: note somewhere (maybe in the docstring) that it might
         #       although very unlikely raise MemoryError, because the
         #       receive is now actually also outputing data.
-        # TODO: this ENV variable is set in the orchest-api. Now we
-        #       always know when we are running inside a jupyter kernel
-        #       interactively. And in that case we never want to do
-        #       eviction.
+        # NOTE: the "EVICTION_OPTIONALITY" ENV variable is set in the
+        # orchest-api. Now we always know when we are running inside a
+        # jupyter kernel interactively. And in that case we never want
+        # to do eviction.
         if os.getenv('EVICTION_OPTIONALITY') is not None:
             empty_obj, _ = serialize('')
             msg = f'{Config.IDENTIFIER_EVICTION};{step_uuid},{consumer}'
@@ -549,10 +569,7 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
             might be because the specified value was wrong or the store
             died.
     """
-    try:
-        client = plasma.connect(Config.STORE_SOCKET_NAME, num_retries=20)
-    except OSError:
-        raise OrchestNetworkError('Failed to connect to in-memory object store.')
+    client = _PlasmaConnector().client
 
     obj_id = _convert_uuid_to_object_id(step_uuid)
     try:

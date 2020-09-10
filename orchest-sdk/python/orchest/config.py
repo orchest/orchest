@@ -29,8 +29,10 @@ class Config:
     # socket to connect to the plasma store.
     STORE_SOCKET_NAME = '/tmp/orchest/plasma.sock'
 
+    # For transfer.py
     IDENTIFIER_SERIALIZATION = 1
     IDENTIFIER_EVICTION = 2
+    CONN_NUM_RETRIES = 20
 
     @classmethod
     def get_step_data_dir(cls, step_uuid):
