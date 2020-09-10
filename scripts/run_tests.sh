@@ -5,7 +5,13 @@ set -e
 # To display help run this script with the "--help" option.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# TODO: For the sake of ease, the orchest-sdk will be considered to be a
+#       service as well. Once we support multiple languages for the sdk
+#       this should be tested seperately.
 SERVICES=()
+
+# How to print the traceback for tests run with pytest.
 TRACEBACK="line"
 
 # When running this script on GitHub Actions, we do not have to create a
@@ -44,8 +50,9 @@ done
 if [ ${#SERVICES[@]} -eq 0 ]; then
     SERVICES=(
         "jupyter-server"
-        "orchest-api"
         "memory-server"
+        "orchest-api"
+        "orchest-sdk"
     )
 fi
 
@@ -74,12 +81,16 @@ do
         REQ_DIR=$DIR/../orchest/jupyter-server/app
         TEST_DIR=$REQ_DIR
     fi
+    if [ $SERVICE == "memory-server" ]; then
+        REQ_DIR=$DIR/../orchest/memory-server
+        TEST_DIR=$REQ_DIR
+    fi
     if [ $SERVICE == "orchest-api" ]; then
         REQ_DIR=$DIR/../orchest/orchest-api/app
         TEST_DIR=$REQ_DIR
     fi
-    if [ $SERVICE == "memory-server" ]; then
-        REQ_DIR=$DIR/../orchest/memory-server
+    if [ $SERVICE == "orchest-sdk" ]; then
+        REQ_DIR=$DIR/../orchest-sdk/python
         TEST_DIR=$REQ_DIR
     fi
 

@@ -1,38 +1,29 @@
-.. _sdk:
+Python
+======
 
-Data passing SDK
-================
+Python package to pass data between pipeline steps in Orchest.
 
-`API documentation of the Orchest SDK <https://orchest-sdk.readthedocs.io/en/latest/>`_.
-
-Orchest SDK for interacting with Orchest. What you can do using the SDK:
-
-* Data passing between pipeline steps. It manages the target and source of the data, leaving the
-  user only with the decision what data to pass. The target and source of the data are inferred
-  through the defined pipeline definition in Orchest (the `pipeline.json` file).
-* Interacting with data sources, such as your regular MySQL databases but also Amazon S3 buckets.
-* Using the parametrized values of pipeline steps and updating them.
-
-We plan to also support other popular programming languages such as R.
+Since memory resources are scarce we have implemented a custom eviction manager for the store.
+Without it, objects do not get evicted from the store (even when an object has no reference) and
+will eventually lead to the store reaching its maximum capacity with no room for new data. The
+eviction is handled by the `memory-server <https://github.com/orchest/orchest/memory-server>`_.
 
 
 Installation
 ------------
 .. note::
-   The SDK comes pre-installed when using it in Orchest.
+   The Orchest SDK comes pre-installed when using it in Orchest.
 
 
 Quickstart
 ----------
-Code examples are given in Python. For other programming languages please refer to the
-`API documentation of the Orchest SDK <https://orchest-sdk.readthedocs.io/en/latest/>`_.
 
 Data passing
 ~~~~~~~~~~~~
 
 For this example we let the pipeline (defined inside the :code:`pipeline.json`) be as follows: 
 
-.. image:: img/pipeline.png
+.. image:: ../img/pipeline.png
   :width: 400
   :alt: Pipeline defined as: step-1, step-2 --> step-3
   :align: center
@@ -80,7 +71,6 @@ Parameters
 ~~~~~~~~~~
 .. code-block:: python
 
-   """Step 1"""
    import orchest
 
    # Get the parameters of the current step.
@@ -106,3 +96,27 @@ Datasources
    with mysql.connect() as conn:
       df = pd.read_sql('SELECT * FROM users', conn)
 
+
+API
+---
+
+orchest.transfer
+~~~~~~~~~~~~~~~~
+
+.. automodule:: orchest.transfer
+    :members:
+
+
+orchest.parameters
+~~~~~~~~~~~~~~~~~~
+
+.. automodule:: orchest.parameters
+    :members:
+
+
+orchest.datasources
+~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: orchest.datasources
+    :members:
+    :inherited-members:
