@@ -6,7 +6,8 @@ Python package to pass data between pipeline steps in Orchest.
 Since memory resources are scarce we have implemented a custom eviction manager for the store.
 Without it, objects do not get evicted from the store (even when an object has no reference) and
 will eventually lead to the store reaching its maximum capacity with no room for new data. The
-eviction is handled by the `memory-server <https://github.com/orchest/orchest/memory-server>`_.
+eviction is handled by the 
+`memory-server <https://github.com/orchest/orchest/tree/master/orchest/memory-server>`_.
 
 
 Installation
