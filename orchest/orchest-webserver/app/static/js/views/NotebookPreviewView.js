@@ -47,17 +47,14 @@ class NotebookPreviewView extends React.Component {
     fetchNotebookPromise.promise.then((response) => {
       
       // filter HTML to remove box-shadow CSS rules
-      const regex = /(box\-shadow\:|\-webkit\-box-shadow\:)[\d\s\w\,\)\(\-\.]*\;/gm;
-        
-      response = response.replace(regex, "");
-      response = response.replace("<body>\n", "<body style='padding-top:30px;'>\n");
+      response = response.replace("<body", "<body style='padding-top:60px;'");
 
       this.setState({
         "notebookHtml": response
       });
 
     }).catch((err) => {
-      console(err);
+      console.log(err);
     })
 
   }
@@ -75,7 +72,7 @@ class NotebookPreviewView extends React.Component {
           if(this.state.notebookHtml === undefined){
             return <MDCLinearProgressReact />
           }else{
-            return <iframe className={"notebook-iframe borderless fullsize"} src={"data:text/html;charset=utf-8," + escape(this.state.notebookHtml)}></iframe>;
+            return <iframe className={"notebook-iframe borderless fullsize"} src={"data:text/html;charset=utf-8," + encodeURIComponent(this.state.notebookHtml)}></iframe>;
           }
 
         })()}

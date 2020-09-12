@@ -1,5 +1,5 @@
 import React from 'react';
-import { uuidv4 } from '../lib/utils/all';
+import { RefManager, uuidv4 } from '../lib/utils/all';
 
 class ListCheckItem extends React.Component {
 
@@ -9,6 +9,8 @@ class ListCheckItem extends React.Component {
         this.state = {
             checked: false
         }
+
+        this.refManager = new RefManager();
     }
 
     checkboxChange(e) {
@@ -35,7 +37,7 @@ class ListCheckItem extends React.Component {
 
         let randomFor = uuidv4();
 
-        return <li onClick={this.onClickListItem.bind(this)} ref="listItem" className="mdc-list-item" role="checkbox" aria-checked="false">
+        return <li onClick={this.onClickListItem.bind(this)} ref={this.refManager.nrefs.listItem} className="mdc-list-item" role="checkbox" aria-checked="false">
             <span className="mdc-list-item__ripple"></span>
             <span className="mdc-list-item__graphic">
                 <div className="mdc-checkbox" >

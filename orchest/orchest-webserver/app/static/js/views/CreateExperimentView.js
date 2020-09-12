@@ -5,7 +5,7 @@ import ParameterEditor from '../components/ParameterEditor';
 import DateTimeInput from '../components/DateTimeInput';
 import ExperimentsView from "./ExperimentsView";
 import SearchableTable from '../components/SearchableTable';
-import { makeRequest, PromiseManager } from '../lib/utils/all';
+import { makeRequest, PromiseManager, RefManager } from '../lib/utils/all';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 import ParamTree from '../components/ParamTree';
 import MDCRadioReact from '../lib/mdc-components/MDCRadioReact';
@@ -27,6 +27,7 @@ class CreateExperimentView extends React.Component {
         }
 
         this.promiseManager = new PromiseManager();
+        this.refManager = new RefManager();
     }
 
     fetchPipeline(){
@@ -181,7 +182,7 @@ class CreateExperimentView extends React.Component {
         let formValueScheduledStart;
 
         if(this.state.scheduleOption === "scheduled"){
-            formValueScheduledStart = this.refs.scheduledDateTime.getISOString()
+            formValueScheduledStart = this.refManager.refs.scheduledDateTime.getISOString()
         } else {
             formValueScheduledStart = new Date().toISOString();
         }
@@ -392,7 +393,7 @@ class CreateExperimentView extends React.Component {
                                 }}
                             />
 
-                            <DateTimeInput ref="scheduledDateTime"
+                            <DateTimeInput ref={this.refManager.nrefs.scheduledDateTime}
                                 onFocus={() => this.setState({ scheduleOption: 'scheduled' })} />
 
                         </div>
@@ -425,7 +426,7 @@ class CreateExperimentView extends React.Component {
 
                 <MDCTabBarReact
                     selectedIndex={this.state.selectedTabIndex}
-                    ref={"tabBar"}
+                    ref={this.refManager.nrefs.tabBar}
                     items={[
                         'Parameters',
                         'Scheduling',

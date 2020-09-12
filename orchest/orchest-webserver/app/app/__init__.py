@@ -26,7 +26,19 @@ from app.build_commits import register_build_views
 from app.models import Image
 from app.connections import db
 from app.utils import get_user_conf
+from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
+
+
+def initialize_default_images(db):
+    # pre-populate the base images
+    image_names = [image.name for image in Image.query.all()]
+
+    for image in _config.DEFAULT_BASE_IMAGES:
+        if image["name"] not in image_names:
+            im = Image(name=image["name"], language=image["language"])
+            db.session.add(im)
+            db.session.commit()
 
 
 def create_app():
@@ -53,14 +65,11 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # pre-populate the base images
-        image_names = [image.name for image in Image.query.all()]
+        initialize_default_images(db)
 
-        for image in _config.DEFAULT_BASE_IMAGES:
-            if image["name"] not in image_names:
-                im = Image(name=image["name"], language=image["language"])
-                db.session.add(im)
-                db.session.commit()
+        logging.info("Initializing kernels")
+        populate_kernels(app, db)
+
 
     # static file serving
     @app.route('/public/<path:path>')

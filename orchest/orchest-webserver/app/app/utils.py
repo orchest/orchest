@@ -8,6 +8,8 @@ import uuid
 import tarfile
 import io
 
+from app.models import Image, Commit
+
 def get_hash(path):
 	BLOCKSIZE = 8192 * 8
 	hasher = hashlib.md5()
@@ -33,6 +35,41 @@ def get_user_conf():
         logging.debug(e)
 
     return conf_data
+
+
+def get_synthesized_images(language=None):
+
+    synthesized_images = []
+
+    # add base images
+    if language is not None:
+        images = Image.query.filter(Image.language == language).all()
+    else:
+        images = Image.query.all()
+
+    image_names = [image.name for image in images]
+
+    image_languages = []
+    image_language_dict = {}
+
+    for image in images:
+        image_language_dict[image.name] = image.language
+        image_languages.append(image.language)
+
+    synthesized_images += image_names
+
+    # add commits (notice, languages are automatically filtered due to
+    # dependence on base images)
+    commits = Commit.query.filter(Commit.base_image.in_(image_names)).all()
+    commit_image_names = ["%s:%s" % (commit.base_image, commit.tag) for commit in commits]
+
+    synthesized_images += commit_image_names
+    
+    # get commit language by using base image language (commits inherit language
+    # from base image)
+    image_languages += [image_language_dict[commit.base_image] for commit in commits]
+    
+    return synthesized_images, image_languages
 
 
 def tar_from_path(path, filename):

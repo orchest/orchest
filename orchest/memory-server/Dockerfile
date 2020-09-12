@@ -17,6 +17,6 @@ RUN pip3 install -r requirements.txt
 # install that too. Overwriting the default master branch from the 
 # requirements.txt
 ARG sdk_branch=master
-RUN pip3 install git+https://github.com/orchest/orchest-sdk.git@${sdk_branch}#subdirectory=python
+RUN pip3 install git+https://github.com/orchest/orchest.git@${sdk_branch}#subdirectory=orchest-sdk/python
 
 CMD ["python", "app/main.py"]

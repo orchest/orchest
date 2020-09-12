@@ -144,6 +144,11 @@ h1, h2, h3 {
 }
 
 .edit-commit {
+
+  .react-codemirror2 {
+    margin-bottom: $generalPadding;
+  }
+
   .mdc-button {
     margin-top: $generalPadding;
     margin-right: $generalPadding;
@@ -901,6 +906,11 @@ button.themed-secondary {
     .mdc-select__anchor {
       width: 100%;
     }
+  }
+
+  .mdc-select__selected-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 }
 

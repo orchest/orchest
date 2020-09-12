@@ -1,7 +1,7 @@
-
 import React, { Fragment } from 'react';
 import MDCDataTableReact from '../lib/mdc-components/MDCDataTableReact';
 import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
+import { RefManager } from '../lib/utils/all';
 
 class SearchableTable extends React.Component {
 
@@ -11,6 +11,8 @@ class SearchableTable extends React.Component {
         this.state = {
             "rowSearchMask": new Array(this.props.rows.length).fill(1)
         }
+
+        this.refManager = new RefManager();
     }
 
     onSearchChange(value){
@@ -47,11 +49,11 @@ class SearchableTable extends React.Component {
     }    
 
     getSelectedRowIndices(){
-        return this.refs.table.getSelectedRowIndices();
+        return this.refManager.refs.table.getSelectedRowIndices();
     }
     
     setSelectedRowIds(rowIds){
-        this.refs.table.setSelectedRowIds(rowIds);
+        this.refManager.refs.table.setSelectedRowIds(rowIds);
     }
 
     filteredRows(rows){
@@ -75,7 +77,7 @@ class SearchableTable extends React.Component {
 
             <MDCTextFieldReact onChange={this.onSearchChange.bind(this)} classNames={['mdc-text-field--outlined', 'fullwidth', 'search']} notched={true} label="Search" />
 
-            <MDCDataTableReact ref="table" selectable={this.props.selectable} selectedIndices={this.filteredRows(this.props.selectedIndices)} onSelectionChanged={this.props.onSelectionChanged} onRowClick={this.props.onRowClick} classNames={['fullwidth']} headers={this.props.headers} rows={this.filteredRows(this.props.rows)} detailRows={this.filteredRows(this.props.detailRows)} />
+            <MDCDataTableReact ref={this.refManager.nrefs.table} selectable={this.props.selectable} selectedIndices={this.filteredRows(this.props.selectedIndices)} onSelectionChanged={this.props.onSelectionChanged} onRowClick={this.props.onRowClick} classNames={['fullwidth']} headers={this.props.headers} rows={this.filteredRows(this.props.rows)} detailRows={this.filteredRows(this.props.detailRows)} />
             
         </Fragment>
     }

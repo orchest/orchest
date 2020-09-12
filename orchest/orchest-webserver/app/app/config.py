@@ -12,14 +12,14 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-
+ 
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     LOG_DIR = _config.LOGS_PATH
     WEBSERVER_LOG = "/app/orchest-webserver.log"
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
-    ORCHEST_API_ADDRESS = "orchest-api"
+    ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
     DEBUG = True
 

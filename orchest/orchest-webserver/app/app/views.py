@@ -5,14 +5,16 @@ import pdb
 import requests
 import logging
 import nbformat
+import docker
 
 from flask import render_template, request, jsonify
 from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf, name_to_tag
+from app.utils import get_hash, get_user_conf, name_to_tag, get_synthesized_images
 from app.models import DataSource, Experiment, PipelineRun, Image, Commit
+from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
 
 
@@ -81,7 +83,7 @@ def register_views(app, db):
         if "/" in base_image:
             base_image = base_image.replace("/", "-")
 
-        return base_image + "_docker_" + kernel
+        return base_image
 
 
     def pipeline_set_notebook_kernels(pipeline_json):
@@ -115,7 +117,7 @@ def register_views(app, db):
                     with open(notebook_path, "w") as file:
                         file.write(json.dumps(notebook_json))
                 else:
-                    logging.debug(
+                    logging.info(
                         "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
 
 
@@ -250,9 +252,18 @@ def register_views(app, db):
             os.system("rm -r %s" % (experiment_pipeline_path))
 
 
-    def remove_commit_shell(commit_uuid):
+    def remove_commit_image(commit):
+        full_image_name = '%s:%s' % (commit.base_image, commit.tag)
+        try:
+            client = docker.from_env()
+            client.images.remove(full_image_name, noprune=True)
+        except:
+            logging.info("Unable to remove image: %s" % full_image_name)
 
-        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit_uuid)
+
+    def remove_commit_shell(commit):
+
+        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit.uuid)
         
         if os.path.isdir(shell_file_dir):
             os.system("rm -r %s" % (shell_file_dir))
@@ -284,6 +295,9 @@ def register_views(app, db):
                 
                 db.session.commit()
 
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
+
                 return commit_schema.dump(commit)
 
             def get(self, commit_uuid):
@@ -291,11 +305,20 @@ def register_views(app, db):
                 return commit_schema.dump(commit)
 
             def delete(self, commit_uuid):
-                Commit.query.filter(Commit.uuid==commit_uuid).delete()
 
-                remove_commit_shell(commit_uuid)
-                
+                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
+
+                if commit is None:
+                    return '', 404
+
+                remove_commit_shell(commit)
+                remove_commit_image(commit)
+
+                db.session.delete(commit)
                 db.session.commit()
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
 
             # note that the post request accepts the name instead of the tag
             def post(self, commit_uuid):
@@ -320,6 +343,9 @@ def register_views(app, db):
 
                 db.session.add(new_commit)
                 db.session.commit()
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
 
                 return commit_schema.dump(new_commit)
 
@@ -648,30 +674,14 @@ def register_views(app, db):
     @app.route("/async/synthesized-images", methods=["GET"])
     def images_get():
 
-        # pipelines_dir = get_pipelines_dir()
+        synthesized_images, _ = get_synthesized_images(language=request.args.get("language"))
 
-        # pipeline_uuids = [f.path for f in os.scandir(
-        #     pipelines_dir) if f.is_dir()]
+        result = {
+            "success": True,
+            "images": synthesized_images
+        }
 
-        # pipelines = []
-
-        # for pipeline_uuid in pipeline_uuids:
-
-        #     pipeline_json_path = os.path.join(
-        #         pipelines_dir, pipeline_uuid, _config.PIPELINE_DESCRIPTION_PATH)
-
-        #     if os.path.isfile(pipeline_json_path):
-        #         with open(pipeline_json_path, "r") as json_file:
-        #             pipeline_json = json.load(json_file)
-
-        #             pipelines.append({
-        #                 "name": pipeline_json["name"],
-        #                 "uuid": pipeline_json["uuid"]
-        #             })
-
-        # json_string = json.dumps(
-        #     {"success": True, "result": pipelines})
-        return json_string, 200, {"content-type": "application/json"}
+        return jsonify(result), 200, {"content-type": "application/json"}
 
 
     @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
@@ -683,7 +693,7 @@ def register_views(app, db):
         # TODO: find way to not force sudo remove on pipeline dirs
         # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
         if len(pipeline_dir) > 36:
-            os.system("rm -rf %s" % (pipeline_dir))
+            os.system("rm -rf %s" % pipeline_dir)
 
         return jsonify({"success": True})
 
@@ -746,31 +756,7 @@ def register_views(app, db):
         # create dirs
         pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        os.makedirs(pipeline_dir, exist_ok=True)
-
-        # populate pipeline directory with kernels
-
-        # copy directories
-        fromDirectory = os.path.join(app.config["RESOURCE_DIR"], "kernels")
-        toDirectory = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
-
-        copy_tree(fromDirectory, toDirectory)
-
-        # replace variables in kernel.json files
-        kernel_folders = [f.path for f in os.scandir(
-            toDirectory) if f.is_dir()]
-
-        for kernel_folder in kernel_folders:
-            kernel_json_file = os.path.join(kernel_folder, "kernel.json")
-            if os.path.isfile(kernel_json_file):
-                with open(kernel_json_file, "r") as file:
-                    data = file.read().replace("{host_pipeline_dir}", get_pipeline_directory_by_uuid(
-                        pipeline_uuid, host_path=True))
-                    data = data.replace("{orchest_api_address}",
-                                        app.config["ORCHEST_API_ADDRESS"])
-
-                with open(kernel_json_file, "w") as file:
-                    file.write(data)
+        os.makedirs(os.path.join(pipeline_dir, ".orchest"), exist_ok=True)
 
         # generate clean pipeline.json
         pipeline_json = {
@@ -895,7 +881,7 @@ def register_views(app, db):
                 notebook_path = os.path.join(
                     pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"])
             except Exception as e:
-                logging.debug(e)
+                logging.info(e)
                 return return_404("Invalid JSON for pipeline %s error: %e" % (pipeline_uuid, e))
         else:
             return return_404("Could not find pipeline.json for pipeline %s" % pipeline_uuid)
@@ -907,14 +893,13 @@ def register_views(app, db):
                     nb = nbformat.read(file, nbformat.NO_CONVERT)
 
                 html_exporter = HTMLExporter()
-                html_exporter.template_file = "full"
 
                 (body, resources) = html_exporter.from_notebook_node(nb)
 
                 return body
 
             except IOError as error:
-                logging.debug("Error opening notebook file %s error: %s" % (
+                logging.info("Error opening notebook file %s error: %s" % (
                     notebook_path, error))
                 return return_404("Could not find notebook file %s" % notebook_path)
 
@@ -995,7 +980,7 @@ def register_views(app, db):
                     logs = f.read()
 
             except IOError as error:
-                logging.debug("Error opening log file %s error: %s" %
+                logging.info("Error opening log file %s error: %s" %
                               (log_path, error))
 
         if logs is not None:

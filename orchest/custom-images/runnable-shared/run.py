@@ -1,12 +1,11 @@
 import sys
 import os
 import subprocess
-
 import nbformat
+
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors.execute import CellExecutionError
 from nbconvert.filters import ansi2html
-
 from _orchest.internals import config as _config
 
 
@@ -101,8 +100,8 @@ def run_notebook(file_path, step_uuid=None):
 
     # TODO: extend this mapping
     kernel_mapping = {
-        "orchestsoftware-custom-base-kernel-py_docker_python": "python",
-        "orchestsoftware-custom-base-kernel-r_docker_ir": "ir"
+        "python": "python",
+        "r": "ir"
     }
 
     nb = None
@@ -110,13 +109,8 @@ def run_notebook(file_path, step_uuid=None):
     with open(file_path) as f:
         nb = nbformat.read(f, as_version=4)
 
-        # replace kernel to non-docker equivalent
-
-        # if key not in mapping, create entry for no-effect-mapping action
-        if nb.metadata.kernelspec.name not in kernel_mapping:
-            kernel_mapping[nb.metadata.kernelspec.name] = nb.metadata.kernelspec.name
-
-        nb.metadata.kernelspec.name = kernel_mapping[nb.metadata.kernelspec.name]
+        # set kernel based on language
+        nb.metadata.kernelspec.name = kernel_mapping[nb.metadata.kernelspec.language]
 
         # log file
         log_file_path = get_log_file_path(step_uuid)

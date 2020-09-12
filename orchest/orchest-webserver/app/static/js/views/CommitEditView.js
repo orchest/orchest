@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import {Controlled as CodeMirror} from 'react-codemirror2'
 import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
-import { makeRequest, PromiseManager, makeCancelable } from '../lib/utils/all';
+import { makeRequest, PromiseManager, makeCancelable, RefManager } from '../lib/utils/all';
 import CommitsView from './CommitsView';
 import { XTerm } from 'xterm-for-react';
 import { FitAddon } from 'xterm-addon-fit';
@@ -33,6 +33,7 @@ class CommitEditView extends React.Component {
         }
 
         this.promiseManager = new PromiseManager();
+        this.refManager = new RefManager();
 
         // initialize Xterm addons
         this.fitAddon = new FitAddon();
@@ -76,7 +77,7 @@ class CommitEditView extends React.Component {
             
             // ignore terminal outputs from other commit uuid's
             if(data.commit_uuid == this.state.commit.uuid){
-                this.refs.term.terminal.write(data.output);
+                this.refManager.refs.term.terminal.write(data.output);
             }
         })
     }
@@ -84,8 +85,8 @@ class CommitEditView extends React.Component {
     resizeTerminal(){
         console.log('resized terminal')
         this.socket.emit("resize", {
-            "rows": this.refs.term.terminal.rows,
-            "cols": this.refs.term.terminal.cols,
+            "rows": this.refManager.refs.term.terminal.rows,
+            "cols": this.refManager.refs.term.terminal.cols,
             "commit_uuid": this.state.commit.uuid
         })
     }
@@ -102,15 +103,15 @@ class CommitEditView extends React.Component {
 
         e.nativeEvent.preventDefault();
 
-        this.refs.term.terminal.clear()
+        this.refManager.refs.term.terminal.clear()
 
         this.savePromise().then(() => {
             let method = "POST";
             let commitEndpoint = "/async/commits/build/" + this.state.commit.uuid;
     
             makeRequest(method, commitEndpoint, {type: 'json', content: {
-                'rows': this.refs.term.terminal.rows,
-                'cols': this.refs.term.terminal.cols,
+                'rows': this.refManager.refs.term.terminal.rows,
+                'cols': this.refManager.refs.term.terminal.cols,
             }}).then((response) => {
             }).catch((error) => {
                 console.log(error);
@@ -122,7 +123,7 @@ class CommitEditView extends React.Component {
 
     savePromise(){
 
-        return new Promise((resolve, reject) => {
+        return makeCancelable(new Promise((resolve, reject) => {
             let method = "POST";
             let commitEndpoint = "/store/commits/" + this.state.commit.uuid;
 
@@ -138,6 +139,11 @@ class CommitEditView extends React.Component {
                 let result = JSON.parse(response);
 
                 this.state.commit.uuid = result.uuid;
+
+                this.setState({
+                    "commit": this.state.commit,
+                    "newCommit": false
+                })
 
                 makeRequest("POST", "/async/commits/shell/" + this.state.commit.uuid, {
                     type: "json",
@@ -165,7 +171,7 @@ class CommitEditView extends React.Component {
 
                 reject();
             })
-        })
+        }), this.promiseManager).promise
         
     }
 
@@ -218,7 +224,7 @@ class CommitEditView extends React.Component {
                     }}
                 />
 
-                <XTerm addons={[this.fitAddon]} ref='term' onResize={this.resizeTerminal.bind(this)} />
+                <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} onResize={this.resizeTerminal.bind(this)} />
 
                 <MDCButtonReact classNames={['mdc-button--raised', 'themed-secondary']} onClick={this.save.bind(this)} label="Save" icon="save" />
                 <MDCButtonReact classNames={['mdc-button--raised']} onClick={this.build.bind(this)} label="Build" icon="memory" />

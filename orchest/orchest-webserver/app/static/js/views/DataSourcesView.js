@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import DataSourceEditView from "./DataSourceEditView";
 import CheckItemList from '../components/CheckItemList';
-import { makeRequest, makeCancelable, PromiseManager } from '../lib/utils/all';
+import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 
 class DataSourcesView extends React.Component {
@@ -15,6 +15,7 @@ class DataSourcesView extends React.Component {
     }
     
     this.promiseManager = new PromiseManager();
+    this.refManager = new RefManager();
   }
 
   componentDidMount(){
@@ -30,8 +31,8 @@ class DataSourcesView extends React.Component {
   fetchDataSources(){
 
     // in case checkItemList exists, clear checks
-    if(this.refs.checkItemList){
-      this.refs.checkItemList.deselectAll();
+    if(this.refManager.refs.checkItemList){
+      this.refManager.refs.checkItemList.deselectAll();
     }
 
     // fetch data sources
@@ -66,7 +67,7 @@ class DataSourcesView extends React.Component {
 
     // select indices
 
-    let selectedIndices = this.refs.checkItemList.customSelectedIndex();
+    let selectedIndices = this.refManager.refs.checkItemList.customSelectedIndex();
 
     orchest.confirm("Warning", "Are you sure you want to delete the selected data sources? (This cannot be undone.)", () => {
       let promises = [];
@@ -96,7 +97,7 @@ class DataSourcesView extends React.Component {
                 <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
                 <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
               </div>
-              <CheckItemList ref="checkItemList" items={this.state.dataSources} onClickListItem={this.onClickListItem.bind(this)} />
+              <CheckItemList ref={this.refManager.nrefs.checkItemList} items={this.state.dataSources} onClickListItem={this.onClickListItem.bind(this)} />
             </Fragment>
         }else{
           return <MDCLinearProgressReact />

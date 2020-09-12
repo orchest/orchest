@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { makeRequest, makeCancelable, PromiseManager } from '../lib/utils/all';
+import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 import CommitsView from './CommitsView';
 import ItemList from '../components/ItemList';
@@ -14,6 +14,7 @@ class ImagesView extends React.Component {
     }
     
     this.promiseManager = new PromiseManager();
+    this.refManager = new RefManager();
   }
 
   componentDidMount(){
@@ -59,7 +60,7 @@ class ImagesView extends React.Component {
       {(() => {
         if(this.state.images){
           return <Fragment>
-              <ItemList ref="itemList" items={this.state.images} onClickListItem={this.onClickListItem.bind(this)} />
+              <ItemList ref={this.refManager.nrefs.itemList} items={this.state.images} onClickListItem={this.onClickListItem.bind(this)} />
             </Fragment>
         }else{
           return <MDCLinearProgressReact />

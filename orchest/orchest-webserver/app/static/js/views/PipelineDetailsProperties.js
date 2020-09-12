@@ -1,5 +1,5 @@
 import React from 'react';
-import { extensionFromFilename, filenameWithoutExtension } from "../lib/utils/all";
+import { extensionFromFilename, filenameWithoutExtension, kernelNameToLanguage, makeCancelable, makeRequest, PromiseManager, RefManager } from "../lib/utils/all";
 import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCTextFieldAreaReact from "../lib/mdc-components/MDCTextFieldAreaReact";
@@ -17,7 +17,55 @@ class ConnectionItem extends React.Component {
 
 
 class PipelineDetailsProperties extends React.Component {
+
+    constructor(props){
+        super(props);
+
+        this.state = {
+            "kernelOptions": [
+                ["python", "Python 3"],
+                ["ir", "R"]
+            ],
+            "imageOptions": [],
+            "isNotebookStep": extensionFromFilename(this.props.step.file_path) == "ipynb",
+            "step": this.props.step
+        }
+
+        this.refManager = new RefManager();
+        this.promiseManager = new PromiseManager();
+    }
+
     componentWillUnmount() {
+    }
+
+    
+
+    fetchImageOptions(){
+        let synthesizedImagesEndpoint = "/async/synthesized-images";
+
+        if(this.state.isNotebookStep){
+            synthesizedImagesEndpoint += "?language=" + kernelNameToLanguage(this.state.step.kernel.name)
+        }
+
+        let fetchImageOptionsPromise = makeCancelable(makeRequest("GET", synthesizedImagesEndpoint), this.promiseManager);
+        
+        fetchImageOptionsPromise.promise.then((response) => {
+
+            let result = JSON.parse(response);
+
+            let imageOptions = [];
+
+            for(let image of result.images){
+                imageOptions.push([image]);
+            }
+
+            this.setState({
+                imageOptions: imageOptions
+            })
+
+        }).catch((error) => {
+            console.log(error);
+        });
     }
 
     updateStepName() {
@@ -46,6 +94,9 @@ class PipelineDetailsProperties extends React.Component {
 
         this.updateStepName();
         this.props.onSave(this);
+
+        // refetch image options as it changes depending on filetype
+        this.fetchImageOptions();
     }
 
     onChangeVCPUS(updatedVCPUS) {
@@ -120,6 +171,9 @@ class PipelineDetailsProperties extends React.Component {
         });
 
         this.props.onSave(this);
+
+        // re-fetch image options as it changes depending on kernel
+        this.fetchImageOptions();
     }
 
     onChangeTitle(updatedTitle) {
@@ -158,23 +212,7 @@ class PipelineDetailsProperties extends React.Component {
 
     }
 
-    constructor(props){
-        super(props);
-
-        this.state = {
-            "kernelOptions": [
-                ["python", "Python 3"],
-                ["ir", "R"]
-            ],
-            "imageOptions": [
-                ["orchestsoftware/custom-base-kernel-py", "orchestsoftware/custom-base-kernel-py"],
-                ["orchestsoftware/custom-base-kernel-r", "orchestsoftware/custom-base-kernel-r"]
-            ],
-            "isNotebookStep": extensionFromFilename(this.props.step.file_path) == "ipynb",
-            "step": this.props.step
-        }
-    }
-
+    
     static getDerivedStateFromProps(props){
         return {
             "step": props.step,
@@ -191,14 +229,14 @@ class PipelineDetailsProperties extends React.Component {
         let connectionItemOffset = 0;
         let oldConnectionIndex = 0;
         let newConnectionIndex = 0;
-        let numConnectionListItems = $(_this.refs.connectionList).find('.connection-item').length;
+        let numConnectionListItems = $(_this.refManager.refs.connectionList).find('.connection-item').length;
 
-        $(this.refs.connectionList).on("mousedown", ".connection-item", function (e) {
+        $(this.refManager.refs.connectionList).on("mousedown", ".connection-item", function (e) {
 
             previousPosition = e.clientY;
             connectionItemOffset = 0;
 
-            $(_this.refs.connectionList).addClass("dragging");
+            $(_this.refManager.refs.connectionList).addClass("dragging");
 
             oldConnectionIndex = $(this).index();
 
@@ -211,7 +249,7 @@ class PipelineDetailsProperties extends React.Component {
 
         $(document).on("mousemove.connectionList", function (e) {
 
-            let selectedConnection = $(_this.refs.connectionList).find(".connection-item.selected");
+            let selectedConnection = $(_this.refManager.refs.connectionList).find(".connection-item.selected");
 
             if (selectedConnection.length > 0) {
 
@@ -251,7 +289,7 @@ class PipelineDetailsProperties extends React.Component {
                 for (let i = 0; i < numConnectionListItems; i++) {
                     if (i != oldConnectionIndex) {
 
-                        let connectionListItem = $(_this.refs.connectionList).find(".connection-item").eq(i);
+                        let connectionListItem = $(_this.refManager.refs.connectionList).find(".connection-item").eq(i);
 
                         connectionListItem.removeClass("swapped-up");
                         connectionListItem.removeClass("swapped-down");
@@ -272,17 +310,17 @@ class PipelineDetailsProperties extends React.Component {
         // Note, listener should be unmounted
         $(document).on("mouseup.connectionList", function (e) {
 
-            let selectedConnection = $(_this.refs.connectionList).find(".connection-item.selected");
+            let selectedConnection = $(_this.refManager.refs.connectionList).find(".connection-item.selected");
 
             if (selectedConnection.length > 0) {
                 selectedConnection.css({ transform: "" });
                 selectedConnection.removeClass("selected");
 
-                $(_this.refs.connectionList).find(".connection-item")
+                $(_this.refManager.refs.connectionList).find(".connection-item")
                     .removeClass("swapped-up")
                     .removeClass("swapped-down");
 
-                $(_this.refs.connectionList).removeClass("dragging");
+                $(_this.refManager.refs.connectionList).removeClass("dragging");
 
                 _this.swapConnectionOrder(oldConnectionIndex, newConnectionIndex);
             }
@@ -292,11 +330,13 @@ class PipelineDetailsProperties extends React.Component {
     componentDidMount() {
 
         // set focus on first field
-        this.refs.titleTextField.focus();
+        this.refManager.refs.titleTextField.focus();
 
         if(!this.props.readOnly){
             this.setupConnectionListener()
         }
+
+        this.fetchImageOptions();
     }
 
     render() {
@@ -319,7 +359,7 @@ class PipelineDetailsProperties extends React.Component {
                     label="Title"
                     disabled={this.props.readOnly}
                     classNames={["fullwidth", "push-down"]}
-                    ref="titleTextField"
+                    ref={this.refManager.nrefs.titleTextField}
                 />
 
                 <div className={"multi-field-input"}>
@@ -380,7 +420,7 @@ class PipelineDetailsProperties extends React.Component {
             <div className="input-group">
                 <h3>Connections</h3>
 
-                <div className="connection-list" ref="connectionList">
+                <div className="connection-list" ref={this.refManager.nrefs.connectionList}>
                     {connections}
                 </div>
             </div>

@@ -3,7 +3,7 @@ import React, { Fragment } from 'react';
 import PipelineView from "./PipelineView";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import CheckItemList from '../components/CheckItemList';
-import { makeRequest, makeCancelable, PromiseManager } from '../lib/utils/all';
+import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
 import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
@@ -19,12 +19,14 @@ class PipelinesView extends React.Component {
     constructor(props) {
         super(props);
 
-        this.promiseManager = new PromiseManager();
 
         this.state = {
             loaded: false,
             createModal: false,
         }
+
+        this.promiseManager = new PromiseManager();
+        this.refManager = new RefManager();
     }
 
     componentWillUnmount(){
@@ -46,7 +48,7 @@ class PipelinesView extends React.Component {
         fetchListPromise.promise.then((response) => {
             let data = JSON.parse(response);            
             this.setState({loaded: true, listData: data.result})
-            this.refs.pipelineListView.deselectAll()
+            this.refManager.refs.pipelineListView.deselectAll()
             
         });
     }
@@ -68,7 +70,7 @@ class PipelinesView extends React.Component {
 
     onDeleteClick(){
 
-        let selectedIndex = this.refs.pipelineListView.customSelectedIndex();
+        let selectedIndex = this.refManager.refs.pipelineListView.customSelectedIndex();
         
         if(selectedIndex.length === 0){
             orchest.alert("Error", "You haven't selected a pipeline.")
@@ -94,14 +96,14 @@ class PipelinesView extends React.Component {
             createModal: true
         })
 
-        this.refs.createPipelineNameTextField.focus();
+        this.refManager.refs.createPipelineNameTextField.focus();
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
     }
 
     onSubmitModal(){
-        let pipelineName = this.refs.createPipelineNameTextField.mdc.value;
+        let pipelineName = this.refManager.refs.createPipelineNameTextField.mdc.value;
 
         if(!pipelineName){
             orchest.alert("Error", "Please enter a name.")
@@ -138,7 +140,7 @@ class PipelinesView extends React.Component {
                 if(this.state.createModal){
                     return <MDCDialogReact title="Create a new pipeline" 
                         content={
-                            <MDCTextFieldReact ref={'createPipelineNameTextField'} classNames={['fullwidth']} label="Pipeline name" />
+                            <MDCTextFieldReact ref={this.refManager.nrefs.createPipelineNameTextField} classNames={['fullwidth']} label="Pipeline name" />
                     } actions={
                         <Fragment>
                             <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised", "themed-secondary"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />                            
@@ -153,7 +155,7 @@ class PipelinesView extends React.Component {
                     <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
                     <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
                 </div>
-                <CheckItemList ref={"pipelineListView"} onClickListItem={this.onClickListItem.bind(this)} items={this.state.listData} />
+                <CheckItemList ref={this.refManager.nrefs.pipelineListView} onClickListItem={this.onClickListItem.bind(this)} items={this.state.listData} />
             </div>;
         }else{
             return <div className={"view-page"}>

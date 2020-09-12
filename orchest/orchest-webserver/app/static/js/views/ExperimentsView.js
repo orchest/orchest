@@ -6,7 +6,7 @@ import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 import MDCSelectReact from '../lib/mdc-components/MDCSelectReact';
 import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import CreateExperimentView from './CreateExperimentView';
-import { makeRequest, uuidv4, PromiseManager, makeCancelable } from '../lib/utils/all';
+import { makeRequest, uuidv4, PromiseManager, makeCancelable, RefManager } from '../lib/utils/all';
 import ExperimentView from './ExperimentView';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 import MDCDialogReact from '../lib/mdc-components/MDCDialogReact';
@@ -25,6 +25,7 @@ class ExperimentsView extends React.Component {
         }
 
         this.promiseManager = new PromiseManager();
+        this.refManager = new RefManager();
 
     }
 
@@ -87,7 +88,7 @@ class ExperimentsView extends React.Component {
     onDeleteClick() {
 
         // get experiment selection
-        let selectedRows = this.refs.experimentTable.getSelectedRowIndices();
+        let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
 
         if(selectedRows.length == 0){
             return;
@@ -107,14 +108,14 @@ class ExperimentsView extends React.Component {
         Promise.all(promises).then(() => {
             this.fetchList();
 
-            this.refs.experimentTable.setSelectedRowIds([]);
+            this.refManager.refs.experimentTable.setSelectedRowIds([]);
         })
 
     }
 
     onSubmitModal() {
 
-        let pipelineUUID = this.refs.formPipeline.mdc.value;
+        let pipelineUUID = this.refManager.refs.formPipeline.mdc.value;
         let pipelineName;
         for (let x = 0; x < this.state.pipelines.length; x++) {
             if (this.state.pipelines[x].uuid === pipelineUUID) {
@@ -123,12 +124,12 @@ class ExperimentsView extends React.Component {
             }
         }
 
-        if(this.refs.formExperimentName.mdc.value.length == 0){
+        if(this.refManager.refs.formExperimentName.mdc.value.length == 0){
             orchest.alert("Error", "Please enter a name for your experiment.");
             return;
         }
 
-        if(this.refs.formPipeline.mdc.value == ''){
+        if(this.refManager.refs.formPipeline.mdc.value == ''){
             orchest.alert("Error", "Please choose a pipeline.");
             return;
         }
@@ -144,7 +145,7 @@ class ExperimentsView extends React.Component {
             content: {
                 pipeline_uuid: pipelineUUID,
                 pipeline_name: pipelineName,
-                name: this.refs.formExperimentName.mdc.value,
+                name: this.refManager.refs.formExperimentName.mdc.value,
             }
         }).then((response) => {
 
@@ -246,9 +247,9 @@ class ExperimentsView extends React.Component {
                                     <Fragment>
                                         <div className="create-experiment-modal">
 
-                                            <MDCTextFieldReact ref="formExperimentName" classNames={["fullwidth push-down"]} label="Experiment name" />
+                                            <MDCTextFieldReact ref={this.refManager.nrefs.formExperimentName} classNames={["fullwidth push-down"]} label="Experiment name" />
 
-                                            <MDCSelectReact ref="formPipeline" label="Pipeline" classNames={["fullwidth"]} options={this.generatePipelineOptions(this.state.pipelines)} />
+                                            <MDCSelectReact ref={this.refManager.nrefs.formPipeline} label="Pipeline" classNames={["fullwidth"]} options={this.generatePipelineOptions(this.state.pipelines)} />
 
                                             {(() => {
                                                 if (this.state.createModelLoading) {
@@ -273,7 +274,7 @@ class ExperimentsView extends React.Component {
                             <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
                         </div>
 
-                        <SearchableTable ref="experimentTable" selectable={true} onRowClick={this.onRowClick.bind(this)} rows={this.experimentListToTableData(this.state.experiments)} headers={['Experiment', 'Pipeline', 'Date created', 'Status']} />
+                        <SearchableTable ref={this.refManager.nrefs.experimentTable} selectable={true} onRowClick={this.onRowClick.bind(this)} rows={this.experimentListToTableData(this.state.experiments)} headers={['Experiment', 'Pipeline', 'Date created', 'Status']} />
                     </Fragment>
                 } else {
                     return <MDCLinearProgressReact />

@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 import CheckItemList from '../components/CheckItemList';
-import { makeRequest, makeCancelable, PromiseManager } from '../lib/utils/all';
+import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 import MDCIconButtonToggleReact from '../lib/mdc-components/MDCIconButtonToggleReact';
 import CommitEditView from './CommitEditView';
@@ -15,6 +15,7 @@ class CommitsView extends React.Component {
     }
     
     this.promiseManager = new PromiseManager();
+    this.refManager = new RefManager();
   }
 
   componentDidMount(){
@@ -51,7 +52,7 @@ class CommitsView extends React.Component {
 
   onDeleteClick(){
 
-    let selectedIndices = this.refs.checkItemList.customSelectedIndex();
+    let selectedIndices = this.refManager.refs.checkItemList.customSelectedIndex();
 
     orchest.confirm("Warning", "Are you sure you want to delete the selected commits? (This cannot be undone.)", () => {
       let promises = [];
@@ -87,7 +88,7 @@ class CommitsView extends React.Component {
                 <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
                 <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
               </div>
-              <CheckItemList ref="checkItemList" items={this.state.commits} onClickListItem={this.onClickListItem.bind(this)} />
+              <CheckItemList ref={this.refManager.nrefs.checkItemList} items={this.state.commits} onClickListItem={this.onClickListItem.bind(this)} />
             </Fragment>
         }else{
           return <MDCLinearProgressReact />

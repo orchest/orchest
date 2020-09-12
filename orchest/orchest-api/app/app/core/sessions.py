@@ -399,10 +399,16 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
     """
     mounts = {}
 
-    # TODO: the kernelspec should be put inside the image for the EG
-    #       but for now this is fine as at allows easy development
-    #       and addition of new kernels on the fly.
-    source_kernelspecs = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
+    # TODO: pass userdir on host instead of deriving userdir from pipeline_dir
+    host_userdir_path = pipeline_dir.split(os.sep)
+    host_userdir_path = os.sep.join(host_userdir_path[0:host_userdir_path.index("userdir") + 1])
+    
+
+    source_kernelspecs = os.path.join(host_userdir_path, _config.KERNELSPECS_PATH)
+    
+    print(source_kernelspecs)
+
+
     mounts['kernelspec'] = Mount(
         target='/usr/local/share/jupyter/kernels',
         source=source_kernelspecs,
@@ -492,12 +498,12 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
         'name': f'jupyter-EG-{uuid}',
         'environment': [
             f'EG_DOCKER_NETWORK={network}',
+            'EG_ENV_PROCESS_WHITELIST=HOST_PIPELINE_DIR,ORCHEST_API_ADDRESS',
+            f'HOST_PIPELINE_DIR={pipeline_dir}',
+            f'ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}',
             'EG_MIRROR_WORKING_DIRS=True',
             'EG_LIST_KERNELS=True',
-            ('EG_KERNEL_WHITELIST=['
-                '"orchestsoftware-custom-base-kernel-py_docker_python",'
-                '"orchestsoftware-custom-base-kernel-r_docker_ir"'
-            ']'),
+            'EG_KERNEL_WHITELIST=[]',
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             'EG_ALLOW_ORIGIN=*',
