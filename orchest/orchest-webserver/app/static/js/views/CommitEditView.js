@@ -29,7 +29,8 @@ class CommitEditView extends React.Component {
                 "name": "", 
                 "tag": "",
                 "shell": "#!/bin/bash\n\n# Install any dependencies you have in this shell script.\n\n# E.g. pip install tensorflow\n\n\n",
-            }           
+            },
+            "building": props.commit ? props.commit.building : false           
         }
 
         this.promiseManager = new PromiseManager();
@@ -80,6 +81,15 @@ class CommitEditView extends React.Component {
                 this.refManager.refs.term.terminal.write(data.output);
             }
         })
+
+        this.socket.on("pty-signals", (data) => {
+            
+            if(data.commit_uuid == this.state.commit.uuid && data.action == "build-ready"){
+                this.setState({
+                    "building": false,
+                })
+            }
+        })
     }
 
     resizeTerminal(){
@@ -100,6 +110,10 @@ class CommitEditView extends React.Component {
     }
 
     build(e){
+
+        this.setState({
+            "building": true,
+        })
 
         e.nativeEvent.preventDefault();
 
@@ -227,7 +241,7 @@ class CommitEditView extends React.Component {
                 <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} onResize={this.resizeTerminal.bind(this)} />
 
                 <MDCButtonReact classNames={['mdc-button--raised', 'themed-secondary']} onClick={this.save.bind(this)} label="Save" icon="save" />
-                <MDCButtonReact classNames={['mdc-button--raised']} onClick={this.build.bind(this)} label="Build" icon="memory" />
+                <MDCButtonReact disabled={this.state.building} classNames={['mdc-button--raised']} onClick={this.build.bind(this)} label="Build" icon="memory" />
             </form>
             
         </div>;

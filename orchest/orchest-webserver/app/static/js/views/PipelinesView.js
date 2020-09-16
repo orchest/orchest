@@ -41,13 +41,25 @@ class PipelinesView extends React.Component {
         orchest.headerBarComponent.setPipeline(undefined);
     }
 
+    processListData(listData){
+
+        for(let pipeline of listData){
+            if (pipeline["session_active"]){
+                pipeline["icon"] = "power_settings_new"
+            }
+            delete pipeline["session_active"];
+        }
+
+        return listData
+    }
+
     fetchList(){
         // initialize REST call for pipelines
         let fetchListPromise = makeCancelable(makeRequest("GET", '/async/pipelines'), this.promiseManager);
         
         fetchListPromise.promise.then((response) => {
             let data = JSON.parse(response);            
-            this.setState({loaded: true, listData: data.result})
+            this.setState({loaded: true, listData: this.processListData(data.result)})
             this.refManager.refs.pipelineListView.deselectAll()
             
         });
@@ -81,6 +93,9 @@ class PipelinesView extends React.Component {
 
             selectedIndex.forEach((item, index) => {
                 let pipeline_uuid = this.state.listData[item].uuid;
+
+                // terminate potential session (may 404 - but that's OK)
+                makeRequest("DELETE", "/api-proxy/api/sessions/" + pipeline_uuid);
 
                 makeRequest("POST", "/async/pipelines/delete/" + pipeline_uuid).then((_) => {
                     
@@ -134,7 +149,7 @@ class PipelinesView extends React.Component {
 
     render() {
         if(this.state.loaded){
-            return <div className={"view-page"}>
+            return <div className={"view-page pipelines-view"}>
 
             {(() => {
                 if(this.state.createModal){

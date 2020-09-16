@@ -55,7 +55,10 @@ class ListCheckItem extends React.Component {
                     </div>
                 </div>
             </span>
-            <label className="mdc-list-item__text" htmlFor={randomFor}>{this.props.item.name}</label>
+            <label className="mdc-list-item__text" htmlFor={randomFor}>
+                {this.props.item.name}
+            </label>
+            {this.props.item.icon ? <i className="material-icons">{this.props.item.icon}</i> : undefined }
         </li>
     }
 }

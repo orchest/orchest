@@ -26,13 +26,15 @@ def register_build_views(app, db, socketio):
     @socketio.on("resize", namespace="/pty")
     def resize(data):
         
-        if app.config["fd"] and data["commit_uuid"] in app.config["fd"]:
+        if "fd" in app.config and data["commit_uuid"] in app.config["fd"]:
             logging.info("attempting resize of pty for commit_uuid %s to size (%d, %d)" % (
                 data["commit_uuid"],
                 data["rows"],
                 data["cols"]))
                 
             set_winsize(app.config["fd"][data["commit_uuid"]], data["rows"], data["cols"])
+        else:
+            logging.info("attempting resize of pty for commit_uuid %s, but 'fd' key doesn't exist" % (data["commit_uuid"]))
 
 
     @socketio.on("connect", namespace="/pty")
@@ -59,7 +61,10 @@ def register_build_views(app, db, socketio):
 
     def docker_build_commit(commit):
 
-        print("Starting build", flush=True)
+        print("[Build status] Image build started.", flush=True)
+
+        commit.building = True
+        db.session.commit()
 
         shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit.uuid)
         shell_file_path = os.path.join(shell_file_dir, "shell.sh")
@@ -69,12 +74,21 @@ def register_build_views(app, db, socketio):
 
         client = docker.from_env()
 
-        # create container from base image to run user shell script in
-        container = client.containers.run(commit.base_image, ["/orchest/bootscript.sh", "idle"], 
+        # Create container from base image to run user shell script in (will run
+        # Jupyter kernel - as that needs to be the default CMD for the committed
+        # image to run correctly in conjunction with the Jupyter Enterprise
+        # Gateway)
+        
+        container = client.containers.run(commit.base_image, ["/orchest/bootscript.sh"], 
             stdout=True, 
             stderr=True, 
             remove=True,
-            detach=True)
+            detach=True,
+            environment= {
+                "KERNEL_ID": 0,
+                "EG_RESPONSE_ADDRESS": "127.0.0.1",
+            } # use dummy environment variables to make sure EG kernel starts
+        )
 
         # bash file name
         shell_file_name = os.path.basename(shell_file_path)
@@ -98,18 +112,16 @@ def register_build_views(app, db, socketio):
         # shut down container
         container.kill()
 
-        print("Building commit complete!", flush=True)
-        print(chr(3), flush=True, end="")
+        commit.building = False
+        db.session.commit()
 
-        time.sleep(0.5)
+        print("[Build status] Image build completed!", flush=True)
+        print(chr(3), flush=True, end="")
 
 
     def create_pty_fork(fork_lambda, commit_uuid, rows, cols):
 
         (child_pid, fd) = pty.fork()
-
-        fd_config = app.config.get("fd", {})
-        fd_config[commit_uuid] = fd
 
         if child_pid == 0:
 
@@ -120,6 +132,12 @@ def register_build_views(app, db, socketio):
             
         else:
             logging.info("child pid is %d" % child_pid)
+
+            fd_config = app.config.get("fd", {})
+            fd_config[commit_uuid] = fd
+
+            app.config["fd"] = fd_config
+            logging.info("set app.config['fd'] = %s " % fd_config)
 
             set_winsize(fd, rows, cols)
 
@@ -151,6 +169,15 @@ def register_build_views(app, db, socketio):
         logging.info("[Ended] read_and_forward_pty_output fd: %d" % fd)
 
 
+    def end_build_callback(fd, commit_uuid):
+
+        stop_fd(fd)
+
+        socketio.emit(
+            "pty-signals", 
+            {"action": "build-ready", "commit_uuid": commit_uuid}, 
+            namespace="/pty")
+
     def read_and_forward_pty_output(fd, commit_uuid):
         logging.info("[Started] read_and_forward_pty_output fd: %d" % fd)
 
@@ -177,8 +204,8 @@ def register_build_views(app, db, socketio):
                         namespace="/pty")
 
                     if len(output) > 0 and output[-1] == chr(3):
-                        stop_fd(fd)
+                        end_build_callback(fd, commit_uuid)
                         
                 except:
-                    stop_fd(fd)
+                    end_build_callback(fd, commit_uuid)
                     break

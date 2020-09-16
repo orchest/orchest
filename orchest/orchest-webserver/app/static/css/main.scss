@@ -880,6 +880,17 @@ button.themed-secondary {
 }
 
 
+.pipelines-view {
+  .mdc-list-item {
+    .material-icons {
+      font-size: 20px;
+      margin-left: 10px;
+      color: #34ef34; 
+    }
+  }
+}
+
+
 .mdc-dialog {
   z-index: 99;
 }

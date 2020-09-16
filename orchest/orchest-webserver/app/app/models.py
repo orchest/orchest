@@ -33,6 +33,7 @@ class Commit(db.Model):
     name = db.Column(db.String(255), unique=False, nullable=False)
     base_image = db.Column(db.ForeignKey("images.name"))
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    building = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f'<Commit {self.name}:{self.base_image}:{self.uuid}>'

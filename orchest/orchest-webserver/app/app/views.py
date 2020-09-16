@@ -40,7 +40,7 @@ def register_views(app, db):
 
     class CommitSchema(ma.Schema):
         class Meta:
-            fields = ("name", "tag", "base_image", "uuid")
+            fields = ("name", "tag", "base_image", "uuid", "building")
 
     commit_schema = CommitSchema()
     commits_schema = CommitSchema(many=True)
@@ -834,6 +834,18 @@ def register_views(app, db):
     @app.route("/async/pipelines", methods=["GET"])
     def pipelines_get():
 
+        # get active sessions
+        try:
+            resp = requests.get(
+                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/")
+
+            active_pipelines = [ session['pipeline_uuid'] for session in resp.json()["sessions"] ]
+        except Exception as e:
+            logging.info("Unable to get /api/sessions. Error: %e" % e)
+            active_pipelines = []
+        
+
+
         pipelines_dir = get_pipelines_dir()
 
         pipeline_uuids = [f.path for f in os.scandir(
@@ -852,7 +864,8 @@ def register_views(app, db):
 
                     pipelines.append({
                         "name": pipeline_json["name"],
-                        "uuid": pipeline_json["uuid"]
+                        "uuid": pipeline_json["uuid"],
+                        "session_active": pipeline_json["uuid"] in active_pipelines
                     })
 
         json_string = json.dumps(
@@ -1004,6 +1017,10 @@ def register_views(app, db):
 
         # parse JSON
         pipeline_json = json.loads(request.form.get("pipeline_json"))
+
+        # first create all files part of pipeline_json definition
+        # TODO: consider removing other files (no way to do this reliably,
+        # special case might be rename)
         create_pipeline_files(pipeline_json)
 
         # side effect: for each Notebook in de pipeline.json set the correct kernel

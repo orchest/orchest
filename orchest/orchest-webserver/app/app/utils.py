@@ -99,7 +99,10 @@ def tar_from_path(path, filename):
 
 def name_to_tag(name):
 
-    name = str(name)
+    name = str(name).lower()
+
+    # lowercase is enforced because of Jupyter kernel names automatically
+    # becoming lowercase
 
     # According to Docker's website:
     # A tag name must be valid ASCII and 
