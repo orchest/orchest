@@ -58,7 +58,7 @@ class SessionList(Resource):
         db.session.commit()
 
         session = InteractiveSession(docker_client, network='orchest')
-        session.launch(pipeline_uuid, post_data['pipeline_dir'])
+        session.launch(pipeline_uuid, post_data['pipeline_dir'], post_data['host_userdir'])
 
         # Update the database entry with information to connect to the
         # launched resources.

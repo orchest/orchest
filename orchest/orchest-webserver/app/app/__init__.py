@@ -16,13 +16,29 @@ import uuid
 import atexit
 
 from flask import Flask, send_from_directory
+from flask_socketio import SocketIO
 from app.config import CONFIG_CLASS
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
 from subprocess import Popen
 from app.views import register_views
+from app.build_commits import register_build_views
+from app.models import Image
 from app.connections import db
 from app.utils import get_user_conf
+from app.kernel_manager import populate_kernels
+from _orchest.internals import config as _config
+
+
+def initialize_default_images(db):
+    # pre-populate the base images
+    image_names = [image.name for image in Image.query.all()]
+
+    for image in _config.DEFAULT_BASE_IMAGES:
+        if image["name"] not in image_names:
+            im = Image(name=image["name"], language=image["language"])
+            db.session.add(im)
+            db.session.commit()
 
 
 def create_app():
@@ -31,6 +47,8 @@ def create_app():
 
     app = Flask(__name__)
     app.config.from_object(CONFIG_CLASS)
+
+    socketio = SocketIO(app, cors_allowed_origins="*")
 
     # read directory mount based config into Flask config
     try:
@@ -47,13 +65,19 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        initialize_default_images(db)
+
+        logging.info("Initializing kernels")
+        populate_kernels(app, db)
+
+
     # static file serving
     @app.route('/public/<path:path>')
     def send_files(path):
         return send_from_directory("../static", path)
 
     register_views(app, db)
-
+    register_build_views(app, db, socketio)
 
     if "TELEMETRY_DISABLED" not in app.config:
         # create thread for analytics
@@ -87,4 +111,4 @@ def create_app():
         logging.info("Started file_permission_watcher.py")
 
     
-    return app
+    return app, socketio

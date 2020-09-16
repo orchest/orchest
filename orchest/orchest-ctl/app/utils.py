@@ -143,13 +143,9 @@ def dev_mount_inject(container_spec):
         },
     ]
 
-    orchest_webserver_spec['environment']["FLASK_APP"] = "main.py"
-    orchest_webserver_spec['environment']["FLASK_DEBUG"] = "1"
+    orchest_webserver_spec['environment']["FLASK_ENV"] = "development"
     orchest_webserver_spec['command'] = [
-       "flask",
-       "run",
-       "--host=0.0.0.0",
-       "--port=80"
+       "./debug.sh"
     ]
 
     # auth-server

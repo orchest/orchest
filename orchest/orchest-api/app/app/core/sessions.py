@@ -114,7 +114,7 @@ class Session:
 
         return res
 
-    def launch(self, uuid: str, pipeline_dir: str) -> None:
+    def launch(self, uuid: str, pipeline_dir: str, host_userdir: str = None) -> None:
         """Launches pre-configured resources.
 
         All containers are run in detached mode.
@@ -126,10 +126,11 @@ class Session:
                 interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
             pipeline_dir: Path to pipeline directory.
+            host_userdir: Path to the userdir on the host 
 
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
-        container_specs = _get_container_specs(uuid, pipeline_dir, self.network)
+        container_specs = _get_container_specs(uuid, pipeline_dir, host_userdir, self.network)
         for resource in self._resources:
             container = self.client.containers.run(**container_specs[resource])
             self._containers[resource] = container
@@ -216,7 +217,7 @@ class InteractiveSession(Session):
         return IP(self._get_container_IP(self.containers['jupyter-EG']),
                   self._get_container_IP(self.containers['jupyter-server']))
 
-    def launch(self, pipeline_uuid: str, pipeline_dir: str) -> None:
+    def launch(self, pipeline_uuid: str, pipeline_dir: str, host_userdir: str) -> None:
         """Launches the interactive session.
 
         Additionally connects the launched `jupyter-server` with the
@@ -226,7 +227,7 @@ class InteractiveSession(Session):
             See `Args` section in parent class :class:`Session`.
 
         """
-        super().launch(pipeline_uuid, pipeline_dir)
+        super().launch(pipeline_uuid, pipeline_dir, host_userdir)
 
         # TODO: This session should manage additionally that the jupyter
         #       notebook server is started through the little flask API
@@ -377,7 +378,7 @@ def launch_session(
         session.shutdown()
 
 
-def _get_mounts(uuid: str, pipeline_dir: str) -> Dict[str, Mount]:
+def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mount]:
     """Constructs the mounts for all resources.
 
     Resources refer to the union of all possible resources over all
@@ -389,6 +390,8 @@ def _get_mounts(uuid: str, pipeline_dir: str) -> Dict[str, Mount]:
             interactive runs we recommend using the pipeline run UUID.
         pipeline_dir: Pipeline directory w.r.t. the host. Needed to
             construct the mounts.
+        host_userdir: Path to the userdir on the host
+
 
     Returns:
         Mapping from mount name to actual ``docker.types.Mount`` object.
@@ -402,15 +405,14 @@ def _get_mounts(uuid: str, pipeline_dir: str) -> Dict[str, Mount]:
     """
     mounts = {}
 
-    # TODO: the kernelspec should be put inside the image for the EG
-    #       but for now this is fine as at allows easy development
-    #       and addition of new kernels on the fly.
-    source_kernelspec = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
-    mounts['kernelspec'] = Mount(
-        target='/usr/local/share/jupyter/kernels',
-        source=source_kernelspec,
-        type='bind'
-    )
+    if host_userdir is not None:
+        source_kernelspecs = os.path.join(host_userdir, _config.KERNELSPECS_PATH)
+
+        mounts['kernelspec'] = Mount(
+            target='/usr/local/share/jupyter/kernels',
+            source=source_kernelspecs,
+            type='bind'
+        )
 
     # By mounting the docker sock it becomes possible for containers
     # to be spawned from inside another container.
@@ -436,7 +438,7 @@ def _get_mounts(uuid: str, pipeline_dir: str) -> Dict[str, Mount]:
     return mounts
 
 
-def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str, dict]:
+def _get_container_specs(uuid: str, pipeline_dir: str, host_userdir: str, network: str) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
 
     These specifications can be unpacked into the
@@ -448,6 +450,7 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
             interactive runs we recommend using the pipeline run UUID.
         pipeline_dir: Pipeline directory w.r.t. the host. Needed to
             construct the mounts.
+        host_userdir: Path to the userdir on the host
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
 
@@ -463,7 +466,7 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
     """
     # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
-    mounts = _get_mounts(uuid, pipeline_dir)
+    mounts = _get_mounts(uuid, pipeline_dir, host_userdir)
 
     container_specs['memory-server'] = {
         'image': 'orchestsoftware/memory-server:latest',
@@ -490,17 +493,16 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
         'name': f'jupyter-EG-{uuid}',
         'environment': [
             f'EG_DOCKER_NETWORK={network}',
-            'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID',
             'EG_MIRROR_WORKING_DIRS=True',
             'EG_LIST_KERNELS=True',
-            ('EG_KERNEL_WHITELIST=['
-                '"orchestsoftware-custom-base-kernel-py_docker_python",'
-                '"orchestsoftware-custom-base-kernel-r_docker_ir"'
-            ']'),
+            'EG_KERNEL_WHITELIST=[]',
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             'EG_ALLOW_ORIGIN=*',
+            'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_HOST_PIPELINE_DIR,ORCHEST_API_ADDRESS',
             f'ORCHEST_PIPELINE_UUID={uuid}',
+            f'ORCHEST_HOST_PIPELINE_DIR={pipeline_dir}',
+            f'ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}',
         ],
         'user': 'root',
         'network': network,

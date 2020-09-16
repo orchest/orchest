@@ -17,6 +17,7 @@ import './utils/overflowing';
 import ExperimentView from "./views/ExperimentView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
+import ImagesView from "./views/ImagesView";
 
 function Orchest() {
 
@@ -25,6 +26,7 @@ function Orchest() {
     this.Components = {
         "PipelinesView": PipelinesView,
         "DataSourcesView": DataSourcesView,
+        "ImagesView": ImagesView,
         "DataSourceEditView": DataSourceEditView,
         "PipelineView": PipelineView,
         "SettingsView": SettingsView,
@@ -64,6 +66,7 @@ function Orchest() {
 
             if(TagName !== PipelineView && TagName !== PipelineSettingsView){
                 this.jupyter.unload();
+                this.headerBarComponent.setPipeline(undefined);
             }
         }
 
@@ -114,6 +117,9 @@ function Orchest() {
     };
 
     this.dialogHolder = document.querySelector(".dialogs");
+
+    // avoid anchor link clicking default behavior
+    $("a[href='#']").click((e) => { e.preventDefault() });
 
     let dialogs = ReactDOM.render(<Dialogs />, this.dialogHolder);
 

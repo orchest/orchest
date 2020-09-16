@@ -1,11 +1,18 @@
 import React, { Fragment } from 'react';
 import MDCDialogReact from '../lib/mdc-components/MDCDialogReact';
 import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
+import { RefManager } from '../lib/utils/all';
 
 class ConfirmDialog extends React.Component {
 
+    constructor(){
+        super();
+
+        this.refManager = new RefManager();
+    }
+
     confirm(){
-        this.refs.dialog.close();
+        this.refManager.refs.dialog.close();
 
         if(this.props.onConfirm){
             this.props.onConfirm();
@@ -13,7 +20,7 @@ class ConfirmDialog extends React.Component {
     }
 
     cancel(){
-        this.refs.dialog.close();
+        this.refManager.refs.dialog.close();
 
         if(this.props.onCancel){
             this.props.onCancel();
@@ -23,7 +30,7 @@ class ConfirmDialog extends React.Component {
     render() {
 
         return <MDCDialogReact 
-            ref="dialog"
+            ref={this.refManager.nrefs.dialog}
             title={this.props.title}
             onClose={this.props.onClose}
             content={<p>{this.props.content}</p>}

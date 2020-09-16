@@ -9,6 +9,7 @@
 
 $generalPadding: 20px;
 $mdcComponentPadding: 16px;
+$codeSize: 14px;
 $borderColor: rgba(0, 0, 0, 0.15);
 
 * {
@@ -136,12 +137,36 @@ h1, h2, h3 {
       border-radius: 0 28px 28px 0;
     }
   }
-} 
+}
 
+.CodeMirror {
+  font-size: $codeSize;
+}
+
+.edit-commit {
+
+  .react-codemirror2 {
+    margin-bottom: $generalPadding;
+  }
+
+  .mdc-button {
+    margin-top: $generalPadding;
+    margin-right: $generalPadding;
+  }
+
+  .commit-uuid {
+    font-size: $codeSize;
+    color: #555;
+    display: inline-block;
+    margin-bottom: $generalPadding;
+  }
+
+  .CodeMirror {
+    height: auto;
+  }
+}
 
 aside.mdc-drawer {
-  //max-width: 325px;
-  //width: 20%;
   --mdc-drawer-width: 325px;
   padding: 20px;
   height: 100%;
@@ -750,6 +775,7 @@ button.themed-secondary {
       padding: $generalPadding / 2;
       height: 100%;
       white-space: pre-line;
+      overflow-x: auto;
     }
 
     .input-group {
@@ -855,6 +881,17 @@ button.themed-secondary {
 }
 
 
+.pipelines-view {
+  .mdc-list-item {
+    .material-icons {
+      font-size: 20px;
+      margin-left: 10px;
+      color: #34ef34; 
+    }
+  }
+}
+
+
 .mdc-dialog {
   z-index: 99;
 }
@@ -882,6 +919,11 @@ button.themed-secondary {
       width: 100%;
     }
   }
+
+  .mdc-select__selected-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
 }
 
 .multi-field-input {
@@ -899,6 +941,19 @@ button.themed-secondary {
   clear: both;
   display: block;
 }
+
+.commit-form {
+  width: 50%;
+
+  .mdc-select__anchor {
+    width: 100%;
+  }
+  > div {
+    width: 100%;
+  }
+}
+
+
 
 .connection-form {
   width: 50%;

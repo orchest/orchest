@@ -1,4 +1,4 @@
-FROM tiangolo/uwsgi-nginx-flask:python3.7
+FROM tiangolo/meinheld-gunicorn-flask:python3.7
 
 # Refresh SSL certificates
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
@@ -20,8 +20,12 @@ RUN npm install
 RUN ./compile-js.sh
 RUN ./compile-sass.sh
 
-# Setting this WORKDIR is required by the base image: "otherwhise uWSGI
+# Setting this WORKDIR is required by the base image: "otherwhise gunicorn
 # will try to run the app in /app". Additionally, we need to specify a
-# custom path for the `uwsgi.ini` file.
+# custom path for the `gunicorn_conf.py` file.
 WORKDIR /orchest/orchest/orchest-webserver/app
-ENV UWSGI_INI uwsgi.ini
+
+# ENV GUNICORN_CONF /orchest/orchest/orchest-webserver/app/gunicorn_conf.py
+
+# TODO: move Flask application from debug to Gunicorn
+CMD ["./debug.sh"]

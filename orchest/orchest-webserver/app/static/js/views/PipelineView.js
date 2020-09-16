@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { uuidv4, intersectRect, globalMDCVars, extensionFromFilename, nodeCenter, correctedPosition, makeRequest, makeCancelable, PromiseManager } from "../lib/utils/all";
+import { uuidv4, intersectRect, globalMDCVars, extensionFromFilename, nodeCenter, correctedPosition, makeRequest, makeCancelable, PromiseManager, RefManager } from "../lib/utils/all";
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
@@ -170,7 +170,10 @@ class PipelineView extends React.Component {
         this.pipelineSteps = {};
         this.pipelineRefs = [];
         this.prevPosition = [];
+        
         this.promiseManager = new PromiseManager();
+        this.refManager = new RefManager();
+
         this.pipelineStepStatusPollingInterval = undefined;
         this.sessionPollingInterval = undefined;
 
@@ -386,7 +389,7 @@ class PipelineView extends React.Component {
 
         newConnection.render();
 
-        $(this.refs.pipelineStepsHolder).append(connectionHolder);
+        $(this.refManager.refs.pipelineStepsHolder).append(connectionHolder);
     }
 
     willCreateCycle(startNodeUUID, endNodeUUID) {
@@ -474,7 +477,7 @@ class PipelineView extends React.Component {
 
                 // check whether there already exists a connection
                 if (dragEndedInIcomingConnectionsElement) {
-                    noConnectionExists = _this.refs[endNodeUUID].props.step.incoming_connections.indexOf(startNodeUUID) === -1;
+                    noConnectionExists = _this.refManager.refs[endNodeUUID].props.step.incoming_connections.indexOf(startNodeUUID) === -1;
                 }
 
                 // check whether connection will create a cycle in Pipeline graph
@@ -491,7 +494,7 @@ class PipelineView extends React.Component {
 
                     // newConnection
                     _this.newConnection.setEndNode($(e.target));
-                    _this.refs[endNodeUUID].props.onConnect(startNodeUUID, endNodeUUID);
+                    _this.refManager.refs[endNodeUUID].props.onConnect(startNodeUUID, endNodeUUID);
                     _this.newConnection.render();
 
                     _this.setState({
@@ -521,7 +524,7 @@ class PipelineView extends React.Component {
         });
 
 
-        $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step .outgoing-connections", function (e) {
+        $(this.refManager.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step .outgoing-connections", function (e) {
 
             if (e.button === 0) {
 
@@ -538,7 +541,7 @@ class PipelineView extends React.Component {
             if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
 
-                _this.refs.saveButton.click();
+                _this.refManager.refs.saveButton.click();
             }
 
         });
@@ -557,7 +560,7 @@ class PipelineView extends React.Component {
 
         });
 
-        $(this.refs.pipelineStepsHolder).on('mousemove', function (e) {
+        $(this.refManager.refs.pipelineStepsHolder).on('mousemove', function (e) {
 
             if (_this.selectedItem !== undefined) {
 
@@ -580,7 +583,7 @@ class PipelineView extends React.Component {
                         _this.state.steps[uuid].meta_data.position[0] += delta[0];
                         _this.state.steps[uuid].meta_data.position[1] += delta[1];
 
-                        _this.refs[uuid].updatePosition(_this.state.steps[uuid].meta_data.position);
+                        _this.refManager.refs[uuid].updatePosition(_this.state.steps[uuid].meta_data.position);
 
                         // note: state will be assigned in mouseup event for view updating
                         _this.state.unsavedChanges = true;
@@ -590,7 +593,7 @@ class PipelineView extends React.Component {
                     step.meta_data.position[0] += delta[0];
                     step.meta_data.position[1] += delta[1];
 
-                    _this.refs[step.uuid].updatePosition(step.meta_data.position);
+                    _this.refManager.refs[step.uuid].updatePosition(step.meta_data.position);
 
                     // note: state will be assigned in mouseup event for view updating
                     _this.state.unsavedChanges = true;
@@ -624,7 +627,7 @@ class PipelineView extends React.Component {
 
         let _this = this;
 
-        $(this.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step", function (e) {
+        $(this.refManager.refs.pipelineStepsHolder).on("mousedown", ".pipeline-step", function (e) {
             if (e.button === 0) {
                 if (!$(e.target).hasClass('connection-point')) {
 
@@ -643,7 +646,7 @@ class PipelineView extends React.Component {
                 let step = _this.state.steps[_this.selectedItem];
 
                 if (!step.meta_data._dragged) {
-                    _this.refs[_this.selectedItem].props.onClick(_this.selectedItem);
+                    _this.refManager.refs[_this.selectedItem].props.onClick(_this.selectedItem);
                     _this.selectStep(_this.selectedItem);
 
                 } else {
@@ -681,7 +684,7 @@ class PipelineView extends React.Component {
 
         });
 
-        $(this.refs.pipelineStepsHolder).on("mousedown", (e) => {
+        $(this.refManager.refs.pipelineStepsHolder).on("mousedown", (e) => {
 
             _this.prevPosition = [e.clientX, e.clientY];
 
@@ -690,7 +693,7 @@ class PipelineView extends React.Component {
                 // when space bar is held make sure deselection does not occur
                 // on click (as it is a drag event)
 
-                if (e.target === this.refs.pipelineStepsHolder && _this.keysDown[32] !== true) {
+                if (e.target === this.refManager.refs.pipelineStepsHolder && _this.keysDown[32] !== true) {
                     if (this.selectedConnection) {
                         this.deselectConnection();
                     }
@@ -701,7 +704,7 @@ class PipelineView extends React.Component {
 
         });
 
-        $(this.refs.pipelineStepsHolder).on("mousedown", "#path", function (e) {
+        $(this.refManager.refs.pipelineStepsHolder).on("mousedown", "#path", function (e) {
 
             if (e.button === 0) {
                 if (_this.selectedConnection) {
@@ -733,7 +736,7 @@ class PipelineView extends React.Component {
             _this.keysDown[e.keyCode] = false;
 
             if (e.keyCode) {
-                $(_this.refs.pipelineStepsOuterHolder).removeClass("dragging");
+                $(_this.refManager.refs.pipelineStepsOuterHolder).removeClass("dragging");
                 this.draggingPipeline = false;
             }
 
@@ -771,10 +774,10 @@ class PipelineView extends React.Component {
                     let startNodeUUID = step.incoming_connections[x];
                     let endNodeUUID = step.uuid;
 
-                    let startNodeOutgoingEl = $(this.refs.pipelineStepsHolder)
+                    let startNodeOutgoingEl = $(this.refManager.refs.pipelineStepsHolder)
                         .find(".pipeline-step[data-uuid='" + startNodeUUID + "'] .outgoing-connections");
 
-                    let endNodeIncomingEl = $(this.refs.pipelineStepsHolder)
+                    let endNodeIncomingEl = $(this.refManager.refs.pipelineStepsHolder)
                         .find(".pipeline-step[data-uuid='" + endNodeUUID + "'] .incoming-connections");
 
                     if (startNodeOutgoingEl.length > 0 && endNodeIncomingEl.length > 0) {
@@ -1008,7 +1011,7 @@ class PipelineView extends React.Component {
 
         this.deselectSteps();
 
-        let pipelineStepsHolderJEl = $(this.refs.pipelineStepsHolder);
+        let pipelineStepsHolderJEl = $(this.refManager.refs.pipelineStepsHolder);
 
         let step = {
             "title": "",
@@ -1333,8 +1336,8 @@ class PipelineView extends React.Component {
                     let step = this.state.steps[uuid];
 
                     // guard against ref existing, in case step is being added
-                    if (this.refs[uuid]) {
-                        let stepDom = $(this.refs[uuid].refs.container);
+                    if (this.refManager.refs[uuid]) {
+                        let stepDom = $(this.refManager.refs[uuid].refManager.refs.container);
 
                         let stepRect = {
                             x: step.meta_data.position[0],
@@ -1358,7 +1361,7 @@ class PipelineView extends React.Component {
 
         if (this.state.stepSelector.active) {
 
-            let pipelineStepHolderOffset = $(this.refs.pipelineStepsHolder).offset();
+            let pipelineStepHolderOffset = $(this.refManager.refs.pipelineStepsHolder).offset();
 
             this.state.stepSelector.x2 = e.clientX - pipelineStepHolderOffset.left;
             this.state.stepSelector.y2 = e.clientY - pipelineStepHolderOffset.top;
@@ -1384,9 +1387,9 @@ class PipelineView extends React.Component {
     }
 
     renderBackground() {
-        $(this.refs.pipelineStepsHolder).css({ transform: "translateX(" + -this.pipelineOffset[0] + "px) translateY(" + -this.pipelineOffset[1] + "px)" });
+        $(this.refManager.refs.pipelineStepsHolder).css({ transform: "translateX(" + -this.pipelineOffset[0] + "px) translateY(" + -this.pipelineOffset[1] + "px)" });
 
-        $(this.refs.pipelineStepsOuterHolder).css({ backgroundPosition: -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px" });
+        $(this.refManager.refs.pipelineStepsOuterHolder).css({ backgroundPosition: -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px" });
     }
 
     onPipelineStepsOuterHolderDown(e) {
@@ -1396,7 +1399,7 @@ class PipelineView extends React.Component {
             if (this.keysDown[32]) {
 
                 // space held while clicking, means canvas drag
-                $(this.refs.pipelineStepsOuterHolder).addClass("dragging");
+                $(this.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
                 this.draggingPipeline = true;
 
             } else {
@@ -1447,7 +1450,7 @@ class PipelineView extends React.Component {
                     key={step.uuid}
                     step={step}
                     selected={selected}
-                    ref={step.uuid}
+                    ref={this.refManager.nrefs[step.uuid]}
                     executionState={this.getStepExecutionState(step.uuid)}
                     onConnect={this.makeConnection.bind(this)}
                     onClick={this.selectStep.bind(this)} />);
@@ -1520,7 +1523,7 @@ class PipelineView extends React.Component {
 
                             <MDCButtonReact
                                 classNames={["mdc-button--raised"]}
-                                ref="saveButton"
+                                ref={this.refManager.nrefs.saveButton}
                                 onClick={this.savePipeline.bind(this)}
                                 label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                             />
@@ -1544,10 +1547,10 @@ class PipelineView extends React.Component {
                     }
                 })()}
 
-                <div className="pipeline-steps-outer-holder" ref={"pipelineStepsOuterHolder"} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
+                <div className="pipeline-steps-outer-holder" ref={this.refManager.nrefs.pipelineStepsOuterHolder} onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
                     onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
                 >
-                    <div className={"pipeline-steps-holder"} ref={"pipelineStepsHolder"} >
+                    <div className={"pipeline-steps-holder"} ref={this.refManager.nrefs.pipelineStepsHolder} >
                         {stepSelectorComponent}
                         {pipelineSteps}
                     </div>

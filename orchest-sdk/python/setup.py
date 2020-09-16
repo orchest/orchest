@@ -14,6 +14,9 @@ setuptools.setup(
         'boto3>=1.13.26',
         'requests>=2.23.0',
         'SQLAlchemy>=1.3.18',
+        'mysqlclient>=2.0.1',
+        'psycopg2-binary>=2.8.6',
+        'sqlalchemy-redshift>=0.8.1',
     ],
 
     # Metadata to display on PyPI.

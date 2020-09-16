@@ -1,17 +1,13 @@
 {
-  "language": "r",
-  "display_name": "R on Docker",
+  "language": "{language}",
+  "display_name": "{image_name}",
   "metadata": {
     "process_proxy": {
       "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",
       "config": {
-        "image_name": "orchestsoftware/custom-base-kernel-r"
+        "image_name": "{image_name}"
       }
     }
-  },
-  "env": {
-    "HOST_PIPELINE_DIR": "{host_pipeline_dir}",
-    "ORCHEST_API_ADDRESS": "{orchest_api_address}"
   },
   "argv": [
     "python",

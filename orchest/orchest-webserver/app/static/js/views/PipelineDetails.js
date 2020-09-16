@@ -3,6 +3,7 @@ import MDCTabBarReact from '../lib/mdc-components/MDCTabBarReact';
 import PipelineDetailsProperties from './PipelineDetailsProperties';
 import PipelineDetailsLogs from './PipelineDetailsLogs';
 import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
+import { RefManager } from '../lib/utils/all';
 
 
 class PipelineDetails extends React.Component {
@@ -19,6 +20,8 @@ class PipelineDetails extends React.Component {
         this.state = {
             subviewIndex: index
         }
+
+        this.refManager = new RefManager();
     }
 
     componentWillUnmount() {
@@ -77,7 +80,7 @@ class PipelineDetails extends React.Component {
             <div className={"overflowable"}>
                 <div className="input-group">
                     <MDCTabBarReact
-                        ref={"tabBar"}
+                        ref={this.refManager.nrefs.tabBar}
                         selectedIndex={this.state.subviewIndex}
                         items={[
                             'Properties',

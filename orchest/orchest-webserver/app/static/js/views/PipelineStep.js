@@ -1,7 +1,14 @@
 import React from 'react';
+import { RefManager } from '../lib/utils/all';
 
 
 class PipelineStep extends React.Component {
+
+    constructor(){
+        super();
+
+        this.refManager = new RefManager();
+    }
 
     componentDidMount(){
         this.updatePosition(this.props.step.meta_data.position)
@@ -9,7 +16,7 @@ class PipelineStep extends React.Component {
 
     updatePosition(position){
         // note: outside of normal React loop for performance
-        this.refs.container.style.transform = "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
+        this.refManager.refs.container.style.transform = "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
     }
 
     render() {
@@ -46,7 +53,7 @@ class PipelineStep extends React.Component {
         }
 
 
-        return <div data-uuid={this.props.step.uuid} ref={"container"} className={classNames.join(" ")} >
+        return <div data-uuid={this.props.step.uuid} ref={this.refManager.nrefs.container} className={classNames.join(" ")} >
             <div className={"incoming-connections connection-point"}>
                 <div className="inner-dot"></div>
             </div>

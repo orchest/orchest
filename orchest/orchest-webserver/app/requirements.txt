@@ -2,6 +2,8 @@ Flask
 flask_sqlalchemy
 flask_restful
 flask-marshmallow
+flask-socketio
+eventlet
 marshmallow-sqlalchemy
 Flask-Migrate
 requests
@@ -9,5 +11,6 @@ APScheduler
 pyinotify
 nbformat
 nbconvert
+docker
 Werkzeug==0.16.0
 -e ../../../lib/python/orchest-internals

@@ -186,7 +186,7 @@ class ExperimentView extends React.Component {
 
             <MDCTabBarReact
                 selectedIndex={this.state.selectedTabIndex}
-                ref={"tabBar"}
+                ref={this.refManager.nrefs.tabBar}
                 items={[
                     'Pipeline runs ('+ this.state.pipelineRuns.length + ")",
                     'Parameters',

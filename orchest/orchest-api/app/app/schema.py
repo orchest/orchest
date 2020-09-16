@@ -74,7 +74,10 @@ pipeline = Model('Pipeline', {
         description='UUID of pipeline'),
     'pipeline_dir': fields.String(
         required=True,
-        description='Path to pipeline files')
+        description='Path to pipeline files'),
+    'host_userdir': fields.String(
+        required=True,
+        description='Host path to userdir')
 })
 
 # Namespace: Runs & Experiments

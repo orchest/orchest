@@ -1,7 +1,7 @@
 import React from 'react';
 import PipelineView from "./PipelineView";
 import { MDCTextField } from "@material/textfield";
-import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
+import { makeRequest, PromiseManager, makeCancelable, RefManager } from "../lib/utils/all";
 import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import MDCTabBarReact from '../lib/mdc-components/MDCTabBarReact';
 
@@ -17,6 +17,7 @@ class PipelineSettingsView extends React.Component {
         };
 
         this.promiseManager = new PromiseManager();
+        this.refManager = new RefManager();
     }
 
     initComponent() {
@@ -51,8 +52,8 @@ class PipelineSettingsView extends React.Component {
     }
 
     initiateMDCComponents() {
-        if (this.refs.pipelineNameField) {
-            this.pipelineNameField = new MDCTextField(this.refs.pipelineNameField);
+        if (this.refManager.refs.pipelineNameField) {
+            this.pipelineNameField = new MDCTextField(this.refManager.refs.pipelineNameField);
             this.pipelineNameField.value = this.state.pipelineJson.name;
             this.pipelineNameField.focus();
         }
@@ -124,7 +125,7 @@ class PipelineSettingsView extends React.Component {
                             return <div>
                                 <form>
                                     <div>
-                                        <div ref={"pipelineNameField"} className="mdc-text-field">
+                                        <div ref={this.refManager.nrefs.pipelineNameField} className="mdc-text-field">
                                             <input type="text" id="my-text-field" onChange={this.stub} className="mdc-text-field__input" />
                                             <label className="mdc-floating-label" htmlFor="my-text-field">Pipeline name</label>
                                             <div className="mdc-line-ripple"></div>

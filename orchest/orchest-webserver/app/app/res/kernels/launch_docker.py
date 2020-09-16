@@ -25,7 +25,7 @@ def get_orchest_mounts(param_env):
 
     pipeline_dir_mount = Mount(
         target=param_env.get('KERNEL_WORKING_DIR'),
-        source=param_env.get('HOST_PIPELINE_DIR'),
+        source=param_env.get('ORCHEST_HOST_PIPELINE_DIR'),
         type='bind'
     )
 

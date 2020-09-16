@@ -5,14 +5,16 @@ import pdb
 import requests
 import logging
 import nbformat
+import docker
 
 from flask import render_template, request, jsonify
 from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf
-from app.models import DataSource, Experiment, PipelineRun
+from app.utils import get_hash, get_user_conf, name_to_tag, get_synthesized_images
+from app.models import DataSource, Experiment, PipelineRun, Image, Commit
+from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
 
 
@@ -26,13 +28,32 @@ def register_views(app, db):
     class DataSourceNameInUse(HTTPException):
         pass
 
-
     class DataSourceSchema(ma.Schema):
         class Meta:
             fields = ("name", "source_type", "connection_details")
 
     datasource_schema = DataSourceSchema()
     datasources_schema = DataSourceSchema(many=True)
+
+    class CommitNameInUse(HTTPException):
+        pass
+
+    class CommitSchema(ma.Schema):
+        class Meta:
+            fields = ("name", "tag", "base_image", "uuid", "building")
+
+    commit_schema = CommitSchema()
+    commits_schema = CommitSchema(many=True)
+
+    class ImageNameInUse(HTTPException):
+        pass
+
+    class ImageSchema(ma.Schema):
+        class Meta:
+            fields = ("name", "language")
+
+    image_schema = ImageSchema()
+    images_schema = ImageSchema(many=True)
 
 
     class ExperimentUuidInUse(HTTPException):
@@ -62,7 +83,7 @@ def register_views(app, db):
         if "/" in base_image:
             base_image = base_image.replace("/", "-")
 
-        return base_image + "_docker_" + kernel
+        return base_image
 
 
     def pipeline_set_notebook_kernels(pipeline_json):
@@ -96,7 +117,7 @@ def register_views(app, db):
                     with open(notebook_path, "w") as file:
                         file.write(json.dumps(notebook_json))
                 else:
-                    logging.debug(
+                    logging.info(
                         "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
 
 
@@ -231,6 +252,163 @@ def register_views(app, db):
             os.system("rm -r %s" % (experiment_pipeline_path))
 
 
+    def remove_commit_image(commit):
+        full_image_name = '%s:%s' % (commit.base_image, commit.tag)
+        try:
+            client = docker.from_env()
+            client.images.remove(full_image_name, noprune=True)
+        except:
+            logging.info("Unable to remove image: %s" % full_image_name)
+
+
+    def remove_commit_shell(commit):
+
+        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit.uuid)
+        
+        if os.path.isdir(shell_file_dir):
+            os.system("rm -r %s" % (shell_file_dir))
+
+    def register_commits(db, api, ma):
+
+        class CommitsResource(Resource):
+
+            def get(self):
+                if 'image_name' in request.args:
+                    commits = Commit.query.filter(Commit.base_image == request.args['image_name']).all()
+                else:
+                    commits = Commit.query.all()
+                    
+                return commits_schema.dump(commits)
+
+        class CommitResource(Resource):
+
+            def put(self, commit_uuid):
+
+                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
+                
+                if commit is None:
+                    return '', 404
+
+                commit.name = request.json["name"]
+                commit.tag = name_to_tag(request.json["name"])
+                commit.base_image = request.json["image_name"]
+                
+                db.session.commit()
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
+
+                return commit_schema.dump(commit)
+
+            def get(self, commit_uuid):
+                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
+                return commit_schema.dump(commit)
+
+            def delete(self, commit_uuid):
+
+                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
+
+                if commit is None:
+                    return '', 404
+
+                remove_commit_shell(commit)
+                remove_commit_image(commit)
+
+                db.session.delete(commit)
+                db.session.commit()
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
+
+            # note that the post request accepts the name instead of the tag
+            def post(self, commit_uuid):
+                
+                name = request.json["name"]
+                tag = name_to_tag(name)
+                image_name = request.json["image_name"]
+
+                if Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).count() > 0:
+                    raise CommitNameInUse()
+
+                # check image_name exists as a constraint
+                if Image.query.filter(Image.name == image_name).count() == 0:
+                    return '', 404
+
+                new_commit = Commit(
+                    uuid=str(uuid.uuid4()),
+                    name=name,
+                    tag=tag,
+                    base_image=image_name
+                )
+
+                db.session.add(new_commit)
+                db.session.commit()
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
+
+                return commit_schema.dump(new_commit)
+
+        api.add_resource(CommitsResource, "/store/commits")
+        api.add_resource(CommitResource,
+                         "/store/commits/<string:commit_uuid>")
+
+
+    def register_images(db, api, ma):
+
+        class ImagesResource(Resource):
+
+            def get(self):
+                images = Image.query.all()
+                return images_schema.dump(images)
+
+        class ImageResource(Resource):
+
+            def put(self, name):
+
+                im = Image.query.filter(Image.name == name).first()
+
+                if im is None:
+                    return '', 404
+
+                im.name = request.json["name"]
+                im.language = request.json["language"]
+                db.session.commit()
+
+                return image_schema.dump(im)
+
+            def get(self, name):
+                im = Image.query.filter(Image.name == name).first()
+
+                if im is None:
+                    return '', 404
+
+                return image_schema.dump(im)
+
+            def delete(self, name):
+                Image.query.filter(Image.name == name).delete()
+                db.session.commit()
+
+            def post(self, name):
+
+                if Image.query.filter(Image.name == name).count() > 0:
+                    raise ImageNameInUse()
+
+                new_im = Image(
+                    name=name,
+                    language=request.json["language"]
+                )
+
+                db.session.add(new_im)
+                db.session.commit()
+
+                return image_schema.dump(new_im)
+
+        api.add_resource(ImagesResource, "/store/images")
+        api.add_resource(ImageResource,
+                         "/store/images/<string:name>")
+
+
     def register_datasources(db, api, ma):
 
         class DataSourcesResource(Resource):
@@ -242,8 +420,11 @@ def register_views(app, db):
         class DataSourceResource(Resource):
 
             def put(self, name):
-
                 ds = DataSource.query.filter(DataSource.name == name).first()
+
+                if ds is None:
+                    return '', 404
+
                 ds.name = request.json["name"]
                 ds.source_type = request.json["source_type"]
                 ds.connection_details = request.json["connection_details"]
@@ -253,14 +434,22 @@ def register_views(app, db):
 
             def get(self, name):
                 ds = DataSource.query.filter(DataSource.name == name).first()
+
+                if ds is None:
+                    return '', 404
+
                 return datasource_schema.dump(ds)
 
             def delete(self, name):
-                DataSource.query.filter(DataSource.name == name).delete()
+                ds = DataSource.query.filter(DataSource.name == name).first()
+
+                if ds is None:
+                    return '', 404
+
+                db.session.delete(ds)
                 db.session.commit()
 
             def post(self, name):
-
                 if DataSource.query.filter(DataSource.name == name).count() > 0:
                     raise DataSourceNameInUse()
 
@@ -294,6 +483,10 @@ def register_views(app, db):
 
                 ex = Experiment.query.filter(
                     Experiment.uuid == experiment_uuid).first()
+
+                if ex is None:
+                    return '', 404
+
                 ex.name = request.json["name"]
                 ex.pipeline_uuid = request.json["pipeline_uuid"]
                 ex.pipeline_name = request.json["pipeline_name"]
@@ -307,6 +500,10 @@ def register_views(app, db):
             def get(self, experiment_uuid):
                 ex = Experiment.query.filter(
                     Experiment.uuid == experiment_uuid).first()
+
+                if ex is None:
+                    return '', 404
+
                 return experiment_schema.dump(ex)
 
             def delete(self, experiment_uuid):
@@ -314,6 +511,9 @@ def register_views(app, db):
                 # remove experiment directory
                 ex = Experiment.query.filter(
                     Experiment.uuid == experiment_uuid).first()
+
+                if ex is None:
+                    return '', 404
 
                 remove_experiment_directory(ex.uuid, ex.pipeline_uuid)
 
@@ -347,6 +547,14 @@ def register_views(app, db):
     def register_rest(app, db):
 
         errors = {
+            "CommitNameInUse": {
+                "message": "A commit with this name for this base image already exists.",
+                "status": 409,
+            },
+            "ImageNameInUse": {
+                "message": "An image with this name already exists.",
+                "status": 409,
+            },
             "DataSourceNameInUse": {
                 "message": "A data source with this name already exists.",
                 "status": 409,
@@ -361,6 +569,8 @@ def register_views(app, db):
 
         register_datasources(db, api, ma)
         register_experiments(db, api, ma)
+        register_images(db, api, ma)
+        register_commits(db, api, ma)
 
     register_rest(app, db)
 
@@ -400,6 +610,7 @@ def register_views(app, db):
 
         json_obj["pipeline_dir"] = get_pipeline_directory_by_uuid(
             request.json["pipeline_uuid"], host_path=True)
+        json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
 
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/", json=json_obj, stream=True)
@@ -461,6 +672,19 @@ def register_views(app, db):
             return resp.raw.read(), resp.status_code
 
 
+    @app.route("/async/synthesized-images", methods=["GET"])
+    def images_get():
+
+        synthesized_images, _ = get_synthesized_images(language=request.args.get("language"))
+
+        result = {
+            "success": True,
+            "images": synthesized_images
+        }
+
+        return jsonify(result), 200, {"content-type": "application/json"}
+
+
     @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
     def pipelines_delete(pipeline_uuid):
 
@@ -470,7 +694,7 @@ def register_views(app, db):
         # TODO: find way to not force sudo remove on pipeline dirs
         # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
         if len(pipeline_dir) > 36:
-            os.system("rm -rf %s" % (pipeline_dir))
+            os.system("rm -rf %s" % pipeline_dir)
 
         return jsonify({"success": True})
 
@@ -533,31 +757,7 @@ def register_views(app, db):
         # create dirs
         pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
 
-        os.makedirs(pipeline_dir, exist_ok=True)
-
-        # populate pipeline directory with kernels
-
-        # copy directories
-        fromDirectory = os.path.join(app.config["RESOURCE_DIR"], "kernels")
-        toDirectory = os.path.join(pipeline_dir, _config.KERNELSPECS_PATH)
-
-        copy_tree(fromDirectory, toDirectory)
-
-        # replace variables in kernel.json files
-        kernel_folders = [f.path for f in os.scandir(
-            toDirectory) if f.is_dir()]
-
-        for kernel_folder in kernel_folders:
-            kernel_json_file = os.path.join(kernel_folder, "kernel.json")
-            if os.path.isfile(kernel_json_file):
-                with open(kernel_json_file, "r") as file:
-                    data = file.read().replace("{host_pipeline_dir}", get_pipeline_directory_by_uuid(
-                        pipeline_uuid, host_path=True))
-                    data = data.replace("{orchest_api_address}",
-                                        app.config["ORCHEST_API_ADDRESS"])
-
-                with open(kernel_json_file, "w") as file:
-                    file.write(data)
+        os.makedirs(os.path.join(pipeline_dir, ".orchest"), exist_ok=True)
 
         # generate clean pipeline.json
         pipeline_json = {
@@ -635,6 +835,18 @@ def register_views(app, db):
     @app.route("/async/pipelines", methods=["GET"])
     def pipelines_get():
 
+        # get active sessions
+        try:
+            resp = requests.get(
+                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/")
+
+            active_pipelines = [ session['pipeline_uuid'] for session in resp.json()["sessions"] ]
+        except Exception as e:
+            logging.info("Unable to get /api/sessions. Error: %e" % e)
+            active_pipelines = []
+        
+
+
         pipelines_dir = get_pipelines_dir()
 
         pipeline_uuids = [f.path for f in os.scandir(
@@ -653,7 +865,8 @@ def register_views(app, db):
 
                     pipelines.append({
                         "name": pipeline_json["name"],
-                        "uuid": pipeline_json["uuid"]
+                        "uuid": pipeline_json["uuid"],
+                        "session_active": pipeline_json["uuid"] in active_pipelines
                     })
 
         json_string = json.dumps(
@@ -682,7 +895,7 @@ def register_views(app, db):
                 notebook_path = os.path.join(
                     pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"])
             except Exception as e:
-                logging.debug(e)
+                logging.info(e)
                 return return_404("Invalid JSON for pipeline %s error: %e" % (pipeline_uuid, e))
         else:
             return return_404("Could not find pipeline.json for pipeline %s" % pipeline_uuid)
@@ -694,16 +907,67 @@ def register_views(app, db):
                     nb = nbformat.read(file, nbformat.NO_CONVERT)
 
                 html_exporter = HTMLExporter()
-                html_exporter.template_file = "full"
 
                 (body, resources) = html_exporter.from_notebook_node(nb)
 
                 return body
 
             except IOError as error:
-                logging.debug("Error opening notebook file %s error: %s" % (
+                logging.info("Error opening notebook file %s error: %s" % (
                     notebook_path, error))
                 return return_404("Could not find notebook file %s" % notebook_path)
+
+
+    @app.route("/async/commits/shell/<string:commit_uuid>", methods=["GET", "POST"])
+    def commit_shell(commit_uuid):
+
+        commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
+        if commit is None:
+            json_string = json.dumps(
+                {"success": False, "reason": "Commit does not exist for UUID %s" % (commit_uuid)})
+
+            return json_string, 404, {"content-type": "application/json"}
+
+
+        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit_uuid)
+        shell_file_path = os.path.join(shell_file_dir, "shell.sh")
+
+        if request.method == "POST":
+
+            try:
+                if not os.path.isdir(shell_file_dir):
+                    os.makedirs(shell_file_dir)
+
+                with open(shell_file_path, "w") as file:
+                    file.write(request.json['shell'])
+
+                json_string = json.dumps({"success": True})
+
+                return json_string, 200, {"content-type": "application/json"}
+
+            except:
+                json_string = json.dumps(
+                    {"success": False, "reason": "Could not create shell file"})
+
+                return json_string, 500, {"content-type": "application/json"}
+
+        else:
+
+            if os.path.isfile(shell_file_path):
+
+                with open(shell_file_path, "r") as file:
+                    shell = file.read()
+
+                    json_string = json.dumps(
+                        {"success": True, "shell": shell})
+
+                    return json_string, 200, {"content-type": "application/json"}
+
+            else:
+                json_string = json.dumps(
+                    {"success": False, "reason": "Could not find shell file"})
+
+                return json_string, 404, {"content-type": "application/json"}
 
 
     @app.route("/async/logs/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
@@ -730,7 +994,7 @@ def register_views(app, db):
                     logs = f.read()
 
             except IOError as error:
-                logging.debug("Error opening log file %s error: %s" %
+                logging.info("Error opening log file %s error: %s" %
                               (log_path, error))
 
         if logs is not None:
@@ -754,6 +1018,10 @@ def register_views(app, db):
 
         # parse JSON
         pipeline_json = json.loads(request.form.get("pipeline_json"))
+
+        # first create all files part of pipeline_json definition
+        # TODO: consider removing other files (no way to do this reliably,
+        # special case might be rename)
         create_pipeline_files(pipeline_json)
 
         # side effect: for each Notebook in de pipeline.json set the correct kernel

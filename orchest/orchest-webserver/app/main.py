@@ -1,6 +1,14 @@
+#!/usr/bin/env python3
+
+import logging
+import sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
 from app import create_app
 
-app = create_app()
+[app, socketio] = create_app()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80)
+    logging.info("Running from if __name__ == '__main__'")
+    socketio.run(app, host='0.0.0.0', port=80, use_reloader=True, debug=True)
