@@ -410,7 +410,7 @@ def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mo
 
         mounts['kernelspec'] = Mount(
             target='/usr/local/share/jupyter/kernels',
-            source=source_kernelspec,
+            source=source_kernelspecs,
             type='bind'
         )
 

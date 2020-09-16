@@ -24,4 +24,8 @@ RUN ./compile-sass.sh
 # will try to run the app in /app". Additionally, we need to specify a
 # custom path for the `gunicorn_conf.py` file.
 WORKDIR /orchest/orchest/orchest-webserver/app
-ENV GUNICORN_CONF /orchest/orchest/orchest-webserver/app/gunicorn_conf.py
+
+# ENV GUNICORN_CONF /orchest/orchest/orchest-webserver/app/gunicorn_conf.py
+
+# TODO: move Flask application from debug to Gunicorn
+CMD ["./debug.sh"]
