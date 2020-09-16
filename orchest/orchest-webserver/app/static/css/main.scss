@@ -775,6 +775,7 @@ button.themed-secondary {
       padding: $generalPadding / 2;
       height: 100%;
       white-space: pre-line;
+      overflow-x: auto;
     }
 
     .input-group {
