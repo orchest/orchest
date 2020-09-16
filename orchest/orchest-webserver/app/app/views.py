@@ -610,6 +610,7 @@ def register_views(app, db):
 
         json_obj["pipeline_dir"] = get_pipeline_directory_by_uuid(
             request.json["pipeline_uuid"], host_path=True)
+        json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
 
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/", json=json_obj, stream=True)

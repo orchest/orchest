@@ -69,12 +69,16 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     async def mockreturn_update_status(*args, **kwargs):
         return
 
+    def mock_get_dynamic_mounts(*args, **kwargs):
+        return
+
     # We use that the class will point to the same object list to write
     # the calling order to.
     execution_order = []
 
     monkeypatch.setattr(DockerContainers, 'run', mockreturn_run)
     monkeypatch.setattr(pipelines, 'update_status', mockreturn_update_status)
+    monkeypatch.setattr(pipelines, 'get_dynamic_mounts', mock_get_dynamic_mounts)
 
     filler_for_task_id = '1'
     run_config = {

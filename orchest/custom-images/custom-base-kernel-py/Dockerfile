@@ -9,13 +9,14 @@ WORKDIR /orchest
 COPY ./custom-base-kernel-py/*.sh /orchest/
 
 # Run augment script
-ARG sdk_branch=master
-RUN ./augment-root.sh ${sdk_branch}
+RUN ./augment-root.sh
 
 # Install our internal libraries
 RUN mkdir -p /home/jovyan/src
 COPY ./lib/python /home/jovyan/src
+COPY ./orchest-sdk/python /home/jovyan/src/orchest
 RUN pip install -e /home/jovyan/src/orchest-internals/
+RUN pip install -e /home/jovyan/src/orchest
 
 # Copy run script
 RUN [ "mkdir", "/runner"]

@@ -3,7 +3,6 @@
 # Use another Docker backend for building.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 IMGS=()
-SDK_BRANCH="master"
 NO_CACHE=false
 VERBOSE=false
 ENABLE_SSL=false
@@ -11,10 +10,6 @@ ENABLE_SSL=false
 # Read flags.
 while getopts "s:i:nve" opt; do
   case $opt in
-    s)
-      SDK_BRANCH=$OPTARG
-      echo "Using SDK branch $OPTARG"
-      ;;
     i)
       IMGS+=($OPTARG)
       ;;
@@ -61,6 +56,10 @@ LIB_IMAGES=(
     "auth-server"
     "celery-worker"
 )
+SDK_IMAGES=(
+    "custom-base-kernel-py"
+    "custom-base-kernel-r"
+)
 
 CLEANUP_BUILD_CTX=()
 CLEANUP_IMAGES=()
@@ -87,6 +86,9 @@ run_build () {
 
         if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
             cp -r $DIR/../lib $build_ctx/lib
+        fi
+        if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
+            cp -r $DIR/../orchest-sdk $build_ctx/orchest-sdk
         fi
     fi
     # copy end
@@ -144,7 +146,6 @@ do
         build=(docker build \
             -t orchestsoftware/custom-base-kernel-py \
             -f $DIR/../orchest/custom-images/custom-base-kernel-py/Dockerfile \
-            --build-arg sdk_branch=$SDK_BRANCH \
             --no-cache=$NO_CACHE \
             $build_ctx)
 
@@ -156,7 +157,6 @@ do
         build=(docker build \
             -t orchestsoftware/custom-base-kernel-r \
             -f $DIR/../orchest/custom-images/custom-base-kernel-r/Dockerfile \
-            --build-arg sdk_branch=$SDK_BRANCH \
             --no-cache=$NO_CACHE \
             $build_ctx)
     fi
@@ -223,7 +223,6 @@ do
         build_ctx=$DIR/../orchest/memory-server
         build=(docker build \
             -t orchestsoftware/memory-server \
-            --build-arg sdk_branch=$SDK_BRANCH \
             --no-cache=$NO_CACHE \
             -f $DIR/../orchest/memory-server/Dockerfile \
             $build_ctx)
@@ -257,6 +256,9 @@ do
         # silent fail because build context can be shared and cleanup can already have happend
         if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
             rm -r $i/lib 2> /dev/null
+        fi
+        if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
+            rm -r $i/orchest-sdk 2> /dev/null
         fi
         rm $i/.dockerignore 2> /dev/null
     fi

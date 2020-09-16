@@ -114,7 +114,7 @@ class Session:
 
         return res
 
-    def launch(self, uuid: str, pipeline_dir: str) -> None:
+    def launch(self, uuid: str, pipeline_dir: str, host_userdir: str = None) -> None:
         """Launches pre-configured resources.
 
         All containers are run in detached mode.
@@ -126,10 +126,11 @@ class Session:
                 interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
             pipeline_dir: Path to pipeline directory.
+            host_userdir: Path to the userdir on the host 
 
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
-        container_specs = _get_container_specs(uuid, pipeline_dir, self.network)
+        container_specs = _get_container_specs(uuid, pipeline_dir, host_userdir, self.network)
         for resource in self._resources:
             container = self.client.containers.run(**container_specs[resource])
             self._containers[resource] = container
@@ -216,7 +217,7 @@ class InteractiveSession(Session):
         return IP(self._get_container_IP(self.containers['jupyter-EG']),
                   self._get_container_IP(self.containers['jupyter-server']))
 
-    def launch(self, pipeline_uuid: str, pipeline_dir: str) -> None:
+    def launch(self, pipeline_uuid: str, pipeline_dir: str, host_userdir: str) -> None:
         """Launches the interactive session.
 
         Additionally connects the launched `jupyter-server` with the
@@ -226,7 +227,7 @@ class InteractiveSession(Session):
             See `Args` section in parent class :class:`Session`.
 
         """
-        super().launch(pipeline_uuid, pipeline_dir)
+        super().launch(pipeline_uuid, pipeline_dir, host_userdir)
 
         # TODO: This session should manage additionally that the jupyter
         #       notebook server is started through the little flask API
@@ -377,15 +378,20 @@ def launch_session(
         session.shutdown()
 
 
-def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
+def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mount]:
     """Constructs the mounts for all resources.
 
     Resources refer to the union of all possible resources over all
     types of session objects.
 
     Args:
+        uuid: Some UUID to identify the session with. For interactive
+            runs using the pipeline UUID is recommended, for non-
+            interactive runs we recommend using the pipeline run UUID.
         pipeline_dir: Pipeline directory w.r.t. the host. Needed to
             construct the mounts.
+        host_userdir: Path to the userdir on the host
+
 
     Returns:
         Mapping from mount name to actual ``docker.types.Mount`` object.
@@ -399,21 +405,14 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
     """
     mounts = {}
 
-    # TODO: pass userdir on host instead of deriving userdir from pipeline_dir
-    host_userdir_path = pipeline_dir.split(os.sep)
-    host_userdir_path = os.sep.join(host_userdir_path[0:host_userdir_path.index("userdir") + 1])
-    
+    if host_userdir is not None:
+        source_kernelspecs = os.path.join(host_userdir, _config.KERNELSPECS_PATH)
 
-    source_kernelspecs = os.path.join(host_userdir_path, _config.KERNELSPECS_PATH)
-    
-    print(source_kernelspecs)
-
-
-    mounts['kernelspec'] = Mount(
-        target='/usr/local/share/jupyter/kernels',
-        source=source_kernelspecs,
-        type='bind'
-    )
+        mounts['kernelspec'] = Mount(
+            target='/usr/local/share/jupyter/kernels',
+            source=source_kernelspec,
+            type='bind'
+        )
 
     # By mounting the docker sock it becomes possible for containers
     # to be spawned from inside another container.
@@ -423,28 +422,23 @@ def _get_mounts(pipeline_dir: str) -> Dict[str, Mount]:
         type='bind'
     )
 
-    pipeline_dir_target_path = _config.PIPELINE_DIR
+    pipeline_dir_target = _config.PIPELINE_DIR
     mounts['pipeline_dir'] = Mount(
-        target=pipeline_dir_target_path,
+        target=pipeline_dir_target,
         source=pipeline_dir,
         type='bind'
     )
 
-    # The `memory-server` creates the `plasma.sock` file at
-    # `STORE_SOCKET_NAME` from its configuration file, which is
-    # currently ``/tmp/plasma.sock``. Thus to get the socket in the
-    # pipeline directory we need to mount the ``/tmp`` directory.
-    source_memory_server_sock = os.path.join(pipeline_dir, _config.SOCK_PATH)
-    mounts['memory_server_sock'] = Mount(
-        target=_config.MEMORY_SERVER_SOCK_PATH,
-        source=source_memory_server_sock,
-        type='bind'
+    mounts['temp_volume'] = Mount(
+        target=_config.TEMP_DIRECTORY_PATH,
+        source=_config.TEMP_VOLUME_NAME.format(uuid=uuid),
+        type='volume'
     )
 
     return mounts
 
 
-def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str, dict]:
+def _get_container_specs(uuid: str, pipeline_dir: str, host_userdir: str, network: str) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
 
     These specifications can be unpacked into the
@@ -456,6 +450,7 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
             interactive runs we recommend using the pipeline run UUID.
         pipeline_dir: Pipeline directory w.r.t. the host. Needed to
             construct the mounts.
+        host_userdir: Path to the userdir on the host
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
 
@@ -471,14 +466,14 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
     """
     # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
-    mounts = _get_mounts(pipeline_dir)
+    mounts = _get_mounts(uuid, pipeline_dir, host_userdir)
 
     container_specs['memory-server'] = {
         'image': 'orchestsoftware/memory-server:latest',
         'detach': True,
         'mounts': [
             mounts['pipeline_dir'],
-            mounts['memory_server_sock'],
+            mounts['temp_volume'],
         ],
         # TODO: name not unique... and uuid cannot be used.
         'name': f'memory-server-{uuid}',
@@ -498,15 +493,16 @@ def _get_container_specs(uuid: str, pipeline_dir: str, network: str) -> Dict[str
         'name': f'jupyter-EG-{uuid}',
         'environment': [
             f'EG_DOCKER_NETWORK={network}',
-            'EG_ENV_PROCESS_WHITELIST=HOST_PIPELINE_DIR,ORCHEST_API_ADDRESS',
-            f'HOST_PIPELINE_DIR={pipeline_dir}',
-            f'ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}',
             'EG_MIRROR_WORKING_DIRS=True',
             'EG_LIST_KERNELS=True',
             'EG_KERNEL_WHITELIST=[]',
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             'EG_ALLOW_ORIGIN=*',
+            'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_HOST_PIPELINE_DIR,ORCHEST_API_ADDRESS',
+            f'ORCHEST_PIPELINE_UUID={uuid}',
+            f'ORCHEST_HOST_PIPELINE_DIR={pipeline_dir}',
+            f'ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}',
         ],
         'user': 'root',
         'network': network,

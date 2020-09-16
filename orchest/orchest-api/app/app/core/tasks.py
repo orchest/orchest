@@ -78,11 +78,17 @@ def run_partial(self,
     Args:
         pipeline_description: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
+            Example: {
+                'run_endpoint': 'runs',
+                'pipeline_dir': '/home/../pipelines/uuid',
+            }
 
     Returns:
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
+    run_config['pipeline_uuid'] = pipeline_description['uuid']
+
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
 
@@ -112,6 +118,10 @@ def start_non_interactive_pipeline_run(
         experiment_uuid: UUID of the experiment.
         pipeline_description: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
+            Example: {
+                'host_user_dir': '/home/../userdir',
+                'pipeline_dir': '/home/../pipelines/uuid',
+            }
 
     Returns:
         Status of the pipeline run. "FAILURE" or "SUCCESS".
@@ -137,10 +147,15 @@ def start_non_interactive_pipeline_run(
     # of a step.
     host_base_user_dir = os.path.split(run_config['host_user_dir'])[0]
 
+    # It gets passed to the run of the pipeline, however, it is never
+    # used. Thus we delete it to not cause confusion.
+    del run_config['host_user_dir']
+
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
     run_config['pipeline_dir'] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config['run_endpoint'] = f'experiments/{experiment_uuid}'
+    run_config['pipeline_uuid'] = pipeline_uuid
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for

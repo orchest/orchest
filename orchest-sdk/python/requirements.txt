@@ -1,0 +1,4 @@
+SQLAlchemy
+boto3
+pyarrow
+requests
