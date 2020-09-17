@@ -25,7 +25,6 @@ if [ -z "$2" ]; then
     exit 1
 fi
 
-export DOCKER_BUILDKIT=1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SITE_DOMAIN=$1
 EMAIL=$2
@@ -66,7 +65,7 @@ docker build \
     --build-arg enable_ssl=true \
     --build-arg domain=$SITE_DOMAIN \
     -f $DIR/../orchest/nginx-proxy/Dockerfile \
-    $DIR/../
+    $DIR/../orchest/nginx-proxy
 
 # clean up tmp
 rm -r /tmp/letsencrypt
