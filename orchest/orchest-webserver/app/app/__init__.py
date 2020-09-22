@@ -58,6 +58,9 @@ def process_start_gate():
 @contextlib.contextmanager
 def create_app():
 
+    permission_process = None
+    docker_builder_process = None
+
     try:
 
         logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -115,7 +118,6 @@ def create_app():
 
         if process_start_gate():
             
-            
             file_dir = os.path.dirname(os.path.realpath(__file__)) 
 
             # file permission process
@@ -125,18 +127,20 @@ def create_app():
             logging.info("Started file_permission_watcher.py")
 
             # docker builder process
-            docker_builder_process = Popen(
-                [os.path.join(file_dir, "scripts", "docker_builder.py"), app.config["USER_DIR"]]
-            )
-            logging.info("Started docker_builder.py")
+            # docker_builder_process = Popen(
+            #     [os.path.join(file_dir, "scripts", "docker_builder.py"), app.config["USER_DIR"]]
+            # )
+            # logging.info("Started docker_builder.py")
         
         yield app, socketio
 
     finally:
-        
-        logging.info("Killing subprocess with PID %d" % permission_process.pid)
-        permission_process.kill()
 
-        logging.info("Killing subprocess with PID %d" % docker_builder_process.pid)
-        docker_builder_process.kill()
-        
+        if permission_process:
+            logging.info("Killing subprocess with PID %d" % permission_process.pid)
+            permission_process.kill()
+
+        if docker_builder_process:
+            logging.info("Killing subprocess with PID %d" % docker_builder_process.pid)
+            docker_builder_process.kill()
+    
