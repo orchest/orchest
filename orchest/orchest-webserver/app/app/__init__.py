@@ -58,13 +58,10 @@ def process_start_gate():
 def create_app_managed():
 
     try:
-
         (app, socketio, processes) = create_app()
-
         yield app, socketio
 
     finally:
-
         for process in processes:
             logging.info("Killing subprocess with PID %d" % process.pid)
             process.kill()

@@ -36,6 +36,7 @@ class PipelineDetailsProperties extends React.Component {
     }
 
     componentWillUnmount() {
+        this.promiseManager.cancelCancelablePromises();
     }
 
     

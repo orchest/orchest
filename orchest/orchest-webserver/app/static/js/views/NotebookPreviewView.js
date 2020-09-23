@@ -7,7 +7,7 @@ import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact
 class NotebookPreviewView extends React.Component {
 
   componentWillUnmount() {
-    
+    this.promiseManager.cancelCancelablePromises();
   }
 
   loadPipelineView(){

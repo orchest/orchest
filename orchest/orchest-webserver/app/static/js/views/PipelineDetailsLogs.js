@@ -24,6 +24,7 @@ class PipelineDetailsLogs extends React.Component {
 
   componentWillUnmount() {
     clearInterval(this.logFetchInterval);
+    this.promiseManager.cancelCancelablePromises();
   }
 
   componentDidUpdate(prevProps){
