@@ -112,10 +112,12 @@ def register_views(app, db):
                     with open(notebook_path, "r") as file:
                         notebook_json = json.load(file)
 
-                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+                    if notebook_json["metadata"]["kernelspec"]["name"] != gateway_kernel:
+                        notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
 
-                    with open(notebook_path, "w") as file:
-                        file.write(json.dumps(notebook_json))
+                        with open(notebook_path, "w") as file:
+                            file.write(json.dumps(notebook_json))
+                            
                 else:
                     logging.info(
                         "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)

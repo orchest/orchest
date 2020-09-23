@@ -1,0 +1,13 @@
+[Unit]
+Description=uWSGI instance to serve update-service
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=$ROOT_PATH$/app
+Environment="PATH=$ROOT_PATH$/update_service_venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+ExecStart=$ROOT_PATH$/update_service_venv/bin/uwsgi --ini service.ini
+
+[Install]
+WantedBy=multi-user.target

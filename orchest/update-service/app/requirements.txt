@@ -1,0 +1,5 @@
+Flask==1.1.1
+shelljob
+docker
+requests
+uwsgi
