@@ -17,6 +17,8 @@ class CommitEditView extends React.Component {
         if(this.socket){
             this.socket.close();
         }
+
+        this.promiseManager.cancelCancelablePromises();
     }
 
     constructor(props) {

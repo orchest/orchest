@@ -27,11 +27,7 @@ class Jupyter {
         }
     }
     hide(){
-        // unload JupyterLab page on hide to avoid background activity
         this.jupyterHolder.addClass("hidden");
-    }
-    unload(){
-        this.iframe.src = "about:blank";
     }
 
     setJupyterAddress(url){

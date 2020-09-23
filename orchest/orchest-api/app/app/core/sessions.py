@@ -126,11 +126,12 @@ class Session:
                 interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
             pipeline_dir: Path to pipeline directory.
-            host_userdir: Path to the userdir on the host 
+            host_userdir: Path to the userdir on the host
 
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
-        container_specs = _get_container_specs(uuid, pipeline_dir, host_userdir, self.network)
+        container_specs = _get_container_specs(uuid, pipeline_dir,
+                                               host_userdir, self.network)
         for resource in self._resources:
             container = self.client.containers.run(**container_specs[resource])
             self._containers[resource] = container
@@ -405,6 +406,8 @@ def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mo
     """
     mounts = {}
 
+    # The `host_userdir` is only passed for interactive runs as those
+    # are the only ones that use kernels.
     if host_userdir is not None:
         source_kernelspecs = os.path.join(host_userdir, _config.KERNELSPECS_PATH)
 
@@ -438,7 +441,12 @@ def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mo
     return mounts
 
 
-def _get_container_specs(uuid: str, pipeline_dir: str, host_userdir: str, network: str) -> Dict[str, dict]:
+def _get_container_specs(
+    uuid: str,
+    pipeline_dir: str,
+    host_userdir: str,
+    network: str
+) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
 
     These specifications can be unpacked into the
@@ -487,8 +495,8 @@ def _get_container_specs(uuid: str, pipeline_dir: str, host_userdir: str, networ
         'image': 'elyra/enterprise-gateway:2.2.0rc2',  # TODO: make not static.
         'detach': True,
         'mounts': [
-            mounts['docker_sock'],
-            mounts['kernelspec'],
+            mounts.get('docker_sock'),
+            mounts.get('kernelspec'),
         ],
         'name': f'jupyter-EG-{uuid}',
         'environment': [

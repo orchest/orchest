@@ -16,7 +16,7 @@ class Config:
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     LOG_DIR = _config.LOGS_PATH
-    WEBSERVER_LOG = "/app/orchest-webserver.log"
+    WEBSERVER_LOGS = _config.WEBSERVER_LOGS
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS

@@ -35,9 +35,9 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     # create file handler which logs even debug messages
-    fh = logging.FileHandler('permission-app.log')
-    fh.setLevel(logging.DEBUG)
-    logger.addHandler(fh)
+    # fh = logging.FileHandler('permission-app.log')
+    # fh.setLevel(logging.DEBUG)
+    # logger.addHandler(fh)
 
     if len(sys.argv) < 2:
         logger.debug("No directory specified")

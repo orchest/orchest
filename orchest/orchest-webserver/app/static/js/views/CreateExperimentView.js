@@ -30,6 +30,10 @@ class CreateExperimentView extends React.Component {
         this.refManager = new RefManager();
     }
 
+    componentWillUnmount(){
+        this.promiseManager.cancelCancelablePromises();
+    }
+
     fetchPipeline(){
 
         let fetchPipelinePromise = makeRequest("GET", "/async/pipelines/json/get/" + this.props.experiment.pipeline_uuid).then((response) => {

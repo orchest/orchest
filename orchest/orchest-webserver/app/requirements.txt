@@ -13,4 +13,5 @@ nbformat
 nbconvert
 docker
 Werkzeug==0.16.0
+python-socketio[client]
 -e ../../../lib/python/orchest-internals

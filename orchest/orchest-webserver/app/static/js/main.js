@@ -65,7 +65,6 @@ function Orchest() {
             this.jupyter.hide();
 
             if(TagName !== PipelineView && TagName !== PipelineSettingsView){
-                this.jupyter.unload();
                 this.headerBarComponent.setPipeline(undefined);
             }
         }

@@ -1,6 +1,8 @@
 import multiprocessing
 
-accesslog = "/orchest/orchest/orchest-webserver/app/orchest-webserver.log"
+from _orchest.internals import config as _config
+
+accesslog = _config.WEBSERVER_LOGS
 
 workers = 1
 threads = multiprocessing.cpu_count() - 1

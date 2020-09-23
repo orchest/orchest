@@ -14,6 +14,7 @@ import sys
 import requests
 import uuid
 import atexit
+import contextlib
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
@@ -39,6 +40,31 @@ def initialize_default_images(db):
             im = Image(name=image["name"], language=image["language"])
             db.session.add(im)
             db.session.commit()
+
+ 
+def process_start_gate():
+    # When Flask is running in dev mode, only start processes once the main
+    # process is running in 'reloading' mode. Signified by
+    # WERKZEUG_RUN_MAIN=true.
+
+    if os.environ.get("FLASK_ENV") != "development":
+        return True
+    elif os.environ.get("WERKZEUG_RUN_MAIN") == 'true':
+        return True
+    else:
+        return False
+
+@contextlib.contextmanager
+def create_app_managed():
+
+    try:
+        (app, socketio, processes) = create_app()
+        yield app, socketio
+
+    finally:
+        for process in processes:
+            logging.info("Killing subprocess with PID %d" % process.pid)
+            process.kill()
 
 
 def create_app():
@@ -79,7 +105,7 @@ def create_app():
     register_views(app, db)
     register_build_views(app, db, socketio)
 
-    if "TELEMETRY_DISABLED" not in app.config:
+    if "TELEMETRY_DISABLED" not in app.config and os.environ.get("FLASK_ENV") != "development":
         # create thread for analytics
         scheduler = BackgroundScheduler()
         
@@ -91,24 +117,29 @@ def create_app():
         scheduler.start()
 
     
-    # Start threaded file_permission_watcher
+    # Start file_permission_watcher in another process
     # TODO: reconsider file permission approach
-    # Note: process is never cleaned up, this is permissible because it's only
-    # executed inside a container.
-    
-    watcher_file = "/tmp/file_permission_watcher_active" 
+    processes = []
 
-    # guarantee no two python file permission watchers are started
-    if not os.path.isfile(watcher_file):
-        with open(watcher_file, "w") as file:
-            file.write("1")
+    if process_start_gate():
         
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-        permission_process = Popen(
-            [os.path.join(file_dir, "scripts", "file_permission_watcher.py"), app.config["USER_DIR"]]
-        )
+        file_dir = os.path.dirname(os.path.realpath(__file__)) 
 
+        # file permission process
+        permission_process = Popen(
+            ["python3", "-m", "scripts.file_permission_watcher", app.config["USER_DIR"]], cwd=os.path.join(file_dir, "..")
+        )
         logging.info("Started file_permission_watcher.py")
+        processes.append(permission_process)
+
+        # docker builder process
+        docker_builder_process = Popen(
+            ["python3", "-m", "scripts.docker_builder", app.config["USER_DIR"]], cwd=os.path.join(file_dir, "..")
+        )
+        logging.info("Started docker_builder.py")
+        processes.append(docker_builder_process)
+    
+    return app, socketio, processes
 
     
-    return app, socketio
+    
