@@ -105,7 +105,8 @@ class ExperimentsView extends React.Component {
             );
 
             // don't wait for finish on orchest-api DELETE
-            makeRequest("DELETE", "/api-proxy/api/experiments/" + this.state.experiments[selectedRows[x]].uuid)
+            // TODO: wait until orchest-api endpoint is working
+            // makeRequest("DELETE", "/api-proxy/api/experiments/" + this.state.experiments[selectedRows[x]].uuid)
         }
 
         Promise.all(promises).then(() => {
