@@ -26,6 +26,5 @@ RUN ./compile-sass.sh
 WORKDIR /orchest/orchest/orchest-webserver/app
 
 ENV GUNICORN_CONF /orchest/orchest/orchest-webserver/app/gunicorn_conf.py
-ENV APP_MODULE "'app:create_app()'"
-
+ENV APP_MODULE "main:app"
 COPY ./start.sh /start.sh

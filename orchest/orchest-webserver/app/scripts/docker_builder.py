@@ -4,16 +4,21 @@ import logging
 import docker
 import select
 import os
+import sys
 import pty
 import struct
 import termios
 import fcntl
 import socketio
+import signal
 
-from ..app.utils import tar_from_path
+sys.path.append(os.path.abspath('../app'))
+
+import app
 
 
 fd_store = {}
+pid_store = {}
 
 
 def docker_build_commit(commit_uuid, commit_base_image, commit_tag, user_dir):
@@ -49,7 +54,7 @@ def docker_build_commit(commit_uuid, commit_base_image, commit_tag, user_dir):
     
     # copy user bash file to instance
     try:
-        data = tar_from_path(shell_file_path, shell_file_name)
+        data = app.utils.tar_from_path(shell_file_path, shell_file_name)
         container.put_archive("/", data)
 
     except Exception as e:
@@ -78,12 +83,12 @@ def create_pty_fork(fork_lambda, commit_uuid, rows, cols):
 
         # disable logging in child pid, to avoid socketio output in the stream
         logging.disable(logging.CRITICAL)
-        
         fork_lambda()
         
     else:
         logging.info("child pid is %d" % child_pid)
-
+        
+        pid_store[commit_uuid] = child_pid
         fd_store[commit_uuid] = fd
 
         logging.info("set fd_store = %s " % fd_store)
@@ -101,12 +106,23 @@ def create_pty_fork(fork_lambda, commit_uuid, rows, cols):
 
 
 def stop_fd(fd):
+    try:
         os.close(fd)
         logging.info("[Ended] read_and_forward_pty_output fd: %d" % fd)
-
+    except:
+        logging.info("couldn't close file descriptor %d" % fd)
+        
 
 def end_build_callback(fd, commit_uuid):
     stop_fd(fd)
+
+    # kill child pty process
+    if commit_uuid in pid_store:
+        os.kill(pid_store[commit_uuid], signal.SIGKILL)
+        logging.info("[Killed] child_pid: %d" % pid_store[commit_uuid])
+    else:
+        logging.info("pid_store should contain child_pid for %s but doesn't" % commit_uuid)
+        raise Exception()
 
     sio.emit(
         "pty-build-manager", 
@@ -125,12 +141,12 @@ def read_and_forward_pty_output(fd, commit_uuid):
             #logging.info("post-sleep")
 
             #logging.info("pre-select fd: %d" % fd)
-            (data_ready, _, _) = select.select(
-                [fd], [], [], 0)
-            #logging.info("post-select")
+            try:
 
-            if data_ready:
-                try:
+                (data_ready, _, _) = select.select([fd], [], [], 0)
+                #logging.info("post-select")
+
+                if data_ready:
                     output = os.read(fd, max_read_bytes).decode()
 
                     #logging.info("output: %s" % output)
@@ -141,10 +157,11 @@ def read_and_forward_pty_output(fd, commit_uuid):
 
                     if len(output) > 0 and output[-1] == chr(3):
                         end_build_callback(fd, commit_uuid)
-                        
-                except:
-                    end_build_callback(fd, commit_uuid)
-                    break
+                        break
+                            
+            except:
+                end_build_callback(fd, commit_uuid)
+                break
 
 
 def set_winsize(fd, row, col, xpix=0, ypix=0):
@@ -159,6 +176,8 @@ def set_winsize(fd, row, col, xpix=0, ypix=0):
 
 
 if __name__ == "__main__":
+
+    logging.info("docker_builder started")
     
     # Connect to SocketIO server as client
     sio = socketio.Client()

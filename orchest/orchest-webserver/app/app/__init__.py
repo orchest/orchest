@@ -41,7 +41,7 @@ def initialize_default_images(db):
             db.session.add(im)
             db.session.commit()
 
-
+ 
 def process_start_gate():
     # When Flask is running in dev mode, only start processes once the main
     # process is running in 'reloading' mode. Signified by
@@ -54,93 +54,95 @@ def process_start_gate():
     else:
         return False
 
-
 @contextlib.contextmanager
-def create_app():
-
-    permission_process = None
-    docker_builder_process = None
+def create_app_managed():
 
     try:
 
-        logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+        (app, socketio, processes) = create_app()
 
-        app = Flask(__name__)
-        app.config.from_object(CONFIG_CLASS)
-
-        socketio = SocketIO(app, cors_allowed_origins="*")
-
-        # read directory mount based config into Flask config
-        try:
-            conf_data = get_user_conf()
-            app.config.update(conf_data)
-        except Exception as e:
-            logging.warning("Failed to load config.json")
-
-        logging.info("Flask CONFIG: %s" % app.config)
-
-        db.init_app(app)
-
-        # according to SQLAlchemy will only create tables if they do not exist
-        with app.app_context():
-            db.create_all()
-
-            initialize_default_images(db)
-
-            logging.info("Initializing kernels")
-            populate_kernels(app, db)
-
-
-        # static file serving
-        @app.route('/public/<path:path>')
-        def send_files(path):
-            return send_from_directory("../static", path)
-
-        register_views(app, db)
-        register_build_views(app, db, socketio)
-
-        if "TELEMETRY_DISABLED" not in app.config and os.environ.get("FLASK_ENV") != "development":
-            # create thread for analytics
-            scheduler = BackgroundScheduler()
-            
-            # send a ping now
-            analytics_ping(app)
-            
-            # and every 15 minutes
-            scheduler.add_job(analytics_ping, 'interval', minutes=app.config["TELEMETRY_INTERVAL"], args=[app])
-            scheduler.start()
-
-        
-        # Start file_permission_watcher in another process
-        # TODO: reconsider file permission approach
-        # Note: process is never cleaned up, this is permissible because it's only
-        # executed inside a container.
-
-        if process_start_gate():
-            
-            file_dir = os.path.dirname(os.path.realpath(__file__)) 
-
-            # file permission process
-            permission_process = Popen(
-                [os.path.join(file_dir, "scripts", "file_permission_watcher.py"), app.config["USER_DIR"]]
-            )
-            logging.info("Started file_permission_watcher.py")
-
-            # docker builder process
-            # docker_builder_process = Popen(
-            #     [os.path.join(file_dir, "scripts", "docker_builder.py"), app.config["USER_DIR"]]
-            # )
-            # logging.info("Started docker_builder.py")
-        
         yield app, socketio
 
     finally:
 
-        if permission_process:
-            logging.info("Killing subprocess with PID %d" % permission_process.pid)
-            permission_process.kill()
+        for process in processes:
+            logging.info("Killing subprocess with PID %d" % process.pid)
+            process.kill()
 
-        if docker_builder_process:
-            logging.info("Killing subprocess with PID %d" % docker_builder_process.pid)
-            docker_builder_process.kill()
+
+def create_app():
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+    app = Flask(__name__)
+    app.config.from_object(CONFIG_CLASS)
+
+    socketio = SocketIO(app, cors_allowed_origins="*")
+
+    # read directory mount based config into Flask config
+    try:
+        conf_data = get_user_conf()
+        app.config.update(conf_data)
+    except Exception as e:
+        logging.warning("Failed to load config.json")
+
+    logging.info("Flask CONFIG: %s" % app.config)
+
+    db.init_app(app)
+
+    # according to SQLAlchemy will only create tables if they do not exist
+    with app.app_context():
+        db.create_all()
+
+        initialize_default_images(db)
+
+        logging.info("Initializing kernels")
+        populate_kernels(app, db)
+
+
+    # static file serving
+    @app.route('/public/<path:path>')
+    def send_files(path):
+        return send_from_directory("../static", path)
+
+    register_views(app, db)
+    register_build_views(app, db, socketio)
+
+    if "TELEMETRY_DISABLED" not in app.config and os.environ.get("FLASK_ENV") != "development":
+        # create thread for analytics
+        scheduler = BackgroundScheduler()
+        
+        # send a ping now
+        analytics_ping(app)
+        
+        # and every 15 minutes
+        scheduler.add_job(analytics_ping, 'interval', minutes=app.config["TELEMETRY_INTERVAL"], args=[app])
+        scheduler.start()
+
+    
+    # Start file_permission_watcher in another process
+    # TODO: reconsider file permission approach
+    processes = []
+
+    if process_start_gate():
+        
+        file_dir = os.path.dirname(os.path.realpath(__file__)) 
+
+        # file permission process
+        permission_process = Popen(
+            [os.path.join(file_dir, "..", "scripts", "file_permission_watcher.py"), app.config["USER_DIR"]]
+        )
+        logging.info("Started file_permission_watcher.py")
+        processes.append(permission_process)
+
+        # docker builder process
+        docker_builder_process = Popen(
+            [os.path.join(file_dir, "..", "scripts", "docker_builder.py"), app.config["USER_DIR"]]
+        )
+        logging.info("Started docker_builder.py")
+        processes.append(docker_builder_process)
+    
+    return app, socketio, processes
+
+    
     
