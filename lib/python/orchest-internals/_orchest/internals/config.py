@@ -10,6 +10,7 @@ PIPELINE_DIR = '/pipeline-dir'
 # Relative to the `PIPELINE_DIR`.
 KERNELSPECS_PATH = '.orchest/kernels'
 LOGS_PATH = '.orchest/logs'
+WEBSERVER_LOGS = '/orchest/orchest/orchest-webserver/app/orchest-webserver.log'
 PIPELINE_DESCRIPTION_FILE = 'pipeline.json'
 PIPELINE_DESCRIPTION_PATH = os.path.join('.orchest', PIPELINE_DESCRIPTION_FILE)
 
