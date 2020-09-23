@@ -30,7 +30,7 @@ setuptools.setup(
     # py_modules=['orchest'],
     project_urls={
         'Documentation': 'https://orchest-sdk.readthedocs.io/en/latest/',
-        'Source Code': 'https://github.com/orchest/orchest-sdk',
+        'Source Code': 'https://github.com/orchest/orchest/tree/master/orchest-sdk',
     },
     classifiers=[
         'Development Status :: 1 - Planning',
