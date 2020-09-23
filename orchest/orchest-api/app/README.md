@@ -38,7 +38,7 @@ Information on kernelspecs. Take the following example
     "process_proxy": {
       "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",
       "config": {
-        "image_name": "elyra/kernel-py:2.0.0"
+        "image_name": "elyra/kernel-py:2.2.0"
       }
     }
   },
