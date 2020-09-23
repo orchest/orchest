@@ -103,6 +103,9 @@ class ExperimentsView extends React.Component {
                     "DELETE", "/store/experiments/" + this.state.experiments[selectedRows[x]].uuid
                 )
             );
+
+            // don't wait for finish on orchest-api DELETE
+            makeRequest("DELETE", "/api-proxy/api/experiments/" + this.state.experiments[selectedRows[x]].uuid)
         }
 
         Promise.all(promises).then(() => {
