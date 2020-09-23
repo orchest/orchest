@@ -12,8 +12,6 @@ import fcntl
 import socketio
 import signal
 
-sys.path.append(os.path.abspath('../app'))
-
 import app
 
 

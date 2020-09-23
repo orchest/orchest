@@ -130,14 +130,14 @@ def create_app():
 
         # file permission process
         permission_process = Popen(
-            [os.path.join(file_dir, "..", "scripts", "file_permission_watcher.py"), app.config["USER_DIR"]]
+            ["python3", "-m", "scripts.file_permission_watcher", app.config["USER_DIR"]], cwd=os.path.join(file_dir, "..")
         )
         logging.info("Started file_permission_watcher.py")
         processes.append(permission_process)
 
         # docker builder process
         docker_builder_process = Popen(
-            [os.path.join(file_dir, "..", "scripts", "docker_builder.py"), app.config["USER_DIR"]]
+            ["python3", "-m", "scripts.docker_builder", app.config["USER_DIR"]], cwd=os.path.join(file_dir, "..")
         )
         logging.info("Started docker_builder.py")
         processes.append(docker_builder_process)
