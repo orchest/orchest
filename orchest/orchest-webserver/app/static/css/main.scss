@@ -676,7 +676,7 @@ button.themed-secondary {
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 
-      &.selected {
+      &.selected, &:active {
         border-color: $mdc-theme-secondary;
         background: rgb(245, 245, 255);
       }
