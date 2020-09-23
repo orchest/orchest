@@ -63,7 +63,7 @@ respectively.
 
 ## Partial runs
 Do not forget to start a Celery worker to run the background tasks for the Flask API:
-`orchest/orchest/orchest-api$ celery worker -A app.core.tasks -l INFO`
+`orchest/services/orchest-api$ celery worker -A app.core.tasks -l INFO`
 
 The logic here is straightforward. 
 1. API gets called to start a (partial) run through a POST request to `/api/runs/`

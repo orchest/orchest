@@ -78,17 +78,17 @@ do
     echo "[$SERVICE]: Installing dependencies..."
 
     if [ $SERVICE == "jupyter-server" ]; then
-        TEST_DIR=$DIR/../orchest/jupyter-server/app
+        TEST_DIR=$DIR/../services/jupyter-server/app
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements.txt
     fi
     if [ $SERVICE == "memory-server" ]; then
-        TEST_DIR=$DIR/../orchest/memory-server
+        TEST_DIR=$DIR/../services/memory-server
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements-dev.txt
     fi
     if [ $SERVICE == "orchest-api" ]; then
-        TEST_DIR=$DIR/../orchest/orchest-api/app
+        TEST_DIR=$DIR/../services/orchest-api/app
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements.txt
     fi
