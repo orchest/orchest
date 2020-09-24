@@ -15,8 +15,7 @@ then
     if ! test -f "$NGINX_UPDATE_SERVICE_LOCATION"; then
 
         # prompt user whether they want to install it
-        read -p "Do you want to install the update service (it runs as a nginx service) [N/y]:" -n 1 -r
-        echo    # (optional) move to a new line
+        read -p "Do you want to install the update service (it runs as a nginx service) [N/y] " -r
         if [[ $REPLY =~ ^[Yy]$ ]]
         then
             $DIR/scripts/install_update_service.sh
