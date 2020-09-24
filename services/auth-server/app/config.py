@@ -4,10 +4,10 @@ class Config:
 
     TOKEN_DURATION_HOURS = 24
 
-    STATIC_DIR = "/orchest/orchest/auth-server/app/app/static"
+    STATIC_DIR = "/orchest/services/auth-server/app/app/static"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
+
 class DevelopmentConfig(Config):
     DEBUG = True
 

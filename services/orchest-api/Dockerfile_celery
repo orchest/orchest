@@ -3,14 +3,14 @@ FROM python:3.7-slim
 # We can simply copy the entire build context, because in the 
 # dockerignore we specified precisely what we want to include in the
 # image.
-RUN mkdir -p /orchest/orchest/orchest-api
+RUN mkdir -p /orchest/services/orchest-api
 
-COPY ./ /orchest/orchest/orchest-api/
-RUN mv /orchest/orchest/orchest-api/lib /orchest/lib
+COPY ./ /orchest/services/orchest-api/
+RUN mv /orchest/services/orchest-api/lib /orchest/lib
 
 # Setting this WORKDIR is required as the `start_celery_workers.sh` 
 # script otherwise does not have the correct context.
-WORKDIR /orchest/orchest/orchest-api/app
+WORKDIR /orchest/services/orchest-api/app
 RUN pip3 install -r requirements.txt
 RUN ["chmod", "+x", "../start_celery_workers.sh"]
 

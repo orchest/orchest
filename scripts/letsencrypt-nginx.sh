@@ -2,7 +2,7 @@
 
 # This needs to be run as `root` user as we're going to listen on port 80
 if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root" 
+   echo "This script must be run as root"
    exit 1
 fi
 
@@ -56,16 +56,16 @@ check_file $CHAIN_PATH
 check_file $KEY_PATH
 
 # copy certificates to nginx-proxy certs folders
-cp $CHAIN_PATH $DIR/../orchest/nginx-proxy/certs/server.crt
-cp $KEY_PATH $DIR/../orchest/nginx-proxy/certs/server.key
+cp $CHAIN_PATH $DIR/../services/nginx-proxy/certs/server.crt
+cp $KEY_PATH $DIR/../services/nginx-proxy/certs/server.key
 
 # build nginx container with letsencrypt certs
 docker build \
     -t orchestsoftware/nginx-proxy \
     --build-arg enable_ssl=true \
     --build-arg domain=$SITE_DOMAIN \
-    -f $DIR/../orchest/nginx-proxy/Dockerfile \
-    $DIR/../orchest/nginx-proxy
+    -f $DIR/../services/nginx-proxy/Dockerfile \
+    $DIR/../services/nginx-proxy
 
 # clean up tmp
 rm -r /tmp/letsencrypt

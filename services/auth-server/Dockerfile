@@ -7,10 +7,10 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
 # Get the orchest application, specifically the auth-server
-RUN mkdir -p /orchest/orchest/auth-server/
-COPY ./ /orchest/orchest/auth-server
-RUN mv /orchest/orchest/auth-server/lib /orchest/lib
-WORKDIR /orchest/orchest/auth-server/app
+RUN mkdir -p /orchest/services/auth-server/
+COPY ./ /orchest/services/auth-server
+RUN mv /orchest/services/auth-server/lib /orchest/lib
+WORKDIR /orchest/services/auth-server/app
 
 RUN pip3 install -r requirements.txt
 
@@ -26,4 +26,4 @@ RUN ./compile-sass.sh
 
 # Setting this WORKDIR is required by the base image: "otherwhise uWSGI
 # will try to run the app in /app".
-WORKDIR /orchest/orchest/auth-server/app
+WORKDIR /orchest/services/auth-server/app
