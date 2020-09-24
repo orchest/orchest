@@ -15,7 +15,7 @@ while getopts "d:e:m:" opt; do
       ;;
     m)
       MODE=$OPTARG
-      echo "Will restart Orchest in dev mode"
+      echo "INFO:root:Orchest will restart in dev mode"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -23,8 +23,8 @@ while getopts "d:e:m:" opt; do
   esac
 done
 
-# .../orchest/orchest/update-service/app/scripts (up 4 levels)
-ORCHEST_REPO_ROOT=$(readlink -m "$DIR/../../../../")
+# .../scripts/ (up 1 levels)
+ORCHEST_REPO_ROOT=$(readlink -m "$DIR/../")
 
 # shut down orchest
 $ORCHEST_REPO_ROOT/orchest.sh stop

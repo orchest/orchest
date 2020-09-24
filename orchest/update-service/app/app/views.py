@@ -30,6 +30,15 @@ def register_views(app):
             return False
 
 
+    @app.route("/heartbeat", methods=["GET"])
+    def heartbeat():
+
+        if auth(request):
+            return '', 200
+        else:
+            return '', 401
+
+
     @app.route("/update", methods=["GET"])
     def update():
 
@@ -41,7 +50,7 @@ def register_views(app):
                 arguments.append("-m dev")
 
             g = proc.Group()
-            _ = g.run( [ "/bin/bash", "-c", "cd \"%s\"; ./update-orchest.sh %s" % (os.path.join(app.config["ORCHEST_ROOT"], "orchest", "update-service", "app", "scripts"), " ".join(arguments)) ] )
+            _ = g.run( [ "/bin/bash", "-c", "cd \"%s\"; ./update.sh %s" % (os.path.join(app.config["ORCHEST_ROOT"], "scripts"), " ".join(arguments)) ] )
 
             def read_process():
                 while g.is_pending():
