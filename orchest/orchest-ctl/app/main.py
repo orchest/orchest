@@ -1,5 +1,6 @@
 import logging
 import sys
+import asyncio
 
 import cmdline
 import config
@@ -7,6 +8,9 @@ import utils
 
 
 def main():
+
+    loop = asyncio.get_event_loop()
+
     utils.init_logger()
 
     available_cmds = cmdline.get_available_cmds()
@@ -29,6 +33,8 @@ def main():
                 config.RUN_MODE = "dev"
 
     cmd_to_func[command]()
+
+    loop.close()
 
 
 if __name__ == '__main__':

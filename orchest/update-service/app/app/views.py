@@ -35,8 +35,13 @@ def register_views(app):
 
         if auth(request):
 
+            arguments = []
+
+            if "dev" in request.args and request.args.get("dev") == "true":
+                arguments.append("-m dev")
+
             g = proc.Group()
-            _ = g.run( [ "/bin/bash", "-c", "cd \"%s\"; ./update-orchest.sh" % os.path.join(app.config["ORCHEST_ROOT"], "orchest", "update-service", "app", "scripts") ] )
+            _ = g.run( [ "/bin/bash", "-c", "cd \"%s\"; ./update-orchest.sh %s" % (os.path.join(app.config["ORCHEST_ROOT"], "orchest", "update-service", "app", "scripts"), " ".join(arguments)) ] )
 
             def read_process():
                 while g.is_pending():

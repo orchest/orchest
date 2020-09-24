@@ -584,8 +584,9 @@ def register_views(app, db):
             app.config["STATIC_DIR"], "js", "dist", "main.bundle.js")
         css_bundle_path = os.path.join(
             app.config["STATIC_DIR"], "css", "main.css")
+            
 
-        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf())
+        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf(), FLASK_ENV=app.config["FLASK_ENV"])
 
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])

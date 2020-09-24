@@ -3,8 +3,25 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # for nginx-proxy SSL build
-DOMAIN=$1
-EMAIL=$2
+
+# Read flags.
+while getopts "d:e:m:" opt; do
+  case $opt in
+    domain)
+      DOMAIN=$OPTARG
+      ;;
+    email)
+      EMAIL=$OPTARG
+      ;;
+    m)
+      MODE=$OPTARG
+      echo "Will restart Orchest in dev mode"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      ;;
+  esac
+done
 
 # .../orchest/orchest/update-service/app/scripts (up 4 levels)
 ORCHEST_REPO_ROOT=$(readlink -m "$DIR/../../../../")
@@ -24,5 +41,5 @@ if [ ! -z "${DOMAIN}" ]; then
 fi
 
 # start orchest
-$ORCHEST_REPO_ROOT/orchest.sh start
+$ORCHEST_REPO_ROOT/orchest.sh start $MODE
 

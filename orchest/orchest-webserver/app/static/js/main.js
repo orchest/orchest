@@ -18,8 +18,17 @@ import ExperimentView from "./views/ExperimentView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
 import ImagesView from "./views/ImagesView";
+import UpdateView from "./views/UpdateView";
 
 function Orchest() {
+
+    this.environment = "production";
+
+    if($('input[name="FLASK_ENV"]').val() == "development"){
+        this.environment = "development";
+    }
+    
+    console.log("Orchest is running in environment: " + this.environment);
 
     this.reactRoot = document.querySelector(".react-view-root");
 
@@ -30,6 +39,7 @@ function Orchest() {
         "DataSourceEditView": DataSourceEditView,
         "PipelineView": PipelineView,
         "SettingsView": SettingsView,
+        "UpdateView": UpdateView,
         "ExperimentsView": ExperimentsView,
         "ExperimentView": ExperimentView,
         "CreateExperimentView": CreateExperimentView,

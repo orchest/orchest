@@ -141,12 +141,4 @@ def status():
 
 def update():
     logging.info("Updating Orchest...")
-
-    for image in config.ALL_IMAGES:
-        try:
-            logging.info("Pulling image `%s` ..." % image)
-            docker_client.images.pull(image)
-            logging.info("Pulled image `%s`." % image)
-        except Exception as e:
-            logging.error("Something went wrong while pulling image "
-                          "%s error: %s" % (image, e))
+    utils.install_images(force_pull=True)

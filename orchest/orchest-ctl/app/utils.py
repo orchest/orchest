@@ -3,6 +3,8 @@ import os
 import sys
 
 import docker
+import aiodocker
+import asyncio
 from docker.types import Mount
 
 import config
@@ -40,29 +42,53 @@ def is_install_complete():
     return True
 
 
-def check_images():
-    missing_images = []
+async def image_exists(image, async_docker):
+    try:
+        await async_docker.images.get(image)
+        return True
+    except aiodocker.exceptions.DockerError:
+        return False
 
-    for image in config.ALL_IMAGES:
-        try:
-            docker_client.images.get(image)
-            # logging.info("Image `%s` is installed." % image)
-        except docker.errors.ImageNotFound:
-            missing_images.append(image)
-        except docker.errors.APIError as e:
-            raise e
+async def async_check_images(images):
+    async_docker = aiodocker.Docker()
 
+    image_exists_result = await asyncio.gather(*[image_exists(image, async_docker) for image in images])
+    missing_images = [images[i] for i in range(len(images)) if not image_exists_result[i]]
+
+    await async_docker.close()
     return missing_images
 
 
-def install_images():
-    for image in config.ALL_IMAGES:
+def check_images():
+    loop = asyncio.get_event_loop()
+    missing_images = loop.run_until_complete(async_check_images(config.ALL_IMAGES))
+    return missing_images
+
+
+async def pull_image(image, async_docker, force_pull):
+    pull = force_pull
+    
+    if not pull:
         try:
-            docker_client.images.get(image)
-        except docker.errors.ImageNotFound:
-            logging.info("Pulling image `%s` ..." % image)
-            docker_client.images.pull(image)
-            logging.info("Pulled image `%s`." % image)
+            await async_docker.images.get(image)
+        except aiodocker.exceptions.DockerError:
+            pull = True
+
+    if pull:
+        logging.info("Pulling image %s" % image)
+        await async_docker.images.pull(image)
+        logging.info("Pulled image %s" % image)
+
+async def pull_images(images, force_pull):
+    async_docker = aiodocker.Docker()
+    tasks = [pull_image(image, async_docker, force_pull) for image in images]
+    await asyncio.wait(tasks)
+    await async_docker.close()
+
+
+def install_images(force_pull=False):
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(pull_images(config.ALL_IMAGES, force_pull))
 
 
 def install_network():
