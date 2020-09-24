@@ -135,6 +135,13 @@ class Experiment(Resource):
         """Sets the status of an experiment."""
         post_data = request.get_json()
 
+        # TODO: If we want to have DELETE to actually delete the db
+        #       entries, then we have to do revoking here.
+        if post_data['status'] == 'REVOKED':
+            # TODO: update all the status of the pipeline runs to
+            #       "REVOKED".
+            pass
+
         res = models.Experiment.query.filter_by(
             experiment_uuid=experiment_uuid
         ).update({
@@ -146,47 +153,38 @@ class Experiment(Resource):
 
         return {'message': 'Status was updated successfully'}, 200
 
-    # TODO: We will make it possible to stop an entire experiment, but
-    #       not stopping a particular pipeline run of an experiment.
+    # TODO: We should also make it possible to stop a particular pipeline
+    #       run of an experiment.
     @api.doc('delete_experiment')
     @api.response(200, 'Experiment terminated')
     def delete(self, experiment_uuid):
-        """Stops an experiment given its UUID."""
-        # TODO: delete new pipeline files that were created for this
-        #       specific run?
+        """Stops an experiment given its UUID.
 
+        However, it will not delete any corresponding database entries,
+        it will update the status of corresponding objects to "REVOKED".
+        """
         experiment = models.Experiment.query.get_or_404(
             experiment_uuid,
             description='Experiment not found',
         )
 
-        # For all runs that are part of the experiment, revoke the task.
-        for run in experiment.pipeline_runs:
-            # TODO: Not sure what happens when trying to revoke a task
-            #       that has already executed. Possibly first check its
-            #       status.
-            run_uuid = run.run_uuid
+        run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
 
-            # According to the Celery docs we should never
-            # programmatically set ``revoke(uuid, terminate=True)`` as
-            # it actually kills the worker process and it could already
-            # be running a new task.
-            revoke(run_uuid)
+        # Revokes all pipeline runs and waits for a reply for 1.0s.
+        celery = make_celery(current_app)
+        celery.control.revoke(run_uuids, timeout=1.0)
 
-            run_entry = models.NonInteractiveRun.query.filter_by(
-                experiment_uuid=experiment_uuid, run_uuid=run_uuid
-            ).update({
-                'status': 'REVOKED'
-            })
-
-            run_step_entry = models.NonInteractiveRunPipelineStep.query.filter_by(
-                experiment_uuid=experiment_uuid, run_uuid=run_uuid
-            ).update({
-                'status': 'REVOKED'
-            })
-
-        # TODO: check whether all responses were successfull.
-            # if run_res and step_res:
+        # Update the status of the run and step entries to "REVOKED".
+        models.NonInteractiveRun.query.filter_by(
+            experiment_uuid=experiment_uuid
+        ).update({
+            'status': 'REVOKED'
+        })
+        models.NonInteractiveRunPipelineStep.query.filter_by(
+            experiment_uuid=experiment_uuid
+        ).update({
+            'status': 'REVOKED'
+        })
         db.session.commit()
 
         return {'message': 'Experiment termination was successful'}, 200
