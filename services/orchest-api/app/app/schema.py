@@ -232,12 +232,19 @@ experiment = Model('Experiment', {
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
+    'total_number_of_pipeline_runs': fields.Integer(
+        required=True,
+        description='Total number of pipeline runs part of the experiment'),
     'pipeline_runs': fields.List(
         fields.Nested(non_interactive_run),
         description='Collection of pipeline runs part of the experiment'),
     'scheduled_start': fields.String(
         required=True,
         description='Time at which the experiment is scheduled to start'),
+    'completed_pipeline_runs': fields.Integer(
+        required=True,
+        default=0,
+        description='Number of completed pipeline runs part of the experiment'),
 })
 
 experiments = Model('Experiments', {
