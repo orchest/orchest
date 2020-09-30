@@ -12,7 +12,7 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf, name_to_tag, get_synthesized_images
+from app.utils import get_hash, get_user_conf, name_to_tag, get_synthesized_images, orchest_ctl
 from app.models import DataSource, Experiment, PipelineRun, Image, Commit
 from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
@@ -673,6 +673,29 @@ def register_views(app, db):
 
         else:
             return resp.raw.read(), resp.status_code
+
+
+    @app.route("/async/spawn-update-server", methods=["GET"])
+    def spawn_update_server():
+
+        client = docker.from_env()
+        
+        orchest_ctl(client, ["_updateserver"])
+
+        return ''
+
+    
+    @app.route("/async/restart", methods=["GET"])
+    def restart_server():
+
+        client = docker.from_env()
+        
+        if request.args.get("mode") == "dev":
+            orchest_ctl(client, ["restart", "dev"])
+        else:
+            orchest_ctl(client, ["restart"])
+
+        return ''
 
 
     @app.route("/async/synthesized-images", methods=["GET"])

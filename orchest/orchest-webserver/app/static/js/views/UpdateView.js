@@ -11,65 +11,88 @@ class UpdateView extends React.Component {
         this.state = {
             updating: false,
             updateOutput: "",
-            updateServiceAvailibility: "unknown",
         }
 
-        let updateServicePort = 9000;
-        if(window.location.protocol === "https:"){
-            updateServicePort = 9443;
-        }
-        this.updateHost = window.location.protocol + "//" + window.location.hostname + ":" + updateServicePort;
-        this.updateUrl = this.updateHost + "/update";
         
-        if(orchest.environment === "development"){
-            this.updateUrl += "?dev=true";
-        }
 
         this.promiseManager = new PromiseManager();
 
-        this.isUpdateServiceOnline()
+        // async callback state
+        this.numberOfPollTries = 0;
+        this.numberOfPollTriesLimit = 50;
     }
 
     componentWillUnmount() {
-        
         this.promiseManager.cancelCancelablePromises();
     }
 
-    isUpdateServiceOnline(){
-        makeRequest("GET", this.updateHost + "/heartbeat", {}, undefined, 1000).then(() => {
-            console.log("Update service available")
-            this.setState({
-                updateServiceAvailibility: "online"
-            })
+    heartbeatPoll() {
+
+        this.numberOfPollTries++;
+        if (this.numberOfPollTries > this.numberOfPollTriesLimit) {
+            console.error("Tried " + this.numberOfPollTriesLimit + " times but could not connect to update server.");
+            return;
+        }
+
+        makeRequest("GET", "/update-server/heartbeat", {}, undefined, 1000).then(() => {
+            console.log("Update service available");
+
+            this.requestUpdate();
+
         }).catch(() => {
-            console.warn("Update service unavailable")
-            this.setState({
-                updateServiceAvailibility: "offline"
-            })
+            console.warn("Update service unavailable");
+            console.log("Retrying in one second.");
+
+            setTimeout(() => {
+                this.heartbeatPoll();
+            }, 1000);
         })
     }
 
-    requestUpdate(){
-        
+    startUpdateTrigger() {
+
         this.setState({
             updating: true,
             updateOutput: ""
         });
-        
+
+        makeRequest("GET", "/async/spawn-update-server", {}).then(() => {
+            console.log("Spawned update-server, start polling update-server.");
+
+            this.numberOfPollTries = 0;
+            this.heartbeatPoll();
+
+        }).catch((e) => {
+            console.log("Failed to trigger update", e);
+        });
+
+    }
+
+    requestUpdate() {
+
         let _this = this;
 
-        let updatePromise = makeCancelable(makeRequest("GET", this.updateUrl, {}, function(){
+        let updateUrl = "/update-server/update";
+
+        if (orchest.environment === "development") {
+            updateUrl += "?mode=dev";
+        }
+
+        let updatePromise = makeCancelable(makeRequest("GET", updateUrl, {}, function () {
 
             _this.setState({
                 updateOutput: this.responseText
             })
-            
+
         }), this.promiseManager);
 
-        updatePromise.promise.then(() => {
+        updatePromise.promise.then((response) => {
+
             this.setState({
+                updateOutput: response,
                 updating: false
             })
+
         });
     }
 
@@ -77,42 +100,30 @@ class UpdateView extends React.Component {
         return <div className={"view-page update-page"}>
             <h2>Update Orchest</h2>
             <p className="push-down">Update Orchest to the latest version.</p>
-            
+
             {(() => {
 
-                if(this.state.updateServiceAvailibility === "unknown"){
+                let elements = [];
 
-                }else if(this.state.updateServiceAvailibility === "online"){
-
-                    let elements = [];
-
-                    if(this.state.updating){
-                        elements.push(<MDCLinearProgressReact key="0" classNames={["push-down"]} />);
-                    }
-                    if(this.state.updateOutput.length > 0){
-                        elements.push(<div key="1" className="console-output">
-                            {this.state.updateOutput}
-                        </div>);
-                    }
-
-                    return <Fragment>
-                            <MDCButtonReact classNames={['push-down']} label="Start update" icon="system_update_alt" disabled={this.state.updating} onClick={this.requestUpdate.bind(this)} />
-
-                            {elements}
-
-                        </Fragment>
-                }else{
-                    return <Fragment>
-                        <p className="push-down"><i>Update service is not running. To update run the following update command:</i></p>
-                        <div className="console-output">
-                            &lt;repo&gt;/orchest/scripts/update.sh
-                        </div>
-                    </Fragment>
+                if (this.state.updating) {
+                    elements.push(<MDCLinearProgressReact key="0" classNames={["push-down"]} />);
                 }
+                if (this.state.updateOutput.length > 0) {
+                    elements.push(<div key="1" className="console-output">
+                        {this.state.updateOutput}
+                    </div>);
+                }
+
+                return <Fragment>
+                    <MDCButtonReact classNames={['push-down']} label="Start update" icon="system_update_alt" disabled={this.state.updating} onClick={this.startUpdateTrigger.bind(this)} />
+
+                    {elements}
+
+                </Fragment>
 
             })()}
 
-            
+
 
         </div>;
     }

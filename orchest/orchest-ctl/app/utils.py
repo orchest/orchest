@@ -24,6 +24,23 @@ def init_logger():
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
+def kill_rm_by_name(name):
+
+    client = docker.from_env()
+
+    try:
+        container = client.containers.get(name)
+        logging.info("Killing container %s" % container.name)
+        
+        try:
+            container.kill()
+            container.remove()
+        except docker.errors.APIError as e:
+            print(e)
+
+    except docker.errors.NotFound as e:
+            print(e)
+
 
 def is_install_complete():
     missing_images = check_images()
@@ -153,18 +170,18 @@ def dev_mount_inject(container_spec):
     the application.
 
     """
-    HOST_PWD = os.environ.get("HOST_PWD")
+    HOST_REPO_DIR = os.environ.get("HOST_REPO_DIR")
 
     # orchest-webserver
     orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_PWD, "orchest", "orchest-webserver", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "orchest", "orchest-webserver", "app"),
             "target": "/orchest/orchest/orchest-webserver/app"
         },
         # Internal library.
         {
-            "source": os.path.join(HOST_PWD, "lib"),
+            "source": os.path.join(HOST_REPO_DIR, "lib"),
             "target": "/orchest/lib"
         },
     ]
@@ -178,7 +195,7 @@ def dev_mount_inject(container_spec):
     orchest_auth_server_spec = container_spec["orchestsoftware/auth-server:latest"]
     orchest_auth_server_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_PWD, "orchest", "auth-server", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "orchest", "auth-server", "app"),
             "target": "/orchest/orchest/auth-server/app"
         }
     ]
@@ -196,12 +213,12 @@ def dev_mount_inject(container_spec):
     orchest_api_spec = container_spec["orchestsoftware/orchest-api:latest"]
     orchest_api_spec["mounts"] += [
         {
-            "source": os.path.join(HOST_PWD, "orchest", "orchest-api", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "orchest", "orchest-api", "app"),
             "target": "/orchest/orchest/orchest-api/app"
         },
         # Internal library.
         {
-            "source": os.path.join(HOST_PWD, "lib"),
+            "source": os.path.join(HOST_REPO_DIR, "lib"),
             "target": "/orchest/lib"
         },
     ]
@@ -237,11 +254,12 @@ def convert_to_run_config(image_name, container_spec):
         'image': image_name,
         'command': container_spec.get('command'),
         'name': container_spec['name'],
-        'detach': True,
+        'detach': container_spec.get('detach', True),
         'mounts': mounts,
         'network': config.DOCKER_NETWORK,
         'environment': container_spec.get('environment', {}),
         'ports': container_spec.get('ports', {}),
         'hostname': container_spec.get('hostname'),
+        'auto_remove': container_spec.get('auto_remove', False)
     }
     return run_config

@@ -7,11 +7,17 @@ import config
 from config import CONTAINER_MAPPING
 from connections import docker_client
 import utils
+import time
 
 
 def get_available_cmds():
-    cmds = ["start", "help", "stop", "status", "update"]
+    cmds = ["start", "help", "stop", "status", "update", "restart", "_updateserver"]
     return cmds
+
+
+def restart():
+    stop()
+    start()
 
 
 def start():
@@ -69,6 +75,7 @@ def help():
 
     help_msg = {
         "start": "Starts the Orchest application",
+        "restart": "Stops and starts the Orchest application",
         "help": "Shows this help menu",
         "stop": "Stops the Orchest application",
         "status": "Checks the current status of the Orchest application",
@@ -77,34 +84,30 @@ def help():
     }
 
     for cmd in cmds:
+
+        # hide internal commands
+        if cmd.startswith("_"):
+            continue
+
         print("{0:20}\t {1}".format(cmd, help_msg[cmd]), flush=True)
 
 
-def stop():
-    # TODO: shutting down can be done easier by just shutting down all the
-    #       containers inside the "orchest" docker network.
-    # shut down containers
+def stop(skip_names=[]):
+    
     running_containers = docker_client.containers.list()
 
-    container_names = [
-        CONTAINER_MAPPING[container_key]['name']
-        for container_key in CONTAINER_MAPPING
-    ]
-
     for running_container in running_containers:
-        if (len(running_container.image.tags) and
-                running_container.image.tags[0] in config.ALL_IMAGES):
-            # don't kill orchest-ctl itself
-            if running_container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
-                continue
 
-            logging.info("Killing container %s" % running_container.name)
-            try:
-                running_container.kill()
-                running_container.remove()
-            except Exception as e:
-                print(e)
-        elif running_container.name in container_names:
+        # don't kill orchest-ctl itself
+        if len(running_container.image.tags) > 0 and running_container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
+            continue
+
+        # if name is in skip_names
+        if running_container.name in skip_names:
+            continue
+
+        # only kill containers in `orchest` network
+        if 'orchest' in running_container.attrs["NetworkSettings"]["Networks"]:
             logging.info("Killing container %s" % running_container.name)
             try:
                 running_container.kill()
@@ -139,6 +142,26 @@ def status():
         logging.info('\n'.join(not_running_prints))
 
 
+def _updateserver():
+    logging.info("Starting Orchest update service")
+
+    container_image = 'orchestsoftware/orchest-update-server:latest'
+    container_spec = CONTAINER_MAPPING.get(container_image, {})
+    run_config = utils.convert_to_run_config(container_image, container_spec)
+
+    logging.info("Starting image %s" % container_image)
+    docker_client.containers.run(**run_config)
+
+
 def update():
-    logging.info("Updating Orchest...")
+    logging.info("Updating Orchest ...")
+
+    # stopping Orchest
+    logging.info("Stopping Orchest ...")
+
+    # Both nginx-proxy/orchest-update-server are left running 
+    # during the update to support _updateserver
+    # and have a single update codepath.
+    stop(skip_names=["nginx-proxy", "orchest-update-server"])
+
     utils.install_images(force_pull=True)

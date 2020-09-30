@@ -19,6 +19,7 @@ ALL_IMAGES = [
     "orchestsoftware/custom-base-kernel-r:latest",
     "orchestsoftware/memory-server:latest",
     "orchestsoftware/orchest-ctl:latest",
+    "orchestsoftware/orchest-update-server:latest",
     "orchestsoftware/orchest-api:latest",
     "orchestsoftware/orchest-webserver:latest",
     "orchestsoftware/celery-worker:latest",
@@ -37,13 +38,14 @@ ON_START_IMAGES = [
     "rabbitmq:3",
 ]
 
-HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
-if HOST_USER_DIR is None:
-    raise ENVVariableNotFound("HOST_USER_DIR cannot be found in the environment.")
+REQUIRED_ENV_VARS = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR"]
+ENVS = {}
 
-HOST_CONFIG_DIR = os.environ.get("HOST_CONFIG_DIR")
-if HOST_CONFIG_DIR is None:
-    raise ENVVariableNotFound("HOST_CONFIG_DIR cannot be found in the environment.")
+for var_name in REQUIRED_ENV_VARS:
+    ENVS[var_name] = os.environ.get(var_name)
+    if ENVS[var_name] is None:
+        raise ENVVariableNotFound("%s cannot be found in the environment." % var_name)
+
 
 CONTAINER_MAPPING = {
     "orchestsoftware/orchest-api:latest": {
@@ -55,7 +57,7 @@ CONTAINER_MAPPING = {
                 # TODO: I don't think the orchest-api needs the entire
                 #       userdir.
                 # Needed for persistent db.
-                "source": HOST_USER_DIR,
+                "source": ENVS["HOST_USER_DIR"],
                 "target": "/userdir"
             },
             {
@@ -68,7 +70,9 @@ CONTAINER_MAPPING = {
     "orchestsoftware/orchest-webserver:latest": {
         "name": "orchest-webserver",
         "environment": {
-            "HOST_USER_DIR": HOST_USER_DIR,
+            "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
+            "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],
+            "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
         },
         "mounts": [
             {
@@ -76,11 +80,11 @@ CONTAINER_MAPPING = {
                 "target": "/var/run/docker.sock"
             },
             {
-                "source": HOST_USER_DIR,
+                "source": ENVS["HOST_USER_DIR"],
                 "target": "/userdir"
             },
             {
-                "source": HOST_CONFIG_DIR,
+                "source": ENVS["HOST_CONFIG_DIR"],
                 "target": "/config"
             }
         ],
@@ -95,7 +99,7 @@ CONTAINER_MAPPING = {
             {
                 # Mount is needed for copying the snapshot dir to
                 # pipeline run dirs for experiments.
-                "source": HOST_USER_DIR,
+                "source": ENVS["HOST_USER_DIR"],
                 "target": "/userdir"
             },
         ]
@@ -106,7 +110,7 @@ CONTAINER_MAPPING = {
         "mounts": [
             {
                 # Persisting RabbitMQ Queues.
-                "source": os.path.join(HOST_USER_DIR, DURABLE_QUEUES_DIR),
+                "source": os.path.join(ENVS["HOST_USER_DIR"], DURABLE_QUEUES_DIR),
                 "target": "/var/lib/rabbitmq/mnesia",
             }
         ],
@@ -116,11 +120,11 @@ CONTAINER_MAPPING = {
         "environment": {},
         "mounts": [
             {
-                "source": HOST_CONFIG_DIR,
+                "source": ENVS["HOST_CONFIG_DIR"],
                 "target": "/config"
             },
             {
-                "source": HOST_USER_DIR,
+                "source": ENVS["HOST_USER_DIR"],
                 "target": "/userdir"
             },
         ],
@@ -132,4 +136,20 @@ CONTAINER_MAPPING = {
             "443/tcp": 443,
         }
     },
+    "orchestsoftware/orchest-update-server:latest": {
+        "name": "orchest-update-server",
+        "hostname": "orchest-update-server",
+        "environment": {
+            "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
+            "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],
+            "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
+        },
+        "auto_remove": True,
+        "mounts": [
+            {
+                "source": "/var/run/docker.sock",
+                "target": "/var/run/docker.sock"
+            },
+        ]
+    }
 }
