@@ -183,9 +183,19 @@ class Experiment(BaseModel):
         db.String(36),
         primary_key=False
     )
+    total_number_of_pipeline_runs = db.Column(
+        db.Integer,
+        unique=False,
+        nullable=False,
+    )
     scheduled_start = db.Column(
         db.DateTime,
         nullable=False
+    )
+    completed_pipeline_runs = db.Column(
+        db.Integer,
+        unique=False,
+        default=0,
     )
 
     pipeline_runs = db.relationship('NonInteractiveRun', lazy='joined')
