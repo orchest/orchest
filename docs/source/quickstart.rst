@@ -4,20 +4,21 @@ Quickstart
 General workflow in Orchest
 ---------------------------
 
-1. Build your pipeline. Visually build your pipeline: create, drag and connect steps.
+1. *Build your pipeline*. Visually build your pipeline: create, drag and connect steps.
 
-2. Write your code. Use your editor of choice or use the integrated JupyterLab environment in
+2. *Write your code*. Use your editor of choice or use the integrated JupyterLab environment in
    Orchest.
 
-3. Run your pipeline. Happy with your implementation? Go back to the pipeline view and run your
+3. *Run your pipeline*. Happy with your implementation? Go back to the pipeline view and run your
    pipeline.
 
-4. Check your output (either inside your notebook or the logs view for scripts).
+4. *Check your output*. This can be done either through the "logs" view or directly inside your
+   notebook.
 
 
 Your first project
 ------------------
-You can follow the next example.
+We will go through an example project showing you how to build a pipeline in Orchest.
 
 Launch Orchest:
 
