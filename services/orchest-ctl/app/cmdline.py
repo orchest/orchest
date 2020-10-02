@@ -140,8 +140,9 @@ def stop(skip_names=[]):
             try:
                 running_container.kill()
                 running_container.remove()
-            except Exception as e:
-                print(e)
+            except Exception as _:
+                #logging.debug(e) (Errors are expected - don't log)
+                pass
 
 
 def status():

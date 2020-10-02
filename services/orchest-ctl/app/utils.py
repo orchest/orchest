@@ -24,23 +24,6 @@ def init_logger():
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
-def kill_rm_by_name(name):
-
-    client = docker.from_env()
-
-    try:
-        container = client.containers.get(name)
-        logging.info("Killing container %s" % container.name)
-        
-        try:
-            container.kill()
-            container.remove()
-        except docker.errors.APIError as e:
-            print(e)
-
-    except docker.errors.NotFound as e:
-            print(e)
-
 
 def is_orchest_running():
 

@@ -253,7 +253,7 @@ class PipelineView extends React.Component {
         return pipelineValidation
     }
 
-    savePipeline() {
+    savePipeline(callback) {
 
         if(!this.props.readOnly){
             let pipelineJSON = this.encodeJSON();
@@ -275,7 +275,11 @@ class PipelineView extends React.Component {
                 formData.append("pipeline_uuid", pipelineJSON.uuid);
 
                 // perform POST to save
-                makeRequest("POST", "/async/pipelines/json/save", {type: "FormData", content: formData});
+                makeRequest("POST", "/async/pipelines/json/save", {type: "FormData", content: formData}).then(() => {
+                  if(callback){
+                      callback();
+                  }  
+                });
 
                 this.setState({
                     "unsavedChanges": false
@@ -1132,11 +1136,29 @@ class PipelineView extends React.Component {
         this.setState({ "steps": this.state.steps, "openedStep": undefined });
     }
 
+    openNotebook(){
+        orchest.jupyter.navigateTo(this.state.steps[this.state.openedStep].file_path);
+        orchest.showJupyter();
+        orchest.headerBarComponent.showBack();
+    }
+
+    saveBeforeAction(actionCallback){
+        if(this.state.unsavedChanges){
+            this.savePipeline(() => {
+                actionCallback();
+            });
+        }else{
+            actionCallback();
+        }
+    }
+
     onOpenNotebook() {
         if (this.state.backend.running) {
-            orchest.jupyter.navigateTo(this.state.steps[this.state.openedStep].file_path);
-            orchest.showJupyter();
-            orchest.headerBarComponent.showBack();
+            
+            this.saveBeforeAction(() => {
+                this.openNotebook();
+            })
+            
         } else {
             orchest.alert("Error", "Please start the session before opening the Notebook in Jupyter");
         }
@@ -1209,7 +1231,14 @@ class PipelineView extends React.Component {
 
 
     runSelectedSteps() {
-        this.runStepUUIDs(this.state.selectedSteps, "selection");
+        this.saveBeforeAction(() => {
+            this.runStepUUIDs(this.state.selectedSteps, "selection");
+        })
+    }
+    onRunIncoming() {
+        this.saveBeforeAction(() => {
+            this.runStepUUIDs(this.state.selectedSteps, "incoming");
+        });
     }
 
     runStepUUIDs(uuids, type) {
@@ -1255,9 +1284,7 @@ class PipelineView extends React.Component {
         this.pipelineStepStatusPollingInterval = setInterval(this.pollPipelineStepStatuses.bind(this), this.STATUS_POLL_FREQUENCY);
     }
 
-    onRunIncoming() {
-        this.runStepUUIDs(this.state.selectedSteps, "incoming");
-    }
+    
 
     onCloseDetails() {
         this.closeDetailsView();
