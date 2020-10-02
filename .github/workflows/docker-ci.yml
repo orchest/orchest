@@ -22,6 +22,7 @@ jobs:
                 -i jupyter-server,
                 -i orchest-ctl -i custom-base-kernel-py -i custom-base-kernel-r,
                 -i nginx-proxy,
+                -i update-server,
                 -i celery-worker -i memory-server]
   
     steps:
@@ -45,58 +46,58 @@ jobs:
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/nginx-proxy
-        README_FILEPATH: orchest/nginx-proxy/README.md
+        README_FILEPATH: services/nginx-proxy/README.md
 
     - name: Push README files to DockerHub celery-worker
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/celery-worker
-        README_FILEPATH: orchest/orchest-api/README.md
+        README_FILEPATH: services/orchest-api/README.md
 
     - name: Push README files to DockerHub orchest-ctl
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/orchest-ctl
-        README_FILEPATH: orchest/orchest-ctl/README.md
+        README_FILEPATH: services/orchest-ctl/README.md
 
     - name: Push README files to DockerHub custom-base-kernel-r
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/custom-base-kernel-r
-        README_FILEPATH: orchest/custom-images/custom-base-kernel-r/README.md
+        README_FILEPATH: services/custom-images/custom-base-kernel-r/README.md
 
     - name: Push README files to DockerHub custom-base-kernel-py
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/custom-base-kernel-py
-        README_FILEPATH: orchest/custom-images/custom-base-kernel-py/README.md
+        README_FILEPATH: services/custom-images/custom-base-kernel-py/README.md
 
     - name: Push README files to DockerHub orchest-api
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/orchest-api
-        README_FILEPATH: orchest/orchest-api/README.md
+        README_FILEPATH: services/orchest-api/README.md
 
     - name: Push README files to DockerHub jupyter-server
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/jupyter-server
-        README_FILEPATH: orchest/jupyter-server/README.md
+        README_FILEPATH: services/jupyter-server/README.md
 
     - name: Push README files to DockerHub orchest-webserver
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/orchest-webserver
-        README_FILEPATH: orchest/orchest-webserver/README.md
+        README_FILEPATH: services/orchest-webserver/README.md
 
     - name: Push README files to DockerHub memory-server
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/memory-server
-        README_FILEPATH: orchest/memory-server/README.md
+        README_FILEPATH: services/memory-server/README.md
 
     - name: Push README files to DockerHub auth-server
       uses: peter-evans/dockerhub-description@v2
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/auth-server
-        README_FILEPATH: orchest/auth-server/README.md
+        README_FILEPATH: services/auth-server/README.md
