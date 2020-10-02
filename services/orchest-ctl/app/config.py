@@ -135,7 +135,8 @@ CONTAINER_MAPPING = {
         "ports": {
             "80/tcp": 8000,
             "443/tcp": 443,
-        }
+        },
+        "mounts": [] # dynamically added in start() based on presence of certs on host
     },
     "orchestsoftware/update-server:latest": {
         "name": "update-server",

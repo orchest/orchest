@@ -31,7 +31,8 @@ EMAIL=$2
 
 echo "Using SITE_DOMAIN=${SITE_DOMAIN} and EMAIL=${EMAIL}."
 
-# shutdown orchest to make sure port 80 is available (port 80 is used in dev mode)
+# shutdown orchest to make sure port 80 is available
+echo "Shutting down Orchest ... (if it was running)"
 $DIR/../orchest.sh stop
 
 apt-get install python3-pip -y
@@ -59,13 +60,7 @@ check_file $KEY_PATH
 cp $CHAIN_PATH $DIR/../services/nginx-proxy/certs/server.crt
 cp $KEY_PATH $DIR/../services/nginx-proxy/certs/server.key
 
-# build nginx container with letsencrypt certs
-docker build \
-    -t orchestsoftware/nginx-proxy \
-    --build-arg enable_ssl=true \
-    --build-arg domain=$SITE_DOMAIN \
-    -f $DIR/../services/nginx-proxy/Dockerfile \
-    $DIR/../services/nginx-proxy
-
 # clean up tmp
 rm -r /tmp/letsencrypt
+
+echo "When you start Orchest again (with orchest.sh start) it should now expose SSL signed web service on port 443."

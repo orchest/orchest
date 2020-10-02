@@ -220,7 +220,6 @@ do
         build=(docker build \
             -t orchestsoftware/nginx-proxy \
             --no-cache=$NO_CACHE \
-            --build-arg enable_ssl=$ENABLE_SSL \
             -f $DIR/../services/nginx-proxy/Dockerfile \
             $build_ctx)
     fi

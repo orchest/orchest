@@ -8,6 +8,7 @@ from config import CONTAINER_MAPPING
 from connections import docker_client
 import utils
 import time
+import os
 
 
 def get_available_cmds():
@@ -20,7 +21,19 @@ def restart():
     start()
 
 
+def proxy_certs_exist_on_host():
+
+    certs_path = "/orchest-host/services/nginx-proxy/certs/"
+
+    if os.path.isfile(os.path.join(certs_path, "server.crt")) and \
+        os.path.isfile(os.path.join(certs_path, "server.key")):
+        return True
+    else:
+        return False
+
+
 def start():
+    
     # Make sure the installation is complete before starting Orchest.
     if not utils.is_install_complete():
         logging.info("Installation required. Starting installer.")
@@ -28,6 +41,21 @@ def start():
         utils.install_network()
         logging.info("Installation finished. Attempting to start...")
         return start()
+
+
+    # Dynamically mount certs directory based on whether it exists in
+    # nginx-proxy directory on host
+    if proxy_certs_exist_on_host():
+        CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["mounts"].append(
+            {
+                "source": os.path.join(config.ENVS["HOST_REPO_DIR"], "services", "nginx-proxy", "certs"),
+                "target": "/etc/ssl/certs"
+            }
+        )
+    else:
+        # in case no certs are found don't expose 443 on host
+        del CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["443/tcp"]
+
 
     if config.RUN_MODE == "dev":
         logging.info("Starting Orchest in DEV mode. This mounts host directories "
