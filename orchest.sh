@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Check whether `docker` command requires sudo
@@ -19,7 +17,6 @@ if ! docker ps >/dev/null 2>/dev/null ; then
 fi
 
 # Warnings
-
 if [ $1 == "update" ] ; then
     read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]
@@ -31,7 +28,6 @@ if [ $1 == "update" ] ; then
         docker pull orchestsoftware/orchest-ctl:latest
     fi
 fi
-
 # End of warnings
 
 
