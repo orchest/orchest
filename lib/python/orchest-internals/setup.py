@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='orchest-internals',
-    version='0.1.0',
+    version='0.2.0',
     packages=setuptools.find_namespace_packages(include=['_orchest.*']),
 
     # Metadata to display on PyPI.

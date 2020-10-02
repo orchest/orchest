@@ -7,7 +7,7 @@ with open('README.md', 'r') as f:
 
 setuptools.setup(
     name='orchest',
-    version='0.1.0',
+    version='0.2.0',
     packages=setuptools.find_packages(),
     install_requires=[
         'pyarrow>=0.17.1',

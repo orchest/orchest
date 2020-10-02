@@ -7,8 +7,8 @@
 [Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
 -----
-<img alt="Version badge 0.1.0"
-src="https://img.shields.io/badge/version-0.1.0-blue" />
+<img alt="Version badge 0.2.0"
+src="https://img.shields.io/badge/version-0.2.0-blue" />
 
 Orchest is a web based data science tool that works on top of your filesystem allowing you to use
 your editor of choice. With Orchest you get to focus on visually building and iterating on your
