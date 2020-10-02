@@ -67,7 +67,7 @@ def register_views(app):
             for line in container.logs(stream=True):
                 yield line.decode()
 
-            yield "Update complete! Restarting Orchest ...\n"
+            yield "Update complete! Restarting Orchest ... (this can take up to 15 seconds)\n"
 
             executor.submit(background_task, dev_mode)
 

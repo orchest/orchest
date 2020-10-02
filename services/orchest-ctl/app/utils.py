@@ -48,9 +48,9 @@ def is_orchest_running():
 
     running = False
 
-    for image, spec in config.CONTAINER_MAPPING:
+    for _, spec in config.CONTAINER_MAPPING.items():
         try:
-            container = client.containers.get(name)
+            container = client.containers.get(spec['name'])
             if container.status == "running":
                 running = True
                 break
