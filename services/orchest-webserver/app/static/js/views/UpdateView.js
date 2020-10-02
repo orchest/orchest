@@ -84,7 +84,7 @@ class UpdateView extends React.Component {
                 updateOutput: this.responseText
             })
 
-        }), this.promiseManager);
+        }, 0), this.promiseManager); // 0 means no timeout.
 
         updatePromise.promise.then((response) => {
 
