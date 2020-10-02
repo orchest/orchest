@@ -4,9 +4,9 @@ RUN python3 -m pip install docker aiodocker
 
 USER root
 
-RUN mkdir -p /orchest/orchest/orchest-ctl
-COPY ./ /orchest/orchest/orchest-ctl/
+RUN mkdir -p /orchest/services/orchest-ctl
+COPY ./ /orchest/services/orchest-ctl/
 
-WORKDIR /orchest/orchest/orchest-ctl/app
+WORKDIR /orchest/services/orchest-ctl/app
 
 ENTRYPOINT ["python3", "main.py"]

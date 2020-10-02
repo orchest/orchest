@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from celery.task.control import revoke
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
@@ -107,6 +106,7 @@ class ExperimentList(Resource):
             'experiment_uuid': post_data['experiment_uuid'],
             'pipeline_uuid': post_data['pipeline_uuid'],
             'scheduled_start': scheduled_start,
+            'total_number_of_pipeline_runs': len(pipeline_runs),
         }
         db.session.add(models.Experiment(**experiment))
         db.session.commit()
@@ -129,64 +129,40 @@ class Experiment(Resource):
         )
         return experiment.__dict__
 
-    @api.doc('set_experiment_status')
-    @api.expect(schema.status_update)
-    def put(self, experiment_uuid):
-        """Sets the status of an experiment."""
-        post_data = request.get_json()
-
-        res = models.Experiment.query.filter_by(
-            experiment_uuid=experiment_uuid
-        ).update({
-            'status': post_data['status']
-        })
-
-        if res:
-            db.session.commit()
-
-        return {'message': 'Status was updated successfully'}, 200
-
-    # TODO: We will make it possible to stop an entire experiment, but
-    #       not stopping a particular pipeline run of an experiment.
+    # TODO: We should also make it possible to stop a particular pipeline
+    #       run of an experiment. It should state "cancel" the execution
+    #       of a pipeline run, since we do not do termination of running
+    #       tasks.
     @api.doc('delete_experiment')
     @api.response(200, 'Experiment terminated')
     def delete(self, experiment_uuid):
-        """Stops an experiment given its UUID."""
-        # TODO: delete new pipeline files that were created for this
-        #       specific run?
+        """Stops an experiment given its UUID.
 
+        However, it will not delete any corresponding database entries,
+        it will update the status of corresponding objects to "REVOKED".
+        """
         experiment = models.Experiment.query.get_or_404(
             experiment_uuid,
             description='Experiment not found',
         )
 
-        # For all runs that are part of the experiment, revoke the task.
-        for run in experiment.pipeline_runs:
-            # TODO: Not sure what happens when trying to revoke a task
-            #       that has already executed. Possibly first check its
-            #       status.
-            run_uuid = run.run_uuid
+        run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
 
-            # According to the Celery docs we should never
-            # programmatically set ``revoke(uuid, terminate=True)`` as
-            # it actually kills the worker process and it could already
-            # be running a new task.
-            revoke(run_uuid)
+        # Revokes all pipeline runs and waits for a reply for 1.0s.
+        celery = make_celery(current_app)
+        celery.control.revoke(run_uuids, timeout=1.0)
 
-            run_entry = models.NonInteractiveRun.query.filter_by(
-                experiment_uuid=experiment_uuid, run_uuid=run_uuid
-            ).update({
-                'status': 'REVOKED'
-            })
-
-            run_step_entry = models.NonInteractiveRunPipelineStep.query.filter_by(
-                experiment_uuid=experiment_uuid, run_uuid=run_uuid
-            ).update({
-                'status': 'REVOKED'
-            })
-
-        # TODO: check whether all responses were successfull.
-            # if run_res and step_res:
+        # Update the status of the run and step entries to "REVOKED".
+        models.NonInteractiveRun.query.filter_by(
+            experiment_uuid=experiment_uuid
+        ).update({
+            'status': 'REVOKED'
+        })
+        models.NonInteractiveRunPipelineStep.query.filter_by(
+            experiment_uuid=experiment_uuid
+        ).update({
+            'status': 'REVOKED'
+        })
         db.session.commit()
 
         return {'message': 'Experiment termination was successful'}, 200
@@ -218,6 +194,16 @@ class PipelineRun(Resource):
     def put(self, experiment_uuid, run_uuid):
         """Set the status of a pipeline run."""
         status_update = request.get_json()
+
+        # The pipeline run has reached a final state, thus we can update
+        # the experiment "completed_pipeline_runs" attribute.
+        if status_update['status'] in ['SUCCESS', 'FAILURE']:
+            experiment = models.Experiment.query.get_or_404(
+                experiment_uuid,
+                description='Experiment not found',
+            )
+            experiment.completed_pipeline_runs += 1
+            db.session.commit()
 
         filter_by = {
             'experiment_uuid': experiment_uuid,

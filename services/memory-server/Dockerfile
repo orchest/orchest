@@ -1,10 +1,10 @@
 FROM python:3.7-slim
 
-RUN mkdir -p /orchest/orchest/memory-server
-COPY ./ /orchest/orchest/memory-server/
-RUN mv /orchest/orchest/memory-server/lib /orchest/lib
+RUN mkdir -p /orchest/services/memory-server
+COPY ./ /orchest/services/memory-server/
+RUN mv /orchest/services/memory-server/lib /orchest/lib
 
-WORKDIR /orchest/orchest/memory-server
+WORKDIR /orchest/services/memory-server
 RUN pip3 install -r requirements.txt
 
 CMD ["python", "app/main.py"]

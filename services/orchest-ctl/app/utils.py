@@ -176,8 +176,8 @@ def dev_mount_inject(container_spec):
     orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_REPO_DIR, "orchest", "orchest-webserver", "app"),
-            "target": "/orchest/orchest/orchest-webserver/app"
+            "source": os.path.join(HOST_PWD, "services", "orchest-webserver", "app"),
+            "target": "/orchest/services/orchest-webserver/app"
         },
         # Internal library.
         {
@@ -195,8 +195,8 @@ def dev_mount_inject(container_spec):
     orchest_auth_server_spec = container_spec["orchestsoftware/auth-server:latest"]
     orchest_auth_server_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_REPO_DIR, "orchest", "auth-server", "app"),
-            "target": "/orchest/orchest/auth-server/app"
+            "source": os.path.join(HOST_PWD, "services", "auth-server", "app"),
+            "target": "/orchest/services/auth-server/app"
         }
     ]
 
@@ -213,8 +213,8 @@ def dev_mount_inject(container_spec):
     orchest_api_spec = container_spec["orchestsoftware/orchest-api:latest"]
     orchest_api_spec["mounts"] += [
         {
-            "source": os.path.join(HOST_REPO_DIR, "orchest", "orchest-api", "app"),
-            "target": "/orchest/orchest/orchest-api/app"
+            "source": os.path.join(HOST_PWD, "services", "orchest-api", "app"),
+            "target": "/orchest/services/orchest-api/app"
         },
         # Internal library.
         {

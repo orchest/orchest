@@ -128,22 +128,22 @@ do
     # JupyterLab server
     if [ $IMG == "jupyter-server" ]; then
 
-        build_ctx=$DIR/../orchest/jupyter-server
+        build_ctx=$DIR/../services/jupyter-server
         build=(docker build \
             -t orchestsoftware/jupyter-server \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/jupyter-server/Dockerfile \
+            -f $DIR/../services/jupyter-server/Dockerfile \
             $build_ctx)
 
     fi
 
     if [ $IMG == "celery-worker" ]; then
 
-        build_ctx=$DIR/../orchest/orchest-api
+        build_ctx=$DIR/../services/orchest-api
         build=(docker build \
             -t orchestsoftware/celery-worker \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/orchest-api/Dockerfile_celery \
+            -f $DIR/../services/orchest-api/Dockerfile_celery \
             $build_ctx)
 
     fi
@@ -152,10 +152,10 @@ do
     # install orchest-sdk
     if [ $IMG == "custom-base-kernel-py" ]; then
 
-        build_ctx=$DIR/../orchest/custom-images
+        build_ctx=$DIR/../services/custom-images
         build=(docker build \
             -t orchestsoftware/custom-base-kernel-py \
-            -f $DIR/../orchest/custom-images/custom-base-kernel-py/Dockerfile \
+            -f $DIR/../services/custom-images/custom-base-kernel-py/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
 
@@ -163,10 +163,10 @@ do
 
     if [ $IMG == "custom-base-kernel-r" ]; then
 
-        build_ctx=$DIR/../orchest/custom-images
+        build_ctx=$DIR/../services/custom-images
         build=(docker build \
             -t orchestsoftware/custom-base-kernel-r \
-            -f $DIR/../orchest/custom-images/custom-base-kernel-r/Dockerfile \
+            -f $DIR/../services/custom-images/custom-base-kernel-r/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
     fi
@@ -174,21 +174,21 @@ do
     # application images
     if [ $IMG == "orchest-api" ]; then
 
-        build_ctx=$DIR/../orchest/orchest-api
+        build_ctx=$DIR/../services/orchest-api
         build=(docker build \
             -t orchestsoftware/orchest-api \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/orchest-api/Dockerfile \
+            -f $DIR/../services/orchest-api/Dockerfile \
             $build_ctx)
     fi
 
     if [ $IMG == "orchest-ctl" ]; then
 
-        build_ctx=$DIR/../orchest/orchest-ctl
+        build_ctx=$DIR/../services/orchest-ctl
         build=(docker build \
             -t orchestsoftware/orchest-ctl \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/orchest-ctl/Dockerfile \
+            -f $DIR/../services/orchest-ctl/Dockerfile \
             $build_ctx)
     fi
 
@@ -207,21 +207,21 @@ do
         # Cleanup dev symlinks
         $DIR/dev_compile_cleanup.sh
 
-        build_ctx=$DIR/../orchest/orchest-webserver
+        build_ctx=$DIR/../services/orchest-webserver
         build=(docker build \
             -t orchestsoftware/orchest-webserver \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/orchest-webserver/Dockerfile \
+            -f $DIR/../services/orchest-webserver/Dockerfile \
             $build_ctx)
     fi
 
     if [ $IMG == "nginx-proxy" ]; then
-        build_ctx=$DIR/../orchest/nginx-proxy
+        build_ctx=$DIR/../services/nginx-proxy
         build=(docker build \
             -t orchestsoftware/nginx-proxy \
             --no-cache=$NO_CACHE \
             --build-arg enable_ssl=$ENABLE_SSL \
-            -f $DIR/../orchest/nginx-proxy/Dockerfile \
+            -f $DIR/../services/nginx-proxy/Dockerfile \
             $build_ctx)
     fi
 
@@ -230,21 +230,21 @@ do
         # Cleanup dev symlinks
         $DIR/dev_compile_cleanup.sh
 
-        build_ctx=$DIR/../orchest/auth-server
+        build_ctx=$DIR/../services/auth-server
         build=(docker build \
             -t orchestsoftware/auth-server \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/auth-server/Dockerfile \
+            -f $DIR/../services/auth-server/Dockerfile \
             $build_ctx)
     fi
 
     # installs orchest-sdk
     if [ $IMG == "memory-server" ]; then
-        build_ctx=$DIR/../orchest/memory-server
+        build_ctx=$DIR/../services/memory-server
         build=(docker build \
             -t orchestsoftware/memory-server \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/memory-server/Dockerfile \
+            -f $DIR/../services/memory-server/Dockerfile \
             $build_ctx)
     fi
 

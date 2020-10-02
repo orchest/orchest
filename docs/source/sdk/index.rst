@@ -1,4 +1,4 @@
-.. _sdk:
+.. _orchest sdk:
 
 Orchest SDK
 ===========
