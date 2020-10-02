@@ -31,6 +31,8 @@ def main():
         if len(sys.argv) > 2:
             if sys.argv[2] == "dev":
                 config.RUN_MODE = "dev"
+            elif sys.argv[2] == "web":
+                config.UPDATE_MODE = "web"
 
     cmd_to_func[command]()
 

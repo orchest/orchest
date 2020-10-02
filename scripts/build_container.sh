@@ -194,11 +194,11 @@ do
 
     if [ $IMG == "update-server" ]; then
 
-        build_ctx=$DIR/../orchest/update-server
+        build_ctx=$DIR/../services/update-server
         build=(docker build \
             -t orchestsoftware/update-server \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/update-server/Dockerfile \
+            -f $DIR/../services/update-server/Dockerfile \
             $build_ctx)
     fi
 

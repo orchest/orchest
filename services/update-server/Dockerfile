@@ -1,9 +1,9 @@
 FROM tiangolo/meinheld-gunicorn-flask:python3.7
 
 # Get the orchest application, specifically the auth-server
-RUN mkdir -p /orchest/orchest/update-server/
-COPY ./ /orchest/orchest/update-server
+RUN mkdir -p /orchest/services/update-server/
+COPY ./ /orchest/services/update-server
 
-WORKDIR /orchest/orchest/update-server/app
+WORKDIR /orchest/services/update-server/app
 
 RUN pip3 install -r requirements.txt

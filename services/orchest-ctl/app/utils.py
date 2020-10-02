@@ -42,6 +42,24 @@ def kill_rm_by_name(name):
             print(e)
 
 
+def is_orchest_running():
+
+    client = docker.from_env()
+
+    running = False
+
+    for image, spec in config.CONTAINER_MAPPING:
+        try:
+            container = client.containers.get(name)
+            if container.status == "running":
+                running = True
+                break
+        except docker.errors.NotFound as e:
+                print(e)
+
+    return running
+
+
 def is_install_complete():
     missing_images = check_images()
 
@@ -116,7 +134,7 @@ def install_network():
         logging.info("Orchest sends an anonymized ping to analytics.orchest.io. "
                      "You can disable this by adding "
                      "{ \"TELEMETRY_DISABLED\": true }"
-                     "to config.json in %s" % config.HOST_CONFIG_DIR)
+                     "to config.json in %s" % config.ENVS["HOST_CONFIG_DIR"])
 
         logging.info("Docker network %s doesn't exist: %s. "
                      "Creating it." % (config.DOCKER_NETWORK, e))
@@ -176,7 +194,7 @@ def dev_mount_inject(container_spec):
     orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_PWD, "services", "orchest-webserver", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "services", "orchest-webserver", "app"),
             "target": "/orchest/services/orchest-webserver/app"
         },
         # Internal library.
@@ -195,7 +213,7 @@ def dev_mount_inject(container_spec):
     orchest_auth_server_spec = container_spec["orchestsoftware/auth-server:latest"]
     orchest_auth_server_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_PWD, "services", "auth-server", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "services", "auth-server", "app"),
             "target": "/orchest/services/auth-server/app"
         }
     ]
@@ -213,7 +231,7 @@ def dev_mount_inject(container_spec):
     orchest_api_spec = container_spec["orchestsoftware/orchest-api:latest"]
     orchest_api_spec["mounts"] += [
         {
-            "source": os.path.join(HOST_PWD, "services", "orchest-api", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "services", "orchest-api", "app"),
             "target": "/orchest/services/orchest-api/app"
         },
         # Internal library.

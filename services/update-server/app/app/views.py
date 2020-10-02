@@ -62,7 +62,7 @@ def register_views(app):
                 logging.error(e)
             yield "Pulled orchest-ctl. Starting update ...\n"
 
-            container = orchest_ctl(client, ["update"])
+            container = orchest_ctl(client, ["update", "web"])
             
             for line in container.logs(stream=True):
                 yield line.decode()

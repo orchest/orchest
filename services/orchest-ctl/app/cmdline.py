@@ -159,9 +159,17 @@ def update():
     # stopping Orchest
     logging.info("Stopping Orchest ...")
 
-    # Both nginx-proxy/update-server are left running 
-    # during the update to support _updateserver
-    # and have a single update codepath.
-    stop(skip_names=["nginx-proxy", "update-server"])
+    # only start if it was running
+    should_restart = utils.is_orchest_running()
+    
+    if config.UPDATE_MODE != "web":
+        stop()
+    else:
+        # Both nginx-proxy/update-server are left running 
+        # during the update to support _updateserver
+        stop(skip_names=["nginx-proxy", "update-server"])
 
     utils.install_images(force_pull=True)
+
+    if config.UPDATE_MODE != "web" and should_restart:
+        start()
