@@ -94,6 +94,13 @@ h1, h2, h3 {
     padding-bottom: $generalPadding;
   }
 
+  &.update-page {
+    .console-output {
+      width: 100%;
+      max-width: 800px;
+    }
+  }
+
   &.experiments-page {
     .mdc-data-table {
       width: 100%;
@@ -470,6 +477,15 @@ h2.header {
   }
 }
 
+.console-output {
+  font-family: monospace;
+  font-size: 13px;
+  background: #000;
+  color: #fff;
+  padding: $generalPadding / 2;
+  white-space: pre-line;
+  overflow-x: auto;
+}
 
 button.themed-secondary {
  
@@ -768,14 +784,7 @@ button.themed-secondary {
     }
 
     .log-content {
-      font-family: monospace;
-      font-size: 13px;
-      background: #000;
-      color: #fff;
-      padding: $generalPadding / 2;
       height: 100%;
-      white-space: pre-line;
-      overflow-x: auto;
     }
 
     .input-group {

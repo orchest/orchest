@@ -20,6 +20,7 @@ class Config:
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
+    FLASK_ENV = os.environ.get("FLASK_ENV", "PRODUCTION")
 
     DEBUG = True
 

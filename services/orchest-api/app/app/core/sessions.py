@@ -504,6 +504,7 @@ def _get_container_specs(
             'EG_MIRROR_WORKING_DIRS=True',
             'EG_LIST_KERNELS=True',
             'EG_KERNEL_WHITELIST=[]',
+            'EG_PROHIBITED_UIDS=[]',
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             'EG_ALLOW_ORIGIN=*',

@@ -3,6 +3,8 @@ import os
 import sys
 
 import docker
+import aiodocker
+import asyncio
 from docker.types import Mount
 
 import config
@@ -22,6 +24,41 @@ def init_logger():
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
+def kill_rm_by_name(name):
+
+    client = docker.from_env()
+
+    try:
+        container = client.containers.get(name)
+        logging.info("Killing container %s" % container.name)
+        
+        try:
+            container.kill()
+            container.remove()
+        except docker.errors.APIError as e:
+            print(e)
+
+    except docker.errors.NotFound as e:
+            print(e)
+
+
+def is_orchest_running():
+
+    client = docker.from_env()
+
+    running = False
+
+    for _, spec in config.CONTAINER_MAPPING.items():
+        try:
+            container = client.containers.get(spec['name'])
+            if container.status == "running":
+                running = True
+                break
+        except docker.errors.NotFound as e:
+                print(e)
+
+    return running
+
 
 def is_install_complete():
     missing_images = check_images()
@@ -40,29 +77,53 @@ def is_install_complete():
     return True
 
 
-def check_images():
-    missing_images = []
+async def image_exists(image, async_docker):
+    try:
+        await async_docker.images.get(image)
+        return True
+    except aiodocker.exceptions.DockerError:
+        return False
 
-    for image in config.ALL_IMAGES:
-        try:
-            docker_client.images.get(image)
-            # logging.info("Image `%s` is installed." % image)
-        except docker.errors.ImageNotFound:
-            missing_images.append(image)
-        except docker.errors.APIError as e:
-            raise e
+async def async_check_images(images):
+    async_docker = aiodocker.Docker()
 
+    image_exists_result = await asyncio.gather(*[image_exists(image, async_docker) for image in images])
+    missing_images = [images[i] for i in range(len(images)) if not image_exists_result[i]]
+
+    await async_docker.close()
     return missing_images
 
 
-def install_images():
-    for image in config.ALL_IMAGES:
+def check_images():
+    loop = asyncio.get_event_loop()
+    missing_images = loop.run_until_complete(async_check_images(config.ALL_IMAGES))
+    return missing_images
+
+
+async def pull_image(image, async_docker, force_pull):
+    pull = force_pull
+    
+    if not pull:
         try:
-            docker_client.images.get(image)
-        except docker.errors.ImageNotFound:
-            logging.info("Pulling image `%s` ..." % image)
-            docker_client.images.pull(image)
-            logging.info("Pulled image `%s`." % image)
+            await async_docker.images.get(image)
+        except aiodocker.exceptions.DockerError:
+            pull = True
+
+    if pull:
+        logging.info("Pulling image %s" % image)
+        await async_docker.images.pull(image)
+        logging.info("Pulled image %s" % image)
+
+async def pull_images(images, force_pull):
+    async_docker = aiodocker.Docker()
+    tasks = [pull_image(image, async_docker, force_pull) for image in images]
+    await asyncio.wait(tasks)
+    await async_docker.close()
+
+
+def install_images(force_pull=False):
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(pull_images(config.ALL_IMAGES, force_pull))
 
 
 def install_network():
@@ -73,7 +134,7 @@ def install_network():
         logging.info("Orchest sends an anonymized ping to analytics.orchest.io. "
                      "You can disable this by adding "
                      "{ \"TELEMETRY_DISABLED\": true }"
-                     "to config.json in %s" % config.HOST_CONFIG_DIR)
+                     "to config.json in %s" % config.ENVS["HOST_CONFIG_DIR"])
 
         logging.info("Docker network %s doesn't exist: %s. "
                      "Creating it." % (config.DOCKER_NETWORK, e))
@@ -127,18 +188,18 @@ def dev_mount_inject(container_spec):
     the application.
 
     """
-    HOST_PWD = os.environ.get("HOST_PWD")
+    HOST_REPO_DIR = os.environ.get("HOST_REPO_DIR")
 
     # orchest-webserver
     orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
     orchest_webserver_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_PWD, "services", "orchest-webserver", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "services", "orchest-webserver", "app"),
             "target": "/orchest/services/orchest-webserver/app"
         },
         # Internal library.
         {
-            "source": os.path.join(HOST_PWD, "lib"),
+            "source": os.path.join(HOST_REPO_DIR, "lib"),
             "target": "/orchest/lib"
         },
     ]
@@ -152,7 +213,7 @@ def dev_mount_inject(container_spec):
     orchest_auth_server_spec = container_spec["orchestsoftware/auth-server:latest"]
     orchest_auth_server_spec['mounts'] += [
         {
-            "source": os.path.join(HOST_PWD, "services", "auth-server", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "services", "auth-server", "app"),
             "target": "/orchest/services/auth-server/app"
         }
     ]
@@ -170,12 +231,12 @@ def dev_mount_inject(container_spec):
     orchest_api_spec = container_spec["orchestsoftware/orchest-api:latest"]
     orchest_api_spec["mounts"] += [
         {
-            "source": os.path.join(HOST_PWD, "services", "orchest-api", "app"),
+            "source": os.path.join(HOST_REPO_DIR, "services", "orchest-api", "app"),
             "target": "/orchest/services/orchest-api/app"
         },
         # Internal library.
         {
-            "source": os.path.join(HOST_PWD, "lib"),
+            "source": os.path.join(HOST_REPO_DIR, "lib"),
             "target": "/orchest/lib"
         },
     ]
@@ -211,11 +272,12 @@ def convert_to_run_config(image_name, container_spec):
         'image': image_name,
         'command': container_spec.get('command'),
         'name': container_spec['name'],
-        'detach': True,
+        'detach': container_spec.get('detach', True),
         'mounts': mounts,
         'network': config.DOCKER_NETWORK,
         'environment': container_spec.get('environment', {}),
         'ports': container_spec.get('ports', {}),
         'hostname': container_spec.get('hostname'),
+        'auto_remove': container_spec.get('auto_remove', False)
     }
     return run_config

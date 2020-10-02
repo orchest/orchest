@@ -12,7 +12,7 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf, name_to_tag, get_synthesized_images
+from app.utils import get_hash, get_user_conf, name_to_tag, get_synthesized_images, orchest_ctl
 from app.models import DataSource, Experiment, PipelineRun, Image, Commit
 from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
@@ -112,10 +112,12 @@ def register_views(app, db):
                     with open(notebook_path, "r") as file:
                         notebook_json = json.load(file)
 
-                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+                    if notebook_json["metadata"]["kernelspec"]["name"] != gateway_kernel:
+                        notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
 
-                    with open(notebook_path, "w") as file:
-                        file.write(json.dumps(notebook_json))
+                        with open(notebook_path, "w") as file:
+                            file.write(json.dumps(notebook_json))
+                            
                 else:
                     logging.info(
                         "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
@@ -582,8 +584,9 @@ def register_views(app, db):
             app.config["STATIC_DIR"], "js", "dist", "main.bundle.js")
         css_bundle_path = os.path.join(
             app.config["STATIC_DIR"], "css", "main.css")
+            
 
-        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf())
+        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf(), FLASK_ENV=app.config["FLASK_ENV"])
 
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
@@ -670,6 +673,29 @@ def register_views(app, db):
 
         else:
             return resp.raw.read(), resp.status_code
+
+
+    @app.route("/async/spawn-update-server", methods=["GET"])
+    def spawn_update_server():
+
+        client = docker.from_env()
+        
+        orchest_ctl(client, ["_updateserver"])
+
+        return ''
+
+    
+    @app.route("/async/restart", methods=["GET"])
+    def restart_server():
+
+        client = docker.from_env()
+        
+        if request.args.get("mode") == "dev":
+            orchest_ctl(client, ["restart", "dev"])
+        else:
+            orchest_ctl(client, ["restart"])
+
+        return ''
 
 
     @app.route("/async/synthesized-images", methods=["GET"])

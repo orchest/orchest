@@ -1,5 +1,6 @@
 import logging
 import sys
+import asyncio
 
 import cmdline
 import config
@@ -7,6 +8,9 @@ import utils
 
 
 def main():
+
+    loop = asyncio.get_event_loop()
+
     utils.init_logger()
 
     available_cmds = cmdline.get_available_cmds()
@@ -27,8 +31,12 @@ def main():
         if len(sys.argv) > 2:
             if sys.argv[2] == "dev":
                 config.RUN_MODE = "dev"
+            elif sys.argv[2] == "web":
+                config.UPDATE_MODE = "web"
 
     cmd_to_func[command]()
+
+    loop.close()
 
 
 if __name__ == '__main__':

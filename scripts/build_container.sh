@@ -3,6 +3,7 @@
 # Use another Docker backend for building.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 IMGS=()
+SKIP_IMGS=()
 NO_CACHE=false
 VERBOSE=false
 ENABLE_SSL=false
@@ -12,6 +13,9 @@ while getopts "s:i:nve" opt; do
   case $opt in
     i)
       IMGS+=($OPTARG)
+      ;;
+    s)
+      SKIP_IMGS+=($OPTARG)
       ;;
     n)
       NO_CACHE=true
@@ -40,6 +44,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "custom-base-kernel-r"
         "orchest-api"
         "orchest-ctl"
+        "update-server"
         "orchest-webserver"
         "nginx-proxy"
         "memory-server"
@@ -115,6 +120,11 @@ do
     unset build
     unset build_ctx
 
+    if containsElement "${IMG}" "${SKIP_IMGS[@]}" ; then
+        echo [Skipping] $IMG
+        continue
+    fi
+
     # JupyterLab server
     if [ $IMG == "jupyter-server" ]; then
 
@@ -179,6 +189,16 @@ do
             -t orchestsoftware/orchest-ctl \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-ctl/Dockerfile \
+            $build_ctx)
+    fi
+
+    if [ $IMG == "update-server" ]; then
+
+        build_ctx=$DIR/../services/update-server
+        build=(docker build \
+            -t orchestsoftware/update-server \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/update-server/Dockerfile \
             $build_ctx)
     fi
 

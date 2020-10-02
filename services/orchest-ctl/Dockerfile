@@ -1,6 +1,6 @@
 FROM jupyter/minimal-notebook:04f7f60d34a6
 
-RUN python3 -m pip install docker
+RUN python3 -m pip install docker aiodocker
 
 USER root
 
