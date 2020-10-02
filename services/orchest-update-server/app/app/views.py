@@ -28,7 +28,7 @@ def background_task(dev_mode):
 
         orchest_ctl(client, start_command)
 
-        container = client.containers.get("orchest-update-server")
+        container = client.containers.get("update-server")
         container.kill()
     except docker.errors.APIError as e:
         print(e)

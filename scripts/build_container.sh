@@ -44,7 +44,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "custom-base-kernel-r"
         "orchest-api"
         "orchest-ctl"
-        "orchest-update-server"
+        "update-server"
         "orchest-webserver"
         "nginx-proxy"
         "memory-server"
@@ -192,13 +192,13 @@ do
             $build_ctx)
     fi
 
-    if [ $IMG == "orchest-update-server" ]; then
+    if [ $IMG == "update-server" ]; then
 
-        build_ctx=$DIR/../orchest/orchest-update-server
+        build_ctx=$DIR/../orchest/update-server
         build=(docker build \
-            -t orchestsoftware/orchest-update-server \
+            -t orchestsoftware/update-server \
             --no-cache=$NO_CACHE \
-            -f $DIR/../orchest/orchest-update-server/Dockerfile \
+            -f $DIR/../orchest/update-server/Dockerfile \
             $build_ctx)
     fi
 

@@ -145,7 +145,7 @@ def status():
 def _updateserver():
     logging.info("Starting Orchest update service")
 
-    container_image = 'orchestsoftware/orchest-update-server:latest'
+    container_image = 'orchestsoftware/update-server:latest'
     container_spec = CONTAINER_MAPPING.get(container_image, {})
     run_config = utils.convert_to_run_config(container_image, container_spec)
 
@@ -159,9 +159,9 @@ def update():
     # stopping Orchest
     logging.info("Stopping Orchest ...")
 
-    # Both nginx-proxy/orchest-update-server are left running 
+    # Both nginx-proxy/update-server are left running 
     # during the update to support _updateserver
     # and have a single update codepath.
-    stop(skip_names=["nginx-proxy", "orchest-update-server"])
+    stop(skip_names=["nginx-proxy", "update-server"])
 
     utils.install_images(force_pull=True)

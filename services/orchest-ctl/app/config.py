@@ -19,7 +19,7 @@ ALL_IMAGES = [
     "orchestsoftware/custom-base-kernel-r:latest",
     "orchestsoftware/memory-server:latest",
     "orchestsoftware/orchest-ctl:latest",
-    "orchestsoftware/orchest-update-server:latest",
+    "orchestsoftware/update-server:latest",
     "orchestsoftware/orchest-api:latest",
     "orchestsoftware/orchest-webserver:latest",
     "orchestsoftware/celery-worker:latest",
@@ -136,9 +136,9 @@ CONTAINER_MAPPING = {
             "443/tcp": 443,
         }
     },
-    "orchestsoftware/orchest-update-server:latest": {
-        "name": "orchest-update-server",
-        "hostname": "orchest-update-server",
+    "orchestsoftware/update-server:latest": {
+        "name": "update-server",
+        "hostname": "update-server",
         "environment": {
             "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
             "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],
