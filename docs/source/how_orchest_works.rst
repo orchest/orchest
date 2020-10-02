@@ -35,12 +35,20 @@ Giving a directory structure similar to the following:
 Installing additional packages
 ------------------------------
 
-Orchest runs all your pipeline step code scripts (.ipynb, .py, .R, .sh) in containers. The default
-images are based on the |jupyter_stack_link| and come with a number of
+Orchest runs all your individual pipeline steps (e.g. :code:`.ipynb` or :code:`.R` scripts) in
+containers. The default images are based on the |jupyter_stack_link| and come with a number of
 |pre_installed_link|.
 
-We plan on supporting custom images and/or container commits, to avoid having to reinstall packages each
-time a pipeline step is run.
+To install additional packages or to run other terminal commands inside the base image, we support
+custom *Images*. We essentially create a new image by running your script inside the selected base
+image.
+
+1. Simply go to *Images* in the left menu pane.
+2. Select the base image. This image will be extended with your custom script. 
+3. Click the "+" sign to add a commit to the base image. The commit represents the changes of your
+   script.
+4. Choose a *Commit name*.
+5. Install additional packages, e.g. :code:`pip install tensorflow` or :code:`sudo apt install vim`.
 
 .. |jupyter_stack_link| raw:: html
 
@@ -53,38 +61,7 @@ time a pipeline step is run.
    href="https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html"
    target="_nlank">pre-installed packages</a>
 
-Installing additional Python packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Execute commands inside the scripts to install the package before use.
-
-For Jupyter notebooks you can run the following code in a cell:
-
-.. code-block:: bash
-
-   !conda install <package name>
-
-or for the :code:`pip` packages run:
-
-.. code-block:: bash
-
-   !pip install <package name>
-
-
-Or directly from within Python (i.e. for Python scripts):
-
-.. code-block:: python
-
-   from pip._internal import main as pip
-
-   pip(['install', '--user', '<package name>'])
-
-
-Installing additional R packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-R packages can be installed with the regular command:
-
-.. code-block:: r
-   
-   install.packages("<package name>")
+.. warning::
+   Do not install packages by running :code:`!pip install <package-name>` inside your
+   Jupyter Notebook. This causes the package to be installed every time you run the pipeline
+   step. It is not saved in the environment as containers are stateless!
