@@ -25,51 +25,39 @@ Orchest lets you
 
 
 ## Table of contents
-- [Table of contents](#table-of-contents)
 - [Installation](#installation)
-- [Quickstart](#quickstart)
-  - [Build your pipeline.](#build-your-pipeline)
-  - [Write your code.](#write-your-code)
-  - [Run your pipeline and see the results come in.](#run-your-pipeline-and-see-the-results-come-in)
+- [Preview](#preview)
+- [License](#license)
 - [Contributing](#contributing)
 - [We love your feedback](#we-love-your-feedback)
 
 
 ## Installation
-Requirements
+#### Requirements
 * Docker (tested on 19.03.9)
 
-Linux/macOS/Windows(through WSL 2)
+#### Linux, macOS and Windows
+Simply follow the steps below to install Orchest. For Windows, please read the note at the bottom first.
 ```bash
 git clone https://github.com/orchest/orchest.git
 cd orchest
+
+# The start command will automatically install Orchest if it is not
+# yet installed. After installation is finished Orchest is started
 ./orchest.sh start
 ```
 
-**Note!** on Windows Docker should be configured to use WSL 2. Make sure you clone inside the
-Linux environment. More info about Docker + WSL 2 can be found here:
+**Note!** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
+the Linux environment. For more info about Docker with WSL 2, please visit
 https://docs.docker.com/docker-for-windows/wsl/.
 
 
-## Quickstart
-Please refer to our docs for a more comprehensive 
-[quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial.
-
-### Build your pipeline.
-*Each pipeline step executes a file (.ipynb, .py, .R, .sh) in a containerized environment.*
-
-![clip-1-cropped](https://user-images.githubusercontent.com/1309307/82610388-8ffc7580-9bbe-11ea-8886-d045ff6b76d0.gif)
-
-### Write your code.
-*Iteratively edit and run your code for each pipeline step with an interactive JupyterLab session.*
-
-![clip-2-cropped](https://user-images.githubusercontent.com/1309307/82610397-94c12980-9bbe-11ea-8e16-eb686d0cfc75.gif)
-
-### Run your pipeline and see the results come in.
-*Outputs (both `stdout` and `stderr`) are directly viewable and stored on disk.*
+## Preview
+In our docs you can find a comprehensive
+[quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial!
 
 ![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
-
+*A preview of running pipelines in the pipeline editor of Orchest*
 
 ## License
 The software in this repository is licensed as follows:
