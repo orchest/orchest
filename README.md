@@ -36,6 +36,8 @@ Orchest lets you
 #### Requirements
 * Docker (tested on 19.03.9)
 
+If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
+
 #### Linux, macOS and Windows
 Simply follow the steps below to install Orchest. For Windows, please read the note at the bottom first.
 ```bash
@@ -58,6 +60,7 @@ In our docs you can find a comprehensive
 
 ![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
 *A preview of running pipelines in the pipeline editor of Orchest*
+
 
 ## License
 The software in this repository is licensed as follows:
