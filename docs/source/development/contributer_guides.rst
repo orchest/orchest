@@ -4,7 +4,7 @@ Contributer guides
 Contributor License Agreement
 -----------------------------
 
-Our CLA is almost an exact copy of the Apache CLA (apart from the names), which the cla-assistant
+Our CLA is an exact copy of the Apache CLA (apart from the names), which the cla-assistant
 will automatically prompt you to sign upon a pull request. Signing is done electronically.
 
 The CLA ensures that Orchest has clear ownership specification for all contributions, which in
@@ -15,8 +15,8 @@ differently-licensed material.
 Development environment
 -----------------------
 To start hacking on Orchest you simply have to clone the repo from GitHub. Useful scripts are
-included in the root-level :code:`scripts/` directory, such as :code:`build_container.sh` and 
-:code:`run_tests.sh`.
+included in the root-level ``scripts/`` directory, such as ``build_container.sh`` and 
+``run_tests.sh``.
 
 .. code-block:: bash
 
@@ -30,4 +30,4 @@ included in the root-level :code:`scripts/` directory, such as :code:`build_cont
 
 
 Feel free to pick up any of the issues on `GitHub <https://github.com/orchest/orchest/issues>`_ or
-create a custom pull request 💪
+create a custom pull request 💪.

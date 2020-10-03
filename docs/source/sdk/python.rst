@@ -1,28 +1,18 @@
 Python
 ======
 
-Python package to pass data between pipeline steps in Orchest.
-
-Since memory resources are scarce we have implemented a custom eviction manager for the store.
-Without it, objects do not get evicted from the store (even when an object has no reference) and
-will eventually lead to the store reaching its maximum capacity with no room for new data. The
-eviction is handled by the 
-`memory-server <https://github.com/orchest/orchest/tree/master/orchest/memory-server>`_.
-
-
-Installation
-------------
-.. note::
-   The Orchest SDK comes pre-installed when using it in Orchest.
+Python package to interact with Orchest.
 
 
 Quickstart
 ----------
 
+.. _sdk-quickstart-data-passing:
+
 Data passing
 ~~~~~~~~~~~~
 
-For this example we let the pipeline (defined inside the :code:`pipeline.json`) be as follows: 
+For this example we let the pipeline (defined inside the ``pipeline.json``) be as follows: 
 
 .. image:: ../img/pipeline.png
   :width: 400
@@ -33,8 +23,8 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
 
 .. note:: The order in which the data is retrieved in `step-3` is determined via the UI through the
    `Connections` section in the pipeline step properties pane. Order is from top to bottom, where
-   the first element in the list (returned by ``get_inputs``) is the output of the top most step 
-   from the `Connections`.
+   the first element in the list (returned by :meth:`orchest.transfer.get_inputs`) is the output of
+   the top most step from the `Connections`.
 
 
 .. code-block:: python
@@ -67,6 +57,15 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    # Get the input for step-3, i.e. the output of step-1 and step-2.
    data = orchest.get_inputs()  # data = [[3, 1, 4], 'Hello, World!']
 
+.. note:: 
+   Since memory resources are scarce we have implemented a custom eviction manager when passing data
+   through memory (between pipeline steps).  Without it, objects do not get evicted from memory
+   (even when an object has no reference) which will eventually lead to the memory reaching its
+   maximum capacity without any room for new data. The eviction is handled by the 
+   `memory-server <https://github.com/orchest/orchest/tree/master/services/memory-server>`_.
+
+
+.. _sdk-quickstart-parameters:
 
 Parameters
 ~~~~~~~~~~
@@ -77,20 +76,28 @@ Parameters
    # Get the parameters of the current step.
    params = orchest.get_params()  # params = {'vegetable': 'carrot'}
 
-   # Add a new parameter and update the step's parameters.
+   # Add a new parameter and update the step's parameters. The 
+   # parameters now also become visible through the properties pane in
+   # the UI when clicking on a pipeline step.
    params['fruit'] = 'apple'
    orchest.update_params(params)
 
 
-Datasources
-~~~~~~~~~~~
+.. _sdk-quickstart-data-sources:
+
+Data sources
+~~~~~~~~~~~~
+Before you can interact with data sources from within your scripts, you have to configure one
+through the *Data sources* option in the left menu pane. Please refer to
+:ref:`features-data-sources` in the features section.
+
 .. code-block:: python
 
    import orchest
    import pandas as pd
 
    # Note that the "example-mysql-db" is created in the UI first under
-   # "Datasources" in the left hand panel.
+   # "Data sources" in the left hand panel.
    mysql = orchest.get_datasource('example-mysql-db')
 
    # Use a connection object to execute an SQL query.

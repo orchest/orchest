@@ -7,11 +7,7 @@ Requirements
 ------------
 * Docker (tested on 19.03.9)
 
-The run scripts :code:`orchest.sh` will mount the Docker socket to the :code:`orchest-ctl`
-container to manage the local Docker containers necessary for running Orchest. In addition, the
-Docker socket is necessary for the dynamic spawning of containers that occurs when running individual
-pipeline steps.
-
+If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
 Linux, macOS and Windows
 -------------------------
@@ -28,9 +24,13 @@ first.
    # yet installed. After installation is finished Orchest is started.
    ./orchest.sh start
 
+The run script ``orchest.sh`` will mount the Docker socket to the ``orchest-ctl``
+container to manage the local Docker containers necessary for running Orchest. In addition, the
+Docker socket is necessary for the dynamic spawning of containers that occurs when running individual
+pipeline steps.
 
 .. note::
 
-    On Windows, Docker should be configured to use WSL 2. Make sure you clone Orchest inside the
-    Linux environment. More info about Docker + WSL 2 can be found here:
+    On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the
+    Linux environment. For more info about Docker with WSL 2, please visit
     https://docs.docker.com/docker-for-windows/wsl/.

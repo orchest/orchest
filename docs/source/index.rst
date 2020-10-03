@@ -18,10 +18,10 @@ your models on the cloud without any knowledge of cloud infrastructure.
    :maxdepth: 2
    :caption: Contents:
 
-   orchest_overview
+   overview
    installation
    quickstart
-   how_orchest_works
+   features
    sdk/index
    development/index
    help
