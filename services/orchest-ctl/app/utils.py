@@ -38,7 +38,7 @@ def is_orchest_running():
                 running = True
                 break
         except docker.errors.NotFound as e:
-                print(e)
+                pass
 
     return running
 
