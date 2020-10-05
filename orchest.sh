@@ -12,20 +12,29 @@ if ! docker ps >/dev/null 2>/dev/null ; then
         ORCHEST_PATH=$DIR
     fi
 
-    echo "docker command not accesible for user '$USERNAME'. Please run \`sudo -u $(whoami) $ORCHEST_PATH/orchest.sh\` instead."
+    echo "docker command not accesible for user '$USERNAME'. Please run \`sudo $ORCHEST_PATH/orchest.sh\` instead."
     exit 1
 fi
 
+function update_orchest {
+    # Update orchest-ctl to latest before performing update
+    docker pull orchestsoftware/orchest-ctl:latest
+}
+
 # Warnings
 if [ $1 == "update" ] ; then
-    read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]
-    then
-        echo "Cancelled. Exiting ..."
-        exit
+
+    if [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
+        update_orchest
     else
-        # Update orchest-ctl to latest before performing update
-        docker pull orchestsoftware/orchest-ctl:latest
+        read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]
+        then
+            echo "Cancelled. Exiting ..."
+            exit
+        else
+            update_orchest
+        fi
     fi
 fi
 # End of warnings
@@ -36,6 +45,7 @@ HOST_USER_DIR=$DIR/userdir
 
 # create config dir if it doesn't exist
 mkdir -p "${HOST_CONFIG_DIR}"
+chown $USER:$USER "${HOST_CONFIG_DIR}"
 
 docker run --name orchest-ctl --rm \
     -v /var/run/docker.sock:/var/run/docker.sock -v "${DIR}":/orchest-host -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \
