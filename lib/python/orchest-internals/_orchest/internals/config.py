@@ -32,7 +32,7 @@ DEFAULT_BASE_IMAGES = [
 
 DEFAULT_DATASOURCES = [
     {
-        'name': 'default',
+        'name': '_default',
         'connection_details': {
             'absolute_host_path': '$HOST_USER_DIR/data'
         },

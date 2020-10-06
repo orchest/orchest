@@ -36,7 +36,7 @@ class DataSourcesView extends React.Component {
     }
 
     // fetch data sources
-    let datasourcesPromise = makeCancelable(makeRequest("GET", "/store/datasources"), this.promiseManager);
+    let datasourcesPromise = makeCancelable(makeRequest("GET", "/store/datasources?show_internal=false"), this.promiseManager);
     
     datasourcesPromise.promise.then((result) => {
       try {
