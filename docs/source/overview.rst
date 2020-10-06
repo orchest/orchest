@@ -23,12 +23,13 @@ How Orchest works
 Orchest runs as a collection of Docker containers and stores a global configuration file. The
 location for this config is ``~/.config/orchest/config.json``.
 
-Orchest is powered by your filesystem. Upon launching, Orchest will mount the
-``orchest/userdir/`` directory, where ``orchest/`` is the install directory from GitHub,
-into the docker containers. Inside the ``userdir/`` Orchest will store all your scripts that make
-up the pipeline, for example ``.ipynb`` and ``.py`` files. Additionally the following files
-will be stored inside the ``.orchest/`` directory at the pipeline level (and thus *for each
-pipeline*):
+Orchest is powered by your filesystem. Upon launching, Orchest will mount the content of the
+``orchest/userdir/`` directory, where ``orchest/`` is the install directory from GitHub, at
+different locations inside the docker containers. In the ``userdir/`` on the host machine Orchest
+will store its state and user scripts. Your scripts that make up the pipeline, for example
+``.ipynb`` and ``.py`` files, are stored inside the ``userdir/pipelines/`` directory and are mounted
+in the container at ``/pipeline-dir``. Additionally the following files will be stored inside the
+``.orchest/`` directory at the pipeline level (and thus *for each pipeline*):
 
 * The :ref:`Orchest SDK` stores step outputs in the ``.orchest/data/`` directory to pass data
   between pipeline steps (in the case where :meth:`orchest.transfer.output_to_disk` is used).
