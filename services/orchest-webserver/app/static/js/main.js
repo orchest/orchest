@@ -4,6 +4,7 @@ import { MDCDrawer } from "@material/drawer";
 import PipelinesView from "./views/PipelinesView";
 import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
+import FileManagerView from "./views/FileManagerView";
 import DataSourceEditView from "./views/DataSourceEditView";
 import ExperimentsView from "./views/ExperimentsView";
 import CreateExperimentView from "./views/CreateExperimentView";
@@ -35,6 +36,7 @@ function Orchest() {
     this.Components = {
         "PipelinesView": PipelinesView,
         "DataSourcesView": DataSourcesView,
+        "FileManagerView": FileManagerView,
         "ImagesView": ImagesView,
         "DataSourceEditView": DataSourceEditView,
         "PipelineView": PipelineView,

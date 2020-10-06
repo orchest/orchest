@@ -136,7 +136,13 @@ def get_dynamic_mounts(run_config, task_id):
                 continue
 
             source = f'{datasource["connection_details"]["absolute_host_path"]}'
-            target = f'/data/{datasource["name"]}'
+
+            # the default (host) /userdata/data should be mounted in /data
+            if datasource['connection_details']['absolute_host_path'].endswith("/userdir/data"):
+                target = '/data'
+            else:
+                target = f'/mounts/{datasource["name"]}'
+
             mounts.append(f'{source}:{target}')
 
     # Determine the appropriate name for the volume that shares

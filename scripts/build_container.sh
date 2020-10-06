@@ -49,6 +49,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "nginx-proxy"
         "memory-server"
         "auth-server"
+        "file-manager"
     )
 fi
 
@@ -199,6 +200,16 @@ do
             -t orchestsoftware/update-server \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/update-server/Dockerfile \
+            $build_ctx)
+    fi
+
+    if [ $IMG == "file-manager" ]; then
+
+        build_ctx=$DIR/../services/file-manager
+        build=(docker build \
+            -t orchestsoftware/file-manager \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/file-manager/Dockerfile \
             $build_ctx)
     fi
 

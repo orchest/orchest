@@ -1,0 +1,16 @@
+button[title="Toggle shell"] {
+    display: none;
+}
+button[title="Share"] {
+    display: none;
+}
+img[alt="File Browser"] {
+    display: none;
+}
+a[title="Settings"] {
+    display: none;
+}
+
+#result > div > p {
+    padding-top: 10px;
+}

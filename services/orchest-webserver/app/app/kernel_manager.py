@@ -61,8 +61,8 @@ def populate_kernels(app, db):
             raise e
 
     # copy launch_docker.py
-    launch_docker_path = kernel_json_template_path = os.path.join(app.config['RESOURCE_DIR'], "kernels", "launch_docker.py")
-    launch_docker_dest_path = kernel_json_template_path = os.path.join(kernels_dir_path, "launch_docker.py")
+    launch_docker_path = os.path.join(app.config['RESOURCE_DIR'], "kernels", "launch_docker.py")
+    launch_docker_dest_path = os.path.join(kernels_dir_path, "launch_docker.py")
     
     os.system("cp %s %s" % (launch_docker_path, launch_docker_dest_path))
 

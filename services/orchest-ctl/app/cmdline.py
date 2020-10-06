@@ -122,7 +122,7 @@ def help():
 
 def stop(skip_names=[]):
     
-    running_containers = docker_client.containers.list()
+    running_containers = docker_client.containers.list(all=True)
 
     for running_container in running_containers:
 
@@ -139,9 +139,16 @@ def stop(skip_names=[]):
             logging.info("Killing container %s" % running_container.name)
             try:
                 running_container.kill()
+            except Exception as _:
+                #logging.debug(e) (kill() does not always succeed - e.g.
+                #container could have exited before)
+                pass
+
+            try:
                 running_container.remove()
             except Exception as _:
-                #logging.debug(e) (Errors are expected - don't log)
+                #logging.debug(e) (remove() does not always succeed - e.g. the
+                #container could be configured to autoremove)
                 pass
 
 
