@@ -122,30 +122,30 @@ def help():
 
 def stop(skip_names=[]):
     
-    running_containers = docker_client.containers.list(all=True)
+    containers = docker_client.containers.list(all=True)
 
-    for running_container in running_containers:
+    for container in containers:
 
         # don't kill orchest-ctl itself
-        if len(running_container.image.tags) > 0 and running_container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
+        if len(container.image.tags) > 0 and container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
             continue
 
         # if name is in skip_names
-        if running_container.name in skip_names:
+        if container.name in skip_names:
             continue
 
         # only kill containers in `orchest` network
-        if 'orchest' in running_container.attrs["NetworkSettings"]["Networks"]:
-            logging.info("Killing container %s" % running_container.name)
+        if 'orchest' in container.attrs["NetworkSettings"]["Networks"]:
+            logging.info("Killing container %s" % container.name)
             try:
-                running_container.kill()
+                container.kill()
             except Exception as _:
                 #logging.debug(e) (kill() does not always succeed - e.g.
                 #container could have exited before)
                 pass
 
             try:
-                running_container.remove()
+                container.remove()
             except Exception as _:
                 #logging.debug(e) (remove() does not always succeed - e.g. the
                 #container could be configured to autoremove)
