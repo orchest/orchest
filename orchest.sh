@@ -16,7 +16,7 @@ if ! docker ps >/dev/null 2>/dev/null ; then
     exit 1
 fi
 
-function update_orchest {
+function update_orchest_ctl {
     # Update orchest-ctl to latest before performing update
     docker pull orchestsoftware/orchest-ctl:latest
 }
@@ -25,15 +25,15 @@ function update_orchest {
 if [ $1 == "update" ] ; then
 
     if [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
-        update_orchest
+        update_orchest_ctl
     else
         read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
         if [[ ! $REPLY =~ ^[Yy]$ ]]
         then
-            echo "Cancelled. Exiting ..."
+            echo "Cancelled by user. Exiting ..."
             exit
         else
-            update_orchest
+            update_orchest_ctl
         fi
     fi
 fi

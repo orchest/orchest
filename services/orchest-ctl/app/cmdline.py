@@ -9,6 +9,8 @@ from connections import docker_client
 import utils
 import time
 import os
+import subprocess
+import pathlib
 
 
 def get_available_cmds():
@@ -198,7 +200,17 @@ def update():
         # during the update to support _updateserver
         stop(skip_names=["nginx-proxy", "update-server"])
 
-    utils.install_images(force_pull=True)
+    # update repo through git
+    logging.info("Updating repo ...")
+    script_path = os.path.join(str(pathlib.Path(__file__).parent.absolute()), "scripts", "git-update.sh")
+    script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
+    return_code = script_process.wait()
+    
+    if return_code != 0:
+        logging.info("'git' repo update failed. Please make sure you don't have any commits that conflict with the main branch in the 'orchest' repository. Cancelling update.")
+    else:
+        logging.info("Pulling latest images ...")
+        utils.install_images(force_pull=True)
 
     if config.UPDATE_MODE != "web" and should_restart:
         start()
