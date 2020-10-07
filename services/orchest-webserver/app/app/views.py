@@ -7,6 +7,7 @@ import logging
 import nbformat
 import docker
 
+from sqlalchemy.sql.expression import not_
 from flask import render_template, request, jsonify
 from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
@@ -416,7 +417,16 @@ def register_views(app, db):
         class DataSourcesResource(Resource):
 
             def get(self):
-                datasources = DataSource.query.all()
+
+                show_internal = True
+                if request.args.get("show_internal") == "false":
+                    show_internal = False
+
+                if show_internal:
+                    datasources = DataSource.query.all()
+                else:
+                    datasources = DataSource.query.filter(not_(DataSource.name.startswith('_'))).all()
+                
                 return datasources_schema.dump(datasources)
 
         class DataSourceResource(Resource):

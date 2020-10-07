@@ -1,0 +1,29 @@
+button[title="Toggle shell"] {
+    display: none;
+}
+button[title="Share"] {
+    display: none;
+}
+img[alt="File Browser"] {
+    display: none;
+}
+a[title="Settings"] {
+    display: none;
+}
+
+#result > div > p {
+    padding-top: 10px;
+}
+
+body {
+    background-color: #ffffff;
+}
+
+#listing.list .item.header {
+    background-color: #ffffff;
+}
+
+:root {
+    --blue: #0a6df7;
+    --dark-blue: #0a6df7;
+}

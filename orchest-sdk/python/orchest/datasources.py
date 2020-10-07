@@ -5,8 +5,10 @@ from sqlalchemy import create_engine
 import boto3
 import requests
 
+from orchest.config import Config
 from orchest.errors import (
     OrchestNetworkError,
+    OrchestInternalDataSourceError
 )
 
 
@@ -155,7 +157,7 @@ class HostDirectory:
     """
 
     def __init__(self, data):
-        self.path = '/data/' + data['name']
+        self.path = '/mounts/' + data['name']
 
 
 # TODO: could extend this class. Could create multiple classes that
@@ -221,6 +223,10 @@ def get_datasource(name: str):
         A datasource object.
 
     """
+
+    if name in Config.INTERNAL_DATASOURCES:
+        raise OrchestInternalDataSourceError(f"Cannot request internal data source {name}.")
+
     try:
         # TODO: A user should only EVER be able to get credentials to
         # his/her own configured datasources. Even then it is debetable,

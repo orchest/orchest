@@ -25,6 +25,7 @@ ALL_IMAGES = [
     "orchestsoftware/orchest-webserver:latest",
     "orchestsoftware/celery-worker:latest",
     "orchestsoftware/auth-server:latest",
+    "orchestsoftware/file-manager:latest",
     "orchestsoftware/nginx-proxy:latest",
     "rabbitmq:3",
 ]
@@ -35,6 +36,7 @@ ON_START_IMAGES = [
     "orchestsoftware/orchest-webserver:latest",
     "orchestsoftware/celery-worker:latest",
     "orchestsoftware/auth-server:latest",
+    "orchestsoftware/file-manager:latest",
     "orchestsoftware/nginx-proxy:latest",
     "rabbitmq:3",
 ]
@@ -130,6 +132,15 @@ CONTAINER_MAPPING = {
             },
         ],
     },
+    "orchestsoftware/file-manager:latest": {
+        "name": "file-manager",
+        "mounts": [
+            {
+                "source": ENVS["HOST_USER_DIR"],
+                "target": "/userdir"
+            },
+        ],
+    },
     "orchestsoftware/nginx-proxy:latest": {
         "name": "nginx-proxy",
         "ports": {
@@ -140,7 +151,6 @@ CONTAINER_MAPPING = {
     },
     "orchestsoftware/update-server:latest": {
         "name": "update-server",
-        "hostname": "update-server",
         "environment": {
             "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
             "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],

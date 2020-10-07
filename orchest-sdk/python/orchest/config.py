@@ -34,6 +34,10 @@ class Config:
     IDENTIFIER_EVICTION = 2
     CONN_NUM_RETRIES = 20
 
+    # For datasources.py
+    INTERNAL_DATASOURCES = ["_default"]
+
+
     @classmethod
     def get_step_data_dir(cls, step_uuid):
         return cls.STEP_DATA_DIR.format(step_uuid=step_uuid)

@@ -55,9 +55,15 @@ def get_orchest_mounts(param_env):
         for datasource in datasources:
             if datasource['source_type'] != 'host-directory':
                 continue
+            
+            # the default (host) /userdata/data should be mounted in /data
+            if datasource['connection_details']['absolute_host_path'].endswith("/userdir/data"):
+                target_path = '/data'
+            else:
+                target_path = '/mounts/%s' % datasource['name']
 
             mount = Mount(
-                target='/data/%s' % datasource['name'],
+                target=target_path,
                 source=datasource['connection_details']['absolute_host_path'],
                 type='bind'
             )

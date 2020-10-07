@@ -24,7 +24,7 @@ from app.analytics import analytics_ping
 from subprocess import Popen
 from app.views import register_views
 from app.build_commits import register_build_views
-from app.models import Image
+from app.models import Image, DataSource
 from app.connections import db
 from app.utils import get_user_conf
 from app.kernel_manager import populate_kernels
@@ -39,6 +39,33 @@ def initialize_default_images(db):
         if image["name"] not in image_names:
             im = Image(name=image["name"], language=image["language"])
             db.session.add(im)
+            db.session.commit()
+
+
+def initialize_default_datasources(db, app):
+    # pre-populate the datasources
+    datasource_names = [datasource.name for datasource in DataSource.query.all()]
+
+    for datasource in _config.DEFAULT_DATASOURCES:
+        if datasource["name"] not in datasource_names:
+
+            connection_details = datasource["connection_details"]
+            
+            # subtitute $HOST_USER_DIR in absolute_host_path
+            if 'absolute_host_path' in connection_details:
+                if '$HOST_USER_DIR' in connection_details['absolute_host_path']:
+                    absolute_host_path = connection_details['absolute_host_path']
+                    connection_details['absolute_host_path'] = absolute_host_path.replace(
+                        '$HOST_USER_DIR', 
+                        app.config["HOST_USER_DIR"]
+                    )
+
+            ds = DataSource(
+                name=datasource["name"], 
+                connection_details=connection_details, 
+                source_type=datasource["source_type"])
+
+            db.session.add(ds)
             db.session.commit()
 
  
@@ -92,6 +119,7 @@ def create_app():
         db.create_all()
 
         initialize_default_images(db)
+        initialize_default_datasources(db, app)
 
         logging.info("Initializing kernels")
         populate_kernels(app, db)

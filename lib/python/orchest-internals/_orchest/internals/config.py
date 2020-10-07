@@ -19,8 +19,25 @@ ORCHEST_API_ADDRESS = 'orchest-api'
 
 # Images
 DEFAULT_BASE_IMAGES = [
-    {'name': 'orchestsoftware/custom-base-kernel-py', 'language': 'python'},
-    {'name': 'orchestsoftware/custom-base-kernel-r', 'language': 'r'},
+    {
+        'name': 'orchestsoftware/custom-base-kernel-py', 
+        'language': 'python'
+    },
+    {
+        'name': 
+        'orchestsoftware/custom-base-kernel-r', 
+        'language': 'r'
+    },
+]
+
+DEFAULT_DATASOURCES = [
+    {
+        'name': '_default',
+        'connection_details': {
+            'absolute_host_path': '$HOST_USER_DIR/data'
+        },
+        'source_type': 'host-directory'
+    }
 ]
 
 # memory-server
