@@ -1,4 +1,4 @@
-## update-service
+## update-server
 
-This is a stand-alone nginx Flask application that is responsible for updating
-Orchest.
+This is an Flask application that is responsible for performing updates of
+Orchest through the web UI.

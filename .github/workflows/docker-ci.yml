@@ -23,6 +23,7 @@ jobs:
                 -i orchest-ctl -i custom-base-kernel-py -i custom-base-kernel-r,
                 -i nginx-proxy,
                 -i update-server,
+                -i file-manager,
                 -i celery-worker -i memory-server]
   
     steps:
@@ -101,3 +102,15 @@ jobs:
       env:
         DOCKERHUB_REPOSITORY: orchestsoftware/auth-server
         README_FILEPATH: services/auth-server/README.md
+
+    - name: Push README files to DockerHub update-server
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/update-server
+        README_FILEPATH: services/update-server/README.md
+
+    - name: Push README files to DockerHub file-manager
+      uses: peter-evans/dockerhub-description@v2
+      env:
+        DOCKERHUB_REPOSITORY: orchestsoftware/file-manager
+        README_FILEPATH: services/file-manager/README.md
