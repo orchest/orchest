@@ -10,6 +10,7 @@ RUN mkdir -p /orchest/services/orchest-webserver
 COPY ./app /orchest/services/orchest-webserver/app
 COPY ./lib /orchest/lib
 WORKDIR /orchest/services/orchest-webserver/app
+RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
 
 COPY ./lib/javascript/. /orchest/services/orchest-webserver/app/static/js/lib/

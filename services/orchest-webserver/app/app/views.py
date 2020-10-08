@@ -939,12 +939,8 @@ def register_views(app, db):
         if os.path.isfile(notebook_path):
             try:
 
-                with open(notebook_path, "r") as file:
-                    nb = nbformat.read(file, nbformat.NO_CONVERT)
-
                 html_exporter = HTMLExporter()
-
-                (body, resources) = html_exporter.from_notebook_node(nb)
+                (body, _) = html_exporter.from_filename(notebook_path)
 
                 return body
 

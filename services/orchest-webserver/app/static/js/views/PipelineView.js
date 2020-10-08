@@ -651,8 +651,6 @@ class PipelineView extends React.Component {
 
                 if (!step.meta_data._dragged) {
                     _this.refManager.refs[_this.selectedItem].props.onClick(_this.selectedItem);
-                    _this.selectStep(_this.selectedItem);
-
                 } else {
                     dragOp = true;
                 }
@@ -767,7 +765,6 @@ class PipelineView extends React.Component {
         // this.state.steps is assumed to be populated
         // called after render, assumed dom elements are also available
         // (required by i.e. connections)
-        console.log("Initializing pipeline listeners");
 
         // add all existing connections (this happens only at initialization)
         for (let key in this.state.steps) {
