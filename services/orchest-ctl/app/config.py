@@ -68,7 +68,6 @@ CONTAINER_MAPPING = {
                 "target": "/var/run/docker.sock"
             },
         ],
-
     },
     "orchestsoftware/orchest-webserver:latest": {
         "name": "orchest-webserver",

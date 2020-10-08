@@ -28,11 +28,21 @@ def main():
         logging.error("Command `%s` is not supported." % command)
         command = default_cmd
     else:
-        if len(sys.argv) > 2:
-            if sys.argv[2] == "dev":
-                config.RUN_MODE = "dev"
-            elif sys.argv[2] == "web":
-                config.UPDATE_MODE = "web"
+        if len(sys.argv) <= 2:
+            # Do nothing.
+            pass
+        elif sys.argv[2] == "dev":
+            config.RUN_MODE = "dev"
+        elif sys.argv[2] == "web":
+            config.UPDATE_MODE = "web"
+        elif "port" in sys.argv[2]:
+            # port_spec is something like "--port=8080"
+            port_spec = sys.argv[2]
+            port = int(port_spec.split('=')[-1])
+            config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
+                "80/tcp": port,
+                "443/tcp": 443,
+            }
 
     cmd_to_func[command]()
 
