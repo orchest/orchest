@@ -141,7 +141,15 @@ class HostDirectory:
     be accessed from within the pipeline steps.
 
     Args:
-        data:
+        data: Connection information to use the data source. Example::
+
+            {
+                'name': '<datasource-name>',
+                'connection_details': {
+                    'absolute_host_path': '<path>'
+                },
+                'source_type': 'host-directory'
+            }
 
     Attributes:
         path (str): Path at which the host directory data source is
