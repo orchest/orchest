@@ -425,6 +425,7 @@ class PipelineDetailsProperties extends React.Component {
                       mode: 'application/json',
                       theme: 'default',
                       lineNumbers: true,
+                      readOnly: this.props.readOnly === true  // not sure whether CodeMirror accepts 'falsy' values
                   }}
                   onBeforeChange={(editor, data, value) => {
                     this.onChangeParameterJSON(value);
