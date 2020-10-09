@@ -6,6 +6,7 @@ import requests
 import logging
 import nbformat
 import docker
+import subprocess
 
 from sqlalchemy.sql.expression import not_
 from flask import render_template, request, jsonify
@@ -13,7 +14,7 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf, name_to_tag, get_synthesized_images, orchest_ctl
+from app.utils import get_hash, get_user_conf, get_user_conf_raw, save_user_conf_raw, name_to_tag, get_synthesized_images, orchest_ctl
 from app.models import DataSource, Experiment, PipelineRun, Image, Commit
 from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
@@ -532,6 +533,8 @@ def register_views(app, db):
                 db.session.delete(ex)
                 db.session.commit()
 
+                return jsonify({"message": "Experiment termination was successful"})
+
             def post(self, experiment_uuid):
 
                 if Experiment.query.filter(Experiment.uuid == experiment_uuid).count() > 0:
@@ -695,7 +698,12 @@ def register_views(app, db):
         return ''
 
     
-    @app.route("/async/restart", methods=["GET"])
+    @app.route("/heartbeat", methods=["GET"])
+    def heartbeat():
+        return ''
+
+
+    @app.route("/async/restart", methods=["POST"])
     def restart_server():
 
         client = docker.from_env()
@@ -706,6 +714,43 @@ def register_views(app, db):
             orchest_ctl(client, ["restart"])
 
         return ''
+
+    
+    @app.route("/async/version", methods=["GET"])
+    def version():
+
+        git_proc = subprocess.Popen(
+            "echo \"git commit: $(git rev-parse --short HEAD) [$(git rev-parse HEAD)]\"", 
+            cwd="/orchest-host", 
+            shell=True, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        outs, _ = git_proc.communicate()
+
+        return outs
+
+
+    @app.route("/async/user-config", methods=["GET", "POST"])
+    def user_config():
+
+        if request.method == "POST":
+            
+            config = request.form.get("config")
+
+            try:
+                # only save if parseable JSON
+                json.loads(config)
+                save_user_conf_raw(config)
+
+            except json.JSONDecodeError as e:
+                logging.debug(e)
+
+            return ''
+        else:
+            return get_user_conf_raw()
 
 
     @app.route("/async/synthesized-images", methods=["GET"])

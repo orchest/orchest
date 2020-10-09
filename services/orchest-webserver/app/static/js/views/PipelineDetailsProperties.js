@@ -2,8 +2,8 @@ import React from 'react';
 import { extensionFromFilename, filenameWithoutExtension, kernelNameToLanguage, makeCancelable, makeRequest, PromiseManager, RefManager } from "../lib/utils/all";
 import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
-import MDCTextFieldAreaReact from "../lib/mdc-components/MDCTextFieldAreaReact";
-import ExperimentView from './ExperimentView';
+import {Controlled as CodeMirror} from 'react-codemirror2'
+require('codemirror/mode/javascript/javascript');
 
 class ConnectionItem extends React.Component {
     componentDidMount() {
@@ -28,7 +28,9 @@ class PipelineDetailsProperties extends React.Component {
             ],
             "imageOptions": [],
             "isNotebookStep": extensionFromFilename(this.props.step.file_path) == "ipynb",
-            "step": this.props.step
+            "step": this.props.step,
+            // this is required to let users edit JSON (while typing the text will not be valid JSON)
+            "editableParameters": JSON.stringify(this.props.step.parameters, null, 2)
         }
 
         this.refManager = new RefManager();
@@ -120,18 +122,24 @@ class PipelineDetailsProperties extends React.Component {
     }
 
     onChangeParameterJSON(updatedParameterJSON){
-        try{
+
+        this.setState({
+            "editableParameters": updatedParameterJSON
+        })
+
+        try {
+            
             this.state.step.parameters = JSON.parse(updatedParameterJSON);
             this.setState({
                 "step": this.state.step
             });
-    
+
             this.props.onSave(this);
+
+        } catch (err){
+            // console.log("JSON did not parse")
         }
-        catch (err) {
-            console.log("Failed to store parameter JSON")
-            console.log(err);
-        }
+
     }
 
     onChangeMemory(updatedMemory) {
@@ -408,13 +416,28 @@ class PipelineDetailsProperties extends React.Component {
 
             <div className="input-group">
                 <h3>Parameters</h3>
-
-                <MDCTextFieldAreaReact
-                    disabled={this.props.readOnly}
-                    onChange={this.onChangeParameterJSON.bind(this)}
-                    label="JSON parameter description"
-                    value={JSON.stringify(this.state.step.parameters)}
+                
+                <CodeMirror 
+                  value={
+                    this.state.editableParameters
+                  }
+                  options={{
+                      mode: 'application/json',
+                      theme: 'default',
+                      lineNumbers: true,
+                  }}
+                  onBeforeChange={(editor, data, value) => {
+                    this.onChangeParameterJSON(value);
+                  }}
                 />
+
+                {(() => {
+                    try {
+                      JSON.parse(this.state.editableParameters)
+                    }catch {
+                        return <div className="json-warning"><i className="material-icons">warning</i> Your input is not valid JSON.</div>
+                    }
+                })()}
 
             </div>
 

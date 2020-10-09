@@ -16,6 +16,9 @@ class Jupyter {
     updateJupyterInstance(baseAddress, token){
         this.baseAddress = baseAddress;
         this.token = token;
+
+        // when a new token is set, unload iframe since it is no longer valid
+        this.unload();
     }
 
     show(){
@@ -28,6 +31,10 @@ class Jupyter {
     }
     hide(){
         this.jupyterHolder.addClass("hidden");
+    }
+
+    unload(){
+        this.iframe.src = "about:blank";
     }
 
     setJupyterAddress(url){
@@ -71,7 +78,7 @@ class Jupyter {
     }
 
     navigateTo(filePath){
-        if(this.iframe.src.indexOf(this.baseAddress) !== -1){
+        if(this.iframe.src.indexOf(this.baseAddress) !== -1 && this.iframe.contentWindow._orchest_docmanager !== undefined){
             this.iframe.contentWindow._orchest_docmanager.openOrReveal(filePath);
         }else{
             this.setJupyterAddress(this.baseAddress + "lab/workspaces/main/tree/" + filePath + "?token=" + this.token);

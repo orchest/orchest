@@ -113,7 +113,7 @@ class Server(Resource):
         # is to avoid buffering. Since it will be a long running
         # process, we want output whilst the program is running such
         # that we know when and if the server did successfully start.
-        proc = subprocess.Popen(args=args, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(args=args, stdout=subprocess.PIPE, cwd=current_app.config["NOTEBOOK_DIR"])
 
         # Wait for the server to be booted, it will write a message to
         # stdout once successful.

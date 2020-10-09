@@ -4,6 +4,7 @@ import sys
 from typing import Any, Dict
 
 from jupyterlab.labapp import LabApp
+from flask import current_app
 
 
 def _write_server_info_to_file(server_info: Dict[str, Any],
@@ -41,6 +42,7 @@ def _write_server_info_to_file(server_info: Dict[str, Any],
 
 
 def main():
+
     # Add default options.
     # TODO: don't allow to run as root. But to make that work, the
     #       docker image has to be changed in order to allow another
