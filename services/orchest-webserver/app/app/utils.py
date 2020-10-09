@@ -25,7 +25,7 @@ def get_hash(path):
 
 def orchest_ctl(client, command):
 
-    return client.containers.run("orchestsoftware/orchest-ctl:latest", command, detach=False,
+    return client.containers.run("orchestsoftware/orchest-ctl:latest", command, name='orchest-ctl', detach=False,
         mounts=[
             docker.types.Mount(source="/var/run/docker.sock", target="/var/run/docker.sock", type='bind'),
             docker.types.Mount(source=os.environ.get("HOST_REPO_DIR"), target="/orchest-host", type='bind')

@@ -123,14 +123,13 @@ def help():
 
 
 def stop(skip_names=[]):
+
+    # always skip orchest-ctl
+    skip_names.append('orchest-ctl')
     
     containers = docker_client.containers.list(all=True)
 
     for container in containers:
-
-        # don't kill orchest-ctl itself
-        if len(container.image.tags) > 0 and container.image.tags[0] == "orchestsoftware/orchest-ctl:latest":
-            continue
 
         # if name is in skip_names
         if container.name in skip_names:
