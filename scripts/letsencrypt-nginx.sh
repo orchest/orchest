@@ -37,16 +37,9 @@ $DIR/../orchest.sh stop
 
 apt-get install python3-pip -y
 
-# run a virtualenv
-pip3 install virtualenv
-
-mkdir /tmp/letsencrypt
-cd /tmp/letsencrypt
-
-virtualenv venv
-source venv/bin/activate
-
-pip install certbot
+# If you want it to be installed inside a virtualenv, then make sure
+# to activate it beforehand.
+pip3 install certbot
 certbot certonly --noninteractive --standalone --agree-tos -m $EMAIL -d $SITE_DOMAIN
 
 # LE generated certificates should now live in
