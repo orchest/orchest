@@ -53,7 +53,4 @@ check_file $KEY_PATH
 cp $CHAIN_PATH $DIR/../services/nginx-proxy/certs/server.crt
 cp $KEY_PATH $DIR/../services/nginx-proxy/certs/server.key
 
-# clean up tmp
-rm -r /tmp/letsencrypt
-
 echo "When you start Orchest again (with orchest.sh start) it should now expose SSL signed web service on port 443."
