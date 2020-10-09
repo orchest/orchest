@@ -36,6 +36,13 @@ echo "Shutting down Orchest ... (if it was running)"
 $DIR/../orchest.sh stop
 
 apt-get install python3-pip -y
+if [ $? != 0 ]; then
+    # We probably held broken packages so we need to fix them and
+    # try to install again.
+    sudo apt -f install
+    apt update -y && apt dist-upgrade -y
+    apt-get install python3-pip -y
+fi
 
 # If you want it to be installed inside a virtualenv, then make sure
 # to activate it beforehand.
