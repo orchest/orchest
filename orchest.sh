@@ -22,7 +22,7 @@ function update_orchest_ctl {
 }
 
 # Warnings
-if [ $1 == "update" ] ; then
+if [ "$1" == "update" ] ; then
 
     if [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
         update_orchest_ctl
@@ -47,6 +47,12 @@ HOST_USER_DIR=$DIR/userdir
 mkdir -p "${HOST_CONFIG_DIR}"
 chown $USER:$USER "${HOST_CONFIG_DIR}"
 
-docker run --name orchest-ctl --rm \
-    -v /var/run/docker.sock:/var/run/docker.sock -v "${DIR}":/orchest-host -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \
-    -e HOST_REPO_DIR="${DIR}" -e HOST_USER_DIR="${HOST_USER_DIR}" orchestsoftware/orchest-ctl:latest "$@"
+docker run \
+    --rm \
+    --name orchest-ctl \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "${DIR}":/orchest-host \
+    -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \
+    -e HOST_REPO_DIR="${DIR}" \
+    -e HOST_USER_DIR="${HOST_USER_DIR}" \
+    orchestsoftware/orchest-ctl:latest "$@"

@@ -135,15 +135,14 @@ def get_dynamic_mounts(run_config, task_id):
             if datasource['source_type'] != 'host-directory':
                 continue
 
-            source = f'{datasource["connection_details"]["absolute_host_path"]}'
-
             # the default (host) /userdata/data should be mounted in /data
-            if datasource['connection_details']['absolute_host_path'].endswith("/userdir/data"):
+            absolute_host_path = datasource['connection_details']['absolute_host_path']
+            if absolute_host_path.endswith('/userdir/data'):
                 target = '/data'
             else:
                 target = f'/mounts/{datasource["name"]}'
 
-            mounts.append(f'{source}:{target}')
+            mounts.append(f'{absolute_host_path}:{target}')
 
     # Determine the appropriate name for the volume that shares
     # temporary data amongst containers.
@@ -174,7 +173,7 @@ class PipelineStepRunner:
     Attributes:
         properties: see "Args" section.
         parents: see "Args" section.
-        """
+    """
 
     def __init__(self,
                  properties: PipelineStepProperties,

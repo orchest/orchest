@@ -36,17 +36,17 @@ echo "Shutting down Orchest ... (if it was running)"
 $DIR/../orchest.sh stop
 
 apt-get install python3-pip -y
+if [ $? != 0 ]; then
+    # We probably held broken packages so we need to fix them and
+    # try to install again.
+    sudo apt -f install
+    apt update -y && apt dist-upgrade -y
+    apt-get install python3-pip -y
+fi
 
-# run a virtualenv
-pip3 install virtualenv
-
-mkdir /tmp/letsencrypt
-cd /tmp/letsencrypt
-
-virtualenv venv
-source venv/bin/activate
-
-pip install certbot
+# If you want it to be installed inside a virtualenv, then make sure
+# to activate it beforehand.
+pip3 install certbot
 certbot certonly --noninteractive --standalone --agree-tos -m $EMAIL -d $SITE_DOMAIN
 
 # LE generated certificates should now live in
@@ -59,8 +59,5 @@ check_file $KEY_PATH
 # copy certificates to nginx-proxy certs folders
 cp $CHAIN_PATH $DIR/../services/nginx-proxy/certs/server.crt
 cp $KEY_PATH $DIR/../services/nginx-proxy/certs/server.key
-
-# clean up tmp
-rm -r /tmp/letsencrypt
 
 echo "When you start Orchest again (with orchest.sh start) it should now expose SSL signed web service on port 443."

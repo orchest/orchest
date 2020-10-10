@@ -20,12 +20,12 @@ ORCHEST_API_ADDRESS = 'orchest-api'
 # Images
 DEFAULT_BASE_IMAGES = [
     {
-        'name': 'orchestsoftware/custom-base-kernel-py', 
+        'name': 'orchestsoftware/custom-base-kernel-py',
         'language': 'python'
     },
     {
-        'name': 
-        'orchestsoftware/custom-base-kernel-r', 
+        'name':
+        'orchestsoftware/custom-base-kernel-r',
         'language': 'r'
     },
 ]
