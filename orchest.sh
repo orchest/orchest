@@ -45,7 +45,7 @@ HOST_USER_DIR=$DIR/userdir
 
 # create config dir if it doesn't exist
 mkdir -p "${HOST_CONFIG_DIR}"
-chown $USER:$USER "${HOST_CONFIG_DIR}"
+chown $USER "${HOST_CONFIG_DIR}"
 
 docker run \
     --rm \
