@@ -21,6 +21,9 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
         super(PartialExecutePreprocessor, self).__init__(**kw)
 
+        # disable timeout
+        self.timeout = None
+
 
     def preprocess_cell(self, cell, resources, cell_index):
         """
