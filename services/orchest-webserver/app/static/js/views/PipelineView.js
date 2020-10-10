@@ -651,8 +651,6 @@ class PipelineView extends React.Component {
 
                 if (!step.meta_data._dragged) {
                     _this.refManager.refs[_this.selectedItem].props.onClick(_this.selectedItem);
-                    _this.selectStep(_this.selectedItem);
-
                 } else {
                     dragOp = true;
                 }
@@ -767,7 +765,6 @@ class PipelineView extends React.Component {
         // this.state.steps is assumed to be populated
         // called after render, assumed dom elements are also available
         // (required by i.e. connections)
-        console.log("Initializing pipeline listeners");
 
         // add all existing connections (this happens only at initialization)
         for (let key in this.state.steps) {
@@ -906,7 +903,7 @@ class PipelineView extends React.Component {
         if(!this.props.readOnly){
             this.fetchSessionStatus((session) => {
                 if(session === undefined){
-                    this.launchPipeline();
+                    this.launchSession();
                 }
             })
         }
@@ -919,7 +916,7 @@ class PipelineView extends React.Component {
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
 
-    launchPipeline() {
+    launchSession() {
 
         if (this.state.backend.working) {
             let statusText = "launching";
@@ -980,7 +977,10 @@ class PipelineView extends React.Component {
                 "backend": this.state.backend
             })
 
-            let deletePromise = makeCancelable(makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid), this.promiseManager)
+            let deletePromise = makeCancelable(makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid), this.promiseManager);
+            
+            // unload Jupyter
+            orchest.jupyter.unload();
 
             deletePromise.promise.then((response) => {
                 let result = JSON.parse(response);
@@ -1011,11 +1011,32 @@ class PipelineView extends React.Component {
         }
     }
 
+    getRightmostPipelineStepPosition(){
+
+        if(Object.keys(this.state.steps).length == 0){
+            return [0, 0];
+        }
+
+        let maxRight = -Infinity;
+        let maxRightStep;
+
+        for(let stepUUID in this.state.steps){
+            let step = this.state.steps[stepUUID];
+
+            if(step.meta_data.position[0] > maxRight){
+                maxRightStep = step;
+                maxRight = step.meta_data.position[0];
+            }
+        }
+
+        return [...maxRightStep.meta_data.position];
+    }
+
     newStep() {
 
         this.deselectSteps();
 
-        let pipelineStepsHolderJEl = $(this.refManager.refs.pipelineStepsHolder);
+        let position = this.getRightmostPipelineStepPosition();
 
         let step = {
             "title": "",
@@ -1027,13 +1048,9 @@ class PipelineView extends React.Component {
                 "display_name": "Python 3"
             },
             "image": "orchestsoftware/custom-base-kernel-py",
-            // TODO: incorporate pipeline step level resource control
-            // "memory": "1024",
-            // "vcpus": "1",
-            // "gpus": "0",
-            "parameters": "",
+            "parameters": {},
             "meta_data": {
-                "position": [Math.min(pipelineStepsHolderJEl.width() / 2 / 2, 450), pipelineStepsHolderJEl.height() / 2],
+                "position": [position[0] + 250, position[1]],
                 "_dragged": false,
                 "_drag_count": 0,
             }
@@ -1484,12 +1501,6 @@ class PipelineView extends React.Component {
             }
         }
 
-        let pipelineName = "";
-        if (this.state.pipelineJson) {
-            pipelineName = this.state.pipelineJson.name;
-        }
-
-
         let connections_list = [];
         if (this.state.openedStep) {
 
@@ -1535,7 +1546,7 @@ class PipelineView extends React.Component {
                         return <div className={"pipeline-actions"}>
 
                             <MDCButtonReact
-                                onClick={this.launchPipeline.bind(this)}
+                                onClick={this.launchSession.bind(this)}
                                 classNames={this.getPowerButtonClasses()}
                                 label="Session"
                                 icon={this.state.backend.working ? "hourglass_empty" : "power_settings_new"}

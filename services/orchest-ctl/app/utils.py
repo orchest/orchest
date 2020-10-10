@@ -210,6 +210,15 @@ def dev_mount_inject(container_spec):
        "--port=80"
     ]
 
+    # file-manager
+    file_manager_spec = container_spec["orchestsoftware/file-manager:latest"]
+    file_manager_spec['mounts'] += [
+        {
+            "source": os.path.join(HOST_REPO_DIR, "services", "file-manager", "static"),
+            "target": "/custom-static"
+        },
+    ]
+
     # orchest-api
     orchest_api_spec = container_spec["orchestsoftware/orchest-api:latest"]
     orchest_api_spec["mounts"] += [

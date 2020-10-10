@@ -418,20 +418,22 @@ h2.header {
     margin-top: $generalPadding;
   }
 
-  .json-warning {
-    color: orangered;
-    padding: 20px 0;
-
-    .material-icons {
-      float: left;
-      margin-right: 10px;
-      margin-top: -2px;
-    }
-  }
+  
 
   .parameter-editor {
 
     
+  }
+}
+
+.json-warning {
+  color: orangered;
+  padding: 20px 0;
+
+  .material-icons {
+    float: left;
+    margin-right: 10px;
+    margin-top: -2px;
   }
 }
 
@@ -500,6 +502,14 @@ button.themed-secondary {
 
 .fullwidth {
   width: 100%;
+}
+
+span.code {
+  font-family: monospace;
+  background: #eee;
+  border-radius: 3px;
+  padding: 2px 4px;
+  display: inline-block;
 }
 
 .mdc-top-app-bar .mdc-top-app-bar__navigation-icon{

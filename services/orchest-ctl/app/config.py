@@ -88,6 +88,10 @@ CONTAINER_MAPPING = {
             {
                 "source": ENVS["HOST_CONFIG_DIR"],
                 "target": "/config"
+            },
+            {
+                "source": ENVS["HOST_REPO_DIR"],
+                "target": "/orchest-host"
             }
         ],
     },
