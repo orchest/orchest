@@ -23,6 +23,10 @@ included in the root-level ``scripts/`` directory, such as ``build_container.sh`
    git clone https://github.com/orchest/orchest.git
    cd orchest
 
+   # Before Orchest can be run in "dev" mode the front-end code has to
+   # be compiled.
+   scripts/dev_compile_frontend.sh
+
    # Start Orchest in dev mode which mounts the repo code to the correct
    # paths in the Docker containers to not require any rebuilds. In 
    # addition, servers build on Flask are started in development mode.
