@@ -20,8 +20,7 @@ RUN pip install -e /home/jovyan/src/orchest-internals/
 RUN [ "mkdir", "/runner"]
 WORKDIR /runner
 
-COPY ./runnable-shared/run.py /runner
+COPY ./runnable-shared/runner /runner
 
-# Start bootscript that starts kernel or runnable
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 CMD [ "/orchest/bootscript.sh" ]
