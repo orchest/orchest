@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import pyinotify
 import os
 import sys
 import subprocess
@@ -29,8 +28,7 @@ def walk_dir(path):
             fix_path_permission(current_path, os.path.isdir(current_path))
 
 
-if __name__ == "__main__":
-
+def main():
     logger = logging.getLogger('permission_app')
     logger.setLevel(logging.INFO)
 
@@ -49,3 +47,9 @@ if __name__ == "__main__":
     while True:
         walk_dir(sys.argv[1])
         time.sleep(0.5)
+
+
+if __name__ == "__main__":
+    main()
+
+    

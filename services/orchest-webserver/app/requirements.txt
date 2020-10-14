@@ -10,7 +10,6 @@ marshmallow-sqlalchemy
 Flask-Migrate
 requests
 APScheduler
-pyinotify
 nbformat
 docker
 Werkzeug==0.16.0
