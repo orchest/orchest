@@ -14,9 +14,8 @@ differently-licensed material.
 
 Development environment
 -----------------------
-To start hacking on Orchest you simply have to clone the repo from GitHub. Useful scripts are
-included in the root-level ``scripts/`` directory, such as ``build_container.sh`` and 
-``run_tests.sh``.
+To start hacking on Orchest you simply have to clone the repo from GitHub and start Orchest in
+``dev`` mode.
 
 .. code-block:: bash
 
@@ -32,6 +31,14 @@ included in the root-level ``scripts/`` directory, such as ``build_container.sh`
    # addition, servers build on Flask are started in development mode.
    ./orchest.sh start dev
 
+``dev`` mode mounts the repository code from the filesystem (and thus adhering to branches) to the
+appropriate paths in the Docker containers. This allows for active code changes being reflected
+inside the application. In ``dev`` mode the Flask applications are run in development mode. The
+following services support ``dev`` mode (others would have to be rebuild to show code changes):
+``orchest-webserver``, ``auth-server``, ``file-manager`` and ``orchest-api``.
+
+Additional useful scripts are included in the root-level ``scripts/`` directory, such as
+``build_container.sh`` and ``run_tests.sh``.
 
 Feel free to pick up any of the issues on `GitHub <https://github.com/orchest/orchest/issues>`_ or
 create a custom pull request 💪.
