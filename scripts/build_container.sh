@@ -60,6 +60,7 @@ LIB_IMAGES=(
     "orchest-webserver"
     "memory-server"
     "auth-server"
+    "update-server"
     "celery-worker"
 )
 SDK_IMAGES=(

@@ -14,11 +14,13 @@ class Jupyter {
     }
 
     updateJupyterInstance(baseAddress, token){
+        if(this.baseAddress != baseAddress || this.token != this.token){
+            // when a new token is set, unload iframe since it is no longer valid
+            this.unload();
+        }
+
         this.baseAddress = baseAddress;
         this.token = token;
-
-        // when a new token is set, unload iframe since it is no longer valid
-        this.unload();
     }
 
     show(){

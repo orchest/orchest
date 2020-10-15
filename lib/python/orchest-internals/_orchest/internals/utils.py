@@ -1,9 +1,10 @@
 import docker
 import os
+import uuid
 
 def orchest_ctl(client, command):
 
-    return client.containers.run("orchestsoftware/orchest-ctl:latest", command, name='orchest-ctl', detach=True, auto_remove=True,
+    return client.containers.run("orchestsoftware/orchest-ctl:latest", command, name='orchest-ctl-' + str(uuid.uuid4()), detach=True, auto_remove=True,
         mounts=[
             docker.types.Mount(source="/var/run/docker.sock", target="/var/run/docker.sock", type='bind'),
             docker.types.Mount(source=os.environ.get("HOST_REPO_DIR"), target="/orchest-host", type='bind')

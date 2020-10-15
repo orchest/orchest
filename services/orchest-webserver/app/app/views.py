@@ -14,10 +14,11 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf, get_user_conf_raw, save_user_conf_raw, name_to_tag, get_synthesized_images, orchest_ctl
+from app.utils import get_hash, get_user_conf, get_user_conf_raw, save_user_conf_raw, name_to_tag, get_synthesized_images
 from app.models import DataSource, Experiment, PipelineRun, Image, Commit
 from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
+from _orchest.internals.utils import orchest_ctl
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -914,18 +915,6 @@ def register_views(app, db):
     @app.route("/async/pipelines", methods=["GET"])
     def pipelines_get():
 
-        # get active sessions
-        try:
-            resp = requests.get(
-                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/")
-
-            active_pipelines = [ session['pipeline_uuid'] for session in resp.json()["sessions"] ]
-        except Exception as e:
-            logging.info("Unable to get /api/sessions. Error: %e" % e)
-            active_pipelines = []
-        
-
-
         pipelines_dir = get_pipelines_dir()
 
         pipeline_uuids = [f.path for f in os.scandir(
@@ -945,7 +934,6 @@ def register_views(app, db):
                     pipelines.append({
                         "name": pipeline_json["name"],
                         "uuid": pipeline_json["uuid"],
-                        "session_active": pipeline_json["uuid"] in active_pipelines
                     })
 
         json_string = json.dumps(

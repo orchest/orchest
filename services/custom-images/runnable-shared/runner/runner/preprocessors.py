@@ -103,7 +103,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
             except CellExecutionError as e:
 
-                self.log_file.write("%s" % ansi2html(e))
+                self.log_file.write("%s" % e)
                 self.log_file.flush()
 
                 # raise CellExecutionError to avoid execution next cells

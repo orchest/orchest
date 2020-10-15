@@ -9,7 +9,7 @@ from flask import request, Response
 import os
 import subprocess
 import time
-from app.utils import orchest_ctl
+from _orchest.internals.utils import orchest_ctl
 
 executor = ThreadPoolExecutor(1)
 

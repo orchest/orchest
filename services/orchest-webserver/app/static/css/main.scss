@@ -516,6 +516,14 @@ span.code {
   z-index: 9
 }
 
+.session-state-button {
+  &.active {
+    i {
+      color: #00FF00;
+    }
+  }
+}
+
 .pipeline-view {
   position: relative;
   height: 100%;
@@ -567,11 +575,7 @@ span.code {
       margin-bottom: $generalPadding;
       min-width: 0;
 
-      &.active {
-        i {
-          color: #00FF00;
-        }
-      } 
+       
     }
   }
 
@@ -795,6 +799,13 @@ span.code {
 
     .log-content {
       height: 100%;
+
+      > div {
+        height: 100%;
+        > div.xterm {
+          height: 100%;
+        }
+      }
     }
 
     .input-group {

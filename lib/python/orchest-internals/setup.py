@@ -16,4 +16,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.8',
     ],
     license='',
+    install_requires=[
+        'docker'
+    ]
 )
