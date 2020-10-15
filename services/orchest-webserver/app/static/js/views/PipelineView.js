@@ -891,33 +891,10 @@ class PipelineView extends React.Component {
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
 
-    getRightmostPipelineStepPosition(){
-
-        if(Object.keys(this.state.steps).length == 0){
-            return [0, 0];
-        }
-
-        let maxRight = -Infinity;
-        let maxRightStep;
-
-        for(let stepUUID in this.state.steps){
-            let step = this.state.steps[stepUUID];
-
-            if(step.meta_data.position[0] > maxRight){
-                maxRightStep = step;
-                maxRight = step.meta_data.position[0];
-            }
-        }
-
-        return [...maxRightStep.meta_data.position];
-    }
-
     newStep() {
 
         this.deselectSteps();
-
-        let position = this.getRightmostPipelineStepPosition();
-
+        
         let step = {
             "title": "",
             "uuid": uuidv4(),
@@ -930,7 +907,7 @@ class PipelineView extends React.Component {
             "image": "orchestsoftware/custom-base-kernel-py",
             "parameters": {},
             "meta_data": {
-                "position": [position[0] + 250, position[1]],
+                "position": [-9999, -9999],
                 "_dragged": false,
                 "_drag_count": 0,
             }
@@ -940,6 +917,17 @@ class PipelineView extends React.Component {
         this.setState({ "steps": this.state.steps });
 
         this.selectStep(step.uuid);
+        
+        // wait for single render call
+        setTimeout(() => {
+            let pipelineHolderSize = {
+                width: this.refManager.refs.pipelineStepsOuterHolder.clientWidth,
+                height: this.refManager.refs.pipelineStepsOuterHolder.clientHeight
+            }
+            step["meta_data"]["position"] = [pipelineHolderSize.width/2 - 190/2, pipelineHolderSize.height/2 - 105/2];
+
+            this.refManager.refs[step.uuid].updatePosition(this.state.steps[step.uuid].meta_data.position);
+        },0);
 
     }
 
