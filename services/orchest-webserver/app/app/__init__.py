@@ -134,7 +134,7 @@ def create_app():
 
     register_views(app, db)
     register_build_views(app, db, socketio)
-    register_socketio_broadcast(socketio)
+    register_socketio_broadcast(db, socketio)
 
     if "TELEMETRY_DISABLED" not in app.config and os.environ.get("FLASK_ENV") != "development":
         # create thread for analytics
