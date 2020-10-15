@@ -6,6 +6,7 @@ import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import NotebookPreviewView from './NotebookPreviewView';
+import io from 'socket.io-client';
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 
@@ -276,7 +277,7 @@ class PipelineView extends React.Component {
 
                 // perform POST to save
                 makeRequest("POST", "/async/pipelines/json/save", {type: "FormData", content: formData}).then(() => {
-                  if(callback){
+                  if(callback && typeof callback == "function"){
                       callback();
                   }  
                 });
@@ -368,6 +369,18 @@ class PipelineView extends React.Component {
     componentDidMount() {
 
         this.fetchPipelineAndInitialize()
+        this.connectSocketIO()
+
+    }
+
+    connectSocketIO(){
+
+        // disable polling
+        this.sio = io.connect("/pty", {"transports": ['websocket']});
+
+        this.sio.on('connect', () => {
+            console.log("SocketIO connected on /pty");
+        })
 
     }
 
@@ -1599,6 +1612,7 @@ class PipelineView extends React.Component {
             {(() => {
                 if (this.state.openedStep) {
                     return <PipelineDetails
+                        sio={this.sio}
                         readOnly={this.props.readOnly}
                         onSave={this.onSaveDetails.bind(this)}
                         onNameUpdate={this.stepNameUpdate.bind(this)}

@@ -15,6 +15,7 @@ import requests
 import uuid
 import atexit
 import contextlib
+import subprocess
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
@@ -24,6 +25,7 @@ from app.analytics import analytics_ping
 from subprocess import Popen
 from app.views import register_views
 from app.build_commits import register_build_views
+from app.socketio_server import register_socketio_broadcast
 from app.models import Image, DataSource
 from app.connections import db
 from app.utils import get_user_conf
@@ -132,6 +134,7 @@ def create_app():
 
     register_views(app, db)
     register_build_views(app, db, socketio)
+    register_socketio_broadcast(socketio)
 
     if "TELEMETRY_DISABLED" not in app.config and os.environ.get("FLASK_ENV") != "development":
         # create thread for analytics
@@ -143,29 +146,36 @@ def create_app():
         # and every 15 minutes
         scheduler.add_job(analytics_ping, 'interval', minutes=app.config["TELEMETRY_INTERVAL"], args=[app])
         scheduler.start()
-
     
-    # Start file_permission_watcher in another process
-    # TODO: reconsider file permission approach
+    
     processes = []
 
     if process_start_gate():
         
         file_dir = os.path.dirname(os.path.realpath(__file__)) 
-
-        # file permission process
+        
+        # TODO: reconsider file permission approach
+        # file_permission_watcher process
         permission_process = Popen(
-            ["python3", "-m", "scripts.file_permission_watcher", app.config["USER_DIR"]], cwd=os.path.join(file_dir, "..")
+            ["python3", "-m", "scripts.file_permission_watcher", app.config["USER_DIR"]], cwd=os.path.join(file_dir, ".."), stderr=subprocess.STDOUT
         )
         logging.info("Started file_permission_watcher.py")
         processes.append(permission_process)
 
-        # docker builder process
+        # docker_builder process
         docker_builder_process = Popen(
-            ["python3", "-m", "scripts.docker_builder", app.config["USER_DIR"]], cwd=os.path.join(file_dir, "..")
+            ["python3", "-m", "scripts.docker_builder"], cwd=os.path.join(file_dir, ".."), stderr=subprocess.STDOUT
         )
         logging.info("Started docker_builder.py")
         processes.append(docker_builder_process)
+
+        # log_streamer process
+        log_streamer_process = Popen(
+            ["python3", "-m", "scripts.log_streamer"], cwd=os.path.join(file_dir, ".."), stderr=subprocess.STDOUT
+        )
+
+        logging.info("Started log_streamer.py")
+        processes.append(log_streamer_process)
     
     return app, socketio, processes
 

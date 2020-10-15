@@ -666,9 +666,7 @@ def register_views(app, db):
         for pipeline_run in pipeline_runs:
             pipeline_runs_dict[pipeline_run.id] = pipeline_run
 
-        # TODO: sort pipeline_runs
         json_return = resp.json()
-
         json_return["pipeline_runs"] = sorted(json_return['pipeline_runs'], key= lambda x: x["pipeline_run_id"])
 
         # augment response with parameter values that are stored on the webserver

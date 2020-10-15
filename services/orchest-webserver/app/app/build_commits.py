@@ -58,13 +58,6 @@ def register_build_views(app, db, socketio):
             else:
                 logging.info("Tried to announce build finished SocketIO event for non-existing Commit with uuid: %s" 
                     % data["commit_uuid"])
-        
-        elif data["action"] == "pty-broadcast":
-
-            socketio.emit(
-                "pty-output", 
-                {"output": data["output"], "commit_uuid": data["commit_uuid"]}, 
-                namespace="/pty")
 
 
     @socketio.on("connect", namespace="/pty")

@@ -73,7 +73,7 @@ class PipelineDetails extends React.Component {
                 subView = <PipelineDetailsProperties readOnly={this.props.readOnly} onNameUpdate={this.props.onNameUpdate} onSave={this.props.onSave} connections={this.props.connections} step={this.props.step} onChange={this.props.onChange} />;
                 break;
             case 1:
-                subView = <PipelineDetailsLogs pipelineRun={this.props.pipelineRun} step={this.props.step} pipeline={this.props.pipeline} />
+                subView = <PipelineDetailsLogs sio={this.props.sio} pipelineRun={this.props.pipelineRun} step={this.props.step} pipeline={this.props.pipeline} />
         }
 
         return <div className={"pipeline-details pane"}>

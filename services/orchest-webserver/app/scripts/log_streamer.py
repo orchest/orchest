@@ -3,12 +3,19 @@
 import socketio
 import logging
 import os
+import sys
+
+from datetime import datetime, timedelta
 
 from _orchest.internals import config as _config
 
+# timeout after 2 minutes, heartbeat should be sent every minute
+HEARTBEAT_TIMEOUT = timedelta(minutes=2) 
 
+logger = None
 log_file_store = {}
 file_handles = {}
+
 
 class LogFile():
 
@@ -18,9 +25,13 @@ class LogFile():
         self.step_uuid = step_uuid
         self.pipeline_run_uuid = pipeline_run_uuid
         self.experiment_uuid = experiment_uuid
+        self.log_uuid = ""
+        self.last_heartbeat = datetime.now()
 
 
 def file_reader_loop(sio):
+
+    logging.info("Entered file_reader_loop")
     
     while True:
 
@@ -35,25 +46,73 @@ def file_reader_loop(sio):
                 all_files_at_end = False
 
         if all_files_at_end:
-            sio.sleep(0.1)
+            #logging.info("entering sio sleep 0.01 sec")
+            sio.sleep(0.01)
             
 
 def read_emit_all_lines(file, sio, session_uuid):
 
     has_emitted = False
+
+    # logging.info("read_emit_all_lines for session_uuid %s" % session_uuid)
+
+    # check if heartbeat has timed-out
+    if log_file_store[session_uuid].last_heartbeat < datetime.now() - HEARTBEAT_TIMEOUT:
+        logging.info("Clearing %s session due to heartbeat timeout." % session_uuid)
+        clear_log_file(session_uuid)
+        return has_emitted
+
+    # check if log_uuid is current log_uuid
+    latest_log_file = open(get_log_path(log_file_store[session_uuid]), "r")
+    latest_log_file.seek(0)
+    read_log_uuid = latest_log_file.readline().strip()
+
+    # logging.info("read_log_uuid: %s" % (read_log_uuid))
+
+    if read_log_uuid != log_file_store[session_uuid].log_uuid and len(read_log_uuid) > 0:
+        
+        logging.info("resetting pty uuids: %s %s %s" % (read_log_uuid, log_file_store[session_uuid].log_uuid, session_uuid))
+
+        sio.emit("pty-log-manager", {
+                "action": "pty-reset",
+                "session_uuid": session_uuid
+            }, namespace="/pty")
+
+        log_file_store[session_uuid].log_uuid = read_log_uuid
+
+        # new file detected - swap file handle
+        try:
+            file_handles[session_uuid].close()
+        except IOError as e:
+            raise Exception("Failed to close file %s for session_uuid %s" % (e, session_uuid))
+
+        file_handles[session_uuid] = latest_log_file
+
+        has_emitted = True
+        return has_emitted
+    else:
+        try:
+            latest_log_file.close()
+        except IOError as e:
+            raise Exception("Failed to close new file %s for session_uuid %s" % (e, session_uuid))
     
+    
+    line_buffer = []
+
     while True:
         line = file.readline()
 
         # readline returns the empty string if the end of the file has been reached
         if line != "":
-            sio.emit("pty-log-manager", {
-                "output": line,
-                "action": "pty-broadcast",
-                "session_uuid": session_uuid
-            })
+            line_buffer.append(line)
             has_emitted = True
         else:
+            if len(line_buffer) > 0:
+                sio.emit("pty-log-manager", {
+                    "output": ''.join(line_buffer).rstrip(),
+                    "action": "pty-broadcast",
+                    "session_uuid": session_uuid
+                }, namespace="/pty")
             break
 
     return has_emitted
@@ -71,23 +130,40 @@ def get_pipeline_dir(pipeline_uuid, pipeline_run_uuid=None, experiment_uuid=None
     else:
         pipeline_dir_parts += ["pipelines", pipeline_uuid]
 
-    return os.path.join(pipeline_dir_parts)
+    return os.path.join(*pipeline_dir_parts)
+
+
+def get_log_path(log_file):
+
+    pipeline_dir = get_pipeline_dir(
+        log_file.pipeline_uuid, 
+        log_file.pipeline_run_uuid, 
+        log_file.experiment_uuid
+    )
+
+    return os.path.join(
+            pipeline_dir, _config.LOGS_PATH, "%s.log" % log_file.step_uuid)
+
+
+def clear_log_file(session_uuid):
+    global log_file_store
+    
+    close_file_handle(session_uuid)
+    del log_file_store[session_uuid]
 
 
 def create_file_handle(log_file):
     global file_handles
 
-    pipeline_dir = get_pipeline_dir(log_file.pipeline_uuid, log_file.pipeline_run_uuid, log_file.experiment_uuid)
+    log_path = get_log_path(log_file)
 
-    log_path = os.path.join(
-            pipeline_dir, _config.LOGS_PATH, "%s.log" % log_file.step_uuid)
+    file = open(log_path, 'r')
+    file.seek(0)
 
-    file_handles[log_file.session_uuid] = open(log_path, 'r')
+    file_handles[log_file.session_uuid] = file
 
 
 def close_file_handle(session_uuid):
-    global file_handles
-
     try:
         file_handles[session_uuid].close()
     except IOError as exc:
@@ -95,10 +171,13 @@ def close_file_handle(session_uuid):
 
             
 def main():
-    global file_store
+    global log_file_store
+    global logger
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     logging.info("log_streamer started")
-    
+
     # Connect to SocketIO server as client
     sio = socketio.Client()
 
@@ -108,11 +187,15 @@ def main():
     def on_connect():
         logging.info("SocketIO connection established on namespace /pty")
 
-
-    @sio.on("pty-log-manager", namespace="/pty")
+    @sio.on("pty-log-manager-receiver", namespace="/pty")
     def process_log_manager(data):
+        global log_file_store
+
+        logging.info("EVENT received pty-log-manager-receiver %s" % data)
 
         if data["action"] == "fetch-logs":
+
+            logging.info("SocketIO action fetch-logs session_uuid %s" % data["session_uuid"])
             
             log_file = LogFile(
                 data["session_uuid"],
@@ -128,11 +211,28 @@ def main():
 
             create_file_handle(log_file)
 
-            pass
-        elif data["action"] == "stop-logs":
-            pass
+            logging.info("Added session_uuid (%s)" % data["session_uuid"])
 
-    
+
+        elif data["action"] == "stop-logs":
+            session_uuid = data["session_uuid"]
+            if session_uuid in log_file_store.keys():
+                
+                clear_log_file(session_uuid)
+
+                logging.info("Removed session_uuid (%s)" % session_uuid)
+            else:
+                logging.error("Tried removing session_uuid (%s) which is not in log_file_store." % session_uuid)
+                
+        elif data["action"] == "heartbeat":
+
+            session_uuid = data["session_uuid"]
+            if session_uuid in log_file_store.keys():
+                logging.info("Received heartbeat for session %s" % session_uuid)
+                log_file_store[session_uuid].last_heartbeat = datetime.now()
+            else:
+                logging.error("Received heartbeat for log_file with session_uuid %s that isn't registered." % session_uuid)
+
     # Initialize file reader loop
     file_reader_loop(sio)
 
