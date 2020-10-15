@@ -427,7 +427,7 @@ def register_views(app, db):
                 if show_internal:
                     datasources = DataSource.query.all()
                 else:
-                    datasources = DataSource.query.filter(not_(DataSource.name.startswith('_'))).all()
+                    datasources = DataSource.query.filter(~DataSource.name.like("\_%", escape="\\")).all()
                 
                 return datasources_schema.dump(datasources)
 
