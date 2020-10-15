@@ -18,11 +18,12 @@ class Runner():
         # current behaviour is to always clear old logs
         self.clear_pipeline_step_log()
 
+        # make sure log directory exists
+        self.create_pipeline_dir()
+
         # make sure each log starts with a unique uuid on its first line
         self.print_unique_line()
 
-        # make sure log directory exists
-        self.create_pipeline_dir()
 
     def print_unique_line(self):
 
@@ -74,6 +75,8 @@ class ProcessRunner(Runner):
 
 class NotebookRunner(Runner):
 
+    write_after_run = True
+
     def run(self, file_path):
 
         super().run()
@@ -98,9 +101,10 @@ class NotebookRunner(Runner):
                 ep = PartialExecutePreprocessor(log_file=log_file)
                 ep.preprocess(nb, {"metadata": {"path": Config.WORKING_DIR}})
 
-        with open(file_path, 'w', encoding='utf-8') as f:
-            nb.metadata.kernelspec.name = inverted(kernel_mapping)[nb.metadata.kernelspec.name]
-            nbformat.write(nb, f)
+        if self.write_after_run:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                nb.metadata.kernelspec.name = inverted(kernel_mapping)[nb.metadata.kernelspec.name]
+                nbformat.write(nb, f)
 
 
     

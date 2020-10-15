@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [jupyter-server, memory-server, orchest-api, orchest-sdk]
+        service: [jupyter-server, memory-server, orchest-api, orchest-sdk, custom-images-runnable]
 
     steps:
     - uses: actions/checkout@v2

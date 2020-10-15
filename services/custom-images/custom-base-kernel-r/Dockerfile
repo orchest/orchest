@@ -8,19 +8,11 @@ WORKDIR /orchest
 
 COPY ./custom-base-kernel-r/*.sh /orchest/
 
-# Run augment script
-RUN ./augment-root.sh
-
 # Install our internal libraries
-RUN mkdir -p /home/jovyan/src
-COPY ./lib/python /home/jovyan/src
-RUN pip install -e /home/jovyan/src/orchest-internals/
+COPY ./runnable-shared/runner /orchest/services/custom-images/runnable-shared/runner
+WORKDIR /orchest/services/custom-images/runnable-shared/runner
 
-# Copy run script
-RUN [ "mkdir", "/runner"]
-WORKDIR /runner
-
-COPY ./runnable-shared/runner /runner
+RUN pip install -e requirements.txt
 
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 CMD [ "/orchest/bootscript.sh" ]

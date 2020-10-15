@@ -1,0 +1,6 @@
+nbformat
+nbconvert
+IPython
+ipykernel
+-e ../../../../orchest-sdk/python/
+-e ../../../../lib/python/orchest-internals

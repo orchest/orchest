@@ -8,8 +8,8 @@ from nbconvert.filters import ansi2html
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
 
-    def __init__(self, **kw):
-        self.log_file = kw['log_file']
+    def __init__(self, log_file, **kw):
+        self.log_file = log_file
 
         self.printed_indices = set()
 
