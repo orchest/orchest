@@ -18,7 +18,7 @@ from app.utils import get_hash, get_user_conf, get_user_conf_raw, save_user_conf
 from app.models import DataSource, Experiment, PipelineRun, Image, Commit
 from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
-from _orchest.internals.utils import orchest_ctl
+from _orchest.internals.utils import run_orchest_ctl
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -692,7 +692,7 @@ def register_views(app, db):
 
         client = docker.from_env()
         
-        orchest_ctl(client, ["_updateserver"])
+        run_orchest_ctl(client, ["_updateserver"])
 
         return ''
 
@@ -708,9 +708,9 @@ def register_views(app, db):
         client = docker.from_env()
         
         if request.args.get("mode") == "dev":
-            orchest_ctl(client, ["restart", "dev"])
+            run_orchest_ctl(client, ["restart", "dev"])
         else:
-            orchest_ctl(client, ["restart"])
+            run_orchest_ctl(client, ["restart"])
 
         return ''
 

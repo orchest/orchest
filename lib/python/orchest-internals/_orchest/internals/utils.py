@@ -2,7 +2,7 @@ import docker
 import os
 import uuid
 
-def orchest_ctl(client, command):
+def run_orchest_ctl(client, command):
 
     return client.containers.run("orchestsoftware/orchest-ctl:latest", command, name='orchest-ctl-' + str(uuid.uuid4()), detach=True, auto_remove=True,
         mounts=[
