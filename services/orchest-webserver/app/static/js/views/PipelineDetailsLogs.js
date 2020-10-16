@@ -1,5 +1,9 @@
 import React from 'react';
-import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
+import { RefManager, uuidv4 } from "../lib/utils/all";
+import { XTerm } from 'xterm-for-react';
+import { FitAddon } from 'xterm-addon-fit';
+
+require('codemirror/mode/shell/shell');
 
 class PipelineDetailsLogs extends React.Component {
   constructor(props) {
@@ -9,66 +13,99 @@ class PipelineDetailsLogs extends React.Component {
       logs: ''
     };
 
-    this.promiseManager = new PromiseManager();
+    this.refManager = new RefManager();
+    this.fitAddon = new FitAddon();
+
+    this.HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
   }
   componentDidMount() {
 
-    // start listener
-    this.fetchLog();
+    // intialize socket.io listener
+    this.initializeSocketIOListener();
+    this.startLogSession();
+    
+  }
 
-    this.logFetchInterval = setInterval(() => {
-      this.fetchLog();
-    }, 1000);
+  initializeSocketIOListener(){
+    this.onPtyOutputHandler = ((data) => {
+      if(data.session_uuid == this.session_uuid){
+        let lines = data.output.split("\n");
+        for(let line of lines){
+          this.refManager.refs.term.terminal.writeln(line);
+        }
+      }
+    });
 
+    this.onPtyReset = ((data) => {
+      if(data.session_uuid == this.session_uuid){
+        this.refManager.refs.term.terminal.clear();
+      }
+    });
+
+    this.props.sio.on("pty-output", this.onPtyOutputHandler)
+    this.props.sio.on("pty-reset", this.onPtyReset);
+
+
+    // heartbeat message
+    this.heartBeatInterval = setInterval(() => {
+
+      if(this.session_uuid){
+        this.props.sio.emit("pty-log-manager", {
+          "action": "heartbeat",
+          "session_uuid": this.session_uuid
+        });
+      }else{
+        console.warn("heartbeat can only be sent when session_uuid is set")
+      }
+
+    }, this.HEARTBEAT_INTERVAL);
   }
 
   componentWillUnmount() {
-    clearInterval(this.logFetchInterval);
-    this.promiseManager.cancelCancelablePromises();
+    this.stopLog();
+
+    this.props.sio.off("pty-output", this.onPtyOutputHandler);
+    this.props.sio.off("pty-reset", this.onPtyReset);
+
+    clearInterval(this.heartBeatInterval);
   }
 
   componentDidUpdate(prevProps){
-    if(this.props.step.uuid != prevProps.step.uuid){
-      this.setState({
-        logs: ""
-      })
-    }
-  }
-  
-  fetchLog() {
 
-    let logURL = "/async/logs/" + this.props.pipeline.uuid + "/" + this.props.step.uuid;
+    this.fitAddon.fit();
+  }
+
+  stopLog(){
+    this.props.sio.emit("pty-log-manager", {
+      "action": "stop-logs",
+      "session_uuid": this.session_uuid
+    });
+  }
+
+  startLogSession() {
+
+    this.session_uuid = uuidv4();
+
+    let data = {
+      "action": "fetch-logs",
+      "session_uuid": this.session_uuid, 
+      "pipeline_uuid": this.props.pipeline.uuid,
+      "step_uuid": this.props.step.uuid
+    }
 
     if(this.props.pipelineRun){
-      logURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+      data["pipeline_run_uuid"] = this.props.pipelineRun.run_uuid;
+      data["experiment_uuid"] = this.props.pipelineRun.experiment_uuid;
     }
 
-    let fetchLogPromise = makeCancelable(makeRequest("GET", logURL), this.promiseManager);
-    
-    fetchLogPromise.promise.then((response) => {
-      let json = JSON.parse(response);
-      if (json.success) {
-        this.setState({
-          "logs": json.result
-        })
-      } else {
-        console.warn("Could not fetch logs.");
-        console.log(json);
-      }
-    }).catch((error) => {
-      if(!error.isCanceled){
-        // failed to fetch logs, clear log state
-        this.setState({
-          "logs": ""
-        })
-      }
-    })
+    this.props.sio.emit("pty-log-manager", data);
     
   }
+
   render() {
     return <div className={"detail-subview"}>
-      <div className="log-content console-output">
-        <div dangerouslySetInnerHTML={{"__html": this.state.logs}}></div>
+      <div className="log-content">
+        <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
       </div>
     </div>;
   }

@@ -3,25 +3,22 @@ FROM elyra/kernel-r:2.2.0
 
 USER root
 
-RUN [ "mkdir", "/orchest"]
-WORKDIR /orchest
+WORKDIR /
 
-COPY ./custom-base-kernel-r/*.sh /orchest/
+# mysql_config is required for orchest-sdk
+COPY ./custom-base-kernel-r/*.sh /
 
 # Run augment script
 RUN ./augment-root.sh
 
 # Install our internal libraries
-RUN mkdir -p /home/jovyan/src
-COPY ./lib/python /home/jovyan/src
-RUN pip install -e /home/jovyan/src/orchest-internals/
+COPY ./lib /orchest/lib
+COPY ./orchest-sdk /orchest/orchest-sdk
 
-# Copy run script
-RUN [ "mkdir", "/runner"]
-WORKDIR /runner
+COPY ./runnable-shared/runner /orchest/services/custom-images/runnable-shared/runner
+WORKDIR /orchest/services/custom-images/runnable-shared/runner
 
-COPY ./runnable-shared/run.py /runner
+RUN pip install -r requirements.txt
 
-# Start bootscript that starts kernel or runnable
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 CMD [ "/orchest/bootscript.sh" ]

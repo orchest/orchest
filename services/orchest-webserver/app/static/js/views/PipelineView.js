@@ -6,6 +6,8 @@ import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import NotebookPreviewView from './NotebookPreviewView';
+import io from 'socket.io-client';
+import SessionToggleButton from '../components/SessionToggleButton';
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 
@@ -206,11 +208,41 @@ class PipelineView extends React.Component {
                 this.state.runStatusEndpoint = "/api-proxy/api/experiments/" + this.props.pipelineRun.experiment_uuid + "/";
                 this.pollPipelineStepStatuses();
                 this.startStatusInterval();
-            } catch {
-                console.log("this.props.pipelineRun.run_uuid is not defined")
+            } catch(e) {
+                console.log("could not start pipeline status updates: " + e);
             }
+        }else{
+            // retrieve interactive run runUUID to show pipeline exeuction state
+            this.fetchActivePipelineRuns();
         }
 
+    }
+
+    fetchActivePipelineRuns(){
+        let pipelineRunsPromise = makeCancelable(makeRequest("GET", "/api-proxy/api/runs/"), this.promiseManager);
+        
+        pipelineRunsPromise.promise.then((response) => {
+            let data = JSON.parse(response);
+
+            try{
+                // TODO: make sure this order is guaranteed by orchest-api
+                // (newest run last in the list)
+                data["runs"].reverse();
+                
+                for(let run of data["runs"]){
+
+                    if(run.pipeline_uuid == this.props.pipeline_uuid){
+                        
+                        this.state.runUUID = run.run_uuid;
+                        this.pollPipelineStepStatuses();
+                        this.startStatusInterval();
+                        break;
+                    }
+                }
+            } catch(e){
+                console.log("Error parsing return from orchest-api " + e);
+            }
+        })
     }
 
     validatePipelineJSON(pipelineJSON){
@@ -276,7 +308,7 @@ class PipelineView extends React.Component {
 
                 // perform POST to save
                 makeRequest("POST", "/async/pipelines/json/save", {type: "FormData", content: formData}).then(() => {
-                  if(callback){
+                  if(callback && typeof callback == "function"){
                       callback();
                   }  
                 });
@@ -368,6 +400,18 @@ class PipelineView extends React.Component {
     componentDidMount() {
 
         this.fetchPipelineAndInitialize()
+        this.connectSocketIO()
+
+    }
+
+    connectSocketIO(){
+
+        // disable polling
+        this.sio = io.connect("/pty", {"transports": ['websocket']});
+
+        this.sio.on('connect', () => {
+            console.log("SocketIO connected on /pty");
+        })
 
     }
 
@@ -809,68 +853,7 @@ class PipelineView extends React.Component {
         }
     }
 
-    initializeFetchSessionPolling(){
-        clearInterval(this.sessionPollingInterval);
-
-        this.sessionPollingInterval = setInterval(() => {
-            this.fetchSessionStatus();
-        }, this.STATUS_POLL_FREQUENCY);
-    }
-
-    fetchSessionStatus(callback){
-        let fetchSessionPromise = makeCancelable(makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + this.props.pipeline_uuid), this.promiseManager);
-
-        fetchSessionPromise.promise.then((response) => {
-            let session;
-
-            let result = JSON.parse(response);
-
-            if(result.sessions.length > 0){
-                 session = result.sessions[0];
-
-                if(session.status == "RUNNING"){
-
-                    this.state.backend.jupyter_server_ip = session.jupyter_server_ip;
-                    this.state.backend.notebook_server_info = session.notebook_server_info;
-                    this.state.backend.running = true;
-                    this.state.backend.working = false;
-                    this.updateJupyterInstance();
-
-                    clearInterval(this.sessionPollingInterval);
-
-                } else if (session.status == "LAUNCHING"){
-
-                    this.state.backend.running = false;
-                    this.state.backend.working = true;
-
-                    this.initializeFetchSessionPolling();
-
-                } else if (session.status == "STOPPING"){
-
-                    this.state.backend.jupyter_server_ip = session.jupyter_server_ip;
-                    this.state.backend.notebook_server_info = session.notebook_server_info;
-                    this.state.backend.running = true;
-                    this.state.backend.working = true;
-
-                    this.initializeFetchSessionPolling();
-
-                }
-            } else {
-                this.state.backend.running = false;
-                this.state.backend.working = false;
-
-                clearInterval(this.sessionPollingInterval);
-            }
-
-            this.setState({ "backend": this.state.backend });
-
-            if(callback){
-                callback(session);
-            }
-
-        });
-
-    }
+    
 
     fetchPipelineAndInitialize() {
         let pipelineURL = "/async/pipelines/json/get/" + this.props.pipeline_uuid;
@@ -899,15 +882,6 @@ class PipelineView extends React.Component {
             
         });
 
-        // get backend status
-        if(!this.props.readOnly){
-            this.fetchSessionStatus((session) => {
-                if(session === undefined){
-                    this.launchSession();
-                }
-            })
-        }
-
     }
 
     updateJupyterInstance() {
@@ -916,128 +890,10 @@ class PipelineView extends React.Component {
         orchest.jupyter.updateJupyterInstance(baseAddress, token);
     }
 
-    launchSession() {
-
-        if (this.state.backend.working) {
-            let statusText = "launching";
-            if(this.state.backend.running){
-                statusText = "shutting down";
-            }
-            orchest.alert("Error", "Please wait, the pipeline session is still " + statusText + ".");
-            return
-        }
-
-        if (!this.state.backend.running) {
-
-            // send launch request to API
-            let data = {
-                "pipeline_uuid": this.props.pipeline_uuid,
-            };
-
-            this.state.backend.working = true;
-
-            this.setState({ "backend": this.state.backend });
-
-            let launchPromise = makeCancelable(makeRequest("POST", "/catch/api-proxy/api/sessions/", {"type": "json", content: data}), this.promiseManager);
-
-            launchPromise.promise.then((response) => {
-                let json = JSON.parse(response);
-
-                console.log("API launch result");
-                console.log(json);
-
-                this.state.backend.running = true;
-                this.state.backend.working = false;
-
-                this.state.backend.jupyter_server_ip = json.jupyter_server_ip;
-                this.state.backend.notebook_server_info = json.notebook_server_info;
-
-                this.setState({ "backend": this.state.backend });
-
-                this.updateJupyterInstance();
-                
-            }).catch((e) => {
-
-                if(!e.isCanceled){
-                    console.log(e)
-
-                    this.state.backend.running = false;
-                    this.state.backend.working = false;
-    
-                    this.setState({ "backend": this.state.backend });
-                }
-            })
-
-            
-
-        } else {
-
-            this.state.backend.working = true;
-            this.setState({
-                "backend": this.state.backend
-            })
-
-            let deletePromise = makeCancelable(makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid), this.promiseManager);
-            
-            // unload Jupyter
-            orchest.jupyter.unload();
-
-            deletePromise.promise.then((response) => {
-                let result = JSON.parse(response);
-                console.log("API delete result");
-                console.log(result);
-
-                this.state.backend.running = false;
-                this.state.backend.working = false;
-                this.setState({ "backend": this.state.backend });
-
-            }).catch((err) => {
-
-                if(!err.isCanceled){
-                    console.log("Error during request DELETEing launch to orchest-api.")
-                    console.log(err);
-    
-                    if(err === undefined || (err && err.isCanceled !== true)){
-                        this.state.backend.running = true;
-                        this.state.backend.working = false;
-    
-                        this.setState({ "backend": this.state.backend });
-                    }
-                }
-                
-            });
-
-            
-        }
-    }
-
-    getRightmostPipelineStepPosition(){
-
-        if(Object.keys(this.state.steps).length == 0){
-            return [0, 0];
-        }
-
-        let maxRight = -Infinity;
-        let maxRightStep;
-
-        for(let stepUUID in this.state.steps){
-            let step = this.state.steps[stepUUID];
-
-            if(step.meta_data.position[0] > maxRight){
-                maxRightStep = step;
-                maxRight = step.meta_data.position[0];
-            }
-        }
-
-        return [...maxRightStep.meta_data.position];
-    }
-
     newStep() {
 
         this.deselectSteps();
-
-        let position = this.getRightmostPipelineStepPosition();
-
+        
         let step = {
             "title": "",
             "uuid": uuidv4(),
@@ -1050,7 +906,7 @@ class PipelineView extends React.Component {
             "image": "orchestsoftware/custom-base-kernel-py",
             "parameters": {},
             "meta_data": {
-                "position": [position[0] + 250, position[1]],
+                "position": [-9999, -9999],
                 "_dragged": false,
                 "_drag_count": 0,
             }
@@ -1060,6 +916,17 @@ class PipelineView extends React.Component {
         this.setState({ "steps": this.state.steps });
 
         this.selectStep(step.uuid);
+        
+        // wait for single render call
+        setTimeout(() => {
+            let pipelineHolderSize = {
+                width: this.refManager.refs.pipelineStepsOuterHolder.clientWidth,
+                height: this.refManager.refs.pipelineStepsOuterHolder.clientHeight
+            }
+            step["meta_data"]["position"] = [pipelineHolderSize.width/2 - 190/2, pipelineHolderSize.height/2 - 105/2];
+
+            this.refManager.refs[step.uuid].updatePosition(this.state.steps[step.uuid].meta_data.position);
+        },0);
 
     }
 
@@ -1401,6 +1268,37 @@ class PipelineView extends React.Component {
         return selectedSteps;
     }
 
+    onSessionStateChange(working, running, session_details){
+        this.state.backend.working = working;
+        this.state.backend.running = running;
+
+        if(session_details){
+            this.state.backend.jupyter_server_ip = session_details.jupyter_server_ip;
+            this.state.backend.notebook_server_info = session_details.notebook_server_info;
+        }
+
+        this.setState({
+            backend: this.state.backend
+        })
+
+        if(session_details){
+            this.updateJupyterInstance();
+        }
+    }
+
+    onSessionShutdown(){
+        // unload Jupyter
+        orchest.jupyter.unload();
+    }
+
+    onSessionFetch(session_details){
+        if(!this.props.readOnly){
+            if(session_details === undefined){
+                this.refManager.refs.sessionToggleButton.launchSession();
+            }
+        }
+    }
+
     onPipelineStepsOuterHolderMove(e) {
 
         if (this.state.stepSelector.active) {
@@ -1545,12 +1443,7 @@ class PipelineView extends React.Component {
                     if(!this.props.readOnly){
                         return <div className={"pipeline-actions"}>
 
-                            <MDCButtonReact
-                                onClick={this.launchSession.bind(this)}
-                                classNames={this.getPowerButtonClasses()}
-                                label="Session"
-                                icon={this.state.backend.working ? "hourglass_empty" : "power_settings_new"}
-                            />
+                            <SessionToggleButton ref={this.refManager.nrefs.sessionToggleButton} pipeline_uuid={this.props.pipeline_uuid} onSessionStateChange={this.onSessionStateChange.bind(this)} onSessionFetch={this.onSessionFetch.bind(this)} onSessionShutdown={this.onSessionShutdown.bind(this)} />
 
                             <MDCButtonReact
                                 classNames={["mdc-button--raised"]}
@@ -1599,6 +1492,7 @@ class PipelineView extends React.Component {
             {(() => {
                 if (this.state.openedStep) {
                     return <PipelineDetails
+                        sio={this.sio}
                         readOnly={this.props.readOnly}
                         onSave={this.onSaveDetails.bind(this)}
                         onNameUpdate={this.stepNameUpdate.bind(this)}

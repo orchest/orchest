@@ -2,12 +2,13 @@ import React, { Fragment } from 'react';
 
 import PipelineView from "./PipelineView";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
-import CheckItemList from '../components/CheckItemList';
 import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
 import MDCButtonReact from '../lib/mdc-components/MDCButtonReact';
 import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
 import MDCDialogReact from '../lib/mdc-components/MDCDialogReact';
+import MDCDataTableReact from '../lib/mdc-components/MDCDataTableReact';
+import SessionToggleButton from '../components/SessionToggleButton';
 
 
 class PipelinesView extends React.Component {
@@ -41,13 +42,15 @@ class PipelinesView extends React.Component {
         orchest.headerBarComponent.setPipeline(undefined);
     }
 
-    processListData(listData){
+    processListData(pipelines){
 
-        for(let pipeline of listData){
-            if (pipeline["session_active"]){
-                pipeline["icon"] = "power_settings_new"
-            }
-            delete pipeline["session_active"];
+        let listData = [];
+
+        for(let pipeline of pipelines){
+            listData.push([
+                <span>{pipeline.name}</span>,
+                <SessionToggleButton classNames={["consume-click"]} pipeline_uuid={pipeline.uuid} />
+            ]);
         }
 
         return listData
@@ -59,14 +62,15 @@ class PipelinesView extends React.Component {
         
         fetchListPromise.promise.then((response) => {
             let data = JSON.parse(response);            
-            this.setState({loaded: true, listData: this.processListData(data.result)})
-            this.refManager.refs.pipelineListView.deselectAll()
-            
+            this.setState({loaded: true, listData: this.processListData(data.result), pipelines: data.result})
+            this.refManager.refs.pipelineListView.setSelectedRowIds([]);
         });
     }
 
-    onClickListItem(pipeline, e) {
+    onClickListItem(row, idx, e) {
 
+        let pipeline = this.state.pipelines[idx];
+        
         // load pipeline view
         let props = {
             "pipeline_uuid": pipeline.uuid,
@@ -82,20 +86,24 @@ class PipelinesView extends React.Component {
 
     onDeleteClick(){
 
-        let selectedIndex = this.refManager.refs.pipelineListView.customSelectedIndex();
+        let selectedIndices = this.refManager.refs.pipelineListView.getSelectedRowIndices();
         
-        if(selectedIndex.length === 0){
+        if(selectedIndices.length === 0){
             orchest.alert("Error", "You haven't selected a pipeline.")
             return;
         }
 
         orchest.confirm("Warning", "Are you certain that you want to delete this pipeline? (This cannot be undone.)", () => {
 
-            selectedIndex.forEach((item, index) => {
-                let pipeline_uuid = this.state.listData[item].uuid;
+            selectedIndices.forEach((index) => {
+                let pipeline_uuid = this.state.pipelines[index].uuid;
 
-                // terminate potential session (may 404 - but that's OK)
-                makeRequest("DELETE", "/api-proxy/api/sessions/" + pipeline_uuid);
+                makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + pipeline_uuid).then((response) => {
+                    let data = JSON.parse(response);
+                    if(data["sessions"].length > 0){
+                        makeRequest("DELETE", "/api-proxy/api/sessions/" + pipeline_uuid);
+                    }
+                })
 
                 makeRequest("POST", "/async/pipelines/delete/" + pipeline_uuid).then((_) => {
                     
@@ -170,7 +178,9 @@ class PipelinesView extends React.Component {
                     <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
                     <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
                 </div>
-                <CheckItemList ref={this.refManager.nrefs.pipelineListView} onClickListItem={this.onClickListItem.bind(this)} items={this.state.listData} />
+
+                <MDCDataTableReact ref={this.refManager.nrefs.pipelineListView} selectable onRowClick={this.onClickListItem.bind(this)} classNames={['fullwidth']} headers={["Pipeline", "Session"]} rows={this.state.listData}  />
+                
             </div>;
         }else{
             return <div className={"view-page"}>

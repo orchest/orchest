@@ -23,55 +23,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 def register_build_views(app, db, socketio):
 
-
-    @socketio.on("resize", namespace="/pty")
-    def resize(data):
-        
-        logging.info("message passing resize of pty for commit_uuid %s to size (%d, %d)" % (
-            data["commit_uuid"],
-            data["rows"],
-            data["cols"]))
-
-        socketio.emit("pty-build-manager", {
-            "action": "resize", 
-            "commit_uuid": data["commit_uuid"],
-            "rows": data["rows"],
-            "cols": data["cols"] }, namespace="/pty")
-
-
-    @socketio.on("pty-build-manager", namespace="/pty")
-    def process_build_manager(data):
-
-        if data["action"] == "build-finished":
-
-            commit = Commit.query.filter(Commit.uuid == data["commit_uuid"]).first()
-            
-            if commit is not None:
-
-                commit.building = False
-                db.session.commit()
-
-                socketio.emit(
-                    "pty-signals", 
-                    {"action": "build-ready", "commit_uuid": commit.uuid}, 
-                namespace="/pty")
-            else:
-                logging.info("Tried to announce build finished SocketIO event for non-existing Commit with uuid: %s" 
-                    % data["commit_uuid"])
-        
-        elif data["action"] == "pty-broadcast":
-
-            socketio.emit(
-                "pty-output", 
-                {"output": data["output"], "commit_uuid": data["commit_uuid"]}, 
-                namespace="/pty")
-
-
-    @socketio.on("connect", namespace="/pty")
-    def connect():
-        logging.info("socket.io client connected on /pty")
-
-
     @app.route("/async/commits/build/<string:commit_uuid>", methods=["POST"])
     def build_commit(commit_uuid):
 

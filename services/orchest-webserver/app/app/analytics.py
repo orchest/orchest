@@ -42,7 +42,7 @@ def check_active(app):
 
         diff_minutes = (time.time() - t) / 60
 
-        return diff_minutes < app.config["TELEMETRY_INTERVAL"]
+        return diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5) # check whether user was active in last half of TELEMETRY_INTERVAL
     except OSError as e:
         logging.debug("Exception while reading request log recency %s" % e)
         return False

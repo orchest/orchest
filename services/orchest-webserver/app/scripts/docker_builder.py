@@ -180,6 +180,9 @@ if __name__ == "__main__":
     # Connect to SocketIO server as client
     sio = socketio.Client()
 
+    logging.getLogger('engineio').setLevel(logging.ERROR)
+
+
     sio.connect('http://localhost', namespaces=["/pty"])
 
     @sio.on("connect", namespace="/pty")

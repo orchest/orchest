@@ -9,7 +9,7 @@ from flask import request, Response
 import os
 import subprocess
 import time
-from app.utils import orchest_ctl
+from _orchest.internals.utils import run_orchest_ctl
 
 executor = ThreadPoolExecutor(1)
 
@@ -26,7 +26,7 @@ def background_task(dev_mode):
         if dev_mode:
             start_command += ["dev"]
 
-        orchest_ctl(client, start_command)
+        run_orchest_ctl(client, start_command)
 
         container = client.containers.get("update-server")
         container.kill()
@@ -62,7 +62,7 @@ def register_views(app):
                 logging.error(e)
             yield "Pulled orchest-ctl. Starting update ...\n"
 
-            container = orchest_ctl(client, ["update", "web"])
+            container = run_orchest_ctl(client, ["update", "web"])
             
             for line in container.logs(stream=True):
                 yield line.decode()

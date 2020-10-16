@@ -31,7 +31,7 @@ RUN jlpm run add:sibling /jupyter-extensions/orchest-integration
 
 RUN jlpm run build
 
-RUN jupyter labextension install /jupyter-extensions/visual-tags
+RUN jupyter labextension install /jupyter-extensions/visual-tags --no-build
 RUN jupyter labextension install /jupyter-extensions/orchest-integration
 RUN cp -r /custom-pip/jupyterlab/dev_mode/* /usr/local/share/jupyter/lab/
 
