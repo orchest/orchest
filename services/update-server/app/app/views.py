@@ -20,6 +20,7 @@ def background_task(dev_mode):
     try:
         container = client.containers.get("nginx-proxy")
         container.kill()
+        container.rm()
         
         # restart Orchest in either dev mode
         start_command = ["start"]
