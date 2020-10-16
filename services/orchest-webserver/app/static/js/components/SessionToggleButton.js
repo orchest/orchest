@@ -124,9 +124,6 @@ class SessionToggleButton extends React.Component {
             launchPromise.promise.then((response) => {
                 let session_details = JSON.parse(response);
 
-                console.log("API launch result");
-                console.log(session_details);
-
                 this.setState({ 
                     working: false,
                     running: true,
