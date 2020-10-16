@@ -114,7 +114,7 @@ def create_app():
 
     logging.info("Flask CONFIG: %s" % app.config)
 
-    db.init_app(app) 
+    db.init_app(app)
 
     # according to SQLAlchemy will only create tables if they do not exist
     with app.app_context():

@@ -3,7 +3,7 @@ import os
 import subprocess
 import nbformat
 
-from runner import NotebookRunner, ProcessRunner
+from runner.runners import NotebookRunner, ProcessRunner
 from runner.config import Config
 
 def main():

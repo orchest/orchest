@@ -1,8 +1,8 @@
 import os
 import shutil
 
-from runner import NotebookRunner
-from runner import Config
+from runner.runners import NotebookRunner
+from runner.config import Config
 
 def test_cell_output_format():
 
