@@ -4,6 +4,8 @@ import socketio
 import logging
 import os
 import sys
+import html
+from threading import RLock
 
 from datetime import datetime, timedelta
 
@@ -14,6 +16,9 @@ HEARTBEAT_TIMEOUT = timedelta(minutes=2)
 
 log_file_store = {}
 file_handles = {}
+
+
+lock = RLock()
 
 
 class LogFile():
@@ -34,13 +39,26 @@ def file_reader_loop(sio):
     
     while True:
 
-        for session_uuid, _ in log_file_store.items():
-            read_emit_all_lines(file_handles[session_uuid], sio, session_uuid)
+        with lock:
+
+            for session_uuid, _ in log_file_store.items():
+                try:
+                    read_emit_all_lines(file_handles[session_uuid], sio, session_uuid)
+                except Exception as e:
+                    logging.info("call to read_emit_all_lines failed %s" % e)
 
         sio.sleep(0.01)
             
 
 def read_emit_all_lines(file, sio, session_uuid):
+
+    if session_uuid not in log_file_store:
+        logging.warn("session_uuid[%s] not in log_file_store" % session_uuid)
+        return
+
+    if session_uuid not in file_handles:
+        logging.warn("session_uuid[%s] not in file_handles" % session_uuid)
+        return
 
     # check if heartbeat has timed-out
     if log_file_store[session_uuid].last_heartbeat < datetime.now() - HEARTBEAT_TIMEOUT:
@@ -49,9 +67,13 @@ def read_emit_all_lines(file, sio, session_uuid):
         return
 
     # check if log_uuid is current log_uuid
-    latest_log_file = open(get_log_path(log_file_store[session_uuid]), "r")
-    latest_log_file.seek(0)
-    read_log_uuid = latest_log_file.readline().strip()
+    try:
+        latest_log_file = open(get_log_path(log_file_store[session_uuid]), "r")
+        latest_log_file.seek(0)
+        read_log_uuid = latest_log_file.readline().strip()
+    except IOError as e:
+        logging.warn("Could not read latest log file: %s" % e)
+        return
 
     if read_log_uuid != log_file_store[session_uuid].log_uuid and len(read_log_uuid) == 36: # length of valid uuid
         
@@ -70,11 +92,14 @@ def read_emit_all_lines(file, sio, session_uuid):
             file_handles[session_uuid].close()
         except IOError as e:
             logging.warn("Failed to close file %s for session_uuid %s" % (e, session_uuid))
+        except Exception as e:
+            logging.error("File handle close error %s" % e)
 
         file_handles[session_uuid] = latest_log_file
 
         return
     else:
+        
         try:
             latest_log_file.close()
         except IOError as e:
@@ -84,7 +109,19 @@ def read_emit_all_lines(file, sio, session_uuid):
     line_buffer = []
 
     while True:
-        line = file.readline()
+
+        try:
+            line = file.readline()
+            
+            try:
+                line = html.unescape(line)
+            except Exception as e:
+                logging.warn("Error escaping line %s" % line)
+
+        except IOError as e:
+            raise Exception("IOError reading log file %s" % e)
+        except Exception as e:
+            raise e
 
         # readline returns the empty string if the end of the file has been reached
         if line != "":
@@ -127,19 +164,20 @@ def get_log_path(log_file):
 
 
 def clear_log_file(session_uuid):
-    global log_file_store
-    
+
     close_file_handle(session_uuid)
     del log_file_store[session_uuid]
 
 
 def create_file_handle(log_file):
-    global file_handles
 
     log_path = get_log_path(log_file)
 
-    file = open(log_path, 'r')
-    file.seek(0)
+    try:
+        file = open(log_path, 'r')
+        file.seek(0)
+    except IOError as ioe:
+        logging.error("Could not op log file for path %s. Error: %s" % (log_path, ioe))
 
     file_handles[log_file.session_uuid] = file
 
@@ -152,7 +190,6 @@ def close_file_handle(session_uuid):
 
             
 def main():
-    global log_file_store
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -160,6 +197,7 @@ def main():
 
     # Connect to SocketIO server as client
     sio = socketio.Client()
+    logging.getLogger('engineio').setLevel(logging.ERROR)
 
     sio.connect('http://localhost', namespaces=["/pty"])
 
@@ -169,43 +207,49 @@ def main():
 
     @sio.on("pty-log-manager-receiver", namespace="/pty")
     def process_log_manager(data):
-        global log_file_store
 
-        if data["action"] == "fetch-logs":
+        with lock:
 
-            logging.info("SocketIO action fetch-logs session_uuid %s" % data["session_uuid"])
-            
-            log_file = LogFile(
-                data["session_uuid"],
-                data["pipeline_uuid"],
-                data["step_uuid"],
-            )
+            logging.info("EVENT on pty-log-manager-receiver: %s" % data)
 
-            if "pipeline_run_uuid" in data:
-                log_file.pipeline_run_uuid = data["pipeline_run_uuid"]
-                log_file.experiment_uuid = data["experiment_uuid"]
+            if data["action"] == "fetch-logs":
 
-            log_file_store[data["session_uuid"]] = log_file
-            create_file_handle(log_file)
-            logging.info("Added session_uuid (%s)" % data["session_uuid"])
-
-
-        elif data["action"] == "stop-logs":
-            session_uuid = data["session_uuid"]
-            if session_uuid in log_file_store.keys():
-                clear_log_file(session_uuid)
-                logging.info("Removed session_uuid (%s). Sessions active: %d" % (session_uuid, len(log_file_store.keys())))
-            else:
-                logging.error("Tried removing session_uuid (%s) which is not in log_file_store." % session_uuid)
+                logging.info("SocketIO action fetch-logs session_uuid %s" % data["session_uuid"])
                 
-        elif data["action"] == "heartbeat":
+                log_file = LogFile(
+                    data["session_uuid"],
+                    data["pipeline_uuid"],
+                    data["step_uuid"],
+                )
 
-            session_uuid = data["session_uuid"]
-            if session_uuid in log_file_store.keys():
-                logging.info("Received heartbeat for session %s" % session_uuid)
-                log_file_store[session_uuid].last_heartbeat = datetime.now()
-            else:
-                logging.error("Received heartbeat for log_file with session_uuid %s that isn't registered." % session_uuid)
+                if "pipeline_run_uuid" in data:
+                    log_file.pipeline_run_uuid = data["pipeline_run_uuid"]
+                    log_file.experiment_uuid = data["experiment_uuid"]
+
+                if data["session_uuid"] not in log_file_store:
+                    log_file_store[data["session_uuid"]] = log_file
+                    create_file_handle(log_file)
+                    logging.info("Added session_uuid (%s). Sessions active: %d" % (data["session_uuid"], len(log_file_store)))
+                else:
+                    logging.warn("Tried to add %s to log_file_store but it already exists." % data["session_uuid"])
+
+
+            elif data["action"] == "stop-logs":
+                session_uuid = data["session_uuid"]
+                if session_uuid in log_file_store.keys():
+                    clear_log_file(session_uuid)
+                    logging.info("Removed session_uuid (%s). Sessions active: %d" % (session_uuid, len(log_file_store)))
+                else:
+                    logging.error("Tried removing session_uuid (%s) which is not in log_file_store." % session_uuid)
+                    
+            elif data["action"] == "heartbeat":
+
+                session_uuid = data["session_uuid"]
+                if session_uuid in log_file_store.keys():
+                    logging.info("Received heartbeat for session %s" % session_uuid)
+                    log_file_store[session_uuid].last_heartbeat = datetime.now()
+                else:
+                    logging.error("Received heartbeat for log_file with session_uuid %s that isn't registered." % session_uuid)
 
     # Initialize file reader loop
     file_reader_loop(sio)

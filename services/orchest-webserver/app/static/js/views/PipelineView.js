@@ -230,7 +230,6 @@ class PipelineView extends React.Component {
                 data["runs"].reverse();
                 
                 for(let run of data["runs"]){
-                    console.log(run);
 
                     if(run.pipeline_uuid == this.props.pipeline_uuid){
                         

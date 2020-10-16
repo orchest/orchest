@@ -95,7 +95,7 @@ class PipelineDetailsLogs extends React.Component {
 
     if(this.props.pipelineRun){
       data["pipeline_run_uuid"] = this.props.pipelineRun.run_uuid;
-      data["experiment_uuid"] = this.props.pipelineRun.experiment;
+      data["experiment_uuid"] = this.props.pipelineRun.experiment_uuid;
     }
 
     this.props.sio.emit("pty-log-manager", data);

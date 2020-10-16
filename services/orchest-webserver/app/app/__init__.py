@@ -104,6 +104,7 @@ def create_app():
     app.config.from_object(CONFIG_CLASS)
 
     socketio = SocketIO(app, cors_allowed_origins="*")
+    logging.getLogger('engineio').setLevel(logging.ERROR)
 
     # read directory mount based config into Flask config
     try:
@@ -146,8 +147,7 @@ def create_app():
         # and every 15 minutes
         scheduler.add_job(analytics_ping, 'interval', minutes=app.config["TELEMETRY_INTERVAL"], args=[app])
         scheduler.start()
-    
-    
+
     processes = []
 
     if process_start_gate():
