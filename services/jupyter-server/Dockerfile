@@ -17,8 +17,8 @@ WORKDIR /custom-pip
 RUN git clone  --branch v2.1.4 https://github.com/jupyterlab/jupyterlab.git
 COPY ./patches/* /custom-pip/jupyterlab/
 WORKDIR /custom-pip/jupyterlab/
-RUN git config --global user.email "ricklamers@gmail.com" ; \
-    git config --global user.name "Rick Lamers"
+RUN git config user.email "ricklamers@gmail.com" ; \
+    git config user.name "Rick Lamers"
 RUN git am < 0001-Reconnect-a-websocket-when-a-kernel-is-restarted.patch
 RUN pip3 install -e .
 RUN mkdir /jupyter-extensions/
