@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 from docker.client import DockerClient
-from docker.types import EndpointSpec, RestartPolicy
+from docker.types import EndpointSpec, RestartPolicy, DeviceRequest
 import urllib3
 import requests
 
@@ -152,7 +152,15 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
 
         # print("container args: {}".format(kwargs))  # useful for debug
         orchest_mounts = get_orchest_mounts(param_env)
-        kernel_container = client.containers.run(image_name, mounts=orchest_mounts, **kwargs)
+
+        device_requests = []
+        # Request GPU capabilities is 'gpu' is in image name (TODO: make this something stored in webserver image metadata)
+        if "gpu" in image_name:
+            device_requests.append(
+                DeviceRequest(count=-1, capabilities=[['gpu']])
+            )
+
+        kernel_container = client.containers.run(image_name, mounts=orchest_mounts, device_requests=device_requests,**kwargs)
 
 
 if __name__ == '__main__':

@@ -41,6 +41,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "jupyter-server"
         "celery-worker"
         "custom-base-kernel-py"
+        "custom-base-kernel-py-gpu"
         "custom-base-kernel-r"
         "orchest-api"
         "orchest-ctl"
@@ -55,6 +56,7 @@ fi
 
 LIB_IMAGES=(
     "custom-base-kernel-py"
+    "custom-base-kernel-py-gpu"
     "custom-base-kernel-r"
     "orchest-api"
     "orchest-webserver"
@@ -65,6 +67,7 @@ LIB_IMAGES=(
 )
 SDK_IMAGES=(
     "custom-base-kernel-py"
+    "custom-base-kernel-py-gpu"
     "custom-base-kernel-r"
 )
 
@@ -158,6 +161,17 @@ do
         build=(docker build \
             -t orchestsoftware/custom-base-kernel-py \
             -f $DIR/../services/custom-images/custom-base-kernel-py/Dockerfile \
+            --no-cache=$NO_CACHE \
+            $build_ctx)
+
+    fi
+
+    if [ $IMG == "custom-base-kernel-py-gpu" ]; then
+
+        build_ctx=$DIR/../services/custom-images
+        build=(docker build \
+            -t orchestsoftware/custom-base-kernel-py-gpu \
+            -f $DIR/../services/custom-images/custom-base-kernel-py-gpu/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
 
