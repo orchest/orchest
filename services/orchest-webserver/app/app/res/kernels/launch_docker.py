@@ -157,7 +157,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         # Request GPU capabilities is 'gpu' is in image name (TODO: make this something stored in webserver image metadata)
         if "gpu" in image_name:
             device_requests.append(
-                DeviceRequest(count=-1, capabilities=[['gpu']])
+                DeviceRequest(count=-1, capabilities=[['gpu', 'utility', 'compute']])
             )
 
         kernel_container = client.containers.run(image_name, mounts=orchest_mounts, device_requests=device_requests,**kwargs)
