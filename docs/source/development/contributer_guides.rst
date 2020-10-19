@@ -12,10 +12,17 @@ turns lets us guarantee to users that we have no "stray" intellectual property o
 differently-licensed material.
 
 
-Development environment
------------------------
+Technicalities
+--------------
+Install all development dependencies using:
+
+.. code-block:: bash
+
+   # https://pre-commit.com/
+   pre-commit install
+
 To start hacking on Orchest you simply have to clone the repo from GitHub and start Orchest in
-``dev`` mode.
+``dev`` mode:
 
 .. code-block:: bash
 
@@ -39,6 +46,13 @@ following services support ``dev`` mode (others would have to be rebuild to show
 
 Additional useful scripts are included in the root-level ``scripts/`` directory, such as
 ``build_container.sh`` and ``run_tests.sh``.
+
+Before submitting pull requests, run lints and tests with:
+
+.. code-block:: bash
+
+    pre-commit run -a
+    scripts/run_tests.sh
 
 Feel free to pick up any of the issues on `GitHub <https://github.com/orchest/orchest/issues>`_ or
 create a custom pull request 💪.
