@@ -11,13 +11,17 @@ logger = None
 
 
 def dir_permissions(filepath):
-  st = os.stat(filepath)
-  return bool(st.st_mode & stat.S_IROTH) and bool(st.st_mode & stat.S_IWOTH) and bool(st.st_mode & stat.S_IXOTH)
+    st = os.stat(filepath)
+    return (
+        bool(st.st_mode & stat.S_IROTH)
+        and bool(st.st_mode & stat.S_IWOTH)
+        and bool(st.st_mode & stat.S_IXOTH)
+    )
 
 
 def file_permissions(filepath):
-  st = os.stat(filepath)
-  return bool(st.st_mode & stat.S_IROTH) and bool(st.st_mode & stat.S_IWOTH)
+    st = os.stat(filepath)
+    return bool(st.st_mode & stat.S_IROTH) and bool(st.st_mode & stat.S_IWOTH)
 
 
 def fix_path_permission(path, is_dir):
@@ -42,7 +46,7 @@ def walk_dir(path):
 
 
 def main():
-    logger = logging.getLogger('permission_app')
+    logger = logging.getLogger("permission_app")
     logger.setLevel(logging.INFO)
 
     # create file handler which logs even debug messages
@@ -54,7 +58,6 @@ def main():
         logger.debug("No directory specified")
         raise Exception("No directory specified")
 
-
     logger.info("Started permission logging")
 
     while True:
@@ -64,5 +67,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    

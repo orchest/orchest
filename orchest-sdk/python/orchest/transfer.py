@@ -15,7 +15,7 @@ from orchest.errors import (
     MemoryOutputNotFoundError,
     ObjectNotFoundError,
     OrchestNetworkError,
-    StepUUIDResolveError
+    StepUUIDResolveError,
 )
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
@@ -28,6 +28,7 @@ class _PlasmaConnector:
     don't all try to connect to the store individually.
 
     """
+
     _client: plasma.PlasmaClient = None
 
     @property
@@ -48,10 +49,11 @@ class _PlasmaConnector:
             return self._client
 
         try:
-            self._client = plasma.connect(Config.STORE_SOCKET_NAME,
-                                          num_retries=Config.CONN_NUM_RETRIES)
+            self._client = plasma.connect(
+                Config.STORE_SOCKET_NAME, num_retries=Config.CONN_NUM_RETRIES
+            )
         except OSError:
-            raise OrchestNetworkError('Failed to connect to in-memory object store.')
+            raise OrchestNetworkError("Failed to connect to in-memory object store.")
 
         return self._client
 
@@ -60,8 +62,7 @@ class _PlasmaConnector:
 # party type `pa.SerializedPyObject` has to be mocked and therefore will
 # not show up in the RTD documentation.
 def serialize(
-    data: Any,
-    pickle_fallback: bool = True
+    data: Any, pickle_fallback: bool = True
 ) -> Tuple[pa.SerializedPyObject, str]:
     """serialize(data: Any, pickle_fallback: bool = True) \
     -> Tuple[pa.SerializedPyObject, str]
@@ -104,19 +105,19 @@ def serialize(
         #       (on which we can call certain methods).
         if pickle_fallback:
             serialized = pa.serialize(pickle.dumps(data))
-            serialization = 'arrowpickle'
+            serialization = "arrowpickle"
         else:
             raise pa.SerializationCallbackError(e)
 
     else:
-        serialization = 'arrow'
+        serialization = "arrow"
 
     return serialized, serialization
 
 
-def _output_to_disk(obj: pa.SerializedPyObject,
-                    full_path: str,
-                    serialization: str = 'arrow') -> None:
+def _output_to_disk(
+    obj: pa.SerializedPyObject, full_path: str, serialization: str = "arrow"
+) -> None:
     """Outputs a serialized object to disk to the specified path.
 
     Args:
@@ -128,8 +129,8 @@ def _output_to_disk(obj: pa.SerializedPyObject,
     Raises:
         ValueError: If the specified `type` is not one of ``['pickle']``
     """
-    if serialization in ['arrow', 'arrowpickle']:
-        with open(f'{full_path}.{serialization}', 'wb') as f:
+    if serialization in ["arrow", "arrowpickle"]:
+        with open(f"{full_path}.{serialization}", "wb") as f:
             obj.write_to(f)
 
     else:
@@ -143,9 +144,9 @@ def _output_to_disk(obj: pa.SerializedPyObject,
 #       so because we only use it internally. Although it is not that nice
 #       that it is exposed to the user. But the user CAN use it if he
 #       serialized it before using the _serialize method.
-def output_to_disk(data: Any,
-                   pickle_fallback: bool = True,
-                   serialization: Optional[str] = None) -> None:
+def output_to_disk(
+    data: Any, pickle_fallback: bool = True, serialization: Optional[str] = None
+) -> None:
     """Outputs data to disk.
 
     To manage outputing the data to disk, this function has a side
@@ -179,7 +180,7 @@ def output_to_disk(data: Any,
         to be only calling the function once.
 
     """
-    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -187,7 +188,7 @@ def output_to_disk(data: Any,
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine where to output data to.')
+        raise StepUUIDResolveError("Failed to determine where to output data to.")
 
     # In case the data is not already serialized, then we need to
     # serialize it.
@@ -199,8 +200,8 @@ def output_to_disk(data: Any,
     os.makedirs(step_data_dir, exist_ok=True)
 
     # The HEAD file serves to resolve the transfer method.
-    head_file = os.path.join(step_data_dir, 'HEAD')
-    with open(head_file, 'w') as f:
+    head_file = os.path.join(step_data_dir, "HEAD")
+    with open(head_file, "w") as f:
         current_time = datetime.utcnow()
         f.write(f'{current_time.isoformat(timespec="seconds")}, {serialization}')
 
@@ -210,18 +211,18 @@ def output_to_disk(data: Any,
     return _output_to_disk(data, full_path, serialization=serialization)
 
 
-def _get_output_disk(full_path: str, serialization: str = 'arrow') -> Any:
+def _get_output_disk(full_path: str, serialization: str = "arrow") -> Any:
     """Gets data from disk."""
-    with open(f'{full_path}.{serialization}', 'rb') as f:
+    with open(f"{full_path}.{serialization}", "rb") as f:
         data = pa.deserialize_from(f, base=None)
 
-    if serialization == 'arrowpickle':
+    if serialization == "arrowpickle":
         return pickle.loads(data)
 
     return data
 
 
-def get_output_disk(step_uuid: str, serialization: str = 'arrow') -> Any:
+def get_output_disk(step_uuid: str, serialization: str = "arrow") -> Any:
     """Gets data from disk.
 
     Args:
@@ -245,7 +246,7 @@ def get_output_disk(step_uuid: str, serialization: str = 'arrow') -> Any:
         #       name instead of UUID.
         raise DiskOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
-            'Try rerunning it.'
+            "Try rerunning it."
         )
 
 
@@ -269,36 +270,36 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
     """
     step_data_dir = Config.get_step_data_dir(step_uuid)
-    head_file = os.path.join(step_data_dir, 'HEAD')
+    head_file = os.path.join(step_data_dir, "HEAD")
 
     try:
-        with open(head_file, 'r') as f:
-            timestamp, serialization = f.read().split(', ')
+        with open(head_file, "r") as f:
+            timestamp, serialization = f.read().split(", ")
 
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
         raise DiskOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
-            'Try rerunning it.'
+            "Try rerunning it."
         )
 
     res = {
-        'timestamp': timestamp,
-        'method_to_call': get_output_disk,
-        'method_args': (step_uuid,),
-        'method_kwargs': {
-            'serialization': serialization
-        }
+        "timestamp": timestamp,
+        "method_to_call": get_output_disk,
+        "method_args": (step_uuid,),
+        "method_kwargs": {"serialization": serialization},
     }
     return res
 
 
-def _output_to_memory(obj: pa.SerializedPyObject,
-                      client: plasma.PlasmaClient,
-                      obj_id: Optional[plasma.ObjectID] = None,
-                      metadata: Optional[bytes] = None,
-                      memcopy_threads: int = 6) -> plasma.ObjectID:
+def _output_to_memory(
+    obj: pa.SerializedPyObject,
+    client: plasma.PlasmaClient,
+    obj_id: Optional[plasma.ObjectID] = None,
+    metadata: Optional[bytes] = None,
+    memcopy_threads: int = 6,
+) -> plasma.ObjectID:
     """Outputs an object to memory.
 
     Args:
@@ -326,8 +327,7 @@ def _output_to_memory(obj: pa.SerializedPyObject,
     total_size = obj.total_bytes + len(metadata)
 
     occupied_size = sum(
-        obj['data_size'] + obj['metadata_size']
-        for obj in client.list().values()
+        obj["data_size"] + obj["metadata_size"] for obj in client.list().values()
     )
     # Take a percentage of the maximum capacity such that the message
     # for object eviction always fits inside the store.
@@ -335,7 +335,7 @@ def _output_to_memory(obj: pa.SerializedPyObject,
     available_size = store_capacity - occupied_size
 
     if total_size > available_size:
-        raise MemoryError('Object does not fit in memory')
+        raise MemoryError("Object does not fit in memory")
 
     # In case no `obj_id` is specified, one has to be generated because
     # an ID is required for an object to be inserted in the store.
@@ -360,9 +360,9 @@ def _output_to_memory(obj: pa.SerializedPyObject,
     return obj_id
 
 
-def output_to_memory(data: Any,
-                     pickle_fallback: bool = True,
-                     disk_fallback: bool = True) -> None:
+def output_to_memory(
+    data: Any, pickle_fallback: bool = True, disk_fallback: bool = True
+) -> None:
     """Outputs data to memory.
 
     To manage outputing the data to memory for the user, this function
@@ -401,7 +401,7 @@ def output_to_memory(data: Any,
     """
     # TODO: we might want to wrap this so we can throw a custom error,
     #       if the file cannot be found, i.e. FileNotFoundError.
-    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
@@ -409,7 +409,7 @@ def output_to_memory(data: Any,
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine where to output data to.')
+        raise StepUUIDResolveError("Failed to determine where to output data to.")
 
     # Serialize the object and collect the serialization metadata.
     obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
@@ -423,33 +423,28 @@ def output_to_memory(data: Any,
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        return output_to_disk(
-            obj,
-            serialization=serialization)
+        return output_to_disk(obj, serialization=serialization)
 
     # Try to output to memory.
     obj_id = _convert_uuid_to_object_id(step_uuid)
-    metadata = bytes(f'{Config.IDENTIFIER_SERIALIZATION};{serialization}', 'utf-8')
+    metadata = bytes(f"{Config.IDENTIFIER_SERIALIZATION};{serialization}", "utf-8")
 
     try:
         obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
 
     except MemoryError:
         if not disk_fallback:
-            raise MemoryError('Data does not fit in memory.')
+            raise MemoryError("Data does not fit in memory.")
 
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        return output_to_disk(
-            obj,
-            serialization=serialization)
+        return output_to_disk(obj, serialization=serialization)
 
     return
 
 
-def _get_output_memory(obj_id: plasma.ObjectID,
-                       client: plasma.PlasmaClient) -> Any:
+def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> Any:
     """Gets data from memory.
 
     Args:
@@ -487,7 +482,7 @@ def _get_output_memory(obj_id: plasma.ObjectID,
 
     # If the metadata stated that the object was pickled, then we need
     # to additionally unpickle the obj.
-    if metadata == bytes(f'{Config.IDENTIFIER_SERIALIZATION};arrowpickle', 'utf-8'):
+    if metadata == bytes(f"{Config.IDENTIFIER_SERIALIZATION};arrowpickle", "utf-8"):
         obj = pickle.loads(obj)
 
     return obj
@@ -522,7 +517,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
     except ObjectNotFoundError:
         raise MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
-            'Try rerunning it.'
+            "Try rerunning it."
         )
 
     else:
@@ -533,10 +528,10 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         # orchest-api. Now we always know when we are running inside a
         # jupyter kernel interactively. And in that case we never want
         # to do eviction.
-        if os.getenv('EVICTION_OPTIONALITY') is not None:
-            empty_obj, _ = serialize('')
-            msg = f'{Config.IDENTIFIER_EVICTION};{step_uuid},{consumer}'
-            metadata = bytes(msg, 'utf-8')
+        if os.getenv("EVICTION_OPTIONALITY") is not None:
+            empty_obj, _ = serialize("")
+            msg = f"{Config.IDENTIFIER_EVICTION};{step_uuid},{consumer}"
+            metadata = bytes(msg, "utf-8")
             _output_to_memory(empty_obj, client, metadata=metadata)
 
     return obj
@@ -580,19 +575,17 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     except KeyError:
         raise MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
-            'Try rerunning it.'
+            "Try rerunning it."
         )
 
-    ts = info['create_time']
+    ts = info["create_time"]
     timestamp = datetime.utcfromtimestamp(ts).isoformat()
 
     res = {
-        'timestamp': timestamp,
-        'method_to_call': get_output_memory,
-        'method_args': (step_uuid,),
-        'method_kwargs': {
-            'consumer': consumer
-        }
+        "timestamp": timestamp,
+        "method_to_call": get_output_memory,
+        "method_args": (step_uuid,),
+        "method_kwargs": {"consumer": consumer},
     }
     return res
 
@@ -629,7 +622,7 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
     method_infos = []
     for method in _resolve_methods:
         try:
-            if method.__name__ == 'resolve_memory':
+            if method.__name__ == "resolve_memory":
                 method_info = method(step_uuid, consumer=consumer)
             else:
                 method_info = method(step_uuid)
@@ -650,7 +643,7 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
     if not method_infos:
         raise OutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
-            'Try rerunning it.'
+            "Try rerunning it."
         )
 
     # Get the method that was most recently used based on its logged
@@ -658,14 +651,15 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
     # NOTE: if multiple methods have the same timestamp then the method
     # that is highest in the `_resolve_methods` list will be returned.
     # Since `max` returns the first occurrence of the maximum value.
-    most_recent = max(method_infos, key=lambda x: x['timestamp'])
-    return (most_recent['method_to_call'],
-            most_recent['method_args'],
-            most_recent['method_kwargs'])
+    most_recent = max(method_infos, key=lambda x: x["timestamp"])
+    return (
+        most_recent["method_to_call"],
+        most_recent["method_args"],
+        most_recent["method_kwargs"],
+    )
 
 
-def get_inputs(ignore_failure: bool = False,
-               verbose: bool = False) -> List[Any]:
+def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]:
     """Gets all data sent from incoming steps.
 
     Args:
@@ -697,14 +691,14 @@ def get_inputs(ignore_failure: bool = False,
         data or maintain a copy yourself.
 
     """
-    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine from where to get data.')
+        raise StepUUIDResolveError("Failed to determine from where to get data.")
 
     # TODO: maybe instead of for loop we could first get the receive
     #       method and then do batch receive. For example memory allows
@@ -715,7 +709,7 @@ def get_inputs(ignore_failure: bool = False,
     # step.
     data = []
     for parent in pipeline.get_step_by_uuid(step_uuid).parents:
-        parent_uuid = parent.properties['uuid']
+        parent_uuid = parent.properties["uuid"]
         get_output_method, args, kwargs = resolve(parent_uuid, consumer=step_uuid)
 
         # Either raise an error on failure of getting output or
@@ -729,7 +723,7 @@ def get_inputs(ignore_failure: bool = False,
             incoming_step_data = None
 
         if verbose:
-            parent_title = parent.properties['title']
+            parent_title = parent.properties["title"]
             if incoming_step_data is None:
                 print(f'Failed to retrieve input from step: "{parent_title}"')
             else:
@@ -740,8 +734,7 @@ def get_inputs(ignore_failure: bool = False,
     return data
 
 
-def output(data: Any,
-           pickle_fallback: bool = True) -> None:
+def output(data: Any, pickle_fallback: bool = True) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
     It first tries to output to memory and if it does not fit in memory,
@@ -772,9 +765,7 @@ def output(data: Any,
         calling the function once.
 
     """
-    return output_to_memory(data,
-                            pickle_fallback=pickle_fallback,
-                            disk_fallback=True)
+    return output_to_memory(data, pickle_fallback=pickle_fallback, disk_fallback=True)
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
@@ -792,10 +783,7 @@ def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
 
 # NOTE: All "resolve_{method}" functions have to be included in this
 # list. It is used to resolve what what "get_output_..." method to invoke.
-_resolve_methods = [
-    resolve_memory,
-    resolve_disk
-]
+_resolve_methods = [resolve_memory, resolve_disk]
 
 # TODO: Once we are set on the API we could specify __all__. For now we
 #       will stick with the leading _underscore convenction to keep

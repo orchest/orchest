@@ -11,26 +11,27 @@ import docker
 
 from app.models import Image, Commit
 
-def get_hash(path):
-	BLOCKSIZE = 8192 * 8
-	hasher = hashlib.md5()
-	with open(path, 'rb') as afile:
-	    buf = afile.read(BLOCKSIZE)
-	    while len(buf) > 0:
-	        hasher.update(buf)
-	        buf = afile.read(BLOCKSIZE)
 
-	return hasher.hexdigest()
+def get_hash(path):
+    BLOCKSIZE = 8192 * 8
+    hasher = hashlib.md5()
+    with open(path, "rb") as afile:
+        buf = afile.read(BLOCKSIZE)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = afile.read(BLOCKSIZE)
+
+    return hasher.hexdigest()
 
 
 def get_user_conf():
     conf_data = {}
 
     # configure default value
-    conf_data['AUTH_ENABLED'] = False
+    conf_data["AUTH_ENABLED"] = False
 
     try:
-        with open("/config/config.json", 'r') as f:
+        with open("/config/config.json", "r") as f:
             conf_data = json.load(f)
     except Exception as e:
         logging.debug(e)
@@ -40,7 +41,7 @@ def get_user_conf():
 
 def get_user_conf_raw():
     try:
-        with open("/config/config.json", 'r') as f:
+        with open("/config/config.json", "r") as f:
             return f.read()
     except Exception as e:
         logging.debug(e)
@@ -48,7 +49,7 @@ def get_user_conf_raw():
 
 def save_user_conf_raw(config):
     try:
-        with open("/config/config.json", 'w') as f:
+        with open("/config/config.json", "w") as f:
             f.write(config)
     except Exception as e:
         logging.debug(e)
@@ -78,14 +79,16 @@ def get_synthesized_images(language=None):
     # add commits (notice, languages are automatically filtered due to
     # dependence on base images)
     commits = Commit.query.filter(Commit.base_image.in_(image_names)).all()
-    commit_image_names = ["%s:%s" % (commit.base_image, commit.tag) for commit in commits]
+    commit_image_names = [
+        "%s:%s" % (commit.base_image, commit.tag) for commit in commits
+    ]
 
     synthesized_images += commit_image_names
-    
+
     # get commit language by using base image language (commits inherit language
     # from base image)
     image_languages += [image_language_dict[commit.base_image] for commit in commits]
-    
+
     return synthesized_images, image_languages
 
 
@@ -122,20 +125,22 @@ def name_to_tag(name):
     # becoming lowercase
 
     # According to Docker's website:
-    # A tag name must be valid ASCII and 
-    # may contain lowercase and 
-    # uppercase letters, digits, underscores, periods and dashes. 
+    # A tag name must be valid ASCII and
+    # may contain lowercase and
+    # uppercase letters, digits, underscores, periods and dashes.
     # A tag name may not start with a period or a dash and
     # may contain a maximum of 128 characters.
 
     # replace all spaces by dashes
     name = name.replace(" ", "-")
 
-    allowed_symbols = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-")
-    
-    name = ''.join([char if char in allowed_symbols else '-' for char in list(name)])
+    allowed_symbols = set(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
+    )
 
-    while len(name) > 0 and name[0] in set('.-'):
+    name = "".join([char if char in allowed_symbols else "-" for char in list(name)])
+
+    while len(name) > 0 and name[0] in set(".-"):
         name = name[1:]
 
     return name[0:128]
@@ -149,7 +154,7 @@ def write_config(app, key, value):
         if not os.path.isfile(conf_json_path):
             os.system("touch " + conf_json_path)
 
-        with open(conf_json_path, 'r') as f:
+        with open(conf_json_path, "r") as f:
             try:
                 conf_data = json.load(f)
             except Exception as e:
@@ -157,16 +162,15 @@ def write_config(app, key, value):
                 conf_data = {}
 
             conf_data[key] = value
-            
+
             app.config.update(conf_data)
-        with open(conf_json_path, 'w') as f:
+        with open(conf_json_path, "w") as f:
             try:
                 json.dump(conf_data, f)
             except Exception as e:
                 logging.debug(e)
     except Exception as e:
         logging.debug(e)
-
 
     # always set rw permissions on file
     os.system("chmod o+rw " + conf_json_path)

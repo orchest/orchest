@@ -7,34 +7,41 @@ class ObjectNotFoundError(Error):
 
     Similar to FileNotFoundError.
     """
+
     pass
 
 
 class OutputNotFoundError(Error):
     """Error when the output from a previous step cannot be found."""
+
     pass
 
 
 class DiskOutputNotFoundError(OutputNotFoundError):
     """InputNotFoundError for disk specifically."""
+
     pass
 
 
 class MemoryOutputNotFoundError(OutputNotFoundError):
     """InputNotFoundError for memory specifically."""
+
     pass
 
 
 class OrchestNetworkError(Error):
     """Resource fails to respond or is unable to fulfil the request."""
+
     pass
 
 
 class OrchestInternalDataSourceError(Error):
     """It is not allowed to request internal data sources."""
+
     pass
 
 
 class StepUUIDResolveError(Error):
     """Step UUID could not be resolved."""
+
     pass

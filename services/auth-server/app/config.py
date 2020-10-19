@@ -1,6 +1,6 @@
 class Config:
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////userdir/.orchest/auth-server.db'
+    SQLALCHEMY_DATABASE_URI = "sqlite:////userdir/.orchest/auth-server.db"
 
     TOKEN_DURATION_HOURS = 24
 
@@ -8,8 +8,10 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+
 class DevelopmentConfig(Config):
     DEBUG = True
+
 
 # ---- CONFIGURATIONS ----
 # Production

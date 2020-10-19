@@ -6,11 +6,11 @@ import pyarrow.plasma as plasma
 
 def construct_pipeline(pipeline_fname):
     """Construct pipeline from pipeline.json"""
-    with open(pipeline_fname, 'r') as f:
+    with open(pipeline_fname, "r") as f:
         description = json.load(f)
 
     try:
-        auto_eviction = description['settings'].get('auto-eviction', False)
+        auto_eviction = description["settings"].get("auto-eviction", False)
     except KeyError:
         auto_eviction = False
 
@@ -19,7 +19,7 @@ def construct_pipeline(pipeline_fname):
     # If an interactive session is started the first time on a newly
     # created pipeline. Then the `pipeline.json` will not have a `steps`
     # key, since the pipeline does not yet have steps.
-    steps = description.get('steps')
+    steps = description.get("steps")
     if steps is None:
         return pipeline
 
@@ -30,7 +30,7 @@ def construct_pipeline(pipeline_fname):
     # Create and add edges with weight zero.
     all_edges = []
     for uuid, info in steps.items():
-        edges = [(conn, uuid, 0) for conn in info['incoming_connections']]
+        edges = [(conn, uuid, 0) for conn in info["incoming_connections"]]
         all_edges.extend(edges)
 
     pipeline.add_weighted_edges_from(all_edges)
@@ -47,7 +47,7 @@ def propagate_weights(old, new):
         s, t = edge
 
         try:
-            new[s][t]['weight'] = old[s][t]['weight']
+            new[s][t]["weight"] = old[s][t]["weight"]
         except KeyError:
             # Hit if the edge does not exist in the previous pipeline.
             pass
@@ -58,7 +58,7 @@ def get_uuids_to_evict(pipeline):
     uuids = []
     for uuid in pipeline.nodes:
         out_degree = pipeline.out_degree(uuid)
-        num_uniq_receivers = pipeline.out_degree(uuid, weight='weight')
+        num_uniq_receivers = pipeline.out_degree(uuid, weight="weight")
 
         # For these we want to do eviction.
         if out_degree == num_uniq_receivers:
@@ -114,17 +114,17 @@ def start_manager(store_socket_name, pipeline_fname):
             continue
 
         # TODO: change print to logging to stdout
-        print('Received:', obj_id)
+        print("Received:", obj_id)
         mdata = bytes(mdata[0])
 
         # An example message: b'2;uuid-1,uuid-2'. Meaning that step with
         # 'uuid-2' has retrieved the output from step with 'uuid-1'.
-        identifier, _, mdata = mdata.partition(b';')
-        if identifier != b'2':
+        identifier, _, mdata = mdata.partition(b";")
+        if identifier != b"2":
             continue
 
-        decoded_mdata = mdata.decode(encoding='utf-8')
-        source, target = decoded_mdata.split(',')
+        decoded_mdata = mdata.decode(encoding="utf-8")
+        source, target = decoded_mdata.split(",")
 
         # Create new pipeline and propagate weights. A new pipeline is
         # created to account for a possible change in the pipeline. A
@@ -139,21 +139,21 @@ def start_manager(store_socket_name, pipeline_fname):
         pipeline = new_pipeline
 
         # Set that the target uuid has received from the source.
-        pipeline[source][target]['weight'] = 1
+        pipeline[source][target]["weight"] = 1
 
         # TODO: should we check for this options earlier, because
         #       probably we want to start counting the moment the user
         #       selects the options (and by deselect maybe reset all
         #       weights to zero).
         # Only consider evicting objects if the option is set.
-        if not pipeline.graph.get('auto_eviction', False):
+        if not pipeline.graph.get("auto_eviction", False):
             continue
 
         # Delete the objects corresponding to the `uuids_to_evict`.
         uuids_to_evict = get_uuids_to_evict(new_pipeline)
         delete(client, uuids_to_evict)
 
-        print('Evicting:', uuids_to_evict)
+        print("Evicting:", uuids_to_evict)
 
         # Need to also delete the "ping" object that contained the
         # metadata.
