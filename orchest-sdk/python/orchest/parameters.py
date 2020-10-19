@@ -14,14 +14,14 @@ def get_params() -> Dict[str, Any]:
     Returns:
         The parameters of the current step.
     """
-    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine from where to get data.')
+        raise StepUUIDResolveError("Failed to determine from where to get data.")
 
     step = pipeline.get_step_by_uuid(step_uuid)
     params = step.get_params()
@@ -46,14 +46,14 @@ def update_params(params: Dict[str, Any]) -> Dict[str, Any]:
         The updated parameters mapping.
 
     """
-    with open(Config.PIPELINE_DESCRIPTION_PATH, 'r') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
         pipeline_description = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_description)
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError('Failed to determine from where to get data.')
+        raise StepUUIDResolveError("Failed to determine from where to get data.")
 
     # TODO: This is inefficient, we could just use the `step_uuid` and
     #       update the params of the `pipeline_description` and write it
@@ -63,7 +63,7 @@ def update_params(params: Dict[str, Any]) -> Dict[str, Any]:
     curr_params = step.get_params()
     curr_params.update(params)
 
-    with open(Config.PIPELINE_DESCRIPTION_PATH, 'w') as f:
+    with open(Config.PIPELINE_DESCRIPTION_PATH, "w") as f:
         json.dump(pipeline.to_dict(), f)
 
     return curr_params

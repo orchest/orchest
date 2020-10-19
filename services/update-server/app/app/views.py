@@ -13,6 +13,7 @@ from _orchest.internals.utils import run_orchest_ctl
 
 executor = ThreadPoolExecutor(1)
 
+
 def background_task(dev_mode):
     client = docker.from_env()
 
@@ -21,7 +22,7 @@ def background_task(dev_mode):
         container = client.containers.get("nginx-proxy")
         container.kill()
         container.remove()
-        
+
         # restart Orchest in either dev mode
         start_command = ["start"]
         if dev_mode:
@@ -36,21 +37,19 @@ def background_task(dev_mode):
 
 
 def register_views(app):
-
     @app.route("/update-server/heartbeat", methods=["GET"])
     def heartbeat():
-        return '', 200
-
+        return "", 200
 
     @app.route("/update-server/update", methods=["GET"])
     def update():
 
         dev_mode = False
-        if request.args.get('mode') == 'dev':
+        if request.args.get("mode") == "dev":
             dev_mode = True
 
         def streaming_update(dev_mode):
-            
+
             client = docker.from_env()
 
             yield "Starting update ...\n"
@@ -64,7 +63,7 @@ def register_views(app):
             yield "Pulled orchest-ctl. Starting update ...\n"
 
             container = run_orchest_ctl(client, ["update", "web"])
-            
+
             for line in container.logs(stream=True):
                 yield line.decode()
 
@@ -72,5 +71,8 @@ def register_views(app):
 
             executor.submit(background_task, dev_mode)
 
-
-        return Response( streaming_update(dev_mode), mimetype='text/html', headers={"X-Accel-Buffering": "No"})
+        return Response(
+            streaming_update(dev_mode),
+            mimetype="text/html",
+            headers={"X-Accel-Buffering": "No"},
+        )

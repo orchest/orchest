@@ -38,21 +38,23 @@ class PipelineStep:
         parents: see ``Args`` section.
     """
 
-    def __init__(self,
-                 properties: PipelineStepProperties,
-                 parents: Optional[List['PipelineStep']] = None) -> None:
+    def __init__(
+        self,
+        properties: PipelineStepProperties,
+        parents: Optional[List["PipelineStep"]] = None,
+    ) -> None:
         self.properties = properties
         self.parents = parents if parents is not None else []
-        self.children: List['PipelineStep'] = []
+        self.children: List["PipelineStep"] = []
 
     def get_params(self) -> Optional[Dict[str, Any]]:
-        return self.properties.get('parameters')
+        return self.properties.get("parameters")
 
     def __str__(self) -> str:
         if self.properties:
             return f'<PipelineStep: {self.properties["name"]}>'
 
-        return f'<Pipelinestep: None>'
+        return f"<Pipelinestep: None>"
 
     def __repr__(self) -> str:
         # TODO: This is actually not correct: it should be self.properties.
@@ -61,18 +63,16 @@ class PipelineStep:
         if self.properties:
             return f'PipelineStep({self.properties["name"]!r})'
 
-        return f'Pipelinestep(None)'
+        return f"Pipelinestep(None)"
 
 
 class Pipeline:
-    def __init__(self,
-                 steps: List[PipelineStep],
-                 properties: Dict[str, str]) -> None:
+    def __init__(self, steps: List[PipelineStep], properties: Dict[str, str]) -> None:
         self.steps = steps
         self.properties = properties
 
     @classmethod
-    def from_json(cls, description: PipelineDescription) -> 'Pipeline':
+    def from_json(cls, description: PipelineDescription) -> "Pipeline":
         """Constructs a pipeline from a json description.
 
         This is an alternative constructur.
@@ -84,39 +84,41 @@ class Pipeline:
             A pipeline object defined by the given description.
         """
         # Create a mapping for all the steps from UUID to object.
-        steps = {uuid: PipelineStep(properties)
-                 for uuid, properties in description['steps'].items()}
+        steps = {
+            uuid: PipelineStep(properties)
+            for uuid, properties in description["steps"].items()
+        }
 
         # For every step populate its parents and _children attributes.
         for step in steps.values():
-            for uuid in step.properties['incoming_connections']:
+            for uuid in step.properties["incoming_connections"]:
                 step.parents.append(steps[uuid])
                 steps[uuid].children.append(step)
 
         properties = {
-            'name': description['name'],
-            'uuid': description['uuid'],
-            'settings': description.get('settings'),
+            "name": description["name"],
+            "uuid": description["uuid"],
+            "settings": description.get("settings"),
         }
         return cls(list(steps.values()), properties)
 
     def to_dict(self) -> PipelineDescription:
-        description: PipelineDescription = {'steps': {}}
+        description: PipelineDescription = {"steps": {}}
         for step in self.steps:
-            description['steps'][step.properties['uuid']] = step.properties
+            description["steps"][step.properties["uuid"]] = step.properties
 
         description.update(self.properties)
         return description
 
-    def get_step_by_uuid(self,
-                         uuid: str,
-                         default: Any = None) -> Optional[PipelineStep]:
+    def get_step_by_uuid(
+        self, uuid: str, default: Any = None
+    ) -> Optional[PipelineStep]:
         """Get pipeline step object by its UUID."""
         for step in self.steps:
-            if step.properties['uuid'] == uuid:
+            if step.properties["uuid"] == uuid:
                 return step
 
         return default
 
     def __repr__(self) -> str:
-        return f'Pipeline({self.steps!r})'
+        return f"Pipeline({self.steps!r})"

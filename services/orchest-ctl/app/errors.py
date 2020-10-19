@@ -4,4 +4,5 @@ class Error(Exception):
 
 class ENVVariableNotFound(Error):
     """ENV variable not found."""
+
     pass

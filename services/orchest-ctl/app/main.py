@@ -38,7 +38,7 @@ def main():
         elif "port" in sys.argv[2]:
             # port_spec is something like "--port=8080"
             port_spec = sys.argv[2]
-            port = int(port_spec.split('=')[-1])
+            port = int(port_spec.split("=")[-1])
             config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
                 "80/tcp": port,
                 "443/tcp": 443,
@@ -49,5 +49,5 @@ def main():
     loop.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

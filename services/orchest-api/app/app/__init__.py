@@ -19,7 +19,7 @@ def create_app(config_class=None, use_db=True):
 
     # Cross-origin resource sharing. Allow API to be requested from the
     # different microservices such as the webserver.
-    CORS(app, resources={r'/*': {'origins': '*'}})
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     if use_db:
         # Initialize the database and create the database file.
@@ -28,6 +28,6 @@ def create_app(config_class=None, use_db=True):
             db.create_all()
 
     # Register blueprints.
-    app.register_blueprint(api, url_prefix='/api')
+    app.register_blueprint(api, url_prefix="/api")
 
     return app

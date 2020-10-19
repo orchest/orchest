@@ -34,7 +34,7 @@ def client():
     # Shutdown the Jupyter server and clear its connection file, if it is
     # still running.
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    connection_file = os.path.join(abs_path, '..', 'app', 'tmp', 'server_info.json')
+    connection_file = os.path.join(abs_path, "..", "app", "tmp", "server_info.json")
 
     _ = shutdown_jupyter_server(connection_file)
 
@@ -47,28 +47,28 @@ def client():
 #       docstring.
 def test_api_start_and_shutdown_server(client):
     # Can't get server information if no server is running.
-    response = client.get('/api/servers/')
+    response = client.get("/api/servers/")
     assert response.status_code == 404
-    assert response.json == {'message': 'No running server'}
+    assert response.json == {"message": "No running server"}
 
     # A POST request to the Flask API should start the Jupyter server.
-    some_gateway_url = 'http://127.0.0.1:8765'
-    response_post = client.post('/api/servers/', json={'gateway-url': some_gateway_url})
+    some_gateway_url = "http://127.0.0.1:8765"
+    response_post = client.post("/api/servers/", json={"gateway-url": some_gateway_url})
     assert response_post.status_code == 201
 
     # A user should be able to interact with the start Jupyter server.
-    r = requests.get('http://127.0.0.1:8888/api')
+    r = requests.get("http://127.0.0.1:8888/api")
     assert r.status_code == 200
-    assert r.json().get('version') is not None
+    assert r.json().get("version") is not None
 
     # The Flask API should now be able to check for the running server.
-    response = client.get('/api/servers/')
+    response = client.get("/api/servers/")
     assert response.status_code == 200
 
     # Shut down the server.
-    response_delete = client.delete('/api/servers/')
+    response_delete = client.delete("/api/servers/")
     assert response_delete.status_code == 200
 
     # Final check for the server to be dead.
-    response = client.get('/api/servers/')
+    response = client.get("/api/servers/")
     assert response.status_code == 404

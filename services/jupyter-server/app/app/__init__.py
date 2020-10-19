@@ -16,6 +16,6 @@ def create_app(config_class=None):
     app.config.from_object(config_class)
 
     # Register blueprints.
-    app.register_blueprint(api, url_prefix='/api')
+    app.register_blueprint(api, url_prefix="/api")
 
     return app

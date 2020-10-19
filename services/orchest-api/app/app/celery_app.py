@@ -4,10 +4,7 @@ from config import CONFIG_CLASS
 
 
 def make_celery(app):
-    celery = Celery(
-        app.import_name,
-        config_source=CONFIG_CLASS
-    )
+    celery = Celery(app.import_name, config_source=CONFIG_CLASS)
     celery.conf.update(app.config)
 
     class ContextTask(celery.Task):

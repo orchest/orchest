@@ -6,13 +6,13 @@ from app.apis.namespace_sessions import api as ns_sessions
 from app.apis.namespace_runs import api as ns_runs
 
 
-blueprint = Blueprint('api', __name__)
+blueprint = Blueprint("api", __name__)
 
 api = Api(
     blueprint,
-    title='Orchest API',
-    version='1.0',
-    description='Back-end API for Orchest'
+    title="Orchest API",
+    version="1.0",
+    description="Back-end API for Orchest",
 )
 
 api.add_namespace(ns_experiments)

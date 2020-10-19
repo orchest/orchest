@@ -23,10 +23,7 @@ def analytics_ping(app):
             telemetry_uuid = str(uuid.uuid4())
             write_config(app, "TELEMETRY_UUID", telemetry_uuid)
 
-        data = {
-            "user_uuid": telemetry_uuid,
-            "active": check_active(app)
-        }
+        data = {"user_uuid": telemetry_uuid, "active": check_active(app)}
 
         requests.post("https://analytics.orchest.io", json=data, timeout=1)
 
@@ -42,7 +39,9 @@ def check_active(app):
 
         diff_minutes = (time.time() - t) / 60
 
-        return diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5) # check whether user was active in last half of TELEMETRY_INTERVAL
+        return diff_minutes < (
+            app.config["TELEMETRY_INTERVAL"] * 0.5
+        )  # check whether user was active in last half of TELEMETRY_INTERVAL
     except OSError as e:
         logging.debug("Exception while reading request log recency %s" % e)
         return False

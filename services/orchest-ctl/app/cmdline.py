@@ -2,6 +2,7 @@
 import logging
 
 import config
+
 # Import the CONTAINER_MAPPING seperately because when Orchest is
 # started in DEV mode, then the mapping is changed in-place.
 from config import CONTAINER_MAPPING
@@ -27,15 +28,16 @@ def proxy_certs_exist_on_host():
 
     certs_path = "/orchest-host/services/nginx-proxy/certs/"
 
-    if os.path.isfile(os.path.join(certs_path, "server.crt")) and \
-        os.path.isfile(os.path.join(certs_path, "server.key")):
+    if os.path.isfile(os.path.join(certs_path, "server.crt")) and os.path.isfile(
+        os.path.join(certs_path, "server.key")
+    ):
         return True
     else:
         return False
 
 
 def start():
-    
+
     # Make sure the installation is complete before starting Orchest.
     if not utils.is_install_complete():
         logging.info("Installation required. Starting installer.")
@@ -44,24 +46,26 @@ def start():
         logging.info("Installation finished. Attempting to start...")
         return start()
 
-
     # Dynamically mount certs directory based on whether it exists in
     # nginx-proxy directory on host
     if proxy_certs_exist_on_host():
         CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["mounts"].append(
             {
-                "source": os.path.join(config.ENVS["HOST_REPO_DIR"], "services", "nginx-proxy", "certs"),
-                "target": "/etc/ssl/certs"
+                "source": os.path.join(
+                    config.ENVS["HOST_REPO_DIR"], "services", "nginx-proxy", "certs"
+                ),
+                "target": "/etc/ssl/certs",
             }
         )
     else:
         # in case no certs are found don't expose 443 on host
         del CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["443/tcp"]
 
-
     if config.RUN_MODE == "dev":
-        logging.info("Starting Orchest in DEV mode. This mounts host directories "
-                     "to monitor for source code changes.")
+        logging.info(
+            "Starting Orchest in DEV mode. This mounts host directories "
+            "to monitor for source code changes."
+        )
 
         utils.dev_mount_inject(CONTAINER_MAPPING)
     else:
@@ -109,8 +113,9 @@ def help():
         "help": "Shows this help menu",
         "stop": "Stops the Orchest application",
         "status": "Checks the current status of the Orchest application",
-        "update": ("Update Orchest to the latest version by pulling latest "
-                   "container images"),
+        "update": (
+            "Update Orchest to the latest version by pulling latest " "container images"
+        ),
     }
 
     for cmd in cmds:
@@ -125,8 +130,8 @@ def help():
 def stop(skip_names=[]):
 
     # always skip orchest-ctl
-    skip_names.append('orchest-ctl')
-    
+    skip_names.append("orchest-ctl")
+
     containers = docker_client.containers.list(all=True)
 
     for container in containers:
@@ -136,20 +141,20 @@ def stop(skip_names=[]):
             continue
 
         # only kill containers in `orchest` network
-        if 'orchest' in container.attrs["NetworkSettings"]["Networks"]:
+        if "orchest" in container.attrs["NetworkSettings"]["Networks"]:
             logging.info("Killing container %s" % container.name)
             try:
                 container.kill()
             except Exception as _:
-                #logging.debug(e) (kill() does not always succeed - e.g.
-                #container could have exited before)
+                # logging.debug(e) (kill() does not always succeed - e.g.
+                # container could have exited before)
                 pass
 
             try:
                 container.remove()
             except Exception as _:
-                #logging.debug(e) (remove() does not always succeed - e.g. the
-                #container could be configured to autoremove)
+                # logging.debug(e) (remove() does not always succeed - e.g. the
+                # container could be configured to autoremove)
                 pass
 
 
@@ -157,12 +162,11 @@ def status():
     running_containers = docker_client.containers.list()
 
     orchest_container_names = [
-        CONTAINER_MAPPING[container_key]['name']
-        for container_key in CONTAINER_MAPPING
+        CONTAINER_MAPPING[container_key]["name"] for container_key in CONTAINER_MAPPING
     ]
 
-    running_prints = ['']
-    not_running_prints = ['']
+    running_prints = [""]
+    not_running_prints = [""]
 
     for container in running_containers:
         if container.name in orchest_container_names:
@@ -173,16 +177,16 @@ def status():
         not_running_prints.append("Container %s not running." % container_name)
 
     if len(running_prints) > 1:
-        logging.info('\n'.join(running_prints))
+        logging.info("\n".join(running_prints))
 
     if len(not_running_prints) > 1:
-        logging.info('\n'.join(not_running_prints))
+        logging.info("\n".join(not_running_prints))
 
 
 def _updateserver():
     logging.info("Starting Orchest update service")
 
-    container_image = 'orchestsoftware/update-server:latest'
+    container_image = "orchestsoftware/update-server:latest"
     container_spec = CONTAINER_MAPPING.get(container_image, {})
     run_config = utils.convert_to_run_config(container_image, container_spec)
 
@@ -198,22 +202,26 @@ def update():
 
     # only start if it was running
     should_restart = utils.is_orchest_running()
-    
+
     if config.UPDATE_MODE != "web":
         stop()
     else:
-        # Both nginx-proxy/update-server are left running 
+        # Both nginx-proxy/update-server are left running
         # during the update to support _updateserver
         stop(skip_names=["nginx-proxy", "update-server"])
 
     # update repo through git
     logging.info("Updating repo ...")
-    script_path = os.path.join(str(pathlib.Path(__file__).parent.absolute()), "scripts", "git-update.sh")
+    script_path = os.path.join(
+        str(pathlib.Path(__file__).parent.absolute()), "scripts", "git-update.sh"
+    )
     script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
     return_code = script_process.wait()
-    
+
     if return_code != 0:
-        logging.info("'git' repo update failed. Please make sure you don't have any commits that conflict with the main branch in the 'orchest' repository. Cancelling update.")
+        logging.info(
+            "'git' repo update failed. Please make sure you don't have any commits that conflict with the main branch in the 'orchest' repository. Cancelling update."
+        )
     else:
         logging.info("Pulling latest images ...")
         utils.install_images(force_pull=True)

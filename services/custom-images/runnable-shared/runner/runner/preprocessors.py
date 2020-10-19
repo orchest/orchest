@@ -7,12 +7,10 @@ from nbconvert.filters import ansi2html
 
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
-
     def __init__(self, log_file, **kw):
         self.log_file = log_file
 
         self.printed_indices = set()
-
 
         # TODO: don't share cell as global state
         self.current_cell = None
@@ -25,23 +23,25 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
     def log_output_message(self, output):
 
         if self.current_cell is None:
-            raise Exception("log_output_message should not be called if there is no current notebook cell")
+            raise Exception(
+                "log_output_message should not be called if there is no current notebook cell"
+            )
 
         # cell output to STDOUT of this process
-        output_text = ''
+        output_text = ""
 
         # support multiple types of output:
         # output['text'] (for output['output_type']=='stream')
         # output['data']['text/plain'] (for output['output_type']=='execute_result')
 
         # Note this means application/json and image/png are currently not supported for logging.
-        if 'text' in output:
-            output_text = output['text']
-        elif 'data' in output and 'text/plain' in output['data']:
-            output_text = output['data']['text/plain']
+        if "text" in output:
+            output_text = output["text"]
+        elif "data" in output and "text/plain" in output["data"]:
+            output_text = output["data"]["text/plain"]
 
-        if not output_text.endswith('\n'):
-            output_text = ''.join([output_text, '\n'])
+        if not output_text.endswith("\n"):
+            output_text = "".join([output_text, "\n"])
 
         # process output text with ansi2html to prep for output
         # in html log viewer
@@ -53,19 +53,14 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         else:
             self.printed_indices.add(self.current_cell["execution_count"])
 
-
         self.log_file.write("".join([prefix, output_text]))
         self.log_file.flush()
-    
-    
-    def output(
-            self,
-            outs: t.List,
-            msg: t.Dict,
-            display_id: str,
-            cell_index: int) -> t.Optional[t.List]:
 
-        msg_type = msg['msg_type']
+    def output(
+        self, outs: t.List, msg: t.Dict, display_id: str, cell_index: int
+    ) -> t.Optional[t.List]:
+
+        msg_type = msg["msg_type"]
 
         try:
             out = output_from_msg(msg)
@@ -84,9 +79,9 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         If the tag is not found cell is not executed.
         """
 
-        tags = cell.metadata.get('tags')
+        tags = cell.metadata.get("tags")
 
-        if tags is not None and 'skip' in tags:
+        if tags is not None and "skip" in tags:
             return cell, resources
         else:
 
