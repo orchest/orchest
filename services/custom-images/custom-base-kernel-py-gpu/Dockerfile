@@ -1,5 +1,5 @@
 # Base root container on cuda/cudnn enabled image
-FROM elyra/kernel-py-gpu:2.2.0
+FROM orchestsoftware/kernel-py:2.2.0-gpu
 
 USER root
 
