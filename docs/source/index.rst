@@ -13,6 +13,9 @@ Orchest
 Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
 your models on the cloud without any knowledge of cloud infrastructure.
 
+.. note::
+
+    Orchest is in alpha.
 
 .. toctree::
    :maxdepth: 2
