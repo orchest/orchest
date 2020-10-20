@@ -9,7 +9,7 @@
 ---
 
 <img alt="Version badge 0.2.1-alpha"
-src="https://img.shields.io/badge/version-0.2.1--alpha-blue" />
+src="https://img.shields.io/badge/version-0.2.1--alpha-blue?style=flat-square" />
 
 Orchest is a web based data science tool that works on top of your filesystem allowing you to use
 your editor of choice. With Orchest you get to focus on visually building and iterating on your
