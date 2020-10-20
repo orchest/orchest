@@ -1,110 +1,132 @@
-import React, { Fragment } from 'react';
+import React, { Fragment } from "react";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import DataSourceEditView from "./DataSourceEditView";
-import CheckItemList from '../components/CheckItemList';
-import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
-import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
+import CheckItemList from "../components/CheckItemList";
+import {
+  makeRequest,
+  makeCancelable,
+  PromiseManager,
+  RefManager,
+} from "../lib/utils/all";
+import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 
 class DataSourcesView extends React.Component {
-
-  constructor(props){
+  constructor(props) {
     super(props);
 
     this.state = {
-      "datasources": undefined,
-    }
-    
+      datasources: undefined,
+    };
+
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
   }
 
-  componentDidMount(){
-
+  componentDidMount() {
     this.fetchDataSources();
-
   }
 
-  componentWillUnmount(){
+  componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
   }
 
-  fetchDataSources(){
-
+  fetchDataSources() {
     // in case checkItemList exists, clear checks
-    if(this.refManager.refs.checkItemList){
+    if (this.refManager.refs.checkItemList) {
       this.refManager.refs.checkItemList.deselectAll();
     }
 
     // fetch data sources
-    let datasourcesPromise = makeCancelable(makeRequest("GET", "/store/datasources?show_internal=false"), this.promiseManager);
-    
-    datasourcesPromise.promise.then((result) => {
-      try {
-        let json = JSON.parse(result);
+    let datasourcesPromise = makeCancelable(
+      makeRequest("GET", "/store/datasources?show_internal=false"),
+      this.promiseManager
+    );
 
-        this.setState({
-          "dataSources": json
-        })
-        
-      } catch (error) {
-        console.log(error);
-        console.log("Error parsing JSON response: ", result);
-      }
-      
-    }).catch((err) => {
-      console.log("Error fetching DataSources", err);
-    })
+    datasourcesPromise.promise
+      .then((result) => {
+        try {
+          let json = JSON.parse(result);
 
+          this.setState({
+            dataSources: json,
+          });
+        } catch (error) {
+          console.log(error);
+          console.log("Error parsing JSON response: ", result);
+        }
+      })
+      .catch((err) => {
+        console.log("Error fetching DataSources", err);
+      });
   }
 
-  onCreateClick(){
-
+  onCreateClick() {
     orchest.loadView(DataSourceEditView);
-
   }
 
-  onDeleteClick(){
-
+  onDeleteClick() {
     // select indices
 
     let selectedIndices = this.refManager.refs.checkItemList.customSelectedIndex();
 
-    orchest.confirm("Warning", "Are you sure you want to delete the selected data sources? (This cannot be undone.)", () => {
-      let promises = [];
-      for(let x = 0; x < selectedIndices.length; x++){
-        promises.push(makeRequest("DELETE", "/store/datasources/" + this.state.dataSources[selectedIndices[x]].name));
+    orchest.confirm(
+      "Warning",
+      "Are you sure you want to delete the selected data sources? (This cannot be undone.)",
+      () => {
+        let promises = [];
+        for (let x = 0; x < selectedIndices.length; x++) {
+          promises.push(
+            makeRequest(
+              "DELETE",
+              "/store/datasources/" +
+                this.state.dataSources[selectedIndices[x]].name
+            )
+          );
+        }
+
+        Promise.all(promises).then(() => {
+          this.fetchDataSources();
+        });
       }
-
-      Promise.all(promises).then(() => {
-        this.fetchDataSources();
-      });
-    })
-
+    );
   }
 
-  onClickListItem(dataSource, e){
-    orchest.loadView(DataSourceEditView, {"dataSource": dataSource});
+  onClickListItem(dataSource, e) {
+    orchest.loadView(DataSourceEditView, { dataSource: dataSource });
   }
 
   render() {
-    return <div className={"view-page"}>
-      <h2>Data sources</h2>
+    return (
+      <div className={"view-page"}>
+        <h2>Data sources</h2>
 
-      {(() => {
-        if(this.state.dataSources){
-          return <Fragment>
-              <div className={"data-source-actions"}>
-                <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
-                <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
-              </div>
-              <CheckItemList ref={this.refManager.nrefs.checkItemList} items={this.state.dataSources} onClickListItem={this.onClickListItem.bind(this)} />
-            </Fragment>
-        }else{
-          return <MDCLinearProgressReact />
-        }
-      })()}
-      
-    </div>;
+        {(() => {
+          if (this.state.dataSources) {
+            return (
+              <Fragment>
+                <div className={"data-source-actions"}>
+                  <MDCIconButtonToggleReact
+                    icon="add"
+                    onClick={this.onCreateClick.bind(this)}
+                  />
+                  <MDCIconButtonToggleReact
+                    icon="delete"
+                    onClick={this.onDeleteClick.bind(this)}
+                  />
+                </div>
+                <CheckItemList
+                  ref={this.refManager.nrefs.checkItemList}
+                  items={this.state.dataSources}
+                  onClickListItem={this.onClickListItem.bind(this)}
+                />
+              </Fragment>
+            );
+          } else {
+            return <MDCLinearProgressReact />;
+          }
+        })()}
+      </div>
+    );
   }
 }
 

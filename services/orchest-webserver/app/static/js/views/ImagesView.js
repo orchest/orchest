@@ -1,73 +1,85 @@
-import React, { Fragment } from 'react';
-import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
-import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact';
-import CommitsView from './CommitsView';
-import ItemList from '../components/ItemList';
+import React, { Fragment } from "react";
+import {
+  makeRequest,
+  makeCancelable,
+  PromiseManager,
+  RefManager,
+} from "../lib/utils/all";
+import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import CommitsView from "./CommitsView";
+import ItemList from "../components/ItemList";
 
 class ImagesView extends React.Component {
-
-  constructor(props){
+  constructor(props) {
     super(props);
 
     this.state = {
-      "images": undefined,
-    }
-    
+      images: undefined,
+    };
+
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
   }
 
-  componentDidMount(){
+  componentDidMount() {
     this.fetchImages();
   }
 
-  componentWillUnmount(){
+  componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
   }
 
-  fetchImages(){
-
+  fetchImages() {
     // fetch data sources
-    let imagesPromise = makeCancelable(makeRequest("GET", "/store/images"), this.promiseManager);
-    
-    imagesPromise.promise.then((result) => {
-      try {
-        let json = JSON.parse(result);
+    let imagesPromise = makeCancelable(
+      makeRequest("GET", "/store/images"),
+      this.promiseManager
+    );
 
-        this.setState({
-          "images": json
-        })
-        
-      } catch (error) {
-        console.log(error);
-        console.log("Error parsing JSON response: ", result);
-      }
-      
-    }).catch((err) => {
-      console.log("Error fetching Images", err);
-    })
+    imagesPromise.promise
+      .then((result) => {
+        try {
+          let json = JSON.parse(result);
 
+          this.setState({
+            images: json,
+          });
+        } catch (error) {
+          console.log(error);
+          console.log("Error parsing JSON response: ", result);
+        }
+      })
+      .catch((err) => {
+        console.log("Error fetching Images", err);
+      });
   }
 
-  onClickListItem(image, e){
-    orchest.loadView(CommitsView, {image: image});
+  onClickListItem(image, e) {
+    orchest.loadView(CommitsView, { image: image });
   }
 
   render() {
-    return <div className={"view-page"}>
-      <h2>Images</h2>
+    return (
+      <div className={"view-page"}>
+        <h2>Images</h2>
 
-      {(() => {
-        if(this.state.images){
-          return <Fragment>
-              <ItemList ref={this.refManager.nrefs.itemList} items={this.state.images} onClickListItem={this.onClickListItem.bind(this)} />
-            </Fragment>
-        }else{
-          return <MDCLinearProgressReact />
-        }
-      })()}
-      
-    </div>;
+        {(() => {
+          if (this.state.images) {
+            return (
+              <Fragment>
+                <ItemList
+                  ref={this.refManager.nrefs.itemList}
+                  items={this.state.images}
+                  onClickListItem={this.onClickListItem.bind(this)}
+                />
+              </Fragment>
+            );
+          } else {
+            return <MDCLinearProgressReact />;
+          }
+        })()}
+      </div>
+    );
   }
 }
 
