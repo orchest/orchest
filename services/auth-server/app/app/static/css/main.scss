@@ -2,9 +2,8 @@
 
 @import "material-components-web/material-components-web";
 
-
 input:-webkit-autofill::first-line {
-    font-size: 17px
+  font-size: 17px;
 }
 
 $generalPadding: 20px;
@@ -13,13 +12,13 @@ $mdcComponentPadding: 16px;
 * {
   box-sizing: border-box;
   margin: 0;
-  padding: 0
-} 
+  padding: 0;
+}
 
 *:focus {
   outline: none;
-} 
- 
+}
+
 html,
 body {
   font-size: 17px;
@@ -30,65 +29,66 @@ body {
 }
 
 #app {
-    width: 100%;
-    height: 100%;
-    display: flex;
+  width: 100%;
+  height: 100%;
+  display: flex;
 }
 
-h1, h2, h3 {
-    font-weight: 400;
+h1,
+h2,
+h3 {
+  font-weight: 400;
 }
 
 .edit-users-form {
-    padding: $generalPadding;
+  padding: $generalPadding;
 
-    .delete-user-form {
-        > span {
-            display: inline-block;
-            margin-right: $generalPadding;
-        }
+  .delete-user-form {
+    > span {
+      display: inline-block;
+      margin-right: $generalPadding;
     }
+  }
 
-    h2 {
-        margin-bottom: $generalPadding;
-    }
+  h2 {
+    margin-bottom: $generalPadding;
+  }
 
-    .group {
-        margin-bottom: $generalPadding;
-    }
+  .group {
+    margin-bottom: $generalPadding;
+  }
 
-    .mdc-text-field {
-        margin-bottom: $generalPadding;
-    }
+  .mdc-text-field {
+    margin-bottom: $generalPadding;
+  }
 }
 
 .login-form {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  display: flex;
 
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+  img.logo {
     width: 100%;
-    display: flex;
+    max-width: 200px;
+    margin-bottom: $generalPadding;
+  }
 
-    img.logo {
-        width: 100%;
-        max-width: 200px;
-        margin-bottom: $generalPadding;
+  .box {
+    padding: $generalPadding * 2;
+    box-shadow: 0 2px 12px -1px rgba(0, 0, 0, 0.15);
+    display: inline-block;
+    text-align: center;
+    border-radius: 6px;
+
+    .mdc-text-field {
+      margin-bottom: $generalPadding;
     }
 
-    .box {
-        padding: $generalPadding * 2;
-        box-shadow: 0 2px 12px -1px rgba(0, 0, 0, 0.15);
-        display: inline-block;
-        text-align: center;
-        border-radius: 6px;
-
-        .mdc-text-field {
-            margin-bottom: $generalPadding;
-        }
-
-        h2 {
-            margin: $generalPadding 0;
-        }
+    h2 {
+      margin: $generalPadding 0;
     }
+  }
 }

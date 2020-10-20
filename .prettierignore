@@ -1,0 +1,5 @@
+build
+coverage
+venv
+.venvs
+*.json

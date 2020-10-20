@@ -1,20 +1,21 @@
 # Tests
+
 To run tests run `python -m pytest` inside `/app/` where also the `tests/` directory can be found.
 
-
 ## Requirements
-* IPs and PORTS used by the application have to be available.
+
+- IPs and PORTS used by the application have to be available.
 
 Explanation: Due to all the hardcoded paths (and urls), the tests will not run if the specified IPs
 and PORTs are already in use by another application (this is because the tests are run on the local
 machine and not inside a docker container similar to the production environment).
 
-* `app/app/core/config.py`: Set `PRODUCTION = False`. As noted in the top-level README.md It cannot
-    be patched/mocked because this module is imported seperately in the subprocess calling it.
-    Therefore it has to be manually changed inside the file.
-
+- `app/app/core/config.py`: Set `PRODUCTION = False`. As noted in the top-level README.md It cannot
+  be patched/mocked because this module is imported seperately in the subprocess calling it.
+  Therefore it has to be manually changed inside the file.
 
 ## Difficulties for writing the tests
+
 D: Subprocess cleanup. Since a POST would only start the server in a subprocess, but never shuts it
 down.
 

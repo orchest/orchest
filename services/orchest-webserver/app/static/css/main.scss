@@ -1,11 +1,10 @@
 @import "vars";
 
 @import "material-components-web/material-components-web";
-@import 'codemirror/lib/codemirror';
- 
+@import "codemirror/lib/codemirror";
+
 @import "scrollbar";
 @import "ansi";
-
 
 $generalPadding: 20px;
 $mdcComponentPadding: 16px;
@@ -15,13 +14,13 @@ $borderColor: rgba(0, 0, 0, 0.15);
 * {
   box-sizing: border-box;
   margin: 0;
-  padding: 0
-} 
+  padding: 0;
+}
 
 *:focus {
   outline: none;
 }
- 
+
 html,
 body {
   font-size: 17px;
@@ -46,7 +45,6 @@ p {
   position: relative;
 }
 
-
 .mdc-drawer .mdc-list-item {
   font-weight: 400;
 }
@@ -59,7 +57,9 @@ aside.mdc-drawer {
   }
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-weight: 400;
 }
 
@@ -104,18 +104,15 @@ h1, h2, h3 {
   &.experiments-page {
     .mdc-data-table {
       width: 100%;
-
     }
 
     .mdc-text-field--outlined.search {
       margin-bottom: $generalPadding;
-    } 
+    }
 
     .experiment-actions {
       margin-bottom: $generalPadding;
     }
-
-    
   }
 }
 
@@ -125,16 +122,13 @@ h1, h2, h3 {
   }
 }
 
-
 // rounded notched buttons
 .mdc-text-field--outlined {
-
   .mdc-text-field__input {
     padding-left: $mdcComponentPadding * 2;
   }
 
   .mdc-notched-outline {
-
     .mdc-notched-outline__leading {
       border-radius: 28px 0 0 28px;
       width: 28px;
@@ -151,7 +145,6 @@ h1, h2, h3 {
 }
 
 .edit-commit {
-
   .react-codemirror2 {
     margin-bottom: $generalPadding;
   }
@@ -228,7 +221,7 @@ iframe.fullsize {
   left: 0;
   top: 0;
   height: 100%;
-  
+
   div {
     display: flex;
     justify-content: center;
@@ -244,7 +237,6 @@ iframe.fullsize {
     right: $generalPadding;
     top: 50%;
     transform: translateY(-50%);
-
   }
 
   .pipeline-name {
@@ -259,7 +251,6 @@ iframe.fullsize {
 }
 
 .view-pipeline-settings {
-
   .tab-content {
     padding: $generalPadding 0;
   }
@@ -272,7 +263,6 @@ iframe.fullsize {
       margin-top: $generalPadding;
     }
   }
-
 }
 
 h2.header {
@@ -281,9 +271,7 @@ h2.header {
   font-weight: normal;
 }
 
-
 .new-experiment {
-
   b {
     display: inline-block;
   }
@@ -300,8 +288,6 @@ h2.header {
     margin-bottom: 5px;
   }
 
-
-
   .argument-label {
     display: inline-block;
   }
@@ -315,7 +301,7 @@ h2.header {
       background: $borderColor;
       margin-left: 10px;
       cursor: pointer;
-      opacity: .5;
+      opacity: 0.5;
       transition: 0.3s ease all;
 
       &.selected {
@@ -323,11 +309,9 @@ h2.header {
       }
     }
   }
-
-} 
+}
 
 .experiment-view {
-
   display: flex;
   flex-direction: column;
 
@@ -384,9 +368,9 @@ h2.header {
         table-layout: fixed;
       }
       th {
-
       }
-      th, td {
+      th,
+      td {
         overflow: hidden;
         display: inline-block;
         max-width: 100%;
@@ -413,16 +397,12 @@ h2.header {
       font-size: 21px;
     }
   }
-  
+
   .mdc-tab-bar {
     margin-top: $generalPadding;
   }
 
-  
-
   .parameter-editor {
-
-    
   }
 }
 
@@ -448,7 +428,8 @@ h2.header {
     }
   }
 
-  .parameter-key, .parameter-value {
+  .parameter-key,
+  .parameter-value {
     display: inline-block;
   }
   .parameter-key {
@@ -460,12 +441,12 @@ h2.header {
   }
 
   .parameter-value {
-    &.editable{
+    &.editable {
       color: $mdc-theme-secondary;
       text-decoration: underline;
       cursor: pointer;
     }
-    
+
     padding-left: 5px;
   }
 }
@@ -490,8 +471,7 @@ h2.header {
 }
 
 button.themed-secondary {
- 
-  &:not(:disabled){
+  &:not(:disabled) {
     background-color: $mdc-theme-secondary;
   }
 
@@ -512,14 +492,14 @@ span.code {
   display: inline-block;
 }
 
-.mdc-top-app-bar .mdc-top-app-bar__navigation-icon{
-  z-index: 9
+.mdc-top-app-bar .mdc-top-app-bar__navigation-icon {
+  z-index: 9;
 }
 
 .session-state-button {
   &.active {
     i {
-      color: #00FF00;
+      color: #00ff00;
     }
   }
 }
@@ -557,25 +537,21 @@ span.code {
       button {
         margin-bottom: 0;
       }
- 
+
       .selection-buttons {
         display: inline-block;
         padding-left: $generalPadding;
-
       }
-      
     }
 
     button {
-      &:last-of-type { 
+      &:last-of-type {
         margin-right: 0;
       }
 
       margin-right: $generalPadding;
       margin-bottom: $generalPadding;
       min-width: 0;
-
-       
     }
   }
 
@@ -598,8 +574,8 @@ span.code {
 
     .step-selector {
       position: absolute;
-      z-index:  0;
-      background: rgba(0,0,0,.1);
+      z-index: 0;
+      background: rgba(0, 0, 0, 0.1);
     }
 
     .connection {
@@ -610,11 +586,9 @@ span.code {
       z-index: 1;
 
       &.selected {
-
         &:after {
           background-image: url("../image/arrow-head-blue.svg");
         }
-
       }
 
       &:after {
@@ -658,7 +632,6 @@ span.code {
     }
 
     .pipeline-step {
-
       $pipelineHeight: 105px;
       $pipelineWidth: 190px;
 
@@ -706,7 +679,8 @@ span.code {
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 
-      &.selected, &:active {
+      &.selected,
+      &:active {
         border-color: $mdc-theme-secondary;
         background: rgb(245, 245, 255);
       }
@@ -736,8 +710,6 @@ span.code {
         color: #555;
       }
 
-      
-
       .connection-point {
         display: block;
         width: 30px;
@@ -745,12 +717,12 @@ span.code {
         border-radius: 30px;
 
         &.hover {
-          .inner-dot{
+          .inner-dot {
             background: $mdc-theme-secondary;
           }
         }
 
-        .inner-dot{
+        .inner-dot {
           background: black;
           border-radius: 10px;
           width: 10px;
@@ -759,7 +731,7 @@ span.code {
           margin-top: 10px;
           pointer-events: none;
         }
-        
+
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
@@ -772,9 +744,7 @@ span.code {
         }
       }
     }
-
   }
-
 
   .pipeline-details {
     height: 100%;
@@ -813,7 +783,6 @@ span.code {
     }
 
     .connection-list {
-
       &.dragging {
         .connection-item {
           transition: transform 0.3s ease;
@@ -841,7 +810,7 @@ span.code {
         &.selected {
           transition: none;
         }
-  
+
         i.material-icons {
           float: left;
           padding-right: 10px;
@@ -849,8 +818,6 @@ span.code {
         }
       }
     }
-
-    
 
     .mdc-text-field--textarea {
       textarea {
@@ -860,8 +827,6 @@ span.code {
       }
       width: 100%;
     }
-
-    
 
     display: flex;
     flex-direction: column;
@@ -879,7 +844,6 @@ span.code {
     }
 
     .action-buttons-bottom {
-
       padding: $generalPadding;
       padding-bottom: 0;
 
@@ -905,22 +869,18 @@ span.code {
     .multi-field-input {
       padding-bottom: 20px;
     }
-
-    
   }
 }
-
 
 .pipelines-view {
   .mdc-list-item {
     .material-icons {
       font-size: 20px;
       margin-left: 10px;
-      color: #34ef34; 
+      color: #34ef34;
     }
   }
 }
-
 
 .mdc-dialog {
   z-index: 99;
@@ -983,11 +943,9 @@ span.code {
   }
 }
 
-
-
 .connection-form {
   width: 50%;
-  
+
   > div {
     width: 100%;
   }
@@ -1029,8 +987,8 @@ span.code {
 }
 
 .mdc-top-app-bar {
-    position: relative;
+  position: relative;
 }
 .mdc-top-app-bar--fixed-adjust {
-    padding-top: 0;
+  padding-top: 0;
 }
