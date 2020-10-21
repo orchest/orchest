@@ -368,10 +368,10 @@ def register_views(app, db):
                 return images_schema.dump(images)
 
         class ImageResource(Resource):
+ 
+            def put(self, uuid):
 
-            def put(self, name):
-
-                im = Image.query.filter(Image.name == name).first()
+                im = Image.query.filter(Image.uuid == uuid).first()
 
                 if im is None:
                     return '', 404
@@ -382,25 +382,25 @@ def register_views(app, db):
 
                 return image_schema.dump(im)
 
-            def get(self, name):
-                im = Image.query.filter(Image.name == name).first()
+            def get(self, uuid):
+                im = Image.query.filter(Image.uuid == uuid).first()
 
                 if im is None:
                     return '', 404
 
                 return image_schema.dump(im)
 
-            def delete(self, name):
-                Image.query.filter(Image.name == name).delete()
+            def delete(self, uuid):
+                Image.query.filter(Image.uuid == uuid).delete()
                 db.session.commit()
 
-            def post(self, name):
+            def post(self, uuid):
 
-                if Image.query.filter(Image.name == name).count() > 0:
+                if Image.query.filter(Image.name == request.json["name"]).count() > 0:
                     raise ImageNameInUse()
 
                 new_im = Image(
-                    name=name,
+                    name=request.json["name"],
                     language=request.json["language"]
                 )
 
@@ -411,7 +411,7 @@ def register_views(app, db):
 
         api.add_resource(ImagesResource, "/store/images")
         api.add_resource(ImageResource,
-                         "/store/images/<string:name>")
+                         "/store/images/<string:uuid>")
 
 
     def register_datasources(db, api, ma):

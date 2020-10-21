@@ -1,5 +1,10 @@
 from app.connections import db
 import datetime
+import uuid
+
+
+def str_uuid4():
+    return str(uuid.uuid4())
 
 
 class DataSource(db.Model):
@@ -17,7 +22,8 @@ class DataSource(db.Model):
 class Image(db.Model):
     __tablename__ = 'images'
     
-    name = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
+    uuid = db.Column(db.String(255), unique=True, nullable=False, default=str_uuid4, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False)
     language = db.Column(db.String(255), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
