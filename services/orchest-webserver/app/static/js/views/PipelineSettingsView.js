@@ -169,11 +169,11 @@ class PipelineSettingsView extends React.Component {
                       />
                     </form>
 
-                    <h3 className="push-up push-down">Memory server</h3>
+                    <h3 className="push-up push-down">Data passing</h3>
 
                     <MDCButtonReact
                       disabled={this.state.restartingMemoryServer}
-                      label="Restart memory server"
+                      label="Clear memory"
                       icon="memory"
                       classNames={["mdc-button--raised"]}
                       onClick={this.restartMemoryServer.bind(this)}
