@@ -1,10 +1,13 @@
 import os
 import sys
 import argparse
-from docker.client import DockerClient
-from docker.types import EndpointSpec, RestartPolicy, DeviceRequest
 import urllib3
 import requests
+
+from docker.client import DockerClient
+from docker.types import EndpointSpec, RestartPolicy, DeviceRequest, Mount
+
+from _orchest.internals.utils import get_device_requests, get_orchest_mounts
 
 urllib3.disable_warnings()
 
@@ -13,63 +16,12 @@ remove_container = bool(os.getenv('EG_REMOVE_CONTAINER', 'True').lower() == 'tru
 swarm_mode = bool(os.getenv('EG_DOCKER_MODE', 'swarm').lower() == 'swarm')
 
 
-def get_orchest_mounts(param_env):
-    """Prepare all mounts that are needed to run Orchest.
-
-    Note:
-        Trying to put all Orchest related code inside this function to
-        ease maintainability when the EG gets updated.
-
-    """
-    from docker.types import Mount
-
-    pipeline_dir_mount = Mount(
-        target=param_env.get('KERNEL_WORKING_DIR'),
-        source=param_env.get('ORCHEST_HOST_PIPELINE_DIR'),
-        type='bind'
-    )
-
-    # TODO: Do we want to add our internal library to the EG just so
-    #       that we can use the `_config` values?
-    uuid = param_env.get('ORCHEST_PIPELINE_UUID')
-    temp_dir_mount = Mount(
-        # target=_config.TEMP_DIRECTORY_PATH,
+def get_volume_mount(pipeline_uuid):
+    return Mount(
         target='/tmp/orchest',
-        source=f'tmp-orchest-{uuid}',
-        # source=_config.TEMP_VOLUME_NAME.format(uuid=uuid),
+        source=f'tmp-orchest-{pipeline_uuid}',
         type='volume'
     )
-
-    mounts = [pipeline_dir_mount, temp_dir_mount]
-
-    # Mounts for datasources.
-    try:
-        response = requests.get('http://orchest-webserver/store/datasources')
-        response.raise_for_status()
-
-    except Exception as e:
-        print(e)
-
-    else:
-        datasources = response.json()
-        for datasource in datasources:
-            if datasource['source_type'] != 'host-directory':
-                continue
-            
-            # the default (host) /userdata/data should be mounted in /data
-            if datasource['connection_details']['absolute_host_path'].endswith("/userdir/data"):
-                target_path = '/data'
-            else:
-                target_path = '/mounts/%s' % datasource['name']
-
-            mount = Mount(
-                target=target_path,
-                source=datasource['connection_details']['absolute_host_path'],
-                type='bind'
-            )
-            mounts.append(mount)
-
-    return mounts
 
 
 def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
@@ -151,16 +103,16 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
             kwargs['working_dir'] = param_env.get('KERNEL_WORKING_DIR')
 
         # print("container args: {}".format(kwargs))  # useful for debug
-        orchest_mounts = get_orchest_mounts(param_env)
+        orchest_mounts = get_orchest_mounts(
+            pipeline_uuid=param_env.get('ORCHEST_PIPELINE_UUID'),
+            working_dir=param_env.get('KERNEL_WORKING_DIR'),
+            host_pipeline_dir=param_env.get('ORCHEST_HOST_PIPELINE_DIR'),
+        )
+        orchest_mounts += [get_volume_mount(param_env.get('ORCHEST_PIPELINE_UUID'))]
 
-        device_requests = []
-        # Request GPU capabilities is 'gpu' is in image name (TODO: make this something stored in webserver image metadata)
-        if "gpu" in image_name:
-            device_requests.append(
-                DeviceRequest(count=-1, capabilities=[['gpu', 'utility', 'compute']])
-            )
+        device_requests = get_device_requests(image_name)
 
-        kernel_container = client.containers.run(image_name, mounts=orchest_mounts, device_requests=device_requests,**kwargs)
+        kernel_container = client.containers.run(image_name, mounts=orchest_mounts, device_requests=device_requests, **kwargs)
 
 
 if __name__ == '__main__':

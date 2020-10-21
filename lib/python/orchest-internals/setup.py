@@ -17,6 +17,7 @@ setuptools.setup(
     ],
     license='',
     install_requires=[
-        'docker'
+        'docker>=4.3.0',
+        'requests'
     ]
 )

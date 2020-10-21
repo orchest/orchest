@@ -15,7 +15,8 @@
 </head>
 <body>
     <input type="hidden" name="FLASK_ENV" value="{{FLASK_ENV}}" />
-
+    <input type="hidden" name="DOCS_ROOT" value="{{DOCS_ROOT}}" />
+    
     <aside class="mdc-drawer mdc-drawer--dismissible" id="main-drawer">
         <div class="mdc-drawer__content">
             <nav class="mdc-list">
@@ -79,7 +80,8 @@
 
     {% endblock %}
 
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
     <script type="module" src="public/js/dist/main.bundle.js?v={{ javascript_bundle_hash }}"></script>
+
 </body>
 </html>

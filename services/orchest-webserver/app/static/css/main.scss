@@ -504,6 +504,17 @@ button.themed-secondary {
   width: 100%;
 }
 
+.docs-notice {
+  background: #eee;
+  border-radius: 3px;
+  padding: 6px;
+  font-size: 15px;
+  
+  a {
+    color: $mdc-theme-secondary;
+  }
+}
+
 span.code {
   font-family: monospace;
   background: #eee;
@@ -522,7 +533,7 @@ span.code {
       color: #00FF00;
     }
   }
-}
+} 
 
 .pipeline-view {
   position: relative;

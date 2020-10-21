@@ -39,6 +39,7 @@ done
 if [ ${#IMGS[@]} -eq 0 ]; then
     IMGS=(
         "jupyter-server"
+        "jupyter-enterprise-gateway"
         "celery-worker"
         "custom-base-kernel-py"
         "custom-base-kernel-py-gpu"
@@ -64,6 +65,7 @@ LIB_IMAGES=(
     "auth-server"
     "update-server"
     "celery-worker"
+    "jupyter-enterprise-gateway"
 )
 SDK_IMAGES=(
     "custom-base-kernel-py"
@@ -138,6 +140,19 @@ do
             -t orchestsoftware/jupyter-server \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-server/Dockerfile \
+            $build_ctx)
+
+    fi
+
+
+    # Jupyter Enterprise Gateway
+    if [ $IMG == "jupyter-enterprise-gateway" ]; then
+
+        build_ctx=$DIR/../services/jupyter-enterprise-gateway
+        build=(docker build \
+            -t orchestsoftware/jupyter-enterprise-gateway \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/jupyter-enterprise-gateway/Dockerfile \
             $build_ctx)
 
     fi

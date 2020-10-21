@@ -14,7 +14,7 @@ DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 
 # All the images that are used by Orchest.
 ALL_IMAGES = [
-    "elyra/enterprise-gateway:2.2.0",
+    "orchestsoftware/jupyter-enterprise-gateway:latest",
     "orchestsoftware/jupyter-server:latest",
     "orchestsoftware/custom-base-kernel-py:latest",
     "orchestsoftware/custom-base-kernel-r:latest",

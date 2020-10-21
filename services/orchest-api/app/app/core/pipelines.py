@@ -1,6 +1,7 @@
 import asyncio
 import copy
 from datetime import datetime
+from docker.types import Mount
 from typing import Any, Dict, Iterable, List, Optional#, TypedDict
 
 import aiodocker
@@ -9,6 +10,7 @@ import requests
 
 from config import CONFIG_CLASS
 from _orchest.internals import config as _config
+from _orchest.internals.utils import get_device_requests, get_orchest_mounts
 
 
 # TODO: supported in python3.8 But docker images run 3.7
@@ -119,30 +121,7 @@ async def update_status(status: str,
         return await response.json()
 
 
-def get_dynamic_mounts(run_config, task_id):
-    mounts = []
-
-    # Get mounts for the datasources.
-    try:
-        response = requests.get('http://orchest-webserver/store/datasources')
-        response.raise_for_status()
-    except Exception as e:
-        # TODO: Improve exception and use logging instead of printing.
-        print(e)
-    else:
-        datasources = response.json()
-        for datasource in datasources:
-            if datasource['source_type'] != 'host-directory':
-                continue
-
-            # the default (host) /userdata/data should be mounted in /data
-            absolute_host_path = datasource['connection_details']['absolute_host_path']
-            if absolute_host_path.endswith('/userdir/data'):
-                target = '/data'
-            else:
-                target = f'/mounts/{datasource["name"]}'
-
-            mounts.append(f'{absolute_host_path}:{target}')
+def get_volume_mount(run_config, task_id):
 
     # Determine the appropriate name for the volume that shares
     # temporary data amongst containers.
@@ -152,12 +131,7 @@ def get_dynamic_mounts(run_config, task_id):
         volume_uuid = task_id
     temp_volume_name = _config.TEMP_VOLUME_NAME.format(uuid=volume_uuid)
 
-    mounts.extend([
-        f'{run_config["pipeline_dir"]}:{_config.PIPELINE_DIR}',
-        f'{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}',
-    ])
-
-    return mounts
+    return f"{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}"
 
 
 class PipelineStepRunner:
@@ -213,6 +187,19 @@ class PipelineStepRunner:
             # The step cannot be run yet.
             return self._status
 
+        orchest_mounts = get_orchest_mounts(
+            pipeline_uuid=run_config["pipeline_uuid"],
+            working_dir=_config.PIPELINE_DIR,
+            host_pipeline_dir=run_config["pipeline_dir"],
+            mount_form="docker-engine"
+        )
+
+        # add volume mount
+        orchest_mounts += [get_volume_mount(run_config, task_id)]
+
+        device_requests = get_device_requests(self.properties['image'], form="docker-engine")
+
+
         config = {
             'Image': self.properties['image'],
             'Env': [
@@ -220,7 +207,8 @@ class PipelineStepRunner:
                 'EVICTION_OPTIONALITY=1',
             ],
             'HostConfig': {
-                'Binds': get_dynamic_mounts(run_config, task_id),
+                "Binds": orchest_mounts,
+                "DeviceRequests": device_requests,
             },
             'Cmd': ["/orchest/bootscript.sh", "runnable", self.properties['file_path']],
             'NetworkingConfig': {
@@ -232,6 +220,7 @@ class PipelineStepRunner:
             # gets ignored by the `docker_client`.
             'tests-uuid': self.properties['uuid']
         }
+
 
         # Starts the container asynchronously, however, it does not wait
         # for completion of the container (like the `docker run` CLI

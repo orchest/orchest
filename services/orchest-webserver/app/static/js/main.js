@@ -28,6 +28,8 @@ function Orchest() {
     if($('input[name="FLASK_ENV"]').val() == "development"){
         this.environment = "development";
     }
+    this.config = {}
+    this.config["DOCS_ROOT"] = $('input[name="DOCS_ROOT"]').val();
     
     console.log("Orchest is running in environment: " + this.environment);
 

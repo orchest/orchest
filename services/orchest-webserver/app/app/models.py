@@ -26,6 +26,7 @@ class Image(db.Model):
     name = db.Column(db.String(255), unique=True, nullable=False)
     language = db.Column(db.String(255), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    gpu_support = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f'<Images {self.name}:{self.language}>'

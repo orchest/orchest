@@ -492,7 +492,7 @@ def _get_container_specs(
     # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
     # started by the EG are on the same docker network as the EG.
     container_specs['jupyter-EG'] = {
-        'image': 'elyra/enterprise-gateway:2.2.0',  # TODO: make not static.
+        'image': 'orchestsoftware/jupyter-enterprise-gateway',  # TODO: make not static.
         'detach': True,
         'mounts': [
             mounts.get('docker_sock'),

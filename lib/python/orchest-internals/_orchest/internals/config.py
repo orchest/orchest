@@ -13,6 +13,7 @@ LOGS_PATH = '.orchest/logs'
 WEBSERVER_LOGS = '/orchest/services/orchest-webserver/app/orchest-webserver.log'
 PIPELINE_DESCRIPTION_FILE = 'pipeline.json'
 PIPELINE_DESCRIPTION_PATH = os.path.join('.orchest', PIPELINE_DESCRIPTION_FILE)
+DOCS_ROOT = 'https://orchest.readthedocs.io'
 
 # Networking
 ORCHEST_API_ADDRESS = 'orchest-api'

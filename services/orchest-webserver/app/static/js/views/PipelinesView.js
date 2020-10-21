@@ -174,7 +174,7 @@ class PipelinesView extends React.Component {
             })() }
 
                 <h2>Pipelines</h2>
-                <div className={"pipeline-actions"}>
+                <div className={"pipeline-actions push-down"}>
                     <MDCIconButtonToggleReact icon="add" onClick={this.onCreateClick.bind(this)} />
                     <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
                 </div>

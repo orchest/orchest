@@ -53,7 +53,7 @@ def register_views(app, db):
 
     class ImageSchema(ma.Schema):
         class Meta:
-            fields = ("name", "language")
+            fields = ("name", "language", "uuid", "gpu_support")
 
     image_schema = ImageSchema()
     images_schema = ImageSchema(many=True)
@@ -378,7 +378,12 @@ def register_views(app, db):
 
                 im.name = request.json["name"]
                 im.language = request.json["language"]
+                im.gpu_support = request.json["gpu_support"]
                 db.session.commit()
+
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
 
                 return image_schema.dump(im)
 
@@ -391,8 +396,23 @@ def register_views(app, db):
                 return image_schema.dump(im)
 
             def delete(self, uuid):
-                Image.query.filter(Image.uuid == uuid).delete()
-                db.session.commit()
+                image = Image.query.filter(Image.uuid == uuid).first()
+
+                # do not allow deletion of base images
+                is_base_image = False
+                for base_image in _config.DEFAULT_BASE_IMAGES:
+                    if base_image["name"] == image.name:
+                        is_base_image = True
+                        break
+
+                if not is_base_image:
+                    db.session.delete(image)
+                    db.session.commit()
+
+                    # side effect: update shared kernels directory
+                    populate_kernels(app, db)
+                else:
+                    return {"message": "Cannot remove base images."}, 401
 
             def post(self, uuid):
 
@@ -401,11 +421,15 @@ def register_views(app, db):
 
                 new_im = Image(
                     name=request.json["name"],
-                    language=request.json["language"]
+                    language=request.json["language"],
+                    gpu_support=request.json["gpu_support"]
                 )
 
                 db.session.add(new_im)
                 db.session.commit()
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
 
                 return image_schema.dump(new_im)
 
@@ -600,7 +624,7 @@ def register_views(app, db):
             app.config["STATIC_DIR"], "css", "main.css")
             
 
-        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf(), FLASK_ENV=app.config["FLASK_ENV"])
+        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf(), DOCS_ROOT=app.config["DOCS_ROOT"], FLASK_ENV=app.config["FLASK_ENV"])
 
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
@@ -760,6 +784,40 @@ def register_views(app, db):
         result = {
             "success": True,
             "images": synthesized_images
+        }
+
+        return jsonify(result), 200, {"content-type": "application/json"}
+
+
+    @app.route("/async/image-metadata/", methods=["POST"])
+    def image_metadata():
+
+        # check if image is commit or base image
+        image_name = request.form.get("image_name")
+
+        image = Image.query.filter(Image.name == image_name).first()
+        if image is None:
+            
+            if ":" in image_name:
+                # check if commit exists
+                base_image = image_name.split(":")[0]
+                tag = image_name.split(":")[1]
+
+                commit = Commit.query.filter(Commit.base_image == base_image).filter(Commit.tag == tag).first()
+                if commit is None:
+                    return jsonify({"message": "Image not found"}), 404
+
+                image = Image.query.filter(Image.name == base_image).first()
+
+                if image is None:
+                    return jsonify({"message": "Image not found"}), 404
+
+            else:
+                return jsonify({"message": "Image not found"}), 404
+
+        result = {
+            "success": True,
+            "image": image_schema.dump(image)
         }
 
         return jsonify(result), 200, {"content-type": "application/json"}
