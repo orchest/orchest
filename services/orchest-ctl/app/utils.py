@@ -78,8 +78,7 @@ async def async_check_images(images):
 
 
 def check_images():
-    loop = asyncio.get_event_loop()
-    missing_images = loop.run_until_complete(async_check_images(config.ALL_IMAGES))
+    missing_images = asyncio.run(async_check_images(config.ALL_IMAGES))
     return missing_images
 
 
@@ -105,8 +104,7 @@ async def pull_images(images, force_pull):
 
 
 def install_images(force_pull=False):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(pull_images(config.ALL_IMAGES, force_pull))
+    asyncio.run(pull_images(config.ALL_IMAGES, force_pull))
 
 
 def install_network():
