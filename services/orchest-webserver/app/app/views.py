@@ -970,6 +970,45 @@ def register_views(app, db):
         return json_string, 200, {"content-type": "application/json"}
 
 
+    @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
+    def projects():
+
+        project_dir = os.path.join(app.config["USER_DIR"], "projects")
+        projects = [name for name in os.listdir(project_dir) if os.path.isdir(os.path.join(project_dir, name))]
+        
+        logging.info(projects)
+        logging.info(project_dir)
+
+        if request.method == "GET":
+            return jsonify(projects)
+
+        elif request.method == "DELETE":
+            
+            project_name = request.json['name']
+            
+            project_dir = os.path.join(project_dir, project_name)
+            if not os.path.isdir(project_dir):
+                return jsonify({"message": "Project directory doesn't exists."}), 409
+            else:
+                os.system("rm -r %s" % (project_dir))
+                return jsonify({"message": "Project deleted."})
+
+        elif request.method == "POST":
+
+            project_name = request.json['name']
+
+            if project_name not in projects:
+                project_dir = os.path.join(project_dir, project_name)
+                if not os.path.isdir(project_dir):
+                    os.makedirs(project_dir)
+                else:
+                    return jsonify({"message": "Project directory exists."}), 409
+            else:
+                return jsonify({"message": "Project directory exists."}), 409
+
+            return jsonify({"message": "Project created."})
+
+
     @app.route("/async/pipelines", methods=["GET"])
     def pipelines_get():
 

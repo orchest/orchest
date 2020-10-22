@@ -1,6 +1,7 @@
 import { MDCTopAppBar } from "@material/top-app-bar";
 import { MDCDrawer } from "@material/drawer";
 
+import ProjectsView from "./views/ProjectsView";
 import PipelinesView from "./views/PipelinesView";
 import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
@@ -36,6 +37,7 @@ function Orchest() {
     this.reactRoot = document.querySelector(".react-view-root");
 
     this.Components = {
+        "ProjectsView": ProjectsView,
         "PipelinesView": PipelinesView,
         "DataSourcesView": DataSourcesView,
         "FileManagerView": FileManagerView,
@@ -90,7 +92,7 @@ function Orchest() {
     this.initializeFirstView = function () {
         // load first pipeline
 
-        this.loadView(PipelinesView);
+        this.loadView(ProjectsView);
 
     }
 
