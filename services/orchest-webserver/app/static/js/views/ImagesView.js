@@ -73,6 +73,23 @@ class ImagesView extends React.Component {
     })
   }
 
+  removeImage(image_uuid){
+    // ultimately remove Image
+    makeRequest("DELETE", "/store/images/" + image_uuid).then((_) => {
+      // reload list once removal succeeds
+      this.fetchImages();
+
+    }).catch((e) => {
+      let errorMessage = "unknown";
+      try {
+        errorMessage = JSON.parse(e.body).message;
+      } catch (e){
+        console.error(e);
+      }
+      orchest.alert("Deleting image '" + this.state.images[idx].name + "' failed. Reason: " + errorMessage);
+    })
+  }
+
   onDeleteClick(){
     let selectedIndices = this.refManager.refs.imageListView.getSelectedRowIndices();
 
@@ -97,31 +114,21 @@ class ImagesView extends React.Component {
                 
                 let promises = [];
 
-                for(let commit of commits){
+                if(commits.length == 0){
+                  this.removeImage(image_uuid);
+                }else{
+                  for(let commit of commits){
 
-                  promises.push(makeRequest("DELETE", "/store/commits/" + commit.uuid));
-            
-                  Promise.all(promises).then(() => {
+                    promises.push(makeRequest("DELETE", "/store/commits/" + commit.uuid));
+              
+                    Promise.all(promises).then(() => {
 
-                    // ultimately remove Image
-                    makeRequest("DELETE", "/store/images/" + image_uuid).then((_) => {
-                      // reload list once removal succeeds
-                      this.fetchImages();
-        
-                    }).catch((e) => {
-                      let errorMessage = "unknown";
-                      try {
-                        errorMessage = JSON.parse(e.body).message;
-                      } catch (e){
-                        console.error(e);
-                      }
-                      orchest.alert("Deleting image '" + this.state.images[idx].name + "' failed. Reason: " + errorMessage);
-                    })
+                      this.removeImage(image_uuid);
 
-                  });
+                    });
 
+                  }
                 }
-                
               } catch (error) {
                 console.log(error);
                 console.log("Error parsing JSON response: ", result);

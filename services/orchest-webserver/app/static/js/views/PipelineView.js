@@ -906,9 +906,10 @@ class PipelineView extends React.Component {
             "image": "orchestsoftware/custom-base-kernel-py",
             "parameters": {},
             "meta_data": {
-                "position": [-9999, -9999],
+                "position": [0, 0],
                 "_dragged": false,
                 "_drag_count": 0,
+                "hidden": true,
             }
         };
 
@@ -919,12 +920,15 @@ class PipelineView extends React.Component {
         
         // wait for single render call
         setTimeout(() => {
-            let pipelineHolderSize = {
-                width: this.refManager.refs.pipelineStepsOuterHolder.clientWidth,
-                height: this.refManager.refs.pipelineStepsOuterHolder.clientHeight
-            }
-            step["meta_data"]["position"] = [pipelineHolderSize.width/2 - 190/2, pipelineHolderSize.height/2 - 105/2];
+            step["meta_data"]["position"] = [
+                this.refManager.refs.pipelineStepsOuterHolder.clientWidth/2 - 190/2, 
+                this.refManager.refs.pipelineStepsOuterHolder.clientHeight/2 - 105/2
+            ];
 
+            // to avoid repositioning flash (creating a step can affect the size of the viewport)
+            step["meta_data"]["hidden"] = false;
+
+            this.setState({ "steps": this.state.steps });
             this.refManager.refs[step.uuid].updatePosition(this.state.steps[step.uuid].meta_data.position);
         },0);
 

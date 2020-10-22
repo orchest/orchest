@@ -685,6 +685,10 @@ span.code {
       text-align: center;
       z-index: 2;
 
+      &.hidden {
+        display: none;
+      }
+
       .execution-indicator {
         position: absolute;
         width: 100%;
