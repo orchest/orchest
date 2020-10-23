@@ -1,17 +1,15 @@
 """Options for the command line."""
 import logging
+import os
+import pathlib
+import subprocess
 
-import config
+from app import config, utils
 
 # Import the CONTAINER_MAPPING seperately because when Orchest is
 # started in DEV mode, then the mapping is changed in-place.
-from config import CONTAINER_MAPPING
-from connections import docker_client
-import utils
-import time
-import os
-import subprocess
-import pathlib
+from app.config import CONTAINER_MAPPING
+from app.connections import docker_client
 
 
 def get_available_cmds():
@@ -37,7 +35,6 @@ def proxy_certs_exist_on_host():
 
 
 def start():
-
     # Make sure the installation is complete before starting Orchest.
     if not utils.is_install_complete():
         logging.info("Installation required. Starting installer.")
@@ -145,14 +142,14 @@ def stop(skip_names=[]):
             logging.info("Killing container %s" % container.name)
             try:
                 container.kill()
-            except Exception as _:
+            except Exception:
                 # logging.debug(e) (kill() does not always succeed - e.g.
                 # container could have exited before)
                 pass
 
             try:
                 container.remove()
-            except Exception as _:
+            except Exception:
                 # logging.debug(e) (remove() does not always succeed - e.g. the
                 # container could be configured to autoremove)
                 pass
@@ -220,7 +217,9 @@ def update():
 
     if return_code != 0:
         logging.info(
-            "'git' repo update failed. Please make sure you don't have any commits that conflict with the main branch in the 'orchest' repository. Cancelling update."
+            "'git' repo update failed. Please make sure you don't have "
+            "any commits that conflict with the main branch in the "
+            "'orchest' repository. Cancelling update."
         )
     else:
         logging.info("Pulling latest images ...")

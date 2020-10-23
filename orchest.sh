@@ -24,7 +24,11 @@ function update_orchest_ctl {
 # Warnings
 if [ "$1" == "update" ] ; then
 
-    if [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
+    # Do nothing in case "--help" is present in the commands or args.
+    if [[ "$@" == *"--help"* ]] ; then
+        # Do nothing
+        :
+    elif [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
         update_orchest_ctl
     else
         read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r

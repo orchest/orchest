@@ -2,13 +2,13 @@ import logging
 import os
 import sys
 
-import docker
 import aiodocker
 import asyncio
+import docker
 from docker.types import Mount
 
-import config
-from connections import docker_client
+from app import config
+from app.connections import docker_client
 
 
 def init_logger():
@@ -37,7 +37,7 @@ def is_orchest_running():
             if container.status == "running":
                 running = True
                 break
-        except docker.errors.NotFound as e:
+        except docker.errors.NotFound:
             pass
 
     return running
