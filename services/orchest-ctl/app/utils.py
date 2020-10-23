@@ -243,10 +243,6 @@ def dev_mount_inject(container_spec):
     orchest_api_spec["environment"]["FLASK_ENV"] = "development"
     orchest_api_spec["command"] = ["flask", "run", "--host=0.0.0.0", "--port=80"]
 
-    # nginx-proxy
-    nginx_proxy_spec = container_spec["orchestsoftware/nginx-proxy:latest"]
-    nginx_proxy_spec["ports"] = {"80/tcp": 80, "443/tcp": 443}
-
 
 def convert_to_run_config(image_name, container_spec):
     # Convert every mount specification to a docker.types.Mount

@@ -61,11 +61,19 @@ def update(mode: Optional[str] = typer.Option(None, hidden=True)):
 def restart(
     mode: Optional[str] = typer.Option(
         "reg", help="Mode in which to start Orchest afterwards."
-    )
+    ),
+    port: Optional[int] = typer.Option(
+        8000, help="The port the Orchest webserver will listen on."
+    ),
 ):
     """
     Restart Orchest.
     """
+    config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
+        "80/tcp": port,
+        "443/tcp": 443,
+    }
+
     if mode is not None:
         # Only mode that is given is "dev", used by the webserver and
         # in case the user would like to do so.
