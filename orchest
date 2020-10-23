@@ -8,11 +8,11 @@ if ! docker ps >/dev/null 2>/dev/null ; then
 
     ORCHEST_PATH=.
     # Check if orchest is in PWD
-    if ! test -f "orchest.sh"; then
+    if ! test -f "orchest"; then
         ORCHEST_PATH=$DIR
     fi
 
-    echo "docker command not accesible for user '$USERNAME'. Please run \`sudo $ORCHEST_PATH/orchest.sh\` instead."
+    echo "docker command not accesible for user '$USERNAME'. Please run \`sudo $ORCHEST_PATH/orchest\` instead."
     exit 1
 fi
 

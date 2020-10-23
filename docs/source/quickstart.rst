@@ -24,7 +24,7 @@ Launch Orchest:
 
 .. code-block:: bash
 
-   ./orchest.sh start
+   ./orchest start
 
 Build your pipeline. Create two steps and connect them.
 

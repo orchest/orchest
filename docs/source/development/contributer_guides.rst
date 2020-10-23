@@ -36,7 +36,7 @@ To start hacking on Orchest you simply have to clone the repo from GitHub and st
    # Start Orchest in dev mode which mounts the repo code to the correct
    # paths in the Docker containers to not require any rebuilds. In 
    # addition, servers build on Flask are started in development mode.
-   ./orchest.sh start dev
+   ./orchest start dev
 
 ``dev`` mode mounts the repository code from the filesystem (and thus adhering to branches) to the
 appropriate paths in the Docker containers. This allows for active code changes being reflected

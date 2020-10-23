@@ -22,9 +22,9 @@ first.
 
    # The start command will automatically install Orchest if it is not 
    # yet installed. After installation is finished Orchest is started.
-   ./orchest.sh start
+   ./orchest start
 
-The run script ``orchest.sh`` will mount the Docker socket to the ``orchest-ctl``
+The run script ``orchest`` will mount the Docker socket to the ``orchest-ctl``
 container to manage the local Docker containers necessary for running Orchest. In addition, the
 Docker socket is necessary for the dynamic spawning of containers that occurs when running individual
 pipeline steps.
