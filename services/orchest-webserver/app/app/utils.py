@@ -9,7 +9,7 @@ import tarfile
 import io
 import docker
 
-from app.models import Image, Commit
+from app.models import Image, Commit, Pipeline, Project
 
 def get_hash(path):
 	BLOCKSIZE = 8192 * 8
@@ -114,6 +114,22 @@ def tar_from_path(path, filename):
     return data
 
 
+def pipeline_uuid_to_path(pipeline_uuid):
+    pipeline = Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).first()
+    if pipeline is not None:
+        return pipeline.path
+    else:
+        return None
+    
+    
+def project_uuid_to_path(project_uuid):
+    project = Project.query.filter(Project.uuid == project_uuid).first()
+    if project is not None:
+        return project.path
+    else:
+        return None
+
+
 def name_to_tag(name):
 
     name = str(name).lower()
@@ -139,6 +155,26 @@ def name_to_tag(name):
         name = name[1:]
 
     return name[0:128]
+
+
+def find_pipelines_in_dir(path, relative_to=None):
+
+    pipelines = []
+
+    if os.path.isdir(path):
+        for root, _, files in os.walk(path):
+            for fName in files:
+                if fName.endswith(".orchest"):
+                    if relative_to is not None:
+                        if not relative_to.endswith("/"):
+                            relative_to += "/"
+                            
+                        root = root.replace(relative_to, "")
+
+                    pipelines.append(os.path.join(root, fName))
+
+    return pipelines
+
 
 
 def write_config(app, key, value):

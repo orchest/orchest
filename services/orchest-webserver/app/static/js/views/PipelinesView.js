@@ -49,6 +49,7 @@ class PipelinesView extends React.Component {
         for(let pipeline of pipelines){
             listData.push([
                 <span>{pipeline.name}</span>,
+                <span>{pipeline.path}</span>,
                 <SessionToggleButton classNames={["consume-click"]} pipeline_uuid={pipeline.uuid} />
             ]);
         }
@@ -58,7 +59,7 @@ class PipelinesView extends React.Component {
 
     fetchList(){
         // initialize REST call for pipelines
-        let fetchListPromise = makeCancelable(makeRequest("GET", '/async/pipelines'), this.promiseManager);
+        let fetchListPromise = makeCancelable(makeRequest("GET", `/async/pipelines/${this.props.project_uuid}`), this.promiseManager);
         
         fetchListPromise.promise.then((response) => {
             let data = JSON.parse(response);            
@@ -74,6 +75,7 @@ class PipelinesView extends React.Component {
         // load pipeline view
         let props = {
             "pipeline_uuid": pipeline.uuid,
+            "project_uuid": this.props.project_uuid
         }
 
         if(e.ctrlKey || e.metaKey){
@@ -98,14 +100,14 @@ class PipelinesView extends React.Component {
             selectedIndices.forEach((index) => {
                 let pipeline_uuid = this.state.pipelines[index].uuid;
 
-                makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + pipeline_uuid).then((response) => {
+                makeRequest("GET", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`).then((response) => {
                     let data = JSON.parse(response);
                     if(data["sessions"].length > 0){
-                        makeRequest("DELETE", "/api-proxy/api/sessions/" + pipeline_uuid);
+                        makeRequest("DELETE", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`);
                     }
                 })
 
-                makeRequest("POST", "/async/pipelines/delete/" + pipeline_uuid).then((_) => {
+                makeRequest("POST", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`).then((_) => {
                     
                     // reload list once removal succeeds
                     this.fetchList();
@@ -127,18 +129,30 @@ class PipelinesView extends React.Component {
 
     onSubmitModal(){
         let pipelineName = this.refManager.refs.createPipelineNameTextField.mdc.value;
+        let pipelinePath = this.refManager.refs.createPipelinePathField.mdc.value;
 
         if(!pipelineName){
             orchest.alert("Error", "Please enter a name.")
             return;
         }
 
-        let data = new FormData();
-        data.append("name", pipelineName);
+        if(!pipelinePath){
+            orchest.alert("Error", "Please enter the path for the pipeline.")
+            return;
+        }
+
+        if(!pipelinePath.endsWith(".orchest")){
+            orchest.alert("Error", "The path should end in the .orchest extension.")
+            return;
+        }
 
         makeRequest("POST", "/async/pipelines/create", {
-            type: "FormData",
-            content: data
+            type: "json",
+            content: {
+                "name": pipelineName,
+                "project_uuid": this.props.project_uuid,
+                "pipeline_path": pipelinePath
+            }
         }).then((_) => {
             // reload list once creation succeeds
             this.fetchList()
@@ -163,7 +177,10 @@ class PipelinesView extends React.Component {
                 if(this.state.createModal){
                     return <MDCDialogReact title="Create a new pipeline" 
                         content={
-                            <MDCTextFieldReact ref={this.refManager.nrefs.createPipelineNameTextField} classNames={['fullwidth']} label="Pipeline name" />
+                            <Fragment>
+                                <MDCTextFieldReact ref={this.refManager.nrefs.createPipelineNameTextField} classNames={['fullwidth']} label="Pipeline name" />
+                                <MDCTextFieldReact ref={this.refManager.nrefs.createPipelinePathField} classNames={['fullwidth']} label="Pipeline path" value="pipeline.orchest" />
+                            </Fragment>
                     } actions={
                         <Fragment>
                             <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised", "themed-secondary"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />                            
@@ -179,7 +196,7 @@ class PipelinesView extends React.Component {
                     <MDCIconButtonToggleReact icon="delete" onClick={this.onDeleteClick.bind(this)} />
                 </div>
 
-                <MDCDataTableReact ref={this.refManager.nrefs.pipelineListView} selectable onRowClick={this.onClickListItem.bind(this)} classNames={['fullwidth']} headers={["Pipeline", "Session"]} rows={this.state.listData}  />
+                <MDCDataTableReact ref={this.refManager.nrefs.pipelineListView} selectable onRowClick={this.onClickListItem.bind(this)} classNames={['fullwidth']} headers={["Pipeline", "Path","Session"]} rows={this.state.listData}  />
                 
             </div>;
         }else{

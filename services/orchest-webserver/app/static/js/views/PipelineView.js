@@ -304,13 +304,12 @@ class PipelineView extends React.Component {
                 // store pipeline.json
                 let formData = new FormData();
                 formData.append("pipeline_json", JSON.stringify(pipelineJSON));
-                formData.append("pipeline_uuid", pipelineJSON.uuid);
 
                 // perform POST to save
-                makeRequest("POST", "/async/pipelines/json/save", {type: "FormData", content: formData}).then(() => {
+                makeRequest("POST", `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`, {type: "FormData", content: formData}).then(() => {
                   if(callback && typeof callback == "function"){
                       callback();
-                  }  
+                  }
                 });
 
                 this.setState({
@@ -326,7 +325,6 @@ class PipelineView extends React.Component {
         // generate JSON representation using the internal state of React components describing the pipeline
         let pipelineJSON = {
             "name": this.state.pipelineJson.name,
-            "uuid": this.props.pipeline_uuid,
             "steps": {}
         };
 
@@ -856,10 +854,10 @@ class PipelineView extends React.Component {
     
 
     fetchPipelineAndInitialize() {
-        let pipelineURL = "/async/pipelines/json/get/" + this.props.pipeline_uuid;
+        let pipelineURL = `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`;
 
         if(this.props.pipelineRun){
-            pipelineURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+            pipelineURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid + "&experiment_uuid=" + this.props.pipelineRun.experiment_uuid;
         }
 
 

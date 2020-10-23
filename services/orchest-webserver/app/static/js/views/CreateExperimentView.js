@@ -36,7 +36,7 @@ class CreateExperimentView extends React.Component {
 
     fetchPipeline(){
 
-        let fetchPipelinePromise = makeRequest("GET", "/async/pipelines/json/get/" + this.props.experiment.pipeline_uuid).then((response) => {
+        let fetchPipelinePromise = makeRequest("GET", `/async/pipelines/json/${this.props.experiment.project_uuid}/${this.props.experiment.pipeline_uuid}`).then((response) => {
 
             let result = JSON.parse(response);
             if (result.success) {

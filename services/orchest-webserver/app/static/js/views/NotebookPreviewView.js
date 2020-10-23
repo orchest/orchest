@@ -11,7 +11,7 @@ class NotebookPreviewView extends React.Component {
   }
 
   loadPipelineView(){
-    orchest.loadView(PipelineView, { "pipeline_uuid": this.props.pipeline_uuid, readOnly: true, pipelineRun: this.props.pipelineRun });
+    orchest.loadView(PipelineView, { "pipeline_uuid": this.props.pipeline_uuid, "project_uuid": this.props.project_uuid, readOnly: true, pipelineRun: this.props.pipelineRun });
   }
 
   componentDidMount(){
@@ -36,10 +36,11 @@ class NotebookPreviewView extends React.Component {
 
   fetchNotebookHtml(){
 
-    let notebookURL = "/async/notebook_html/" + this.props.pipeline_uuid + "/" + this.props.step_uuid;
+    let notebookURL = `/async/notebook_html/${this.props.pipeline_uuid}/${this.props.project_uuid}/${this.props.step_uuid}`;
 
     if(this.props.pipelineRun){
       notebookURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+      notebookURL += "&experiment_uuid=" + this.props.pipelineRun.experiment_uuid;
     }
 
     let fetchNotebookPromise = makeCancelable(makeRequest("GET", notebookURL), this.promiseManager);

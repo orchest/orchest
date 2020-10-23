@@ -1,10 +1,30 @@
 from app.connections import db
+from sqlalchemy import UniqueConstraint
 import datetime
 import uuid
 
 
 def str_uuid4():
     return str(uuid.uuid4())
+
+
+class Project(db.Model):
+    __tablename__ = 'project'
+
+    uuid = db.Column(db.String(255), nullable=False, primary_key=True)
+    path = db.Column(db.String(255), nullable=False)
+
+    __table_args__ = (UniqueConstraint('uuid', 'path'),)
+
+
+class Pipeline(db.Model):
+    __tablename__ = 'pipeline'
+
+    uuid = db.Column(db.String(255), nullable=False)
+    path = db.Column(db.String(255), nullable=False)
+    project_uuid = db.Column(db.ForeignKey("project.uuid"))
+    
+    __table_args__ = (UniqueConstraint('uuid', 'path', 'project_uuid'),)
 
 
 class DataSource(db.Model):
@@ -39,6 +59,7 @@ class Commit(db.Model):
     tag = db.Column(db.String(255), unique=False, nullable=False)
     name = db.Column(db.String(255), unique=False, nullable=False)
     base_image = db.Column(db.ForeignKey("images.name"))
+    project = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     building = db.Column(db.Boolean, default=False)
 
@@ -52,6 +73,7 @@ class Experiment(db.Model):
     name = db.Column(db.String(255), unique=False, nullable=False)
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     pipeline_uuid = db.Column(db.String(255), unique=False, nullable=False)
+    project_uuid = db.Column(db.String(255), unique=False, nullable=False)
     pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     strategy_json = db.Column(db.Text, nullable=False)

@@ -5,6 +5,8 @@ from errors import ENVVariableNotFound
 
 # Can either be "normal" or "dev"
 RUN_MODE = "normal"
+
+# Can either be "normal" or "web"
 UPDATE_MODE = "normal"
 
 DOCKER_NETWORK = "orchest"

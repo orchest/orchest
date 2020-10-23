@@ -36,7 +36,7 @@ class ExperimentsView extends React.Component {
     componentDidMount() {
 
         // retrieve pipelines once on component render
-        let pipelinePromise = makeCancelable(makeRequest("GET", "/async/pipelines"), this.promiseManager);
+        let pipelinePromise = makeCancelable(makeRequest("GET", `/async/pipelines/${this.props.project_uuid}`), this.promiseManager);
         
         pipelinePromise.promise.then((response) => {
             let result = JSON.parse(response);
@@ -118,10 +118,10 @@ class ExperimentsView extends React.Component {
 
     onSubmitModal() {
 
-        let pipelineUUID = this.refManager.refs.formPipeline.mdc.value;
+        let pipeline_uuid = this.refManager.refs.formPipeline.mdc.value;
         let pipelineName;
         for (let x = 0; x < this.state.pipelines.length; x++) {
-            if (this.state.pipelines[x].uuid === pipelineUUID) {
+            if (this.state.pipelines[x].pipeline_uuid === pipeline_uuid) {
                 pipelineName = this.state.pipelines[x].name
                 break;
             }
@@ -146,8 +146,9 @@ class ExperimentsView extends React.Component {
         makeRequest("POST", "/async/experiments/create", {
             type: 'json',
             content: {
-                pipeline_uuid: pipelineUUID,
+                pipeline_uuid: pipeline_uuid,
                 pipeline_name: pipelineName,
+                project_uuid: this.props.project_uuid,
                 name: this.refManager.refs.formExperimentName.mdc.value,
             }
         }).then((response) => {
@@ -157,7 +158,8 @@ class ExperimentsView extends React.Component {
             orchest.loadView(CreateExperimentView, {
                 "experiment": {
                     "name": experiment.name,
-                    "pipeline_uuid": experiment.pipeline_uuid,
+                    "pipeline_uuid": pipeline_uuid,
+                    "project_uuid": this.props.project_uuid,
                     "uuid": experiment.uuid,
                 }
             });
@@ -185,8 +187,9 @@ class ExperimentsView extends React.Component {
             });
 
         } else {
-            makeRequest("GET", "/async/pipelines/json/get/" + experiment.pipeline_uuid, {
-            }).then((response) => {
+            makeRequest("GET", `/async/pipelines/json/${this.props.experiment.project_uuid}/${this.props.experiment.pipeline_uuid}` + "?experiment_uuid=" + 
+                experiment.uuid,
+            {}).then((response) => {
 
                 let result = JSON.parse(response);
                 if (result.success) {
