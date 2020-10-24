@@ -29,8 +29,12 @@ class SessionList(Resource):
         # TODO: why is this used instead of the Session.get() ?
         # Ability to query a specific session given its `pipeline_uuid`
         # through the URL (using `request.args`).
-        if 'pipeline_uuid' in request.args:
-            query = query.filter_by(pipeline_uuid=request.args.get('pipeline_uuid'))
+        if 'pipeline_uuid' in request.args and 'project_uuid' in request.args:
+            query = query.filter_by(
+                    pipeline_uuid=request.args.get('pipeline_uuid')
+                ).filter_by(
+                    project_uuid=request.args.get("project_uuid")
+                )
 
         sessions = query.all()
 
@@ -50,7 +54,11 @@ class SessionList(Resource):
 
         # Add initial entry to database.
         pipeline_uuid = post_data['pipeline_uuid']
+        project_uuid = post_data['project_uuid']
+        pipeline_path = post_data['pipeline_path']
+
         interactive_session = {
+            'project_uuid': project_uuid,
             'pipeline_uuid': pipeline_uuid,
             'status': 'LAUNCHING',
         }
@@ -58,7 +66,7 @@ class SessionList(Resource):
         db.session.commit()
 
         session = InteractiveSession(docker_client, network='orchest')
-        session.launch(pipeline_uuid, post_data['pipeline_dir'], post_data['host_userdir'])
+        session.launch(pipeline_uuid, pipeline_path, post_data['project_dir'], post_data['host_userdir'])
 
         # Update the database entry with information to connect to the
         # launched resources.
@@ -77,7 +85,8 @@ class SessionList(Resource):
         return interactive_session, 201
 
 
-@api.route('/<string:pipeline_uuid>')
+@api.route('/<string:project_uuid>/<string:pipeline_uuid>')
+@api.param('project_uuid', 'UUID of project')
 @api.param('pipeline_uuid', 'UUID of pipeline')
 @api.response(404, 'Session not found')
 class Session(Resource):
@@ -88,20 +97,20 @@ class Session(Resource):
     """
     @api.doc('get_session')
     @api.marshal_with(schema.session)
-    def get(self, pipeline_uuid):
+    def get(self, project_uuid, pipeline_uuid):
         """Fetch a session given the pipeline UUID."""
         session = models.InteractiveSession.query.get_or_404(
-            pipeline_uuid, description='Session not found.'
+            ident=(project_uuid, pipeline_uuid), description='Session not found.'
         )
         return session.as_dict()
 
     @api.doc('shutdown_session')
     @api.response(200, 'Session stopped')
     @api.response(404, 'Session not found')
-    def delete(self, pipeline_uuid):
+    def delete(self, project_uuid, pipeline_uuid):
         """Shutdowns session."""
         session = models.InteractiveSession.query.get_or_404(
-            pipeline_uuid, description='Session not found'
+            ident=(project_uuid, pipeline_uuid), description='Session not found'
         )
         session.status = 'STOPPING'
         db.session.commit()
@@ -123,10 +132,10 @@ class Session(Resource):
     @api.doc('restart_memory_server_of_session')
     @api.response(200, 'Session resource memory-server restarted')
     @api.response(404, 'Session not found')
-    def put(self, pipeline_uuid):
+    def put(self, project_uuid, pipeline_uuid):
         """Restarts the memory-server of the session."""
         session = models.InteractiveSession.query.get_or_404(
-            pipeline_uuid, description='Session not found'
+            ident=(project_uuid, pipeline_uuid), description='Session not found'
         )
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,

@@ -2,12 +2,6 @@ import os
 
 from _orchest.internals import config as _config
 
-
-PIPELINE_DESCRIPTION_FILE = os.path.join(
-    _config.PIPELINE_DIR,
-    _config.PIPELINE_DESCRIPTION_PATH
-)
-
 # Default location where the socket is created.
 STORE_SOCKET_NAME = os.path.join(_config.MEMORY_SERVER_SOCK_PATH, 'plasma.sock')
 

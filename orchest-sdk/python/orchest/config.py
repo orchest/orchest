@@ -13,10 +13,10 @@ class Config:
 
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
-    STEP_DATA_DIR = '/pipeline-dir/.orchest/data/{step_uuid}'
+    STEP_DATA_DIR = '/project-dir/.orchest/{pipeline_uuid}/data/{step_uuid}'
 
     # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = '/pipeline-dir/.orchest/pipeline.json'
+    PIPELINE_DESCRIPTION_PATH = '/project-dir/.orchest/pipeline.json'
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:

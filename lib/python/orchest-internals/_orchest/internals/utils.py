@@ -75,18 +75,18 @@ def get_image_capabilities(image_name):
     return capabilities
 
 
-def get_orchest_mounts(pipeline_uuid, working_dir, host_pipeline_dir, mount_form="docker-sdk"):
+def get_orchest_mounts(project_dir, host_project_dir, mount_form="docker-sdk"):
     """
         Prepare all mounts that are needed to run Orchest.
     """
 
-    pipeline_dir_mount = get_mount(
-        source=host_pipeline_dir,
-        target=working_dir,
+    project_dir_mount = get_mount(
+        source=host_project_dir,
+        target=project_dir,
         form=mount_form
     )
 
-    mounts = [pipeline_dir_mount]
+    mounts = [project_dir_mount]
 
     # Mounts for datasources.
     try:

@@ -79,6 +79,7 @@ class ExperimentList(Resource):
                 'run_uuid': res.id,
                 'pipeline_run_id': id_,
                 'pipeline_uuid': pipeline.properties['uuid'],
+                'project_uuid': post_data['project_uuid'],
                 'status': 'PENDING',
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
@@ -104,6 +105,7 @@ class ExperimentList(Resource):
 
         experiment = {
             'experiment_uuid': post_data['experiment_uuid'],
+            'project_uuid': post_data['project_uuid'],
             'pipeline_uuid': post_data['pipeline_uuid'],
             'scheduled_start': scheduled_start,
             'total_number_of_pipeline_runs': len(pipeline_runs),

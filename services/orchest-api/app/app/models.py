@@ -23,6 +23,11 @@ class BaseModel(db.Model):
 
 class InteractiveSession(BaseModel):
     __tablename__ = 'interactive_sessions'
+    
+    project_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
+    )
     pipeline_uuid = db.Column(
         db.String(36),
         primary_key=True,
@@ -57,7 +62,11 @@ class InteractiveSession(BaseModel):
 
 class PipelineRun(BaseModel):
     __abstract__ = True
-
+    
+    project_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
+    )
     pipeline_uuid = db.Column(
         db.String(36),
         unique=False,
@@ -178,6 +187,10 @@ class Experiment(BaseModel):
     experiment_uuid = db.Column(
         db.String(36),
         primary_key=True
+    )
+    project_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
     )
     pipeline_uuid = db.Column(
         db.String(36),

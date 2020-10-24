@@ -27,7 +27,7 @@ Jupyter-enterprise-gateway (EG)
 Jupyter-server 
 * Image: has to be build manually from the `jupyter-server/Dockerfile`
 * Mounts
-    * `pipeline_dir`, containing the path to the pipeline files, at `/pipeline-dir`
+    * `project_dir`, containing the path to the pipeline files, at `/project-dir`
 
 Information on kernelspecs. Take the following example
 ```

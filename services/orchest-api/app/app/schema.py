@@ -36,7 +36,7 @@ server = Model('Server', {
         description='Token for authentication'),
     'notebook_dir': fields.String(
         required=True,
-        default=_config.PIPELINE_DIR,
+        default=_config.PROJECT_DIR,
         description='Working directory'),
     'password': fields.Boolean(
         required=True,
@@ -47,6 +47,9 @@ server = Model('Server', {
 })
 
 session = Model('Session', {
+    'project_uuid': fields.String(
+        required=True,
+        description='UUID of project'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
@@ -69,10 +72,16 @@ sessions = Model('Sessions', {
 })
 
 pipeline = Model('Pipeline', {
+    'project_uuid': fields.String(
+        required=True,
+        description='UUID of project'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
-    'pipeline_dir': fields.String(
+    'pipeline_path': fields.String(
+        required=True,
+        description='Path to pipeline file'),
+    'project_dir': fields.String(
         required=True,
         description='Path to pipeline files'),
     'host_userdir': fields.String(
@@ -82,9 +91,12 @@ pipeline = Model('Pipeline', {
 
 # Namespace: Runs & Experiments
 pipeline_run_config = Model('PipelineRunConfig', {
-    'pipeline_dir': fields.String(
+    'project_dir': fields.String(
         required=True,
-        description='Path to pipeline files'),
+        description='Path to project files'),
+    'pipeline_path': fields.String(
+        required=True,
+        description='Path to pipeline file'),
 })
 
 pipeline_run_spec = Model('PipelineRunSpec', {
@@ -92,6 +104,9 @@ pipeline_run_spec = Model('PipelineRunSpec', {
         fields.String(),
         required=False,
         description='UUIDs of pipeline steps'),
+    'project_uuid': fields.String(
+        required=True,
+        description='UUID of project'),
     'run_type': fields.String(
         required=False,
         default='full',  # TODO: check whether default is used if required=False
@@ -122,6 +137,9 @@ pipeline_run = Model('Run', {
     'run_uuid': fields.String(
         required=True,
         description='UUID of run'),
+    'project_uuid': fields.String(
+        required=True,
+        description='UUID of project'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
@@ -134,9 +152,9 @@ pipeline_run = Model('Run', {
 })
 
 interactive_run_config = pipeline_run_config.inherit('InteractiveRunConfig', {
-    'pipeline-dir': fields.String(
+    'project-dir': fields.String(
         required=True,
-        description='Absolute path on the host to the "pipeline-dir"'),
+        description='Absolute path on the host to the "project-dir"'),
 })
 
 interactive_run_spec = pipeline_run_spec.inherit('InteractiveRunSpec', {
@@ -166,7 +184,7 @@ status_update = Model('StatusUpdate', {
 
 # Namespace: Experiments.
 non_interactive_run_config = pipeline_run_config.inherit('NonInteractiveRunConfig', {
-    # Needed for the celery-worker to set the new pipeline-dir for
+    # Needed for the celery-worker to set the new project-dir for
     # experiments. Note that the `orchest-webserver` has this value
     # stored in the ENV variable `HOST_USER_DIR`.
     'host_user_dir': fields.String(
@@ -198,6 +216,9 @@ experiment_spec = Model('ExperimentSpecification', {
     'experiment_uuid': fields.String(
         required=True,
         description='UUID for experiment'),
+    'project_uuid': fields.String(
+        required=True,
+        description='UUID of project'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),
@@ -229,6 +250,9 @@ experiment = Model('Experiment', {
     'experiment_uuid': fields.String(
         required=True,
         description='UUID for experiment'),
+    'project_uuid': fields.String(
+        required=True,
+        description='UUID of project'),
     'pipeline_uuid': fields.String(
         required=True,
         description='UUID of pipeline'),

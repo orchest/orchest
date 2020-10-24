@@ -4,7 +4,7 @@
 # 2) the run.py to execute the container as a pipeline step.
 
 if [ "$1" = "runnable" ]; then 
-    python run.py $2
+    python run.py "$2" "$3"
 elif [ "$1" = "idle" ]; then 
     # infinite sleep to run user installation
     while true; do sleep 86400; done

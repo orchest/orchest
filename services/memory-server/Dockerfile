@@ -7,4 +7,4 @@ RUN mv /orchest/services/memory-server/lib /orchest/lib
 WORKDIR /orchest/services/memory-server
 RUN pip3 install -r requirements.txt
 
-CMD ["python", "app/main.py"]
+CMD ["python", "app/main.py", "--pipeline_fname=\"${PIPELINE_PATH}\""]

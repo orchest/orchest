@@ -6,7 +6,7 @@ class Config:
     TESTING = False
 
     # TODO: use internal libary
-    NOTEBOOK_DIR = '/pipeline-dir'
+    NOTEBOOK_DIR = '/project-dir'
 
 
 class ProductionConfig(Config):

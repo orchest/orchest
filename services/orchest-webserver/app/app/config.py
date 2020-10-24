@@ -15,7 +15,6 @@ class Config:
  
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
-    LOG_DIR = _config.LOGS_PATH
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
     DOCS_ROOT = _config.DOCS_ROOT
     STATIC_DIR = os.path.join(dir_path, "..", "static")

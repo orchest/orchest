@@ -225,13 +225,13 @@ class PipelineView extends React.Component {
             let data = JSON.parse(response);
 
             try{
-                // TODO: make sure this order is guaranteed by orchest-api
+                // TODO: allow getting the latest run directly from the orchest-api
                 // (newest run last in the list)
                 data["runs"].reverse();
                 
                 for(let run of data["runs"]){
 
-                    if(run.pipeline_uuid == this.props.pipeline_uuid){
+                    if(run.pipeline_uuid == this.props.pipeline_uuid && run.project_uuid == this.props.project_uuid){
                         
                         this.state.runUUID = run.run_uuid;
                         this.pollPipelineStepStatuses();
@@ -1146,6 +1146,7 @@ class PipelineView extends React.Component {
         // store pipeline.json
         let data = {
             "uuids": uuids,
+            "project_uuid": this.props.project_uuid,
             "run_type": type,
             "pipeline_description": this.getPipelineJSON()
         };
@@ -1445,7 +1446,7 @@ class PipelineView extends React.Component {
                     if(!this.props.readOnly){
                         return <div className={"pipeline-actions"}>
 
-                            <SessionToggleButton ref={this.refManager.nrefs.sessionToggleButton} pipeline_uuid={this.props.pipeline_uuid} onSessionStateChange={this.onSessionStateChange.bind(this)} onSessionFetch={this.onSessionFetch.bind(this)} onSessionShutdown={this.onSessionShutdown.bind(this)} />
+                            <SessionToggleButton ref={this.refManager.nrefs.sessionToggleButton} pipeline_uuid={this.props.pipeline_uuid} project_uuid={this.props.project_uuid} onSessionStateChange={this.onSessionStateChange.bind(this)} onSessionFetch={this.onSessionFetch.bind(this)} onSessionShutdown={this.onSessionShutdown.bind(this)} />
 
                             <MDCButtonReact
                                 classNames={["mdc-button--raised"]}
@@ -1506,6 +1507,7 @@ class PipelineView extends React.Component {
                         defaultViewIndex={this.state.defaultDetailViewIndex}
                         onChangeView={this.onDetailsChangeView.bind(this)}
                         pipeline={this.state.pipelineJson}
+                        project_uuid={this.props.project_uuid}
                         pipelineRun={this.props.pipelineRun}
                         step={JSON.parse(JSON.stringify(this.state.steps[this.state.openedStep]))} />
                 }

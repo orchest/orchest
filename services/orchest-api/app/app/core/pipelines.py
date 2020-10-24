@@ -188,9 +188,8 @@ class PipelineStepRunner:
             return self._status
 
         orchest_mounts = get_orchest_mounts(
-            pipeline_uuid=run_config["pipeline_uuid"],
-            working_dir=_config.PIPELINE_DIR,
-            host_pipeline_dir=run_config["pipeline_dir"],
+            project_dir=_config.PROJECT_DIR,
+            host_project_dir=run_config["project_dir"],
             mount_form="docker-engine"
         )
 
@@ -199,18 +198,24 @@ class PipelineStepRunner:
 
         device_requests = get_device_requests(self.properties['image'], form="docker-engine")
 
+        # the working directory relative to the project directory is based on the location of the pipeline
+        # e.g. if the pipeline is in 
+        #   /project-dir/my/project/path/mypipeline.orchest the working directory will be
+        #   my/project/path/
+        working_dir = os.path.split(run_config["pipeline_path"])[0]
 
         config = {
             'Image': self.properties['image'],
             'Env': [
                 f'STEP_UUID={self.properties["uuid"]}',
+                f'PIPELINE_UUID={self.run_config["pipeline_uuid"]}',
                 'EVICTION_OPTIONALITY=1',
             ],
             'HostConfig': {
                 "Binds": orchest_mounts,
                 "DeviceRequests": device_requests,
             },
-            'Cmd': ["/orchest/bootscript.sh", "runnable", self.properties['file_path']],
+            'Cmd': ["/orchest/bootscript.sh", "runnable", working_dir, self.properties['file_path']],
             'NetworkingConfig': {
                 'EndpointsConfig': {
                     'orchest': {}  # TODO: should not be hardcoded.
@@ -596,7 +601,7 @@ class Pipeline:
             run_config: Configuration of the run. Example
                 {
                     'run_endpoint': 'runs',
-                    'pipeline_dir': '/home/../pipelines/uuid',
+                    'project_dir': '/home/.../userdir/projects/<project_path>',
                     'pipeline_uuid': 'some-uuid',
                 }
 

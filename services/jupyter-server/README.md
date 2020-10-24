@@ -30,7 +30,7 @@ docker build -t "jupyter-server" .
 docker rm $(docker ps -a -q) 
 
 # Run the container and publish the ports for the API and JupyterLab instance
-docker run --name jupyter-server -p 8888:8888 -p 80:80 -v <mount-path>:/pipeline-dir jupyter-server
+docker run --name jupyter-server -p 8888:8888 -p 80:80 -v <mount-path>:/project-dir jupyter-server
 ```
 
 ### Running in Development

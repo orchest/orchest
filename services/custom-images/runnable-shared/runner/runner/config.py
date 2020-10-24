@@ -3,5 +3,5 @@ from _orchest.internals import config as _config
 
 class Config:
 
-    WORKING_DIR = _config.PIPELINE_DIR
-    LOG_DIR = _config.LOGS_PATH
+    PROJECT_DIR = _config.PROJECT_DIR
+    LOGS_PATH = _config.LOGS_PATH

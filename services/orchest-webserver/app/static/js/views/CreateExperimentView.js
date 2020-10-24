@@ -229,6 +229,7 @@ class CreateExperimentView extends React.Component {
             let apiExperimentData = {
                 experiment_uuid: experimentUUID,
                 pipeline_uuid: this.state.pipeline.uuid,
+                project_uuid: this.props.experiment.project_uuid,
                 pipeline_descriptions: pipelineDescriptions,
                 pipeline_run_ids: pipelineRunIds,
                 pipeline_run_spec: {

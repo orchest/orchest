@@ -37,7 +37,7 @@ class SessionToggleButton extends React.Component {
     }
 
     fetchSessionStatus(){
-        let fetchSessionPromise = makeCancelable(makeRequest("GET", "/api-proxy/api/sessions/?pipeline_uuid=" + this.props.pipeline_uuid), this.promiseManager);
+        let fetchSessionPromise = makeCancelable(makeRequest("GET", `/api-proxy/api/sessions/?pipeline_uuid=${this.props.pipeline_uuid}&project_uuid=${this.props.project_uuid}`), this.promiseManager);
 
         fetchSessionPromise.promise.then((response) => {
             let session_details;
@@ -112,6 +112,7 @@ class SessionToggleButton extends React.Component {
             // send launch request to API
             let data = {
                 "pipeline_uuid": this.props.pipeline_uuid,
+                "project_uuid": this.props.project_uuid,
             };
             
             this.setState({ 

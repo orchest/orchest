@@ -10,8 +10,10 @@ from runner.utils import inverted
 
 class Runner():
 
-    def __init__(self, step_uuid):
+    def __init__(self, pipeline_uuid, step_uuid, working_dir):
+        self.pipeline_uuid = pipeline_uuid
         self.step_uuid = step_uuid
+        self.working_dir = working_dir
 
     def run(self):
 
@@ -19,7 +21,7 @@ class Runner():
         self.clear_pipeline_step_log()
 
         # make sure log directory exists
-        self.create_pipeline_dir()
+        self.create_log_dir()
 
         # make sure each log starts with a unique uuid on its first line
         self.print_unique_line()
@@ -45,11 +47,11 @@ class Runner():
                 raise Exception("Failed to remove file in path %s error: %s" % (log_file_path, e))
 
     def get_log_file_path(self):
-        return os.path.join(Config.WORKING_DIR, Config.LOG_DIR, "%s.log" % self.step_uuid)
+        return os.path.join(Config.PROJECT_DIR, Config.LOGS_PATH.format(pipeline_uuid=self.pipeline_uuid), "%s.log" % self.step_uuid)
 
-    def create_pipeline_dir(self):
+    def create_log_dir(self):
 
-        log_dir_path = os.path.join(Config.WORKING_DIR, Config.LOG_DIR)
+        log_dir_path = os.path.join(Config.PROJECT_DIR, Config.LOGS_PATH.format(pipeline_uuid=self.pipeline_uuid))
         if not os.path.exists(log_dir_path):
             try:
                 os.makedirs(log_dir_path)
@@ -67,7 +69,7 @@ class ProcessRunner(Runner):
         log_file_path = self.get_log_file_path()
 
         with open(log_file_path, 'a') as f:
-            process = subprocess.Popen([command, filename], cwd=Config.WORKING_DIR, stdout=f, stderr=f)
+            process = subprocess.Popen([command, filename], cwd=self.working_dir, stdout=f, stderr=f)
             process.wait()
 
         return process.returncode
@@ -99,7 +101,7 @@ class NotebookRunner(Runner):
             log_file_path = self.get_log_file_path()
             with open(log_file_path, 'a') as log_file:
                 ep = PartialExecutePreprocessor(log_file=log_file)
-                ep.preprocess(nb, {"metadata": {"path": Config.WORKING_DIR}})
+                ep.preprocess(nb, {"metadata": {"path": self.working_dir}})
 
         if self.write_after_run:
             with open(file_path, 'w', encoding='utf-8') as f:

@@ -148,17 +148,25 @@ def register_views(app, db):
         project_path = project_uuid_to_path(project_uuid)
 
         if pipeline_run_uuid is None:
-            pipeline_dir = os.path.split(os.path.join(USER_DIR, "projects", project_path, pipeline_path))
+            pipeline_path = os.path.split(os.path.join(USER_DIR, "projects", project_path, pipeline_path))
         elif pipeline_run_uuid is not None and experiment_uuid is not None:
-            pipeline_dir = os.path.split(os.path.join(USER_DIR, ".orchest", "experiments", project_path, experiment_uuid, pipeline_run_uuid, pipeline_path))
+            pipeline_path = os.path.split(os.path.join(USER_DIR, ".orchest", "experiments", project_path, experiment_uuid, pipeline_run_uuid, pipeline_path))
         elif experiment_uuid is not None:
-            pipeline_dir = os.path.split(os.path.join(USER_DIR, ".orchest", "experiments", project_path, experiment_uuid, "snapshot", pipeline_path))
+            pipeline_path = os.path.split(os.path.join(USER_DIR, ".orchest", "experiments", project_path, experiment_uuid, "snapshot", pipeline_path))
 
-        return pipeline_dir
+        return pipeline_path
 
     
     def get_pipeline_directory(pipeline_uuid, project_uuid, experiment_uuid=None, pipeline_run_uuid=None, host_path=False):
         return os.path.split(get_pipeline_path(pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid, host_path))
+
+
+    def get_project_directory(project_uuid, host_path=False):
+        USER_DIR = app.config["USER_DIR"]
+        if host_path == True:
+            USER_DIR = app.config["HOST_USER_DIR"]
+
+        return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
 
     def generate_ipynb_from_template(step):
@@ -611,7 +619,17 @@ def register_views(app, db):
         # add image mapping
         # TODO: replace with dynamic mapping instead of hardcoded
         json_obj["run_config"] = {
-            "pipeline_dir": get_pipeline_directory(json_obj["pipeline_description"]["uuid"], json_obj["pipeline_description"]["project_uuid"], host_path=True)
+            "project_dir": 
+                get_project_directory(
+                    json_obj["pipeline_description"]["project_uuid"]), 
+                    host_path=True
+                ),
+            "pipeline_path": 
+                get_pipeline_path(
+                    json_obj["pipeline_description"]["uuid"], 
+                    json_obj["pipeline_description"]["project_uuid"], 
+                    host_path=True
+                )
         }
 
         resp = requests.post(
@@ -625,7 +643,16 @@ def register_views(app, db):
 
         json_obj = request.json
 
-        json_obj["pipeline_dir"] = get_pipeline_directory(json_obj["pipeline_description"]["uuid"], json_obj["pipeline_description"]["project_uuid"], host_path=True)
+        json_obj["project_dir"] = get_project_directory(
+                    json_obj["pipeline_description"]["project_uuid"]), 
+                    host_path=True)
+            
+        json_obj["pipeline_path"] = get_pipeline_path(
+                json_obj["pipeline_description"]["uuid"], 
+                json_obj["pipeline_description"]["project_uuid"], 
+                host_path=True
+            )
+
         json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
 
         resp = requests.post(
@@ -640,7 +667,7 @@ def register_views(app, db):
         json_obj = request.json
 
         json_obj["pipeline_run_spec"]["run_config"] = {
-            "host_user_dir": app.config["HOST_USER_DIR"]
+            "host_user_dir": app.config["HOST_USER_DIR"],
         }
 
         resp = requests.post(

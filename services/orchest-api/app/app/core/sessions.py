@@ -114,7 +114,7 @@ class Session:
 
         return res
 
-    def launch(self, uuid: str, pipeline_dir: str, host_userdir: str = None) -> None:
+    def launch(self, uuid: str, pipeline_path:str, project_dir: str, host_userdir: str = None) -> None:
         """Launches pre-configured resources.
 
         All containers are run in detached mode.
@@ -125,12 +125,13 @@ class Session:
                 recommended to be either a pipeline UUID (for
                 interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
-            pipeline_dir: Path to pipeline directory.
+            pipeline_path: Path to pipeline file (relative to project_dir).
+            project_dir: Path to project directory.
             host_userdir: Path to the userdir on the host
 
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
-        container_specs = _get_container_specs(uuid, pipeline_dir,
+        container_specs = _get_container_specs(uuid, pipeline_path, project_dir,
                                                host_userdir, self.network)
         for resource in self._resources:
             container = self.client.containers.run(**container_specs[resource])
@@ -218,7 +219,7 @@ class InteractiveSession(Session):
         return IP(self._get_container_IP(self.containers['jupyter-EG']),
                   self._get_container_IP(self.containers['jupyter-server']))
 
-    def launch(self, pipeline_uuid: str, pipeline_dir: str, host_userdir: str) -> None:
+    def launch(self, pipeline_uuid: str, pipeline_path:str, project_dir: str, host_userdir: str) -> None:
         """Launches the interactive session.
 
         Additionally connects the launched `jupyter-server` with the
@@ -228,7 +229,7 @@ class InteractiveSession(Session):
             See `Args` section in parent class :class:`Session`.
 
         """
-        super().launch(pipeline_uuid, pipeline_dir, host_userdir)
+        super().launch(pipeline_uuid, pipeline_path, project_dir, host_userdir)
 
         # TODO: This session should manage additionally that the jupyter
         #       notebook server is started through the little flask API
@@ -324,7 +325,7 @@ class NonInteractiveSession(Session):
 
         self._session_uuid = str(uuid4())
 
-    def launch(self, uuid: Optional[str], pipeline_dir: str) -> None:
+    def launch(self, uuid: Optional[str], pipeline_path:str, project_dir: str) -> None:
         """
 
         Since multiple memory-servers are started for the same pipeline,
@@ -338,19 +339,22 @@ class NonInteractiveSession(Session):
         Args:
             uuid: Some UUID. If ``None`` then a randomly generated UUID
                 is used.
+            pipeline_path: Path to the pipeline file relative to the `project_dir`.
+            project_dir: Path to the project directory on the host.
 
         """
         if uuid is None:
             uuid = self._session_uuid
 
-        return super().launch(uuid, pipeline_dir)
+        return super().launch(uuid, pipeline_path, project_dir)
 
 
 @contextmanager
 def launch_session(
     docker_client,
     pipeline_uuid: str,
-    pipeline_dir: str,
+    pipeline_path: str,
+    project_dir: str,
     interactive: bool = False
 ) -> Union[InteractiveSession, NonInteractiveSession]:
     """Launch session for a particular pipeline.
@@ -359,7 +363,7 @@ def launch_session(
         docker_client (docker.client.DockerClient): docker client to
             manage Docker resources.
         pipeline_uuid: UUID of pipeline that the session is started for.
-        pipeline_dir: Path to the `pipeline_dir`, which has to be
+        project_dir: Path to the `project_dir`, which has to be
             mounted into the containers so that the user can interact
             with the files.
         interactive: If True then launch :class:`InteractiveSession`, if
@@ -372,14 +376,14 @@ def launch_session(
     session = InteractiveSession if interactive else NonInteractiveSession
 
     session = session(docker_client, network='orchest')
-    session.launch(pipeline_uuid, pipeline_dir)
+    session.launch(pipeline_uuid, pipeline_path, project_dir)
     try:
         yield session
     finally:
         session.shutdown()
 
 
-def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mount]:
+def _get_mounts(uuid: str, project_dir: str, host_userdir: str) -> Dict[str, Mount]:
     """Constructs the mounts for all resources.
 
     Resources refer to the union of all possible resources over all
@@ -389,7 +393,7 @@ def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mo
         uuid: Some UUID to identify the session with. For interactive
             runs using the pipeline UUID is recommended, for non-
             interactive runs we recommend using the pipeline run UUID.
-        pipeline_dir: Pipeline directory w.r.t. the host. Needed to
+        project_dir: Project directory w.r.t. the host. Needed to
             construct the mounts.
         host_userdir: Path to the userdir on the host
 
@@ -400,7 +404,7 @@ def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mo
             mounts = {
                 'kernelspec': Mount,
                 'docker_sock': Mount,
-                'pipeline_dir': Mount,
+                'project_dir': Mount,
             }
 
     """
@@ -425,10 +429,10 @@ def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mo
         type='bind'
     )
 
-    pipeline_dir_target = _config.PIPELINE_DIR
-    mounts['pipeline_dir'] = Mount(
-        target=pipeline_dir_target,
-        source=pipeline_dir,
+    project_dir_target = _config.PROJECT_DIR
+    mounts['project_dir'] = Mount(
+        target=project_dir_target,
+        source=project_dir,
         type='bind'
     )
 
@@ -443,7 +447,8 @@ def _get_mounts(uuid: str, pipeline_dir: str, host_userdir: str) -> Dict[str, Mo
 
 def _get_container_specs(
     uuid: str,
-    pipeline_dir: str,
+    pipeline_path: str,
+    project_dir: str,
     host_userdir: str,
     network: str
 ) -> Dict[str, dict]:
@@ -456,7 +461,7 @@ def _get_container_specs(
         uuid: Some UUID to identify the session with. For interactive
             runs using the pipeline UUID is recommended, for non-
             interactive runs we recommend using the pipeline run UUID.
-        pipeline_dir: Pipeline directory w.r.t. the host. Needed to
+        project_dir: Project directory w.r.t. the host. Needed to
             construct the mounts.
         host_userdir: Path to the userdir on the host
         network: Docker network. This is put directly into the specs, so
@@ -474,19 +479,22 @@ def _get_container_specs(
     """
     # TODO: possibly add ``auto_remove=True`` to the specs.
     container_specs = {}
-    mounts = _get_mounts(uuid, pipeline_dir, host_userdir)
+    mounts = _get_mounts(uuid, project_dir, host_userdir)
 
     container_specs['memory-server'] = {
         'image': 'orchestsoftware/memory-server:latest',
         'detach': True,
         'mounts': [
-            mounts['pipeline_dir'],
+            mounts['project_dir'],
             mounts['temp_volume'],
         ],
         # TODO: name not unique... and uuid cannot be used.
         'name': f'memory-server-{uuid}',
         'network': network,
-        'shm_size': int(1.2e9),  # need to overalocate to get 1G
+        'shm_size': int(1.2e9),  # need to overalocate to get 1G,
+        'environment': [
+            f'PIPELINE_PATH="{pipeline_path}"'
+        ]
     }
 
     # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
@@ -508,9 +516,9 @@ def _get_container_specs(
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             'EG_ALLOW_ORIGIN=*',
-            'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_HOST_PIPELINE_DIR,ORCHEST_API_ADDRESS',
+            'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_HOST_PROJECT_DIR,ORCHEST_API_ADDRESS',
             f'ORCHEST_PIPELINE_UUID={uuid}',
-            f'ORCHEST_HOST_PIPELINE_DIR={pipeline_dir}',
+            f'ORCHEST_HOST_PROJECT_DIR={project_dir}',
             f'ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}',
         ],
         'user': 'root',
@@ -522,7 +530,7 @@ def _get_container_specs(
         'image': 'orchestsoftware/jupyter-server:latest',  # TODO: make not static.
         'detach': True,
         'mounts': [
-            mounts['pipeline_dir']
+            mounts['project_dir']
         ],
         'name': f'jupyter-server-{uuid}',
         'network': network,

@@ -24,7 +24,6 @@ def get_command_line_args():
                         help='socket name to communicate with store')
     parser.add_argument('-p', '--pipeline_fname',
                         required=False,
-                        default=config.PIPELINE_DESCRIPTION_FILE,
                         help='file containing pipeline description')
 
     args = parser.parse_args()

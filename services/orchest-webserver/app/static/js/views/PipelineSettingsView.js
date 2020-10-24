@@ -94,7 +94,7 @@ class PipelineSettingsView extends React.Component {
             });
 
             // perform POST to save
-            let restartPromise = makeCancelable(makeRequest("PUT", "/api-proxy/api/sessions/" + this.props.pipeline_uuid),this.promiseManager);
+            let restartPromise = makeCancelable(makeRequest("PUT", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`),this.promiseManager);
             
             restartPromise.promise.then((response) => {
                 this.setState({
