@@ -497,7 +497,7 @@ def _get_container_specs(
         'network': network,
         'shm_size': int(1.2e9),  # need to overalocate to get 1G,
         'environment': [
-            f'PIPELINE_PATH="{pipeline_path}"'
+            f'PIPELINE_PATH={pipeline_path}'
         ]
     }
 
@@ -522,9 +522,9 @@ def _get_container_specs(
             'EG_ALLOW_ORIGIN=*',
             'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_PIPELINE_PATH,ORCHEST_PROJECT_UUID,ORCHEST_HOST_PROJECT_DIR,ORCHEST_API_ADDRESS',
             f'ORCHEST_PIPELINE_UUID={uuid}',
-            f'ORCHEST_PIPELINE_PATH="{pipeline_path}"',
+            f'ORCHEST_PIPELINE_PATH={pipeline_path}',
             f'ORCHEST_PROJECT_UUID={project_uuid}',
-            f'ORCHEST_HOST_PROJECT_DIR="{project_dir}"',
+            f'ORCHEST_HOST_PROJECT_DIR={project_dir}',
             f'ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}',
         ],
         'user': 'root',

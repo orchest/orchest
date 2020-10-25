@@ -1,8 +1,8 @@
 import { MDCTopAppBar } from "@material/top-app-bar";
 import { MDCDrawer } from "@material/drawer";
 
-import ProjectsView from "./views/ProjectsView";
-import PipelinesView from "./views/PipelinesView";
+import ProjectSelectionViewPipelines from "./views/ProjectSelectionViewPipelines";
+import ProjectSelectionViewExperiments from "./views/ProjectSelectionViewExperiments";
 import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
@@ -37,8 +37,8 @@ function Orchest() {
     this.reactRoot = document.querySelector(".react-view-root");
 
     this.Components = {
-        "ProjectsView": ProjectsView,
-        "PipelinesView": PipelinesView,
+        "ProjectSelectionViewPipelines": ProjectSelectionViewPipelines,
+        "ProjectSelectionViewExperiments": ProjectSelectionViewExperiments,
         "DataSourcesView": DataSourcesView,
         "FileManagerView": FileManagerView,
         "ImagesView": ImagesView,
@@ -81,7 +81,7 @@ function Orchest() {
             this.jupyter.hide();
 
             if(TagName !== PipelineView && TagName !== PipelineSettingsView){
-                this.headerBarComponent.setPipeline(undefined);
+                this.headerBarComponent.clearPipeline();
             }
         }
 
@@ -92,7 +92,7 @@ function Orchest() {
     this.initializeFirstView = function () {
         // load first pipeline
 
-        this.loadView(ProjectsView);
+        this.loadView(ProjectSelectionViewPipelines);
 
     }
 

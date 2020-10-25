@@ -259,7 +259,7 @@ class CreateExperimentView extends React.Component {
                         pipeline_run_ids: pipelineRunIds,
                     }
                 }).then(() => {
-                    orchest.loadView(ExperimentsView);
+                    orchest.loadView(ExperimentsView, {"project_uuid": this.props.experiment.project_uuid});
                 }).catch((e) => {
                     console.log(e)
                 })
@@ -298,7 +298,7 @@ class CreateExperimentView extends React.Component {
     }
 
     cancel() {
-        orchest.loadView(ExperimentsView);
+        orchest.loadView(ExperimentsView, {"project_uuid": this.props.experiment.project_uuid});
     }
 
     onPipelineRunsSelectionChanged(selectedRows, rows) {

@@ -20,11 +20,11 @@ class Project(db.Model):
 class Pipeline(db.Model):
     __tablename__ = 'pipeline'
 
-    uuid = db.Column(db.String(255), nullable=False)
+    uuid = db.Column(db.String(255), nullable=False, primary_key=True)
+    project_uuid = db.Column(db.ForeignKey("project.uuid"), primary_key=True)
     path = db.Column(db.String(255), nullable=False)
-    project_uuid = db.Column(db.ForeignKey("project.uuid"))
     
-    __table_args__ = (UniqueConstraint('uuid', 'path', 'project_uuid'),)
+    __table_args__ = (UniqueConstraint('uuid', 'project_uuid'),)
 
 
 class DataSource(db.Model):

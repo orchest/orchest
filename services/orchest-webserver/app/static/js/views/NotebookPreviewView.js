@@ -36,7 +36,7 @@ class NotebookPreviewView extends React.Component {
 
   fetchNotebookHtml(){
 
-    let notebookURL = `/async/notebook_html/${this.props.pipeline_uuid}/${this.props.project_uuid}/${this.props.step_uuid}`;
+    let notebookURL = `/async/notebook_html/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`;
 
     if(this.props.pipelineRun){
       notebookURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;

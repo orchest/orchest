@@ -37,7 +37,7 @@ class SessionToggleButton extends React.Component {
     }
 
     fetchSessionStatus(){
-        let fetchSessionPromise = makeCancelable(makeRequest("GET", `/api-proxy/api/sessions/?pipeline_uuid=${this.props.pipeline_uuid}&project_uuid=${this.props.project_uuid}`), this.promiseManager);
+        let fetchSessionPromise = makeCancelable(makeRequest("GET", `/api-proxy/api/sessions/?project_uuid=${this.props.project_uuid}&pipeline_uuid=${this.props.pipeline_uuid}`), this.promiseManager);
 
         fetchSessionPromise.promise.then((response) => {
             let session_details;
@@ -153,7 +153,7 @@ class SessionToggleButton extends React.Component {
             });
             this.props.onSessionStateChange(this.state.working, this.state.running)
 
-            let deletePromise = makeCancelable(makeRequest("DELETE", "/api-proxy/api/sessions/" + this.props.pipeline_uuid), this.promiseManager);
+            let deletePromise = makeCancelable(makeRequest("DELETE", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`), this.promiseManager);
 
             deletePromise.promise.then((response) => {
                 let result = JSON.parse(response);

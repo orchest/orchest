@@ -1,5 +1,8 @@
 import logging
+import os
 from app.models import DataSource, Experiment, PipelineRun, Image, Commit
+from app.utils import project_uuid_to_path
+from app.config import Config
 
 
 def register_socketio_broadcast(db, socketio):
@@ -20,10 +23,15 @@ def register_socketio_broadcast(db, socketio):
         elif data["action"] == "pty-reset":
             socketio.emit(
                 "pty-reset", 
-                {"session_uuid": data["session_uuid"]}, 
+                {"session_uuid": data["session_uuid"]},
                 namespace="/pty")
         else:
             # relay incoming message to pty-log-manager-receiver (log_streamer client)
+
+            # for relay server side augmentation can happen for non-client data models (such as project path)
+            if data["action"] == "fetch-logs":
+                data["project_path"] = project_uuid_to_path(data["project_uuid"])
+
             socketio.emit("pty-log-manager-receiver", data, namespace="/pty")
 
     @socketio.on("pty-build-manager", namespace="/pty")

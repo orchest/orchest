@@ -121,7 +121,7 @@ class ExperimentsView extends React.Component {
         let pipeline_uuid = this.refManager.refs.formPipeline.mdc.value;
         let pipelineName;
         for (let x = 0; x < this.state.pipelines.length; x++) {
-            if (this.state.pipelines[x].pipeline_uuid === pipeline_uuid) {
+            if (this.state.pipelines[x].uuid === pipeline_uuid) {
                 pipelineName = this.state.pipelines[x].name
                 break;
             }
@@ -182,12 +182,13 @@ class ExperimentsView extends React.Component {
                 "experiment": {
                     "name": experiment.name,
                     "pipeline_uuid": experiment.pipeline_uuid,
+                    "project_uuid": experiment.project_uuid,
                     "uuid": experiment.uuid,
                 }
             });
 
         } else {
-            makeRequest("GET", `/async/pipelines/json/${this.props.experiment.project_uuid}/${this.props.experiment.pipeline_uuid}` + "?experiment_uuid=" + 
+            makeRequest("GET", `/async/pipelines/json/${experiment.project_uuid}/${experiment.pipeline_uuid}` + "?experiment_uuid=" + 
                 experiment.uuid,
             {}).then((response) => {
 

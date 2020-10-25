@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import os
 from datetime import datetime
 from docker.types import Mount
 from typing import Any, Dict, Iterable, List, Optional#, TypedDict
@@ -208,7 +209,7 @@ class PipelineStepRunner:
             'Image': self.properties['image'],
             'Env': [
                 f'STEP_UUID={self.properties["uuid"]}',
-                f'PIPELINE_UUID={self.run_config["pipeline_uuid"]}',
+                f'PIPELINE_UUID={run_config["pipeline_uuid"]}',
                 f'PIPELINE_PATH={run_config["pipeline_path"]}',
                 'EVICTION_OPTIONALITY=1',
             ],

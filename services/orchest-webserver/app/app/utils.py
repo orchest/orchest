@@ -114,8 +114,13 @@ def tar_from_path(path, filename):
     return data
 
 
-def pipeline_uuid_to_path(pipeline_uuid):
-    pipeline = Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).first()
+def remove_dir_if_empty(path):
+    if os.path.isdir(path) and not os.listdir(path):
+        os.system("rm -r %s" % (path))
+
+
+def pipeline_uuid_to_path(pipeline_uuid, project_uuid):
+    pipeline = Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).filter(Pipeline.project_uuid == project_uuid).first()
     if pipeline is not None:
         return pipeline.path
     else:
@@ -166,9 +171,9 @@ def find_pipelines_in_dir(path, relative_to=None):
             for fName in files:
                 if fName.endswith(".orchest"):
                     if relative_to is not None:
-                        if not relative_to.endswith("/"):
-                            relative_to += "/"
-                            
+                        if relative_to.endswith("/"):
+                            relative_to = relative_to[:-1]
+
                         root = root.replace(relative_to, "")
 
                     pipelines.append(os.path.join(root, fName))

@@ -22,7 +22,7 @@ class PipelinesView extends React.Component {
 
 
         this.state = {
-            loaded: false,
+            loading: true,
             createModal: false,
         }
 
@@ -36,10 +36,14 @@ class PipelinesView extends React.Component {
 
     componentDidMount() {
 
-        this.fetchList();
+        this.fetchList(() => {
+            this.setState({
+                loading: false
+            })
+        });
 
         // set headerbar
-        orchest.headerBarComponent.setPipeline(undefined);
+        orchest.headerBarComponent.clearPipeline();
     }
 
     processListData(pipelines){
@@ -57,14 +61,20 @@ class PipelinesView extends React.Component {
         return listData
     }
 
-    fetchList(){
+    fetchList(onComplete){
         // initialize REST call for pipelines
         let fetchListPromise = makeCancelable(makeRequest("GET", `/async/pipelines/${this.props.project_uuid}`), this.promiseManager);
         
         fetchListPromise.promise.then((response) => {
             let data = JSON.parse(response);            
-            this.setState({loaded: true, listData: this.processListData(data.result), pipelines: data.result})
-            this.refManager.refs.pipelineListView.setSelectedRowIds([]);
+            this.setState({listData: this.processListData(data.result), pipelines: data.result})
+
+            if(this.refManager.refs.pipelineListView){
+                this.refManager.refs.pipelineListView.setSelectedRowIds([]);
+            }
+
+            onComplete();
+            
         });
     }
 
@@ -75,7 +85,8 @@ class PipelinesView extends React.Component {
         // load pipeline view
         let props = {
             "pipeline_uuid": pipeline.uuid,
-            "project_uuid": this.props.project_uuid
+            "project_uuid": this.props.project_uuid,
+            "pipeline_path": pipeline.path
         }
 
         if(e.ctrlKey || e.metaKey){
@@ -97,20 +108,28 @@ class PipelinesView extends React.Component {
 
         orchest.confirm("Warning", "Are you certain that you want to delete this pipeline? (This cannot be undone.)", () => {
 
+            this.setState({
+                loading: true
+            })
+
             selectedIndices.forEach((index) => {
                 let pipeline_uuid = this.state.pipelines[index].uuid;
 
-                makeRequest("GET", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`).then((response) => {
+                makeRequest("GET", `/api-proxy/api/sessions/?project_uuid=${this.props.project_uuid}&pipeline_uuid=${pipeline_uuid}`).then((response) => {
                     let data = JSON.parse(response);
                     if(data["sessions"].length > 0){
-                        makeRequest("DELETE", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`);
+                        makeRequest("DELETE", `/api-proxy/api/sessions/${this.props.project_uuid}/${pipeline_uuid}`);
                     }
                 })
 
-                makeRequest("POST", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`).then((_) => {
+                makeRequest("DELETE", `/async/pipelines/delete/${this.props.project_uuid}/${pipeline_uuid}`).then((_) => {
                     
                     // reload list once removal succeeds
-                    this.fetchList();
+                    this.fetchList(() => {
+                        this.setState({
+                            loading: false
+                        })
+                    });
                 })
             });
         })
@@ -146,16 +165,34 @@ class PipelinesView extends React.Component {
             return;
         }
 
-        makeRequest("POST", "/async/pipelines/create", {
+        this.setState({
+            loading: true
+        });
+
+        makeRequest("POST", `/async/pipelines/create/${this.props.project_uuid}`, {
             type: "json",
             content: {
                 "name": pipelineName,
-                "project_uuid": this.props.project_uuid,
                 "pipeline_path": pipelinePath
             }
         }).then((_) => {
             // reload list once creation succeeds
-            this.fetchList()
+            this.fetchList(() => {
+                this.setState({
+                    loading: false
+                })
+            })
+        }).catch((response) => {
+            try {
+                let data = JSON.parse(response.body);
+                orchest.alert("Could not create pipeline. Reason " + data.message)
+            } catch {
+                orchest.alert("Could not create pipeline. Reason unknown.");
+            }
+
+            this.setState({
+                loading: false
+            })
         })
 
         this.setState({
@@ -170,7 +207,7 @@ class PipelinesView extends React.Component {
     }
 
     render() {
-        if(this.state.loaded){
+        if(!this.state.loading){
             return <div className={"view-page pipelines-view"}>
 
             {(() => {

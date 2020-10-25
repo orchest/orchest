@@ -20,7 +20,7 @@ swarm_mode = bool(os.getenv('EG_DOCKER_MODE', 'swarm').lower() == 'swarm')
 def get_volume_mount(pipeline_uuid, project_uuid):
     return Mount(
         target=_config.TEMP_DIRECTORY_PATH,
-        source=_config.TEMP_VOLUME_NAME.format(uuid=uuid, project_uuid=project_uuid),
+        source=_config.TEMP_VOLUME_NAME.format(uuid=pipeline_uuid, project_uuid=project_uuid),
         type='volume'
     )
 

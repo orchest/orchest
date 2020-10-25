@@ -325,6 +325,7 @@ class PipelineView extends React.Component {
         // generate JSON representation using the internal state of React components describing the pipeline
         let pipelineJSON = {
             "name": this.state.pipelineJson.name,
+            "uuid": this.state.pipelineJson.uuid,
             "steps": {}
         };
 
@@ -388,11 +389,11 @@ class PipelineView extends React.Component {
     }
 
     openSettings() {
-        orchest.loadView(PipelineSettingsView, { "pipeline_uuid": this.props.pipeline_uuid });
+        orchest.loadView(PipelineSettingsView, { "project_uuid": this.props.project_uuid, "pipeline_uuid": this.props.pipeline_uuid });
     }
 
     onOpenNotebookPreview(step_uuid) {
-        orchest.loadView(NotebookPreviewView, { "pipeline_uuid": this.props.pipeline_uuid, pipelineRun: this.props.pipelineRun, "step_uuid": step_uuid, "pipelineRun": this.props.pipelineRun });
+        orchest.loadView(NotebookPreviewView, { "project_uuid": this.props.project_uuid, "pipeline_uuid": this.props.pipeline_uuid, pipelineRun: this.props.pipelineRun, "step_uuid": step_uuid, "pipelineRun": this.props.pipelineRun });
     }
 
     componentDidMount() {
@@ -869,7 +870,7 @@ class PipelineView extends React.Component {
             if (result.success) {
                 this.decodeJSON(JSON.parse(result['pipeline_json']));
 
-                orchest.headerBarComponent.setPipeline(this.state.pipelineJson);
+                orchest.headerBarComponent.setPipeline(this.state.pipelineJson, this.props.project_uuid);
 
                 this.initializePipeline();
 

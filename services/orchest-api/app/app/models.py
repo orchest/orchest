@@ -65,12 +65,11 @@ class PipelineRun(BaseModel):
     
     project_uuid = db.Column(
         db.String(36),
-        primary_key=True,
     )
     pipeline_uuid = db.Column(
         db.String(36),
         unique=False,
-        nullable=False
+        nullable=False,
     )
     status = db.Column(
         db.String(15),
@@ -190,7 +189,6 @@ class Experiment(BaseModel):
     )
     project_uuid = db.Column(
         db.String(36),
-        primary_key=True,
     )
     pipeline_uuid = db.Column(
         db.String(36),

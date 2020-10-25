@@ -7,10 +7,9 @@ import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact
 import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 
 import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
-import PipelinesView from './PipelinesView';
 
 
-class ProjectsView extends React.Component {
+class ProjectSelectionView extends React.Component {
 
     componentWillUnmount() {
 
@@ -34,7 +33,12 @@ class ProjectsView extends React.Component {
 
     componentDidMount() {
 
-        this.fetchList();
+        this.fetchList(() => {
+            this.setState({
+                loading: false
+            })
+        });
+
 
     }
 
@@ -44,24 +48,25 @@ class ProjectsView extends React.Component {
 
         for(let project of projects){
             listData.push([
-                <span>{project}</span>
+                <span>{project.path}</span>
             ]);
         }
 
         return listData
     }
 
-    fetchList(){
+    fetchList(onComplete){
         // initialize REST call for pipelines
         let fetchListPromise = makeCancelable(makeRequest("GET", '/async/projects'), this.promiseManager);
         
         fetchListPromise.promise.then((response) => {
             let projects = JSON.parse(response);            
-            this.setState({loading: false, listData: this.processListData(projects), projects: projects})
+            this.setState({listData: this.processListData(projects), projects: projects})
             if(this.refManager.refs.projectListView){
                 this.refManager.refs.projectListView.setSelectedRowIds([]);
             }
-            
+
+            onComplete();
         });
     }
 
@@ -70,10 +75,10 @@ class ProjectsView extends React.Component {
         let project = this.state.projects[idx];
         
         let props = {
-            "project": project,
+            "project_uuid": project.uuid,
         }
 
-        orchest.loadView(PipelinesView, props);
+        this.props.onSelectProject(props);
 
     }
 
@@ -88,6 +93,12 @@ class ProjectsView extends React.Component {
 
         orchest.confirm("Warning", "Are you certain that you want to delete this project? (This cannot be undone.)", () => {
 
+            this.setState({
+                loading: true
+            })
+
+            let sessionPromises = [];
+            let sessionDeletePromises = [];
             let deletePromises = [];
 
             selectedIndices.forEach((index) => {
@@ -96,49 +107,66 @@ class ProjectsView extends React.Component {
 
                 // TODO:
                 // - shut down all sessions that are part of this project
-
-                makeRequest("GET", `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`).then((response) => {
+                sessionPromises.push(makeRequest("GET", `/api-proxy/api/sessions/?project_uuid=${project_uuid}`).then((response) => {
                     let data = JSON.parse(response);
                     if(data["sessions"].length > 0){
 
-                        let sessionDeletePromises = [];
-
-                        for(let session in data["sessions"]){
+                        for(let session of data["sessions"]){
                             sessionDeletePromises.push(makeRequest("DELETE", `/api-proxy/api/sessions/${session.project_uuid}/${session.pipeline_uuid}`));
                         }
 
                         Promise.all(sessionDeletePromises).then(() => {
-                            let deletePromise = makeRequest("DELETE", "/async/projects", {
-                                type: "json",
-                                content: {
-                                    "project_uuid": project_uuid
-                                }
-                            });
-            
-                            deletePromises.push(deletePromise)
-            
-                            deletePromise.catch((response) => {
-                                try {
-                                    let data = JSON.parse(response.body);
-            
-                                    orchest.alert("Could not delete project. Reason " + data.message)
-                                } catch {
-                                    orchest.alert("Could not delete project. Reason unknown.");
-                                }
-                            })
+                            deletePromises.push(this.deleteProjectRequest(project_uuid));
                         })
                         
+                    }else{
+                        deletePromises.push(this.deleteProjectRequest(project_uuid));
                     }
-                })
+                }))
 
             });
 
-            Promise.all(deletePromises).then(() => {
-                // reload list once creation succeeds
-                this.fetchList()
+            Promise.all(sessionPromises).then(() => {
+
+                Promise.all(sessionDeletePromises).then(() => {
+
+                    Promise.all(deletePromises).then(() => {
+                        // reload list once creation succeeds
+                        this.fetchList(() => {
+                            this.setState({
+                                loading: false
+                            })
+                        })
+                    });
+
+                });
+                
             })
 
         })
+    }
+
+
+
+    deleteProjectRequest(project_uuid){
+        let deletePromise = makeRequest("DELETE", "/async/projects", {
+            type: "json",
+            content: {
+                "project_uuid": project_uuid
+            }
+        });
+
+        deletePromise.catch((response) => {
+            try {
+                let data = JSON.parse(response.body);
+
+                orchest.alert("Could not delete project. Reason " + data.message)
+            } catch {
+                orchest.alert("Could not delete project. Reason unknown.");
+            }
+        })
+
+        return deletePromise;
     }
 
     onCreateClick(){
@@ -168,7 +196,11 @@ class ProjectsView extends React.Component {
             }
         }).then((_) => {
             // reload list once creation succeeds
-            this.fetchList()
+            this.fetchList(() => {
+                this.setState({
+                    "loading": false
+                })
+            })
         }).catch((response) => {
             try {
                 let data = JSON.parse(response.body);
@@ -229,4 +261,4 @@ class ProjectsView extends React.Component {
     }
 }
 
-export default ProjectsView;
+export default ProjectSelectionView;

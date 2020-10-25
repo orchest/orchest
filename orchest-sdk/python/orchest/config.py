@@ -15,10 +15,13 @@ class Config:
 
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
+
+    # '/project-dir' as project root is hardcoded because code sharing with the
+    # internal config library is not possible due to the license difference.
     STEP_DATA_DIR = '/project-dir/.orchest/{pipeline_uuid}/data/{step_uuid}'
 
     # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = os.environ.get("PIPELINE_PATH")
+    PIPELINE_DESCRIPTION_PATH = f'/project-dir/{os.environ.get("ORCHEST_PIPELINE_PATH")}'
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:

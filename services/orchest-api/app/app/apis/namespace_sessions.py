@@ -33,6 +33,8 @@ class SessionList(Resource):
             query = query.filter_by(
                 pipeline_uuid=request.args.get('pipeline_uuid')).filter_by(
                 project_uuid=request.args.get("project_uuid"))
+        elif 'project_uuid' in request.args:
+            query = query.filter_by(project_uuid=request.args.get("project_uuid"))
 
         sessions = query.all()
 

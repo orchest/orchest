@@ -10,9 +10,6 @@ from threading import RLock
 from datetime import datetime, timedelta
 from _orchest.internals import config as _config
 
-# TODO: test impact of SQLite querying in separate process on DB
-from app.utils import project_uuid_to_path
-
 # timeout after 2 minutes, heartbeat should be sent every minute
 HEARTBEAT_TIMEOUT = timedelta(minutes=2) 
 
@@ -25,11 +22,11 @@ lock = RLock()
 
 class LogFile():
 
-    def __init__(self, session_uuid, pipeline_uuid, project_uuid, project_dir, step_uuid, pipeline_run_uuid = None, experiment_uuid = None):
+    def __init__(self, session_uuid, pipeline_uuid, project_uuid, project_path, step_uuid, pipeline_run_uuid = None, experiment_uuid = None):
         self.session_uuid = session_uuid
         self.pipeline_uuid = pipeline_uuid
         self.project_uuid = project_uuid
-        self.project_dir = project_dir
+        self.project_path = project_path
         self.step_uuid = step_uuid
         self.pipeline_run_uuid = pipeline_run_uuid
         self.experiment_uuid = experiment_uuid
@@ -143,14 +140,14 @@ def read_emit_all_lines(file, sio, session_uuid):
 # TODO: reuse (between Flask app and process scripts) and simplify code to get the correct pipeline path
 # There are currently two scenarios: a pipeline is in the userdir/pipelines or
 # as a pipeline run in experiments.
-def get_project_dir(pipeline_uuid, project_uuid, project_dir, pipeline_run_uuid=None, experiment_uuid=None):
+def get_project_dir(pipeline_uuid, project_uuid, project_path, pipeline_run_uuid=None, experiment_uuid=None):
 
     pipeline_dir_parts = ["/userdir"]
     
     if pipeline_run_uuid is not None and experiment_uuid is not None:
         pipeline_dir_parts += ['experiments', project_uuid, pipeline_uuid, experiment_uuid, pipeline_run_uuid]
     else:
-        pipeline_dir_parts += ["projects", project_dir]
+        pipeline_dir_parts += ["projects", project_path]
 
     return os.path.join(*pipeline_dir_parts)
 
@@ -160,7 +157,7 @@ def get_log_path(log_file):
     project_dir = get_project_dir(
         log_file.pipeline_uuid,
         log_file.project_uuid,
-        log_file.project_dir, 
+        log_file.project_path, 
         log_file.pipeline_run_uuid, 
         log_file.experiment_uuid
     )
@@ -226,7 +223,7 @@ def main():
                     data["session_uuid"],
                     data["pipeline_uuid"],
                     data["project_uuid"],
-                    project_uuid_to_path(data["project_uuid"]),
+                    data["project_path"],
                     data["step_uuid"],
                 )
 

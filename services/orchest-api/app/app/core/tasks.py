@@ -166,7 +166,7 @@ def start_non_interactive_pipeline_run(
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
     # every step.
-    pipeline_json = os.path.join(run_dir, _config.PIPELINE_DESCRIPTION_PATH)
+    pipeline_json = os.path.join(run_dir, run_config['pipeline_path'])
     with open(pipeline_json, 'w') as f:
         json.dump(pipeline_description, f)
 
