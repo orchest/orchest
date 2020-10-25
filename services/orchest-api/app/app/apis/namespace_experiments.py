@@ -61,6 +61,7 @@ class ExperimentList(Resource):
             celery = make_celery(current_app)
             celery_job_kwargs = {
                 'experiment_uuid': post_data['experiment_uuid'],
+                'project_uuid': post_data['project_uuid'],
                 'pipeline_description': pipeline.to_dict(),
                 'run_config': pipeline_run_spec['run_config'],
             }

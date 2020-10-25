@@ -69,8 +69,8 @@ class RunList(Resource):
         # of "rpc://" does not give the results we would want).
         run = {
            'run_uuid': res.id,
-           'project_uuid': post_data['project_uuid'],
            'pipeline_uuid': pipeline.properties['uuid'],
+           'project_uuid': post_data['project_uuid'],
            'status': 'PENDING',
         }
         db.session.add(models.InteractiveRun(**run))

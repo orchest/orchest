@@ -644,12 +644,12 @@ def register_views(app, db):
         json_obj = request.json
 
         json_obj["project_dir"] = get_project_directory(
-                    json_obj["pipeline_description"]["project_uuid"]), 
+                    json_obj["project_uuid"]), 
                     host_path=True)
             
         json_obj["pipeline_path"] = get_pipeline_path(
                 json_obj["pipeline_description"]["uuid"], 
-                json_obj["pipeline_description"]["project_uuid"], 
+                json_obj["project_uuid"], 
                 host_path=True
             )
 

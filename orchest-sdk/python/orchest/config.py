@@ -6,6 +6,8 @@ CAUTION:
 
 """
 
+import os
+
 
 class Config:
     # TODO: put configuration options inside the docstring so we can use
@@ -16,7 +18,7 @@ class Config:
     STEP_DATA_DIR = '/project-dir/.orchest/{pipeline_uuid}/data/{step_uuid}'
 
     # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = '/project-dir/.orchest/pipeline.json'
+    PIPELINE_DESCRIPTION_PATH = os.environ.get("PIPELINE_PATH")
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:

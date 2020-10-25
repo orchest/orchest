@@ -4,7 +4,7 @@ import os
 
 # General.
 TEMP_DIRECTORY_PATH = '/tmp/orchest'
-TEMP_VOLUME_NAME = 'tmp-orchest-{uuid}'
+TEMP_VOLUME_NAME = 'tmp-orchest-{uuid}-{project_uuid}'
 PROJECT_DIR = '/project-dir'
 
 # Relative to the `userdir` path.

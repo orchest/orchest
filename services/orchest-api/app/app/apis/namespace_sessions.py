@@ -31,10 +31,8 @@ class SessionList(Resource):
         # through the URL (using `request.args`).
         if 'pipeline_uuid' in request.args and 'project_uuid' in request.args:
             query = query.filter_by(
-                    pipeline_uuid=request.args.get('pipeline_uuid')
-                ).filter_by(
-                    project_uuid=request.args.get("project_uuid")
-                )
+                pipeline_uuid=request.args.get('pipeline_uuid')).filter_by(
+                project_uuid=request.args.get("project_uuid"))
 
         sessions = query.all()
 
@@ -54,8 +52,8 @@ class SessionList(Resource):
 
         # Add initial entry to database.
         pipeline_uuid = post_data['pipeline_uuid']
-        project_uuid = post_data['project_uuid']
         pipeline_path = post_data['pipeline_path']
+        project_uuid = post_data['project_uuid']
 
         interactive_session = {
             'project_uuid': project_uuid,
@@ -66,7 +64,7 @@ class SessionList(Resource):
         db.session.commit()
 
         session = InteractiveSession(docker_client, network='orchest')
-        session.launch(pipeline_uuid, pipeline_path, post_data['project_dir'], post_data['host_userdir'])
+        session.launch(pipeline_uuid, project_uuid, pipeline_path, post_data['project_dir'], post_data['host_userdir'])
 
         # Update the database entry with information to connect to the
         # launched resources.

@@ -129,7 +129,7 @@ def get_volume_mount(run_config, task_id):
         volume_uuid = run_config['pipeline_uuid']
     elif run_config['run_endpoint'].startswith('experiments'):
         volume_uuid = task_id
-    temp_volume_name = _config.TEMP_VOLUME_NAME.format(uuid=volume_uuid)
+    temp_volume_name = _config.TEMP_VOLUME_NAME.format(uuid=volume_uuid, project_uuid=run_config['project_uuid'])
 
     return f"{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}"
 
@@ -209,6 +209,7 @@ class PipelineStepRunner:
             'Env': [
                 f'STEP_UUID={self.properties["uuid"]}',
                 f'PIPELINE_UUID={self.run_config["pipeline_uuid"]}',
+                f'PIPELINE_PATH={run_config["pipeline_path"]}',
                 'EVICTION_OPTIONALITY=1',
             ],
             'HostConfig': {

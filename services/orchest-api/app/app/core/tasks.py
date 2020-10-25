@@ -67,6 +67,7 @@ class APITask(Task):
 @celery.task(bind=True)
 def run_partial(self,
                 pipeline_description: PipelineDescription,
+                project_uuid: str,
                 run_config: Dict[str, Union[str, Dict[str, str]]],
                 task_id: Optional[str] = None) -> str:
     """Runs a pipeline partially.
@@ -88,6 +89,7 @@ def run_partial(self,
 
     """
     run_config['pipeline_uuid'] = pipeline_description['uuid']
+    run_config['project_uuid'] = project_uuid
 
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
@@ -107,6 +109,7 @@ def run_partial(self,
 def start_non_interactive_pipeline_run(
     self,
     experiment_uuid,
+    project_uuid,
     pipeline_description: PipelineDescription,
     run_config: Dict[str, Union[str, Dict[str, str]]]
 ) -> str:
@@ -116,6 +119,7 @@ def start_non_interactive_pipeline_run(
 
     Args:
         experiment_uuid: UUID of the experiment.
+        project_uuid: UUID of the project.
         pipeline_description: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
             Example: {
@@ -128,7 +132,6 @@ def start_non_interactive_pipeline_run(
 
     """
     pipeline_uuid = pipeline_description['uuid']
-    project_uuid = run_config['project_uuid']
 
     experiment_dir = os.path.join('/userdir', 'experiments',
                                   project_uuid, pipeline_uuid, experiment_uuid)
@@ -158,6 +161,7 @@ def start_non_interactive_pipeline_run(
     run_config['project_dir'] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config['run_endpoint'] = f'experiments/{experiment_uuid}'
     run_config['pipeline_uuid'] = pipeline_uuid
+    run_config['project_uuid'] = project_uuid
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
@@ -169,9 +173,11 @@ def start_non_interactive_pipeline_run(
     with launch_session(
         docker_client,
         self.request.id,
+        project_uuid,
+        run_config['pipeline_path'],
         run_config['project_dir'],
         interactive=False,
     ) as session:
-        status = run_partial(pipeline_description, run_config, task_id=self.request.id)
+        status = run_partial(pipeline_description, project_uuid, run_config, task_id=self.request.id)
 
     return status

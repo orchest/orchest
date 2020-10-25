@@ -152,9 +152,7 @@ pipeline_run = Model('Run', {
 })
 
 interactive_run_config = pipeline_run_config.inherit('InteractiveRunConfig', {
-    'project-dir': fields.String(
-        required=True,
-        description='Absolute path on the host to the "project-dir"'),
+    
 })
 
 interactive_run_spec = pipeline_run_spec.inherit('InteractiveRunSpec', {

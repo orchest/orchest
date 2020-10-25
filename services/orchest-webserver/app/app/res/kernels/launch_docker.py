@@ -8,6 +8,7 @@ from docker.client import DockerClient
 from docker.types import EndpointSpec, RestartPolicy, DeviceRequest, Mount
 
 from _orchest.internals.utils import get_device_requests, get_orchest_mounts
+from _orchest.internals import config as _config
 
 urllib3.disable_warnings()
 
@@ -16,10 +17,10 @@ remove_container = bool(os.getenv('EG_REMOVE_CONTAINER', 'True').lower() == 'tru
 swarm_mode = bool(os.getenv('EG_DOCKER_MODE', 'swarm').lower() == 'swarm')
 
 
-def get_volume_mount(pipeline_uuid):
+def get_volume_mount(pipeline_uuid, project_uuid):
     return Mount(
-        target='/tmp/orchest',
-        source=f'tmp-orchest-{pipeline_uuid}',
+        target=_config.TEMP_DIRECTORY_PATH,
+        source=_config.TEMP_VOLUME_NAME.format(uuid=uuid, project_uuid=project_uuid),
         type='volume'
     )
 
@@ -107,7 +108,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
             project_dir=param_env.get('KERNEL_WORKING_DIR'),
             host_project_dir=param_env.get('ORCHEST_HOST_PROJECT_DIR'),
         )
-        orchest_mounts += [get_volume_mount(param_env.get('ORCHEST_PIPELINE_UUID'))]
+        orchest_mounts += [get_volume_mount(param_env.get('ORCHEST_PIPELINE_UUID'), param_env.get('ORCHEST_PROJECT_UUID'))]
 
         device_requests = get_device_requests(image_name)
 
