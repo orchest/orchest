@@ -1,23 +1,20 @@
-import React from 'react';
+import React from "react";
 
 class FileManagerView extends React.Component {
+  componentWillUnmount() {}
 
-  componentWillUnmount() {
-  }
+  componentDidMount() {}
 
-
-  componentDidMount(){
-  }
-
-  constructor(props){
+  constructor(props) {
     super(props);
-
   }
 
   render() {
-    return <div className={"view-page no-padding"}>
+    return (
+      <div className={"view-page no-padding"}>
         <iframe className={"borderless fullsize"} src="/file-manager"></iframe>
-    </div>;
+      </div>
+    );
   }
 }
 

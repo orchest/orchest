@@ -1,35 +1,41 @@
 # orchest-api
+
 Make sure the `install_orchest.py` is run before launching the API.
 
-
 ## /sessions
+
 During development (or before a good fix), some manual labor has to be conducted before a pipeline
 can be launched. That is:
-* `chmod -R 0777 /var/run/docker.sock`: let docker containers be spawned from inside other containers.
-* `rm api/resources.db` (if one exists): issues with persistent pipeline uuids. 
+
+- `chmod -R 0777 /var/run/docker.sock`: let docker containers be spawned from inside other containers.
+- `rm api/resources.db` (if one exists): issues with persistent pipeline uuids.
 
 The latter issue does not occur when running the orchest-api inside a container, since the db is
 created on start.
 
 When a pipeline is launched, the following will happen
+
 1. The start of a `jupyter-enterprise-gateway` (EG) container.
 2. The start of a `jupyter-server` (our own container) that will connect its Jupyter server process to the EG container.
 
-
 ### Implementation details
-Jupyter-enterprise-gateway (EG) 
-* Image: `elyra/enterprise-gateway:dev`
-* Environment variable `EG_DOCKER_NETWORK` to make sure that kernels are launched on the same docker network
-* Mounts
-    * `/var/run/docker.sock` at `/var/run/docker.sock`: start docker containers from inside docker (remember to `chmod` the `docker.sock` file).
-    * `etc/kernels` at `/usr/local/share/jupyter/kernels`: get custom kernelspecs.
 
-Jupyter-server 
-* Image: has to be build manually from the `jupyter-server/Dockerfile`
-* Mounts
-    * `project_dir`, containing the path to the pipeline files, at `/project-dir`
+Jupyter-enterprise-gateway (EG)
+
+- Image: `elyra/enterprise-gateway:dev`
+- Environment variable `EG_DOCKER_NETWORK` to make sure that kernels are launched on the same docker network
+- Mounts
+  - `/var/run/docker.sock` at `/var/run/docker.sock`: start docker containers from inside docker (remember to `chmod` the `docker.sock` file).
+  - `etc/kernels` at `/usr/local/share/jupyter/kernels`: get custom kernelspecs.
+
+Jupyter-server
+
+- Image: has to be build manually from the `jupyter-server/Dockerfile`
+- Mounts
+  - `project_dir`, containing the path to the pipeline files, at `/project-dir`
 
 Information on kernelspecs. Take the following example
+
 ```
 {
   "language": "python",
@@ -54,18 +60,21 @@ Information on kernelspecs. Take the following example
   ]
 }
 ```
+
 The key configurations are: `metadata.process_proxy.class_name` and
 `metadata.process_proxy.config.image_name`. They define the process proxy class and image to be used
 respectively.
-* More on process proxy class can be found at the [jupyter enterprise gateway documentation](https://jupyter-enterprise-gateway.readthedocs.io/en/latest/system-architecture.html#process-proxy). In short it defines what class manages the kernel.
-* The image describes the container that the EG will start when the "Python on Docker" (`display_name`) kernel is chosen to be launched.
 
+- More on process proxy class can be found at the [jupyter enterprise gateway documentation](https://jupyter-enterprise-gateway.readthedocs.io/en/latest/system-architecture.html#process-proxy). In short it defines what class manages the kernel.
+- The image describes the container that the EG will start when the "Python on Docker" (`display_name`) kernel is chosen to be launched.
 
 ## Partial runs
+
 Do not forget to start a Celery worker to run the background tasks for the Flask API:
 `orchest/services/orchest-api$ celery worker -A app.core.tasks -l INFO`
 
-The logic here is straightforward. 
+The logic here is straightforward.
+
 1. API gets called to start a (partial) run through a POST request to `/api/runs/`
 2. Inside the POST a payload is given which contains a specification of the run and the pipeline.
 3. The run is then started as a background task through Celery. In this case `run_partial` in the
@@ -77,10 +86,11 @@ The logic here is straightforward.
 6. Each step calls the API (multiple times) using a PUT to notify about its individual status (such
    that it can be displayed in the UI).
 7. Once the pipeline is done executing it will update its own status (note that the status is always
-   "SUCCESS" once it has finished, errors are reflected by the individual steps, not the pipline). 
+   "SUCCESS" once it has finished, errors are reflected by the individual steps, not the pipline).
    Lastly, the "environment" is reset for the next run.
 
 ### Some thoughts
+
 The application structure has become reasonably complex due to Celery integration. It might be best
 to put all the Celery related things in a seperate package (away from the api). Because the
 functions that Celery executes do not need the flask app context. Now Celery is completely entangled

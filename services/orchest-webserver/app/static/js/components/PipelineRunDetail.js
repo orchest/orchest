@@ -1,23 +1,19 @@
-import React from 'react';
-import ParamTree from './ParamTree';
+import React from "react";
+import ParamTree from "./ParamTree";
 
 class PipelineRunDetail extends React.Component {
-
-
-  constructor(props){
+  constructor(props) {
     super(props);
-
   }
-  componentDidMount(){
-
-  }
+  componentDidMount() {}
 
   render() {
-      return <div>
-          <ParamTree />
-      </div>;
+    return (
+      <div>
+        <ParamTree />
+      </div>
+    );
   }
-
 }
 
-export default PipelineRunDetail
+export default PipelineRunDetail;
