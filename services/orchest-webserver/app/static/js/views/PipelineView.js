@@ -276,12 +276,15 @@ class PipelineView extends React.Component {
       let data = JSON.parse(response);
 
       try {
-        // TODO: make sure this order is guaranteed by orchest-api
+        // TODO: allow getting the latest run directly from the orchest-api
         // (newest run last in the list)
         data["runs"].reverse();
 
         for (let run of data["runs"]) {
-          if (run.pipeline_uuid == this.props.pipeline_uuid) {
+          if (
+            run.pipeline_uuid == this.props.pipeline_uuid &&
+            run.project_uuid == this.props.project_uuid
+          ) {
             this.state.runUUID = run.run_uuid;
             this.pollPipelineStepStatuses();
             this.startStatusInterval();
@@ -344,13 +347,13 @@ class PipelineView extends React.Component {
         // store pipeline.json
         let formData = new FormData();
         formData.append("pipeline_json", JSON.stringify(pipelineJSON));
-        formData.append("pipeline_uuid", pipelineJSON.uuid);
 
         // perform POST to save
-        makeRequest("POST", "/async/pipelines/json/save", {
-          type: "FormData",
-          content: formData,
-        }).then(() => {
+        makeRequest(
+          "POST",
+          `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+          { type: "FormData", content: formData }
+        ).then(() => {
           if (callback && typeof callback == "function") {
             callback();
           }
@@ -369,7 +372,7 @@ class PipelineView extends React.Component {
     // generate JSON representation using the internal state of React components describing the pipeline
     let pipelineJSON = {
       name: this.state.pipelineJson.name,
-      uuid: this.props.pipeline_uuid,
+      uuid: this.state.pipelineJson.uuid,
       steps: {},
     };
 
@@ -433,12 +436,14 @@ class PipelineView extends React.Component {
 
   openSettings() {
     orchest.loadView(PipelineSettingsView, {
+      project_uuid: this.props.project_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
     });
   }
 
   onOpenNotebookPreview(step_uuid) {
     orchest.loadView(NotebookPreviewView, {
+      project_uuid: this.props.project_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
       pipelineRun: this.props.pipelineRun,
       step_uuid: step_uuid,
@@ -939,10 +944,14 @@ class PipelineView extends React.Component {
   }
 
   fetchPipelineAndInitialize() {
-    let pipelineURL = "/async/pipelines/json/get/" + this.props.pipeline_uuid;
+    let pipelineURL = `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`;
 
     if (this.props.pipelineRun) {
-      pipelineURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+      pipelineURL +=
+        "?pipeline_run_uuid=" +
+        this.props.pipelineRun.run_uuid +
+        "&experiment_uuid=" +
+        this.props.pipelineRun.experiment_uuid;
     }
 
     let fetchPipelinePromise = makeCancelable(
@@ -955,7 +964,10 @@ class PipelineView extends React.Component {
       if (result.success) {
         this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
-        orchest.headerBarComponent.setPipeline(this.state.pipelineJson);
+        orchest.headerBarComponent.setPipeline(
+          this.state.pipelineJson,
+          this.props.project_uuid
+        );
 
         this.initializePipeline();
       } else {
@@ -991,9 +1003,10 @@ class PipelineView extends React.Component {
       image: "orchestsoftware/custom-base-kernel-py",
       parameters: {},
       meta_data: {
-        position: [-9999, -9999],
+        position: [0, 0],
         _dragged: false,
         _drag_count: 0,
+        hidden: true,
       },
     };
 
@@ -1004,15 +1017,16 @@ class PipelineView extends React.Component {
 
     // wait for single render call
     setTimeout(() => {
-      let pipelineHolderSize = {
-        width: this.refManager.refs.pipelineStepsOuterHolder.clientWidth,
-        height: this.refManager.refs.pipelineStepsOuterHolder.clientHeight,
-      };
       step["meta_data"]["position"] = [
-        pipelineHolderSize.width / 2 - 190 / 2,
-        pipelineHolderSize.height / 2 - 105 / 2,
+        this.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 - 190 / 2,
+        this.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
+          105 / 2,
       ];
 
+      // to avoid repositioning flash (creating a step can affect the size of the viewport)
+      step["meta_data"]["hidden"] = false;
+
+      this.setState({ steps: this.state.steps });
       this.refManager.refs[step.uuid].updatePosition(
         this.state.steps[step.uuid].meta_data.position
       );
@@ -1253,6 +1267,7 @@ class PipelineView extends React.Component {
     // store pipeline.json
     let data = {
       uuids: uuids,
+      project_uuid: this.props.project_uuid,
       run_type: type,
       pipeline_description: this.getPipelineJSON(),
     };
@@ -1593,6 +1608,7 @@ class PipelineView extends React.Component {
                   <SessionToggleButton
                     ref={this.refManager.nrefs.sessionToggleButton}
                     pipeline_uuid={this.props.pipeline_uuid}
+                    project_uuid={this.props.project_uuid}
                     onSessionStateChange={this.onSessionStateChange.bind(this)}
                     onSessionFetch={this.onSessionFetch.bind(this)}
                     onSessionShutdown={this.onSessionShutdown.bind(this)}
@@ -1665,6 +1681,7 @@ class PipelineView extends React.Component {
                 defaultViewIndex={this.state.defaultDetailViewIndex}
                 onChangeView={this.onDetailsChangeView.bind(this)}
                 pipeline={this.state.pipelineJson}
+                project_uuid={this.props.project_uuid}
                 pipelineRun={this.props.pipelineRun}
                 step={JSON.parse(
                   JSON.stringify(this.state.steps[this.state.openedStep])

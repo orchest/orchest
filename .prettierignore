@@ -1,5 +1,7 @@
-build
-coverage
-venv
-.venvs
+build/
+coverage/
+venv/
+.venvs/
 *.json
+npm_modules/
+dist/

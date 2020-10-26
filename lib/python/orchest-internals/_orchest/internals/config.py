@@ -4,15 +4,17 @@ import os
 
 # General.
 TEMP_DIRECTORY_PATH = "/tmp/orchest"
-TEMP_VOLUME_NAME = "tmp-orchest-{uuid}"
-PIPELINE_DIR = "/pipeline-dir"
+TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
+PROJECT_DIR = "/project-dir"
 
-# Relative to the `PIPELINE_DIR`.
+# Relative to the `userdir` path.
 KERNELSPECS_PATH = ".orchest/kernels"
-LOGS_PATH = ".orchest/logs"
+
+# Relative to the `project_dir` path.
+LOGS_PATH = ".orchest/{pipeline_uuid}/logs"
+
 WEBSERVER_LOGS = "/orchest/services/orchest-webserver/app/orchest-webserver.log"
-PIPELINE_DESCRIPTION_FILE = "pipeline.json"
-PIPELINE_DESCRIPTION_PATH = os.path.join(".orchest", PIPELINE_DESCRIPTION_FILE)
+DOCS_ROOT = "https://orchest.readthedocs.io"
 
 # Networking
 ORCHEST_API_ADDRESS = "orchest-api"

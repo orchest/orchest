@@ -28,7 +28,7 @@ server = Model(
         "base_url": fields.String(required=True, default="/", description="Base URL"),
         "token": fields.String(required=True, description="Token for authentication"),
         "notebook_dir": fields.String(
-            required=True, default=_config.PIPELINE_DIR, description="Working directory"
+            required=True, default=_config.PROJECT_DIR, description="Working directory"
         ),
         "password": fields.Boolean(required=True, description="Password if one is set"),
         "pid": fields.Integer(required=True, description="PID"),
@@ -38,6 +38,7 @@ server = Model(
 session = Model(
     "Session",
     {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of session"),
         "jupyter_server_ip": fields.String(
@@ -61,8 +62,12 @@ sessions = Model(
 pipeline = Model(
     "Pipeline",
     {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "pipeline_dir": fields.String(
+        "pipeline_path": fields.String(
+            required=True, description="Path to pipeline file"
+        ),
+        "project_dir": fields.String(
             required=True, description="Path to pipeline files"
         ),
         "host_userdir": fields.String(
@@ -75,8 +80,11 @@ pipeline = Model(
 pipeline_run_config = Model(
     "PipelineRunConfig",
     {
-        "pipeline_dir": fields.String(
-            required=True, description="Path to pipeline files"
+        "project_dir": fields.String(
+            required=True, description="Path to project files"
+        ),
+        "pipeline_path": fields.String(
+            required=True, description="Path to pipeline file"
         ),
     },
 )
@@ -87,6 +95,7 @@ pipeline_run_spec = Model(
         "uuids": fields.List(
             fields.String(), required=False, description="UUIDs of pipeline steps"
         ),
+        "project_uuid": fields.String(required=True, description="UUID of project"),
         "run_type": fields.String(
             required=False,
             default="full",  # TODO: check whether default is used if required=False
@@ -121,6 +130,7 @@ pipeline_run = Model(
     "Run",
     {
         "run_uuid": fields.String(required=True, description="UUID of run"),
+        "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of the run"),
         "pipeline_steps": fields.List(  # TODO: rename
@@ -130,14 +140,7 @@ pipeline_run = Model(
     },
 )
 
-interactive_run_config = pipeline_run_config.inherit(
-    "InteractiveRunConfig",
-    {
-        "pipeline-dir": fields.String(
-            required=True, description='Absolute path on the host to the "pipeline-dir"'
-        ),
-    },
-)
+interactive_run_config = pipeline_run_config.inherit("InteractiveRunConfig", {})
 
 interactive_run_spec = pipeline_run_spec.inherit(
     "InteractiveRunSpec",
@@ -180,7 +183,7 @@ status_update = Model(
 non_interactive_run_config = pipeline_run_config.inherit(
     "NonInteractiveRunConfig",
     {
-        # Needed for the celery-worker to set the new pipeline-dir for
+        # Needed for the celery-worker to set the new project-dir for
         # experiments. Note that the `orchest-webserver` has this value
         # stored in the ENV variable `HOST_USER_DIR`.
         "host_user_dir": fields.String(
@@ -223,6 +226,7 @@ experiment_spec = Model(
         "experiment_uuid": fields.String(
             required=True, description="UUID for experiment"
         ),
+        "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "pipeline_descriptions": fields.List(
             fields.Raw(description="Pipeline description in JSON"),
@@ -257,6 +261,7 @@ experiment = Model(
         "experiment_uuid": fields.String(
             required=True, description="UUID for experiment"
         ),
+        "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "total_number_of_pipeline_runs": fields.Integer(
             required=True,

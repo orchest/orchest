@@ -83,6 +83,7 @@ class PipelineDetailsLogs extends React.Component {
       action: "fetch-logs",
       session_uuid: this.session_uuid,
       pipeline_uuid: this.props.pipeline.uuid,
+      project_uuid: this.props.project_uuid,
       step_uuid: this.props.step.uuid,
     };
 

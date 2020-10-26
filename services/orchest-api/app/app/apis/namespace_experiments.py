@@ -62,6 +62,7 @@ class ExperimentList(Resource):
             celery = make_celery(current_app)
             celery_job_kwargs = {
                 "experiment_uuid": post_data["experiment_uuid"],
+                "project_uuid": post_data["project_uuid"],
                 "pipeline_description": pipeline.to_dict(),
                 "run_config": pipeline_run_spec["run_config"],
             }
@@ -80,6 +81,7 @@ class ExperimentList(Resource):
                 "run_uuid": res.id,
                 "pipeline_run_id": id_,
                 "pipeline_uuid": pipeline.properties["uuid"],
+                "project_uuid": post_data["project_uuid"],
                 "status": "PENDING",
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
@@ -109,6 +111,7 @@ class ExperimentList(Resource):
 
         experiment = {
             "experiment_uuid": post_data["experiment_uuid"],
+            "project_uuid": post_data["project_uuid"],
             "pipeline_uuid": post_data["pipeline_uuid"],
             "scheduled_start": scheduled_start,
             "total_number_of_pipeline_runs": len(pipeline_runs),
@@ -129,7 +132,8 @@ class Experiment(Resource):
     def get(self, experiment_uuid):
         """Fetches an experiment given its UUID."""
         experiment = models.Experiment.query.get_or_404(
-            experiment_uuid, description="Experiment not found",
+            experiment_uuid,
+            description="Experiment not found",
         )
         return experiment.__dict__
 
@@ -146,7 +150,8 @@ class Experiment(Resource):
         it will update the status of corresponding objects to "REVOKED".
         """
         experiment = models.Experiment.query.get_or_404(
-            experiment_uuid, description="Experiment not found",
+            experiment_uuid,
+            description="Experiment not found",
         )
 
         run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
@@ -199,7 +204,8 @@ class PipelineRun(Resource):
         # the experiment "completed_pipeline_runs" attribute.
         if status_update["status"] in ["SUCCESS", "FAILURE"]:
             experiment = models.Experiment.query.get_or_404(
-                experiment_uuid, description="Experiment not found",
+                experiment_uuid,
+                description="Experiment not found",
             )
             experiment.completed_pipeline_runs += 1
             db.session.commit()

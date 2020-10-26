@@ -7,7 +7,7 @@ which can be found in the `server_info`, e.g.:
 {
   "base_url": "/",
   "hostname": "localhost",
-  "notebook_dir": "/pipeline-dir",
+  "notebook_dir": "/project-dir",
   "password": False,
   "pid": 94619,
   "port": 8888,
@@ -42,7 +42,7 @@ When starting the Jupyter server process the following (hard-coded) settings are
 - `--ip=0.0.0.0`: Allow other containers to access the Jupyter server.
 - `--port=8888`: The port at which the Jupyter server can be reached inside the container (note that
   this port is published using docker).
-- `--notebook-dir=/pipeline-dir`: The path were the directory with files is mounted.
+- `--notebook-dir=/project-dir`: The path were the directory with files is mounted.
 
 Additionally, `--gateway-url` is given via the API as it depends on the IP address of the running docker
 container that runs the gateway.

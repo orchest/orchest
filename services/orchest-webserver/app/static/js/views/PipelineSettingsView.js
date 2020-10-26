@@ -35,7 +35,7 @@ class PipelineSettingsView extends React.Component {
     let pipelinePromise = makeCancelable(
       makeRequest(
         "GET",
-        "/async/pipelines/json/get/" + this.props.pipeline_uuid
+        `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`
       ),
       this.promiseManager
     );
@@ -70,7 +70,10 @@ class PipelineSettingsView extends React.Component {
   }
 
   closeSettings() {
-    orchest.loadView(PipelineView, { pipeline_uuid: this.props.pipeline_uuid });
+    orchest.loadView(PipelineView, {
+      project_uuid: this.props.project_uuid,
+      pipeline_uuid: this.props.pipeline_uuid,
+    });
   }
 
   saveGeneralForm(e) {
@@ -83,18 +86,17 @@ class PipelineSettingsView extends React.Component {
     formData.append("name", pipelineName);
 
     // perform POST to save
-    makeRequest("POST", "/async/pipelines/rename/" + this.props.pipeline_uuid, {
-      type: "FormData",
-      content: formData,
-    }).then((response) => {
+    makeRequest(
+      "POST",
+      `/async/pipelines/rename/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+      { type: "FormData", content: formData }
+    ).then((response) => {
       let json = JSON.parse(response);
       console.log(json);
       if (json.success === true) {
-        // orchest.loadView(PipelineSettingsView, {name: pipelineName, uuid: this.props.uuid});
-
-        // TODO: evaluate: should we close PipelineSettingsView on save?
         orchest.loadView(PipelineView, {
           pipeline_uuid: this.props.pipeline_uuid,
+          project_uuid: this.props.project_uuid,
         });
       }
     });
@@ -110,7 +112,7 @@ class PipelineSettingsView extends React.Component {
       let restartPromise = makeCancelable(
         makeRequest(
           "PUT",
-          "/api-proxy/api/sessions/" + this.props.pipeline_uuid
+          `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`
         ),
         this.promiseManager
       );

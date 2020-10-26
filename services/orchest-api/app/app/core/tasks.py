@@ -69,6 +69,7 @@ class APITask(Task):
 def run_partial(
     self,
     pipeline_description: PipelineDescription,
+    project_uuid: str,
     run_config: Dict[str, Union[str, Dict[str, str]]],
     task_id: Optional[str] = None,
 ) -> str:
@@ -83,7 +84,7 @@ def run_partial(
         run_config: configuration of the run for the compute backend.
             Example: {
                 'run_endpoint': 'runs',
-                'pipeline_dir': '/home/../pipelines/uuid',
+                'project_dir': '/home/../pipelines/uuid',
             }
 
     Returns:
@@ -91,6 +92,7 @@ def run_partial(
 
     """
     run_config["pipeline_uuid"] = pipeline_description["uuid"]
+    run_config["project_uuid"] = project_uuid
 
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
@@ -110,6 +112,7 @@ def run_partial(
 def start_non_interactive_pipeline_run(
     self,
     experiment_uuid,
+    project_uuid,
     pipeline_description: PipelineDescription,
     run_config: Dict[str, Union[str, Dict[str, str]]],
 ) -> str:
@@ -119,11 +122,12 @@ def start_non_interactive_pipeline_run(
 
     Args:
         experiment_uuid: UUID of the experiment.
+        project_uuid: UUID of the project.
         pipeline_description: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
             Example: {
                 'host_user_dir': '/home/../userdir',
-                'pipeline_dir': '/home/../pipelines/uuid',
+                'project_dir': '/home/../pipelines/uuid',
             }
 
     Returns:
@@ -131,8 +135,9 @@ def start_non_interactive_pipeline_run(
 
     """
     pipeline_uuid = pipeline_description["uuid"]
+
     experiment_dir = os.path.join(
-        "/userdir", "experiments", pipeline_uuid, experiment_uuid
+        "/userdir", "experiments", project_uuid, pipeline_uuid, experiment_uuid
     )
     snapshot_dir = os.path.join(experiment_dir, "snapshot")
     run_dir = os.path.join(experiment_dir, self.request.id)
@@ -145,7 +150,7 @@ def start_non_interactive_pipeline_run(
 
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its
-    # `pipeline_dir`. Note that the `pipeline_dir` inside the
+    # `project_dir`. Note that the `project_dir` inside the
     # `run_config` has to be the abs path w.r.t. the host because it is
     # used by the `docker.sock` when mounting the dir to the container
     # of a step.
@@ -157,20 +162,28 @@ def start_non_interactive_pipeline_run(
 
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
-    run_config["pipeline_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
+    run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config["run_endpoint"] = f"experiments/{experiment_uuid}"
     run_config["pipeline_uuid"] = pipeline_uuid
+    run_config["project_uuid"] = project_uuid
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
     # every step.
-    pipeline_json = os.path.join(run_dir, _config.PIPELINE_DESCRIPTION_PATH)
+    pipeline_json = os.path.join(run_dir, run_config["pipeline_path"])
     with open(pipeline_json, "w") as f:
         json.dump(pipeline_description, f)
 
     with launch_session(
-        docker_client, self.request.id, run_config["pipeline_dir"], interactive=False,
+        docker_client,
+        self.request.id,
+        project_uuid,
+        run_config["pipeline_path"],
+        run_config["project_dir"],
+        interactive=False,
     ) as session:
-        status = run_partial(pipeline_description, run_config, task_id=self.request.id)
+        status = run_partial(
+            pipeline_description, project_uuid, run_config, task_id=self.request.id
+        )
 
     return status

@@ -6,6 +6,8 @@ CAUTION:
 
 """
 
+import os
+
 
 class Config:
     # TODO: put configuration options inside the docstring so we can use
@@ -13,10 +15,15 @@ class Config:
 
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
-    STEP_DATA_DIR = "/pipeline-dir/.orchest/data/{step_uuid}"
+
+    # '/project-dir' as project root is hardcoded because code sharing with the
+    # internal config library is not possible due to the license difference.
+    STEP_DATA_DIR = "/project-dir/.orchest/{pipeline_uuid}/data/{step_uuid}"
 
     # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = "/pipeline-dir/.orchest/pipeline.json"
+    PIPELINE_DESCRIPTION_PATH = (
+        f'/project-dir/{os.environ.get("ORCHEST_PIPELINE_PATH")}'
+    )
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:

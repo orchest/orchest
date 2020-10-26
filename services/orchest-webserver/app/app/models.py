@@ -1,5 +1,30 @@
 from app.connections import db
+from sqlalchemy import UniqueConstraint
 import datetime
+import uuid
+
+
+def str_uuid4():
+    return str(uuid.uuid4())
+
+
+class Project(db.Model):
+    __tablename__ = "project"
+
+    uuid = db.Column(db.String(255), nullable=False, primary_key=True)
+    path = db.Column(db.String(255), nullable=False)
+
+    __table_args__ = (UniqueConstraint("uuid", "path"),)
+
+
+class Pipeline(db.Model):
+    __tablename__ = "pipeline"
+
+    uuid = db.Column(db.String(255), nullable=False, primary_key=True)
+    project_uuid = db.Column(db.ForeignKey("project.uuid"), primary_key=True)
+    path = db.Column(db.String(255), nullable=False)
+
+    __table_args__ = (UniqueConstraint("uuid", "project_uuid"),)
 
 
 class DataSource(db.Model):
@@ -17,9 +42,13 @@ class DataSource(db.Model):
 class Image(db.Model):
     __tablename__ = "images"
 
-    name = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
+    uuid = db.Column(
+        db.String(255), unique=True, nullable=False, default=str_uuid4, primary_key=True
+    )
+    name = db.Column(db.String(255), unique=True, nullable=False)
     language = db.Column(db.String(255), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    gpu_support = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"<Images {self.name}:{self.language}>"
@@ -32,6 +61,7 @@ class Commit(db.Model):
     tag = db.Column(db.String(255), unique=False, nullable=False)
     name = db.Column(db.String(255), unique=False, nullable=False)
     base_image = db.Column(db.ForeignKey("images.name"))
+    project = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     building = db.Column(db.Boolean, default=False)
 
@@ -45,6 +75,7 @@ class Experiment(db.Model):
     name = db.Column(db.String(255), unique=False, nullable=False)
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     pipeline_uuid = db.Column(db.String(255), unique=False, nullable=False)
+    project_uuid = db.Column(db.String(255), unique=False, nullable=False)
     pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     strategy_json = db.Column(db.Text, nullable=False)

@@ -80,6 +80,7 @@ class PipelineDetails extends React.Component {
         subView = (
           <PipelineDetailsLogs
             sio={this.props.sio}
+            project_uuid={this.props.project_uuid}
             pipelineRun={this.props.pipelineRun}
             step={this.props.step}
             pipeline={this.props.pipeline}

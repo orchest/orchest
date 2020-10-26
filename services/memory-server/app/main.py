@@ -8,6 +8,7 @@ from typing import Tuple
 import pyarrow as pa
 
 import config
+from _orchest.internals import config as _config
 from manager import start_manager
 
 
@@ -32,7 +33,7 @@ def get_command_line_args():
         "-p",
         "--pipeline_fname",
         required=False,
-        default=config.PIPELINE_DESCRIPTION_FILE,
+        default=os.path.join(_config.PROJECT_DIR, os.environ.get("PIPELINE_PATH", '')),
         help="file containing pipeline description",
     )
 

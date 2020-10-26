@@ -11,7 +11,7 @@ Flask-Migrate
 requests
 APScheduler
 nbformat
-docker
+docker>=4.3.0
 Werkzeug==0.16.0
 python-socketio[client]
 -e ../../../lib/python/orchest-internals

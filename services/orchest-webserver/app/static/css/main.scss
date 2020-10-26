@@ -101,7 +101,7 @@ h3 {
     }
   }
 
-  &.experiments-page {
+  .experiments-page {
     .mdc-data-table {
       width: 100%;
     }
@@ -484,6 +484,17 @@ button.themed-secondary {
   width: 100%;
 }
 
+.docs-notice {
+  background: #eee;
+  border-radius: 3px;
+  padding: 6px;
+  font-size: 15px;
+
+  a {
+    color: $mdc-theme-secondary;
+  }
+}
+
 span.code {
   font-family: monospace;
   background: #eee;
@@ -646,6 +657,10 @@ span.code {
       height: $pipelineHeight;
       text-align: center;
       z-index: 2;
+
+      &.hidden {
+        display: none;
+      }
 
       .execution-indicator {
         position: absolute;

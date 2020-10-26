@@ -120,6 +120,6 @@ def test_pipeline_run_with_docker_containers(pipeline, monkeypatch):
     #       contains a mapping that specifies what image to use.
     filler_for_task_id = "1"
     run_config = {
-        "pipeline_dir": None,
+        "project_dir": None,
     }
     asyncio.run(pipeline.run(filler_for_task_id, run_config=run_config))

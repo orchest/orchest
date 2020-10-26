@@ -60,6 +60,14 @@ class PipelineStep extends React.Component {
       stateText = "Aborted";
     }
 
+    if (
+      this.props.step &&
+      this.props.step["meta_data"] &&
+      this.props.step["meta_data"]["hidden"] === true
+    ) {
+      classNames.push("hidden");
+    }
+
     return (
       <div
         data-uuid={this.props.step.uuid}

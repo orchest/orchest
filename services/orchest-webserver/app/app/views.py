@@ -21,8 +21,20 @@ from app.utils import (
     save_user_conf_raw,
     name_to_tag,
     get_synthesized_images,
+    find_pipelines_in_dir,
+    pipeline_uuid_to_path,
+    project_uuid_to_path,
+    remove_dir_if_empty,
 )
-from app.models import DataSource, Experiment, PipelineRun, Image, Commit
+from app.models import (
+    DataSource,
+    Experiment,
+    PipelineRun,
+    Image,
+    Commit,
+    Project,
+    Pipeline,
+)
 from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
 from _orchest.internals.utils import run_orchest_ctl
@@ -34,6 +46,20 @@ logging.basicConfig(level=logging.DEBUG)
 def register_views(app, db):
 
     ma = Marshmallow(app)
+
+    class ProjectSchema(ma.Schema):
+        class Meta:
+            fields = ("uuid", "path")
+
+    project_schema = ProjectSchema()
+    projects_schema = ProjectSchema(many=True)
+
+    class PipelineSchema(ma.Schema):
+        class Meta:
+            fields = ("uuid", "path")
+
+    pipeline_schema = PipelineSchema()
+    pipelines_schema = PipelineSchema(many=True)
 
     class DataSourceNameInUse(HTTPException):
         pass
@@ -60,13 +86,10 @@ def register_views(app, db):
 
     class ImageSchema(ma.Schema):
         class Meta:
-            fields = ("name", "language")
+            fields = ("name", "language", "uuid", "gpu_support")
 
     image_schema = ImageSchema()
     images_schema = ImageSchema(many=True)
-
-    class ExperimentUuidInUse(HTTPException):
-        pass
 
     class ExperimentSchema(ma.Schema):
         class Meta:
@@ -74,6 +97,7 @@ def register_views(app, db):
                 "name",
                 "uuid",
                 "pipeline_uuid",
+                "project_uuid",
                 "pipeline_name",
                 "created",
                 "strategy_json",
@@ -98,10 +122,9 @@ def register_views(app, db):
 
         return base_image
 
-    def pipeline_set_notebook_kernels(pipeline_json):
+    def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory):
 
         # for each step set correct notebook kernel if it exists
-        pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
 
         steps = pipeline_json["steps"].keys()
 
@@ -138,64 +161,70 @@ def register_views(app, db):
                         % notebook_path
                     )
 
-    def get_experiment_args_from_pipeline_json(pipeline_json):
-        experiment_args = {}
-
-        for key in pipeline_json["steps"].keys():
-            step = pipeline_json["steps"][key]
-
-            if len(step["experiment_json"].strip()) > 0:
-                experiment_json = json.loads(step["experiment_json"])
-
-                experiment_args[step["uuid"]] = {
-                    "name": step["name"],
-                    "experiment_json": experiment_json,
-                }
-
-        return experiment_args
-
-    def get_pipeline_directory_by_uuid(uuid, host_path=False, pipeline_run_uuid=None):
-
-        pipelines_dir = get_pipelines_dir(
-            host_path=host_path, pipeline_run_uuid=pipeline_run_uuid
-        )
-
-        if pipeline_run_uuid is None:
-            pipeline_dir = os.path.join(pipelines_dir, uuid)
-        else:
-            pipeline_dir = os.path.join(pipelines_dir, pipeline_run_uuid)
-
-        return pipeline_dir
-
-    def get_pipelines_dir(host_path=False, pipeline_run_uuid=None):
+    def get_pipeline_path(
+        pipeline_uuid,
+        project_uuid,
+        experiment_uuid=None,
+        pipeline_run_uuid=None,
+        host_path=False,
+        pipeline_path=None,
+    ):
 
         USER_DIR = app.config["USER_DIR"]
-
-        if host_path:
+        if host_path == True:
             USER_DIR = app.config["HOST_USER_DIR"]
 
-        if pipeline_run_uuid is None:
-            pipeline_dir = os.path.join(USER_DIR, "pipelines")
-        else:
-            pipeline_run = PipelineRun.query.filter(
-                PipelineRun.uuid == pipeline_run_uuid
-            ).first()
+        if pipeline_path is None:
+            pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
 
-            experiment = Experiment.query.filter(
-                Experiment.uuid == pipeline_run.experiment
-            ).first()
-            pipeline_dir = os.path.join(
+        project_path = project_uuid_to_path(project_uuid)
+
+        if pipeline_run_uuid is None:
+            return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
+        elif pipeline_run_uuid is not None and experiment_uuid is not None:
+            return os.path.join(
                 USER_DIR,
                 "experiments",
-                experiment.pipeline_uuid,
-                pipeline_run.experiment,
+                project_uuid,
+                pipeline_uuid,
+                experiment_uuid,
+                pipeline_run_uuid,
+                pipeline_path,
+            )
+        elif experiment_uuid is not None:
+            return os.path.join(
+                USER_DIR,
+                "experiments",
+                project_uuid,
+                pipeline_uuid,
+                experiment_uuid,
+                "snapshot",
+                pipeline_path,
             )
 
-        # create pipeline dir if it doesn't exist but only when not getting host path (that's not relative to this OS)
-        if not host_path:
-            os.makedirs(pipeline_dir, exist_ok=True)
+    def get_pipeline_directory(
+        pipeline_uuid,
+        project_uuid,
+        experiment_uuid=None,
+        pipeline_run_uuid=None,
+        host_path=False,
+    ):
+        return os.path.split(
+            get_pipeline_path(
+                pipeline_uuid,
+                project_uuid,
+                experiment_uuid,
+                pipeline_run_uuid,
+                host_path,
+            )
+        )[0]
 
-        return pipeline_dir
+    def get_project_directory(project_uuid, host_path=False):
+        USER_DIR = app.config["USER_DIR"]
+        if host_path == True:
+            USER_DIR = app.config["HOST_USER_DIR"]
+
+        return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
     def generate_ipynb_from_template(step):
 
@@ -223,9 +252,7 @@ def register_views(app, db):
 
         return json.dumps(template_json)
 
-    def create_pipeline_files(pipeline_json):
-
-        pipeline_directory = get_pipeline_directory_by_uuid(pipeline_json["uuid"])
+    def create_pipeline_files(pipeline_json, pipeline_directory):
 
         # Currently, we check per step whether the file exists.
         # If not, we create it (empty by default).
@@ -257,29 +284,39 @@ def register_views(app, db):
 
                     file.write(file_content)
 
-    def create_experiment_directory(experiment_uuid, pipeline_uuid):
+    def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+
         experiment_path = os.path.join(
-            app.config["USER_DIR"], "experiments", pipeline_uuid, experiment_uuid
+            app.config["USER_DIR"],
+            "experiments",
+            project_uuid,
+            pipeline_uuid,
+            experiment_uuid,
         )
+
         os.makedirs(experiment_path)
         snapshot_path = os.path.join(experiment_path, "snapshot")
-        pipeline_path = os.path.join(app.config["USER_DIR"], "pipelines", pipeline_uuid)
-        os.system("cp -R %s %s" % (pipeline_path, snapshot_path))
-
-    def remove_experiment_directory(experiment_uuid, pipeline_uuid):
-        experiment_pipeline_path = os.path.join(
-            app.config["USER_DIR"], "experiments", pipeline_uuid
+        project_dir = os.path.join(
+            app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
         )
+        os.system("cp -R %s %s" % (project_dir, snapshot_path))
+
+    def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+
+        experiment_project_path = os.path.join(
+            app.config["USER_DIR"], "experiments", project_uuid
+        )
+
+        experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
+
         experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
 
         if os.path.isdir(experiment_path):
             os.system("rm -r %s" % (experiment_path))
 
-        # remove pipeline directory if empty
-        if os.path.isdir(experiment_pipeline_path) and not os.listdir(
-            experiment_pipeline_path
-        ):
-            os.system("rm -r %s" % (experiment_pipeline_path))
+        # clean up parent directory if this experiment removal created empty directories
+        remove_dir_if_empty(experiment_pipeline_path)
+        remove_dir_if_empty(experiment_project_path)
 
     def remove_commit_image(commit):
         full_image_name = "%s:%s" % (commit.base_image, commit.tag)
@@ -390,45 +427,71 @@ def register_views(app, db):
                 return images_schema.dump(images)
 
         class ImageResource(Resource):
-            def put(self, name):
+            def put(self, uuid):
 
-                im = Image.query.filter(Image.name == name).first()
+                im = Image.query.filter(Image.uuid == uuid).first()
 
                 if im is None:
                     return "", 404
 
                 im.name = request.json["name"]
                 im.language = request.json["language"]
+                im.gpu_support = request.json["gpu_support"]
                 db.session.commit()
+
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
 
                 return image_schema.dump(im)
 
-            def get(self, name):
-                im = Image.query.filter(Image.name == name).first()
+            def get(self, uuid):
+                im = Image.query.filter(Image.uuid == uuid).first()
 
                 if im is None:
                     return "", 404
 
                 return image_schema.dump(im)
 
-            def delete(self, name):
-                Image.query.filter(Image.name == name).delete()
-                db.session.commit()
+            def delete(self, uuid):
+                image = Image.query.filter(Image.uuid == uuid).first()
 
-            def post(self, name):
+                # do not allow deletion of base images
+                is_base_image = False
+                for base_image in _config.DEFAULT_BASE_IMAGES:
+                    if base_image["name"] == image.name:
+                        is_base_image = True
+                        break
 
-                if Image.query.filter(Image.name == name).count() > 0:
+                if not is_base_image:
+                    db.session.delete(image)
+                    db.session.commit()
+
+                    # side effect: update shared kernels directory
+                    populate_kernels(app, db)
+                else:
+                    return {"message": "Cannot remove base images."}, 401
+
+            def post(self, uuid):
+
+                if Image.query.filter(Image.name == request.json["name"]).count() > 0:
                     raise ImageNameInUse()
 
-                new_im = Image(name=name, language=request.json["language"])
+                new_im = Image(
+                    name=request.json["name"],
+                    language=request.json["language"],
+                    gpu_support=request.json["gpu_support"],
+                )
 
                 db.session.add(new_im)
                 db.session.commit()
 
+                # side effect: update shared kernels directory
+                populate_kernels(app, db)
+
                 return image_schema.dump(new_im)
 
         api.add_resource(ImagesResource, "/store/images")
-        api.add_resource(ImageResource, "/store/images/<string:name>")
+        api.add_resource(ImageResource, "/store/images/<string:uuid>")
 
     def register_datasources(db, api, ma):
         class DataSourcesResource(Resource):
@@ -536,7 +599,7 @@ def register_views(app, db):
                 if ex is None:
                     return "", 404
 
-                remove_experiment_directory(ex.uuid, ex.pipeline_uuid)
+                remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
                 db.session.delete(ex)
                 db.session.commit()
@@ -544,12 +607,6 @@ def register_views(app, db):
                 return jsonify({"message": "Experiment termination was successful"})
 
             def post(self, experiment_uuid):
-
-                if (
-                    Experiment.query.filter(Experiment.uuid == experiment_uuid).count()
-                    > 0
-                ):
-                    raise ExperimentUuidInUse()
 
                 new_ex = Experiment(
                     uuid=experiment_uuid,
@@ -585,10 +642,6 @@ def register_views(app, db):
                 "message": "A data source with this name already exists.",
                 "status": 409,
             },
-            "ExperimentUuidInUse": {
-                "message": "An experiment with this UUID already exists.",
-                "status": 409,
-            },
         }
 
         api = Api(app, errors=errors)
@@ -613,6 +666,7 @@ def register_views(app, db):
             javascript_bundle_hash=get_hash(js_bundle_path),
             css_bundle_hash=get_hash(css_bundle_path),
             user_config=get_user_conf(),
+            DOCS_ROOT=app.config["DOCS_ROOT"],
             FLASK_ENV=app.config["FLASK_ENV"],
         )
 
@@ -624,9 +678,12 @@ def register_views(app, db):
         # add image mapping
         # TODO: replace with dynamic mapping instead of hardcoded
         json_obj["run_config"] = {
-            "pipeline_dir": get_pipeline_directory_by_uuid(
-                json_obj["pipeline_description"]["uuid"], host_path=True
-            )
+            "project_dir": get_project_directory(
+                json_obj["project_uuid"], host_path=True
+            ),
+            "pipeline_path": pipeline_uuid_to_path(
+                json_obj["pipeline_description"]["uuid"], json_obj["project_uuid"]
+            ),
         }
 
         resp = requests.post(
@@ -642,9 +699,15 @@ def register_views(app, db):
 
         json_obj = request.json
 
-        json_obj["pipeline_dir"] = get_pipeline_directory_by_uuid(
-            request.json["pipeline_uuid"], host_path=True
+        json_obj["project_dir"] = get_project_directory(
+            json_obj["project_uuid"], host_path=True
         )
+
+        json_obj["pipeline_path"] = pipeline_uuid_to_path(
+            json_obj["pipeline_uuid"],
+            json_obj["project_uuid"],
+        )
+
         json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
 
         resp = requests.post(
@@ -661,7 +724,14 @@ def register_views(app, db):
         json_obj = request.json
 
         json_obj["pipeline_run_spec"]["run_config"] = {
-            "host_user_dir": app.config["HOST_USER_DIR"]
+            "host_user_dir": app.config["HOST_USER_DIR"],
+            "project_dir": get_project_directory(
+                json_obj["project_uuid"], host_path=True
+            ),
+            "pipeline_path": pipeline_uuid_to_path(
+                json_obj["pipeline_uuid"],
+                json_obj["project_uuid"],
+            ),
         }
 
         resp = requests.post(
@@ -675,14 +745,11 @@ def register_views(app, db):
     @app.route("/catch/api-proxy/api/experiments/<experiment_uuid>", methods=["GET"])
     def catch_api_proxy_experiments_get(experiment_uuid):
 
-        json_obj = request.json
-
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/experiments/"
             + experiment_uuid,
-            json=json_obj,
             stream=True,
         )
 
@@ -790,31 +857,80 @@ def register_views(app, db):
 
         return jsonify(result), 200, {"content-type": "application/json"}
 
-    @app.route("/async/pipelines/delete/<pipeline_uuid>", methods=["POST"])
-    def pipelines_delete(pipeline_uuid):
+    @app.route("/async/image-metadata/", methods=["POST"])
+    def image_metadata():
 
-        # also delete directory
-        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
+        # check if image is commit or base image
+        image_name = request.form.get("image_name")
 
-        # TODO: find way to not force sudo remove on pipeline dirs
-        # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
-        if len(pipeline_dir) > 36:
-            os.system("rm -rf %s" % pipeline_dir)
+        image = Image.query.filter(Image.name == image_name).first()
+        if image is None:
 
-        return jsonify({"success": True})
+            if ":" in image_name:
+                # check if commit exists
+                base_image = image_name.split(":")[0]
+                tag = image_name.split(":")[1]
+
+                commit = (
+                    Commit.query.filter(Commit.base_image == base_image)
+                    .filter(Commit.tag == tag)
+                    .first()
+                )
+                if commit is None:
+                    return jsonify({"message": "Image not found"}), 404
+
+                image = Image.query.filter(Image.name == base_image).first()
+
+                if image is None:
+                    return jsonify({"message": "Image not found"}), 404
+
+            else:
+                return jsonify({"message": "Image not found"}), 404
+
+        result = {"success": True, "image": image_schema.dump(image)}
+
+        return jsonify(result), 200, {"content-type": "application/json"}
+
+    @app.route(
+        "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
+    )
+    def pipelines_delete(project_uuid, pipeline_uuid):
+
+        if (
+            Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
+            .filter(Pipeline.project_uuid == project_uuid)
+            .count()
+            > 0
+        ):
+
+            pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
+
+            # TODO: find way to not force sudo remove on pipeline dirs
+            # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
+            os.system("rm -rf %s" % pipeline_json_path)
+
+            pipeline = (
+                Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
+                .filter(Pipeline.project_uuid == project_uuid)
+                .first()
+            )
+            db.session.delete(pipeline)
+            db.session.commit()
+
+            return jsonify({"success": True})
+        else:
+            return jsonify({"message": "Pipeline could not be found."}), 404
 
     @app.route("/async/experiments/create", methods=["POST"])
     def experiments_create():
 
         experiment_uuid = str(uuid.uuid4())
 
-        if Experiment.query.filter(Experiment.uuid == experiment_uuid).count() > 0:
-            raise ExperimentUuidInUse()
-
         new_ex = Experiment(
             uuid=experiment_uuid,
             name=request.json["name"],
             pipeline_uuid=request.json["pipeline_uuid"],
+            project_uuid=request.json["project_uuid"],
             pipeline_name=request.json["pipeline_name"],
             strategy_json="",
             draft=True,
@@ -823,16 +939,16 @@ def register_views(app, db):
         db.session.add(new_ex)
         db.session.commit()
 
-        create_experiment_directory(experiment_uuid, request.json["pipeline_uuid"])
+        create_experiment_directory(
+            experiment_uuid, request.json["pipeline_uuid"], request.json["project_uuid"]
+        )
 
-        return experiment_schema.dump(new_ex)
+        return jsonify(experiment_schema.dump(new_ex))
 
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():
 
         experiment_uuid = request.json["experiment_uuid"]
-        # remove all existing associated pipeline runs
-        PipelineRun.query.filter(PipelineRun.experiment == experiment_uuid).delete()
 
         for idx, pipeline_run in enumerate(request.json["generated_pipeline_runs"]):
 
@@ -849,140 +965,274 @@ def register_views(app, db):
 
         return jsonify({"success": True})
 
-    @app.route("/async/pipelines/create", methods=["POST"])
-    def pipelines_create():
+    @app.route("/async/pipelines/create/<project_uuid>", methods=["POST"])
+    def pipelines_create(project_uuid):
 
-        pipeline_uuid = str(uuid.uuid4())
+        pipeline_path = request.json["pipeline_path"]
 
-        # create dirs
-        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
-
-        os.makedirs(os.path.join(pipeline_dir, ".orchest"), exist_ok=True)
-
-        # generate clean pipeline.json
-        pipeline_json = {
-            "name": request.form.get("name"),
-            "uuid": pipeline_uuid,
-            "version": "1.0.0",
-        }
-
-        with open(
-            os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH), "w"
-        ) as pipeline_json_file:
-            pipeline_json_file.write(json.dumps(pipeline_json))
-
-        return jsonify({"success": True})
-
-    @app.route("/async/pipelines/rename/<string:pipeline_uuid>", methods=["POST"])
-    def pipelines_rename(pipeline_uuid):
-
-        pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
-
-        if os.path.isdir(pipeline_dir) and os.path.isfile(
-            os.path.join(pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH)
+        if (
+            Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
+            .filter(Pipeline.path == pipeline_path)
+            .count()
+            == 0
         ):
 
-            # rename pipeline in JSON file
-            pipeline_json_path = os.path.join(
-                pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH
+            pipeline_uuid = str(uuid.uuid4())
+
+            pipeline = Pipeline(
+                path=pipeline_path, uuid=pipeline_uuid, project_uuid=project_uuid
             )
+            db.session.add(pipeline)
+            db.session.commit()
 
-            with open(pipeline_json_path, "r") as json_file:
-                pipeline_json = json.load(json_file)
+            pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+            pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
-            pipeline_json["name"] = request.form.get("name")
+            os.makedirs(pipeline_dir, exist_ok=True)
 
-            with open(pipeline_json_path, "w") as json_file:
-                json_file.write(json.dumps(pipeline_json))
-
-            json_string = json.dumps({"success": True})
-            return json_string, 200, {"content-type": "application/json"}
-        else:
-            return "", 404
-
-    @app.route("/async/pipelines/get/<string:pipeline_uuid>", methods=["GET"])
-    def pipelines_get_single(pipeline_uuid):
-
-        pipeline_dir = None
-
-        if "pipeline_run_uuid" in request.args:
-            pipeline_dir = get_pipeline_directory_by_uuid(
-                pipeline_uuid, pipeline_run_uuid=request.args.get("pipeline_run_uuid")
-            )
-        else:
-            pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
-
-        pipeline_json_path = os.path.join(
-            pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH
-        )
-
-        if os.path.isfile(pipeline_json_path):
-
-            with open(pipeline_json_path, "r") as json_file:
-                pipeline_json = json.load(json_file)
-
-                pipeline_light = {
-                    "name": pipeline_json["name"],
-                    "uuid": pipeline_json["uuid"],
-                }
-                json_string = json.dumps({"success": True, "result": pipeline_light})
-                return json_string, 200, {"content-type": "application/json"}
-        else:
-            return "", 404
-
-    @app.route("/async/pipelines/get_directory/<string:pipeline_uuid>", methods=["GET"])
-    def pipelines_get_directory(pipeline_uuid):
-        json_string = json.dumps(
-            {
-                "success": True,
-                "result": get_pipeline_directory_by_uuid(pipeline_uuid, host_path=True),
+            # generate clean pipeline.json
+            pipeline_json = {
+                "name": request.json["name"],
+                "version": "1.0.0",
+                "uuid": pipeline_uuid,
+                "steps": {},
             }
-        )
-        return json_string, 200, {"content-type": "application/json"}
 
-    @app.route("/async/pipelines", methods=["GET"])
-    def pipelines_get():
+            with open(pipeline_json_path, "w") as pipeline_json_file:
+                pipeline_json_file.write(json.dumps(pipeline_json, indent=2))
 
-        pipelines_dir = get_pipelines_dir()
-
-        pipeline_uuids = [f.path for f in os.scandir(pipelines_dir) if f.is_dir()]
-
-        pipelines = []
-
-        for pipeline_uuid in pipeline_uuids:
-
-            pipeline_json_path = os.path.join(
-                pipelines_dir, pipeline_uuid, _config.PIPELINE_DESCRIPTION_PATH
+            return jsonify({"success": True})
+        else:
+            return (
+                jsonify(
+                    {"message": "Pipeline already exists at path '%s'." % pipeline_path}
+                ),
+                409,
             )
+
+    # Note: only pipelines in project directories can be renamed (not in experiments)
+    @app.route(
+        "/async/pipelines/rename/<project_uuid>/<pipeline_uuid>", methods=["POST"]
+    )
+    def pipelines_rename(project_uuid, pipeline_uuid):
+
+        if Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).count() > 0:
+
+            pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
             if os.path.isfile(pipeline_json_path):
+
                 with open(pipeline_json_path, "r") as json_file:
                     pipeline_json = json.load(json_file)
 
-                    pipelines.append(
-                        {"name": pipeline_json["name"], "uuid": pipeline_json["uuid"],}
-                    )
+                pipeline_json["name"] = request.form.get("name")
 
-        json_string = json.dumps({"success": True, "result": pipelines})
+                with open(pipeline_json_path, "w") as json_file:
+                    json_file.write(json.dumps(pipeline_json, indent=2))
+
+                json_string = json.dumps({"success": True})
+                return json_string, 200, {"content-type": "application/json"}
+            else:
+                return "", 404
+        else:
+            return "", 404
+
+    @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
+    def projects():
+
+        project_dir = os.path.join(app.config["USER_DIR"], "projects")
+        project_paths = [
+            name
+            for name in os.listdir(project_dir)
+            if os.path.isdir(os.path.join(project_dir, name))
+        ]
+
+        # create UUID entry for all projects that do not yet exist
+        existing_project_paths = [
+            project.path
+            for project in Project.query.filter(Project.path.in_(project_paths)).all()
+        ]
+
+        new_project_paths = set(project_paths) - set(existing_project_paths)
+
+        for new_project_path in new_project_paths:
+            new_project = Project(
+                uuid=str(uuid.uuid4()),
+                path=new_project_path,
+            )
+            db.session.add(new_project)
+            db.session.commit()
+        # end of UUID creation
+
+        if request.method == "GET":
+            return jsonify(projects_schema.dump(Project.query.all()))
+
+        elif request.method == "DELETE":
+
+            project_uuid = request.json["project_uuid"]
+
+            project = Project.query.filter(Project.uuid == project_uuid).first()
+
+            if project != None:
+
+                project_path = project_uuid_to_path(project_uuid)
+                full_project_path = os.path.join(project_dir, project_path)
+                os.system("rm -r %s" % (full_project_path))
+
+                db.session.delete(project)
+                db.session.commit()
+
+                return jsonify({"message": "Project deleted."})
+            else:
+                return (
+                    jsonify(
+                        {"message": "Project not found for UUID %s." % project_uuid}
+                    ),
+                    404,
+                )
+
+        elif request.method == "POST":
+            project_path = request.json["name"]
+
+            if project_path not in project_paths:
+                full_project_path = os.path.join(project_dir, project_path)
+                if not os.path.isdir(full_project_path):
+
+                    new_project = Project(
+                        uuid=str(uuid.uuid4()),
+                        path=project_path,
+                    )
+                    db.session.add(new_project)
+                    db.session.commit()
+
+                    os.makedirs(full_project_path)
+
+                else:
+                    return jsonify({"message": "Project directory exists."}), 409
+            else:
+                return (
+                    jsonify({"message": "Project with the same name already exists."}),
+                    409,
+                )
+
+            return jsonify({"message": "Project created."})
+
+    @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["GET"])
+    def pipeline_get(project_uuid, pipeline_uuid):
+
+        pipeline = (
+            Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
+            .filter(Pipeline.uuid == pipeline_uuid)
+            .first()
+        )
+
+        if pipeline is None:
+            return jsonify({"message": "Pipeline doesn't exist."}), 404
+        else:
+            return jsonify(pipeline_schema.dump(pipeline))
+
+    @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
+    def pipelines_get(project_uuid):
+
+        project_path = project_uuid_to_path(project_uuid)
+        project_dir = os.path.join(app.config["USER_DIR"], "projects", project_path)
+
+        if not os.path.isdir(project_dir):
+            return jsonify({"message": "Project directory not found."}), 404
+
+        # find all pipelines in project dir
+        pipeline_paths = find_pipelines_in_dir(project_dir, project_dir)
+
+        # identify all pipeline paths that are not yet a pipeline
+        existing_pipeline_paths = [
+            pipeline.path
+            for pipeline in Pipeline.query.filter(Pipeline.path.in_(pipeline_paths))
+            .filter(Pipeline.project_uuid == project_uuid)
+            .all()
+        ]
+
+        # TODO: handle existing pipeline assignments
+        new_pipeline_paths = set(pipeline_paths) - set(existing_pipeline_paths)
+
+        for new_pipeline_path in new_pipeline_paths:
+
+            # write pipeline uuid to file
+            pipeline_json_path = get_pipeline_path(
+                None, project_uuid, pipeline_path=new_pipeline_path
+            )
+
+            try:
+                with open(pipeline_json_path, "r") as json_file:
+                    pipeline_json = json.load(json_file)
+
+                file_pipeline_uuid = pipeline_json.get("uuid")
+
+                new_pipeline_uuid = file_pipeline_uuid
+
+                # see if pipeline_uuid is taken
+                if (
+                    Pipeline.query.filter(Pipeline.uuid == file_pipeline_uuid)
+                    .filter(Pipeline.project_uuid == project_uuid)
+                    .count()
+                    > 0
+                    or len(file_pipeline_uuid) == 0
+                ):
+                    new_pipeline_uuid = str(uuid.uuid4())
+
+                with open(pipeline_json_path, "w") as json_file:
+                    pipeline_json["uuid"] = new_pipeline_uuid
+                    json_file.write(json.dumps(pipeline_json, indent=2))
+
+                # only commit if writing succeeds
+                new_pipeline = Pipeline(
+                    uuid=new_pipeline_uuid,
+                    path=new_pipeline_path,
+                    project_uuid=project_uuid,
+                )
+                db.session.add(new_pipeline)
+                db.session.commit()
+
+            except Exception as e:
+                logging.info(e)
+
+        pipelines = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).all()
+        pipelines_augmented = []
+
+        for pipeline in pipelines:
+
+            pipeline_json_path = get_pipeline_path(pipeline.uuid, pipeline.project_uuid)
+
+            pipeline_augmented = {
+                "uuid": pipeline.uuid,
+                "path": pipeline.path,
+            }
+            if os.path.isfile(pipeline_json_path):
+                with open(pipeline_json_path, "r") as json_file:
+                    pipeline_json = json.load(json_file)
+                    pipeline_augmented["name"] = pipeline_json["name"]
+            else:
+                pipeline_augmented["name"] = "Warning: pipeline file was not found."
+
+            pipelines_augmented.append(pipeline_augmented)
+
+        json_string = json.dumps({"success": True, "result": pipelines_augmented})
+
         return json_string, 200, {"content-type": "application/json"}
 
     @app.route(
-        "/async/notebook_html/<string:pipeline_uuid>/<string:step_uuid>",
+        "/async/notebook_html/<project_uuid>/<pipeline_uuid>/<step_uuid>",
         methods=["GET"],
     )
-    def notebook_html_get(pipeline_uuid, step_uuid):
+    def notebook_html_get(project_uuid, pipeline_uuid, step_uuid):
 
-        pipeline_dir = None
+        experiment_uuid = request.args.get("experiment_uuid")
+        pipeline_run_uuid = request.args.get("pipeline_run_uuid")
 
-        if "pipeline_run_uuid" in request.args:
-            pipeline_dir = get_pipeline_directory_by_uuid(
-                pipeline_uuid, pipeline_run_uuid=request.args.get("pipeline_run_uuid")
-            )
-        else:
-            pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
-
-        pipeline_json_path = os.path.join(
-            pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH
+        pipeline_json_path = get_pipeline_path(
+            pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid
+        )
+        pipeline_dir = get_pipeline_directory(
+            pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid
         )
 
         if os.path.isfile(pipeline_json_path):
@@ -996,11 +1246,11 @@ def register_views(app, db):
             except Exception as e:
                 logging.info(e)
                 return return_404(
-                    "Invalid JSON for pipeline %s error: %e" % (pipeline_uuid, e)
+                    "Invalid JSON for pipeline %s error: %e" % (pipeline_json_path, e)
                 )
         else:
             return return_404(
-                "Could not find pipeline.json for pipeline %s" % pipeline_uuid
+                "Could not find pipeline.json for pipeline %s" % pipeline_json_path
             )
 
         if os.path.isfile(notebook_path):
@@ -1074,112 +1324,58 @@ def register_views(app, db):
 
                 return json_string, 404, {"content-type": "application/json"}
 
-    @app.route("/async/logs/<string:pipeline_uuid>/<string:step_uuid>", methods=["GET"])
-    def logs_get(pipeline_uuid, step_uuid):
+    @app.route(
+        "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]
+    )
+    def pipelines_json_get(project_uuid, pipeline_uuid):
 
-        pipeline_dir = None
-
-        if "pipeline_run_uuid" in request.args:
-            pipeline_dir = get_pipeline_directory_by_uuid(
-                pipeline_uuid, pipeline_run_uuid=request.args.get("pipeline_run_uuid")
-            )
-        else:
-            pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
-
-        log_path = os.path.join(
-            pipeline_dir, app.config["LOG_DIR"], "%s.log" % step_uuid
+        pipeline_json_path = get_pipeline_path(
+            pipeline_uuid,
+            project_uuid,
+            request.args.get("experiment_uuid"),
+            request.args.get("pipeline_run_uuid"),
         )
 
-        logs = None
+        if request.method == "POST":
 
-        if os.path.isfile(log_path):
-            try:
-
-                with open(log_path, "r") as f:
-                    logs = f.read()
-
-            except IOError as error:
-                logging.info("Error opening log file %s error: %s" % (log_path, error))
-
-        if logs is not None:
-            json_string = json.dumps({"success": True, "result": logs})
-
-            return json_string, 200, {"content-type": "application/json"}
-
-        else:
-            json_string = json.dumps(
-                {"success": False, "reason": "Could not find log file"}
+            pipeline_directory = get_pipeline_directory(
+                pipeline_uuid,
+                project_uuid,
+                request.args.get("experiment_uuid"),
+                request.args.get("pipeline_run_uuid"),
             )
 
-            return json_string, 404, {"content-type": "application/json"}
+            # parse JSON
+            pipeline_json = json.loads(request.form.get("pipeline_json"))
 
-    @app.route("/async/pipelines/json/save", methods=["POST"])
-    def pipelines_json_save():
+            # first create all files part of pipeline_json definition
+            # TODO: consider removing other files (no way to do this reliably,
+            # special case might be rename)
+            create_pipeline_files(pipeline_json, pipeline_directory)
 
-        pipeline_directory = get_pipeline_directory_by_uuid(
-            request.form.get("pipeline_uuid")
-        )
+            # side effect: for each Notebook in de pipeline.json set the correct kernel
+            pipeline_set_notebook_kernels(pipeline_json, pipeline_directory)
 
-        # parse JSON
-        pipeline_json = json.loads(request.form.get("pipeline_json"))
+            with open(pipeline_json_path, "w") as json_file:
+                json_file.write(json.dumps(pipeline_json, indent=2))
 
-        # first create all files part of pipeline_json definition
-        # TODO: consider removing other files (no way to do this reliably,
-        # special case might be rename)
-        create_pipeline_files(pipeline_json)
+            return jsonify({"success": True})
 
-        # side effect: for each Notebook in de pipeline.json set the correct kernel
-        pipeline_set_notebook_kernels(pipeline_json)
+        elif request.method == "GET":
 
-        with open(
-            os.path.join(pipeline_directory, _config.PIPELINE_DESCRIPTION_PATH), "w"
-        ) as json_file:
-            json_file.write(json.dumps(pipeline_json))
+            if not os.path.isfile(pipeline_json_path):
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "reason": ".orchest file doesn't exist at location %s"
+                            % pipeline_json_path,
+                        }
+                    ),
+                    404,
+                )
+            else:
+                with open(pipeline_json_path) as json_file:
+                    return jsonify({"success": True, "pipeline_json": json_file.read()})
 
-        return jsonify({"success": True})
-
-    @app.route("/async/pipelines/json/experiments/<pipeline_uuid>", methods=["GET"])
-    def pipelines_json_experiments_get(pipeline_uuid):
-
-        pipeline_directory = get_pipeline_directory_by_uuid(pipeline_uuid)
-
-        pipeline_json_path = os.path.join(
-            pipeline_directory, _config.PIPELINE_DESCRIPTION_PATH
-        )
-        if not os.path.isfile(pipeline_json_path):
-            return (
-                jsonify({"success": False, "reason": "pipeline.json doesn't exist"}),
-                404,
-            )
-        else:
-            with open(pipeline_json_path) as json_file:
-
-                pipeline_json = json.load(json_file)
-
-                experiment_args = get_experiment_args_from_pipeline_json(pipeline_json)
-
-                return jsonify({"success": True, "experiment_args": experiment_args})
-
-    @app.route("/async/pipelines/json/get/<pipeline_uuid>", methods=["GET"])
-    def pipelines_json_get(pipeline_uuid):
-
-        pipeline_dir = None
-
-        if "pipeline_run_uuid" in request.args:
-            pipeline_dir = get_pipeline_directory_by_uuid(
-                pipeline_uuid, pipeline_run_uuid=request.args.get("pipeline_run_uuid")
-            )
-        else:
-            pipeline_dir = get_pipeline_directory_by_uuid(pipeline_uuid)
-
-        pipeline_json_path = os.path.join(
-            pipeline_dir, _config.PIPELINE_DESCRIPTION_PATH
-        )
-        if not os.path.isfile(pipeline_json_path):
-            return (
-                jsonify({"success": False, "reason": "pipeline.json doesn't exist"}),
-                404,
-            )
-        else:
-            with open(pipeline_json_path) as json_file:
-                return jsonify({"success": True, "pipeline_json": json_file.read()})
+            return ""

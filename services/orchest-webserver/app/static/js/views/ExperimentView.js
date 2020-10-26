@@ -128,6 +128,7 @@ class ExperimentView extends React.Component {
     orchest.loadView(PipelineView, {
       pipelineRun: pipelineRun,
       pipeline_uuid: pipelineRun.pipeline_uuid,
+      project_uuid: pipelineRun.project_uuid,
       readOnly: true,
     });
   }

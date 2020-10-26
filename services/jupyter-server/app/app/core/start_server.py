@@ -20,7 +20,7 @@ def _write_server_info_to_file(
             {
                 'base_url': '/',
                 'hostname': 'localhost',
-                'notebook_dir': '/pipeline-dir',
+                'notebook_dir': '/project-dir',
                 'password': False,
                 'pid': 94619,
                 'port': 8888,

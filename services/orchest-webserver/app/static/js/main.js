@@ -1,12 +1,13 @@
 import { MDCTopAppBar } from "@material/top-app-bar";
 import { MDCDrawer } from "@material/drawer";
 
-import PipelinesView from "./views/PipelinesView";
+import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
 import DataSourceEditView from "./views/DataSourceEditView";
 import ExperimentsView from "./views/ExperimentsView";
+import PipelinesView from "./views/PipelinesView";
 import CreateExperimentView from "./views/CreateExperimentView";
 import HeaderButtons from "./views/HeaderButtons";
 import React from "react";
@@ -20,6 +21,7 @@ import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
 import ImagesView from "./views/ImagesView";
 import UpdateView from "./views/UpdateView";
+import { PersistentLocalConfig } from "./lib/utils/all";
 
 function Orchest() {
   this.environment = "production";
@@ -27,13 +29,17 @@ function Orchest() {
   if ($('input[name="FLASK_ENV"]').val() == "development") {
     this.environment = "development";
   }
+  this.config = {};
+  this.config["DOCS_ROOT"] = $('input[name="DOCS_ROOT"]').val();
 
   console.log("Orchest is running in environment: " + this.environment);
 
   this.reactRoot = document.querySelector(".react-view-root");
 
+  this.browserConfig = new PersistentLocalConfig("orchest");
+
   this.Components = {
-    PipelinesView: PipelinesView,
+    ProjectsView: ProjectsView,
     DataSourcesView: DataSourcesView,
     FileManagerView: FileManagerView,
     ImagesView: ImagesView,
@@ -41,6 +47,7 @@ function Orchest() {
     PipelineView: PipelineView,
     SettingsView: SettingsView,
     UpdateView: UpdateView,
+    PipelinesView: PipelinesView,
     ExperimentsView: ExperimentsView,
     ExperimentView: ExperimentView,
     CreateExperimentView: CreateExperimentView,
@@ -53,6 +60,8 @@ function Orchest() {
   this.headerBarComponent = ReactDOM.render(<HeaderButtons />, this.headerBar);
 
   drawer.list.singleSelection = true;
+
+  this.drawer = drawer;
 
   drawer.listen("MDCList:action", (e) => {
     let selectedIndex = e.detail.index;
@@ -75,7 +84,16 @@ function Orchest() {
       this.jupyter.hide();
 
       if (TagName !== PipelineView && TagName !== PipelineSettingsView) {
-        this.headerBarComponent.setPipeline(undefined);
+        this.headerBarComponent.clearPipeline();
+      }
+    }
+
+    // select menu if menu tag is selected
+    for (let listIndex in drawer.list.listElements) {
+      let listElement = drawer.list.listElements[listIndex];
+
+      if (listElement.getAttribute("data-react-view") === TagName.name) {
+        drawer.list.selectedIndex = parseInt(listIndex);
       }
     }
 
@@ -84,7 +102,6 @@ function Orchest() {
 
   this.initializeFirstView = function () {
     // load first pipeline
-
     this.loadView(PipelinesView);
   };
 

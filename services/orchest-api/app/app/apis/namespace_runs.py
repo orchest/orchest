@@ -47,6 +47,7 @@ class RunList(Resource):
         celery = make_celery(current_app)
         celery_job_kwargs = {
             "pipeline_description": pipeline.to_dict(),
+            "project_uuid": post_data["project_uuid"],
             "run_config": post_data["run_config"],
         }
 
@@ -69,6 +70,7 @@ class RunList(Resource):
         run = {
             "run_uuid": res.id,
             "pipeline_uuid": pipeline.properties["uuid"],
+            "project_uuid": post_data["project_uuid"],
             "status": "PENDING",
         }
         db.session.add(models.InteractiveRun(**run))
