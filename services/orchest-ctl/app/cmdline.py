@@ -186,9 +186,12 @@ def update():
         # during the update to support _updateserver
         stop(skip_names=["nginx-proxy", "update-server"])
 
-    # update repo through git
+    # Update git repository to get the latest changes to the ``userdir``
+    # structure.
     logging.info("Updating repo ...")
-    script_path = os.path.join("/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh")
+    script_path = os.path.join(
+        "/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh"
+    )
     script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
     return_code = script_process.wait()
 
