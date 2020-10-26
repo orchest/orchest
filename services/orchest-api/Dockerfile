@@ -1,6 +1,5 @@
 FROM tiangolo/uwsgi-nginx-flask:python3.7
 
-RUN mkdir -p /orchest/services/orchest-api
 COPY ./lib /orchest/lib
 COPY ./app /orchest/services/orchest-api/app
 

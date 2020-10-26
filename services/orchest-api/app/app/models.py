@@ -37,24 +37,12 @@ class InteractiveSession(BaseModel):
         primary_key=False,
     )
     # Used to connect to Jupyter notebook server.
-    jupyter_server_ip = db.Column(
-        db.String(15),
-        unique=True,
-        nullable=True,
-    )  # IPv4
+    jupyter_server_ip = db.Column(db.String(15), unique=True, nullable=True,)  # IPv4
     # Used to connect to Jupyter notebook server.
-    notebook_server_info = db.Column(
-        db.JSON,
-        unique=True,
-        nullable=True,
-    )
+    notebook_server_info = db.Column(db.JSON, unique=True, nullable=True,)
     # Docker container IDs. Used internally to identify the resources of
     # a specific session.
-    container_ids = db.Column(
-        db.JSON,
-        unique=False,
-        nullable=True,
-    )
+    container_ids = db.Column(db.JSON, unique=False, nullable=True,)
 
     def __repr__(self):
         return f"<Launch {self.pipeline_uuid}>"

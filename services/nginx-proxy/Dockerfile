@@ -6,7 +6,6 @@ RUN mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
 
 COPY ./*.conf* /etc/nginx/conf.d/
 
-RUN mkdir -p /etc/ssl/certs/
 COPY ./certs/* /etc/ssl/certs/
 COPY ./generate-dummy-certs.sh /etc/ssl/certs/
 

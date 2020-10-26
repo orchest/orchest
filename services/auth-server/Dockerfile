@@ -7,7 +7,6 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
 # Get the orchest application, specifically the auth-server
-RUN mkdir -p /orchest/services/auth-server/
 COPY ./ /orchest/services/auth-server
 RUN mv /orchest/services/auth-server/lib /orchest/lib
 WORKDIR /orchest/services/auth-server/app

@@ -805,7 +805,7 @@ def register_views(app, db):
         client = docker.from_env()
 
         if request.args.get("mode") == "dev":
-            run_orchest_ctl(client, ["restart", "dev"])
+            run_orchest_ctl(client, ["restart", "--mode=dev"])
         else:
             run_orchest_ctl(client, ["restart"])
 

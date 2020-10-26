@@ -10,5 +10,5 @@ app = create_app(config_class=CONFIG_CLASS)
 socketio = SocketIO(app)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     socketio.run(app)

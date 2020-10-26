@@ -6,10 +6,7 @@ import boto3
 import requests
 
 from orchest.config import Config
-from orchest.errors import (
-    OrchestNetworkError,
-    OrchestInternalDataSourceError
-)
+from orchest.errors import OrchestNetworkError, OrchestInternalDataSourceError
 
 
 class _DB:
@@ -29,25 +26,26 @@ class _DB:
             to connect to the database.
 
     """
+
     connection_string: Optional[str] = None
 
     # Settings that are passed to `create_engine` in __init__.
     _connection_timeout = 5
 
     def __init__(self, data, **kwargs):
-        connection_details = data['connection_details']
+        connection_details = data["connection_details"]
 
         self._connection_string = self.connection_string.format(
-            username=connection_details['username'],
-            password=connection_details['password'],
-            host=connection_details['host'],
-            db_name=connection_details['database_name']
+            username=connection_details["username"],
+            password=connection_details["password"],
+            host=connection_details["host"],
+            db_name=connection_details["database_name"],
         )
 
         self.engine = create_engine(
             self._connection_string,
-            connect_args={'connect_timeout': self._connection_timeout},
-            **kwargs
+            connect_args={"connect_timeout": self._connection_timeout},
+            **kwargs,
         )
 
     def connect(self, **kwargs):
@@ -91,7 +89,8 @@ class MySQL(_DB):
             to connect to the database.
 
     """
-    connection_string = 'mysql://{username}:{password}@{host}/{db_name}'
+
+    connection_string = "mysql://{username}:{password}@{host}/{db_name}"
 
 
 class PostgreSQL(_DB):
@@ -111,7 +110,8 @@ class PostgreSQL(_DB):
             to connect to the database.
 
     """
-    connection_string = 'postgresql://{username}:{password}@{host}/{db_name}'
+
+    connection_string = "postgresql://{username}:{password}@{host}/{db_name}"
 
 
 class AWSRedshift(_DB):
@@ -131,7 +131,8 @@ class AWSRedshift(_DB):
             to connect to the database.
 
     """
-    connection_string = 'redshift+psycopg2://{username}:{password}@{host}/{db_name}'
+
+    connection_string = "redshift+psycopg2://{username}:{password}@{host}/{db_name}"
 
 
 class HostDirectory:
@@ -165,7 +166,7 @@ class HostDirectory:
     """
 
     def __init__(self, data):
-        self.path = '/mounts/' + data['name']
+        self.path = "/mounts/" + data["name"]
 
 
 # TODO: could extend this class. Could create multiple classes that
@@ -202,18 +203,18 @@ class AWSObjectStorageS3:
 
     def __init__(self, data):
         self.s3 = boto3.resource(
-            's3',
-            aws_access_key_id=data['connection_details']['access_key'],
-            aws_secret_access_key=data['connection_details']['secret_key'],
+            "s3",
+            aws_access_key_id=data["connection_details"]["access_key"],
+            aws_secret_access_key=data["connection_details"]["secret_key"],
         )
 
         self.client = boto3.client(
-            's3',
-            aws_access_key_id=data['connection_details']['access_key'],
-            aws_secret_access_key=data['connection_details']['secret_key'],
+            "s3",
+            aws_access_key_id=data["connection_details"]["access_key"],
+            aws_secret_access_key=data["connection_details"]["secret_key"],
         )
 
-        self.bucket = self.s3.Bucket(data['connection_details']['bucket'])
+        self.bucket = self.s3.Bucket(data["connection_details"]["bucket"])
 
 
 # TODO: put the name as attribute in the class.
@@ -233,30 +234,32 @@ def get_datasource(name: str):
     """
 
     if name in Config.INTERNAL_DATASOURCES:
-        raise OrchestInternalDataSourceError(f"Cannot request internal data source {name}.")
+        raise OrchestInternalDataSourceError(
+            f"Cannot request internal data source {name}."
+        )
 
     try:
         # TODO: A user should only EVER be able to get credentials to
         # his/her own configured datasources. Even then it is debetable,
         # since someone could just copy paste this requests line and
         # request whatever.
-        response = requests.get('http://orchest-webserver/store/datasources/%s' % name)
+        response = requests.get("http://orchest-webserver/store/datasources/%s" % name)
         response.raise_for_status()
 
     except HTTPError as http_err:
         raise OrchestNetworkError(
-            f'Could not get the datasource from the webserver: {http_err}'
+            f"Could not get the datasource from the webserver: {http_err}"
         )
 
     datasources = {
-        'host-directory': HostDirectory,
-        'database-mysql': MySQL,
-        'database-postgresql': PostgreSQL,
-        'database-aws-redshift': AWSRedshift,
-        'objectstorage-aws-s3': AWSObjectStorageS3,
+        "host-directory": HostDirectory,
+        "database-mysql": MySQL,
+        "database-postgresql": PostgreSQL,
+        "database-aws-redshift": AWSRedshift,
+        "objectstorage-aws-s3": AWSObjectStorageS3,
     }
 
     datasource_spec = response.json()
-    source_type = datasource_spec['source_type']
+    source_type = datasource_spec["source_type"]
     datasource = datasources[source_type]
     return datasource(datasource_spec)

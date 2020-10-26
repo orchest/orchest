@@ -1,6 +1,6 @@
 import os
 
-from errors import ENVVariableNotFound
+from app.errors import ENVVariableNotFound
 
 
 # Can either be "normal" or "dev"

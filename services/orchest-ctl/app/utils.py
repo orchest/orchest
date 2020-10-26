@@ -2,43 +2,57 @@ import logging
 import os
 import sys
 
-import docker
 import aiodocker
 import asyncio
+import docker
 from docker.types import Mount
+import typer
 
-import config
-from connections import docker_client
+from app import config
+from app.connections import docker_client
 
 
-def init_logger():
-    logging.basicConfig(level=logging.INFO)
+def init_logger(verbosity=0):
+    """Initialize logger.
+
+    The logging module is used to output to STDOUT for the CLI.
+
+    Args:
+        verbosity: The level of verbosity to use. Corresponds to the
+        logging levels:
+            3 DEBUG
+            2 INFO
+            1 WARNING
+            0 ERROR
+
+    """
+    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    logging.basicConfig(level=levels[verbosity])
 
     root = logging.getLogger()
     if len(root.handlers) > 0:
         h = root.handlers[0]
         root.removeHandler(h)
 
-    formatter = logging.Formatter(logging.BASIC_FORMAT)
+    formatter = logging.Formatter("%(levelname)s: %(message)s")
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
 
 def is_orchest_running():
-
     client = docker.from_env()
 
     running = False
 
     for _, spec in config.CONTAINER_MAPPING.items():
         try:
-            container = client.containers.get(spec['name'])
+            container = client.containers.get(spec["name"])
             if container.status == "running":
                 running = True
                 break
-        except docker.errors.NotFound as e:
-                pass
+        except docker.errors.NotFound:
+            pass
 
     return running
 
@@ -53,8 +67,9 @@ def is_install_complete():
     try:
         docker_client.networks.get(config.DOCKER_NETWORK)
     except docker.errors.NotFound as e:
-        logging.warning("Docker network (%s) "
-                        "not installed: %s" % (config.DOCKER_NETWORK, e))
+        logging.warning(
+            "Docker network (%s) " "not installed: %s" % (config.DOCKER_NETWORK, e)
+        )
         return False
 
     return True
@@ -67,11 +82,16 @@ async def image_exists(image, async_docker):
     except aiodocker.exceptions.DockerError:
         return False
 
+
 async def async_check_images(images):
     async_docker = aiodocker.Docker()
 
-    image_exists_result = await asyncio.gather(*[image_exists(image, async_docker) for image in images])
-    missing_images = [images[i] for i in range(len(images)) if not image_exists_result[i]]
+    image_exists_result = await asyncio.gather(
+        *[image_exists(image, async_docker) for image in images]
+    )
+    missing_images = [
+        images[i] for i in range(len(images)) if not image_exists_result[i]
+    ]
 
     await async_docker.close()
     return missing_images
@@ -85,7 +105,7 @@ def check_images():
 
 async def pull_image(image, async_docker, force_pull):
     pull = force_pull
-    
+
     if not pull:
         try:
             await async_docker.images.get(image)
@@ -96,6 +116,7 @@ async def pull_image(image, async_docker, force_pull):
         logging.info("Pulling image %s" % image)
         await async_docker.images.pull(image)
         logging.info("Pulled image %s" % image)
+
 
 async def pull_images(images, force_pull):
     async_docker = aiodocker.Docker()
@@ -114,28 +135,30 @@ def install_network():
         docker_client.networks.get(config.DOCKER_NETWORK)
     except docker.errors.NotFound as e:
 
-        logging.info("Orchest sends an anonymized ping to analytics.orchest.io. "
-                     "You can disable this by adding "
-                     "{ \"TELEMETRY_DISABLED\": true }"
-                     "to config.json in %s" % config.ENVS["HOST_CONFIG_DIR"])
+        typer.echo(
+            "Orchest sends an anonymized ping to analytics.orchest.io. "
+            "You can disable this by adding "
+            '{ "TELEMETRY_DISABLED": true }'
+            "to config.json in %s" % config.ENVS["HOST_CONFIG_DIR"]
+        )
 
-        logging.info("Docker network %s doesn't exist: %s. "
-                     "Creating it." % (config.DOCKER_NETWORK, e))
+        logging.info(
+            "Docker network %s doesn't exist: %s. "
+            "Creating it." % (config.DOCKER_NETWORK, e)
+        )
         # Create Docker network named "orchest" with a custom subnet such that
         # containers can be spawned at custom static IP addresses.
-        ipam_pool = docker.types.IPAMPool(subnet='172.31.0.0/16')
+        ipam_pool = docker.types.IPAMPool(subnet="172.31.0.0/16")
         ipam_config = docker.types.IPAMConfig(pool_configs=[ipam_pool])
         docker_client.networks.create(
-            config.DOCKER_NETWORK,
-            driver="bridge",
-            ipam=ipam_config
+            config.DOCKER_NETWORK, driver="bridge", ipam=ipam_config
         )
 
 
 def log_server_url():
     orchest_url = get_application_url()
     if len(orchest_url) > 0:
-        logging.info("Orchest is running at: %s" % orchest_url)
+        typer.echo("Orchest is running at: %s" % orchest_url)
     else:
         logging.warning("Orchest is not running.")
 
@@ -159,7 +182,9 @@ def get_application_url():
         print(e)
         return ""
 
-    port = config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["80/tcp"]
+    port = config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"][
+        "80/tcp"
+    ]
     return "http://localhost:%i" % port
 
 
@@ -175,47 +200,44 @@ def dev_mount_inject(container_spec):
 
     # orchest-webserver
     orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
-    orchest_webserver_spec['mounts'] += [
+    orchest_webserver_spec["mounts"] += [
         {
-            "source": os.path.join(HOST_REPO_DIR, "services", "orchest-webserver", "app"),
-            "target": "/orchest/services/orchest-webserver/app"
+            "source": os.path.join(
+                HOST_REPO_DIR, "services", "orchest-webserver", "app"
+            ),
+            "target": "/orchest/services/orchest-webserver/app",
         },
         # Internal library.
-        {
-            "source": os.path.join(HOST_REPO_DIR, "lib"),
-            "target": "/orchest/lib"
-        },
+        {"source": os.path.join(HOST_REPO_DIR, "lib"), "target": "/orchest/lib"},
     ]
 
-    orchest_webserver_spec['environment']["FLASK_ENV"] = "development"
-    orchest_webserver_spec['command'] = [
-       "./debug.sh"
-    ]
+    orchest_webserver_spec["environment"]["FLASK_ENV"] = "development"
+    orchest_webserver_spec["command"] = ["./debug.sh"]
 
     # auth-server
     orchest_auth_server_spec = container_spec["orchestsoftware/auth-server:latest"]
-    orchest_auth_server_spec['mounts'] += [
+    orchest_auth_server_spec["mounts"] += [
         {
             "source": os.path.join(HOST_REPO_DIR, "services", "auth-server", "app"),
-            "target": "/orchest/services/auth-server/app"
+            "target": "/orchest/services/auth-server/app",
         }
     ]
 
-    orchest_auth_server_spec['environment']["FLASK_APP"] = "main.py"
-    orchest_auth_server_spec['environment']["FLASK_DEBUG"] = "1"
-    orchest_auth_server_spec['command'] = [
-       "flask",
-       "run",
-       "--host=0.0.0.0",
-       "--port=80"
+    orchest_auth_server_spec["environment"]["FLASK_APP"] = "main.py"
+    orchest_auth_server_spec["environment"]["FLASK_DEBUG"] = "1"
+    orchest_auth_server_spec["command"] = [
+        "flask",
+        "run",
+        "--host=0.0.0.0",
+        "--port=80",
     ]
 
     # file-manager
     file_manager_spec = container_spec["orchestsoftware/file-manager:latest"]
-    file_manager_spec['mounts'] += [
+    file_manager_spec["mounts"] += [
         {
             "source": os.path.join(HOST_REPO_DIR, "services", "file-manager", "static"),
-            "target": "/custom-static"
+            "target": "/custom-static",
         },
     ]
 
@@ -224,52 +246,35 @@ def dev_mount_inject(container_spec):
     orchest_api_spec["mounts"] += [
         {
             "source": os.path.join(HOST_REPO_DIR, "services", "orchest-api", "app"),
-            "target": "/orchest/services/orchest-api/app"
+            "target": "/orchest/services/orchest-api/app",
         },
         # Internal library.
-        {
-            "source": os.path.join(HOST_REPO_DIR, "lib"),
-            "target": "/orchest/lib"
-        },
+        {"source": os.path.join(HOST_REPO_DIR, "lib"), "target": "/orchest/lib"},
     ]
     # Forward the port so that the Swagger API can be accessed at :8080/api
-    orchest_api_spec["ports"] = {
-        "80/tcp": 8080
-    }
+    orchest_api_spec["ports"] = {"80/tcp": 8080}
     orchest_api_spec["environment"]["FLASK_APP"] = "main.py"
     orchest_api_spec["environment"]["FLASK_ENV"] = "development"
-    orchest_api_spec["command"] = [
-       "flask",
-       "run",
-       "--host=0.0.0.0",
-       "--port=80"
-    ]
-
-    # nginx-proxy
-    nginx_proxy_spec = container_spec["orchestsoftware/nginx-proxy:latest"]
-    nginx_proxy_spec['ports'] = {
-        "80/tcp": 80,
-        "443/tcp": 443
-    }
+    orchest_api_spec["command"] = ["flask", "run", "--host=0.0.0.0", "--port=80"]
 
 
 def convert_to_run_config(image_name, container_spec):
     # Convert every mount specification to a docker.types.Mount
     mounts = []
-    for ms in container_spec.get('mounts', []):
-        mount = Mount(target=ms['target'], source=ms['source'], type='bind')
+    for ms in container_spec.get("mounts", []):
+        mount = Mount(target=ms["target"], source=ms["source"], type="bind")
         mounts.append(mount)
 
     run_config = {
-        'image': image_name,
-        'command': container_spec.get('command'),
-        'name': container_spec['name'],
-        'detach': container_spec.get('detach', True),
-        'mounts': mounts,
-        'network': config.DOCKER_NETWORK,
-        'environment': container_spec.get('environment', {}),
-        'ports': container_spec.get('ports', {}),
-        'hostname': container_spec.get('hostname'),
-        'auto_remove': container_spec.get('auto_remove', False)
+        "image": image_name,
+        "command": container_spec.get("command"),
+        "name": container_spec["name"],
+        "detach": container_spec.get("detach", True),
+        "mounts": mounts,
+        "network": config.DOCKER_NETWORK,
+        "environment": container_spec.get("environment", {}),
+        "ports": container_spec.get("ports", {}),
+        "hostname": container_spec.get("hostname"),
+        "auto_remove": container_spec.get("auto_remove", False),
     }
     return run_config

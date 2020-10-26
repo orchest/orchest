@@ -24,7 +24,7 @@ PLASMA_STORE_CAPACITY = PLASMA_KILOBYTES * KILOBYTE
 
 
 def generate_data(total_size):
-    nrows = int(total_size / np.dtype('float64').itemsize)
+    nrows = int(total_size / np.dtype("float64").itemsize)
     return np.random.randn(nrows)
 
 
@@ -43,17 +43,13 @@ class UnserializableByPyarrowObject:
 def plasma_store(monkeypatch):
     with plasma.start_plasma_store(PLASMA_STORE_CAPACITY) as info:
         store_socket_name, _ = info
-        monkeypatch.setattr(orchest.Config, 'STORE_SOCKET_NAME', store_socket_name)
+        monkeypatch.setattr(orchest.Config, "STORE_SOCKET_NAME", store_socket_name)
         yield store_socket_name
 
-    uuids = [
-        'uuid-1______________',
-        'uuid-2______________',
-        'uuid-3______________'
-    ]
+    uuids = ["uuid-1______________", "uuid-2______________", "uuid-3______________"]
 
     for step_uuid in uuids:
-        shutil.rmtree(f'tests/userdir/.data/{step_uuid}', ignore_errors=True)
+        shutil.rmtree(f"tests/userdir/.data/{step_uuid}", ignore_errors=True)
 
 
 def test_assert_object_is_unserializable_by_pyarrow():
@@ -70,124 +66,110 @@ def test_assert_object_is_unserializable_by_pyarrow():
         pa.serialize(UnserializableByPyarrowObject(np.array([1])))
 
 
-@pytest.mark.parametrize('data_1', [
+@pytest.mark.parametrize(
+    "data_1",
+    [
         generate_data(KILOBYTE),
         np.array([UnserializableByPyarrowObject(1) for _ in range(3)]),
     ],
-    ids=['basic', 'pickle']
+    ids=["basic", "pickle"],
 )
-@pytest.mark.parametrize('test_transfer', [
-        {
-            'method': transfer.output_to_disk,
-            'kwargs': {
-                'pickle_fallback': True
-            }
-        },
-    ],
-    ids=['default']
+@pytest.mark.parametrize(
+    "test_transfer",
+    [{"method": transfer.output_to_disk, "kwargs": {"pickle_fallback": True}},],
+    ids=["default"],
 )
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1. Note the trailing underscores. This is to
     # make the plasma.ObjectID the required 20 characters.
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
 
-    test_transfer['method'](
-        data_1,
-        **test_transfer['kwargs']
-    )
+    test_transfer["method"](data_1, **test_transfer["kwargs"])
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert (input_data == data_1).all()
 
 
 # TODO: add tests for other kwargs
-@pytest.mark.parametrize('data_1', [
+@pytest.mark.parametrize(
+    "data_1",
+    [
         generate_data(KILOBYTE),
         np.array([UnserializableByPyarrowObject(1) for _ in range(3)]),
     ],
-    ids=['basic', 'pickle']
+    ids=["basic", "pickle"],
 )
-@pytest.mark.parametrize('test_transfer', [
-        {
-            'method': transfer.output_to_memory,
-            'kwargs': {
-                'disk_fallback': False,
-            }
-        }
-    ],
-    ids=['disk_fallback=False']
+@pytest.mark.parametrize(
+    "test_transfer",
+    [{"method": transfer.output_to_memory, "kwargs": {"disk_fallback": False,},}],
+    ids=["disk_fallback=False"],
 )
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1. Note the trailing underscores. This is to
     # make the plasma.ObjectID the required 20 characters.
-    mock_get_step_uuid.return_value = 'uuid-1______________'
-    test_transfer['method'](
-        data_1,
-        **test_transfer['kwargs']
-    )
+    mock_get_step_uuid.return_value = "uuid-1______________"
+    test_transfer["method"](data_1, **test_transfer["kwargs"])
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert (input_data == data_1).all()
 
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
     data_size = pa.serialize(data_1).total_bytes
     assert data_size > PLASMA_STORE_CAPACITY
 
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
 
     with pytest.raises(MemoryError):
         transfer.output_to_memory(
-            data_1,
-            disk_fallback=False,
+            data_1, disk_fallback=False,
         )
 
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
     data_size = pa.serialize(data_1).total_bytes
     assert data_size > PLASMA_STORE_CAPACITY
 
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output_to_memory(
-        data_1,
-        disk_fallback=True,
+        data_1, disk_fallback=True,
     )
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert (input_data[0] == data_1).all()
 
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_store):
     data_1 = [
         UnserializableByPyarrowObject(generate_data(KILOBYTE))
@@ -196,29 +178,28 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
     serialized, _ = transfer.serialize(data_1)
     assert serialized.total_bytes > PLASMA_STORE_CAPACITY
 
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output_to_memory(
-        data_1,
-        disk_fallback=True,
+        data_1, disk_fallback=True,
     )
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert input_data[0] == data_1
 
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1.
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
 
     data_1 = generate_data(KILOBYTE)
     transfer.output_to_disk(data_1)
@@ -230,29 +211,27 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
 
     data_1_new = generate_data(KILOBYTE)
     transfer.output_to_memory(
-        data_1_new,
-        disk_fallback=False,
+        data_1_new, disk_fallback=False,
     )
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert (input_data[0] == data_1_new).all()
 
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1.
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
 
     data_1 = generate_data(KILOBYTE)
     transfer.output_to_memory(
-        data_1,
-        disk_fallback=False,
+        data_1, disk_fallback=False,
     )
 
     # It is very unlikely you will output through memory and disk in quick
@@ -264,14 +243,14 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
     transfer.output_to_disk(data_1_new)
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert (input_data[0] == data_1_new).all()
 
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_receive_input_order(mock_get_step_uuid, plasma_store):
     """Test the order of the inputs of the receiving step.
 
@@ -279,28 +258,28 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
     "receive order", it is the order in which it is defined in the
     pipeline.json (for the "incoming-connections").
     """
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-order.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-order.json"
 
     # Do as if we are uuid-3
     data_3 = generate_data(KILOBYTE)
-    mock_get_step_uuid.return_value = 'uuid-3______________'
+    mock_get_step_uuid.return_value = "uuid-3______________"
     transfer.output_to_memory(data_3)
 
     # Do as if we are uuid-1
     data_1 = generate_data(KILOBYTE)
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output_to_memory(data_1)
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert (input_data[0] == data_1).all()
     assert (input_data[1] == data_3).all()
 
 
-@patch('orchest.transfer.get_step_uuid')
-@patch('orchest.Config.STEP_DATA_DIR', 'tests/userdir/.data/{step_uuid}')
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_output_no_memory_store(mock_get_step_uuid):
     """Test the order of the inputs of the receiving step.
 
@@ -308,15 +287,15 @@ def test_output_no_memory_store(mock_get_step_uuid):
     "receive order", it is the order in which it is defined in the
     pipeline.json (for the "incoming-connections").
     """
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = 'tests/userdir/pipeline-basic.json'
+    orchest.Config.PIPELINE_DESCRIPTION_PATH = "tests/userdir/pipeline-basic.json"
 
     # Do as if we are uuid-1
     data_1 = generate_data(KILOBYTE)
-    mock_get_step_uuid.return_value = 'uuid-1______________'
+    mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output(data_1)
 
     # Do as if we are uuid-2
-    mock_get_step_uuid.return_value = 'uuid-2______________'
+    mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
     assert (input_data[0] == data_1).all()

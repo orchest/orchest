@@ -51,7 +51,7 @@ cd orchest
 
 # The start command will automatically install Orchest if it is not
 # yet installed. After installation is finished Orchest is started
-./orchest.sh start
+./orchest start
 ```
 
 **Note!** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside

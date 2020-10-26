@@ -21,9 +21,9 @@ def register_schema(api: Namespace) -> Namespace:
     return api
 
 
-def update_status_db(status_update: Dict[str, str],
-                     model: Model,
-                     filter_by: Dict[str, str]) -> None:
+def update_status_db(
+    status_update: Dict[str, str], model: Model, filter_by: Dict[str, str]
+) -> None:
     """Updates the status attribute of particular entry in the database.
 
     Args:
@@ -35,10 +35,10 @@ def update_status_db(status_update: Dict[str, str],
     """
     data = status_update
 
-    if data['status'] == 'STARTED':
-        data['started_time'] = datetime.fromisoformat(data['started_time'])
-    elif data['status'] in ['SUCCESS', 'FAILURE']:
-        data['finished_time'] = datetime.fromisoformat(data['finished_time'])
+    if data["status"] == "STARTED":
+        data["started_time"] = datetime.fromisoformat(data["started_time"])
+    elif data["status"] in ["SUCCESS", "FAILURE"]:
+        data["finished_time"] = datetime.fromisoformat(data["finished_time"])
 
     res = model.query.filter_by(**filter_by).update(data)
 

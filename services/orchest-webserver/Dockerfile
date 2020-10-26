@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 # Install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
-RUN mkdir -p /orchest/services/orchest-webserver
 COPY ./app /orchest/services/orchest-webserver/app
 COPY ./lib /orchest/lib
 WORKDIR /orchest/services/orchest-webserver/app
