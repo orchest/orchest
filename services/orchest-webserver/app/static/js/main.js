@@ -1,13 +1,13 @@
 import { MDCTopAppBar } from "@material/top-app-bar";
 import { MDCDrawer } from "@material/drawer";
 
-import ProjectSelectionViewPipelines from "./views/ProjectSelectionViewPipelines";
-import ProjectSelectionViewExperiments from "./views/ProjectSelectionViewExperiments";
+import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
 import DataSourceEditView from "./views/DataSourceEditView";
 import ExperimentsView from "./views/ExperimentsView";
+import PipelinesView from "./views/PipelinesView";
 import CreateExperimentView from "./views/CreateExperimentView";
 import HeaderButtons from "./views/HeaderButtons";
 import React from 'react';
@@ -21,6 +21,8 @@ import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
 import ImagesView from "./views/ImagesView";
 import UpdateView from "./views/UpdateView";
+import { PersistentLocalConfig } from "./lib/utils/all";
+
 
 function Orchest() {
 
@@ -36,9 +38,10 @@ function Orchest() {
 
     this.reactRoot = document.querySelector(".react-view-root");
 
+    this.browserConfig = new PersistentLocalConfig('orchest');
+
     this.Components = {
-        "ProjectSelectionViewPipelines": ProjectSelectionViewPipelines,
-        "ProjectSelectionViewExperiments": ProjectSelectionViewExperiments,
+        "ProjectsView": ProjectsView,
         "DataSourcesView": DataSourcesView,
         "FileManagerView": FileManagerView,
         "ImagesView": ImagesView,
@@ -46,6 +49,7 @@ function Orchest() {
         "PipelineView": PipelineView,
         "SettingsView": SettingsView,
         "UpdateView": UpdateView,
+        "PipelinesView": PipelinesView,
         "ExperimentsView": ExperimentsView,
         "ExperimentView": ExperimentView,
         "CreateExperimentView": CreateExperimentView,
@@ -58,6 +62,8 @@ function Orchest() {
     this.headerBarComponent = ReactDOM.render(<HeaderButtons />, this.headerBar);
 
     drawer.list.singleSelection = true;
+
+    this.drawer = drawer;
 
     drawer.listen("MDCList:action", (e) => {
 
@@ -85,14 +91,23 @@ function Orchest() {
             }
         }
 
+        // select menu if menu tag is selected
+        for(let listIndex in drawer.list.listElements){
+            
+            let listElement = drawer.list.listElements[listIndex];
+
+            if(listElement.getAttribute('data-react-view') === TagName.name){
+                drawer.list.selectedIndex = parseInt(listIndex);
+            }
+        }
+
         ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
     };
 
 
     this.initializeFirstView = function () {
         // load first pipeline
-
-        this.loadView(ProjectSelectionViewPipelines);
+        this.loadView(PipelinesView);
 
     }
 

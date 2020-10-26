@@ -7,9 +7,10 @@ import MDCLinearProgressReact from '../lib/mdc-components/MDCLinearProgressReact
 import MDCTextFieldReact from '../lib/mdc-components/MDCTextFieldReact';
 
 import { makeRequest, makeCancelable, PromiseManager, RefManager } from '../lib/utils/all';
+import PipelinesView from './PipelinesView';
 
 
-class ProjectSelectionView extends React.Component {
+class ProjectsView extends React.Component {
 
     componentWillUnmount() {
 
@@ -78,8 +79,9 @@ class ProjectSelectionView extends React.Component {
             "project_uuid": project.uuid,
         }
 
-        this.props.onSelectProject(props);
+        orchest.browserConfig.set("selected_project_uuid", project.uuid);
 
+        orchest.loadView(PipelinesView, props);
     }
 
     onDeleteClick(){
@@ -131,6 +133,7 @@ class ProjectSelectionView extends React.Component {
                 Promise.all(sessionDeletePromises).then(() => {
 
                     Promise.all(deletePromises).then(() => {
+
                         // reload list once creation succeeds
                         this.fetchList(() => {
                             this.setState({
@@ -232,7 +235,7 @@ class ProjectSelectionView extends React.Component {
                             <MDCTextFieldReact ref={this.refManager.nrefs.createProjectNameTextField} classNames={['fullwidth']} label="Project name" />
                     } actions={
                         <Fragment>
-                            <MDCButtonReact icon="device_hub" classNames={["mdc-button--raised", "themed-secondary"]} label="Create pipeline" onClick={this.onSubmitModal.bind(this)} />                            
+                            <MDCButtonReact icon="format_list_bulleted" classNames={["mdc-button--raised", "themed-secondary"]} label="Create project" onClick={this.onSubmitModal.bind(this)} />                            
                             <MDCButtonReact icon="close" label="Cancel" classNames={["push-left"]} onClick={this.onCancelModal.bind(this)} />
                         </Fragment>
                     } />
@@ -261,4 +264,4 @@ class ProjectSelectionView extends React.Component {
     }
 }
 
-export default ProjectSelectionView;
+export default ProjectsView;
