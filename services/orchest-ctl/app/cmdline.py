@@ -1,8 +1,11 @@
 """Options for the command line."""
+
 import logging
 import os
 import pathlib
 import subprocess
+
+import typer
 
 from app import config, utils
 
@@ -12,18 +15,12 @@ from app.config import CONTAINER_MAPPING
 from app.connections import docker_client
 
 
-def get_available_cmds():
-    cmds = ["start", "help", "stop", "status", "update", "restart", "_updateserver"]
-    return cmds
-
-
 def restart():
     stop()
     start()
 
 
 def proxy_certs_exist_on_host():
-
     certs_path = "/orchest-host/services/nginx-proxy/certs/"
 
     if os.path.isfile(os.path.join(certs_path, "server.crt")) and os.path.isfile(
@@ -66,7 +63,7 @@ def start():
 
         utils.dev_mount_inject(CONTAINER_MAPPING)
     else:
-        logging.info("Starting Orchest...")
+        typer.echo("[Start]: ...")
 
     # Clean up lingering, old images from previous starts.
     utils.clean_containers()
@@ -101,36 +98,13 @@ def start():
     utils.log_server_url()
 
 
-def help():
-    cmds = get_available_cmds()
-
-    help_msg = {
-        "start": "Starts the Orchest application",
-        "restart": "Stops and starts the Orchest application",
-        "help": "Shows this help menu",
-        "stop": "Stops the Orchest application",
-        "status": "Checks the current status of the Orchest application",
-        "update": (
-            "Update Orchest to the latest version by pulling latest " "container images"
-        ),
-    }
-
-    for cmd in cmds:
-
-        # hide internal commands
-        if cmd.startswith("_"):
-            continue
-
-        print("{0:20}\t {1}".format(cmd, help_msg[cmd]), flush=True)
-
-
 def stop(skip_names=[]):
+    typer.echo("[Shutdown]: ...")
 
     # always skip orchest-ctl
     skip_names.append("orchest-ctl")
 
     containers = docker_client.containers.list(all=True)
-
     for container in containers:
 
         # if name is in skip_names
@@ -153,6 +127,8 @@ def stop(skip_names=[]):
                 # logging.debug(e) (remove() does not always succeed - e.g. the
                 # container could be configured to autoremove)
                 pass
+    else:
+        typer.echo("[Shutdown]: success")
 
 
 def status():
@@ -173,7 +149,10 @@ def status():
     for container_name in orchest_container_names:
         not_running_prints.append("Container %s not running." % container_name)
 
-    if len(running_prints) > 1:
+    if len(running_prints) == 1:
+        typer.echo("[Status]: not running")
+    elif len(running_prints) > 1:
+        typer.echo("[Status]: running")
         logging.info("\n".join(running_prints))
 
     if len(not_running_prints) > 1:
@@ -192,10 +171,10 @@ def _updateserver():
 
 
 def update():
-    logging.info("Updating Orchest ...")
+    typer.echo("[Update]: ...")
 
     # stopping Orchest
-    logging.info("Stopping Orchest ...")
+    logging.info("[Shutdown]: ...")
 
     # only start if it was running
     should_restart = utils.is_orchest_running()
@@ -224,6 +203,8 @@ def update():
     else:
         logging.info("Pulling latest images ...")
         utils.install_images(force_pull=True)
+
+    typer.echo("[Update]: success")
 
     if config.UPDATE_MODE != "web" and should_restart:
         start()

@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum
 from typing import Optional
 
 import typer
@@ -7,6 +8,21 @@ from app import cmdline
 from app import config
 from app import utils
 from app.cli import start as cli_start
+
+
+def _default(
+    verbosity: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        show_default=False,
+        max=3,
+        clamp=True,
+        help="Counter to set verbosity level, e.g. -vvv",
+    )
+):
+    utils.init_logger(verbosity=verbosity)
 
 
 app = typer.Typer(
@@ -18,14 +34,19 @@ app = typer.Typer(
     """,
     short_help="Orchest CLI",
     epilog="Run 'orchest COMMAND --help' for more information on a command.",
+    callback=_default,
 )
 
 app.add_typer(cli_start.app, name="start")
 
 
+class Mode(str, Enum):
+    reg = "reg"
+    dev = "dev"
+
+
 def __entrypoint():
     loop = asyncio.get_event_loop()
-    utils.init_logger()
     app()
     loop.close()
 
@@ -33,7 +54,7 @@ def __entrypoint():
 @app.command()
 def stop():
     """
-    Stop Orchest.
+    Shutdown Orchest.
     """
     cmdline.stop()
 
@@ -59,8 +80,8 @@ def update(mode: Optional[str] = typer.Option(None, hidden=True)):
 
 @app.command()
 def restart(
-    mode: Optional[str] = typer.Option(
-        "reg", help="Mode in which to start Orchest afterwards."
+    mode: Mode = typer.Option(
+        Mode.reg, help="Mode in which to start Orchest afterwards."
     ),
     port: Optional[int] = typer.Option(
         8000, help="The port the Orchest webserver will listen on."
@@ -74,10 +95,7 @@ def restart(
         "443/tcp": 443,
     }
 
-    if mode is not None:
-        # Only mode that is given is "dev", used by the webserver and
-        # in case the user would like to do so.
-        config.RUN_MODE = mode
+    config.RUN_MODE = mode
     cmdline.restart()
 
 
@@ -99,4 +117,5 @@ def adduser(
     """
     Add user to Orchest.
     """
+    # TODO: once we do authentication
     typer.echo(f"Adding user {username}")
