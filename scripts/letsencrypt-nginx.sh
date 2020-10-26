@@ -33,7 +33,7 @@ echo "Using SITE_DOMAIN=${SITE_DOMAIN} and EMAIL=${EMAIL}."
 
 # shutdown orchest to make sure port 80 is available
 echo "Shutting down Orchest ... (if it was running)"
-$DIR/../orchest.sh stop
+$DIR/../orchest stop
 
 apt-get install python3-pip -y
 if [ $? != 0 ]; then
@@ -60,4 +60,4 @@ check_file $KEY_PATH
 cp $CHAIN_PATH $DIR/../services/nginx-proxy/certs/server.crt
 cp $KEY_PATH $DIR/../services/nginx-proxy/certs/server.key
 
-echo "When you start Orchest again (with orchest.sh start) it should now expose SSL signed web service on port 443."
+echo "When you start Orchest again (with orchest start) it should now expose SSL signed web service on port 443."

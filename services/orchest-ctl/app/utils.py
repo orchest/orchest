@@ -2,31 +2,45 @@ import logging
 import os
 import sys
 
-import docker
 import aiodocker
 import asyncio
+import docker
 from docker.types import Mount
+import typer
 
-import config
-from connections import docker_client
+from app import config
+from app.connections import docker_client
 
 
-def init_logger():
-    logging.basicConfig(level=logging.INFO)
+def init_logger(verbosity=0):
+    """Initialize logger.
+
+    The logging module is used to output to STDOUT for the CLI.
+
+    Args:
+        verbosity: The level of verbosity to use. Corresponds to the
+        logging levels:
+            3 DEBUG
+            2 INFO
+            1 WARNING
+            0 ERROR
+
+    """
+    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    logging.basicConfig(level=levels[verbosity])
 
     root = logging.getLogger()
     if len(root.handlers) > 0:
         h = root.handlers[0]
         root.removeHandler(h)
 
-    formatter = logging.Formatter(logging.BASIC_FORMAT)
+    formatter = logging.Formatter("%(levelname)s: %(message)s")
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
 
 def is_orchest_running():
-
     client = docker.from_env()
 
     running = False
@@ -37,7 +51,7 @@ def is_orchest_running():
             if container.status == "running":
                 running = True
                 break
-        except docker.errors.NotFound as e:
+        except docker.errors.NotFound:
             pass
 
     return running
@@ -144,7 +158,7 @@ def install_network():
 def log_server_url():
     orchest_url = get_application_url()
     if len(orchest_url) > 0:
-        logging.info("Orchest is running at: %s" % orchest_url)
+        typer.echo("Orchest is running at: %s" % orchest_url)
     else:
         logging.warning("Orchest is not running.")
 
@@ -242,10 +256,6 @@ def dev_mount_inject(container_spec):
     orchest_api_spec["environment"]["FLASK_APP"] = "main.py"
     orchest_api_spec["environment"]["FLASK_ENV"] = "development"
     orchest_api_spec["command"] = ["flask", "run", "--host=0.0.0.0", "--port=80"]
-
-    # nginx-proxy
-    nginx_proxy_spec = container_spec["orchestsoftware/nginx-proxy:latest"]
-    nginx_proxy_spec["ports"] = {"80/tcp": 80, "443/tcp": 443}
 
 
 def convert_to_run_config(image_name, container_spec):

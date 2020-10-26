@@ -1,53 +1,121 @@
-import logging
-import sys
 import asyncio
+from enum import Enum
+from typing import Optional
 
-import cmdline
-import config
-import utils
+import typer
+
+from app import cmdline
+from app import config
+from app import utils
+from app.cli import start as cli_start
 
 
-def main():
+def _default(
+    verbosity: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        show_default=False,
+        max=3,
+        clamp=True,
+        help="Counter to set verbosity level, e.g. -vvv",
+    )
+):
+    utils.init_logger(verbosity=verbosity)
 
+
+app = typer.Typer(
+    name="orchest",
+    no_args_is_help=True,
+    add_completion=False,
+    help="""
+    A tool for creating and running data science pipelines.
+    """,
+    short_help="Orchest CLI",
+    epilog="Run 'orchest COMMAND --help' for more information on a command.",
+    callback=_default,
+)
+
+app.add_typer(cli_start.app, name="start")
+
+
+class Mode(str, Enum):
+    reg = "reg"
+    dev = "dev"
+
+
+def __entrypoint():
     loop = asyncio.get_event_loop()
-
-    utils.init_logger()
-
-    available_cmds = cmdline.get_available_cmds()
-    cmd_to_func = {cmd: getattr(cmdline, cmd) for cmd in available_cmds}
-
-    # Run the appropriate command. If an invalid command is given, then
-    # the `default_cmd` is run.
-    default_cmd = "help"
-    if len(sys.argv) <= 1:
-        command = default_cmd
-    else:
-        command = sys.argv[1]
-
-    if command not in available_cmds:
-        logging.error("Command `%s` is not supported." % command)
-        command = default_cmd
-    else:
-        if len(sys.argv) <= 2:
-            # Do nothing.
-            pass
-        elif sys.argv[2] == "dev":
-            config.RUN_MODE = "dev"
-        elif sys.argv[2] == "web":
-            config.UPDATE_MODE = "web"
-        elif "port" in sys.argv[2]:
-            # port_spec is something like "--port=8080"
-            port_spec = sys.argv[2]
-            port = int(port_spec.split("=")[-1])
-            config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
-                "80/tcp": port,
-                "443/tcp": 443,
-            }
-
-    cmd_to_func[command]()
-
+    app()
     loop.close()
 
 
-if __name__ == "__main__":
-    main()
+@app.command()
+def stop():
+    """
+    Shutdown Orchest.
+    """
+    cmdline.stop()
+
+
+@app.command()
+def status():
+    """
+    Get status of Orchest.
+    """
+    cmdline.status()
+
+
+@app.command()
+def update(mode: Optional[str] = typer.Option(None, hidden=True)):
+    """
+    Update Orchest.
+    """
+    if mode is not None:
+        # Only mode that is given is "web", used for the update-server.
+        config.UPDATE_MODE = mode
+    cmdline.update()
+
+
+@app.command()
+def restart(
+    mode: Mode = typer.Option(
+        Mode.reg, help="Mode in which to start Orchest afterwards."
+    ),
+    port: Optional[int] = typer.Option(
+        8000, help="The port the Orchest webserver will listen on."
+    ),
+):
+    """
+    Restart Orchest.
+    """
+    config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
+        "80/tcp": port,
+        "443/tcp": 443,
+    }
+
+    config.RUN_MODE = mode
+    cmdline.restart()
+
+
+@app.command(hidden=True)
+def updateserver():
+    """
+    Update Orchest through the update-server.
+    """
+    cmdline._updateserver()
+
+
+@app.command(hidden=True)
+def adduser(
+    username: str = typer.Argument(..., help="Username to add to Orchest"),
+    password: str = typer.Option(
+        ..., prompt=True, confirmation_prompt=True, hide_input=True
+    ),
+):
+    """
+    Add user to Orchest.
+    """
+    # TODO: once we do authentication
+    typer.echo(f"Adding user {username}")
