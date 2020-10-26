@@ -34,10 +34,10 @@ def proxy_certs_exist_on_host():
 def start():
     # Make sure the installation is complete before starting Orchest.
     if not utils.is_install_complete():
-        logging.info("Installation required. Starting installer.")
+        typer.echo("Installation required. Starting installer.")
         utils.install_images()
         utils.install_network()
-        logging.info("Installation finished. Attempting to start...")
+        typer.echo("Installation finished. Attempting to start...")
         return start()
 
     # Dynamically mount certs directory based on whether it exists in

@@ -1,7 +1,6 @@
 FROM tiangolo/meinheld-gunicorn-flask:python3.7
 
 # Get the orchest application, specifically the auth-server
-RUN mkdir -p /orchest/services/update-server/
 COPY ./lib /orchest/lib
 COPY ./ /orchest/services/update-server
 

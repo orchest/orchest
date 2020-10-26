@@ -135,7 +135,7 @@ def install_network():
         docker_client.networks.get(config.DOCKER_NETWORK)
     except docker.errors.NotFound as e:
 
-        logging.info(
+        typer.echo(
             "Orchest sends an anonymized ping to analytics.orchest.io. "
             "You can disable this by adding "
             '{ "TELEMETRY_DISABLED": true }'
