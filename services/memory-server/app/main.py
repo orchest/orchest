@@ -33,7 +33,7 @@ def get_command_line_args():
         "-p",
         "--pipeline_fname",
         required=False,
-        default=os.path.join(_config.PROJECT_DIR, os.environ.get("PIPELINE_PATH")),
+        default=os.path.join(_config.PROJECT_DIR, os.environ.get("PIPELINE_PATH", '')),
         help="file containing pipeline description",
     )
 

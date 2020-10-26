@@ -71,8 +71,11 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     async def mockreturn_update_status(*args, **kwargs):
         return
 
-    def mock_get_dynamic_mounts(*args, **kwargs):
-        return
+    def mock_get_orchest_mounts(*args, **kwargs):
+        return []
+
+    def mock_get_volume_mount(*args, **kwargs):
+        return []
 
     # We use that the class will point to the same object list to write
     # the calling order to.
@@ -80,10 +83,12 @@ def test_pipeline_run_call_order(testio, monkeypatch):
 
     monkeypatch.setattr(DockerContainers, "run", mockreturn_run)
     monkeypatch.setattr(pipelines, "update_status", mockreturn_update_status)
-    monkeypatch.setattr(pipelines, "get_dynamic_mounts", mock_get_dynamic_mounts)
+    monkeypatch.setattr(pipelines, "get_orchest_mounts", mock_get_orchest_mounts)
+    monkeypatch.setattr(pipelines, "get_volume_mounts", mock_get_volume_mount)
+    
 
     filler_for_task_id = "1"
-    run_config = {"project_dir": None, "run_endpoint": None}
+    run_config = {"project_dir": None, "pipeline_path": '', "pipeline_uuid": "", "run_endpoint": None}
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
     assert execution_order == testio.correct_execution_order

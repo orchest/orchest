@@ -126,7 +126,7 @@ async def update_status(
         return await response.json()
 
 
-def get_volume_mount(run_config, task_id):
+def get_volume_mounts(run_config, task_id):
 
     # Determine the appropriate name for the volume that shares
     # temporary data amongst containers.
@@ -138,7 +138,7 @@ def get_volume_mount(run_config, task_id):
         uuid=volume_uuid, project_uuid=run_config["project_uuid"]
     )
 
-    return f"{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}"
+    return [f"{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}"]
 
 
 class PipelineStepRunner:
@@ -205,7 +205,7 @@ class PipelineStepRunner:
         )
 
         # add volume mount
-        orchest_mounts += [get_volume_mount(run_config, task_id)]
+        orchest_mounts += get_volume_mounts(run_config, task_id)
 
         device_requests = get_device_requests(
             self.properties["image"], form="docker-engine"
