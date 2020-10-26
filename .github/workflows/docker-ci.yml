@@ -22,6 +22,7 @@ jobs:
           [
             -i orchest-api -i orchest-webserver -i auth-server,
             -i jupyter-server,
+            -i jupyter-enterprise-gateway,
             -i orchest-ctl -i custom-base-kernel-py -i custom-base-kernel-r,
             -i nginx-proxy,
             -i update-server,
@@ -87,6 +88,12 @@ jobs:
         env:
           DOCKERHUB_REPOSITORY: orchestsoftware/jupyter-server
           README_FILEPATH: services/jupyter-server/README.md
+      
+      - name: Push README files to DockerHub jupyter-enterprise-gateway
+        uses: peter-evans/dockerhub-description@v2
+        env:
+          DOCKERHUB_REPOSITORY: orchestsoftware/jupyter-enterprise-gateway
+          README_FILEPATH: services/jupyter-enterprise-gateway/README.md
 
       - name: Push README files to DockerHub orchest-webserver
         uses: peter-evans/dockerhub-description@v2
