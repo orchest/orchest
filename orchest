@@ -31,13 +31,14 @@ if [ "$1" == "update" ] ; then
     elif [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
         update_orchest_ctl
     else
-        read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
-        if [[ ! $REPLY =~ ^[Yy]$ ]]
-        then
-            echo "Cancelled by user. Exiting ..."
-            exit
-        else
-            update_orchest_ctl
+        # Only query in case Orchest indeed has containers running
+        if [[ "$(docker ps -q -f network=orchest)" != "" ]] ; then
+            read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
+            if [[ ! $REPLY =~ ^[Yy]$ ]] ; then
+                echo "Cancelled by user. Exiting ..."
+                exit
+            fi
+        update_orchest_ctl
         fi
     fi
 fi
