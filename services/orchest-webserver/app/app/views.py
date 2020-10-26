@@ -791,7 +791,7 @@ def register_views(app, db):
 
         client = docker.from_env()
 
-        run_orchest_ctl(client, ["_updateserver"])
+        run_orchest_ctl(client, ["updateserver"])
 
         return ""
 

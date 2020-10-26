@@ -3,11 +3,10 @@ import os
 from app.errors import ENVVariableNotFound
 
 
-# Can either be "normal" or "dev"
-RUN_MODE = "normal"
-
-# Can either be "normal" or "web"
-UPDATE_MODE = "normal"
+# Can either be "reg" or "dev"
+RUN_MODE = "reg"
+# Can either be "reg" or "web"
+UPDATE_MODE = "reg"
 
 DOCKER_NETWORK = "orchest"
 
