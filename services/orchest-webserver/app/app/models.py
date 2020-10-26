@@ -9,26 +9,26 @@ def str_uuid4():
 
 
 class Project(db.Model):
-    __tablename__ = 'project'
+    __tablename__ = "project"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
     path = db.Column(db.String(255), nullable=False)
 
-    __table_args__ = (UniqueConstraint('uuid', 'path'),)
+    __table_args__ = (UniqueConstraint("uuid", "path"),)
 
 
 class Pipeline(db.Model):
-    __tablename__ = 'pipeline'
+    __tablename__ = "pipeline"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
     project_uuid = db.Column(db.ForeignKey("project.uuid"), primary_key=True)
     path = db.Column(db.String(255), nullable=False)
-    
-    __table_args__ = (UniqueConstraint('uuid', 'project_uuid'),)
+
+    __table_args__ = (UniqueConstraint("uuid", "project_uuid"),)
 
 
 class DataSource(db.Model):
-    __tablename__ = 'datasources'
+    __tablename__ = "datasources"
 
     name = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     source_type = db.Column(db.String(100), nullable=False)
@@ -36,25 +36,27 @@ class DataSource(db.Model):
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
     def __repr__(self):
-        return f'<DataSource {self.name}:{self.source_type}>'
+        return f"<DataSource {self.name}:{self.source_type}>"
 
 
 class Image(db.Model):
-    __tablename__ = 'images'
-    
-    uuid = db.Column(db.String(255), unique=True, nullable=False, default=str_uuid4, primary_key=True)
+    __tablename__ = "images"
+
+    uuid = db.Column(
+        db.String(255), unique=True, nullable=False, default=str_uuid4, primary_key=True
+    )
     name = db.Column(db.String(255), unique=True, nullable=False)
     language = db.Column(db.String(255), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     gpu_support = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return f'<Images {self.name}:{self.language}>'
+        return f"<Images {self.name}:{self.language}>"
 
 
 class Commit(db.Model):
-    __tablename__ = 'commits'
-    
+    __tablename__ = "commits"
+
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     tag = db.Column(db.String(255), unique=False, nullable=False)
     name = db.Column(db.String(255), unique=False, nullable=False)
@@ -64,11 +66,11 @@ class Commit(db.Model):
     building = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return f'<Commit {self.name}:{self.base_image}:{self.uuid}>'
+        return f"<Commit {self.name}:{self.base_image}:{self.uuid}>"
 
 
 class Experiment(db.Model):
-    __tablename__ = 'experiments'
+    __tablename__ = "experiments"
 
     name = db.Column(db.String(255), unique=False, nullable=False)
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
@@ -81,7 +83,7 @@ class Experiment(db.Model):
 
 
 class PipelineRun(db.Model):
-    __tablename__ = 'pipelineruns'
+    __tablename__ = "pipelineruns"
 
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     id = db.Column(db.Integer(), unique=False)

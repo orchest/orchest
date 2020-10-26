@@ -63,12 +63,9 @@ CONTAINER_MAPPING = {
                 #       userdir.
                 # Needed for persistent db.
                 "source": ENVS["HOST_USER_DIR"],
-                "target": "/userdir"
+                "target": "/userdir",
             },
-            {
-                "source": "/var/run/docker.sock",
-                "target": "/var/run/docker.sock"
-            },
+            {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
         ],
     },
     "orchestsoftware/orchest-webserver:latest": {
@@ -79,38 +76,23 @@ CONTAINER_MAPPING = {
             "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
         },
         "mounts": [
-            {
-                "source": "/var/run/docker.sock",
-                "target": "/var/run/docker.sock"
-            },
-            {
-                "source": ENVS["HOST_USER_DIR"],
-                "target": "/userdir"
-            },
-            {
-                "source": ENVS["HOST_CONFIG_DIR"],
-                "target": "/config"
-            },
-            {
-                "source": ENVS["HOST_REPO_DIR"],
-                "target": "/orchest-host"
-            }
+            {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
+            {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
+            {"source": ENVS["HOST_CONFIG_DIR"], "target": "/config"},
+            {"source": ENVS["HOST_REPO_DIR"], "target": "/orchest-host"},
         ],
     },
     "orchestsoftware/celery-worker:latest": {
         "name": "celery-worker",
         "mounts": [
-            {
-                "source": "/var/run/docker.sock",
-                "target": "/var/run/docker.sock"
-            },
+            {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
             {
                 # Mount is needed for copying the snapshot dir to
                 # pipeline run dirs for experiments.
                 "source": ENVS["HOST_USER_DIR"],
-                "target": "/userdir"
+                "target": "/userdir",
             },
-        ]
+        ],
     },
     "rabbitmq:3": {
         "name": "rabbitmq-server",
@@ -127,23 +109,14 @@ CONTAINER_MAPPING = {
         "name": "auth-server",
         "environment": {},
         "mounts": [
-            {
-                "source": ENVS["HOST_CONFIG_DIR"],
-                "target": "/config"
-            },
-            {
-                "source": ENVS["HOST_USER_DIR"],
-                "target": "/userdir"
-            },
+            {"source": ENVS["HOST_CONFIG_DIR"], "target": "/config"},
+            {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
         ],
     },
     "orchestsoftware/file-manager:latest": {
         "name": "file-manager",
         "mounts": [
-            {
-                "source": ENVS["HOST_USER_DIR"],
-                "target": "/userdir"
-            },
+            {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
         ],
     },
     "orchestsoftware/nginx-proxy:latest": {
@@ -152,7 +125,7 @@ CONTAINER_MAPPING = {
             "80/tcp": 8000,
             "443/tcp": 443,
         },
-        "mounts": [] # dynamically added in start() based on presence of certs on host
+        "mounts": [],  # dynamically added in start() based on presence of certs on host
     },
     "orchestsoftware/update-server:latest": {
         "name": "update-server",
@@ -163,10 +136,7 @@ CONTAINER_MAPPING = {
         },
         "auto_remove": True,
         "mounts": [
-            {
-                "source": "/var/run/docker.sock",
-                "target": "/var/run/docker.sock"
-            },
-        ]
-    }
+            {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
+        ],
+    },
 }

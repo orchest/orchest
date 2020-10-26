@@ -6,9 +6,9 @@ from typing import Any, Dict
 from jupyterlab.labapp import LabApp
 
 
-def _write_server_info_to_file(server_info: Dict[str, Any],
-                               file_name: str,
-                               respective_path: str = '../tmp/') -> None:
+def _write_server_info_to_file(
+    server_info: Dict[str, Any], file_name: str, respective_path: str = "../tmp/"
+) -> None:
     """Writes server information to a file.
 
     The information is written to the given "file_name" with trespect to
@@ -36,7 +36,7 @@ def _write_server_info_to_file(server_info: Dict[str, Any],
     # to the current file.
     abs_path = os.path.dirname(os.path.abspath(__file__))
     full_name = os.path.join(abs_path, respective_path, file_name)
-    with open(full_name, 'w') as f:
+    with open(full_name, "w") as f:
         json.dump(server_info, f)
 
 
@@ -46,11 +46,11 @@ def main():
     #       docker image has to be changed in order to allow another
     #       user. For now, it just works.
     formatted_args = [
-        '--allow-root',
-        '--no-browser',
-        '--debug',
-        '--ip=0.0.0.0',
-        '--port=8888',
+        "--allow-root",
+        "--no-browser",
+        "--debug",
+        "--ip=0.0.0.0",
+        "--port=8888",
     ]
 
     sys.argv.extend(formatted_args)
@@ -61,12 +61,12 @@ def main():
     la = LabApp()
     la.initialize()
 
-    _write_server_info_to_file(la.server_info(), 'server_info.json')
+    _write_server_info_to_file(la.server_info(), "server_info.json")
 
     # This print is mandatory. The message can be changed, but the
     # subprocess is piping this output to stdout to confirm that
     # the JupyterLab has successfully started.
-    print('Initialized JupyterLab instance')
+    print("Initialized JupyterLab instance")
 
     # TODO: if the starting takes too long, then the front-end will
     #       already try to connect to the lab instance. Resulting in an
@@ -74,5 +74,5 @@ def main():
     la.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

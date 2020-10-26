@@ -39,6 +39,7 @@ class APITask(Task):
     Recources:
         https://docs.celeryproject.org/en/master/userguide/tasks.html#instantiation
     """
+
     _session = None
 
     async def get_clientsession(self):
@@ -65,11 +66,13 @@ class APITask(Task):
 #       in the API. `run_pipeline` sounds even better to me
 # @celery.task(bind=True, base=APITask)
 @celery.task(bind=True)
-def run_partial(self,
-                pipeline_description: PipelineDescription,
-                project_uuid: str,
-                run_config: Dict[str, Union[str, Dict[str, str]]],
-                task_id: Optional[str] = None) -> str:
+def run_partial(
+    self,
+    pipeline_description: PipelineDescription,
+    project_uuid: str,
+    run_config: Dict[str, Union[str, Dict[str, str]]],
+    task_id: Optional[str] = None,
+) -> str:
     """Runs a pipeline partially.
 
     A partial run is described by the pipeline description The
@@ -88,8 +91,8 @@ def run_partial(self,
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
-    run_config['pipeline_uuid'] = pipeline_description['uuid']
-    run_config['project_uuid'] = project_uuid
+    run_config["pipeline_uuid"] = pipeline_description["uuid"]
+    run_config["project_uuid"] = project_uuid
 
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_description)
@@ -111,7 +114,7 @@ def start_non_interactive_pipeline_run(
     experiment_uuid,
     project_uuid,
     pipeline_description: PipelineDescription,
-    run_config: Dict[str, Union[str, Dict[str, str]]]
+    run_config: Dict[str, Union[str, Dict[str, str]]],
 ) -> str:
     """Starts a non-interactive pipeline run.
 
@@ -131,11 +134,12 @@ def start_non_interactive_pipeline_run(
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
-    pipeline_uuid = pipeline_description['uuid']
+    pipeline_uuid = pipeline_description["uuid"]
 
-    experiment_dir = os.path.join('/userdir', 'experiments',
-                                  project_uuid, pipeline_uuid, experiment_uuid)
-    snapshot_dir = os.path.join(experiment_dir, 'snapshot')
+    experiment_dir = os.path.join(
+        "/userdir", "experiments", project_uuid, pipeline_uuid, experiment_uuid
+    )
+    snapshot_dir = os.path.join(experiment_dir, "snapshot")
     run_dir = os.path.join(experiment_dir, self.request.id)
 
     # TODO: It should not copy all directories, e.g. not "data".
@@ -150,34 +154,36 @@ def start_non_interactive_pipeline_run(
     # `run_config` has to be the abs path w.r.t. the host because it is
     # used by the `docker.sock` when mounting the dir to the container
     # of a step.
-    host_base_user_dir = os.path.split(run_config['host_user_dir'])[0]
+    host_base_user_dir = os.path.split(run_config["host_user_dir"])[0]
 
     # It gets passed to the run of the pipeline, however, it is never
     # used. Thus we delete it to not cause confusion.
-    del run_config['host_user_dir']
+    del run_config["host_user_dir"]
 
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
-    run_config['project_dir'] = os.path.join(host_base_user_dir, run_dir[1:])
-    run_config['run_endpoint'] = f'experiments/{experiment_uuid}'
-    run_config['pipeline_uuid'] = pipeline_uuid
-    run_config['project_uuid'] = project_uuid
+    run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
+    run_config["run_endpoint"] = f"experiments/{experiment_uuid}"
+    run_config["pipeline_uuid"] = pipeline_uuid
+    run_config["project_uuid"] = project_uuid
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
     # every step.
-    pipeline_json = os.path.join(run_dir, run_config['pipeline_path'])
-    with open(pipeline_json, 'w') as f:
+    pipeline_json = os.path.join(run_dir, run_config["pipeline_path"])
+    with open(pipeline_json, "w") as f:
         json.dump(pipeline_description, f)
 
     with launch_session(
         docker_client,
         self.request.id,
         project_uuid,
-        run_config['pipeline_path'],
-        run_config['project_dir'],
+        run_config["pipeline_path"],
+        run_config["project_dir"],
         interactive=False,
     ) as session:
-        status = run_partial(pipeline_description, project_uuid, run_config, task_id=self.request.id)
+        status = run_partial(
+            pipeline_description, project_uuid, run_config, task_id=self.request.id
+        )
 
     return status

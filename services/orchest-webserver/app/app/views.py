@@ -14,8 +14,27 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
-from app.utils import get_hash, get_user_conf, get_user_conf_raw, save_user_conf_raw, name_to_tag, get_synthesized_images, find_pipelines_in_dir, pipeline_uuid_to_path, project_uuid_to_path, remove_dir_if_empty
-from app.models import DataSource, Experiment, PipelineRun, Image, Commit, Project, Pipeline
+from app.utils import (
+    get_hash,
+    get_user_conf,
+    get_user_conf_raw,
+    save_user_conf_raw,
+    name_to_tag,
+    get_synthesized_images,
+    find_pipelines_in_dir,
+    pipeline_uuid_to_path,
+    project_uuid_to_path,
+    remove_dir_if_empty,
+)
+from app.models import (
+    DataSource,
+    Experiment,
+    PipelineRun,
+    Image,
+    Commit,
+    Project,
+    Pipeline,
+)
 from app.kernel_manager import populate_kernels
 from _orchest.internals import config as _config
 from _orchest.internals.utils import run_orchest_ctl
@@ -35,14 +54,12 @@ def register_views(app, db):
     project_schema = ProjectSchema()
     projects_schema = ProjectSchema(many=True)
 
-
     class PipelineSchema(ma.Schema):
         class Meta:
             fields = ("uuid", "path")
 
     pipeline_schema = PipelineSchema()
     pipelines_schema = PipelineSchema(many=True)
-
 
     class DataSourceNameInUse(HTTPException):
         pass
@@ -74,22 +91,26 @@ def register_views(app, db):
     image_schema = ImageSchema()
     images_schema = ImageSchema(many=True)
 
-
-
     class ExperimentSchema(ma.Schema):
         class Meta:
-            fields = ("name", "uuid", "pipeline_uuid", "project_uuid",
-                      "pipeline_name", "created", "strategy_json", "draft")
+            fields = (
+                "name",
+                "uuid",
+                "pipeline_uuid",
+                "project_uuid",
+                "pipeline_name",
+                "created",
+                "strategy_json",
+                "draft",
+            )
 
     experiment_schema = ExperimentSchema()
     experiments_schema = ExperimentSchema(many=True)
 
     def return_404(reason=""):
-        json_string = json.dumps(
-            {"success": False, "reason": reason})
+        json_string = json.dumps({"success": False, "reason": reason})
 
         return json_string, 404, {"content-type": "application/json"}
-
 
     def generate_gateway_kernel_name(image, kernel):
         base_image = image
@@ -100,7 +121,6 @@ def register_views(app, db):
             base_image = base_image.replace("/", "-")
 
         return base_image
-
 
     def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory):
 
@@ -113,32 +133,42 @@ def register_views(app, db):
 
             if "ipynb" == step["file_path"].split(".")[-1]:
 
-                notebook_path = os.path.join(
-                    pipeline_directory, step["file_path"])
+                notebook_path = os.path.join(pipeline_directory, step["file_path"])
 
                 if os.path.isfile(notebook_path):
 
                     gateway_kernel = generate_gateway_kernel_name(
-                        step["image"], step["kernel"]["name"])
+                        step["image"], step["kernel"]["name"]
+                    )
 
                     notebook_json = None
 
                     with open(notebook_path, "r") as file:
                         notebook_json = json.load(file)
 
-                    if notebook_json["metadata"]["kernelspec"]["name"] != gateway_kernel:
+                    if (
+                        notebook_json["metadata"]["kernelspec"]["name"]
+                        != gateway_kernel
+                    ):
                         notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
 
                         with open(notebook_path, "w") as file:
                             file.write(json.dumps(notebook_json))
-                            
+
                 else:
                     logging.info(
-                        "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s" % notebook_path)
+                        "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s"
+                        % notebook_path
+                    )
 
-
-
-    def get_pipeline_path(pipeline_uuid, project_uuid, experiment_uuid=None, pipeline_run_uuid=None, host_path=False, pipeline_path=None):
+    def get_pipeline_path(
+        pipeline_uuid,
+        project_uuid,
+        experiment_uuid=None,
+        pipeline_run_uuid=None,
+        host_path=False,
+        pipeline_path=None,
+    ):
 
         USER_DIR = app.config["USER_DIR"]
         if host_path == True:
@@ -152,14 +182,42 @@ def register_views(app, db):
         if pipeline_run_uuid is None:
             return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
         elif pipeline_run_uuid is not None and experiment_uuid is not None:
-            return os.path.join(USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid, pipeline_run_uuid, pipeline_path)
+            return os.path.join(
+                USER_DIR,
+                "experiments",
+                project_uuid,
+                pipeline_uuid,
+                experiment_uuid,
+                pipeline_run_uuid,
+                pipeline_path,
+            )
         elif experiment_uuid is not None:
-            return os.path.join(USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid, "snapshot", pipeline_path)
+            return os.path.join(
+                USER_DIR,
+                "experiments",
+                project_uuid,
+                pipeline_uuid,
+                experiment_uuid,
+                "snapshot",
+                pipeline_path,
+            )
 
-    
-    def get_pipeline_directory(pipeline_uuid, project_uuid, experiment_uuid=None, pipeline_run_uuid=None, host_path=False):
-        return os.path.split(get_pipeline_path(pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid, host_path))[0]
-
+    def get_pipeline_directory(
+        pipeline_uuid,
+        project_uuid,
+        experiment_uuid=None,
+        pipeline_run_uuid=None,
+        host_path=False,
+    ):
+        return os.path.split(
+            get_pipeline_path(
+                pipeline_uuid,
+                project_uuid,
+                experiment_uuid,
+                pipeline_run_uuid,
+                host_path,
+            )
+        )[0]
 
     def get_project_directory(project_uuid, host_path=False):
         USER_DIR = app.config["USER_DIR"]
@@ -168,23 +226,31 @@ def register_views(app, db):
 
         return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
-
     def generate_ipynb_from_template(step):
 
         # TODO: support additional languages to Python and R
         if "python" in step["kernel"]["name"].lower():
             template_json = json.load(
-                open(os.path.join(app.config["RESOURCE_DIR"], "ipynb_template.json"), "r"))
+                open(
+                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template.json"), "r"
+                )
+            )
         else:
             template_json = json.load(
-                open(os.path.join(app.config["RESOURCE_DIR"], "ipynb_template_r.json"), "r"))
+                open(
+                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template_r.json"),
+                    "r",
+                )
+            )
 
-        template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"]["display_name"]
+        template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
+            "display_name"
+        ]
         template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-            step["image"], step["kernel"]["name"])
+            step["image"], step["kernel"]["name"]
+        )
 
         return json.dumps(template_json)
-
 
     def create_pipeline_files(pipeline_json, pipeline_directory):
 
@@ -218,17 +284,22 @@ def register_views(app, db):
 
                     file.write(file_content)
 
-
     def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
         experiment_path = os.path.join(
-            app.config["USER_DIR"], "experiments", project_uuid, pipeline_uuid, experiment_uuid)
+            app.config["USER_DIR"],
+            "experiments",
+            project_uuid,
+            pipeline_uuid,
+            experiment_uuid,
+        )
 
         os.makedirs(experiment_path)
         snapshot_path = os.path.join(experiment_path, "snapshot")
-        project_dir = os.path.join(app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid))
+        project_dir = os.path.join(
+            app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
+        )
         os.system("cp -R %s %s" % (project_dir, snapshot_path))
-
 
     def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
@@ -247,48 +318,47 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-
     def remove_commit_image(commit):
-        full_image_name = '%s:%s' % (commit.base_image, commit.tag)
+        full_image_name = "%s:%s" % (commit.base_image, commit.tag)
         try:
             client = docker.from_env()
             client.images.remove(full_image_name, noprune=True)
         except:
             logging.info("Unable to remove image: %s" % full_image_name)
 
-
     def remove_commit_shell(commit):
 
-        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit.uuid)
-        
+        shell_file_dir = os.path.join(
+            app.config["USER_DIR"], ".orchest", "commits", commit.uuid
+        )
+
         if os.path.isdir(shell_file_dir):
             os.system("rm -r %s" % (shell_file_dir))
 
     def register_commits(db, api, ma):
-
         class CommitsResource(Resource):
-
             def get(self):
-                if 'image_name' in request.args:
-                    commits = Commit.query.filter(Commit.base_image == request.args['image_name']).all()
+                if "image_name" in request.args:
+                    commits = Commit.query.filter(
+                        Commit.base_image == request.args["image_name"]
+                    ).all()
                 else:
                     commits = Commit.query.all()
-                    
+
                 return commits_schema.dump(commits)
 
         class CommitResource(Resource):
-
             def put(self, commit_uuid):
 
-                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
-                
+                commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
+
                 if commit is None:
-                    return '', 404
+                    return "", 404
 
                 commit.name = request.json["name"]
                 commit.tag = name_to_tag(request.json["name"])
                 commit.base_image = request.json["image_name"]
-                
+
                 db.session.commit()
 
                 # side effect: update shared kernels directory
@@ -297,15 +367,15 @@ def register_views(app, db):
                 return commit_schema.dump(commit)
 
             def get(self, commit_uuid):
-                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
+                commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
                 return commit_schema.dump(commit)
 
             def delete(self, commit_uuid):
 
-                commit = Commit.query.filter(Commit.uuid==commit_uuid).first()
+                commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
 
                 if commit is None:
-                    return '', 404
+                    return "", 404
 
                 remove_commit_shell(commit)
                 remove_commit_image(commit)
@@ -318,23 +388,25 @@ def register_views(app, db):
 
             # note that the post request accepts the name instead of the tag
             def post(self, commit_uuid):
-                
+
                 name = request.json["name"]
                 tag = name_to_tag(name)
                 image_name = request.json["image_name"]
 
-                if Commit.query.filter(Commit.base_image.name == image_name).filter(Commit.tag == tag).count() > 0:
+                if (
+                    Commit.query.filter(Commit.base_image.name == image_name)
+                    .filter(Commit.tag == tag)
+                    .count()
+                    > 0
+                ):
                     raise CommitNameInUse()
 
                 # check image_name exists as a constraint
                 if Image.query.filter(Image.name == image_name).count() == 0:
-                    return '', 404
+                    return "", 404
 
                 new_commit = Commit(
-                    uuid=str(uuid.uuid4()),
-                    name=name,
-                    tag=tag,
-                    base_image=image_name
+                    uuid=str(uuid.uuid4()), name=name, tag=tag, base_image=image_name
                 )
 
                 db.session.add(new_commit)
@@ -346,32 +418,26 @@ def register_views(app, db):
                 return commit_schema.dump(new_commit)
 
         api.add_resource(CommitsResource, "/store/commits")
-        api.add_resource(CommitResource,
-                         "/store/commits/<string:commit_uuid>")
-
+        api.add_resource(CommitResource, "/store/commits/<string:commit_uuid>")
 
     def register_images(db, api, ma):
-
         class ImagesResource(Resource):
-
             def get(self):
                 images = Image.query.all()
                 return images_schema.dump(images)
 
         class ImageResource(Resource):
- 
             def put(self, uuid):
 
                 im = Image.query.filter(Image.uuid == uuid).first()
 
                 if im is None:
-                    return '', 404
+                    return "", 404
 
                 im.name = request.json["name"]
                 im.language = request.json["language"]
                 im.gpu_support = request.json["gpu_support"]
                 db.session.commit()
-
 
                 # side effect: update shared kernels directory
                 populate_kernels(app, db)
@@ -382,7 +448,7 @@ def register_views(app, db):
                 im = Image.query.filter(Image.uuid == uuid).first()
 
                 if im is None:
-                    return '', 404
+                    return "", 404
 
                 return image_schema.dump(im)
 
@@ -413,7 +479,7 @@ def register_views(app, db):
                 new_im = Image(
                     name=request.json["name"],
                     language=request.json["language"],
-                    gpu_support=request.json["gpu_support"]
+                    gpu_support=request.json["gpu_support"],
                 )
 
                 db.session.add(new_im)
@@ -425,14 +491,10 @@ def register_views(app, db):
                 return image_schema.dump(new_im)
 
         api.add_resource(ImagesResource, "/store/images")
-        api.add_resource(ImageResource,
-                         "/store/images/<string:uuid>")
-
+        api.add_resource(ImageResource, "/store/images/<string:uuid>")
 
     def register_datasources(db, api, ma):
-
         class DataSourcesResource(Resource):
-
             def get(self):
 
                 show_internal = True
@@ -442,17 +504,18 @@ def register_views(app, db):
                 if show_internal:
                     datasources = DataSource.query.all()
                 else:
-                    datasources = DataSource.query.filter(~DataSource.name.like("\_%", escape="\\")).all()
-                
+                    datasources = DataSource.query.filter(
+                        ~DataSource.name.like("\_%", escape="\\")
+                    ).all()
+
                 return datasources_schema.dump(datasources)
 
         class DataSourceResource(Resource):
-
             def put(self, name):
                 ds = DataSource.query.filter(DataSource.name == name).first()
 
                 if ds is None:
-                    return '', 404
+                    return "", 404
 
                 ds.name = request.json["name"]
                 ds.source_type = request.json["source_type"]
@@ -465,7 +528,7 @@ def register_views(app, db):
                 ds = DataSource.query.filter(DataSource.name == name).first()
 
                 if ds is None:
-                    return '', 404
+                    return "", 404
 
                 return datasource_schema.dump(ds)
 
@@ -473,7 +536,7 @@ def register_views(app, db):
                 ds = DataSource.query.filter(DataSource.name == name).first()
 
                 if ds is None:
-                    return '', 404
+                    return "", 404
 
                 db.session.delete(ds)
                 db.session.commit()
@@ -485,7 +548,7 @@ def register_views(app, db):
                 new_ds = DataSource(
                     name=name,
                     source_type=request.json["source_type"],
-                    connection_details=request.json["connection_details"]
+                    connection_details=request.json["connection_details"],
                 )
 
                 db.session.add(new_ds)
@@ -494,27 +557,21 @@ def register_views(app, db):
                 return datasource_schema.dump(new_ds)
 
         api.add_resource(DataSourcesResource, "/store/datasources")
-        api.add_resource(DataSourceResource,
-                         "/store/datasources/<string:name>")
-
+        api.add_resource(DataSourceResource, "/store/datasources/<string:name>")
 
     def register_experiments(db, api, ma):
-
         class ExperimentsResource(Resource):
-
             def get(self):
                 experiments = Experiment.query.all()
                 return experiments_schema.dump(experiments)
 
         class ExperimentResource(Resource):
-
             def put(self, experiment_uuid):
 
-                ex = Experiment.query.filter(
-                    Experiment.uuid == experiment_uuid).first()
+                ex = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
 
                 if ex is None:
-                    return '', 404
+                    return "", 404
 
                 ex.name = request.json["name"]
                 ex.pipeline_uuid = request.json["pipeline_uuid"]
@@ -527,22 +584,20 @@ def register_views(app, db):
                 return experiment_schema.dump(ex)
 
             def get(self, experiment_uuid):
-                ex = Experiment.query.filter(
-                    Experiment.uuid == experiment_uuid).first()
+                ex = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
 
                 if ex is None:
-                    return '', 404
+                    return "", 404
 
                 return experiment_schema.dump(ex)
 
             def delete(self, experiment_uuid):
 
                 # remove experiment directory
-                ex = Experiment.query.filter(
-                    Experiment.uuid == experiment_uuid).first()
+                ex = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
 
                 if ex is None:
-                    return '', 404
+                    return "", 404
 
                 remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
@@ -568,9 +623,9 @@ def register_views(app, db):
                 return experiment_schema.dump(new_ex)
 
         api.add_resource(ExperimentsResource, "/store/experiments")
-        api.add_resource(ExperimentResource,
-                         "/store/experiments/<string:experiment_uuid>")
-
+        api.add_resource(
+            ExperimentResource, "/store/experiments/<string:experiment_uuid>"
+        )
 
     def register_rest(app, db):
 
@@ -598,18 +653,22 @@ def register_views(app, db):
 
     register_rest(app, db)
 
-
     @app.route("/", methods=["GET"])
     def index():
 
         js_bundle_path = os.path.join(
-            app.config["STATIC_DIR"], "js", "dist", "main.bundle.js")
-        css_bundle_path = os.path.join(
-            app.config["STATIC_DIR"], "css", "main.css")
-            
+            app.config["STATIC_DIR"], "js", "dist", "main.bundle.js"
+        )
+        css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
 
-        return render_template("index.html", javascript_bundle_hash=get_hash(js_bundle_path), css_bundle_hash=get_hash(css_bundle_path), user_config=get_user_conf(), DOCS_ROOT=app.config["DOCS_ROOT"], FLASK_ENV=app.config["FLASK_ENV"])
-
+        return render_template(
+            "index.html",
+            javascript_bundle_hash=get_hash(js_bundle_path),
+            css_bundle_hash=get_hash(css_bundle_path),
+            user_config=get_user_conf(),
+            DOCS_ROOT=app.config["DOCS_ROOT"],
+            FLASK_ENV=app.config["FLASK_ENV"],
+        )
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
     def catch_api_proxy_runs():
@@ -619,23 +678,21 @@ def register_views(app, db):
         # add image mapping
         # TODO: replace with dynamic mapping instead of hardcoded
         json_obj["run_config"] = {
-            "project_dir": 
-                get_project_directory(
-                    json_obj["project_uuid"], 
-                    host_path=True
-                ),
-            "pipeline_path": 
-                pipeline_uuid_to_path(
-                    json_obj["pipeline_description"]["uuid"], 
-                    json_obj["project_uuid"]
-                )
+            "project_dir": get_project_directory(
+                json_obj["project_uuid"], host_path=True
+            ),
+            "pipeline_path": pipeline_uuid_to_path(
+                json_obj["pipeline_description"]["uuid"], json_obj["project_uuid"]
+            ),
         }
 
         resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/", json=json_obj, stream=True)
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
+            json=json_obj,
+            stream=True,
+        )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
-
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
     def catch_api_proxy_sessions():
@@ -643,21 +700,23 @@ def register_views(app, db):
         json_obj = request.json
 
         json_obj["project_dir"] = get_project_directory(
-            json_obj["project_uuid"], 
-            host_path=True)
-            
+            json_obj["project_uuid"], host_path=True
+        )
+
         json_obj["pipeline_path"] = pipeline_uuid_to_path(
-            json_obj["pipeline_uuid"], 
+            json_obj["pipeline_uuid"],
             json_obj["project_uuid"],
         )
 
         json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
 
         resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/", json=json_obj, stream=True)
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
+            json=json_obj,
+            stream=True,
+        )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
-
 
     @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
     def catch_api_proxy_experiments_post():
@@ -667,30 +726,37 @@ def register_views(app, db):
         json_obj["pipeline_run_spec"]["run_config"] = {
             "host_user_dir": app.config["HOST_USER_DIR"],
             "project_dir": get_project_directory(
-                json_obj["project_uuid"], 
-                host_path=True),
+                json_obj["project_uuid"], host_path=True
+            ),
             "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_uuid"], 
+                json_obj["pipeline_uuid"],
                 json_obj["project_uuid"],
             ),
         }
 
         resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/", json=json_obj, stream=True)
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/",
+            json=json_obj,
+            stream=True,
+        )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
-
 
     @app.route("/catch/api-proxy/api/experiments/<experiment_uuid>", methods=["GET"])
     def catch_api_proxy_experiments_get(experiment_uuid):
 
-
         resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/" + experiment_uuid, stream=True)
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/experiments/"
+            + experiment_uuid,
+            stream=True,
+        )
 
         # get PipelineRuns to augment response
         pipeline_runs = PipelineRun.query.filter(
-            PipelineRun.experiment == experiment_uuid).all()
+            PipelineRun.experiment == experiment_uuid
+        ).all()
 
         pipeline_runs_dict = {}
 
@@ -698,7 +764,9 @@ def register_views(app, db):
             pipeline_runs_dict[pipeline_run.id] = pipeline_run
 
         json_return = resp.json()
-        json_return["pipeline_runs"] = sorted(json_return['pipeline_runs'], key= lambda x: x["pipeline_run_id"])
+        json_return["pipeline_runs"] = sorted(
+            json_return["pipeline_runs"], key=lambda x: x["pipeline_run_id"]
+        )
 
         # augment response with parameter values that are stored on the webserver
         if resp.status_code == 200:
@@ -707,7 +775,9 @@ def register_views(app, db):
                 logging.info(json_return)
 
                 for run in json_return["pipeline_runs"]:
-                    run["parameters"] = pipeline_runs_dict[run["pipeline_run_id"]].parameter_json
+                    run["parameters"] = pipeline_runs_dict[
+                        run["pipeline_run_id"]
+                    ].parameter_json
 
                 return jsonify(json_return)
             except Exception as e:
@@ -716,57 +786,52 @@ def register_views(app, db):
         else:
             return resp.raw.read(), resp.status_code
 
-
     @app.route("/async/spawn-update-server", methods=["GET"])
     def spawn_update_server():
 
         client = docker.from_env()
-        
+
         run_orchest_ctl(client, ["_updateserver"])
 
-        return ''
+        return ""
 
-    
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():
-        return ''
-
+        return ""
 
     @app.route("/async/restart", methods=["POST"])
     def restart_server():
 
         client = docker.from_env()
-        
+
         if request.args.get("mode") == "dev":
             run_orchest_ctl(client, ["restart", "dev"])
         else:
             run_orchest_ctl(client, ["restart"])
 
-        return ''
+        return ""
 
-    
     @app.route("/async/version", methods=["GET"])
     def version():
 
         git_proc = subprocess.Popen(
-            "echo \"git commit: $(git rev-parse --short HEAD) [$(git rev-parse HEAD)] on branch '$(git rev-parse --abbrev-ref HEAD)'\"", 
-            cwd="/orchest-host", 
-            shell=True, 
-            stdout=subprocess.PIPE, 
+            "echo \"git commit: $(git rev-parse --short HEAD) [$(git rev-parse HEAD)] on branch '$(git rev-parse --abbrev-ref HEAD)'\"",
+            cwd="/orchest-host",
+            shell=True,
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True
+            text=True,
         )
 
         outs, _ = git_proc.communicate()
 
         return outs
 
-
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
 
         if request.method == "POST":
-            
+
             config = request.form.get("config")
 
             try:
@@ -777,23 +842,20 @@ def register_views(app, db):
             except json.JSONDecodeError as e:
                 logging.debug(e)
 
-            return ''
+            return ""
         else:
             return get_user_conf_raw()
-
 
     @app.route("/async/synthesized-images", methods=["GET"])
     def images_get():
 
-        synthesized_images, _ = get_synthesized_images(language=request.args.get("language"))
+        synthesized_images, _ = get_synthesized_images(
+            language=request.args.get("language")
+        )
 
-        result = {
-            "success": True,
-            "images": synthesized_images
-        }
+        result = {"success": True, "images": synthesized_images}
 
         return jsonify(result), 200, {"content-type": "application/json"}
-
 
     @app.route("/async/image-metadata/", methods=["POST"])
     def image_metadata():
@@ -803,13 +865,17 @@ def register_views(app, db):
 
         image = Image.query.filter(Image.name == image_name).first()
         if image is None:
-            
+
             if ":" in image_name:
                 # check if commit exists
                 base_image = image_name.split(":")[0]
                 tag = image_name.split(":")[1]
 
-                commit = Commit.query.filter(Commit.base_image == base_image).filter(Commit.tag == tag).first()
+                commit = (
+                    Commit.query.filter(Commit.base_image == base_image)
+                    .filter(Commit.tag == tag)
+                    .first()
+                )
                 if commit is None:
                     return jsonify({"message": "Image not found"}), 404
 
@@ -821,33 +887,39 @@ def register_views(app, db):
             else:
                 return jsonify({"message": "Image not found"}), 404
 
-        result = {
-            "success": True,
-            "image": image_schema.dump(image)
-        }
+        result = {"success": True, "image": image_schema.dump(image)}
 
         return jsonify(result), 200, {"content-type": "application/json"}
 
-
-    @app.route("/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"])
+    @app.route(
+        "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
+    )
     def pipelines_delete(project_uuid, pipeline_uuid):
 
-        if Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).filter(Pipeline.project_uuid == project_uuid).count() > 0:
+        if (
+            Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
+            .filter(Pipeline.project_uuid == project_uuid)
+            .count()
+            > 0
+        ):
 
             pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
             # TODO: find way to not force sudo remove on pipeline dirs
             # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
             os.system("rm -rf %s" % pipeline_json_path)
-            
-            pipeline = Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).filter(Pipeline.project_uuid == project_uuid).first()
+
+            pipeline = (
+                Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
+                .filter(Pipeline.project_uuid == project_uuid)
+                .first()
+            )
             db.session.delete(pipeline)
             db.session.commit()
 
             return jsonify({"success": True})
         else:
             return jsonify({"message": "Pipeline could not be found."}), 404
-
 
     @app.route("/async/experiments/create", methods=["POST"])
     def experiments_create():
@@ -868,10 +940,10 @@ def register_views(app, db):
         db.session.commit()
 
         create_experiment_directory(
-            experiment_uuid, request.json["pipeline_uuid"], request.json["project_uuid"])
+            experiment_uuid, request.json["pipeline_uuid"], request.json["project_uuid"]
+        )
 
         return jsonify(experiment_schema.dump(new_ex))
-
 
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():
@@ -884,7 +956,7 @@ def register_views(app, db):
                 uuid=request.json["experiment_json"]["pipeline_runs"][idx]["run_uuid"],
                 experiment=experiment_uuid,
                 parameter_json=pipeline_run,
-                id=request.json["pipeline_run_ids"][idx]
+                id=request.json["pipeline_run_ids"][idx],
             )
 
             db.session.add(pr)
@@ -893,20 +965,22 @@ def register_views(app, db):
 
         return jsonify({"success": True})
 
-
     @app.route("/async/pipelines/create/<project_uuid>", methods=["POST"])
     def pipelines_create(project_uuid):
 
         pipeline_path = request.json["pipeline_path"]
 
-        if Pipeline.query.filter(Pipeline.project_uuid == project_uuid).filter(Pipeline.path == pipeline_path).count() == 0:
+        if (
+            Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
+            .filter(Pipeline.path == pipeline_path)
+            .count()
+            == 0
+        ):
 
             pipeline_uuid = str(uuid.uuid4())
 
             pipeline = Pipeline(
-                path=pipeline_path,
-                uuid=pipeline_uuid,
-                project_uuid=project_uuid
+                path=pipeline_path, uuid=pipeline_uuid, project_uuid=project_uuid
             )
             db.session.add(pipeline)
             db.session.commit()
@@ -921,7 +995,7 @@ def register_views(app, db):
                 "name": request.json["name"],
                 "version": "1.0.0",
                 "uuid": pipeline_uuid,
-                "steps": {}
+                "steps": {},
             }
 
             with open(pipeline_json_path, "w") as pipeline_json_file:
@@ -929,11 +1003,17 @@ def register_views(app, db):
 
             return jsonify({"success": True})
         else:
-            return jsonify({"message": "Pipeline already exists at path '%s'." % pipeline_path }), 409
-
+            return (
+                jsonify(
+                    {"message": "Pipeline already exists at path '%s'." % pipeline_path}
+                ),
+                409,
+            )
 
     # Note: only pipelines in project directories can be renamed (not in experiments)
-    @app.route("/async/pipelines/rename/<project_uuid>/<pipeline_uuid>", methods=["POST"])
+    @app.route(
+        "/async/pipelines/rename/<project_uuid>/<pipeline_uuid>", methods=["POST"]
+    )
     def pipelines_rename(project_uuid, pipeline_uuid):
 
         if Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).count() > 0:
@@ -957,16 +1037,22 @@ def register_views(app, db):
         else:
             return "", 404
 
-
     @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
     def projects():
 
         project_dir = os.path.join(app.config["USER_DIR"], "projects")
-        project_paths = [name for name in os.listdir(project_dir) if os.path.isdir(os.path.join(project_dir, name))]
-        
+        project_paths = [
+            name
+            for name in os.listdir(project_dir)
+            if os.path.isdir(os.path.join(project_dir, name))
+        ]
+
         # create UUID entry for all projects that do not yet exist
-        existing_project_paths = [project.path for project in Project.query.filter(Project.path.in_(project_paths)).all()]
-        
+        existing_project_paths = [
+            project.path
+            for project in Project.query.filter(Project.path.in_(project_paths)).all()
+        ]
+
         new_project_paths = set(project_paths) - set(existing_project_paths)
 
         for new_project_path in new_project_paths:
@@ -978,13 +1064,12 @@ def register_views(app, db):
             db.session.commit()
         # end of UUID creation
 
-
         if request.method == "GET":
             return jsonify(projects_schema.dump(Project.query.all()))
 
         elif request.method == "DELETE":
 
-            project_uuid = request.json['project_uuid']
+            project_uuid = request.json["project_uuid"]
 
             project = Project.query.filter(Project.uuid == project_uuid).first()
 
@@ -999,10 +1084,15 @@ def register_views(app, db):
 
                 return jsonify({"message": "Project deleted."})
             else:
-                return jsonify({"message": "Project not found for UUID %s." % project_uuid}), 404
+                return (
+                    jsonify(
+                        {"message": "Project not found for UUID %s." % project_uuid}
+                    ),
+                    404,
+                )
 
         elif request.method == "POST":
-            project_path = request.json['name']
+            project_path = request.json["name"]
 
             if project_path not in project_paths:
                 full_project_path = os.path.join(project_dir, project_path)
@@ -1014,42 +1104,52 @@ def register_views(app, db):
                     )
                     db.session.add(new_project)
                     db.session.commit()
-                    
+
                     os.makedirs(full_project_path)
 
                 else:
                     return jsonify({"message": "Project directory exists."}), 409
             else:
-                return jsonify({"message": "Project with the same name already exists."}), 409
+                return (
+                    jsonify({"message": "Project with the same name already exists."}),
+                    409,
+                )
 
             return jsonify({"message": "Project created."})
 
-
     @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["GET"])
     def pipeline_get(project_uuid, pipeline_uuid):
-        
-        pipeline = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).filter(Pipeline.uuid == pipeline_uuid).first()
+
+        pipeline = (
+            Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
+            .filter(Pipeline.uuid == pipeline_uuid)
+            .first()
+        )
 
         if pipeline is None:
             return jsonify({"message": "Pipeline doesn't exist."}), 404
         else:
             return jsonify(pipeline_schema.dump(pipeline))
 
-
     @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
     def pipelines_get(project_uuid):
 
         project_path = project_uuid_to_path(project_uuid)
-        project_dir = os.path.join(app.config['USER_DIR'], "projects", project_path)
-        
+        project_dir = os.path.join(app.config["USER_DIR"], "projects", project_path)
+
         if not os.path.isdir(project_dir):
             return jsonify({"message": "Project directory not found."}), 404
-        
+
         # find all pipelines in project dir
         pipeline_paths = find_pipelines_in_dir(project_dir, project_dir)
 
         # identify all pipeline paths that are not yet a pipeline
-        existing_pipeline_paths = [pipeline.path for pipeline in Pipeline.query.filter(Pipeline.path.in_(pipeline_paths)).filter(Pipeline.project_uuid == project_uuid).all()]
+        existing_pipeline_paths = [
+            pipeline.path
+            for pipeline in Pipeline.query.filter(Pipeline.path.in_(pipeline_paths))
+            .filter(Pipeline.project_uuid == project_uuid)
+            .all()
+        ]
 
         # TODO: handle existing pipeline assignments
         new_pipeline_paths = set(pipeline_paths) - set(existing_pipeline_paths)
@@ -1057,24 +1157,29 @@ def register_views(app, db):
         for new_pipeline_path in new_pipeline_paths:
 
             # write pipeline uuid to file
-            pipeline_json_path = get_pipeline_path(None, project_uuid, pipeline_path=new_pipeline_path)
+            pipeline_json_path = get_pipeline_path(
+                None, project_uuid, pipeline_path=new_pipeline_path
+            )
 
             try:
                 with open(pipeline_json_path, "r") as json_file:
                     pipeline_json = json.load(json_file)
 
-                file_pipeline_uuid = pipeline_json.get('uuid')
+                file_pipeline_uuid = pipeline_json.get("uuid")
 
                 new_pipeline_uuid = file_pipeline_uuid
 
                 # see if pipeline_uuid is taken
-                if Pipeline.query.filter(
-                    Pipeline.uuid == file_pipeline_uuid).filter(
-                    Pipeline.project_uuid == project_uuid).count() > 0 or \
-                    len(file_pipeline_uuid) == 0:
+                if (
+                    Pipeline.query.filter(Pipeline.uuid == file_pipeline_uuid)
+                    .filter(Pipeline.project_uuid == project_uuid)
+                    .count()
+                    > 0
+                    or len(file_pipeline_uuid) == 0
+                ):
                     new_pipeline_uuid = str(uuid.uuid4())
 
-                with open(pipeline_json_path, 'w') as json_file:
+                with open(pipeline_json_path, "w") as json_file:
                     pipeline_json["uuid"] = new_pipeline_uuid
                     json_file.write(json.dumps(pipeline_json, indent=2))
 
@@ -1082,22 +1187,21 @@ def register_views(app, db):
                 new_pipeline = Pipeline(
                     uuid=new_pipeline_uuid,
                     path=new_pipeline_path,
-                    project_uuid=project_uuid
+                    project_uuid=project_uuid,
                 )
                 db.session.add(new_pipeline)
                 db.session.commit()
-                
+
             except Exception as e:
                 logging.info(e)
-            
-        
+
         pipelines = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).all()
         pipelines_augmented = []
 
         for pipeline in pipelines:
 
             pipeline_json_path = get_pipeline_path(pipeline.uuid, pipeline.project_uuid)
-            
+
             pipeline_augmented = {
                 "uuid": pipeline.uuid,
                 "path": pipeline.path,
@@ -1108,23 +1212,28 @@ def register_views(app, db):
                     pipeline_augmented["name"] = pipeline_json["name"]
             else:
                 pipeline_augmented["name"] = "Warning: pipeline file was not found."
-            
+
             pipelines_augmented.append(pipeline_augmented)
 
-        json_string = json.dumps(
-            {"success": True, "result": pipelines_augmented})
+        json_string = json.dumps({"success": True, "result": pipelines_augmented})
 
         return json_string, 200, {"content-type": "application/json"}
 
-
-    @app.route("/async/notebook_html/<project_uuid>/<pipeline_uuid>/<step_uuid>", methods=["GET"])
+    @app.route(
+        "/async/notebook_html/<project_uuid>/<pipeline_uuid>/<step_uuid>",
+        methods=["GET"],
+    )
     def notebook_html_get(project_uuid, pipeline_uuid, step_uuid):
 
         experiment_uuid = request.args.get("experiment_uuid")
         pipeline_run_uuid = request.args.get("pipeline_run_uuid")
 
-        pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid)
-        pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid)
+        pipeline_json_path = get_pipeline_path(
+            pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid
+        )
+        pipeline_dir = get_pipeline_directory(
+            pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid
+        )
 
         if os.path.isfile(pipeline_json_path):
             with open(pipeline_json_path, "r") as json_file:
@@ -1132,12 +1241,17 @@ def register_views(app, db):
 
             try:
                 notebook_path = os.path.join(
-                    pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"])
+                    pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"]
+                )
             except Exception as e:
                 logging.info(e)
-                return return_404("Invalid JSON for pipeline %s error: %e" % (pipeline_json_path, e))
+                return return_404(
+                    "Invalid JSON for pipeline %s error: %e" % (pipeline_json_path, e)
+                )
         else:
-            return return_404("Could not find pipeline.json for pipeline %s" % pipeline_json_path)
+            return return_404(
+                "Could not find pipeline.json for pipeline %s" % pipeline_json_path
+            )
 
         if os.path.isfile(notebook_path):
             try:
@@ -1148,10 +1262,10 @@ def register_views(app, db):
                 return body
 
             except IOError as error:
-                logging.info("Error opening notebook file %s error: %s" % (
-                    notebook_path, error))
+                logging.info(
+                    "Error opening notebook file %s error: %s" % (notebook_path, error)
+                )
                 return return_404("Could not find notebook file %s" % notebook_path)
-
 
     @app.route("/async/commits/shell/<string:commit_uuid>", methods=["GET", "POST"])
     def commit_shell(commit_uuid):
@@ -1159,12 +1273,17 @@ def register_views(app, db):
         commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
         if commit is None:
             json_string = json.dumps(
-                {"success": False, "reason": "Commit does not exist for UUID %s" % (commit_uuid)})
+                {
+                    "success": False,
+                    "reason": "Commit does not exist for UUID %s" % (commit_uuid),
+                }
+            )
 
             return json_string, 404, {"content-type": "application/json"}
 
-
-        shell_file_dir = os.path.join(app.config["USER_DIR"], ".orchest", "commits", commit_uuid)
+        shell_file_dir = os.path.join(
+            app.config["USER_DIR"], ".orchest", "commits", commit_uuid
+        )
         shell_file_path = os.path.join(shell_file_dir, "shell.sh")
 
         if request.method == "POST":
@@ -1174,7 +1293,7 @@ def register_views(app, db):
                     os.makedirs(shell_file_dir)
 
                 with open(shell_file_path, "w") as file:
-                    file.write(request.json['shell'])
+                    file.write(request.json["shell"])
 
                 json_string = json.dumps({"success": True})
 
@@ -1182,7 +1301,8 @@ def register_views(app, db):
 
             except:
                 json_string = json.dumps(
-                    {"success": False, "reason": "Could not create shell file"})
+                    {"success": False, "reason": "Could not create shell file"}
+                )
 
                 return json_string, 500, {"content-type": "application/json"}
 
@@ -1193,26 +1313,37 @@ def register_views(app, db):
                 with open(shell_file_path, "r") as file:
                     shell = file.read()
 
-                    json_string = json.dumps(
-                        {"success": True, "shell": shell})
+                    json_string = json.dumps({"success": True, "shell": shell})
 
                     return json_string, 200, {"content-type": "application/json"}
 
             else:
                 json_string = json.dumps(
-                    {"success": False, "reason": "Could not find shell file"})
+                    {"success": False, "reason": "Could not find shell file"}
+                )
 
                 return json_string, 404, {"content-type": "application/json"}
 
-
-    @app.route("/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"])
+    @app.route(
+        "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]
+    )
     def pipelines_json_get(project_uuid, pipeline_uuid):
 
-        pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid, request.args.get("experiment_uuid"), request.args.get("pipeline_run_uuid"))
-            
+        pipeline_json_path = get_pipeline_path(
+            pipeline_uuid,
+            project_uuid,
+            request.args.get("experiment_uuid"),
+            request.args.get("pipeline_run_uuid"),
+        )
+
         if request.method == "POST":
 
-            pipeline_directory = get_pipeline_directory(pipeline_uuid, project_uuid, request.args.get("experiment_uuid"), request.args.get("pipeline_run_uuid"))
+            pipeline_directory = get_pipeline_directory(
+                pipeline_uuid,
+                project_uuid,
+                request.args.get("experiment_uuid"),
+                request.args.get("pipeline_run_uuid"),
+            )
 
             # parse JSON
             pipeline_json = json.loads(request.form.get("pipeline_json"))
@@ -1233,9 +1364,18 @@ def register_views(app, db):
         elif request.method == "GET":
 
             if not os.path.isfile(pipeline_json_path):
-                return jsonify({"success": False, "reason": ".orchest file doesn't exist at location %s" % pipeline_json_path}), 404
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "reason": ".orchest file doesn't exist at location %s"
+                            % pipeline_json_path,
+                        }
+                    ),
+                    404,
+                )
             else:
                 with open(pipeline_json_path) as json_file:
                     return jsonify({"success": True, "pipeline_json": json_file.read()})
 
-            return ''
+            return ""

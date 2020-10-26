@@ -40,6 +40,7 @@ class Session:
         network: Name of docker network to manage resources on.
 
     """
+
     _resources: Optional[list] = None
 
     def __init__(self, client, network: Optional[str] = None):
@@ -49,10 +50,9 @@ class Session:
         self._containers = {}
 
     @classmethod
-    def from_container_IDs(cls,
-                           client,
-                           container_IDs: Dict[str, str],
-                           network: Optional[str] = None) -> 'Session':
+    def from_container_IDs(
+        cls, client, container_IDs: Dict[str, str], network: Optional[str] = None
+    ) -> "Session":
         """Constructs a session object from container IDs.
 
         If `network` is ``None``, then the network is infered based on
@@ -75,7 +75,7 @@ class Session:
             # settings. Often it contains only one network, thus popping
             # a random network simply returns the only network.
             if network is None:
-                network, _ = container.attrs['NetworkSettings']['Networks'].popitem()
+                network, _ = container.attrs["NetworkSettings"]["Networks"].popitem()
 
             session._containers[resource] = container
 
@@ -84,7 +84,7 @@ class Session:
         return session
 
     @property
-    def containers(self) -> Dict[str, 'docker.models.containers.Container']:
+    def containers(self) -> Dict[str, "docker.models.containers.Container"]:
         """Returns the running containers for the current session.
 
         Containers are identified by a short version of their name. The
@@ -114,7 +114,14 @@ class Session:
 
         return res
 
-    def launch(self, uuid: str, project_uuid: str, pipeline_path: str, project_dir: str, host_userdir: str = None) -> None:
+    def launch(
+        self,
+        uuid: str,
+        project_uuid: str,
+        pipeline_path: str,
+        project_dir: str,
+        host_userdir: str = None,
+    ) -> None:
         """Launches pre-configured resources.
 
         All containers are run in detached mode.
@@ -131,8 +138,9 @@ class Session:
 
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
-        container_specs = _get_container_specs(uuid, project_uuid, pipeline_path, project_dir,
-                                               host_userdir, self.network)
+        container_specs = _get_container_specs(
+            uuid, project_uuid, pipeline_path, project_dir, host_userdir, self.network
+        )
         for resource in self._resources:
             container = self.client.containers.run(**container_specs[resource])
             self._containers[resource] = container
@@ -164,9 +172,9 @@ class InteractiveSession(Session):
     """Manages resources for an interactive session."""
 
     _resources = [
-        'memory-server',
-        'jupyter-EG',
-        'jupyter-server',
+        "memory-server",
+        "jupyter-EG",
+        "jupyter-server",
     ]
 
     def __init__(self, client, network=None):
@@ -197,7 +205,7 @@ class InteractiveSession(Session):
         # The containers have to be reloaded as otherwise cached "attrs"
         # is used, which might not be up-to-date.
         container.reload()
-        return container.attrs['NetworkSettings']['Networks'][self.network]['IPAddress']
+        return container.attrs["NetworkSettings"]["Networks"][self.network]["IPAddress"]
 
     # TODO: rename to `get_resources_IP` ?
     # TODO: make into property? `.ips` Same goes for `get_container_IDs`
@@ -216,10 +224,19 @@ class InteractiveSession(Session):
             #       launching the session first.
             return
 
-        return IP(self._get_container_IP(self.containers['jupyter-EG']),
-                  self._get_container_IP(self.containers['jupyter-server']))
+        return IP(
+            self._get_container_IP(self.containers["jupyter-EG"]),
+            self._get_container_IP(self.containers["jupyter-server"]),
+        )
 
-    def launch(self, pipeline_uuid: str, project_uuid: str, pipeline_path:str, project_dir: str, host_userdir: str) -> None:
+    def launch(
+        self,
+        pipeline_uuid: str,
+        project_uuid: str,
+        pipeline_path: str,
+        project_dir: str,
+        host_userdir: str,
+    ) -> None:
         """Launches the interactive session.
 
         Additionally connects the launched `jupyter-server` with the
@@ -229,7 +246,9 @@ class InteractiveSession(Session):
             See `Args` section in parent class :class:`Session`.
 
         """
-        super().launch(pipeline_uuid, project_uuid, pipeline_path, project_dir, host_userdir)
+        super().launch(
+            pipeline_uuid, project_uuid, pipeline_path, project_dir, host_userdir
+        )
 
         # TODO: This session should manage additionally that the jupyter
         #       notebook server is started through the little flask API
@@ -240,19 +259,20 @@ class InteractiveSession(Session):
         # and waits for instructions before the Jupyter server is
         # started. Tries to start the Jupyter server, by waiting for the
         # API to be running after container launch.
-        logging.info('Starting Jupyter Server on %s with Enterprise '
-                     'Gateway on %s' % (IP.jupyter_server, IP.jupyter_EG))
+        logging.info(
+            "Starting Jupyter Server on %s with Enterprise "
+            "Gateway on %s" % (IP.jupyter_server, IP.jupyter_EG)
+        )
         payload = {
-            'gateway-url': f'http://{IP.jupyter_EG}:8888',
-            'NotebookApp.base_url': f'/jupyter_{IP.jupyter_server.replace(".", "_")}/'
+            "gateway-url": f"http://{IP.jupyter_EG}:8888",
+            "NotebookApp.base_url": f'/jupyter_{IP.jupyter_server.replace(".", "_")}/',
         }
         for i in range(10):
             try:
                 # Starts the Jupyter server and connects it to the given
                 # Enterprise Gateway.
                 r = requests.post(
-                    f'http://{IP.jupyter_server}:80/api/servers/',
-                    json=payload
+                    f"http://{IP.jupyter_server}:80/api/servers/", json=payload
                 )
             except requests.ConnectionError:
                 # TODO: there is probably a robuster way than a sleep.
@@ -286,11 +306,11 @@ class InteractiveSession(Session):
         # TODO: make sure a graceful shutdown is instantiated via a
         #       DELETE request to the flask API inside the jupyter-server
         IP = self.get_containers_IP()
-        requests.delete(f'http://{IP.jupyter_server}:80/api/servers/')
+        requests.delete(f"http://{IP.jupyter_server}:80/api/servers/")
 
         return super().shutdown()
 
-    def restart_resource(self, resource_name='memory-server'):
+    def restart_resource(self, resource_name="memory-server"):
         """Restarts a resource by name.
 
         Especially for the `memory-server` this comes in handy. Because
@@ -317,7 +337,7 @@ class NonInteractiveSession(Session):
     """Manages resources for a non-interactive session."""
 
     _resources = [
-        'memory-server',
+        "memory-server",
     ]
 
     def __init__(self, client, network=None):
@@ -325,7 +345,13 @@ class NonInteractiveSession(Session):
 
         self._session_uuid = str(uuid4())
 
-    def launch(self, uuid: Optional[str], project_uuid: str, pipeline_path:str, project_dir: str) -> None:
+    def launch(
+        self,
+        uuid: Optional[str],
+        project_uuid: str,
+        pipeline_path: str,
+        project_dir: str,
+    ) -> None:
         """
 
         Since multiple memory-servers are started for the same pipeline,
@@ -356,7 +382,7 @@ def launch_session(
     project_uuid: str,
     pipeline_path: str,
     project_dir: str,
-    interactive: bool = False
+    interactive: bool = False,
 ) -> Union[InteractiveSession, NonInteractiveSession]:
     """Launch session for a particular pipeline.
 
@@ -376,7 +402,7 @@ def launch_session(
     """
     session = InteractiveSession if interactive else NonInteractiveSession
 
-    session = session(docker_client, network='orchest')
+    session = session(docker_client, network="orchest")
     session.launch(pipeline_uuid, project_uuid, pipeline_path, project_dir)
     try:
         yield session
@@ -384,7 +410,9 @@ def launch_session(
         session.shutdown()
 
 
-def _get_mounts(uuid: str, project_uuid: str, project_dir: str, host_userdir: str) -> Dict[str, Mount]:
+def _get_mounts(
+    uuid: str, project_uuid: str, project_dir: str, host_userdir: str
+) -> Dict[str, Mount]:
     """Constructs the mounts for all resources.
 
     Resources refer to the union of all possible resources over all
@@ -417,31 +445,27 @@ def _get_mounts(uuid: str, project_uuid: str, project_dir: str, host_userdir: st
     if host_userdir is not None:
         source_kernelspecs = os.path.join(host_userdir, _config.KERNELSPECS_PATH)
 
-        mounts['kernelspec'] = Mount(
-            target='/usr/local/share/jupyter/kernels',
+        mounts["kernelspec"] = Mount(
+            target="/usr/local/share/jupyter/kernels",
             source=source_kernelspecs,
-            type='bind'
+            type="bind",
         )
 
     # By mounting the docker sock it becomes possible for containers
     # to be spawned from inside another container.
-    mounts['docker_sock'] = Mount(
-        target='/var/run/docker.sock',
-        source='/var/run/docker.sock',
-        type='bind'
+    mounts["docker_sock"] = Mount(
+        target="/var/run/docker.sock", source="/var/run/docker.sock", type="bind"
     )
 
     project_dir_target = _config.PROJECT_DIR
-    mounts['project_dir'] = Mount(
-        target=project_dir_target,
-        source=project_dir,
-        type='bind'
+    mounts["project_dir"] = Mount(
+        target=project_dir_target, source=project_dir, type="bind"
     )
 
-    mounts['temp_volume'] = Mount(
+    mounts["temp_volume"] = Mount(
         target=_config.TEMP_DIRECTORY_PATH,
         source=_config.TEMP_VOLUME_NAME.format(uuid=uuid, project_uuid=project_uuid),
-        type='volume'
+        type="volume",
     )
 
     return mounts
@@ -453,7 +477,7 @@ def _get_container_specs(
     pipeline_path: str,
     project_dir: str,
     host_userdir: str,
-    network: str
+    network: str,
 ) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
 
@@ -485,64 +509,58 @@ def _get_container_specs(
     container_specs = {}
     mounts = _get_mounts(uuid, project_uuid, project_dir, host_userdir)
 
-    container_specs['memory-server'] = {
-        'image': 'orchestsoftware/memory-server:latest',
-        'detach': True,
-        'mounts': [
-            mounts['project_dir'],
-            mounts['temp_volume'],
+    container_specs["memory-server"] = {
+        "image": "orchestsoftware/memory-server:latest",
+        "detach": True,
+        "mounts": [
+            mounts["project_dir"],
+            mounts["temp_volume"],
         ],
         # TODO: name not unique... and uuid cannot be used.
-        'name': f'memory-server-{project_uuid}-{uuid}',
-        'network': network,
-        'shm_size': int(1.2e9),  # need to overalocate to get 1G,
-        'environment': [
-            f'PIPELINE_PATH={pipeline_path}'
-        ]
+        "name": f"memory-server-{project_uuid}-{uuid}",
+        "network": network,
+        "shm_size": int(1.2e9),  # need to overalocate to get 1G,
+        "environment": [f"PIPELINE_PATH={pipeline_path}"],
     }
 
     # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
     # started by the EG are on the same docker network as the EG.
-    container_specs['jupyter-EG'] = {
-        'image': 'orchestsoftware/jupyter-enterprise-gateway',  # TODO: make not static.
-        'detach': True,
-        'mounts': [
-            mounts.get('docker_sock'),
-            mounts.get('kernelspec'),
+    container_specs["jupyter-EG"] = {
+        "image": "orchestsoftware/jupyter-enterprise-gateway",  # TODO: make not static.
+        "detach": True,
+        "mounts": [
+            mounts.get("docker_sock"),
+            mounts.get("kernelspec"),
         ],
-        'name': f'jupyter-EG-{project_uuid}-{uuid}',
-        'environment': [
-            f'EG_DOCKER_NETWORK={network}',
-            'EG_MIRROR_WORKING_DIRS=True',
-            'EG_LIST_KERNELS=True',
-            'EG_KERNEL_WHITELIST=[]',
-            'EG_PROHIBITED_UIDS=[]',
+        "name": f"jupyter-EG-{project_uuid}-{uuid}",
+        "environment": [
+            f"EG_DOCKER_NETWORK={network}",
+            "EG_MIRROR_WORKING_DIRS=True",
+            "EG_LIST_KERNELS=True",
+            "EG_KERNEL_WHITELIST=[]",
+            "EG_PROHIBITED_UIDS=[]",
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
-            'EG_ALLOW_ORIGIN=*',
-            'EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_PIPELINE_PATH,ORCHEST_PROJECT_UUID,ORCHEST_HOST_PROJECT_DIR,ORCHEST_API_ADDRESS',
-            f'ORCHEST_PIPELINE_UUID={uuid}',
-            f'ORCHEST_PIPELINE_PATH={pipeline_path}',
-            f'ORCHEST_PROJECT_UUID={project_uuid}',
-            f'ORCHEST_HOST_PROJECT_DIR={project_dir}',
-            f'ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}',
+            "EG_ALLOW_ORIGIN=*",
+            "EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_PIPELINE_PATH,ORCHEST_PROJECT_UUID,ORCHEST_HOST_PROJECT_DIR,ORCHEST_API_ADDRESS",
+            f"ORCHEST_PIPELINE_UUID={uuid}",
+            f"ORCHEST_PIPELINE_PATH={pipeline_path}",
+            f"ORCHEST_PROJECT_UUID={project_uuid}",
+            f"ORCHEST_HOST_PROJECT_DIR={project_dir}",
+            f"ORCHEST_API_ADDRESS={_config.ORCHEST_API_ADDRESS}",
         ],
-        'user': 'root',
-        'network': network,
+        "user": "root",
+        "network": network,
     }
 
     # Run Jupyter server container.
-    container_specs['jupyter-server'] = {
-        'image': 'orchestsoftware/jupyter-server:latest',  # TODO: make not static.
-        'detach': True,
-        'mounts': [
-            mounts['project_dir']
-        ],
-        'name': f'jupyter-server-{project_uuid}-{uuid}',
-        'network': network,
-        'environment': [
-            'KERNEL_UID=0'
-        ],
+    container_specs["jupyter-server"] = {
+        "image": "orchestsoftware/jupyter-server:latest",  # TODO: make not static.
+        "detach": True,
+        "mounts": [mounts["project_dir"]],
+        "name": f"jupyter-server-{project_uuid}-{uuid}",
+        "network": network,
+        "environment": ["KERNEL_UID=0"],
     }
 
     return container_specs

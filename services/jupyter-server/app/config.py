@@ -6,7 +6,7 @@ class Config:
     TESTING = False
 
     # TODO: use internal libary
-    NOTEBOOK_DIR = '/project-dir'
+    NOTEBOOK_DIR = "/project-dir"
 
 
 class ProductionConfig(Config):
@@ -29,7 +29,7 @@ class TestingConfig(Config):
     TESTING = True
 
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    NOTEBOOK_DIR = os.path.join(abs_path, 'app', 'tmp')
+    NOTEBOOK_DIR = os.path.join(abs_path, "app", "tmp")
 
 
 # ---- CONFIGURATIONS ----
