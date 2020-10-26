@@ -48,6 +48,11 @@ class HeaderButtons extends React.Component {
     }
 
     setPipeline(pipelineJson, project_uuid){
+        
+        this.setState({
+            "pipeline_path": "..."
+        })
+
         // fetch pipeline path
         makeRequest("GET", `/async/pipelines/${project_uuid}/${pipelineJson.uuid}`).then((response) => {
             let pipeline = JSON.parse(response)

@@ -164,10 +164,15 @@ def name_to_tag(name):
 
 def find_pipelines_in_dir(path, relative_to=None):
 
+    ignore_dirs = [".ipynb_checkpoints"]
+
     pipelines = []
 
     if os.path.isdir(path):
-        for root, _, files in os.walk(path):
+        for root, dirs, files in os.walk(path):
+            
+            dirs[:] = [d for d in dirs if d not in ignore_dirs]
+
             for fName in files:
                 if fName.endswith(".orchest"):
                     if relative_to is not None:

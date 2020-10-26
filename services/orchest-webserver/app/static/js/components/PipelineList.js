@@ -215,7 +215,7 @@ class PipelineList extends React.Component {
                     return <MDCDialogReact title="Create a new pipeline" 
                         content={
                             <Fragment>
-                                <MDCTextFieldReact ref={this.refManager.nrefs.createPipelineNameTextField} classNames={['fullwidth']} label="Pipeline name" />
+                                <MDCTextFieldReact ref={this.refManager.nrefs.createPipelineNameTextField} classNames={['fullwidth push-down']} label="Pipeline name" />
                                 <MDCTextFieldReact ref={this.refManager.nrefs.createPipelinePathField} classNames={['fullwidth']} label="Pipeline path" value="pipeline.orchest" />
                             </Fragment>
                     } actions={

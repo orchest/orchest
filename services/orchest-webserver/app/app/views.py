@@ -138,23 +138,23 @@ def register_views(app, db):
 
 
 
-    def get_pipeline_path(pipeline_uuid, project_uuid, experiment_uuid=None, pipeline_run_uuid=None, host_path=False):
+    def get_pipeline_path(pipeline_uuid, project_uuid, experiment_uuid=None, pipeline_run_uuid=None, host_path=False, pipeline_path=None):
 
         USER_DIR = app.config["USER_DIR"]
         if host_path == True:
             USER_DIR = app.config["HOST_USER_DIR"]
 
-        pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
+        if pipeline_path is None:
+            pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
+
         project_path = project_uuid_to_path(project_uuid)
 
         if pipeline_run_uuid is None:
-            pipeline_path = os.path.join(USER_DIR, "projects", project_path, pipeline_path)
+            return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
         elif pipeline_run_uuid is not None and experiment_uuid is not None:
-            pipeline_path = os.path.join(USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid, pipeline_run_uuid, pipeline_path)
+            return os.path.join(USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid, pipeline_run_uuid, pipeline_path)
         elif experiment_uuid is not None:
-            pipeline_path = os.path.join(USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid, "snapshot", pipeline_path)
-
-        return pipeline_path
+            return os.path.join(USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid, "snapshot", pipeline_path)
 
     
     def get_pipeline_directory(pipeline_uuid, project_uuid, experiment_uuid=None, pipeline_run_uuid=None, host_path=False):
@@ -921,10 +921,11 @@ def register_views(app, db):
                 "name": request.json["name"],
                 "version": "1.0.0",
                 "uuid": pipeline_uuid,
+                "steps": {}
             }
 
             with open(pipeline_json_path, "w") as pipeline_json_file:
-                pipeline_json_file.write(json.dumps(pipeline_json))
+                pipeline_json_file.write(json.dumps(pipeline_json, indent=2))
 
             return jsonify({"success": True})
         else:
@@ -947,7 +948,7 @@ def register_views(app, db):
                 pipeline_json["name"] = request.form.get("name")
 
                 with open(pipeline_json_path, "w") as json_file:
-                    json_file.write(json.dumps(pipeline_json))
+                    json_file.write(json.dumps(pipeline_json, indent=2))
 
                 json_string = json.dumps({"success": True})
                 return json_string, 200, {"content-type": "application/json"}
@@ -1030,7 +1031,7 @@ def register_views(app, db):
         pipeline = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).filter(Pipeline.uuid == pipeline_uuid).first()
 
         if pipeline is None:
-            return jsonify({message: "Pipeline doesn't exist."}), 404
+            return jsonify({"message": "Pipeline doesn't exist."}), 404
         else:
             return jsonify(pipeline_schema.dump(pipeline))
 
@@ -1054,13 +1055,41 @@ def register_views(app, db):
         new_pipeline_paths = set(pipeline_paths) - set(existing_pipeline_paths)
 
         for new_pipeline_path in new_pipeline_paths:
-            new_pipeline = Pipeline(
-                uuid=str(uuid.uuid4()),
-                path=new_pipeline_path,
-                project_uuid=project_uuid
-            )
-            db.session.add(new_pipeline)
-            db.session.commit()
+
+            # write pipeline uuid to file
+            pipeline_json_path = get_pipeline_path(None, project_uuid, pipeline_path=new_pipeline_path)
+
+            try:
+                with open(pipeline_json_path, "r") as json_file:
+                    pipeline_json = json.load(json_file)
+
+                file_pipeline_uuid = pipeline_json.get('uuid')
+
+                new_pipeline_uuid = file_pipeline_uuid
+
+                # see if pipeline_uuid is taken
+                if Pipeline.query.filter(
+                    Pipeline.uuid == file_pipeline_uuid).filter(
+                    Pipeline.project_uuid == project_uuid).count() > 0 or \
+                    len(file_pipeline_uuid) == 0:
+                    new_pipeline_uuid = str(uuid.uuid4())
+
+                with open(pipeline_json_path, 'w') as json_file:
+                    pipeline_json["uuid"] = new_pipeline_uuid
+                    json_file.write(json.dumps(pipeline_json, indent=2))
+
+                # only commit if writing succeeds
+                new_pipeline = Pipeline(
+                    uuid=new_pipeline_uuid,
+                    path=new_pipeline_path,
+                    project_uuid=project_uuid
+                )
+                db.session.add(new_pipeline)
+                db.session.commit()
+                
+            except Exception as e:
+                logging.info(e)
+            
         
         pipelines = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).all()
         pipelines_augmented = []
@@ -1197,7 +1226,7 @@ def register_views(app, db):
             pipeline_set_notebook_kernels(pipeline_json, pipeline_directory)
 
             with open(pipeline_json_path, "w") as json_file:
-                json_file.write(json.dumps(pipeline_json))
+                json_file.write(json.dumps(pipeline_json, indent=2))
 
             return jsonify({"success": True})
 
