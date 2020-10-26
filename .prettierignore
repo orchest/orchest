@@ -1,0 +1,6 @@
+build
+coverage
+venv
+.venvs
+*.json
+npm_modules
