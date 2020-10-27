@@ -61,7 +61,6 @@ class Commit(db.Model):
     tag = db.Column(db.String(255), unique=False, nullable=False)
     name = db.Column(db.String(255), unique=False, nullable=False)
     base_image = db.Column(db.ForeignKey("images.name"))
-    project = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     building = db.Column(db.Boolean, default=False)
 
