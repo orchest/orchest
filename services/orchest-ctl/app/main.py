@@ -71,6 +71,8 @@ def status():
 def update(mode: Optional[str] = typer.Option(None, hidden=True)):
     """
     Update Orchest.
+
+    Pulls all images in parallel.
     """
     if mode is not None:
         # Only mode that is given is "web", used for the update-server.

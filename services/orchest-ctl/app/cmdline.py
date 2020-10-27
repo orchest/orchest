@@ -34,7 +34,7 @@ def proxy_certs_exist_on_host():
 def start():
     # Make sure the installation is complete before starting Orchest.
     if not utils.is_install_complete():
-        typer.echo("Installation required. Starting installer.")
+        typer.echo("Installation required. Pulling images in parallel.")
         utils.install_images()
         utils.install_network()
         typer.echo("Installation finished. Attempting to start...")
