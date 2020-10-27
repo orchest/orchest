@@ -113,9 +113,9 @@ async def pull_image(image, async_docker, force_pull):
             pull = True
 
     if pull:
-        logging.info("Pulling image %s" % image)
+        typer.echo("Pulling image %s" % image)
         await async_docker.images.pull(image)
-        logging.info("Pulled image %s" % image)
+        typer.echo("Pulled image %s" % image)
 
 
 async def pull_images(images, force_pull):
