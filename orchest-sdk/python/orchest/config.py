@@ -13,16 +13,19 @@ class Config:
     # TODO: put configuration options inside the docstring so we can use
     #       it for the autodoc generation.
 
+    PROJECT_UUID = os.getenv("ORCHEST_PROJECT_UUID")
+    PIPELINE_UUID = os.getenv("ORCHEST_PIPELINE_UUID", "")
+    PIPELINE_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
+
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
-
     # '/project-dir' as project root is hardcoded because code sharing with the
     # internal config library is not possible due to the license difference.
-    STEP_DATA_DIR = "/project-dir/.orchest/{pipeline_uuid}/data/{step_uuid}"
+    STEP_DATA_DIR = "/project-dir/.orchest/" + PIPELINE_UUID + "/data/{step_uuid}"
 
     # Path to the file that contains the pipeline description.
     PIPELINE_DESCRIPTION_PATH = (
-        f'/project-dir/{os.environ.get("ORCHEST_PIPELINE_PATH")}'
+        f'/project-dir/{PIPELINE_PATH}'
     )
 
     # Only fill the Plasma store to 95% capacity. Otherwise the

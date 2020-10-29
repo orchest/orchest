@@ -101,8 +101,10 @@ def start_manager(store_socket_name, pipeline_fname):
     while True:
         try:
             obj_id, data_size, mdata_size = client.get_next_notification()
+            print("Got new notification")
         except OSError:
             # "Failed to read object notification from Plasma socket"
+            print("Failed to read object notification from Plasma socket")
             continue
 
         mdata = client.get_metadata([obj_id], timeout_ms=1000)

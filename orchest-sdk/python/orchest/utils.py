@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict
 import urllib
 
+from orchest.config import Config
 from orchest.errors import OrchestNetworkError, StepUUIDResolveError
 from orchest.pipeline import Pipeline
 
@@ -22,8 +23,8 @@ def get_step_uuid(pipeline: Pipeline) -> str:
     """
     # In case of partial runs, the step UUID can be obtained via the
     # environment.
-    if "STEP_UUID" in os.environ:
-        return os.environ["STEP_UUID"]
+    if "ORCHEST_STEP_UUID" in os.environ:
+        return os.environ["ORCHEST_STEP_UUID"]
 
     # The KERNEL_ID environment variable is set by the Jupyter
     # Enterprise Gateway.
@@ -36,7 +37,7 @@ def get_step_uuid(pipeline: Pipeline) -> str:
     # requires an authenticated request, which is obtained by requesting
     # the token via the Orchest API.
     # Orchest API --token--> Jupyter sessions --notebook path--> UUID.
-    launches_url = f'http://orchest-api/api/sessions/{pipeline.properties["uuid"]}'
+    launches_url = f'http://orchest-api/api/sessions/{Config.PROJECT_UUID}/{pipeline.properties["uuid"]}'
     launch_data = _request_json(launches_url)
 
     jupyter_api_url = "http://{ip}:{port}/{proxy_prefix}/api/sessions?token={token}"

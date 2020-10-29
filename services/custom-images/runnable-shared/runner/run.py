@@ -9,11 +9,11 @@ from runner.config import Config
 
 def main():
 
-    if "STEP_UUID" not in os.environ:
-        raise Exception("No STEP_UUID passed as environment variable.")
+    if "ORCHEST_STEP_UUID" not in os.environ:
+        raise Exception("No ORCHEST_STEP_UUID passed as environment variable.")
 
-    if "PIPELINE_UUID" not in os.environ:
-        raise Exception("No PIPELINE_UUID passed as environment variable.")
+    if "ORCHEST_PIPELINE_UUID" not in os.environ:
+        raise Exception("No ORCHEST_PIPELINE_UUID passed as environment variable.")
 
     # index 1 contains filename
     if len(sys.argv) < 3:
@@ -21,8 +21,8 @@ def main():
             "Should pass in the working directory (relative to the project dir) and filename (relative to the working directory) that you want to execute."
         )
 
-    step_uuid = os.environ.get("STEP_UUID")
-    pipeline_uuid = os.environ.get("PIPELINE_UUID")
+    step_uuid = os.environ.get("ORCHEST_STEP_UUID")
+    pipeline_uuid = os.environ.get("ORCHEST_PIPELINE_UUID")
 
     # sys.argv[1] contains the working directory relative to the project dir
     working_dir = os.path.join(Config.PROJECT_DIR, sys.argv[1])

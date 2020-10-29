@@ -520,7 +520,7 @@ def _get_container_specs(
         "name": f"memory-server-{project_uuid}-{uuid}",
         "network": network,
         "shm_size": int(1.2e9),  # need to overalocate to get 1G,
-        "environment": [f"PIPELINE_PATH={pipeline_path}"],
+        "environment": [f"ORCHEST_PIPELINE_PATH={pipeline_path}"],
     }
 
     # Run EG container, where EG_DOCKER_NETWORK ensures that kernels

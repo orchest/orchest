@@ -220,9 +220,10 @@ class PipelineStepRunner:
         config = {
             "Image": self.properties["image"],
             "Env": [
-                f'STEP_UUID={self.properties["uuid"]}',
-                f'PIPELINE_UUID={run_config["pipeline_uuid"]}',
-                f'PIPELINE_PATH={run_config["pipeline_path"]}',
+                f'ORCHEST_STEP_UUID={self.properties["uuid"]}',
+                f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
+                f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
+                f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
                 "EVICTION_OPTIONALITY=1",
             ],
             "HostConfig": {
