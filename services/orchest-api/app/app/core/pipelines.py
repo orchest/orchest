@@ -226,10 +226,7 @@ class PipelineStepRunner:
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
                 "EVICTION_OPTIONALITY=1",
             ],
-            "HostConfig": {
-                "Binds": orchest_mounts,
-                "DeviceRequests": device_requests,
-            },
+            "HostConfig": {"Binds": orchest_mounts, "DeviceRequests": device_requests,},
             "Cmd": [
                 "/orchest/bootscript.sh",
                 "runnable",

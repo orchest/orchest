@@ -512,10 +512,7 @@ def _get_container_specs(
     container_specs["memory-server"] = {
         "image": "orchestsoftware/memory-server:latest",
         "detach": True,
-        "mounts": [
-            mounts["project_dir"],
-            mounts["temp_volume"],
-        ],
+        "mounts": [mounts["project_dir"], mounts["temp_volume"],],
         # TODO: name not unique... and uuid cannot be used.
         "name": f"memory-server-{project_uuid}-{uuid}",
         "network": network,
@@ -528,10 +525,7 @@ def _get_container_specs(
     container_specs["jupyter-EG"] = {
         "image": "orchestsoftware/jupyter-enterprise-gateway",  # TODO: make not static.
         "detach": True,
-        "mounts": [
-            mounts.get("docker_sock"),
-            mounts.get("kernelspec"),
-        ],
+        "mounts": [mounts.get("docker_sock"), mounts.get("kernelspec"),],
         "name": f"jupyter-EG-{project_uuid}-{uuid}",
         "environment": [
             f"EG_DOCKER_NETWORK={network}",

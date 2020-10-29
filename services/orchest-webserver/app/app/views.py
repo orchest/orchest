@@ -704,8 +704,7 @@ def register_views(app, db):
         )
 
         json_obj["pipeline_path"] = pipeline_uuid_to_path(
-            json_obj["pipeline_uuid"],
-            json_obj["project_uuid"],
+            json_obj["pipeline_uuid"], json_obj["project_uuid"],
         )
 
         json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
@@ -729,8 +728,7 @@ def register_views(app, db):
                 json_obj["project_uuid"], host_path=True
             ),
             "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_uuid"],
-                json_obj["project_uuid"],
+                json_obj["pipeline_uuid"], json_obj["project_uuid"],
             ),
         }
 
@@ -1056,10 +1054,7 @@ def register_views(app, db):
         new_project_paths = set(project_paths) - set(existing_project_paths)
 
         for new_project_path in new_project_paths:
-            new_project = Project(
-                uuid=str(uuid.uuid4()),
-                path=new_project_path,
-            )
+            new_project = Project(uuid=str(uuid.uuid4()), path=new_project_path,)
             db.session.add(new_project)
             db.session.commit()
         # end of UUID creation
@@ -1098,10 +1093,7 @@ def register_views(app, db):
                 full_project_path = os.path.join(project_dir, project_path)
                 if not os.path.isdir(full_project_path):
 
-                    new_project = Project(
-                        uuid=str(uuid.uuid4()),
-                        path=project_path,
-                    )
+                    new_project = Project(uuid=str(uuid.uuid4()), path=project_path,)
                     db.session.add(new_project)
                     db.session.commit()
 

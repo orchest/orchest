@@ -125,9 +125,7 @@ class Session(Resource):
         db.session.commit()
 
         session_obj = InteractiveSession.from_container_IDs(
-            docker_client,
-            container_IDs=session.container_ids,
-            network="orchest",
+            docker_client, container_IDs=session.container_ids, network="orchest",
         )
 
         # TODO: error handling?
@@ -147,9 +145,7 @@ class Session(Resource):
             ident=(project_uuid, pipeline_uuid), description="Session not found"
         )
         session_obj = InteractiveSession.from_container_IDs(
-            docker_client,
-            container_IDs=session.container_ids,
-            network="orchest",
+            docker_client, container_IDs=session.container_ids, network="orchest",
         )
 
         # Note: The entry in the database does not have to be updated

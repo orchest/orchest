@@ -92,7 +92,8 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         "pipeline_path": "",
         "pipeline_uuid": "",
         "project_uuid": "",
-        "run_endpoint": None}
+        "run_endpoint": None,
+    }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
     assert execution_order == testio.correct_execution_order

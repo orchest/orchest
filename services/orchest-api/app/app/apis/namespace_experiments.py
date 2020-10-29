@@ -132,8 +132,7 @@ class Experiment(Resource):
     def get(self, experiment_uuid):
         """Fetches an experiment given its UUID."""
         experiment = models.Experiment.query.get_or_404(
-            experiment_uuid,
-            description="Experiment not found",
+            experiment_uuid, description="Experiment not found",
         )
         return experiment.__dict__
 
@@ -150,8 +149,7 @@ class Experiment(Resource):
         it will update the status of corresponding objects to "REVOKED".
         """
         experiment = models.Experiment.query.get_or_404(
-            experiment_uuid,
-            description="Experiment not found",
+            experiment_uuid, description="Experiment not found",
         )
 
         run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
@@ -204,8 +202,7 @@ class PipelineRun(Resource):
         # the experiment "completed_pipeline_runs" attribute.
         if status_update["status"] in ["SUCCESS", "FAILURE"]:
             experiment = models.Experiment.query.get_or_404(
-                experiment_uuid,
-                description="Experiment not found",
+                experiment_uuid, description="Experiment not found",
             )
             experiment.completed_pipeline_runs += 1
             db.session.commit()

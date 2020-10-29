@@ -114,16 +114,11 @@ CONTAINER_MAPPING = {
     },
     "orchestsoftware/file-manager:latest": {
         "name": "file-manager",
-        "mounts": [
-            {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
-        ],
+        "mounts": [{"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},],
     },
     "orchestsoftware/nginx-proxy:latest": {
         "name": "nginx-proxy",
-        "ports": {
-            "80/tcp": 8000,
-            "443/tcp": 443,
-        },
+        "ports": {"80/tcp": 8000, "443/tcp": 443,},
         "mounts": [],  # dynamically added in start() based on presence of certs on host
     },
     "orchestsoftware/update-server:latest": {

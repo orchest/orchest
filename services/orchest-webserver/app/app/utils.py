@@ -12,7 +12,6 @@ import docker
 from app.models import Image, Commit, Pipeline, Project
 
 
-
 def get_hash(path):
     BLOCKSIZE = 8192 * 8
     hasher = hashlib.md5()

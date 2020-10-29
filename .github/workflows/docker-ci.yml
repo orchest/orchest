@@ -88,7 +88,7 @@ jobs:
         env:
           DOCKERHUB_REPOSITORY: orchestsoftware/jupyter-server
           README_FILEPATH: services/jupyter-server/README.md
-      
+
       - name: Push README files to DockerHub jupyter-enterprise-gateway
         uses: peter-evans/dockerhub-description@v2
         env:
