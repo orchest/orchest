@@ -30,7 +30,7 @@ class Config:
     # For this reason no solution is provided for this, taking into account that we will eventually
     # implement cronjobs and such trimming might be an internal cronjob, or automatically managed
     # by celery if we end using "celery beat".
-    result_backend = "db+sqlite:////tmp/celery_result_backend.sqlite"
+    result_backend = "db+sqlite:////userdir/.orchest/celery_result_backend.db"
 
     imports = ("app.core.tasks",)
     task_create_missing_queues = True
@@ -39,7 +39,6 @@ class Config:
         "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "experiments"},
         "app.core.tasks.run_partial": {"queue": "celery"},
     }
-    # result_backend = 'rpc://'
 
 
 class DevelopmentConfig(Config):
