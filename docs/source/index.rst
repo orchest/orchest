@@ -27,6 +27,7 @@ your models on the cloud without any knowledge of cloud infrastructure.
    features
    sdk/index
    development/index
+   glossary
    help
 
 
