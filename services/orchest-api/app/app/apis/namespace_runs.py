@@ -61,7 +61,7 @@ class RunList(Resource):
         # make sure that the Celery backend releases recourses (for
         # storing and transmitting results) associated to the task.
         # Uncomment the line below if applicable.
-        # res.forget()
+        res.forget()
 
         # NOTE: we are setting the status of the run ourselves without
         # using the option of celery to get the status of tasks. This
