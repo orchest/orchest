@@ -1,6 +1,8 @@
+<p align="center">
 <a href="https://orchest.io">
   <img src="docs/source/img/logo.png" width="300px" />
 </a>
+</p>
 <br/>
 
 [Website](https://www.orchest.io) —
