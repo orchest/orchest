@@ -524,11 +524,11 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         # TODO: note somewhere (maybe in the docstring) that it might
         #       although very unlikely raise MemoryError, because the
         #       receive is now actually also outputing data.
-        # NOTE: the "EVICTION_OPTIONALITY" ENV variable is set in the
+        # NOTE: the "ORCHEST_MEMORY_EVICTION" ENV variable is set in the
         # orchest-api. Now we always know when we are running inside a
         # jupyter kernel interactively. And in that case we never want
         # to do eviction.
-        if os.getenv("EVICTION_OPTIONALITY") is not None:
+        if os.getenv("ORCHEST_MEMORY_EVICTION") is not None:
             empty_obj, _ = serialize("")
             msg = f"{Config.IDENTIFIER_EVICTION};{step_uuid},{consumer}"
             metadata = bytes(msg, "utf-8")

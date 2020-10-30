@@ -60,7 +60,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     orchest.Config.PIPELINE_DESCRIPTION_PATH = pipeline_fname
 
     # Setup environment variables.
-    envs = {"EVICTION_OPTIONALITY": "True"}
+    envs = {"ORCHEST_MEMORY_EVICTION": "True"}
     monkeypatch.setattr(os, "environ", envs)
 
     # Do as if we are uuid-1

@@ -9,6 +9,7 @@ through our
    :maxdepth: 2
    :caption: Contents:
 
-   architecture
    contributer_guides
+   architecture
+   implementation_details
 

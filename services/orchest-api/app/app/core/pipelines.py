@@ -224,7 +224,7 @@ class PipelineStepRunner:
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
                 f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
-                "EVICTION_OPTIONALITY=1",
+                "ORCHEST_MEMORY_EVICTION=1",
             ],
             "HostConfig": {"Binds": orchest_mounts, "DeviceRequests": device_requests,},
             "Cmd": [

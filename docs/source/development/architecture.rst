@@ -1,5 +1,5 @@
-Orchest architecture
-====================
+Architecture
+============
 
 .. image:: img/orchest-architecture.png
   :width: 800
