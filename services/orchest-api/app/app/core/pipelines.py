@@ -208,7 +208,7 @@ class PipelineStepRunner:
         orchest_mounts += get_volume_mounts(run_config, task_id)
 
         device_requests = get_device_requests(
-            self.properties["image"], form="docker-engine"
+            self.properties["image"], run_config["project_uuid"], form="docker-engine"
         )
 
         # the working directory relative to the project directory is based on the location of the pipeline

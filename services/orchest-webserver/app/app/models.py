@@ -39,33 +39,27 @@ class DataSource(db.Model):
         return f"<DataSource {self.name}:{self.source_type}>"
 
 
-class Image(db.Model):
-    __tablename__ = "images"
+# This class is only serialized on disk, it's never stored in the database
+# The properties are stored in properties.json in the 
+# <project>/.orchest/environments/<environment_uuid>/. directory.
+class Environment(db.Model):
+    __tablename__ = "environments"
 
-    uuid = db.Column(
-        db.String(255), unique=True, nullable=False, default=str_uuid4, primary_key=True
-    )
-    name = db.Column(db.String(255), unique=True, nullable=False)
-    language = db.Column(db.String(255), nullable=False)
-    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    gpu_support = db.Column(db.Boolean, default=False)
-
-    def __repr__(self):
-        return f"<Images {self.name}:{self.language}>"
-
-
-class Commit(db.Model):
-    __tablename__ = "commits"
-
-    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
-    tag = db.Column(db.String(255), unique=False, nullable=False)
+    # Note: uuids for environments need to be unique across all environments.
+    # This needs to be checked on project import (to check for conflicting environment uuids).
+    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True, default=str_uuid4)
     name = db.Column(db.String(255), unique=False, nullable=False)
-    base_image = db.Column(db.ForeignKey("images.name"))
-    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    project_uuid = db.Column(db.String(255), unique=False, nullable=False)
+    language = db.Column(db.String(255), nullable=False)
+
+    # Startup script is stored as separate file (start_script.sh)
+    startup_script = db.Column(db.String(255), default="")
+    base_image = db.Column(db.String(255), nullable=False)
+    gpu_support = db.Column(db.Boolean, default=False)
     building = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return f"<Commit {self.name}:{self.base_image}:{self.uuid}>"
+        return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"
 
 
 class Experiment(db.Model):

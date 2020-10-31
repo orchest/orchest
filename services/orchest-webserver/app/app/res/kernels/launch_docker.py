@@ -126,7 +126,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
             )
         ]
 
-        device_requests = get_device_requests(image_name)
+        device_requests = get_device_requests(image_name, param_env.get("ORCHEST_PROJECT_UUID"))
 
         kernel_container = client.containers.run(
             image_name, mounts=orchest_mounts, device_requests=device_requests, **kwargs

@@ -53,7 +53,7 @@ class PipelineDetailsProperties extends React.Component {
   }
 
   fetchImageOptions() {
-    let synthesizedImagesEndpoint = "/async/synthesized-images";
+    let synthesizedImagesEndpoint = `/store/environments/${this.props.project_uuid}`;
 
     if (this.state.isNotebookStep) {
       synthesizedImagesEndpoint +=
@@ -71,8 +71,10 @@ class PipelineDetailsProperties extends React.Component {
 
         let imageOptions = [];
 
-        for (let image of result.images) {
-          imageOptions.push([image]);
+        for (let environment of result) {
+          /* TODO: refactor environment.base_image to environment image 
+          (requires building of environments in the backend) */
+          imageOptions.push([environment.base_image]);
         }
 
         this.setState({

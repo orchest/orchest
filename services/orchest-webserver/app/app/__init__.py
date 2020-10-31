@@ -24,31 +24,17 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
 from subprocess import Popen
 from app.views import register_views
-from app.build_commits import register_build_views
 from app.socketio_server import register_socketio_broadcast
-from app.models import Image, DataSource
-from app.connections import db
+from app.models import DataSource
+from app.connections import db, ma
 from app.utils import get_user_conf
-from app.kernel_manager import populate_kernels
-from _orchest.internals import config as _config
-
-
-def initialize_default_images(db):
-    # pre-populate the base images
-    image_names = [image.name for image in Image.query.all()]
-
-    for image in _config.DEFAULT_BASE_IMAGES:
-        if image["name"] not in image_names:
-            im = Image(name=image["name"], language=image["language"])
-            db.session.add(im)
-            db.session.commit()
 
 
 def initialize_default_datasources(db, app):
     # pre-populate the datasources
     datasource_names = [datasource.name for datasource in DataSource.query.all()]
 
-    for datasource in _config.DEFAULT_DATASOURCES:
+    for datasource in app.config['DEFAULT_DATASOURCES']:
         if datasource["name"] not in datasource_names:
 
             connection_details = datasource["connection_details"]
@@ -119,16 +105,14 @@ def create_app():
     logging.info("Flask CONFIG: %s" % app.config)
 
     db.init_app(app)
+    ma.init_app(app)
 
     # according to SQLAlchemy will only create tables if they do not exist
     with app.app_context():
         db.create_all()
 
-        initialize_default_images(db)
         initialize_default_datasources(db, app)
 
-        logging.info("Initializing kernels")
-        populate_kernels(app, db)
 
     # static file serving
     @app.route("/public/<path:path>")
@@ -136,7 +120,6 @@ def create_app():
         return send_from_directory("../static", path)
 
     register_views(app, db)
-    register_build_views(app, db, socketio)
     register_socketio_broadcast(db, socketio)
 
     if (
@@ -178,15 +161,6 @@ def create_app():
         )
         logging.info("Started file_permission_watcher.py")
         processes.append(permission_process)
-
-        # docker_builder process
-        docker_builder_process = Popen(
-            ["python3", "-m", "scripts.docker_builder"],
-            cwd=os.path.join(file_dir, ".."),
-            stderr=subprocess.STDOUT,
-        )
-        logging.info("Started docker_builder.py")
-        processes.append(docker_builder_process)
 
         # log_streamer process
         log_streamer_process = Popen(

@@ -9,7 +9,142 @@ import tarfile
 import io
 import docker
 
-from app.models import Image, Commit, Pipeline, Project
+from app.models import Pipeline, Project, Environment
+from app.config import CONFIG_CLASS as StaticConfig
+from app.schemas import EnvironmentSchema
+
+# Directory resolves
+def get_pipeline_path(
+        pipeline_uuid,
+        project_uuid,
+        experiment_uuid=None,
+        pipeline_run_uuid=None,
+        host_path=False,
+        pipeline_path=None,
+    ):
+
+    USER_DIR = StaticConfig.USER_DIR
+    if host_path == True:
+        USER_DIR = StaticConfig.HOST_USER_DIR
+
+    if pipeline_path is None:
+        pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
+
+    project_path = project_uuid_to_path(project_uuid)
+
+    if pipeline_run_uuid is None:
+        return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
+    elif pipeline_run_uuid is not None and experiment_uuid is not None:
+        return os.path.join(
+            USER_DIR,
+            "experiments",
+            project_uuid,
+            pipeline_uuid,
+            experiment_uuid,
+            pipeline_run_uuid,
+            pipeline_path,
+        )
+    elif experiment_uuid is not None:
+        return os.path.join(
+            USER_DIR,
+            "experiments",
+            project_uuid,
+            pipeline_uuid,
+            experiment_uuid,
+            "snapshot",
+            pipeline_path,
+        )
+
+def get_pipeline_directory(
+    pipeline_uuid,
+    project_uuid,
+    experiment_uuid=None,
+    pipeline_run_uuid=None,
+    host_path=False,
+):
+
+    return os.path.split(
+        get_pipeline_path(
+            pipeline_uuid,
+            project_uuid,
+            experiment_uuid,
+            pipeline_run_uuid,
+            host_path,
+        )
+    )[0]
+
+def get_project_directory(project_uuid, host_path=False):
+    USER_DIR = StaticConfig.USER_DIR
+    if host_path == True:
+        USER_DIR = StaticConfig.HOST_USER_DIR
+
+    return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
+
+def get_environment_directory(environment_uuid, project_uuid, host_path=False):
+    USER_DIR = StaticConfig.USER_DIR
+    if host_path == True:
+        USER_DIR = StaticConfig.HOST_USER_DIR
+
+    return os.path.join(
+        get_project_directory(project_uuid, host_path), 
+        ".orchest", 
+        "environments", 
+        environment_uuid)
+
+# End of directory resolves
+
+# Environments
+def get_environments(project_uuid, language=None):
+
+    environments = []
+    project_dir = get_project_directory(project_uuid)
+    environments_dir = os.path.join(project_dir, ".orchest", "environments")
+
+    for path in os.listdir(environments_dir):
+
+        environment_dir = os.path.join(environments_dir, path)
+
+        if os.path.isdir(environment_dir):
+            env = read_environment_from_disk(environment_dir)
+
+            if language is None:
+                environments.append(env)
+            else:
+                if language == env.language:
+                    environments.append(env)
+
+    return environments
+
+def serialize_environment_to_disk(environment, env_directory):
+
+    environment_schema = EnvironmentSchema()
+
+    # treat startup_script separately
+    with open(os.path.join(env_directory, "properties.json"), 'w') as file:
+        file.write(environment_schema.dumps(environment))
+
+    # write startup_script
+    with open(os.path.join(env_directory, "startup_script.sh"), 'w') as file:
+        file.write(environment.startup_script)
+
+
+def read_environment_from_disk(env_directory):
+
+    try:
+        with open(os.path.join(env_directory, "properties.json"), 'r') as file:
+            env_dat = json.load(file)
+
+        with open(os.path.join(env_directory, "startup_script.sh"), 'r') as file:
+            startup_script = file.read()
+
+        e = Environment(**env_dat)
+        e.startup_script = startup_script
+
+        return e
+    except Exception as e:
+        logging.error("Could not environment from env_directory %s. Error: %s" (env_directory, e))
+
+# End of environments
 
 
 def get_hash(path):
@@ -53,43 +188,6 @@ def save_user_conf_raw(config):
             f.write(config)
     except Exception as e:
         logging.debug(e)
-
-
-def get_synthesized_images(language=None):
-
-    synthesized_images = []
-
-    # add base images
-    if language is not None:
-        images = Image.query.filter(Image.language == language).all()
-    else:
-        images = Image.query.all()
-
-    image_names = [image.name for image in images]
-
-    image_languages = []
-    image_language_dict = {}
-
-    for image in images:
-        image_language_dict[image.name] = image.language
-        image_languages.append(image.language)
-
-    synthesized_images += image_names
-
-    # add commits (notice, languages are automatically filtered due to
-    # dependence on base images)
-    commits = Commit.query.filter(Commit.base_image.in_(image_names)).all()
-    commit_image_names = [
-        "%s:%s" % (commit.base_image, commit.tag) for commit in commits
-    ]
-
-    synthesized_images += commit_image_names
-
-    # get commit language by using base image language (commits inherit language
-    # from base image)
-    image_languages += [image_language_dict[commit.base_image] for commit in commits]
-
-    return synthesized_images, image_languages
 
 
 def tar_from_path(path, filename):

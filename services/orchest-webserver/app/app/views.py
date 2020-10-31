@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import uuid
 import pdb
 import requests
@@ -20,23 +21,35 @@ from app.utils import (
     get_user_conf_raw,
     save_user_conf_raw,
     name_to_tag,
-    get_synthesized_images,
     find_pipelines_in_dir,
     pipeline_uuid_to_path,
     project_uuid_to_path,
     remove_dir_if_empty,
+    get_pipeline_path,
+    get_pipeline_directory,
+    get_project_directory,
+    get_environment_directory,
+    get_environments,
+    serialize_environment_to_disk,
+    read_environment_from_disk
 )
 from app.models import (
     DataSource,
     Experiment,
+    Environment,
     PipelineRun,
-    Image,
-    Commit,
     Project,
     Pipeline,
 )
+
+from app.schemas import (
+    ProjectSchema,
+    PipelineSchema,
+    DataSourceSchema,
+    EnvironmentSchema,
+    ExperimentSchema
+)
 from app.kernel_manager import populate_kernels
-from _orchest.internals import config as _config
 from _orchest.internals.utils import run_orchest_ctl
 
 
@@ -45,64 +58,20 @@ logging.basicConfig(level=logging.DEBUG)
 
 def register_views(app, db):
 
-    ma = Marshmallow(app)
-
-    class ProjectSchema(ma.Schema):
-        class Meta:
-            fields = ("uuid", "path")
+    class DataSourceNameInUse(HTTPException):
+        pass
 
     project_schema = ProjectSchema()
     projects_schema = ProjectSchema(many=True)
 
-    class PipelineSchema(ma.Schema):
-        class Meta:
-            fields = ("uuid", "path")
-
     pipeline_schema = PipelineSchema()
     pipelines_schema = PipelineSchema(many=True)
-
-    class DataSourceNameInUse(HTTPException):
-        pass
-
-    class DataSourceSchema(ma.Schema):
-        class Meta:
-            fields = ("name", "source_type", "connection_details")
 
     datasource_schema = DataSourceSchema()
     datasources_schema = DataSourceSchema(many=True)
 
-    class CommitNameInUse(HTTPException):
-        pass
-
-    class CommitSchema(ma.Schema):
-        class Meta:
-            fields = ("name", "tag", "base_image", "uuid", "building")
-
-    commit_schema = CommitSchema()
-    commits_schema = CommitSchema(many=True)
-
-    class ImageNameInUse(HTTPException):
-        pass
-
-    class ImageSchema(ma.Schema):
-        class Meta:
-            fields = ("name", "language", "uuid", "gpu_support")
-
-    image_schema = ImageSchema()
-    images_schema = ImageSchema(many=True)
-
-    class ExperimentSchema(ma.Schema):
-        class Meta:
-            fields = (
-                "name",
-                "uuid",
-                "pipeline_uuid",
-                "project_uuid",
-                "pipeline_name",
-                "created",
-                "strategy_json",
-                "draft",
-            )
+    environment_schema = EnvironmentSchema()
+    environments_schema = EnvironmentSchema(many=True)
 
     experiment_schema = ExperimentSchema()
     experiments_schema = ExperimentSchema(many=True)
@@ -161,70 +130,7 @@ def register_views(app, db):
                         % notebook_path
                     )
 
-    def get_pipeline_path(
-        pipeline_uuid,
-        project_uuid,
-        experiment_uuid=None,
-        pipeline_run_uuid=None,
-        host_path=False,
-        pipeline_path=None,
-    ):
-
-        USER_DIR = app.config["USER_DIR"]
-        if host_path == True:
-            USER_DIR = app.config["HOST_USER_DIR"]
-
-        if pipeline_path is None:
-            pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
-
-        project_path = project_uuid_to_path(project_uuid)
-
-        if pipeline_run_uuid is None:
-            return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
-        elif pipeline_run_uuid is not None and experiment_uuid is not None:
-            return os.path.join(
-                USER_DIR,
-                "experiments",
-                project_uuid,
-                pipeline_uuid,
-                experiment_uuid,
-                pipeline_run_uuid,
-                pipeline_path,
-            )
-        elif experiment_uuid is not None:
-            return os.path.join(
-                USER_DIR,
-                "experiments",
-                project_uuid,
-                pipeline_uuid,
-                experiment_uuid,
-                "snapshot",
-                pipeline_path,
-            )
-
-    def get_pipeline_directory(
-        pipeline_uuid,
-        project_uuid,
-        experiment_uuid=None,
-        pipeline_run_uuid=None,
-        host_path=False,
-    ):
-        return os.path.split(
-            get_pipeline_path(
-                pipeline_uuid,
-                project_uuid,
-                experiment_uuid,
-                pipeline_run_uuid,
-                host_path,
-            )
-        )[0]
-
-    def get_project_directory(project_uuid, host_path=False):
-        USER_DIR = app.config["USER_DIR"]
-        if host_path == True:
-            USER_DIR = app.config["HOST_USER_DIR"]
-
-        return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
+    
 
     def generate_ipynb_from_template(step):
 
@@ -335,165 +241,66 @@ def register_views(app, db):
         if os.path.isdir(shell_file_dir):
             os.system("rm -r %s" % (shell_file_dir))
 
-    def register_commits(db, api, ma):
-        class CommitsResource(Resource):
-            def get(self):
-                if "image_name" in request.args:
-                    commits = Commit.query.filter(
-                        Commit.base_image == request.args["image_name"]
-                    ).all()
-                else:
-                    commits = Commit.query.all()
+    def register_environments(db, api):
 
-                return commits_schema.dump(commits)
+        class EnvironmentsResource(Resource):
+            def get(self, project_uuid):
+                return environments_schema.dump(get_environments(project_uuid, language=request.args.get('language')))
 
-        class CommitResource(Resource):
-            def put(self, commit_uuid):
+        class EnvironmentResource(Resource):
 
-                commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
+            def put(self, project_uuid, environment_uuid):
+                return self.post(project_uuid, environment_uuid)
 
-                if commit is None:
-                    return "", 404
+            def get(self, project_uuid, environment_uuid):
+                environment_dir = get_environment_directory(environment_uuid, project_uuid)
+                return read_environment_from_disk(environment_dir)
 
-                commit.name = request.json["name"]
-                commit.tag = name_to_tag(request.json["name"])
-                commit.base_image = request.json["image_name"]
+            def delete(self, project_uuid, environment_uuid):
+                environment_dir = get_environment_directory(environment_uuid, project_uuid)
+                shutil.rmtree(environment_dir)
 
-                db.session.commit()
-
-                # side effect: update shared kernels directory
+                # refresh kernels after change in environments
                 populate_kernels(app, db)
 
-                return commit_schema.dump(commit)
+                return ''
 
-            def get(self, commit_uuid):
-                commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
-                return commit_schema.dump(commit)
+            def post(self, project_uuid, environment_uuid):
 
-            def delete(self, commit_uuid):
+                # create a new environment in the project
+                project_dir = get_project_directory(project_uuid)
 
-                commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
+                environment_json = request.json.get("environment")
 
-                if commit is None:
-                    return "", 404
-
-                remove_commit_shell(commit)
-                remove_commit_image(commit)
-
-                db.session.delete(commit)
-                db.session.commit()
-
-                # side effect: update shared kernels directory
-                populate_kernels(app, db)
-
-            # note that the post request accepts the name instead of the tag
-            def post(self, commit_uuid):
-
-                name = request.json["name"]
-                tag = name_to_tag(name)
-                image_name = request.json["image_name"]
-
-                if (
-                    Commit.query.filter(Commit.base_image.name == image_name)
-                    .filter(Commit.tag == tag)
-                    .count()
-                    > 0
-                ):
-                    raise CommitNameInUse()
-
-                # check image_name exists as a constraint
-                if Image.query.filter(Image.name == image_name).count() == 0:
-                    return "", 404
-
-                new_commit = Commit(
-                    uuid=str(uuid.uuid4()), name=name, tag=tag, base_image=image_name
+                e = Environment(
+                    name=environment_json['name'],
+                    project_uuid=project_uuid,
+                    language=environment_json["language"],
+                    startup_script=environment_json["startup_script"],
+                    base_image=environment_json["base_image"],
+                    gpu_support=environment_json["gpu_support"],
+                    building=environment_json["building"],
                 )
 
-                db.session.add(new_commit)
-                db.session.commit()
+                # use specified uuid if it's not keyword 'new'
+                if environment_uuid != "new":
+                    e.uuid = environment_uuid
 
-                # side effect: update shared kernels directory
+                environment_dir = get_environment_directory(e.uuid, project_uuid)
+                
+                os.makedirs(environment_dir, exist_ok=True)
+                serialize_environment_to_disk(e, environment_dir)
+
+                # refresh kernels after change in environments
                 populate_kernels(app, db)
 
-                return commit_schema.dump(new_commit)
+                return environment_schema.dump(e)
 
-        api.add_resource(CommitsResource, "/store/commits")
-        api.add_resource(CommitResource, "/store/commits/<string:commit_uuid>")
+        api.add_resource(EnvironmentsResource, "/store/environments/<string:project_uuid>")
+        api.add_resource(EnvironmentResource, "/store/environments/<string:project_uuid>/<string:environment_uuid>")
 
-    def register_images(db, api, ma):
-        class ImagesResource(Resource):
-            def get(self):
-                images = Image.query.all()
-                return images_schema.dump(images)
 
-        class ImageResource(Resource):
-            def put(self, uuid):
-
-                im = Image.query.filter(Image.uuid == uuid).first()
-
-                if im is None:
-                    return "", 404
-
-                im.name = request.json["name"]
-                im.language = request.json["language"]
-                im.gpu_support = request.json["gpu_support"]
-                db.session.commit()
-
-                # side effect: update shared kernels directory
-                populate_kernels(app, db)
-
-                return image_schema.dump(im)
-
-            def get(self, uuid):
-                im = Image.query.filter(Image.uuid == uuid).first()
-
-                if im is None:
-                    return "", 404
-
-                return image_schema.dump(im)
-
-            def delete(self, uuid):
-                image = Image.query.filter(Image.uuid == uuid).first()
-
-                # do not allow deletion of base images
-                is_base_image = False
-                for base_image in _config.DEFAULT_BASE_IMAGES:
-                    if base_image["name"] == image.name:
-                        is_base_image = True
-                        break
-
-                if not is_base_image:
-                    db.session.delete(image)
-                    db.session.commit()
-
-                    # side effect: update shared kernels directory
-                    populate_kernels(app, db)
-                else:
-                    return {"message": "Cannot remove base images."}, 401
-
-            def post(self, uuid):
-
-                if Image.query.filter(Image.name == request.json["name"]).count() > 0:
-                    raise ImageNameInUse()
-
-                new_im = Image(
-                    name=request.json["name"],
-                    language=request.json["language"],
-                    gpu_support=request.json["gpu_support"],
-                )
-
-                db.session.add(new_im)
-                db.session.commit()
-
-                # side effect: update shared kernels directory
-                populate_kernels(app, db)
-
-                return image_schema.dump(new_im)
-
-        api.add_resource(ImagesResource, "/store/images")
-        api.add_resource(ImageResource, "/store/images/<string:uuid>")
-
-    def register_datasources(db, api, ma):
+    def register_datasources(db, api):
         class DataSourcesResource(Resource):
             def get(self):
 
@@ -559,7 +366,7 @@ def register_views(app, db):
         api.add_resource(DataSourcesResource, "/store/datasources")
         api.add_resource(DataSourceResource, "/store/datasources/<string:name>")
 
-    def register_experiments(db, api, ma):
+    def register_experiments(db, api):
         class ExperimentsResource(Resource):
             def get(self):
                 experiments = Experiment.query.all()
@@ -630,14 +437,6 @@ def register_views(app, db):
     def register_rest(app, db):
 
         errors = {
-            "CommitNameInUse": {
-                "message": "A commit with this name for this base image already exists.",
-                "status": 409,
-            },
-            "ImageNameInUse": {
-                "message": "An image with this name already exists.",
-                "status": 409,
-            },
             "DataSourceNameInUse": {
                 "message": "A data source with this name already exists.",
                 "status": 409,
@@ -646,10 +445,9 @@ def register_views(app, db):
 
         api = Api(app, errors=errors)
 
-        register_datasources(db, api, ma)
-        register_experiments(db, api, ma)
-        register_images(db, api, ma)
-        register_commits(db, api, ma)
+        register_datasources(db, api)
+        register_experiments(db, api)
+        register_environments(db, api)
 
     register_rest(app, db)
 
@@ -669,6 +467,13 @@ def register_views(app, db):
             DOCS_ROOT=app.config["DOCS_ROOT"],
             FLASK_ENV=app.config["FLASK_ENV"],
         )
+
+
+    @app.route("/catch/api-proxy/api/environment_builds/<project_uuid>/<environment_uuid>", methods=["POST"])
+    def catch_api_proxy_builds(project_uuid, environment_uuid):
+        # TODO: integrate with backend for environment build jobs
+        return "Stub: trigger build for %s, %s" % (project_uuid, environment_uuid)
+
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
     def catch_api_proxy_runs():
@@ -844,50 +649,22 @@ def register_views(app, db):
         else:
             return get_user_conf_raw()
 
-    @app.route("/async/synthesized-images", methods=["GET"])
-    def images_get():
 
-        synthesized_images, _ = get_synthesized_images(
-            language=request.args.get("language")
-        )
+    @app.route("/async/environment-by-name/<project_uuid>/<environment_name>", methods=["GET"])
+    def environment_by_name(project_uuid, environment_name):
 
-        result = {"success": True, "images": synthesized_images}
+        environments = get_environments(project_uuid)
 
-        return jsonify(result), 200, {"content-type": "application/json"}
+        result = None
 
-    @app.route("/async/image-metadata/", methods=["POST"])
-    def image_metadata():
+        for environment in environments:
+            if environments.name == environment_name:
+                result = {"environment": environment}
+                return jsonify(result), 200, {"content-type": "application/json"}
 
-        # check if image is commit or base image
-        image_name = request.form.get("image_name")
-
-        image = Image.query.filter(Image.name == image_name).first()
-        if image is None:
-
-            if ":" in image_name:
-                # check if commit exists
-                base_image = image_name.split(":")[0]
-                tag = image_name.split(":")[1]
-
-                commit = (
-                    Commit.query.filter(Commit.base_image == base_image)
-                    .filter(Commit.tag == tag)
-                    .first()
-                )
-                if commit is None:
-                    return jsonify({"message": "Image not found"}), 404
-
-                image = Image.query.filter(Image.name == base_image).first()
-
-                if image is None:
-                    return jsonify({"message": "Image not found"}), 404
-
-            else:
-                return jsonify({"message": "Image not found"}), 404
-
-        result = {"success": True, "image": image_schema.dump(image)}
-
-        return jsonify(result), 200, {"content-type": "application/json"}
+        result = {"message": "Could not find environment with name %s." % environment_name}
+        return jsonify(result), 404, {"content-type": "application/json"}
+        
 
     @app.route(
         "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
@@ -1035,6 +812,22 @@ def register_views(app, db):
         else:
             return "", 404
 
+
+    def populate_default_environments(project_uuid):
+
+        for env_spec in app.config["DEFAULT_ENVIRONMENTS"]:
+
+            e = Environment(**env_spec)
+
+            e.uuid = str(uuid.uuid4())
+            e.project_uuid = project_uuid
+
+            environment_dir = get_environment_directory(e.uuid, project_uuid)
+            os.makedirs(environment_dir, exist_ok=True)
+
+            serialize_environment_to_disk(e, environment_dir)
+
+
     @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
     def projects():
 
@@ -1077,6 +870,9 @@ def register_views(app, db):
                 db.session.delete(project)
                 db.session.commit()
 
+                # refresh kernels after change in environments
+                populate_kernels(app, db)
+
                 return jsonify({"message": "Project deleted."})
             else:
                 return (
@@ -1098,6 +894,12 @@ def register_views(app, db):
                     db.session.commit()
 
                     os.makedirs(full_project_path)
+
+                    # initialize with default environments
+                    populate_default_environments(new_project.uuid)
+
+                    # refresh kernels after change in environments
+                    populate_kernels(app, db)
 
                 else:
                     return jsonify({"message": "Project directory exists."}), 409
@@ -1259,62 +1061,6 @@ def register_views(app, db):
                 )
                 return return_404("Could not find notebook file %s" % notebook_path)
 
-    @app.route("/async/commits/shell/<string:commit_uuid>", methods=["GET", "POST"])
-    def commit_shell(commit_uuid):
-
-        commit = Commit.query.filter(Commit.uuid == commit_uuid).first()
-        if commit is None:
-            json_string = json.dumps(
-                {
-                    "success": False,
-                    "reason": "Commit does not exist for UUID %s" % (commit_uuid),
-                }
-            )
-
-            return json_string, 404, {"content-type": "application/json"}
-
-        shell_file_dir = os.path.join(
-            app.config["USER_DIR"], ".orchest", "commits", commit_uuid
-        )
-        shell_file_path = os.path.join(shell_file_dir, "shell.sh")
-
-        if request.method == "POST":
-
-            try:
-                if not os.path.isdir(shell_file_dir):
-                    os.makedirs(shell_file_dir)
-
-                with open(shell_file_path, "w") as file:
-                    file.write(request.json["shell"])
-
-                json_string = json.dumps({"success": True})
-
-                return json_string, 200, {"content-type": "application/json"}
-
-            except:
-                json_string = json.dumps(
-                    {"success": False, "reason": "Could not create shell file"}
-                )
-
-                return json_string, 500, {"content-type": "application/json"}
-
-        else:
-
-            if os.path.isfile(shell_file_path):
-
-                with open(shell_file_path, "r") as file:
-                    shell = file.read()
-
-                    json_string = json.dumps({"success": True, "shell": shell})
-
-                    return json_string, 200, {"content-type": "application/json"}
-
-            else:
-                json_string = json.dumps(
-                    {"success": False, "reason": "Could not find shell file"}
-                )
-
-                return json_string, 404, {"content-type": "application/json"}
 
     @app.route(
         "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]

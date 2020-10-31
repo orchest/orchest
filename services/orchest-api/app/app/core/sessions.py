@@ -443,7 +443,9 @@ def _get_mounts(
     # The `host_userdir` is only passed for interactive runs as those
     # are the only ones that use kernels.
     if host_userdir is not None:
-        source_kernelspecs = os.path.join(host_userdir, _config.KERNELSPECS_PATH)
+        source_kernelspecs = os.path.join(
+            host_userdir, 
+            _config.KERNELSPECS_PATH.format(project_uuid=project_uuid))
 
         mounts["kernelspec"] = Mount(
             target="/usr/local/share/jupyter/kernels",

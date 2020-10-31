@@ -19,7 +19,7 @@ import "./utils/overflowing";
 import ExperimentView from "./views/ExperimentView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
-import ImagesView from "./views/ImagesView";
+import EnvironmentsView from "./views/EnvironmentsView";
 import UpdateView from "./views/UpdateView";
 import { PersistentLocalConfig } from "./lib/utils/all";
 
@@ -39,18 +39,18 @@ function Orchest() {
   this.browserConfig = new PersistentLocalConfig("orchest");
 
   this.Components = {
-    ProjectsView: ProjectsView,
-    DataSourcesView: DataSourcesView,
-    FileManagerView: FileManagerView,
-    ImagesView: ImagesView,
-    DataSourceEditView: DataSourceEditView,
-    PipelineView: PipelineView,
-    SettingsView: SettingsView,
-    UpdateView: UpdateView,
-    PipelinesView: PipelinesView,
-    ExperimentsView: ExperimentsView,
-    ExperimentView: ExperimentView,
-    CreateExperimentView: CreateExperimentView,
+    ProjectsView,
+    DataSourcesView,
+    FileManagerView,
+    EnvironmentsView,
+    DataSourceEditView,
+    PipelineView,
+    SettingsView,
+    UpdateView,
+    PipelinesView,
+    ExperimentsView,
+    ExperimentView,
+    CreateExperimentView,
   };
 
   const drawer = MDCDrawer.attachTo(document.getElementById("main-drawer"));
