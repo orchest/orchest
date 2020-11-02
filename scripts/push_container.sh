@@ -3,11 +3,15 @@
 set -e
 
 IMGS=()
+RELEASE_TAG="latest"
 
-while getopts "s:i:nve" opt; do
+while getopts "i:t:" opt; do
   case $opt in
     i)
       IMGS+=($OPTARG)
+      ;;
+    t)
+      RELEASE_TAG="$OPTARG"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -20,8 +24,5 @@ echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-
 
 for IMG in ${IMGS[@]}
 do
-    docker push "orchestsoftware/$IMG"
+    docker push "orchestsoftware/$IMG:$RELEASE_TAG"
 done
-
-# TODO: remove .docker/config.json as it will store the password or does
-# GitHub Actions take care of this for us?

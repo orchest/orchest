@@ -15,6 +15,7 @@ jobs:
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      RELEASE_TAG: ${{ github.event.client_payload.release_tag }}
 
     strategy:
       matrix:
@@ -35,9 +36,9 @@ jobs:
 
       - name: Build and push image
         run: |
-          bash ./scripts/build_container.sh ${{ matrix.image }} -v
+          bash ./scripts/build_container.sh ${{ matrix.image }} -v -t "$RELEASE_TAG"
           echo "-----------"
-          bash ./scripts/push_container.sh ${{ matrix.image }}
+          bash ./scripts/push_container.sh ${{ matrix.image }} -t "$RELEASE_TAG"
 
   push-readme:
     runs-on: ubuntu-latest
