@@ -10,7 +10,7 @@ setuptools.setup(
     version="0.2.0",
     packages=setuptools.find_packages(),
     install_requires=[
-        "pyarrow==2.0.0",
+        "pyarrow==1.0.1",
         "boto3>=1.13.26",
         "requests>=2.23.0",
         "SQLAlchemy>=1.3.18",
