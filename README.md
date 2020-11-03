@@ -37,6 +37,8 @@ Orchest lets you
 
 ## Installation
 
+**Note!** Orchest is in alpha.
+
 #### Requirements
 
 - Docker (tested on 19.03.9)
