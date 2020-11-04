@@ -144,17 +144,9 @@ h3 {
   font-size: $codeSize;
 }
 
-.edit-commit {
-  .react-codemirror2 {
-    margin-bottom: $generalPadding;
-  }
-
-  .mdc-button {
-    margin-top: $generalPadding;
-    margin-right: $generalPadding;
-  }
-
-  .commit-uuid {
+.edit-environment {
+  
+  .environment-uuid {
     font-size: $codeSize;
     color: #555;
     display: inline-block;
@@ -451,6 +443,25 @@ h2.header {
   }
 }
 
+.dropdown-file-picker {
+  position: relative;
+
+  .mdc-list-item {
+    .material-icons {
+      margin-left: $mdcComponentPadding;
+    }
+
+    line-height: 2.25rem;
+    height: auto;
+  }
+
+  .mdc-menu {
+    position: absolute;
+    left: 0;
+    top: 100%;
+  }
+}
+
 .columns {
   overflow: auto;
 
@@ -482,6 +493,16 @@ button.themed-secondary {
 
 .fullwidth {
   width: 100%;
+}
+
+.multi-button {
+  button {
+    margin-left: $mdcComponentPadding;
+  }
+
+  button:first-child {
+    margin-left: 0;
+  }
 }
 
 .docs-notice {

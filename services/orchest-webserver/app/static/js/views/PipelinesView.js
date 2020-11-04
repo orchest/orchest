@@ -1,12 +1,12 @@
 import React from "react";
-import PipelineList from "../components/PipelineList";
-import ProjectBasedView from "./ProjectBasedView";
+import ProjectFilePicker from "../components/ProjectFilePicker";
 
 class PipelinesView extends React.Component {
   
   render() {
     return (
-      <ProjectBasedView childView={PipelineList} />
+      //<ProjectBasedView childView={PipelineList} />
+      <ProjectFilePicker project_uuid={"4f2e821e-5ae7-41ef-baac-22fbfbf656bc"} />
     );
   }
 }

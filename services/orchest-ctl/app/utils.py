@@ -164,11 +164,11 @@ def log_server_url():
 
 
 def clean_containers():
-    running_containers = docker_client.containers.list(all=True)
+    all_containers = docker_client.containers.list(all=True)
 
-    for container in running_containers:
-        has_tags = len(container.image.tags) > 0
-        is_orchest_image = has_tags and container.image.tags[0] in config.ALL_IMAGES
+    for container in all_containers:
+
+        is_orchest_image = "orchest" in container.attrs["NetworkSettings"]["Networks"]
         has_exited = container.status == "exited"
         if is_orchest_image and has_exited:
             logging.info("Removing exited container `%s`" % container.name)

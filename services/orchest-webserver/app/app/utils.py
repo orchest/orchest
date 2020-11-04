@@ -8,6 +8,7 @@ import uuid
 import tarfile
 import io
 import docker
+import shutil
 
 from app.models import Pipeline, Project, Environment
 from app.config import CONFIG_CLASS as StaticConfig
@@ -100,18 +101,23 @@ def get_environments(project_uuid, language=None):
     project_dir = get_project_directory(project_uuid)
     environments_dir = os.path.join(project_dir, ".orchest", "environments")
 
-    for path in os.listdir(environments_dir):
+    try:
+        for path in os.listdir(environments_dir):
 
-        environment_dir = os.path.join(environments_dir, path)
+            environment_dir = os.path.join(environments_dir, path)
 
-        if os.path.isdir(environment_dir):
-            env = read_environment_from_disk(environment_dir)
+            if os.path.isdir(environment_dir):
+                env = read_environment_from_disk(environment_dir)
 
-            if language is None:
-                environments.append(env)
-            else:
-                if language == env.language:
+                if language is None:
                     environments.append(env)
+                else:
+                    if language == env.language:
+                        environments.append(env)
+    except FileNotFoundError as e:
+        logging.error("Could not find environments directory in project path %s" % environments_dir)
+    except Exception as e:
+        logging.error(e)
 
     return environments
 
@@ -142,7 +148,7 @@ def read_environment_from_disk(env_directory):
 
         return e
     except Exception as e:
-        logging.error("Could not environment from env_directory %s. Error: %s" (env_directory, e))
+        logging.error("Could not environment from env_directory %s. Error: %s" % (env_directory, e))
 
 # End of environments
 
@@ -213,6 +219,18 @@ def tar_from_path(path, filename):
     os.remove(tmp_file_path)
 
     return data
+
+
+def clear_folder(folder):
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
 def remove_dir_if_empty(path):

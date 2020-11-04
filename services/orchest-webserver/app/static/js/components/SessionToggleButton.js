@@ -100,7 +100,7 @@ class SessionToggleButton extends React.Component {
     });
   }
 
-  launchSession() {
+  toggleSession() {
     if (this.state.working) {
       let statusText = "launching";
       if (this.state.running) {
@@ -167,6 +167,7 @@ class SessionToggleButton extends React.Component {
         working: true,
       });
       this.props.onSessionStateChange(this.state.working, this.state.running);
+      this.props.onSessionShutdown();
 
       let deletePromise = makeCancelable(
         makeRequest(
@@ -236,7 +237,7 @@ class SessionToggleButton extends React.Component {
   render() {
     return (
       <MDCButtonReact
-        onClick={this.launchSession.bind(this)}
+        onClick={this.toggleSession.bind(this)}
         classNames={this.getPowerButtonClasses()}
         label="Session"
         icon={this.state.working ? "hourglass_empty" : "power_settings_new"}
@@ -248,6 +249,7 @@ class SessionToggleButton extends React.Component {
 SessionToggleButton.defaultProps = {
   onSessionStateChange: () => {},
   onSessionFetch: () => {},
+  onSessionShutdown: () => {},
 };
 
 export default SessionToggleButton;

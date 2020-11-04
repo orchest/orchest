@@ -51,6 +51,7 @@ from app.schemas import (
 )
 from app.kernel_manager import populate_kernels
 from _orchest.internals.utils import run_orchest_ctl
+from _orchest.internals import config as _config
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -81,17 +82,14 @@ def register_views(app, db):
 
         return json_string, 404, {"content-type": "application/json"}
 
-    def generate_gateway_kernel_name(image, kernel):
-        base_image = image
-        # derive gateway kernel from kernel + image name
-        # (dynamic instead of hardcoded mapping for now)
-        # base image: i.e. jupyter/scipy-notebook gets reduced to scipy-notebook
-        if "/" in base_image:
-            base_image = base_image.replace("/", "-")
+    def generate_gateway_kernel_name(project_uuid, environment_uuid):
+        
+        return _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=project_uuid,
+            environment_uuid=environment_uuid
+        )
 
-        return base_image
-
-    def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory):
+    def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid):
 
         # for each step set correct notebook kernel if it exists
 
@@ -107,22 +105,41 @@ def register_views(app, db):
                 if os.path.isfile(notebook_path):
 
                     gateway_kernel = generate_gateway_kernel_name(
-                        step["image"], step["kernel"]["name"]
+                        project_uuid, step["environment"]
                     )
-
-                    notebook_json = None
 
                     with open(notebook_path, "r") as file:
                         notebook_json = json.load(file)
+
+                    notebook_changed = False
 
                     if (
                         notebook_json["metadata"]["kernelspec"]["name"]
                         != gateway_kernel
                     ):
+                        notebook_changed = True
                         notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+                    
+                    environment = Environment.query.filter(
+                        Environment.uuid==step['environment']
+                    ).filter(
+                        Environment.project_uuid==project_uuid
+                    ).first()
 
+                    if environment is not None:
+                        if (
+                            notebook_json["metadata"]["kernelspec"]["display_name"]
+                            != environment.name
+                        ):
+                            notebook_changed = True
+                            notebook_json["metadata"]["kernelspec"]["display_name"] = environment.name
+                    else:
+                        logging.warn("Could not find environment [%s] while setting notebook kernelspec for notebook %s." % (
+                            step['environment'], notebook_path))
+
+                    if notebook_changed:
                         with open(notebook_path, "w") as file:
-                            file.write(json.dumps(notebook_json))
+                            file.write(json.dumps(notebook_json, indent=2))
 
                 else:
                     logging.info(
@@ -132,7 +149,7 @@ def register_views(app, db):
 
     
 
-    def generate_ipynb_from_template(step):
+    def generate_ipynb_from_template(step, project_uuid):
 
         # TODO: support additional languages to Python and R
         if "python" in step["kernel"]["name"].lower():
@@ -153,12 +170,13 @@ def register_views(app, db):
             "display_name"
         ]
         template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-            step["image"], step["kernel"]["name"]
+            project_uuid,
+            step["environment"]
         )
 
-        return json.dumps(template_json)
+        return json.dumps(template_json, indent=2)
 
-    def create_pipeline_files(pipeline_json, pipeline_directory):
+    def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
 
         # Currently, we check per step whether the file exists.
         # If not, we create it (empty by default).
@@ -174,21 +192,29 @@ def register_views(app, db):
             file_name = step["file_path"]
 
             full_file_path = os.path.join(pipeline_directory, file_name)
+            file_name_split = file_name.split(".")
+            file_name_without_ext = ".".join(file_name_split[:-1])
+            ext = file_name_split[-1]
+
+            file_content = None
 
             if not os.path.isfile(full_file_path):
-                file_name_split = file_name.split(".")
-                file_name_without_ext = ".".join(file_name_split[:-1])
-                ext = file_name_split[-1]
 
                 if len(file_name_without_ext) > 0:
                     file_content = ""
 
-                    if ext == "ipynb":
-                        file_content = generate_ipynb_from_template(step)
+                if ext == "ipynb":
+                    file_content = generate_ipynb_from_template(step, project_uuid)
+                    
+            elif ext == "ipynb":
+                # check for empty .ipynb, for which we also generate a template notebook
+                if os.stat(full_file_path).st_size:
+                    file_content = generate_ipynb_from_template(step, project_uuid)
 
-                    file = open(full_file_path, "w")
-
+            if file_content is not None:
+                with open(full_file_path, "w") as file:
                     file.write(file_content)
+                        
 
     def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
@@ -263,16 +289,15 @@ def register_views(app, db):
                 # refresh kernels after change in environments
                 populate_kernels(app, db)
 
-                return ''
+                return jsonify({"message": "Environment deletion was successful."})
 
             def post(self, project_uuid, environment_uuid):
 
                 # create a new environment in the project
-                project_dir = get_project_directory(project_uuid)
-
                 environment_json = request.json.get("environment")
 
                 e = Environment(
+                    uuid=str(uuid.uuid4()),
                     name=environment_json['name'],
                     project_uuid=project_uuid,
                     language=environment_json["language"],
@@ -347,6 +372,8 @@ def register_views(app, db):
 
                 db.session.delete(ds)
                 db.session.commit()
+
+                return jsonify({"message": "Data source deletion was successful"})
 
             def post(self, name):
                 if DataSource.query.filter(DataSource.name == name).count() > 0:
@@ -649,22 +676,6 @@ def register_views(app, db):
         else:
             return get_user_conf_raw()
 
-
-    @app.route("/async/environment-by-name/<project_uuid>/<environment_name>", methods=["GET"])
-    def environment_by_name(project_uuid, environment_name):
-
-        environments = get_environments(project_uuid)
-
-        result = None
-
-        for environment in environments:
-            if environments.name == environment_name:
-                result = {"environment": environment}
-                return jsonify(result), 200, {"content-type": "application/json"}
-
-        result = {"message": "Could not find environment with name %s." % environment_name}
-        return jsonify(result), 404, {"content-type": "application/json"}
-        
 
     @app.route(
         "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
@@ -1089,10 +1100,10 @@ def register_views(app, db):
             # first create all files part of pipeline_json definition
             # TODO: consider removing other files (no way to do this reliably,
             # special case might be rename)
-            create_pipeline_files(pipeline_json, pipeline_directory)
+            create_pipeline_files(pipeline_json, pipeline_directory, project_uuid)
 
             # side effect: for each Notebook in de pipeline.json set the correct kernel
-            pipeline_set_notebook_kernels(pipeline_json, pipeline_directory)
+            pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid)
 
             with open(pipeline_json_path, "w") as json_file:
                 json_file.write(json.dumps(pipeline_json, indent=2))
@@ -1117,3 +1128,37 @@ def register_views(app, db):
                     return jsonify({"success": True, "pipeline_json": json_file.read()})
 
             return ""
+
+    ## TODO: in progress
+    # @app.route("/async/file-picker-tree/<project_uuid>", methods=["GET"])
+    # def get_file_picker_tree(project_uuid):
+
+    #     project_dir = get_project_directory(project_uuid)
+
+    #     if not os.path.isdir(project_dir):
+    #         return jsonify({"message": "Project dir %s not found." % project_dir}), 404
+
+    #     tree = {
+    #         "type": "directory",
+    #         "root": True,
+    #         "name": "/",
+    #         "children": []
+    #     }
+
+    #     dir_nodes = {}
+
+    #     for root, dirs, files in os.walk(project_dir):
+
+    #         for dir_name in dirs:
+    #             dir_path = os.path.join(root, dir_name)
+
+    #             dir_node = {
+    #                 "type": "directory",
+    #                 "name": dir_name,
+    #                 "children": [],
+    #             }
+
+    #             dir_nodes[dir_path]
+
+
+    #     return jsonify(tree)

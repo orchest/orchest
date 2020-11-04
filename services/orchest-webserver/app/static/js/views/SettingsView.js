@@ -192,6 +192,7 @@ class SettingsView extends React.Component {
               );
             }
           })()}
+          <p className={"push-down"}>Application mode: <span className='code'>{orchest.environment}</span>.</p>
         </div>
 
         <h2>Updates</h2>

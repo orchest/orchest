@@ -1,46 +1,52 @@
 import os
 import logging
+import shutil
 
-from app.utils import get_environments
+from app.utils import get_environments, clear_folder
 from app.models import Project
+from _orchest.internals import config as _config
+
 
 def populate_kernels(app, db):
 
     # check whether all kernels are available in the userdir/.orchest/kernels
 
     # use database to figure out which kernel directories should exist
-
-    # kernel directory naming scheme:
-    #
-    # orchestsoftware/custom-base-kernel-py:abc
-    # -->
-    # orchestsoftware-custom-base-kernel-py:abc
-
     projects = Project.query.all()
 
-    # TODO: consider not removing full directory
+    project_uuids = set([project.uuid for project in projects])
+
     kernels_root_path = os.path.join(app.config["USER_DIR"], ".orchest", "kernels")
 
-    # remove all kernels
     if not os.path.exists(kernels_root_path):
         os.makedirs(kernels_root_path)
     else:
-        os.system("rm -rf %s/*" % kernels_root_path)
+        # clear all the kernel folders
+        # without removing the project kernel folders of existing projects as to not
+        # disturb the mounted paths
+        for filename in os.listdir(kernels_root_path):
+
+            project_folder_path = os.path.join(kernels_root_path, filename)
+
+            if os.path.isdir(project_folder_path):
+
+                # if project exists clear kernel contents
+                if filename in project_uuids:
+
+                    clear_folder(project_folder_path)
+                else:
+                    # if project doesn't exist clear the entire folder to keep
+                    # .orchest/kernels tidy
+                    shutil.rmtree(project_folder_path)
 
     for project in projects:
 
         environments = get_environments(project.uuid)
-        
-        images = [env.base_image for env in environments]
-        image_languages = [env.language for env in environments]
-
         kernels_dir_path = os.path.join(app.config["USER_DIR"], ".orchest", "kernels", project.uuid)
 
         # remove all kernels
         if not os.path.exists(kernels_dir_path):
             os.makedirs(kernels_dir_path)
-        else:
-            os.system("rm -rf %s/*" % kernels_dir_path)
 
         # kernel.json template
         kernel_json_template_path = os.path.join(
@@ -58,17 +64,19 @@ def populate_kernels(app, db):
             raise e
 
         # create kernel_dirs
-        for index, image in enumerate(images):
+        for environment in environments:
 
-            kernel_dir_name = image.replace("/", "-")
-            kernel_dir_path = os.path.join(kernels_dir_path, kernel_dir_name)
+            kernel_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=project.uuid, environment_uuid=environment.uuid)
+            kernel_dir_path = os.path.join(kernels_dir_path, kernel_name)
 
             os.makedirs(kernel_dir_path)
 
             # write filled template kernel.json
             filled_kernel_json = kernel_json_template.replace(
-                "{image_name}", image
-            ).replace("{language}", image_languages[index])
+                "{image_name}", kernel_name
+            ).replace("{language}", environment.language
+            ).replace("{display_name}", environment.name)
 
             kernel_json_path = os.path.join(kernel_dir_path, "kernel.json")
 

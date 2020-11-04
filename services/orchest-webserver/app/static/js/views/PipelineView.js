@@ -1000,7 +1000,7 @@ class PipelineView extends React.Component {
         name: "python",
         display_name: "Python 3",
       },
-      image: "orchestsoftware/custom-base-kernel-py",
+      environment: "",
       parameters: {},
       meta_data: {
         position: [0, 0],

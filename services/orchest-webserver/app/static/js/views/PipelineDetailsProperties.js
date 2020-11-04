@@ -36,7 +36,7 @@ class PipelineDetailsProperties extends React.Component {
         ["python", "Python 3"],
         ["ir", "R"],
       ],
-      imageOptions: [],
+      environmentOptions: [],
       isNotebookStep:
         extensionFromFilename(this.props.step.file_path) == "ipynb",
       step: this.props.step,
@@ -52,33 +52,31 @@ class PipelineDetailsProperties extends React.Component {
     this.promiseManager.cancelCancelablePromises();
   }
 
-  fetchImageOptions() {
-    let synthesizedImagesEndpoint = `/store/environments/${this.props.project_uuid}`;
+  fetchEnvironmentOptions() {
+    let environmentsEndpoint = `/store/environments/${this.props.project_uuid}`;
 
     if (this.state.isNotebookStep) {
-      synthesizedImagesEndpoint +=
+      environmentsEndpoint +=
         "?language=" + kernelNameToLanguage(this.state.step.kernel.name);
     }
 
-    let fetchImageOptionsPromise = makeCancelable(
-      makeRequest("GET", synthesizedImagesEndpoint),
+    let fetchEnvironmentOptionsPromise = makeCancelable(
+      makeRequest("GET", environmentsEndpoint),
       this.promiseManager
     );
 
-    fetchImageOptionsPromise.promise
+    fetchEnvironmentOptionsPromise.promise
       .then((response) => {
         let result = JSON.parse(response);
 
-        let imageOptions = [];
+        let environmentOptions = [];
 
         for (let environment of result) {
-          /* TODO: refactor environment.base_image to environment image 
-          (requires building of environments in the backend) */
-          imageOptions.push([environment.base_image]);
+          environmentOptions.push([environment.uuid, environment.name]);
         }
 
         this.setState({
-          imageOptions: imageOptions,
+          environmentOptions: environmentOptions,
         });
       })
       .catch((error) => {
@@ -119,8 +117,8 @@ class PipelineDetailsProperties extends React.Component {
     this.updateStepName();
     this.props.onSave(this);
 
-    // refetch image options as it changes depending on filetype
-    this.fetchImageOptions();
+    // refetch environment options as it changes depending on filetype
+    this.fetchEnvironmentOptions();
   }
 
   onChangeVCPUS(updatedVCPUS) {
@@ -169,8 +167,8 @@ class PipelineDetailsProperties extends React.Component {
     this.props.onSave(this);
   }
 
-  onChangeImage(updatedImage) {
-    this.state.step.image = updatedImage;
+  onChangeEnvironment(updatedEnvironment) {
+    this.state.step.environment = updatedEnvironment;
 
     this.setState({
       step: this.state.step,
@@ -198,8 +196,8 @@ class PipelineDetailsProperties extends React.Component {
 
     this.props.onSave(this);
 
-    // re-fetch image options as it changes depending on kernel
-    this.fetchImageOptions();
+    // re-fetch environment options as it changes depending on kernel
+    this.fetchEnvironmentOptions();
   }
 
   onChangeTitle(updatedTitle) {
@@ -359,7 +357,7 @@ class PipelineDetailsProperties extends React.Component {
       this.setupConnectionListener();
     }
 
-    this.fetchImageOptions();
+    this.fetchEnvironmentOptions();
   }
 
   render() {
@@ -424,11 +422,11 @@ class PipelineDetailsProperties extends React.Component {
           />
 
           <MDCSelectReact
-            label="Image"
+            label="Environment"
             disabled={this.props.readOnly}
-            onChange={this.onChangeImage.bind(this)}
-            options={this.state.imageOptions}
-            value={this.state.step.image}
+            onChange={this.onChangeEnvironment.bind(this)}
+            options={this.state.environmentOptions}
+            value={this.state.step.environment}
           />
         </div>
 

@@ -132,7 +132,7 @@ class EnvironmentList extends React.Component {
 
   render() {
     return (
-      <div className={"view-page"}>
+      <div className={"environments-page"}>
         <h2>Environments</h2>
 
         {(() => {

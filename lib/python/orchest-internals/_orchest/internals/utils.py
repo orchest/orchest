@@ -42,11 +42,11 @@ def run_orchest_ctl(client, command):
     )
 
 
-def get_device_requests(environment_name, project_uuid, form="docker-sdk"):
+def get_device_requests(environment_uuid, project_uuid, form="docker-sdk"):
 
     device_requests = []
 
-    capabilities = get_environment_capabilities(environment_name, project_uuid)
+    capabilities = get_environment_capabilities(environment_uuid, project_uuid)
 
     if len(capabilities) > 0:
 
@@ -60,15 +60,15 @@ def get_device_requests(environment_name, project_uuid, form="docker-sdk"):
     return device_requests
 
 
-def get_environment_capabilities(environment_name, project_uuid):
+def get_environment_capabilities(environment_uuid, project_uuid):
 
     capabilities = []
 
     try:
         response = requests.get(
-            "http://orchest-webserver/async/environment-by-name/%s/%s" % (
+            "http://orchest-webserver/store/environments/%s/%s" % (
                 project_uuid, 
-                urllib.parse.quote(environment_name, safe='')))
+                environment_uuid))
 
         response.raise_for_status()
 
@@ -76,7 +76,7 @@ def get_environment_capabilities(environment_name, project_uuid):
         print(e)
 
     else:
-        environment = response.json()["environment"]
+        environment = response.json()
 
         if environment["gpu_support"] == True:
             capabilities += ["gpu", "utility", "compute"]

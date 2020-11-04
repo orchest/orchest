@@ -23,6 +23,7 @@ class EnvironmentEditView extends React.Component {
   componentWillUnmount() {
     if (this.socket) {
       this.socket.close();
+      console.log("SocketIO with namespace /pty disconnected.");
     }
 
     this.promiseManager.cancelCancelablePromises();
@@ -33,6 +34,7 @@ class EnvironmentEditView extends React.Component {
 
     this.state = {
       newEnvironment: props.environment === undefined,
+      showingBuildLogs: false,
       environment: props.environment
         ? props.environment
         : {
@@ -46,12 +48,12 @@ class EnvironmentEditView extends React.Component {
             startup_script:
               `#!/bin/bash
 
-              # Install any dependencies you have in this shell script.
-              
-              # E.g. pip install tensorflow
-              
-              
-              `,
+# Install any dependencies you have in this shell script.
+
+# E.g. pip install tensorflow
+
+
+`,
           },
       building: props.environment ? props.environment.building : false,
     };
@@ -103,7 +105,9 @@ class EnvironmentEditView extends React.Component {
 
     e.nativeEvent.preventDefault();
 
-    this.refManager.refs.term.terminal.clear();
+    if(this.refManager.refs.term){
+      this.refManager.refs.term.terminal.clear();
+    }
 
     this.savePromise().then(() => {
       let method = "POST";
@@ -123,6 +127,12 @@ class EnvironmentEditView extends React.Component {
   }
 
   savePromise() {
+
+    // Saving an environment will invalidate the Jupyter <iframe>
+    // TODO: perhaps this can be fixed with coordination between JLab +
+    // Enterprise Gateway team.
+    orchest.jupyter.unload();
+
     return makeCancelable(
       new Promise((resolve, reject) => {
         let method = "POST";
@@ -169,10 +179,18 @@ class EnvironmentEditView extends React.Component {
   }
 
   save(e) {
-    e.nativeEvent.preventDefault();
+    e.preventDefault();
 
     this.savePromise().then(() => {
       orchest.loadView(EnvironmentsView, { project_uuid: this.state.environment.project_uuid });
+    });
+  }
+
+  toggleBuildLog(e){
+    e.preventDefault();
+
+    this.setState((state, props) => {
+      return {showingBuildLogs: !state.showingBuildLogs}
     });
   }
 
@@ -198,55 +216,10 @@ class EnvironmentEditView extends React.Component {
   render() {
     return (
       <div className={"view-page edit-environment"}>
+
         <h2>Edit environment</h2>
 
         <form className="environment-form">
-
-        <MDCTextFieldReact
-          ref={this.refManager.nrefs.environmentName}
-          classNames={["fullwidth", "push-down"]}
-          label="Environment name"
-          value={this.state.environment.name}
-        />
-
-        <MDCSelectReact
-          value="python"
-          label="Language"
-          classNames={["fullwidth", "push-down"]}
-          ref={this.refManager.nrefs.environmentLanguage}
-          options={[
-            ["python", LANGUAGE_MAP["python"]],
-            ["r", LANGUAGE_MAP["r"]],
-          ]}
-          value={this.state.environment.language}
-        />
-        <MDCCheckboxReact
-          onChange={this.onGPUChange.bind(this)}
-          label="GPU support"
-          value={this.state.environment.gpu_support}
-          ref={this.refManager.nrefs.environmentGPUSupport}
-        />
-
-        {(() => {
-          if (this.state.gpuDocsNotice === true) {
-            return (
-              <div className="docs-notice push-up">
-                Check out{" "}
-                <a
-                  target="_blank"
-                  href={
-                    orchest.config["DOCS_ROOT"] +
-                    "/en/latest/installation.html"
-                  }
-                >
-                  the documentation
-                </a>{" "}
-                to make sure Orchest is properly configured for
-                images with GPU support.
-              </div>
-            );
-          }
-        })()}
 
           {(() => {
             if (this.state.environment.uuid !== "new") {
@@ -257,7 +230,56 @@ class EnvironmentEditView extends React.Component {
           })()}
 
           <MDCTextFieldReact
+            ref={this.refManager.nrefs.environmentName}
+            classNames={["fullwidth", "push-down"]}
+            label="Environment name"
+            onChange={this.onChangeName.bind(this)}
+            value={this.state.environment.name}
+          />
+
+          <MDCSelectReact
+            value="python"
+            label="Language"
+            classNames={["fullwidth", "push-down"]}
+            ref={this.refManager.nrefs.environmentLanguage}
+            onChange={this.onChangeLanguage.bind(this)}
+            options={[
+              ["python", LANGUAGE_MAP["python"]],
+              ["r", LANGUAGE_MAP["r"]],
+            ]}
+            value={this.state.environment.language}
+          />
+          <MDCCheckboxReact
+            onChange={this.onGPUChange.bind(this)}
+            label="GPU support"
             classNames={["push-down"]}
+            value={this.state.environment.gpu_support}
+            ref={this.refManager.nrefs.environmentGPUSupport}
+          />
+
+          {(() => {
+            if (this.state.gpuDocsNotice === true) {
+              return (
+                <div className="docs-notice push-down">
+                  Check out{" "}
+                  <a
+                    target="_blank"
+                    href={
+                      orchest.config["DOCS_ROOT"] +
+                      "/en/latest/installation.html"
+                    }
+                  >
+                    the documentation
+                  </a>{" "}
+                  to make sure Orchest is properly configured for
+                  images with GPU support.
+                </div>
+              );
+            }
+          })()}
+
+          <MDCTextFieldReact
+            classNames={["fullwidth", "push-down"]}
             label="Base image"
             onChange={this.onChangeBaseImage.bind(this)}
             value={this.state.environment.base_image}
@@ -280,24 +302,38 @@ class EnvironmentEditView extends React.Component {
             }}
           />
 
-          <XTerm
-            addons={[this.fitAddon]}
-            ref={this.refManager.nrefs.term}
-          />
-
-          <MDCButtonReact
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            onClick={this.save.bind(this)}
-            label="Save"
-            icon="save"
-          />
-          <MDCButtonReact
-            disabled={this.state.building}
-            classNames={["mdc-button--raised"]}
-            onClick={this.build.bind(this)}
-            label="Build"
-            icon="memory"
-          />
+          <div>
+            <MDCButtonReact
+              classNames={["mdc-button--raised", "themed-secondary", "push-up"]}
+              onClick={this.toggleBuildLog.bind(this)}
+              label="Toggle build log"
+              icon="subject"
+            />
+            {(() => {
+                if(this.state.showingBuildLogs){
+                  return <div className="push-up"><XTerm
+                      addons={[this.fitAddon]}
+                      ref={this.refManager.nrefs.term}
+                  /></div>
+                }
+              })()}
+          </div>
+          
+          <div className="multi-button push-up">
+            <MDCButtonReact
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              onClick={this.save.bind(this)}
+              label="Save"
+              icon="save"
+            />
+            <MDCButtonReact
+              disabled={this.state.building}
+              classNames={["mdc-button--raised"]}
+              onClick={this.build.bind(this)}
+              label="Build"
+              icon="memory"
+            />
+          </div>
         </form>
       </div>
     );

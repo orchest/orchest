@@ -10,6 +10,9 @@ PROJECT_DIR = "/project-dir"
 # Relative to the `userdir` path.
 KERNELSPECS_PATH = ".orchest/kernels/{project_uuid}"
 
+# Environments
+ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
+
 # Relative to the `project_dir` path.
 LOGS_PATH = ".orchest/{pipeline_uuid}/logs"
 
