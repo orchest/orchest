@@ -1,6 +1,14 @@
 Glossary
 ========
 
+.. _pipeline definition:
+
+Pipeline definition
+    A file with the ``.orchest`` extension.
+
+    * Every pipeline definition in a project is shown in the Orchest UI under *Pipelines*.
+    * The JSON inside the file uniquely defines the :ref:`pipeline <pipeline>`.
+
 .. _pipeline step:
 
 Pipeline step
@@ -12,9 +20,10 @@ Pipeline step
     * The file can be edited (through your favorite editor), e.g. just like a Jupyter Notebook. Can also
       be run through a :ref:`pipeline run <pipeline run>`.
     * Has an execution state, i.e. *READY*, *PENDING*, *RUNNING*, *COMPUTED*, *ABORTED* or *FAILURE*.
-    * A step can have a set of parameters, all of which have to be given a default value. (The set of
-      parameters can also be empty, thus the step not having any parameters.) These parameters are
-      stored inside the ``pipeline.json`` and are accessible inside the execution environment.
+    * A step can have a set of parameters, all of which have to be given a default value. (The set
+      of parameters can also be empty, thus the step not having any parameters.) These parameters
+      are stored inside the :ref:`pipeline definition <pipeline definition>` and are accessible
+      inside the execution environment.
 
 .. _pipeline:
 
