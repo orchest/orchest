@@ -23,6 +23,7 @@ def get_pipeline_path(
         host_path=False,
         pipeline_path=None,
     ):
+    """Returns path to pipeline description file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
     if host_path == True:
@@ -30,7 +31,7 @@ def get_pipeline_path(
 
     if pipeline_path is None:
         pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
-
+    
     project_path = project_uuid_to_path(project_uuid)
 
     if pipeline_run_uuid is None:
@@ -63,6 +64,7 @@ def get_pipeline_directory(
     pipeline_run_uuid=None,
     host_path=False,
 ):
+    """Returns path to directory CONTAINING the pipeline description file."""
 
     return os.path.split(
         get_pipeline_path(
@@ -82,10 +84,6 @@ def get_project_directory(project_uuid, host_path=False):
     return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
 def get_environment_directory(environment_uuid, project_uuid, host_path=False):
-    USER_DIR = StaticConfig.USER_DIR
-    if host_path == True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
-
     return os.path.join(
         get_project_directory(project_uuid, host_path), 
         ".orchest", 
@@ -298,13 +296,14 @@ def find_pipelines_in_dir(path, relative_to=None):
 
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
 
+            logging.info("path: %s, relative_to: %s" % (path, relative_to))
+
             for fName in files:
                 if fName.endswith(".orchest"):
                     if relative_to is not None:
-                        if relative_to.endswith("/"):
-                            relative_to = relative_to[:-1]
-
-                        root = root.replace(relative_to, "")
+                        root = root[len(relative_to):]
+                        if root.startswith("/"):
+                            root = root[1:]
 
                     pipelines.append(os.path.join(root, fName))
 

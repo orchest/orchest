@@ -208,7 +208,7 @@ def register_views(app, db):
                     
             elif ext == "ipynb":
                 # check for empty .ipynb, for which we also generate a template notebook
-                if os.stat(full_file_path).st_size:
+                if os.stat(full_file_path).st_size == 0:
                     file_content = generate_ipynb_from_template(step, project_uuid)
 
             if file_content is not None:
@@ -956,6 +956,7 @@ def register_views(app, db):
             .all()
         ]
 
+
         # TODO: handle existing pipeline assignments
         new_pipeline_paths = set(pipeline_paths) - set(existing_pipeline_paths)
 
@@ -1129,36 +1130,94 @@ def register_views(app, db):
 
             return ""
 
-    ## TODO: in progress
-    # @app.route("/async/file-picker-tree/<project_uuid>", methods=["GET"])
-    # def get_file_picker_tree(project_uuid):
 
-    #     project_dir = get_project_directory(project_uuid)
+    @app.route("/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>", methods=["GET"])
+    def pipeline_cwd(project_uuid, pipeline_uuid):
+        
+        pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+        project_dir = get_project_directory(project_uuid)
+        cwd = pipeline_dir.replace(project_dir, "")
 
-    #     if not os.path.isdir(project_dir):
-    #         return jsonify({"message": "Project dir %s not found." % project_dir}), 404
+        return jsonify({"cwd": cwd})
 
-    #     tree = {
-    #         "type": "directory",
-    #         "root": True,
-    #         "name": "/",
-    #         "children": []
-    #     }
+    @app.route("/async/file-picker-tree/<project_uuid>", methods=["GET"])
+    def get_file_picker_tree(project_uuid):
 
-    #     dir_nodes = {}
+        project_dir = get_project_directory(project_uuid)
 
-    #     for root, dirs, files in os.walk(project_dir):
+        if not os.path.isdir(project_dir):
+            return jsonify({"message": "Project dir %s not found." % project_dir}), 404
 
-    #         for dir_name in dirs:
-    #             dir_path = os.path.join(root, dir_name)
+        tree = {
+            "type": "directory",
+            "root": True,
+            "name": "/",
+            "children": []
+        }
 
-    #             dir_node = {
-    #                 "type": "directory",
-    #                 "name": dir_name,
-    #                 "children": [],
-    #             }
+        dir_nodes = {}
 
-    #             dir_nodes[dir_path]
+        dir_nodes[project_dir] = tree
+
+        for root, dirs, files in os.walk(project_dir):
+
+            for dirname in dirs:
+                dir_path = os.path.join(root, dirname)
+
+                dir_node = {
+                    "type": "directory",
+                    "name": dirname,
+                    "children": [],
+                }
+
+                dir_nodes[dir_path] = dir_node
+                dir_nodes[root]["children"].append(dir_node)
+
+            for filename in files:
+
+                file_node = {
+                    "type": "file",
+                    "name": filename,
+                }
+
+                # this key should always exist
+                try:
+                    dir_nodes[root]["children"].append(file_node)
+                except KeyError as e:
+                    logging.error("Key %s does not exist in dir_nodes %s. Error: %s" % (root, dir_nodes, e))
+                except Exception as e:
+                    logging.error("Error: %e" % e)
 
 
-    #     return jsonify(tree)
+        return jsonify(tree)
+
+    @app.route("/async/project-files/create/<project_uuid>", methods=["POST"])
+    def create_project_file(project_uuid):
+        """Create project file in specified directory within project."""
+
+        project_dir = get_project_directory(project_uuid)
+
+        # Client sends absolute path relative to project root, hence starting /
+        # is removed.
+        file_path = os.path.join(project_dir, request.json["file_path"][1:])
+
+        if os.path.isfile(file_path):
+            return jsonify({"message": "File already exists."}), 409
+
+        try:
+            open(file_path, 'a').close()
+            return jsonify({"message": "File created."})
+        except IOError as e:
+            logging.error("Could not create file at %s. Error: %s" % (file_path, e))
+
+    @app.route("/async/project-files/exists/<project_uuid>/<pipeline_uuid>", methods=["POST"])
+    def project_file_exists(project_uuid, pipeline_uuid):
+        """Check whether file exists"""
+
+        pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+        file_path = os.path.join(pipeline_dir, request.json["relative_path"])
+
+        if os.path.isfile(file_path):
+            return jsonify({"message": "File exists."})
+        else:
+            return jsonify({"message": "File does not exists."}), 404

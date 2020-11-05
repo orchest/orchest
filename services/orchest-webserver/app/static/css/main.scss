@@ -448,7 +448,8 @@ h2.header {
 
   .mdc-list-item {
     .material-icons {
-      margin-left: $mdcComponentPadding;
+      margin-right: $mdcComponentPadding/2;
+      font-size: 1.3rem;
     }
 
     line-height: 2.25rem;

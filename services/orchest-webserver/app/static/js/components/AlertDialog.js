@@ -20,7 +20,7 @@ class AlertDialog extends React.Component {
         ref={this.refManager.nrefs.dialogRef}
         title={this.props.title}
         onClose={this.props.onClose}
-        content={<p>{this.props.content}</p>}
+        content={this.props.content}
         actions={<MDCButtonReact label="Ok" onClick={this.close.bind(this)} />}
       />
     );

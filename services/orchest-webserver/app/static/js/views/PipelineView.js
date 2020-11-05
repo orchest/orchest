@@ -995,7 +995,7 @@ class PipelineView extends React.Component {
       title: "",
       uuid: uuidv4(),
       incoming_connections: [],
-      file_path: ".ipynb",
+      file_path: "",
       kernel: {
         name: "python",
         display_name: "Python 3",
@@ -1425,7 +1425,7 @@ class PipelineView extends React.Component {
   onSessionFetch(session_details) {
     if (!this.props.readOnly) {
       if (session_details === undefined) {
-        this.refManager.refs.sessionToggleButton.launchSession();
+        this.refManager.refs.sessionToggleButton.toggleSession();
       }
     }
   }
