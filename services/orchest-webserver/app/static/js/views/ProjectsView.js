@@ -163,7 +163,7 @@ class ProjectsView extends React.Component {
       try {
         let data = JSON.parse(response.body);
 
-        orchest.alert("Could not delete project. Reason " + data.message);
+        orchest.alert("Could not delete project. " + data.message);
       } catch {
         orchest.alert("Could not delete project. Reason unknown.");
       }
