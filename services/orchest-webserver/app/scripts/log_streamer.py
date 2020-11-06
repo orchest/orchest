@@ -283,7 +283,16 @@ def main():
                         % data["session_uuid"]
                     )
 
-            elif data[file_reader_loop    logging.error(
+            elif data["action"] == "stop-logs":
+                session_uuid = data["session_uuid"]	
+                if session_uuid in log_file_store.keys():	
+                    clear_log_file(session_uuid)	
+                    logging.info(	
+                        "Removed session_uuid (%s). Sessions active: %d"	
+                        % (session_uuid, len(log_file_store))	
+                    )	
+                else:	
+                    logging.error(
                         "Tried removing session_uuid (%s) which is not in log_file_store."
                         % session_uuid
                     )
