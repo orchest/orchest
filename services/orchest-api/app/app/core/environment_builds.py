@@ -288,7 +288,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                     task_uuid,
                     user_logs_fo,
                     complete_logs_path),
-                identity=(project_uuid, environment_uuid),
+                identity=f"{project_uuid}-{environment_uuid}",
                 server=_config.ORCHEST_SOCKETIO_SERVER_ADDRESS,
                 namespace=_config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE,
                 # note: using task.is_aborted() could be an option but
