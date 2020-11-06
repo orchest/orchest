@@ -98,13 +98,13 @@ run_build () {
     # copy start
     if ! [ -z "$build_ctx" ]; then
 
-        cp $DIR/../.dockerignore $build_ctx/.dockerignore
+        cp $DIR/../.dockerignore $build_ctx/.dockerignore 2>/dev/null
 
         if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
-            cp -r $DIR/../lib $build_ctx/lib
+            cp -r $DIR/../lib $build_ctx/lib 2>/dev/null
         fi
         if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
-            cp -r $DIR/../orchest-sdk $build_ctx/orchest-sdk
+            cp -r $DIR/../orchest-sdk $build_ctx/orchest-sdk 2>/dev/null
         fi
     fi
     # copy end
