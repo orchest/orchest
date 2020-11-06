@@ -60,8 +60,6 @@ class SioStreamedTask:
         The identity, which is an object which needs to respect the socketio requirements (basic stuff like
         primitive types, strings, lists, dict, etc.), is used to be able to distinguish messages that are related
         to different tasks, e.g. by the server.
-        The class is meant to be used as a throwaway wrapper around the task_lambda to be run, meaning 1 task_lambda
-        run should equal 1 instance of this class.
 
 
         Args:
