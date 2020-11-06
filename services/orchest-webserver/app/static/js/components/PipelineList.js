@@ -202,7 +202,7 @@ class PipelineList extends React.Component {
       .catch((response) => {
         try {
           let data = JSON.parse(response.body);
-          orchest.alert("Could not create pipeline. Reason " + data.message);
+          orchest.alert("Could not create pipeline. " + data.message);
         } catch {
           orchest.alert("Could not create pipeline. Reason unknown.");
         }

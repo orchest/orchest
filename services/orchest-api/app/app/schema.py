@@ -291,3 +291,54 @@ experiments = Model(
         ),
     },
 )
+
+environment_build = Model(
+    "EnvironmentBuild",
+    {
+        "build_uuid": fields.String(
+            required=True, description="UUID of the environment build "
+        ),
+        "project_uuid": fields.String(required=True, description="UUID of the project"),
+        "environment_uuid": fields.String(required=True, description="UUID of the environment"),
+        "project_path": fields.String(required=True, description="Project path"),
+        "requested_time": fields.String(
+            required=True, description="Time at which the build was requested"
+        ),
+        "started_time": fields.String(
+            required=True, description="Time at which the build started executing"
+        ),
+        "finished_time": fields.String(
+            required=True, description="Time at which the build finished executing"
+        ),
+        "status": fields.String(required=True,
+                                description="Status of the build",
+                                enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"], )
+    },
+)
+
+environment_builds = Model(
+    "EnvironmentBuilds",
+    {
+        "environment_builds": fields.List(
+            fields.Nested(environment_build), description="Collection of environment_builds"
+        ),
+    },
+)
+
+environment_build_request = Model(
+    "EnvironmentBuildRequest",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of the project"),
+        "environment_uuid": fields.String(required=True, description="UUID of the environment"),
+        "project_path": fields.String(required=True, description="Project path"),
+    }
+)
+
+environment_build_requests = Model(
+    "EnvironmentBuildRequests",
+    {
+        "environment_build_requests": fields.List(
+            fields.Nested(environment_build_request), description="Collection of environment_build_request"
+        ),
+    },
+)

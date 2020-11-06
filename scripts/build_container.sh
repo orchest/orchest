@@ -7,15 +7,19 @@ SKIP_IMGS=()
 NO_CACHE=false
 VERBOSE=false
 ENABLE_SSL=false
+RELEASE_TAG="latest"
 
 # Read flags.
-while getopts "s:i:nve" opt; do
+while getopts "s:i:t:nve" opt; do
   case $opt in
     i)
       IMGS+=($OPTARG)
       ;;
     s)
       SKIP_IMGS+=($OPTARG)
+      ;;
+    t)
+      RELEASE_TAG="$OPTARG"
       ;;
     n)
       NO_CACHE=true
@@ -137,7 +141,7 @@ do
 
         build_ctx=$DIR/../services/jupyter-server
         build=(docker build \
-            -t orchestsoftware/jupyter-server \
+            -t "orchestsoftware/jupyter-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-server/Dockerfile \
             $build_ctx)
@@ -150,7 +154,7 @@ do
 
         build_ctx=$DIR/../services/jupyter-enterprise-gateway
         build=(docker build \
-            -t orchestsoftware/jupyter-enterprise-gateway \
+            -t "orchestsoftware/jupyter-enterprise-gateway:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-enterprise-gateway/Dockerfile \
             $build_ctx)
@@ -161,7 +165,7 @@ do
 
         build_ctx=$DIR/../services/orchest-api
         build=(docker build \
-            -t orchestsoftware/celery-worker \
+            -t "orchestsoftware/celery-worker:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile_celery \
             $build_ctx)
@@ -174,7 +178,7 @@ do
 
         build_ctx=$DIR/../services/custom-images
         build=(docker build \
-            -t orchestsoftware/custom-base-kernel-py \
+            -t "orchestsoftware/custom-base-kernel-py:$RELEASE_TAG" \
             -f $DIR/../services/custom-images/custom-base-kernel-py/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
@@ -185,7 +189,7 @@ do
 
         build_ctx=$DIR/../services/custom-images
         build=(docker build \
-            -t orchestsoftware/custom-base-kernel-py-gpu \
+            -t "orchestsoftware/custom-base-kernel-py-gpu:$RELEASE_TAG" \
             -f $DIR/../services/custom-images/custom-base-kernel-py-gpu/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
@@ -196,7 +200,7 @@ do
 
         build_ctx=$DIR/../services/custom-images
         build=(docker build \
-            -t orchestsoftware/custom-base-kernel-r \
+            -t "orchestsoftware/custom-base-kernel-r:$RELEASE_TAG" \
             -f $DIR/../services/custom-images/custom-base-kernel-r/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
@@ -207,7 +211,7 @@ do
 
         build_ctx=$DIR/../services/orchest-api
         build=(docker build \
-            -t orchestsoftware/orchest-api \
+            -t "orchestsoftware/orchest-api:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile \
             $build_ctx)
@@ -217,7 +221,7 @@ do
 
         build_ctx=$DIR/../services/orchest-ctl
         build=(docker build \
-            -t orchestsoftware/orchest-ctl \
+            -t "orchestsoftware/orchest-ctl:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-ctl/Dockerfile \
             $build_ctx)
@@ -227,7 +231,7 @@ do
 
         build_ctx=$DIR/../services/update-server
         build=(docker build \
-            -t orchestsoftware/update-server \
+            -t "orchestsoftware/update-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/update-server/Dockerfile \
             $build_ctx)
@@ -237,7 +241,7 @@ do
 
         build_ctx=$DIR/../services/file-manager
         build=(docker build \
-            -t orchestsoftware/file-manager \
+            -t "orchestsoftware/file-manager:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/file-manager/Dockerfile \
             $build_ctx)
@@ -250,7 +254,7 @@ do
 
         build_ctx=$DIR/../services/orchest-webserver
         build=(docker build \
-            -t orchestsoftware/orchest-webserver \
+            -t "orchestsoftware/orchest-webserver:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-webserver/Dockerfile \
             $build_ctx)
@@ -259,7 +263,7 @@ do
     if [ $IMG == "nginx-proxy" ]; then
         build_ctx=$DIR/../services/nginx-proxy
         build=(docker build \
-            -t orchestsoftware/nginx-proxy \
+            -t "orchestsoftware/nginx-proxy:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/nginx-proxy/Dockerfile \
             $build_ctx)
@@ -272,7 +276,7 @@ do
 
         build_ctx=$DIR/../services/auth-server
         build=(docker build \
-            -t orchestsoftware/auth-server \
+            -t "orchestsoftware/auth-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/auth-server/Dockerfile \
             $build_ctx)
@@ -282,7 +286,7 @@ do
     if [ $IMG == "memory-server" ]; then
         build_ctx=$DIR/../services/memory-server
         build=(docker build \
-            -t orchestsoftware/memory-server \
+            -t "orchestsoftware/memory-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/memory-server/Dockerfile \
             $build_ctx)

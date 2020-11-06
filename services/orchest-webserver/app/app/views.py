@@ -948,10 +948,13 @@ def register_views(app, db):
                     populate_kernels(app, db)
 
                 else:
-                    return jsonify({"message": "Project directory exists."}), 409
+                    return (
+                        jsonify({"message": "Project directory already exists."}),
+                        409,
+                    )
             else:
                 return (
-                    jsonify({"message": "Project with the same name already exists."}),
+                    jsonify({"message": "Project name already exists."}),
                     409,
                 )
 

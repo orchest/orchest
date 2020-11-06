@@ -85,9 +85,9 @@ class SessionList(Resource):
                 "notebook_server_info": session.notebook_server_info,
             }
         )
-        models.InteractiveSession.query.filter_by(pipeline_uuid=pipeline_uuid).update(
-            interactive_session
-        )
+        models.InteractiveSession.query.filter_by(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+        ).update(interactive_session)
         db.session.commit()
 
         return interactive_session, 201

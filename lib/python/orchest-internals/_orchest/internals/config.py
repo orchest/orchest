@@ -21,6 +21,9 @@ DOCS_ROOT = "https://orchest.readthedocs.io"
 
 # Networking
 ORCHEST_API_ADDRESS = "orchest-api"
+ORCHEST_SOCKETIO_SERVER_ADDRESS = "http://orchest-webserver:80"
+ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
+
 
 # Environments
 # These environments are added when you create a new project

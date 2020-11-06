@@ -76,6 +76,13 @@ class ExperimentList(Resource):
                 kwargs=celery_job_kwargs,
             )
 
+            # NOTE: this is only if a backend is configured.  The task does
+            # not return anything. Therefore we can forget its result and
+            # make sure that the Celery backend releases recourses (for
+            # storing and transmitting results) associated to the task.
+            # Uncomment the line below if applicable.
+            res.forget()
+
             non_interactive_run = {
                 "experiment_uuid": post_data["experiment_uuid"],
                 "run_uuid": res.id,
