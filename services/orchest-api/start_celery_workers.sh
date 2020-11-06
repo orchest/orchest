@@ -16,4 +16,4 @@ celery worker -A app.core.tasks -l INFO -Q celery -n worker-interactive --concur
 # max-tasks-per-child is currently needed, because SocketIO is not cleaning up state when using disconnect,
 # which will lead to sockets related failures in a subsequent task
 celery worker -A app.core.tasks -l INFO -Q environment_builds -n worker-env-builds --concurrency=1 \
-    --statedb /userdir/.orchest/celery-environment-builds-state-db --max-tasks-per-child 1
+    --statedb /userdir/.orchest/celery-environment-builds-state.db --max-tasks-per-child 1
