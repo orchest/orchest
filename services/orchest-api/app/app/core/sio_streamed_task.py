@@ -217,8 +217,6 @@ class SioStreamedTask:
             # I am able to reproduce the problem by using the client example in the docs. By replacing
             # the wait call with disconnect.
             # (https://python-socketio.readthedocs.io/en/latest/intro.html#client-examples)
-            os.close(communication_pipe_read)
-            os.close(end_task_pipe_read)
             sio_client.emit(
                 "sio_streamed_task_data",
                 {
@@ -230,6 +228,9 @@ class SioStreamedTask:
             sio_client.sleep(2)
             sio_client.disconnect()
             os.kill(child_pid, signal.SIGKILL)
+            # close after killing so the child process does not get into errors
+            os.close(communication_pipe_read)
+            os.close(end_task_pipe_read)
             logging.info("[Killed] child_pid: %d" % child_pid)
 
         return status
