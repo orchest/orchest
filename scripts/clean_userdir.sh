@@ -18,4 +18,7 @@ do
 find $DIR/../userdir/$component -mindepth 1 -maxdepth 1 ! -name ".gitignore" -exec rm -rf -- {} +
 done
 
+# clean up dbs
+rm $DIR/../userdir/.orchest/*.db
+
 echo "[Cleaning up userdir]: succes"

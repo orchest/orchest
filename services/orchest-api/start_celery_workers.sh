@@ -5,7 +5,7 @@ celery worker -A app.core.tasks \
     -l INFO \
     -Q experiments \
     -n worker-expriments \
-    --statedb /userdir/.orchest/celery-state-db \
+    --statedb /userdir/.orchest/celery-state.db \
     --concurrency=1 \
     --detach
 
