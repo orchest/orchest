@@ -1,14 +1,80 @@
 import logging
 import os
+
 from app.models import DataSource, Experiment, PipelineRun
 from app.utils import project_uuid_to_path
 from app.config import Config
+from flask import request
 
+from threading import Lock
 
 def register_socketio_broadcast(db, socketio):
+
+    # TODO: check whether its size will become a bottleneck
+    environment_build_buffer = {}
+    lock = Lock()
+
+
     @socketio.on("connect", namespace="/pty")
-    def connect():
+    def connect_pty():
         logging.info("socket.io client connected on /pty")
+
+
+    @socketio.on("connect", namespace="/environment_builds")
+    def connect_environment_builds():
+        logging.info("socket.io client connected on /environment_builds")
+
+        with lock:
+
+            # send environment_build_buffers
+            for key, value in environment_build_buffer.items():
+
+                # send buffer to new client
+                socketio.emit(
+                    "sio_streamed_task_data",
+                    {
+                        "identity": key,
+                        "output": value,
+                        "action": "sio_streamed_task_output"
+                    },
+                    room=request.sid,
+                    namespace="/environment_builds",
+                )
+
+
+    @socketio.on("sio_streamed_task_data", namespace="/environment_builds")
+    def process_sio_streamed_task_data(data):
+
+        with lock:
+
+            if data["action"] == "sio_streamed_task_output":
+
+                # append to buffer
+                environment_build_buffer[data["identity"]] += data["output"]
+
+                # broadcast streamed task message
+                socketio.emit(
+                    "sio_streamed_task_data",
+                    data,
+                    include_self=False,
+                    namespace="/environment_builds",
+                )
+
+            elif data["action"] == "sio_streamed_task_finished":
+                try:
+                    del environment_build_buffer[data["identity"]]
+                except KeyError as e:
+                    logging.error("Could not clear buffer for EnvironmentBuild with identity %s" % data["identity"])
+                    
+            elif data["action"] == "sio_streamed_task_started":
+                # broadcast streamed task message
+                socketio.emit(
+                    "sio_streamed_task_data",
+                    data,
+                    include_self=False,
+                    namespace="/environment_builds",
+                )
+
 
     @socketio.on("pty-log-manager", namespace="/pty")
     def process_log_manager(data):

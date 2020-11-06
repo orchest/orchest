@@ -296,8 +296,6 @@ def find_pipelines_in_dir(path, relative_to=None):
 
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
 
-            logging.info("path: %s, relative_to: %s" % (path, relative_to))
-
             for fName in files:
                 if fName.endswith(".orchest"):
                     if relative_to is not None:

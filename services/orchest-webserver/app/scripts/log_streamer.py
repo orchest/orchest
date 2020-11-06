@@ -6,7 +6,7 @@ import os
 import sys
 import html
 
-from threading import RLock
+from threading import Lock
 from datetime import datetime, timedelta
 from _orchest.internals import config as _config
 
@@ -17,7 +17,7 @@ log_file_store = {}
 file_handles = {}
 
 
-lock = RLock()
+lock = Lock()
 
 
 class LogFile:
@@ -283,16 +283,7 @@ def main():
                         % data["session_uuid"]
                     )
 
-            elif data["action"] == "stop-logs":
-                session_uuid = data["session_uuid"]
-                if session_uuid in log_file_store.keys():
-                    clear_log_file(session_uuid)
-                    logging.info(
-                        "Removed session_uuid (%s). Sessions active: %d"
-                        % (session_uuid, len(log_file_store))
-                    )
-                else:
-                    logging.error(
+            elif data[file_reader_loop    logging.error(
                         "Tried removing session_uuid (%s) which is not in log_file_store."
                         % session_uuid
                     )

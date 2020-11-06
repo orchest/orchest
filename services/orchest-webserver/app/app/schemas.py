@@ -25,7 +25,6 @@ class EnvironmentSchema(ma.Schema):
             "language",
             "base_image",
             "gpu_support",
-            "building",
             "startup_script",
         )
 

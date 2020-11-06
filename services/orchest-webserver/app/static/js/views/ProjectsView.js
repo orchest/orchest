@@ -5,6 +5,9 @@ import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
+import ExperimentsView from "./ExperimentsView";
+import PipelinesView from "./PipelinesView";
+import EnvironmentsView from "./EnvironmentsView";
 
 import {
   makeRequest,
@@ -12,7 +15,6 @@ import {
   PromiseManager,
   RefManager,
 } from "../lib/utils/all";
-import PipelinesView from "./PipelinesView";
 
 class ProjectsView extends React.Component {
   componentWillUnmount() {}
@@ -41,11 +43,22 @@ class ProjectsView extends React.Component {
     });
   }
 
+  onClickProjectEntity(view, project, e){
+    e.preventDefault();
+    orchest.browserConfig.set("selected_project_uuid", project.uuid);
+    orchest.loadView(view);
+  }
+
   processListData(projects) {
     let listData = [];
 
     for (let project of projects) {
-      listData.push([<span>{project.path}</span>]);
+      listData.push([
+        <span>{project.path}</span>,
+        <a onClick={this.onClickProjectEntity.bind(this, PipelinesView, project)}>{project.pipeline_count}</a>,
+        <a onClick={this.onClickProjectEntity.bind(this, ExperimentsView, project)}>{project.experiment_count}</a>,
+        <a onClick={this.onClickProjectEntity.bind(this, EnvironmentsView, project)}>{project.environment_count}</a>,
+      ]);
     }
 
     return listData;
@@ -73,15 +86,7 @@ class ProjectsView extends React.Component {
   }
 
   onClickListItem(row, idx, e) {
-    let project = this.state.projects[idx];
-
-    let props = {
-      project_uuid: project.uuid,
-    };
-
-    orchest.browserConfig.set("selected_project_uuid", project.uuid);
-
-    orchest.loadView(PipelinesView, props);
+    
   }
 
   onDeleteClick() {
@@ -285,7 +290,7 @@ class ProjectsView extends React.Component {
                   selectable
                   onRowClick={this.onClickListItem.bind(this)}
                   classNames={["fullwidth"]}
-                  headers={["Project"]}
+                  headers={["Project", "Pipelines", "Experiments", "Environments"]}
                   rows={this.state.listData}
                 />
               </Fragment>

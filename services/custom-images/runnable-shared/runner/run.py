@@ -7,6 +7,13 @@ from runner.runners import NotebookRunner, ProcessRunner
 from runner.config import Config
 
 
+def get_filename_extension(filename):
+    if "." in filename:
+        return filename.split(".")[-1].lower()
+    else:
+        return ""
+
+
 def main():
 
     if "ORCHEST_STEP_UUID" not in os.environ:
@@ -29,7 +36,7 @@ def main():
 
     # sys.argv[2] contains the relative file path (relative to the pipeline file)
     filename = sys.argv[2]
-    file_extension = filename.split(".")[-1].lower()
+    file_extension = get_filename_extension(filename)
     file_path = os.path.join(Config.PROJECT_DIR, working_dir, filename)
 
     # check if file exists in working directory
@@ -41,9 +48,9 @@ def main():
         nr = NotebookRunner(pipeline_uuid, step_uuid, working_dir)
         nr.run(file_path)
 
-    elif file_extension in ["py", "r", "sh"]:
+    elif file_extension in ["py", "r", "sh", ""]:
 
-        extension_script_mapping = {"py": "python3", "r": "Rscript", "sh": "sh"}
+        extension_script_mapping = {"py": "python3", "r": "Rscript", "sh": "sh", "": "sh"}
 
         pr = ProcessRunner(pipeline_uuid, step_uuid, working_dir)
         sys.exit(pr.run(extension_script_mapping[file_extension], filename))

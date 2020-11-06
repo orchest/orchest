@@ -31,7 +31,6 @@ DEFAULT_ENVIRONMENTS = [
         "language": "python",
         "startup_script": "",
         "gpu_support": False,
-        "building": False,
     },
     {
         "name": "custom-base-kernel-r",
@@ -39,7 +38,6 @@ DEFAULT_ENVIRONMENTS = [
         "language": "r",
         "startup_script": "",
         "gpu_support": False,
-        "building": False,
     },
 ]
 

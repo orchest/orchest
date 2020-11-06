@@ -70,11 +70,21 @@ class ProjectFilePicker extends React.Component {
     
   }
 
+  valueValidator(value){
+    if(value == "" && value.endsWith("/")){
+      return false;
+    }
+    let ext = extensionFromFilename(value);
+    if(ALLOWED_STEP_EXTENSIONS.indexOf(ext) === -1){
+      return false;
+    }
+    return true;
+  }
 
   checkFileValidity(){
 
-    // only check file value on non-empty and non-directory values
-    if(this.props.value != "" && !this.props.value.endsWith("/")){
+    // only check file existence if it passes rule based validation
+    if(this.valueValidator(this.props.value)){
 
       let existencePromise = makeCancelable(makeRequest("POST", `/async/project-files/exists/${this.props.project_uuid}/${this.props.pipeline_uuid}`, {
         type: "json",

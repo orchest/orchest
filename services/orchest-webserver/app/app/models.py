@@ -56,7 +56,6 @@ class Environment(db.Model):
     startup_script = db.Column(db.String(255), default="")
     base_image = db.Column(db.String(255), nullable=False)
     gpu_support = db.Column(db.Boolean, default=False)
-    building = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"

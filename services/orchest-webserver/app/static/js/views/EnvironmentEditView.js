@@ -20,28 +20,33 @@ import io from "socket.io-client";
 require("codemirror/mode/shell/shell");
 
 class EnvironmentEditView extends React.Component {
+
   componentWillUnmount() {
     if (this.socket) {
       this.socket.close();
-      console.log("SocketIO with namespace /pty disconnected.");
+      console.log("SocketIO with namespace /environment_builds disconnected.");
     }
 
     this.promiseManager.cancelCancelablePromises();
+
+    clearInterval(this.environmentBuildInterval);
   }
 
   constructor(props) {
     super(props);
 
+    this.BUILD_POLL_FREQUENCY = 3000;
+
     this.state = {
       newEnvironment: props.environment === undefined,
       showingBuildLogs: false,
+      ignoreIncomingLogs: false,
       environment: props.environment
         ? props.environment
         : {
             uuid: "new",
             name: "",
             gpu_support: false,
-            building: false,
             project_uuid: this.props.project_uuid,
             base_image: "",
             language: "python",
@@ -55,7 +60,7 @@ class EnvironmentEditView extends React.Component {
 
 `,
           },
-      building: props.environment ? props.environment.building : false,
+      environment_build: undefined,
     };
 
     this.state.gpuDocsNotice = this.state.environment.gpu_support;
@@ -69,56 +74,121 @@ class EnvironmentEditView extends React.Component {
 
   componentDidMount() {
     this.connectSocketIO();
+    this.environmentBuildPolling();
+  }
+
+  environmentBuildRequest(){
+    
+    let environmentBuildRequestPromise = makeCancelable(
+      makeRequest("GET", 
+        `/catch/api-proxy/api/environment_builds/most_recent/${this.state.environment.project_uuid}/${this.state.environment.uuid}`
+      ),this.promiseManager);
+
+    environmentBuildRequestPromise.promise.then((response) => {
+      let environment_build = JSON.parse(response);
+      this.updateStateForEnvironmentBuild(environment_build);
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+
+  }
+
+  updateStateForEnvironmentBuild(environment_build){
+    this.setState(() => {
+      this.reconnectSocketIO();
+      return {
+        environment_build: environment_build
+      }
+    });
+  }
+
+  environmentBuildPolling(){
+    
+    clearInterval(this.environmentBuildInterval);
+    this.environmentBuildInterval = setInterval(this.environmentBuildRequest.bind(this), this.BUILD_POLL_FREQUENCY);
+
+  }
+
+  reconnectSocketIO(){
+    if (this.socket) {
+      this.socket.close();
+      console.log("SocketIO /environment_builds disconnected.");
+    }else{
+      this.connectSocketIO();
+    }
   }
 
   connectSocketIO() {
+
     // disable polling
-    this.socket = io.connect("/pty", { transports: ["websocket"] });
+    this.socket = io.connect("/environment_builds", { transports: ["websocket"] });
 
     this.socket.on("connect", () => {
-      console.log("SocketIO connected on /pty");
+      console.log("SocketIO connected on /environment_builds");
     });
 
-    this.socket.on("pty-output", (data) => {
-      // ignore terminal outputs from other environment_uuids
-      if (data.environment_uuid == this.state.environment.uuid) {
-        this.refManager.refs.term.terminal.write(data.output);
-      }
-    });
+    this.socket.on("sio_streamed_task_data", (data) => {
 
-    this.socket.on("pty-signals", (data) => {
-      if (
-        data.environment_uuid == this.state.environment.uuid &&
-        data.action == "build-ready"
-      ) {
-        this.setState({
-          building: false,
-        });
+      if (data.identity == this.state.environment.project_uuid + "-" + this.state.environment.uuid) {
+
+        if(data["action"] == "sio_streamed_task_output"){
+          if(!this.state.ignoreIncomingLogs){
+            // ignore terminal outputs from other environment_uuids
+            this.refManager.refs.term.terminal.write(data.output);
+          }
+        }
+        else if(data["action"] == "sio_streamed_task_started"){
+
+          // This blocking mechanism makes sure old build logs are
+          // not displayed after the user has started a build
+          // during an ongoing build.
+          this.state.ignoreIncomingLogs = false;
+          this.setState({
+            ignoreIncomingLogs: this.state.ignoreIncomingLogs
+          })
+
+        }
       }
+
     });
+    
   }
 
   build(e) {
-    this.setState({
-      building: true,
-    });
 
     e.nativeEvent.preventDefault();
 
     if(this.refManager.refs.term){
       this.refManager.refs.term.terminal.clear();
+
+      this.setState({
+        ignoreIncomingLogs: true
+      })
     }
 
     this.savePromise().then(() => {
       let method = "POST";
-      let endpoint = `/catch/api-proxy/api/environment_builds/${this.state.environment.project_uuid}/${this.state.environment.uuid}`;
+      let endpoint = "/catch/api-proxy/api/environment_builds";
 
       makeRequest(method, endpoint, {
         type: "json",
-        content: {},
+        content: {
+          "environment_build_requests": [
+            {
+              "environment_uuid": this.state.environment.uuid,
+              "project_uuid": this.state.environment.project_uuid,
+            }
+          ]
+        },
       })
       .then((response) => {
-        console.log(response)
+        try {
+          let environment_builds = JSON.parse(response)["environment_builds"];
+          this.updateStateForEnvironmentBuild(environment_builds[0]);
+        } catch(error){
+          console.error(error);
+        }
       })
       .catch((error) => {
         console.log(error);
@@ -249,6 +319,7 @@ class EnvironmentEditView extends React.Component {
             ]}
             value={this.state.environment.language}
           />
+
           <MDCCheckboxReact
             onChange={this.onGPUChange.bind(this)}
             label="GPU support"
@@ -285,6 +356,26 @@ class EnvironmentEditView extends React.Component {
             value={this.state.environment.base_image}
           />
 
+          {(() => {
+            if (this.state.environment_build) {
+              return (
+                <div>
+                  <div>Build status: {this.state.environment_build.status}</div>
+                  <div>Build started: {
+                    this.state.environment_build.started_time ? 
+                    new Date(this.state.environment_build.started_time + " GMT").toLocaleString() : 
+                    <i>not yet started</i>}
+                  </div>
+                  <div>Build finished: {
+                    this.state.environment_build.finished_time ? 
+                    new Date(this.state.environment_build.finished_time + " GMT").toLocaleString() : 
+                    <i>not yet finished</i>}
+                  </div>
+                </div>
+              );
+            }
+          })()}
+
           <CodeMirror
             value={this.state.environment.startup_script}
             options={{
@@ -304,7 +395,7 @@ class EnvironmentEditView extends React.Component {
 
           <div>
             <MDCButtonReact
-              classNames={["mdc-button--raised", "themed-secondary", "push-up"]}
+              classNames={["mdc-button--raised", "push-up"]}
               onClick={this.toggleBuildLog.bind(this)}
               label="Toggle build log"
               icon="subject"

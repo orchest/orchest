@@ -21,6 +21,7 @@ class SessionToggleButton extends React.Component {
 
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
+    clearInterval(this.sessionPollingInterval);
   }
 
   componentDidMount() {

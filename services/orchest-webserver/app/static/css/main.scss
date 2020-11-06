@@ -443,6 +443,13 @@ h2.header {
   }
 }
 
+.mdc-data-table {
+  a {
+    color: $mdc-theme-secondary;
+    text-decoration: underline;
+  }
+}
+
 .dropdown-file-picker {
   position: relative;
 

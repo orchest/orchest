@@ -304,7 +304,6 @@ def register_views(app, db):
                     startup_script=environment_json["startup_script"],
                     base_image=environment_json["base_image"],
                     gpu_support=environment_json["gpu_support"],
-                    building=environment_json["building"],
                 )
 
                 # use specified uuid if it's not keyword 'new'
@@ -496,10 +495,37 @@ def register_views(app, db):
         )
 
 
-    @app.route("/catch/api-proxy/api/environment_builds/<project_uuid>/<environment_uuid>", methods=["POST"])
-    def catch_api_proxy_builds(project_uuid, environment_uuid):
-        # TODO: integrate with backend for environment build jobs
-        return "Stub: trigger build for %s, %s" % (project_uuid, environment_uuid)
+
+    @app.route("/catch/api-proxy/api/environment_builds/most_recent/<project_uuid>/<environment_uuid>", methods=["GET"])
+    def catch_api_proxy_environment_builds_most_recent(project_uuid, environment_uuid):
+        
+        resp = requests.get(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/api/environment_builds/most_recent/%s/%s" % (project_uuid, environment_uuid),
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
+
+    @app.route("/catch/api-proxy/api/environment_builds", methods=["POST"])
+    def catch_api_proxy_environment_builds():
+        
+        # augment environment_build_requests with project_path
+        environment_build_requests = request.json["environment_build_requests"]
+
+        for environment_build_request in environment_build_requests:
+            environment_build_request["project_path"] = project_uuid_to_path(environment_build_request["project_uuid"])
+        
+        json_obj = {
+            "environment_build_requests": environment_build_requests
+        }
+
+        resp = requests.post(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/",
+            json=json_obj,
+            stream=True,
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
 
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
@@ -864,7 +890,16 @@ def register_views(app, db):
         # end of UUID creation
 
         if request.method == "GET":
-            return jsonify(projects_schema.dump(Project.query.all()))
+            
+            projects = projects_schema.dump(Project.query.all())
+
+            # Get counts for: pipelines, experiments and environments
+            for project in projects:
+                project["pipeline_count"] = Pipeline.query.filter(Pipeline.project_uuid == project["uuid"]).count()
+                project["experiment_count"] = Experiment.query.filter(Experiment.project_uuid == project["uuid"]).count()
+                project["environment_count"] = len(get_environments(project["uuid"]))
+
+            return jsonify(projects)
 
         elif request.method == "DELETE":
 
@@ -1143,6 +1178,8 @@ def register_views(app, db):
     @app.route("/async/file-picker-tree/<project_uuid>", methods=["GET"])
     def get_file_picker_tree(project_uuid):
 
+        allowed_file_extensions = ["ipynb", "R", "py", "sh"]
+
         project_dir = get_project_directory(project_uuid)
 
         if not os.path.isdir(project_dir):
@@ -1162,6 +1199,11 @@ def register_views(app, db):
         for root, dirs, files in os.walk(project_dir):
 
             for dirname in dirs:
+
+                if dirname.startswith("."):
+                    dirs.remove(dirname)
+                    continue
+
                 dir_path = os.path.join(root, dirname)
 
                 dir_node = {
@@ -1175,18 +1217,19 @@ def register_views(app, db):
 
             for filename in files:
 
-                file_node = {
-                    "type": "file",
-                    "name": filename,
-                }
+                if filename.split(".")[-1] in allowed_file_extensions:
+                    file_node = {
+                        "type": "file",
+                        "name": filename,
+                    }
 
-                # this key should always exist
-                try:
-                    dir_nodes[root]["children"].append(file_node)
-                except KeyError as e:
-                    logging.error("Key %s does not exist in dir_nodes %s. Error: %s" % (root, dir_nodes, e))
-                except Exception as e:
-                    logging.error("Error: %e" % e)
+                    # this key should always exist
+                    try:
+                        dir_nodes[root]["children"].append(file_node)
+                    except KeyError as e:
+                        logging.error("Key %s does not exist in dir_nodes %s. Error: %s" % (root, dir_nodes, e))
+                    except Exception as e:
+                        logging.error("Error: %e" % e)
 
 
         return jsonify(tree)
