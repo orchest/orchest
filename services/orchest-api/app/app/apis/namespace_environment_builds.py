@@ -254,4 +254,4 @@ class ProjectEnvironmentMostRecentBuild(Resource):
             order_by(desc(models.EnvironmentBuild.requested_time)).first()
         if recent:
             return recent.as_dict()
-        abort(404)
+        abort(404, "EnvironmentBuild not found")
