@@ -96,7 +96,6 @@ class EnvironmentEditView extends React.Component {
 
   updateStateForEnvironmentBuild(environment_build){
     this.setState(() => {
-      this.reconnectSocketIO();
       return {
         environment_build: environment_build
       }
@@ -108,15 +107,6 @@ class EnvironmentEditView extends React.Component {
     clearInterval(this.environmentBuildInterval);
     this.environmentBuildInterval = setInterval(this.environmentBuildRequest.bind(this), this.BUILD_POLL_FREQUENCY);
 
-  }
-
-  reconnectSocketIO(){
-    if (this.socket) {
-      this.socket.close();
-      console.log("SocketIO /environment_builds disconnected.");
-    }else{
-      this.connectSocketIO();
-    }
   }
 
   connectSocketIO() {

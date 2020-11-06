@@ -154,7 +154,7 @@ class SioStreamedTask:
 
         sio_client = socketio.Client(reconnection_attempts=1)
         sio_client.connect(server, namespaces=[namespace], transports=["websocket"])
-
+        
         # tell the socketio server that from its point of view the task is started, i.e.
         # new logs related to this identity will come in
         sio_client.emit(

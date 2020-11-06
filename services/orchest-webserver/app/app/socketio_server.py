@@ -49,7 +49,10 @@ def register_socketio_broadcast(db, socketio):
 
             if data["action"] == "sio_streamed_task_output":
 
-                # append to buffer
+                # initialize key for new identities
+                if data["identity"] not in environment_build_buffer:
+                    environment_build_buffer[data["identity"]] = ""
+
                 environment_build_buffer[data["identity"]] += data["output"]
 
                 # broadcast streamed task message
