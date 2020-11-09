@@ -143,6 +143,8 @@ def write_environment_dockerfile(base_image, bash_script, flag, path):
     # this allows the user defined script defined through orchest to make use of files
     # that are part of its project, e.g. a requirements.txt or other scripts.
     statements.append("COPY . .")
+    # note: commands are concatenated with && because this way an exit_code != 0 will bubble up
+    # and cause the docker build to fail, as it should.
     statements.append(
         f'RUN chmod +x {bash_script} && echo "{flag}" && bash {bash_script} && echo "{flag}"'
     )
