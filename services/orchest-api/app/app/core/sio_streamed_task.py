@@ -263,8 +263,12 @@ class SioStreamedTask:
                 "sio_streamed_task_data",
                 {"identity": identity, "action": "sio_streamed_task_finished"},
                 namespace=namespace,
-                callback=sio_client.disconnect(),
             )
+            
+            # allow 1 second to send the final sio emit
+            time.sleep(1)
+            sio_client.disconnect()
+
             os.kill(child_pid, signal.SIGKILL)
             # close after killing so the child process does not get into errors
             os.close(communication_pipe_read)

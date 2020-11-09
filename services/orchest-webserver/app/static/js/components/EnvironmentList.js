@@ -17,7 +17,10 @@ class EnvironmentList extends React.Component {
 
     this.state = {
       environments: undefined,
+      environmentBuilds: {},
     };
+
+    this.BUILD_POLL_FREQUENCY = 3000;
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
@@ -25,10 +28,54 @@ class EnvironmentList extends React.Component {
 
   componentDidMount() {
     this.fetchEnvironments();
+    this.environmentBuildsPolling();
   }
 
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
+    clearInterval(this.environmentBuildsInterval);
+  }
+
+  environmentBuildsPolling(){
+    this.environmentBuildsRequest();
+    clearInterval(this.environmentBuildsInterval);
+    this.environmentBuildsInterval = setInterval(this.environmentBuildsRequest.bind(this), this.BUILD_POLL_FREQUENCY);
+  }
+
+  environmentBuildsRequest(){
+    
+    let environmentBuildsRequestPromise = makeCancelable(
+      makeRequest("GET", 
+        `/catch/api-proxy/api/environment_builds/most_recent/${this.props.project_uuid}`
+      ),this.promiseManager);
+
+    environmentBuildsRequestPromise.promise.then((response) => {
+      try {
+        let environmentBuilds = JSON.parse(response).environment_builds;
+        this.updateStateForEnvironmentBuilds(environmentBuilds);
+      } catch(error) {
+        console.error(error);
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+
+  }
+
+  updateStateForEnvironmentBuilds(environmentBuilds){
+
+    this.state.environmentBuilds = {};
+    for(let environmentBuild of environmentBuilds){
+      this.state.environmentBuilds[environmentBuild.project_uuid + "-" + environmentBuild.environment_uuid] = environmentBuild;
+    }
+
+    this.setState((state) => {
+      return {
+        environmentBuilds: environmentBuilds,
+        listData: this.processListData(state.environments)
+      }
+    });
   }
 
   fetchEnvironments() {
@@ -115,6 +162,9 @@ class EnvironmentList extends React.Component {
     let listData = [];
 
     for (let environment of environments) {
+      
+      let environmentBuild = this.state.environmentBuilds[this.props.project_uuid + "-" + environment.uuid];
+      
       listData.push([
         <span>{environment.name}</span>,
         <span>{LANGUAGE_MAP[environment.language]}</span>,
@@ -125,6 +175,7 @@ class EnvironmentList extends React.Component {
             <i className="material-icons mdc-button__icon">clear</i>
           )}
         </span>,
+        <span>{environmentBuild ? environmentBuild.status : ""}</span>,
       ]);
     }
     return listData;
@@ -155,7 +206,7 @@ class EnvironmentList extends React.Component {
                   selectable
                   onRowClick={this.onClickListItem.bind(this)}
                   classNames={["fullwidth"]}
-                  headers={["Environment", "Language", "GPU Support"]}
+                  headers={["Environment", "Language", "GPU Support", "Build status"]}
                   rows={this.state.listData}
                 />
               </Fragment>

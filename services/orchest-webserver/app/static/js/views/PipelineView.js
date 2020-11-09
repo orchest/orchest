@@ -12,6 +12,11 @@ import {
   PromiseManager,
   RefManager,
 } from "../lib/utils/all";
+
+import {
+  checkGate, requestBuild
+} from "../utils/webserver-utils";
+
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
@@ -263,6 +268,14 @@ class PipelineView extends React.Component {
     } else {
       // retrieve interactive run runUUID to show pipeline exeuction state
       this.fetchActivePipelineRuns();
+
+      // for non pipelineRun - read only check gate
+      let checkGatePromise = checkGate();
+      checkGatePromise.catch((result) => {
+        if(result.reason === "missing-environments"){
+          requestBuild(props.project_uuid, result.data);
+        }
+      })
     }
   }
 
