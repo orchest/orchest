@@ -119,12 +119,10 @@ class EnvironmentBuildList(Resource):
             for build in builds:
                 abort_environment_build(build.build_uuid, build.status == "STARTED")
 
-            """
-            We specify the task id beforehand so that we can commit to the db before
-            actually launching the task, since the task might make some calls to the orchest-api
-            referring to itself (e.g. a status update), and thus expecting to find itself in the db.
-            This way we avoid race conditions.
-            """
+            # We specify the task id beforehand so that we can commit to the db before
+            # actually launching the task, since the task might make some calls to the orchest-api
+            # referring to itself (e.g. a status update), and thus expecting to find itself in the db.
+            # This way we avoid race conditions.
             task_id = str(uuid.uuid4())
 
             # TODO: verify if forget has the same effect of ignore_result=True because ignore_result cannot be
@@ -233,11 +231,9 @@ class ProjectMostRecentBuildsList(Resource):
 
         """
 
-        """
-        filter by project uuid
-        use a window function to get the most recently requested build for each environment
-        return 
-        """
+        # filter by project uuid
+        # use a window function to get the most recently requested build for each environment
+        # return
         rank = (
             func.rank()
             .over(partition_by="environment_uuid", order_by=desc("requested_time"))

@@ -68,11 +68,9 @@ def build_docker_image(
             try:
                 output = generator.__next__()
                 json_output = json.loads(output)
-                """
-                Checking for logs. Even if we consider to be done with the logs (found_ending_flag == True) we do not
-                break out of the while loop because the build needs to keep going, both for error reporting
-                and for actually allowing the build to keep going, which would not happen if we process exits.
-                """
+                # Checking for logs. Even if we consider to be done with the logs (found_ending_flag == True) we do not
+                # break out of the while loop because the build needs to keep going, both for error reporting
+                # and for actually allowing the build to keep going, which would not happen if we process exits.
                 if "stream" in json_output:
                     stream = json_output["stream"]
 
@@ -80,10 +78,8 @@ def build_docker_image(
                     complete_logs_file_object.flush()
 
                     if not found_ending_flag:
-                        """
-                        beginning flag not found --> do not log
-                        beginning flag found --> log until you find the ending flag
-                        """
+                        # beginning flag not found --> do not log
+                        # beginning flag found --> log until you find the ending flag
                         if not found_beginning_flag:
                             found_beginning_flag = stream.startswith(flag)
                             if found_beginning_flag:
