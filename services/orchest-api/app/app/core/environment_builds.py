@@ -301,10 +301,8 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 task_uuid, project_uuid, environment_uuid, project_path
             )
 
-            # TODO: change this to _config.ENVIRONMENT_IMAGE_NAME once this stuff gets into the
-            #  feature-environment branch
-            ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
-            docker_image_name = ENVIRONMENT_IMAGE_NAME.format(
+            # use the agreed upon pattern for the docker image name
+            docker_image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
                 project_uuid=project_uuid, environment_uuid=environment_uuid
             )
 

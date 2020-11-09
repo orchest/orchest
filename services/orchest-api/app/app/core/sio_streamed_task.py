@@ -202,6 +202,8 @@ class SioStreamedTask:
         acquired = connect_lock.acquire(timeout=10)
         if not acquired:
             return "FAILED"
+        else:
+            connect_lock.release()
 
         # tell the socketio server that from its point of view the task is started, i.e.
         # new logs related to this identity will come in
