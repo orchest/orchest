@@ -4,6 +4,7 @@ import select
 import signal
 import socketio
 import time
+import threading
 
 
 # TODO: move this to util?
@@ -177,7 +178,30 @@ class SioStreamedTask:
         """
 
         sio_client = socketio.Client(reconnection_attempts=1)
+
+        # used to make sure the client is connected to the namespace before sending the first message
+        # otherwise the message might get lost
+        # https://github.com/miguelgrinberg/python-socketio/issues/461
+        connect_lock = threading.Lock()
+        # get the lock so the next call to it will block the thread even if it is the same thread
+        # acquiring it, since its NOT a RLock
+        connect_lock.acquire()
+
+        @sio_client.on("connect", namespace=namespace)
+        def connect():
+            logging.info("connected to namespace %s" % namespace)
+            # https://docs.python.org/2/library/threading.html#threading.Lock
+            # any thread may release it
+            connect_lock.release()
+
         sio_client.connect(server, namespaces=[namespace], transports=["websocket"])
+
+        # try to acquire again, if it has not been released yet wait for it
+        # wait a maximum of 10 seconds, if that doesnt work declare the build as failed, because
+        # that means that it took more than 10 seconds for the client to connect to the namespace
+        acquired = connect_lock.acquire(timeout=10)
+        if not acquired:
+            return "FAILED"
 
         # tell the socketio server that from its point of view the task is started, i.e.
         # new logs related to this identity will come in
