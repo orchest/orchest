@@ -236,7 +236,6 @@ class SioStreamedTask:
                 if poll_time > abort_lambda_poll_time:
                     abort_lambda_poll_time = 0
                     if abort_lambda():
-                        # exit code when a process receives SIGABRT, thought it was fitting
                         status = "ABORTED"
                         logging.info("aborting task")
                         break
@@ -264,10 +263,8 @@ class SioStreamedTask:
                 "sio_streamed_task_data",
                 {"identity": identity, "action": "sio_streamed_task_finished"},
                 namespace=namespace,
-                callback=lambda: logging.info("closing message received"),
+                callback=sio_client.disconnect(),
             )
-            sio_client.sleep(2)
-            sio_client.disconnect()
             os.kill(child_pid, signal.SIGKILL)
             # close after killing so the child process does not get into errors
             os.close(communication_pipe_read)
