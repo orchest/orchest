@@ -246,6 +246,9 @@ class ProjectMostRecentBuildsList(Resource):
         query = db.session.query(models.EnvironmentBuild)
         query = query.filter_by(project_uuid=project_uuid)
         query = query.add_column(rank)
+        # note: this works because rank is of type Label and
+        # rank == 1 will evaluate to sqlalchemy.sql.elements.BinaryExpression since the equality
+        # operator is overloaded
         query = query.from_self().filter(rank == 1)
         query = query.with_entities(models.EnvironmentBuild)
         env_builds = query.all()
