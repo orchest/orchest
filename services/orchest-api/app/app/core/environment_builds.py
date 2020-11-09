@@ -124,6 +124,8 @@ def write_environment_dockerfile(base_image, bash_script, flag, path):
     """Write a custom dockerfile with the given specifications. This dockerfile is built in an ad-hoc way
      to later be able to only log stuff related to the user script.
 
+    Note that the produced dockerfile will make it so that the entire context is copied.
+
     Args:
         base_image: Base image of the docker file.
         bash_script: Script to run in a RUN command.
@@ -135,6 +137,11 @@ def write_environment_dockerfile(base_image, bash_script, flag, path):
     """
     statements = []
     statements.append(f"FROM {base_image}")
+
+    # copy the entire context, that is, given the current use case,
+    # that we are copying the project directory (from the snapshot) into the docker image that is to be built,
+    # this allows the user defined script defined through orchest to make use of files
+    # that are part of its project, e.g. a requirements.txt or other scripts.
     statements.append("COPY . .")
     statements.append(
         f'RUN chmod +x {bash_script} && echo "{flag}" && bash {bash_script} && echo "{flag}"'
