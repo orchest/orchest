@@ -169,13 +169,13 @@ def check_environment_correctness(project_uuid, environment_uuid, project_path):
 
     """
     if not os.path.exists(project_path):
-        raise OSError(f"Project path {project_path}does not exist")
+        raise OSError(f"Project path {project_path} does not exist")
 
     environment_path = os.path.join(
         project_path, f".orchest/environments/{environment_uuid}"
     )
     if not os.path.exists(environment_path):
-        raise OSError(f"Environment path {environment_path}does not exist")
+        raise OSError(f"Environment path {environment_path} does not exist")
 
     environment_properties = os.path.join(environment_path, "properties.json")
     if not os.path.isfile(environment_properties):
