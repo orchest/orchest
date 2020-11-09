@@ -10,7 +10,6 @@ from flask_restplus import Model, fields
 
 from _orchest.internals import config as _config
 
-
 # Namespace: Sessions
 server = Model(
     "Server",
@@ -299,7 +298,9 @@ environment_build = Model(
             required=True, description="UUID of the environment build "
         ),
         "project_uuid": fields.String(required=True, description="UUID of the project"),
-        "environment_uuid": fields.String(required=True, description="UUID of the environment"),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of the environment"
+        ),
         "project_path": fields.String(required=True, description="Project path"),
         "requested_time": fields.String(
             required=True, description="Time at which the build was requested"
@@ -310,9 +311,11 @@ environment_build = Model(
         "finished_time": fields.String(
             required=True, description="Time at which the build finished executing"
         ),
-        "status": fields.String(required=True,
-                                description="Status of the build",
-                                enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"], )
+        "status": fields.String(
+            required=True,
+            description="Status of the build",
+            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+        ),
     },
 )
 
@@ -320,7 +323,8 @@ environment_builds = Model(
     "EnvironmentBuilds",
     {
         "environment_builds": fields.List(
-            fields.Nested(environment_build), description="Collection of environment_builds"
+            fields.Nested(environment_build),
+            description="Collection of environment_builds",
         ),
     },
 )
@@ -329,16 +333,20 @@ environment_build_request = Model(
     "EnvironmentBuildRequest",
     {
         "project_uuid": fields.String(required=True, description="UUID of the project"),
-        "environment_uuid": fields.String(required=True, description="UUID of the environment"),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of the environment"
+        ),
         "project_path": fields.String(required=True, description="Project path"),
-    }
+    },
 )
 
 environment_build_requests = Model(
     "EnvironmentBuildRequests",
     {
         "environment_build_requests": fields.List(
-            fields.Nested(environment_build_request), description="Collection of environment_build_request"
+            fields.Nested(environment_build_request),
+            description="Collection of environment_build_request",
+            unique=True,
         ),
     },
 )

@@ -43,9 +43,7 @@ def abort_environment_build(environment_build_uuid, is_running=False):
         res.abort()
 
     update_status_db(
-        status_update,
-        model=models.EnvironmentBuild,
-        filter_by=filter_by,
+        status_update, model=models.EnvironmentBuild, filter_by=filter_by,
     )
 
 
@@ -63,24 +61,35 @@ class EnvironmentBuildList(Resource):
         if not environment_builds:
             environment_builds = []
 
-        return {"environment_builds": [envb.as_dict() for envb in environment_builds]}, 200
+        return (
+            {"environment_builds": [envb.as_dict() for envb in environment_builds]},
+            200,
+        )
 
     @api.doc("start_environment_builds")
     @api.expect(schema.environment_build_requests)
-    @api.marshal_with(schema.environment_builds, code=201, description="Queued environment build")
+    @api.marshal_with(
+        schema.environment_builds, code=201, description="Queued environment build"
+    )
     def post(self):
-        """Queues a list of environment builds."""
+        """Queues a list of environment builds.
+        
+        Only unique requests are considered, meaning that a request containing duplicate environment_build_requests
+        will produce an environment build only for each unique environment_build_request. Note that requesting
+        an environment_build for an environment (identified by project_uuid, environment_uuid, project_path) will
+        REVOKE/ABORT any other active (queued or actually started) environment build for that environment.
+        This implies that only an environment build can be active (queued or actually started) for a given environment.
+        """
 
         # keep only unique requests
         post_data = request.get_json()
         builds_requests = post_data["environment_build_requests"]
-        builds_requests = set([
-            (req["project_uuid"],
-             req["environment_uuid"],
-             req["project_path"]
-             )
-            for req in builds_requests
-        ])
+        builds_requests = set(
+            [
+                (req["project_uuid"], req["environment_uuid"], req["project_path"])
+                for req in builds_requests
+            ]
+        )
         builds_requests = [
             {
                 "project_uuid": req[0],
@@ -98,9 +107,14 @@ class EnvironmentBuildList(Resource):
             # check if a build for this project/environment is PENDING/STARTED
             builds = models.EnvironmentBuild.query.filter(
                 models.EnvironmentBuild.project_uuid == build_request["project_uuid"],
-                models.EnvironmentBuild.environment_uuid == build_request["environment_uuid"],
+                models.EnvironmentBuild.environment_uuid
+                == build_request["environment_uuid"],
                 models.EnvironmentBuild.project_path == build_request["project_path"],
-                or_(models.EnvironmentBuild.status == "PENDING", models.EnvironmentBuild.status == "STARTED")).all()
+                or_(
+                    models.EnvironmentBuild.status == "PENDING",
+                    models.EnvironmentBuild.status == "STARTED",
+                ),
+            ).all()
 
             for build in builds:
                 abort_environment_build(build.build_uuid, build.status == "STARTED")
@@ -140,15 +154,13 @@ class EnvironmentBuildList(Resource):
             celery.send_task(
                 "app.core.tasks.build_environment",
                 kwargs=celery_job_kwargs,
-                task_id=task_id
+                task_id=task_id,
             )
 
         return {"environment_builds": defined_builds}
 
 
-@api.route(
-    "/<string:environment_build_uuid>",
-)
+@api.route("/<string:environment_build_uuid>",)
 @api.param("environment_build_uuid", "UUID of the EnvironmentBuild")
 @api.response(404, "Environment build not found")
 class EnvironmentBuild(Resource):
@@ -157,8 +169,7 @@ class EnvironmentBuild(Resource):
     def get(self, environment_build_uuid):
         """Fetch an environment build given its uuid."""
         env_build = models.EnvironmentBuild.query.get_or_404(
-            ident=environment_build_uuid,
-            description="EnvironmentBuild not found"
+            ident=environment_build_uuid, description="EnvironmentBuild not found"
         )
         return env_build.as_dict()
 
@@ -172,9 +183,7 @@ class EnvironmentBuild(Resource):
             "build_uuid": environment_build_uuid,
         }
         update_status_db(
-            status_update,
-            model=models.EnvironmentBuild,
-            filter_by=filter_by,
+            status_update, model=models.EnvironmentBuild, filter_by=filter_by,
         )
 
         return {"message": "Status was updated successfully"}, 200
@@ -195,19 +204,24 @@ class EnvironmentBuild(Resource):
         status = environment_build.status
 
         if status != "PENDING" and status != "STARTED":
-            return \
-                {"message": "Environment build has state %s, no revocation or abortion necessary or possible"
-                            % status}, 200
+            return (
+                {
+                    "message": "Environment build has state %s, no revocation or abortion necessary or possible"
+                    % status
+                },
+                200,
+            )
 
         abort_environment_build(environment_build_uuid, status == "STARTED")
 
         return {"message": "Environment build was successfully ABORTED"}, 200
 
 
-@api.route(
-    "/most_recent/<string:project_uuid>",
+@api.route("/most_recent/<string:project_uuid>",)
+@api.param(
+    "project_uuid",
+    "UUID of the project for which environment builds should be collected",
 )
-@api.param("project_uuid", "UUID of the project for which environment builds should be collected")
 class ProjectMostRecentBuildsList(Resource):
     @api.doc("get_project_most_recent_environment_builds")
     @api.marshal_with(schema.environment_builds, code=200)
@@ -224,8 +238,11 @@ class ProjectMostRecentBuildsList(Resource):
         use a window function to get the most recently requested build for each environment
         return 
         """
-        rank = func.rank().over(partition_by="environment_uuid", order_by=desc("requested_time")).label(
-            'rank')
+        rank = (
+            func.rank()
+            .over(partition_by="environment_uuid", order_by=desc("requested_time"))
+            .label("rank")
+        )
         query = db.session.query(models.EnvironmentBuild)
         query = query.filter_by(project_uuid=project_uuid)
         query = query.add_column(rank)
@@ -236,9 +253,7 @@ class ProjectMostRecentBuildsList(Resource):
         return {"environment_builds": [build.as_dict() for build in env_builds]}
 
 
-@api.route(
-    "/most_recent/<string:project_uuid>/<string:environment_uuid>"
-)
+@api.route("/most_recent/<string:project_uuid>/<string:environment_uuid>")
 @api.param("project_uuid", "UUID of the project.")
 @api.param("environment_uuid", "UUID of the environment.")
 class ProjectEnvironmentMostRecentBuild(Resource):
@@ -249,9 +264,12 @@ class ProjectEnvironmentMostRecentBuild(Resource):
          Only environments for which builds have already been requested are considered.
         """
 
-        recent = db.session.query(models.EnvironmentBuild). \
-            filter_by(project_uuid=project_uuid, environment_uuid=environment_uuid). \
-            order_by(desc(models.EnvironmentBuild.requested_time)).first()
+        recent = (
+            db.session.query(models.EnvironmentBuild)
+            .filter_by(project_uuid=project_uuid, environment_uuid=environment_uuid)
+            .order_by(desc(models.EnvironmentBuild.requested_time))
+            .first()
+        )
         if recent:
             return recent.as_dict()
         abort(404, "EnvironmentBuild not found")
