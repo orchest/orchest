@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import logging
 import os
 import select
@@ -34,7 +32,14 @@ class SioStreamedTask:
     READ_LOOP_SLEEP_TIME = 0.01
 
     @staticmethod
-    def run(task_lambda, identity, server, namespace, abort_lambda, abort_lambda_poll_time=0.2):
+    def run(
+        task_lambda,
+        identity,
+        server,
+        namespace,
+        abort_lambda,
+        abort_lambda_poll_time=0.2,
+    ):
         """Stream the logs of a task to a Socketio server and namespace.
 
         Given a lambda which takes a file object argument, forward whatever
@@ -88,14 +93,23 @@ class SioStreamedTask:
         if child_pid == 0:
             os.close(communication_pipe_read)
             os.close(end_task_pipe_read)
-            SioStreamedTask._run_lambda(task_lambda, communication_pipe_write, end_task_pipe_write)
+            SioStreamedTask._run_lambda(
+                task_lambda, communication_pipe_write, end_task_pipe_write
+            )
 
         else:
             os.close(communication_pipe_write)
             os.close(end_task_pipe_write)
-            return SioStreamedTask._listen_to_logs(child_pid, identity, server, namespace, abort_lambda,
-                                                   abort_lambda_poll_time,
-                                                   communication_pipe_read, end_task_pipe_read)
+            return SioStreamedTask._listen_to_logs(
+                child_pid,
+                identity,
+                server,
+                namespace,
+                abort_lambda,
+                abort_lambda_poll_time,
+                communication_pipe_read,
+                end_task_pipe_read,
+            )
 
     @staticmethod
     def _run_lambda(task_lambda, communication_pipe_write, end_task_pipe_write):
@@ -110,8 +124,10 @@ class SioStreamedTask:
 
         """
 
-        communication_pipe_write = UnbufferedTextStream(os.fdopen(communication_pipe_write, 'w'))
-        end_task_pipe_write = UnbufferedTextStream(os.fdopen(end_task_pipe_write, 'w'))
+        communication_pipe_write = UnbufferedTextStream(
+            os.fdopen(communication_pipe_write, "w")
+        )
+        end_task_pipe_write = UnbufferedTextStream(os.fdopen(end_task_pipe_write, "w"))
 
         result = "FAILED"
         # use a try catch block so that even if there are errors in the task lambda we still
@@ -134,8 +150,16 @@ class SioStreamedTask:
             time.sleep(10)
 
     @staticmethod
-    def _listen_to_logs(child_pid, identity, server, namespace, abort_lambda, abort_lambda_poll_time,
-                        communication_pipe_read, end_task_pipe_read):
+    def _listen_to_logs(
+        child_pid,
+        identity,
+        server,
+        namespace,
+        abort_lambda,
+        abort_lambda_poll_time,
+        communication_pipe_read,
+        end_task_pipe_read,
+    ):
         """Code path of the parent which listens on the pipe(s) for logs to send to the SocketIO server.
 
         Args:
@@ -154,16 +178,13 @@ class SioStreamedTask:
 
         sio_client = socketio.Client(reconnection_attempts=1)
         sio_client.connect(server, namespaces=[namespace], transports=["websocket"])
-        
+
         # tell the socketio server that from its point of view the task is started, i.e.
         # new logs related to this identity will come in
         sio_client.emit(
             "sio_streamed_task_data",
-            {
-                "identity": identity,
-                "action": "sio_streamed_task_started"
-            },
-            namespace=namespace
+            {"identity": identity, "action": "sio_streamed_task_started"},
+            namespace=namespace,
         )
 
         status = "STARTED"
@@ -217,11 +238,9 @@ class SioStreamedTask:
             # (https://python-socketio.readthedocs.io/en/latest/intro.html#client-examples)
             sio_client.emit(
                 "sio_streamed_task_data",
-                {
-                    "identity": identity,
-                    "action": "sio_streamed_task_finished"
-                },
-                namespace=namespace, callback=lambda: logging.info("closing message received")
+                {"identity": identity, "action": "sio_streamed_task_finished"},
+                namespace=namespace,
+                callback=lambda: logging.info("closing message received"),
             )
             sio_client.sleep(2)
             sio_client.disconnect()
