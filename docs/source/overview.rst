@@ -63,7 +63,8 @@ With Orchest you get to:
 
 * Visually construct pipelines, but interact with the pipelines through code.
 * Code your data science efforts in your editor of choice. Additionally, Orchest has deep
-  integration for JupyterLab to allow you to directly edit the scripts part of your pipeline. 
+  integration for JupyterLab to allow you to directly edit the individual scripts that are run as
+  part of your pipeline.
 * Modularize, i.e. split up, your (monolithic) notebooks.
 * Run any selection of pipeline steps. 
 * Select specific notebook cells to skip when running a pipeline through the pre-installed celltags
@@ -72,7 +73,7 @@ With Orchest you get to:
 
 What Orchest does for you:
 
-* Provide you with an interactive pipeline editing view.
+* Provide you with an interactive pipeline editor to create your pipelines.
 * Manage your dependencies and environments.
 * Run your pipelines based on the defined execution order.
 * Pass data between your steps.
