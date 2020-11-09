@@ -66,7 +66,7 @@ def build_docker_image(
         had_errors = False
         while True:
             try:
-                output = generator.__next__()
+                output = next(generator)
                 json_output = json.loads(output)
                 # Checking for logs. Even if we consider to be done with the logs (found_ending_flag == True) we do not
                 # break out of the while loop because the build needs to keep going, both for error reporting
