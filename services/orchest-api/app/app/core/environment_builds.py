@@ -4,11 +4,11 @@ import json
 import os
 import requests
 
-import docker
 from celery.contrib.abortable import AbortableAsyncResult
 
 from config import CONFIG_CLASS
 from _orchest.internals import config as _config
+from app.connections import docker_client
 from app.core.sio_streamed_task import SioStreamedTask
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
@@ -52,8 +52,7 @@ def build_docker_image(
     with open(complete_logs_path, "w") as complete_logs_file_object:
 
         # connect to docker and issue the build
-        docker_client = docker.APIClient(base_url="unix://var/run/docker.sock")
-        generator = docker_client.build(
+        generator = docker_client.api.build(
             path=context_path,
             dockerfile=dockerfile_path,
             tag=image_name,
