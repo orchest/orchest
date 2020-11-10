@@ -147,8 +147,9 @@ def write_environment_dockerfile(base_image, work_dir, bash_script, flag, path):
     statements.append("COPY . .")
     # note: commands are concatenated with && because this way an exit_code != 0 will bubble up
     # and cause the docker build to fail, as it should.
+    # the bash script is removed so that the user won't be able to see it after the build is done
     statements.append(
-        f'RUN chmod +x {bash_script} && echo "{flag}" && bash {bash_script} && echo "{flag}"'
+        f'RUN chmod +x {bash_script} && echo "{flag}" && bash {bash_script} && echo "{flag}" && rm {bash_script}'
     )
     statements = "\n".join(statements)
 
@@ -259,7 +260,7 @@ def prepare_build_context(
 
         # use the task_uuid to avoid clashing with user stuff
         docker_file_name = dockerfile_name
-        bash_script_name = dockerfile_name + ".sh"
+        bash_script_name = f".{dockerfile_name}.sh"
         write_environment_dockerfile(
             environment_properties["base_image"],
             _config.PROJECT_DIR,
