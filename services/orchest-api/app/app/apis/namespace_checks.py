@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from itertools import chain
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple, Optional
 
 import docker
 from flask import request
@@ -19,43 +19,59 @@ api = Namespace("checks", description="Does integrity checks")
 api = register_schema(api)
 
 
-def gate_check_environment(project_uuid: str, env_uuid: str) -> str:
+def gate_check_environment(
+    project_uuid: str, env_uuid: str
+) -> Tuple[str, Optional[str]]:
     """Checks the environment gate.
 
-    Only passes if the `project_uuid` and `env_uuid` combination exists
-    in the persistent database `EnvironmentBuild` model AND the image:
-        ``_config.ENVIRONMENT_IMAGE_NAME``
-    exists in the docker namespace.
+    Only passes if all of the conditions below are satisfied:
+        * The `project_uuid` and `env_uuid` combination exists in the
+          persistent database `EnvironmentBuild` model.
+        * There is no "PENDING" or "STARTED" build for the environment.
+        * The image: ``_config.ENVIRONMENT_IMAGE_NAME`` exists in the
+          docker namespace.
 
     Args:
         project_uuid
         env_uuid
 
     Returns:
-        "pass" or "fail". Indicating whether the check was successful
-        or not respectively.
+        (check, action)
+
+        `check` is "pass" or "fail".
+
+        `action` is one of ["BUILD", "WAIT", "RETRY", None]
 
     """
-    num_builds = models.EnvironmentBuild.query.filter_by(
+    # Check the build history for the environment.
+    env_builds = models.EnvironmentBuild.query.filter_by(
         project_uuid=project_uuid, environment_uuid=env_uuid
+    )
+    num_completed_builds = env_builds.count()
+    num_building_builds = env_builds.filter(
+        models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
     ).count()
 
-    if not num_builds:
-        return "fail"
+    if not num_completed_builds:
+        return "fail", "BUILD"
 
+    if num_building_builds:
+        return "fail", "WAIT"
+
+    # Check the docker namespace.
     docker_image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
         project_uuid=project_uuid, environment_uuid=env_uuid
     )
     try:
         docker_client.get(docker_image_name)
     except docker.errors.ImageNotFound:
-        return "fail"
+        return "fail", "BUILD"
     except docker.errors.APIError:
         # We cannot determine what happened, so better be safe than
         # sorry.
-        return "fail"
-    else:
-        return "pass"
+        return "fail", "RETRY"
+
+    return "pass", None
 
 
 def get_env_uuids(pipe_def: Dict[Any, Any]) -> List[str]:
@@ -81,7 +97,9 @@ class Gate(Resource):
 
         Checks whether all the environments are build.
 
-        NOTE: The result is returned in no particular order.
+        NOTE: The result is returned in no particular order, except for
+        ``["fail"]["evironment_uuids"]`` and ``["fail"]["action"]``,
+        stating the required action to convert the "fail" to a "pass".
 
         """
         post_data = request.get_json()
@@ -107,13 +125,16 @@ class Gate(Resource):
 
         res = {
             "gate": None,  # Will be set last
-            "fail": {"environment_uuids": []},
+            "fail": {"environment_uuids": [], "actions": []},
             "pass": {"environment_uuids": []},
         }
         for env_uuid in environment_uuids:
             # Check will be either "fail" or "pass".
-            check = gate_check_environment(project_uuid, env_uuid)
+            check, action = gate_check_environment(project_uuid, env_uuid)
             res[check]["environment_uuids"].append(env_uuid)
+
+            if check == "fail":
+                res["fail"]["actions"].append(action)
 
         if post_data["type"] == "deep":
             # Get an (flattened) iterable of all failed and passed

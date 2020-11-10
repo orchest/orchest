@@ -378,6 +378,11 @@ gate_check_result_descr = Model(
         "environment_uuids": fields.List(
             fields.String(), required=True, description="Environment UUIDs"
         ),
+        "actions": fields.List(
+            fields.String(enum=["WAIT", "BUILD", "RETRY"]),
+            required=False,
+            description="Action to go from fail to pass",
+        ),
         "pipeline_uuids": fields.List(
             fields.String(), required=False, description="Pipeline UUIDs"
         ),
