@@ -12,7 +12,7 @@ api = register_schema(api)
 @api.route("/<string:project_uuid>/<string:environment_uuid>",)
 @api.param("project_uuid", "UUID of the project")
 @api.param("environment_uuid", "UUID of the environment")
-class EnvironmentBuild(Resource):
+class EnvironmentImage(Resource):
     @api.doc("delete-environment-image")
     def delete(self, project_uuid, environment_uuid):
         """Removes an environment image given project_uuid and image_uuid"""
