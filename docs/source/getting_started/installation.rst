@@ -3,8 +3,8 @@ Installation
 
 Orchest can be run locally on Linux, macOS and Windows (using the exact same steps!).
 
-Requirements
-------------
+Prerequisites
+-------------
 * Docker (tested on 19.03.9)
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
@@ -35,8 +35,13 @@ pipeline steps.
     Linux environment. For more info about Docker with WSL 2, please visit
     https://docs.docker.com/docker-for-windows/wsl/.
 
-GPU enabled images
--------------------------
+Build from source
+-----------------
+
+How to build from source
+
+GPU support
+-----------
 
 **Linux**
 

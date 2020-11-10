@@ -11,10 +11,13 @@ Quickstart
 
 Data passing
 ~~~~~~~~~~~~
+The SDK manages the target and source of the data, leaving you
+only with the decision what data to pass. The target and source of the data are inferred
+through the :ref:`pipeline definition <pipeline definition>`.
 
-For this example we let the pipeline (defined inside the ``pipeline.json``) be as follows: 
+For this example we let the pipeline be defined as follows: 
 
-.. image:: ../img/pipeline.png
+.. image:: ../../img/pipeline.png
   :width: 400
   :alt: Pipeline defined as: step-1, step-2 --> step-3
   :align: center
