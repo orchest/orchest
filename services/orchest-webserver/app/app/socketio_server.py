@@ -5,6 +5,7 @@ from app.models import DataSource, Experiment, PipelineRun
 from app.utils import project_uuid_to_path
 from app.config import Config
 from flask import request
+from collections import deque
 
 from threading import Lock
 
@@ -51,7 +52,7 @@ def register_socketio_broadcast(db, socketio):
 
                 # initialize key for new identities
                 if data["identity"] not in environment_build_buffer:
-                    environment_build_buffer[data["identity"]] = []
+                    environment_build_buffer[data["identity"]] = deque(max_len=100)
 
                 environment_build_buffer[data["identity"]].append(data["output"])
 
