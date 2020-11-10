@@ -70,12 +70,17 @@ class EnvironmentList extends React.Component {
       this.state.environmentBuilds[environmentBuild.project_uuid + "-" + environmentBuild.environment_uuid] = environmentBuild;
     }
 
-    this.setState((state) => {
-      return {
-        environmentBuilds: environmentBuilds,
-        listData: this.processListData(state.environments)
-      }
+    this.setState({
+      environmentBuilds: environmentBuilds,
     });
+
+    if(this.state.environments){
+      this.setState((state) => {
+        return {
+          listData: this.processListData(state.environments)
+        }
+      });
+    }
   }
 
   fetchEnvironments() {
