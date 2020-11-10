@@ -63,7 +63,7 @@ def gate_check_environment(
         project_uuid=project_uuid, environment_uuid=env_uuid
     )
     try:
-        docker_client.get(docker_image_name)
+        docker_client.images.get(docker_image_name)
     except docker.errors.ImageNotFound:
         return "fail", "BUILD"
     except docker.errors.APIError:

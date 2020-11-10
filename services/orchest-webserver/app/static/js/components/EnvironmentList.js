@@ -72,15 +72,8 @@ class EnvironmentList extends React.Component {
 
     this.setState({
       environmentBuilds: environmentBuilds,
+      listData: this.processListData(this.state.environments),
     });
-
-    if(this.state.environments){
-      this.setState((state) => {
-        return {
-          listData: this.processListData(state.environments)
-        }
-      });
-    }
   }
 
   fetchEnvironments() {
@@ -133,6 +126,7 @@ class EnvironmentList extends React.Component {
           console.error(e);
         }
         orchest.alert(
+          "Error",
           "Deleting environment '" +
             this.state.environments[idx].name +
             "' failed. Reason: " +
@@ -165,6 +159,11 @@ class EnvironmentList extends React.Component {
 
   processListData(environments) {
     let listData = [];
+
+    // check for undefined environments
+    if(!environments){
+      return listData;
+    }
 
     for (let environment of environments) {
       

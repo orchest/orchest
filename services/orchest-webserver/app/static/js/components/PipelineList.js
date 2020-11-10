@@ -113,7 +113,7 @@ class PipelineList extends React.Component {
       readOnly = true;
     }
 
-    let checkGatePromise = checkGate();
+    let checkGatePromise = checkGate(this.props.project_uuid);
     checkGatePromise.then(() => {
       this.openPipeline(pipeline, readOnly);
     }).catch((result) => {
@@ -222,9 +222,9 @@ class PipelineList extends React.Component {
       .catch((response) => {
         try {
           let data = JSON.parse(response.body);
-          orchest.alert("Could not create pipeline. " + data.message);
+          orchest.alert("Error", "Could not create pipeline. " + data.message);
         } catch {
-          orchest.alert("Could not create pipeline. Reason unknown.");
+          orchest.alert("Error", "Could not create pipeline. Reason unknown.");
         }
 
         this.setState({

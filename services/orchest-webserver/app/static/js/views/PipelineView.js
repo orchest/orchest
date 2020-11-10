@@ -270,9 +270,9 @@ class PipelineView extends React.Component {
       this.fetchActivePipelineRuns();
 
       // for non pipelineRun - read only check gate
-      let checkGatePromise = checkGate();
+      let checkGatePromise = checkGate(this.props.project_uuid);
       checkGatePromise.catch((result) => {
-        if(result.reason === "missing-environments"){
+        if(result.reason === "gate-failed"){
           requestBuild(props.project_uuid, result.data);
         }
       })

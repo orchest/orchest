@@ -175,7 +175,7 @@ class CreateExperimentView extends React.Component {
   }
 
   attemptRunExperiment(){
-    let checkGatePromise = checkGate();
+    let checkGatePromise = checkGate(this.props.experiment.project_uuid);
     checkGatePromise.then(() => {
       this.runExperiment();
     }).catch((result) => {

@@ -34,14 +34,12 @@ def register_socketio_broadcast(db, socketio):
                     "sio_streamed_task_data",
                     {
                         "identity": key,
-                        "output": value,
+                        "output": ''.join(value),
                         "action": "sio_streamed_task_output"
                     },
                     room=request.sid,
                     namespace="/environment_builds",
                 )
-
-    
 
 
     @socketio.on("sio_streamed_task_data", namespace="/environment_builds")
@@ -53,9 +51,9 @@ def register_socketio_broadcast(db, socketio):
 
                 # initialize key for new identities
                 if data["identity"] not in environment_build_buffer:
-                    environment_build_buffer[data["identity"]] = ""
+                    environment_build_buffer[data["identity"]] = []
 
-                environment_build_buffer[data["identity"]] += data["output"]
+                environment_build_buffer[data["identity"]].append(data["output"])
 
                 # broadcast streamed task message
                 socketio.emit(

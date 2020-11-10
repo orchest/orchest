@@ -143,7 +143,7 @@ class ProjectFilePicker extends React.Component {
     // TODO: case insensitive extension checking?
     if(ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1){
 
-      orchest.alert("Invalid file extension", <div>Extension {extension} is not in allowed set of {this.allowedExtensionsMarkup()}.</div>);
+      orchest.alert("Error", "Invalid file extension", <div>Extension {extension} is not in allowed set of {this.allowedExtensionsMarkup()}.</div>);
 
       return;
     }

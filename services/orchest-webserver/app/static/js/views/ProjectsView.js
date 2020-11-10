@@ -14,7 +14,9 @@ import {
   makeCancelable,
   PromiseManager,
   RefManager,
+  validURL,
 } from "../lib/utils/all";
+import { BackgroundTaskPoller } from "../utils/webserver-utils";
 
 class ProjectsView extends React.Component {
   componentWillUnmount() {}
@@ -24,15 +26,19 @@ class ProjectsView extends React.Component {
 
     this.state = {
       createModal: false,
+      showImportModal: false,
       loading: true,
     };
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
+    this.backgroundTaskPoller = new BackgroundTaskPoller();
+    this.backgroundTaskPoller.POLL_FREQUENCY = 1000;
   }
 
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
+    this.backgroundTaskPoller.removeAllTasks();
   }
 
   componentDidMount() {
@@ -168,9 +174,9 @@ class ProjectsView extends React.Component {
       try {
         let data = JSON.parse(response.body);
 
-        orchest.alert("Could not delete project. " + data.message);
+        orchest.alert("Error", "Could not delete project. " + data.message);
       } catch {
-        orchest.alert("Could not delete project. Reason unknown.");
+        orchest.alert("Error", "Could not delete project. Reason unknown.");
       }
     });
 
@@ -213,9 +219,9 @@ class ProjectsView extends React.Component {
         try {
           let data = JSON.parse(response.body);
 
-          orchest.alert("Could not create project. Reason " + data.message);
+          orchest.alert("Error", "Could not create project. Reason " + data.message);
         } catch {
-          orchest.alert("Could not create project. Reason unknown.");
+          orchest.alert("Error", "Could not create project. Reason unknown.");
         }
       });
 
@@ -230,9 +236,107 @@ class ProjectsView extends React.Component {
     });
   }
 
+  onSubmitImport(){
+    let gitURL = this.refManager.refs.gitURLTextField.mdc.value;
+
+    if(!validURL(gitURL) || !gitURL.startsWith("https://")){
+      orchest.alert("Error", "Please make sure you enter a valid HTTPS git-repo URL.");
+      return;
+    }
+
+    this.setState({
+      importResult: {
+        status: "PENDING"
+      }
+    })
+
+    makeRequest("POST", `/async/projects/git-import`, {
+      type: "json",
+      content: {gitURL: gitURL}
+    }).then((response) => {
+      let data = JSON.parse(response);
+
+      this.backgroundTaskPoller.startPollingBackgroundTask(data.task_uuid, (result) => {
+        this.setState({
+          importResult: result
+        })
+      });
+    })
+
+  }
+
+  onCancelImport() {
+    this.setState({
+      showImportModal: false
+    })
+  }
+
+  onImport(){
+    this.setState({
+      showImportModal: true
+    })
+  }
+
   render() {
     return (
       <div className={"view-page projects-view"}>
+
+        {(() => {
+          if(this.state.showImportModal){
+            return <MDCDialogReact
+              title="Import a project"
+              content={
+                <div className='project-import-modal'>
+
+                  <p className="push-down">Import a <span className='code'>git</span> by specifying the <span className='code'>HTTPS</span> URL below:</p>
+                  <MDCTextFieldReact
+                    classNames={["fullwidth"]}
+                    label="Git repository URL"
+                    ref={this.refManager.nrefs.gitURLTextField}
+                  />
+
+                  {(() => {
+                    if(this.state.importResult){
+                      let result;
+
+                      if(this.state.importResult.status === 'PENDING'){
+                        result = <MDCLinearProgressReact />;
+                      }else if(this.state.importResult.status === 'SUCCESS'){
+                        result = <p><i className="material-icons float-left">check</i> Import completed!</p>;
+                      }
+                      else if(this.state.importResult.status === 'FAILURE'){
+                        result = <p><i className="material-icons float-left">error</i> Import failed: {this.state.importResult.result}</p>;
+                      }
+
+                      return <div className="push-up">
+                        {result}
+                      </div>;
+                    }
+                  })()}
+                  
+                </div>
+              }
+              actions={
+                <Fragment>
+                  <MDCButtonReact
+                    icon="input"
+                    disabled={(this.state.importResult !== undefined)}
+                    classNames={["mdc-button--raised", "themed-secondary"]}
+                    label="Import"
+                    onClick={this.onSubmitImport.bind(this)}
+                  />
+                  <MDCButtonReact
+                    icon="close"
+                    label="Close"
+                    classNames={["push-left"]}
+                    onClick={this.onCancelImport.bind(this)}
+                  />
+                </Fragment>
+              }
+            />
+          }
+        })()}
+
         {(() => {
           if (this.state.createModal) {
             return (
@@ -282,6 +386,10 @@ class ProjectsView extends React.Component {
                   <MDCIconButtonToggleReact
                     icon="delete"
                     onClick={this.onDeleteClick.bind(this)}
+                  />
+                  <MDCIconButtonToggleReact
+                    icon="input"
+                    onClick={this.onImport.bind(this)}
                   />
                 </div>
 

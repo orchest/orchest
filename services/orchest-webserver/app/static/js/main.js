@@ -153,6 +153,7 @@ function Orchest() {
   this.confirm = function (title, content, cb) {
     dialogs.confirm(title, content, cb);
   };
+
 }
 
 window.orchest = new Orchest();

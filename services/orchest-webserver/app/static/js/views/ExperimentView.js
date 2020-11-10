@@ -6,7 +6,6 @@ import ParameterEditor from "../components/ParameterEditor";
 import SearchableTable from "../components/SearchableTable";
 import {
   makeRequest,
-  uuidv4,
   PromiseManager,
   makeCancelable,
   RefManager,

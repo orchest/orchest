@@ -495,27 +495,20 @@ def register_views(app, db):
         )
 
 
-    @app.route("/catch/api-proxy/api/check/gate/", methods=["POST"])
-    def catch_api_proxy_checks_gate():
-        
-        # TODO: implement gateway on orchest-api
-        # resp = requests.post(
-        #     "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/check/gate/",
-        #     json=project_uuid_to_path(request.json['project_uuid']),
-        #     stream=True,
-        # )
+    @app.route("/catch/api-proxy/api/checks/gate/<project_uuid>", methods=["POST"])
+    def catch_api_proxy_checks_gate(project_uuid):
 
-        # return resp.raw.read(), resp.status_code, resp.headers.items()
-        # return jsonify({
-        #     "gate": True,
-        #     "missing_environment_uuids": [],
-        #     "building_environment_uuids": [],
-        # })
-        return jsonify({
-            "gate": False,
-            "missing_environment_uuids": ["a35052dc-5c01-49c9-a0cb-dcab4268a439", "b13d4d7a-273d-4164-bd6c-195dfb8ec394"],
-            "building_environment_uuids": ["b13d4d7a-273d-4164-bd6c-195dfb8ec394"],
-        })
+        environment_uuids = [environment.uuid for environment in get_environments(project_uuid)]
+        
+        resp = requests.post(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/checks/gate/%s" % project_uuid,
+            json={
+                "type": "shallow",
+                "environment_uuids": environment_uuids
+            },
+            stream=True,
+        )
+        return resp.raw.read(), resp.status_code, resp.headers.items() 
 
 
     @app.route("/catch/api-proxy/api/environment_builds/most_recent/<project_uuid>/<environment_uuid>", methods=["GET"])
@@ -523,6 +516,17 @@ def register_views(app, db):
         
         resp = requests.get(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/most_recent/%s/%s" % (project_uuid, environment_uuid),
+            stream=True,
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
+
+    @app.route("/catch/api-proxy/api/environment_builds/<environment_build_uuid>", methods=["DELETE"])
+    def catch_api_proxy_environment_build_delete(environment_build_uuid):
+        
+        resp = requests.delete(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/%s" % (environment_build_uuid),
             stream=True,
         )
 
@@ -929,6 +933,23 @@ def register_views(app, db):
             os.makedirs(environment_dir, exist_ok=True)
 
             serialize_environment_to_disk(e, environment_dir)
+
+
+    @app.route("/async/background-tasks/<task_uuid>", methods=["GET"])
+    def get_background_task(task_uuid):
+        # TODO: implement actual task status
+        return jsonify({
+            "status": "SUCCESS",
+            "result": "Finished importing the git project."
+        })
+
+
+    @app.route("/async/projects/git-import", methods=["POST"])
+    def git_import_project():
+        # TODO: implement
+        return jsonify({
+            "task_uuid": str(uuid.uuid4())
+        })
 
 
     @app.route("/async/projects", methods=["GET", "POST", "DELETE"])

@@ -397,11 +397,9 @@ gate_check_result = Model(
             description="Whether the gate check passed or failed",
             enum=["pass", "fail"],
         ),
-        "fail": fields.List(
-            fields.Nested(gate_check_result_descr), description="Failed environments"
-        ),
-        "pass": fields.List(
-            fields.Nested(gate_check_result_descr), description="Passed environments"
-        ),
+        "fail": fields.Nested(
+            gate_check_result_descr, description="Failed environments"),
+        "pass": fields.Nested(
+            gate_check_result_descr, description="Passed environments"),
     },
 )

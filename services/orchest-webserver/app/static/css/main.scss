@@ -116,9 +116,24 @@ h3 {
   }
 }
 
+p > i.material-icons.float-left {
+  float: left;
+  margin-right: 10px;
+}
+
 .datetime-input {
   > div {
     margin-bottom: $generalPadding;
+  }
+}
+
+.select-button-columns {
+  display: flex;
+
+  .mdc-button {
+    height: 56px;
+    min-width: 200px;
+    margin-left: $mdcComponentPadding;
   }
 }
 
@@ -145,6 +160,10 @@ h3 {
 }
 
 .edit-environment {
+
+  .build-status {
+    font-size: $codeSize;
+  }
   
   .environment-uuid {
     font-size: $codeSize;
