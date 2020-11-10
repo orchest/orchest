@@ -126,14 +126,19 @@ class Experiment(BaseModel):
 
 
 class EnvironmentBuild(BaseModel):
-    """Table meant to store the state of the build task of an environment, i.e. when we need to build an image
-     starting from a base image plus optional sh code. This is not related to keeping track of environments or \
-     images to decide if a project or pipeline can be run.
+    """State of environment builds.
+
+    Table meant to store the state of the build task of an environment,
+    i.e. when we need to build an image starting from a base image plus
+    optional sh code. This is not related to keeping track of
+    environments or images to decide if a project or pipeline can be
+    run.
 
     """
+
     __tablename__ = "environment_build"
     __bind_key__ = "persistent_db"
-    __table_args__ = (Index('uuid_proj_env_index', "project_uuid", "environment_uuid"),)
+    __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
     build_uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
@@ -147,6 +152,3 @@ class EnvironmentBuild(BaseModel):
 
     def __repr__(self):
         return f"<EnvironmentBuildTask: {self.build_uuid}>"
-
-
-

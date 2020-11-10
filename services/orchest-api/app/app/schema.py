@@ -295,7 +295,7 @@ environment_build = Model(
     "EnvironmentBuild",
     {
         "build_uuid": fields.String(
-            required=True, description="UUID of the environment build "
+            required=True, description="UUID of the environment build"
         ),
         "project_uuid": fields.String(required=True, description="UUID of the project"),
         "environment_uuid": fields.String(
@@ -347,6 +347,56 @@ environment_build_requests = Model(
             fields.Nested(environment_build_request),
             description="Collection of environment_build_request",
             unique=True,
+        ),
+    },
+)
+
+gate_check = Model(
+    "GateCheck",
+    {
+        "type": fields.String(
+            required=True,
+            description="The granulity of the gate check",
+            enum=["shallow", "deep"],
+        ),
+        "environment_uuids": fields.List(
+            fields.String(),
+            required=False,
+            description="UUIDs to check for type=shallow",
+        ),
+        "pipeline_definitions": fields.List(
+            fields.Raw(description="Pipeline definitions in JSON"),
+            required=False,
+            description="Pipeline defitions to check for type=deep",
+        ),
+    },
+)
+
+gate_check_result_descr = Model(
+    "GateCheckResultDescr",
+    {
+        "environment_uuids": fields.List(
+            fields.String(), required=True, description="Environment UUIDs"
+        ),
+        "pipeline_uuids": fields.List(
+            fields.String(), required=False, description="Pipeline UUIDs"
+        ),
+    },
+)
+
+gate_check_result = Model(
+    "GateCheckResult",
+    {
+        "gate": fields.String(
+            required=True,
+            description="Whether the gate check passed or failed",
+            enum=["pass", "fail"],
+        ),
+        "fail": fields.List(
+            fields.Nested(gate_check_result_descr), description="Failed environments"
+        ),
+        "pass": fields.List(
+            fields.Nested(gate_check_result_descr), description="Passed environments"
         ),
     },
 )
