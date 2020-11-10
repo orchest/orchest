@@ -276,6 +276,13 @@ def prepare_build_context(
                 os.path.join(snapshot_path, bash_script_name),
             )
         )
+
+    # hide stuff from the user
+    with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
+        docker_ignore.write(".dockerignore\n")
+        docker_ignore.write(".orchest\n")
+        docker_ignore.write("%s\n" % docker_file_name)
+
     return snapshot_path
 
 
