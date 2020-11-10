@@ -120,7 +120,7 @@ def build_docker_image(
         return "SUCCESS"
 
 
-def write_environment_dockerfile(base_image, bash_script, flag, path):
+def write_environment_dockerfile(base_image, work_dir, bash_script, flag, path):
     """Write a custom dockerfile with the given specifications. This dockerfile is built in an ad-hoc way
      to later be able to only log stuff related to the user script.
 
@@ -128,6 +128,7 @@ def write_environment_dockerfile(base_image, bash_script, flag, path):
 
     Args:
         base_image: Base image of the docker file.
+        work_dir: Working directory.
         bash_script: Script to run in a RUN command.
         flag: Flag to use to be able to differentiate between logs of the bash_script and logs to be ignored.
         path: Where to save the file.
@@ -137,6 +138,7 @@ def write_environment_dockerfile(base_image, bash_script, flag, path):
     """
     statements = []
     statements.append(f"FROM {base_image}")
+    statements.append(f"WORKDIR {os.path.join('/', work_dir)}")
 
     # copy the entire context, that is, given the current use case,
     # that we are copying the project directory (from the snapshot) into the docker image that is to be built,
@@ -237,15 +239,15 @@ def prepare_build_context(
         See the check_environment_correctness_function
     """
     # the project path we receive is relative to the projects directory
-    project_path = os.path.join("/userdir/projects", project_path)
+    userdir_project_path = os.path.join("/userdir/projects", project_path)
 
     # sanity checks, if not respected exception will be raised
-    check_environment_correctness(project_uuid, environment_uuid, project_path)
+    check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
     # make a snapshot of the project state
     snapshot_path = f"/tmp/{dockerfile_name}"
     os.system("rm -rf %s" % snapshot_path)
-    os.system("cp -R %s %s" % (project_path, snapshot_path))
+    os.system("cp -R %s %s" % (userdir_project_path, snapshot_path))
     # take the environment from the snapshot
     environment_path = os.path.join(
         snapshot_path, f".orchest/environments/{environment_uuid}"
@@ -260,6 +262,7 @@ def prepare_build_context(
         bash_script_name = dockerfile_name + ".sh"
         write_environment_dockerfile(
             environment_properties["base_image"],
+            _config.PROJECT_DIR,
             bash_script_name,
             __DOCKERFILE_RESERVED_FLAG,
             os.path.join(snapshot_path, docker_file_name),
