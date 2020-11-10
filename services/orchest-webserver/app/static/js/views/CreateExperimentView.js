@@ -9,6 +9,8 @@ import { makeRequest, PromiseManager, RefManager } from "../lib/utils/all";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import ParamTree from "../components/ParamTree";
 import MDCRadioReact from "../lib/mdc-components/MDCRadioReact";
+import { makeCancelable } from "../lib/utils/all";
+import { checkGate, requestBuild } from "../utils/webserver-utils";
 
 class CreateExperimentView extends React.Component {
   constructor(props) {
@@ -34,10 +36,13 @@ class CreateExperimentView extends React.Component {
   }
 
   fetchPipeline() {
-    let fetchPipelinePromise = makeRequest(
+    let fetchPipelinePromise = makeCancelable(makeRequest(
       "GET",
       `/async/pipelines/json/${this.props.experiment.project_uuid}/${this.props.experiment.pipeline_uuid}`
-    ).then((response) => {
+    ), this.promiseManager)
+    
+
+    fetchPipelinePromise.promise.then((response) => {
       let result = JSON.parse(response);
       if (result.success) {
         let pipeline = JSON.parse(result["pipeline_json"]);
@@ -169,7 +174,17 @@ class CreateExperimentView extends React.Component {
     });
   }
 
+  attemptRunExperiment(){
+    let checkGatePromise = checkGate();
+    checkGatePromise.then(() => {
+      this.runExperiment();
+    }).catch((result) => {
+      requestBuild(this.props.experiment.project_uuid, result.data);
+    })
+  }
+
   runExperiment() {
+
     this.setState({
       runExperimentLoading: true,
     });
@@ -201,73 +216,72 @@ class CreateExperimentView extends React.Component {
     makeRequest("PUT", "/store/experiments/" + this.props.experiment.uuid, {
       type: "json",
       content: experimentData,
-    })
-      .then((response) => {
-        // after storing on the web server trigger the Orchest API
-        let result = JSON.parse(response);
+    }).then((response) => {
+      // after storing on the web server trigger the Orchest API
+      let result = JSON.parse(response);
 
-        let experimentUUID = result.uuid;
+      let experimentUUID = result.uuid;
 
-        let pipelineDescriptions = this.generatePipelineDescriptions(
-          this.state.pipeline,
-          this.state.generatedPipelineRuns,
-          this.state.selectedIndices
-        );
+      let pipelineDescriptions = this.generatePipelineDescriptions(
+        this.state.pipeline,
+        this.state.generatedPipelineRuns,
+        this.state.selectedIndices
+      );
 
-        let pipelineRunIds = new Array(pipelineDescriptions.length);
-        for (let x = 0; x < pipelineRunIds.length; x++) {
-          pipelineRunIds[x] = x + 1;
-        }
+      let pipelineRunIds = new Array(pipelineDescriptions.length);
+      for (let x = 0; x < pipelineRunIds.length; x++) {
+        pipelineRunIds[x] = x + 1;
+      }
 
-        let apiExperimentData = {
-          experiment_uuid: experimentUUID,
-          pipeline_uuid: this.state.pipeline.uuid,
-          project_uuid: this.props.experiment.project_uuid,
-          pipeline_descriptions: pipelineDescriptions,
-          pipeline_run_ids: pipelineRunIds,
-          pipeline_run_spec: {
-            run_type: "full",
-            uuids: [],
-          },
-          scheduled_start: formValueScheduledStart,
-        };
+      let apiExperimentData = {
+        experiment_uuid: experimentUUID,
+        pipeline_uuid: this.state.pipeline.uuid,
+        project_uuid: this.props.experiment.project_uuid,
+        pipeline_descriptions: pipelineDescriptions,
+        pipeline_run_ids: pipelineRunIds,
+        pipeline_run_spec: {
+          run_type: "full",
+          uuids: [],
+        },
+        scheduled_start: formValueScheduledStart,
+      };
 
-        makeRequest("POST", "/catch/api-proxy/api/experiments/", {
-          type: "json",
-          content: apiExperimentData,
-        })
-          .then((response) => {
-            let result = JSON.parse(response);
-
-            // TODO: instead of bouncing three requests
-            // (orchest-webserver, orchest-api, orchest-webserver)
-            // perhaps wrap this into one larger request that goes straight
-            // to orchest-webserver (more ACID? - no partial success)
-            makeRequest("POST", "/async/pipelineruns/create", {
-              type: "json",
-              content: {
-                experiment_uuid: experimentUUID,
-                generated_pipeline_runs: this.state.generatedPipelineRuns,
-                experiment_json: result,
-                pipeline_run_ids: pipelineRunIds,
-              },
-            })
-              .then(() => {
-                orchest.loadView(ExperimentsView, {
-                  project_uuid: this.props.experiment.project_uuid,
-                });
-              })
-              .catch((e) => {
-                console.log(e);
-              });
-          })
-          .catch((e) => {
-            console.log(e);
-          });
+      makeRequest("POST", "/catch/api-proxy/api/experiments/", {
+        type: "json",
+        content: apiExperimentData,
       })
-      .catch((e) => {
-        console.log(e);
-      });
+        .then((response) => {
+          let result = JSON.parse(response);
+
+          // TODO: instead of bouncing three requests
+          // (orchest-webserver, orchest-api, orchest-webserver)
+          // perhaps wrap this into one larger request that goes straight
+          // to orchest-webserver (more ACID? - no partial success)
+          makeRequest("POST", "/async/pipelineruns/create", {
+            type: "json",
+            content: {
+              experiment_uuid: experimentUUID,
+              generated_pipeline_runs: this.state.generatedPipelineRuns,
+              experiment_json: result,
+              pipeline_run_ids: pipelineRunIds,
+            },
+          })
+            .then(() => {
+              orchest.loadView(ExperimentsView, {
+                project_uuid: this.props.experiment.project_uuid,
+              });
+            })
+            .catch((e) => {
+              console.log(e);
+            });
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+    })
+    .catch((e) => {
+      console.log(e);
+    });
   }
 
   generatePipelineDescriptions(
@@ -470,7 +484,7 @@ class CreateExperimentView extends React.Component {
             <MDCButtonReact
               disabled={this.state.runExperimentLoading}
               classNames={["mdc-button--raised", "themed-secondary"]}
-              onClick={this.runExperiment.bind(this)}
+              onClick={this.attemptRunExperiment.bind(this)}
               icon="play_arrow"
               label="Run experiment"
             />

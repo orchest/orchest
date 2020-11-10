@@ -265,8 +265,33 @@ class SioStreamedTask:
                 "sio_streamed_task_data",
                 {"identity": identity, "action": "sio_streamed_task_finished"},
                 namespace=namespace,
-                callback=sio_client.disconnect(),
             )
+
+            # Lock is required because sio_client.emit doesn't provide a
+            # mechanism to verify final message was sent.
+            finish_lock = threading.Lock()
+            # get the lock so the next call to it will block the thread even if it is the same thread
+            # acquiring it, since its NOT a RLock
+            finish_lock.acquire()
+
+            @sio_client.on("sio_streamed_task_data_finished_ack", namespace=namespace)
+            def sio_streamed_task_data_finished_ack(data):
+                # https://docs.python.org/2/library/threading.html#threading.Lock
+                # any thread may release it
+                finish_lock.release()
+
+            # try to acquire again, if it has not been released yet wait for it
+            # wait a maximum of 10 seconds, if that doesnt work declare the build as failed, because
+            # that means that it took more than 10 seconds for the client to disconnect.
+            acquired = finish_lock.acquire(timeout=10)
+            if not acquired:
+                return "FAILED"
+            else:
+                finish_lock.release()
+            
+            # disconnect sio client
+            sio_client.disconnect()
+
             os.kill(child_pid, signal.SIGKILL)
             # close after killing so the child process does not get into errors
             os.close(communication_pipe_read)

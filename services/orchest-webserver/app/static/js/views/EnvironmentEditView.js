@@ -39,7 +39,7 @@ class EnvironmentEditView extends React.Component {
 
     this.state = {
       newEnvironment: props.environment === undefined,
-      showingBuildLogs: false,
+      showingBuildLogs: true,
       ignoreIncomingLogs: false,
       environment: props.environment
         ? props.environment
@@ -77,6 +77,12 @@ class EnvironmentEditView extends React.Component {
     this.environmentBuildPolling();
   }
 
+  componentDidUpdate(){
+    if(this.refManager.refs.term && this.state.showingBuildLogs){
+      this.fitAddon.fit();
+    }
+  }
+
   environmentBuildRequest(){
     
     let environmentBuildRequestPromise = makeCancelable(
@@ -103,7 +109,7 @@ class EnvironmentEditView extends React.Component {
   }
 
   environmentBuildPolling(){
-    
+    this.environmentBuildRequest(this)
     clearInterval(this.environmentBuildInterval);
     this.environmentBuildInterval = setInterval(this.environmentBuildRequest.bind(this), this.BUILD_POLL_FREQUENCY);
 
@@ -125,7 +131,7 @@ class EnvironmentEditView extends React.Component {
         if(data["action"] == "sio_streamed_task_output"){
           if(!this.state.ignoreIncomingLogs){
             // ignore terminal outputs from other environment_uuids
-            this.refManager.refs.term.terminal.write(data.output);
+            this.refManager.refs.term.terminal.writeln(data.output);
           }
         }
         else if(data["action"] == "sio_streamed_task_started"){
@@ -158,10 +164,7 @@ class EnvironmentEditView extends React.Component {
     }
 
     this.savePromise().then(() => {
-      let method = "POST";
-      let endpoint = "/catch/api-proxy/api/environment_builds";
-
-      makeRequest(method, endpoint, {
+      makeRequest("POST", "/catch/api-proxy/api/environment_builds", {
         type: "json",
         content: {
           "environment_build_requests": [
@@ -390,14 +393,12 @@ class EnvironmentEditView extends React.Component {
               label="Toggle build log"
               icon="subject"
             />
-            {(() => {
-                if(this.state.showingBuildLogs){
-                  return <div className="push-up"><XTerm
-                      addons={[this.fitAddon]}
-                      ref={this.refManager.nrefs.term}
-                  /></div>
-                }
-              })()}
+
+            <div className={"push-up " + (this.state.showingBuildLogs ? "" : "hidden")}>
+              <XTerm
+                addons={[this.fitAddon]}
+                ref={this.refManager.nrefs.term} />
+            </div>
           </div>
           
           <div className="multi-button push-up">

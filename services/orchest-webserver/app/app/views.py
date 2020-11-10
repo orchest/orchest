@@ -495,12 +495,45 @@ def register_views(app, db):
         )
 
 
+    @app.route("/catch/api-proxy/api/check/gate/", methods=["POST"])
+    def catch_api_proxy_checks_gate():
+        
+        # TODO: implement gateway on orchest-api
+        # resp = requests.post(
+        #     "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/check/gate/",
+        #     json=project_uuid_to_path(request.json['project_uuid']),
+        #     stream=True,
+        # )
+
+        # return resp.raw.read(), resp.status_code, resp.headers.items()
+        # return jsonify({
+        #     "gate": True,
+        #     "missing_environment_uuids": [],
+        #     "building_environment_uuids": [],
+        # })
+        return jsonify({
+            "gate": False,
+            "missing_environment_uuids": ["a35052dc-5c01-49c9-a0cb-dcab4268a439", "b13d4d7a-273d-4164-bd6c-195dfb8ec394"],
+            "building_environment_uuids": ["b13d4d7a-273d-4164-bd6c-195dfb8ec394"],
+        })
+
 
     @app.route("/catch/api-proxy/api/environment_builds/most_recent/<project_uuid>/<environment_uuid>", methods=["GET"])
-    def catch_api_proxy_environment_builds_most_recent(project_uuid, environment_uuid):
+    def catch_api_proxy_environment_build_most_recent(project_uuid, environment_uuid):
         
         resp = requests.get(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/most_recent/%s/%s" % (project_uuid, environment_uuid),
+            stream=True,
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
+    
+    @app.route("/catch/api-proxy/api/environment_builds/most_recent/<project_uuid>", methods=["GET"])
+    def catch_api_proxy_environment_builds_most_recent(project_uuid):
+        
+        resp = requests.get(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/most_recent/%s" % project_uuid,
             stream=True,
         )
 
@@ -510,11 +543,25 @@ def register_views(app, db):
     @app.route("/catch/api-proxy/api/environment_builds", methods=["POST"])
     def catch_api_proxy_environment_builds():
         
-        # augment environment_build_requests with project_path
         environment_build_requests = request.json["environment_build_requests"]
 
         for environment_build_request in environment_build_requests:
             environment_build_request["project_path"] = project_uuid_to_path(environment_build_request["project_uuid"])
+            
+        resp = api_proxy_environment_builds(environment_build_requests)
+            
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
+
+    def api_proxy_environment_builds(environment_build_requests):
+        """
+            environment_build_requests: List[] of EnvironmentBuildRequest
+            EnvironmentBuildRequest = {
+                project_uuid:str
+                environment_uuid:str
+                project_path:str
+            }
+        """
         
         json_obj = {
             "environment_build_requests": environment_build_requests
@@ -526,7 +573,25 @@ def register_views(app, db):
             stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp
+
+
+    def build_environments(environment_uuids, project_uuid):
+        project_path = project_uuid_to_path(project_uuid)
+
+        environment_build_requests = [{
+            "project_uuid": project_uuid,
+            "project_path": project_path,
+            "environment_uuid": environment_uuid,
+        } for environment_uuid in environment_uuids]
+
+        return api_proxy_environment_builds(environment_build_requests)
+
+
+    def build_environments_for_project(project_uuid):
+        environments = get_environments(project_uuid)
+
+        return build_environments([environment.uuid for environment in environments], project_uuid)
 
 
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
@@ -888,6 +953,10 @@ def register_views(app, db):
             new_project = Project(uuid=str(uuid.uuid4()), path=new_project_path,)
             db.session.add(new_project)
             db.session.commit()
+
+            # build environments on project detection
+            build_environments_for_project(new_project.uuid)
+            
         # end of UUID creation
 
         if request.method == "GET":
@@ -947,6 +1016,9 @@ def register_views(app, db):
 
                     # refresh kernels after change in environments
                     populate_kernels(app, db)
+
+                    # build environments on project creation
+                    build_environments_for_project(new_project.uuid)
 
                 else:
                     return (

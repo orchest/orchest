@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 
 from flask import current_app, request, abort
 from flask_restplus import Namespace, Resource
@@ -10,7 +11,6 @@ from celery.contrib.abortable import AbortableAsyncResult
 from app.connections import db
 from app.utils import register_schema, update_status_db
 import app.models as models
-import uuid
 
 api = Namespace("environment_builds", description="Managing environment builds")
 api = register_schema(api)
@@ -19,7 +19,8 @@ api = register_schema(api)
 def abort_environment_build(environment_build_uuid, is_running=False):
     """Aborts an environment build.
 
-    Aborts an environment build by setting its state to ABORTED and sending a REVOKE and ABORT command to celery.
+    Aborts an environment build by setting its state to ABORTED and
+    sending a REVOKE and ABORT command to celery.
 
     Args:
         is_running:
@@ -73,12 +74,17 @@ class EnvironmentBuildList(Resource):
     )
     def post(self):
         """Queues a list of environment builds.
-        
-        Only unique requests are considered, meaning that a request containing duplicate environment_build_requests
-        will produce an environment build only for each unique environment_build_request. Note that requesting
-        an environment_build for an environment (identified by project_uuid, environment_uuid, project_path) will
-        REVOKE/ABORT any other active (queued or actually started) environment build for that environment.
-        This implies that only an environment build can be active (queued or actually started) for a given environment.
+
+        Only unique requests are considered, meaning that a request
+        containing duplicate environment_build_requests will produce an
+        environment build only for each unique
+        environment_build_request. Note that requesting an
+        environment_build for an environment (identified by
+        project_uuid, environment_uuid, project_path) will REVOKE/ABORT
+        any other active (queued or actually started) environment build
+        for that environment.  This implies that only an environment
+        build can be active (queued or actually started) for a given
+        environment.
         """
 
         # keep only unique requests
@@ -119,14 +125,16 @@ class EnvironmentBuildList(Resource):
             for build in builds:
                 abort_environment_build(build.build_uuid, build.status == "STARTED")
 
-            # We specify the task id beforehand so that we can commit to the db before
-            # actually launching the task, since the task might make some calls to the orchest-api
-            # referring to itself (e.g. a status update), and thus expecting to find itself in the db.
-            # This way we avoid race conditions.
+            # We specify the task id beforehand so that we can commit to
+            # the db before actually launching the task, since the task
+            # might make some calls to the orchest-api referring to
+            # itself (e.g. a status update), and thus expecting to find
+            # itself in the db.  This way we avoid race conditions.
             task_id = str(uuid.uuid4())
 
-            # TODO: verify if forget has the same effect of ignore_result=True because ignore_result cannot be
-            # used with abortable tasks
+            # TODO: verify if forget has the same effect of
+            # ignore_result=True because ignore_result cannot be used
+            # with abortable tasks
             # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
             # task.forget()
 
@@ -225,9 +233,10 @@ class ProjectMostRecentBuildsList(Resource):
     @api.marshal_with(schema.environment_builds, code=200)
     def get(self, project_uuid):
         """Get the most recent environment build for each environment of a project.
-         Only environments for which builds have already been requested are considered.
-         Meaning that environments that are part of a project but have never been built won't be part of results.
 
+        Only environments for which builds have already been requested
+        are considered.  Meaning that environments that are part of a
+        project but have never been built won't be part of results.
 
         """
 
