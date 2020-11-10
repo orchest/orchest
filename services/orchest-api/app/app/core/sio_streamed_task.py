@@ -200,10 +200,10 @@ class SioStreamedTask:
         # wait a maximum of 10 seconds, if that doesnt work declare the build as failed, because
         # that means that it took more than 10 seconds for the client to connect to the namespace
         acquired = connect_lock.acquire(timeout=10)
+        # release the lock in any case, cleaner
+        connect_lock.release()
         if not acquired:
             return "FAILED"
-        else:
-            connect_lock.release()
 
         # tell the socketio server that from its point of view the task is started, i.e.
         # new logs related to this identity will come in
@@ -284,11 +284,11 @@ class SioStreamedTask:
             # wait a maximum of 10 seconds, if that doesnt work declare the build as failed, because
             # that means that it took more than 10 seconds for the client to disconnect.
             acquired = finish_lock.acquire(timeout=10)
+            # release the lock in any case, cleaner
+            finish_lock.release()
             if not acquired:
                 return "FAILED"
-            else:
-                finish_lock.release()
-            
+
             # disconnect sio client
             sio_client.disconnect()
 
