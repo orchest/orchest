@@ -122,7 +122,7 @@ class EnvironmentEditView extends React.Component {
     
     let environmentBuildRequestPromise = makeCancelable(
       makeRequest("GET", 
-        `/catch/api-proxy/api/environment_builds/most_recent/${this.state.environment.project_uuid}/${this.state.environment.uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.state.environment.project_uuid}/${this.state.environment.uuid}`
       ),this.promiseManager);
 
     environmentBuildRequestPromise.promise.then((response) => {
@@ -194,7 +194,7 @@ class EnvironmentEditView extends React.Component {
     }
 
     this.savePromise().then(() => {
-      makeRequest("POST", "/catch/api-proxy/api/environment_builds", {
+      makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
         type: "json",
         content: {
           "environment_build_requests": [
@@ -369,7 +369,7 @@ class EnvironmentEditView extends React.Component {
     // send DELETE to cancel ongoing build
     if(this.state.environmentBuild && this.CANCELABLE_STATUSES.indexOf(this.state.environmentBuild.status) !== -1){
       
-      makeRequest("DELETE", `/catch/api-proxy/api/environment_builds/${this.state.environmentBuild.build_uuid}`).then(() => {
+      makeRequest("DELETE", `/catch/api-proxy/api/environment-builds/${this.state.environmentBuild.build_uuid}`).then(() => {
         // immediately fetch latest status
         // NOTE: this DELETE call doesn't actually destroy the resource, that's
         // why we're querying it again.

@@ -250,22 +250,6 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-    def remove_commit_image(commit):
-        full_image_name = "%s:%s" % (commit.base_image, commit.tag)
-        try:
-            client = docker.from_env()
-            client.images.remove(full_image_name, noprune=True)
-        except:
-            logging.info("Unable to remove image: %s" % full_image_name)
-
-    def remove_commit_shell(commit):
-
-        shell_file_dir = os.path.join(
-            app.config["USER_DIR"], ".orchest", "commits", commit.uuid
-        )
-
-        if os.path.isdir(shell_file_dir):
-            os.system("rm -r %s" % (shell_file_dir))
 
     def register_environments(db, api):
 
@@ -288,6 +272,13 @@ def register_views(app, db):
 
                 # refresh kernels after change in environments
                 populate_kernels(app, db)
+
+                try:
+                    requests.delete(
+                        "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-images/%s/%s" % (project_uuid, environment_uuid)
+                    )
+                except Exception as e:
+                    logging.warn("Failed to delete EnvironmentImage: %s" % e)
 
                 return jsonify({"message": "Environment deletion was successful."})
 
@@ -511,40 +502,40 @@ def register_views(app, db):
         return resp.raw.read(), resp.status_code, resp.headers.items() 
 
 
-    @app.route("/catch/api-proxy/api/environment_builds/most_recent/<project_uuid>/<environment_uuid>", methods=["GET"])
+    @app.route("/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>/<environment_uuid>", methods=["GET"])
     def catch_api_proxy_environment_build_most_recent(project_uuid, environment_uuid):
         
         resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/most_recent/%s/%s" % (project_uuid, environment_uuid),
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/most-recent/%s/%s" % (project_uuid, environment_uuid),
             stream=True,
         )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
 
-    @app.route("/catch/api-proxy/api/environment_builds/<environment_build_uuid>", methods=["DELETE"])
+    @app.route("/catch/api-proxy/api/environment-builds/<environment_build_uuid>", methods=["DELETE"])
     def catch_api_proxy_environment_build_delete(environment_build_uuid):
         
         resp = requests.delete(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/%s" % (environment_build_uuid),
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/%s" % (environment_build_uuid),
             stream=True,
         )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
     
-    @app.route("/catch/api-proxy/api/environment_builds/most_recent/<project_uuid>", methods=["GET"])
+    @app.route("/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>", methods=["GET"])
     def catch_api_proxy_environment_builds_most_recent(project_uuid):
         
         resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/most_recent/%s" % project_uuid,
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/most-recent/%s" % project_uuid,
             stream=True,
         )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
 
-    @app.route("/catch/api-proxy/api/environment_builds", methods=["POST"])
+    @app.route("/catch/api-proxy/api/environment-builds", methods=["POST"])
     def catch_api_proxy_environment_builds():
         
         environment_build_requests = request.json["environment_build_requests"]
@@ -572,7 +563,7 @@ def register_views(app, db):
         }
 
         resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment_builds/",
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/",
             json=json_obj,
             stream=True,
         )

@@ -47,7 +47,7 @@ export function requestBuild(project_uuid, gateData){
                         });
                     }
 
-                    makeRequest("POST", "/catch/api-proxy/api/environment_builds", {
+                    makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
                         type: "json",
                         content: {
                             "environment_build_requests": environment_build_requests

@@ -46,7 +46,7 @@ class EnvironmentList extends React.Component {
     
     let environmentBuildsRequestPromise = makeCancelable(
       makeRequest("GET", 
-        `/catch/api-proxy/api/environment_builds/most_recent/${this.props.project_uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.project_uuid}`
       ),this.promiseManager);
 
     environmentBuildsRequestPromise.promise.then((response) => {

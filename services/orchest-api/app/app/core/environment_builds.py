@@ -28,7 +28,7 @@ def update_environment_build_status(
     elif data["status"] in ["SUCCESS", "FAILURE"]:
         data["finished_time"] = datetime.utcnow().isoformat()
 
-    url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/environment_builds/{environment_build_uuid}"
+    url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/environment-builds/{environment_build_uuid}"
 
     with session.put(url, json=data) as response:
         return response.json()

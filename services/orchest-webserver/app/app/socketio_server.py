@@ -52,7 +52,7 @@ def register_socketio_broadcast(db, socketio):
 
                 # initialize key for new identities
                 if data["identity"] not in environment_build_buffer:
-                    environment_build_buffer[data["identity"]] = deque(max_len=100)
+                    environment_build_buffer[data["identity"]] = deque(maxlen=100)
 
                 environment_build_buffer[data["identity"]].append(data["output"])
 
