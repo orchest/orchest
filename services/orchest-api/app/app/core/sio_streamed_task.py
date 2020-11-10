@@ -203,6 +203,7 @@ class SioStreamedTask:
         # release the lock in any case, cleaner
         connect_lock.release()
         if not acquired:
+            logging.warning("could not acquire connect_lock")
             return "FAILED"
 
         # tell the socketio server that from its point of view the task is started, i.e.
@@ -215,6 +216,7 @@ class SioStreamedTask:
 
         status = "STARTED"
         poll_time = 0
+        management_data = None
 
         try:
             while True:
@@ -226,11 +228,12 @@ class SioStreamedTask:
                 #     if there is management_data we are also going to check for any task data, this way we
                 #     avoid a race condition where checking for task_data first and management_data later might
                 #     lead to losing some messages because in between the two checks the task has both
-                #     outputed data and has terminated
-                management_data = SioStreamedTask.poll_fd_data(end_task_pipe_read)
+                #     outputted data and has terminated
+                if not management_data:
+                    management_data = SioStreamedTask.poll_fd_data(end_task_pipe_read)
 
                 task_data = SioStreamedTask.poll_fd_data(communication_pipe_read)
-                if task_data and len(task_data) > 0:
+                if task_data:
                     logging.info("output: %s" % task_data)
                     sio_client.emit(
                         "sio_streamed_task_data",
@@ -242,6 +245,16 @@ class SioStreamedTask:
                         namespace=namespace,
                     )
 
+                    # this way we do not run the (rare) risk of missing out on some data because the amount
+                    # of data in the pipe is larger than our read size. It could be the case that the task outputs
+                    # **a lot** of data without the parent being able to keep up with it, and the task terminates, so
+                    # the next iteration would lead to exiting the loop regardless of the amount of data that could
+                    # still be read.
+                    # TLDR: do not terminate as long as you keep finding data
+                    has_found_data = True
+                else:
+                    has_found_data = False
+
                 # from time to time check if the task should be aborted
                 if poll_time > abort_lambda_poll_time:
                     abort_lambda_poll_time = 0
@@ -250,7 +263,9 @@ class SioStreamedTask:
                         logging.info("aborting task")
                         break
 
-                if management_data and len(management_data) > 0:
+                # management_data has been found -> the task is done -> any data that it had to write
+                # has already been put into the communication_pipe_read
+                if management_data and not has_found_data:
                     logging.info(f"task done, status: {management_data}")
                     status = management_data
                     break
@@ -294,6 +309,7 @@ class SioStreamedTask:
             # release the lock in any case, cleaner
             finish_lock.release()
             if not acquired:
+                logging.warning("could not acquire finish_lock")
                 return "FAILED"
 
             # disconnect sio client
