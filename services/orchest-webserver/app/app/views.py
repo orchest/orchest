@@ -250,22 +250,6 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-    def remove_commit_image(commit):
-        full_image_name = "%s:%s" % (commit.base_image, commit.tag)
-        try:
-            client = docker.from_env()
-            client.images.remove(full_image_name, noprune=True)
-        except:
-            logging.info("Unable to remove image: %s" % full_image_name)
-
-    def remove_commit_shell(commit):
-
-        shell_file_dir = os.path.join(
-            app.config["USER_DIR"], ".orchest", "commits", commit.uuid
-        )
-
-        if os.path.isdir(shell_file_dir):
-            os.system("rm -r %s" % (shell_file_dir))
 
     def register_environments(db, api):
 
