@@ -41,6 +41,8 @@ def register_socketio_broadcast(db, socketio):
                     namespace="/environment_builds",
                 )
 
+    
+
 
     @socketio.on("sio_streamed_task_data", namespace="/environment_builds")
     def process_sio_streamed_task_data(data):
@@ -75,6 +77,14 @@ def register_socketio_broadcast(db, socketio):
                     "sio_streamed_task_data",
                     data,
                     include_self=False,
+                    namespace="/environment_builds",
+                )
+            elif data["action"] == "sio_streamed_task_finished":
+                
+                socketio.emit(
+                    "sio_streamed_task_data_finished_ack",
+                    {},
+                    room=request.sid,
                     namespace="/environment_builds",
                 )
 
