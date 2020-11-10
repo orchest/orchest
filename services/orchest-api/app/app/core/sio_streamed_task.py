@@ -221,6 +221,14 @@ class SioStreamedTask:
                 sio_client.sleep(SioStreamedTask.READ_LOOP_SLEEP_TIME)
                 poll_time += SioStreamedTask.READ_LOOP_SLEEP_TIME
 
+                # check for management_data here, this way:
+                #     if there is no management_data business continues as usual
+                #     if there is management_data we are also going to check for any task data, this way we
+                #     avoid a race condition where checking for task_data first and management_data later might
+                #     lead to losing some messages because in between the two checks the task has both
+                #     outputed data and has terminated
+                management_data = SioStreamedTask.poll_fd_data(end_task_pipe_read)
+
                 task_data = SioStreamedTask.poll_fd_data(communication_pipe_read)
                 if task_data and len(task_data) > 0:
                     logging.info("output: %s" % task_data)
@@ -242,7 +250,6 @@ class SioStreamedTask:
                         logging.info("aborting task")
                         break
 
-                management_data = SioStreamedTask.poll_fd_data(end_task_pipe_read)
                 if management_data and len(management_data) > 0:
                     logging.info(f"task done, status: {management_data}")
                     status = management_data
