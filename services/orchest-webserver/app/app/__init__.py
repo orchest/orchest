@@ -23,7 +23,9 @@ from app.config import CONFIG_CLASS
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
 from subprocess import Popen
-from app.views import register_views
+from app.views.core import register_views
+from app.views.orchest_api import register_orchest_api_views
+from app.views.background_tasks import register_background_tasks_view
 from app.socketio_server import register_socketio_broadcast
 from app.models import DataSource
 from app.connections import db, ma
@@ -120,6 +122,8 @@ def create_app():
         return send_from_directory("../static", path)
 
     register_views(app, db)
+    register_orchest_api_views(app, db)
+    register_background_tasks_view(app, db)
     register_socketio_broadcast(db, socketio)
 
     if (

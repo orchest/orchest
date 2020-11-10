@@ -15,6 +15,7 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
+
 from app.utils import (
     get_hash,
     get_user_conf,
@@ -33,6 +34,7 @@ from app.utils import (
     serialize_environment_to_disk,
     read_environment_from_disk
 )
+
 from app.models import (
     DataSource,
     Experiment,
@@ -50,6 +52,7 @@ from app.schemas import (
     ExperimentSchema
 )
 from app.kernel_manager import populate_kernels
+from app.views.orchest_api import api_proxy_environment_builds
 from _orchest.internals.utils import run_orchest_ctl
 from _orchest.internals import config as _config
 
@@ -76,179 +79,6 @@ def register_views(app, db):
 
     experiment_schema = ExperimentSchema()
     experiments_schema = ExperimentSchema(many=True)
-
-    def return_404(reason=""):
-        json_string = json.dumps({"success": False, "reason": reason})
-
-        return json_string, 404, {"content-type": "application/json"}
-
-    def generate_gateway_kernel_name(project_uuid, environment_uuid):
-        
-        return _config.ENVIRONMENT_IMAGE_NAME.format(
-            project_uuid=project_uuid,
-            environment_uuid=environment_uuid
-        )
-
-    def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid):
-
-        # for each step set correct notebook kernel if it exists
-
-        steps = pipeline_json["steps"].keys()
-
-        for key in steps:
-            step = pipeline_json["steps"][key]
-
-            if "ipynb" == step["file_path"].split(".")[-1]:
-
-                notebook_path = os.path.join(pipeline_directory, step["file_path"])
-
-                if os.path.isfile(notebook_path):
-
-                    gateway_kernel = generate_gateway_kernel_name(
-                        project_uuid, step["environment"]
-                    )
-
-                    with open(notebook_path, "r") as file:
-                        notebook_json = json.load(file)
-
-                    notebook_changed = False
-
-                    if (
-                        notebook_json["metadata"]["kernelspec"]["name"]
-                        != gateway_kernel
-                    ):
-                        notebook_changed = True
-                        notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
-                    
-                    environment = Environment.query.filter(
-                        Environment.uuid==step['environment']
-                    ).filter(
-                        Environment.project_uuid==project_uuid
-                    ).first()
-
-                    if environment is not None:
-                        if (
-                            notebook_json["metadata"]["kernelspec"]["display_name"]
-                            != environment.name
-                        ):
-                            notebook_changed = True
-                            notebook_json["metadata"]["kernelspec"]["display_name"] = environment.name
-                    else:
-                        logging.warn("Could not find environment [%s] while setting notebook kernelspec for notebook %s." % (
-                            step['environment'], notebook_path))
-
-                    if notebook_changed:
-                        with open(notebook_path, "w") as file:
-                            file.write(json.dumps(notebook_json, indent=2))
-
-                else:
-                    logging.info(
-                        "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s"
-                        % notebook_path
-                    )
-
-    
-
-    def generate_ipynb_from_template(step, project_uuid):
-
-        # TODO: support additional languages to Python and R
-        if "python" in step["kernel"]["name"].lower():
-            template_json = json.load(
-                open(
-                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template.json"), "r"
-                )
-            )
-        else:
-            template_json = json.load(
-                open(
-                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template_r.json"),
-                    "r",
-                )
-            )
-
-        template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
-            "display_name"
-        ]
-        template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-            project_uuid,
-            step["environment"]
-        )
-
-        return json.dumps(template_json, indent=2)
-
-    def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
-
-        # Currently, we check per step whether the file exists.
-        # If not, we create it (empty by default).
-        # In case the file has an .ipynb extension we generate the file from a
-        # template with a kernel based on the kernel description in the JSON step.
-
-        # Iterate over steps
-        steps = pipeline_json["steps"].keys()
-
-        for key in steps:
-            step = pipeline_json["steps"][key]
-
-            file_name = step["file_path"]
-
-            full_file_path = os.path.join(pipeline_directory, file_name)
-            file_name_split = file_name.split(".")
-            file_name_without_ext = ".".join(file_name_split[:-1])
-            ext = file_name_split[-1]
-
-            file_content = None
-
-            if not os.path.isfile(full_file_path):
-
-                if len(file_name_without_ext) > 0:
-                    file_content = ""
-
-                if ext == "ipynb":
-                    file_content = generate_ipynb_from_template(step, project_uuid)
-                    
-            elif ext == "ipynb":
-                # check for empty .ipynb, for which we also generate a template notebook
-                if os.stat(full_file_path).st_size == 0:
-                    file_content = generate_ipynb_from_template(step, project_uuid)
-
-            if file_content is not None:
-                with open(full_file_path, "w") as file:
-                    file.write(file_content)
-                        
-
-    def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
-
-        experiment_path = os.path.join(
-            app.config["USER_DIR"],
-            "experiments",
-            project_uuid,
-            pipeline_uuid,
-            experiment_uuid,
-        )
-
-        os.makedirs(experiment_path)
-        snapshot_path = os.path.join(experiment_path, "snapshot")
-        project_dir = os.path.join(
-            app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
-        )
-        os.system("cp -R %s %s" % (project_dir, snapshot_path))
-
-    def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
-
-        experiment_project_path = os.path.join(
-            app.config["USER_DIR"], "experiments", project_uuid
-        )
-
-        experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
-
-        experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
-
-        if os.path.isdir(experiment_path):
-            os.system("rm -r %s" % (experiment_path))
-
-        # clean up parent directory if this experiment removal created empty directories
-        remove_dir_if_empty(experiment_pipeline_path)
-        remove_dir_if_empty(experiment_project_path)
 
 
     def register_environments(db, api):
@@ -466,8 +296,219 @@ def register_views(app, db):
         register_experiments(db, api)
         register_environments(db, api)
 
-    register_rest(app, db)
+    register_rest(app, db)    
 
+
+    def return_404(reason=""):
+        json_string = json.dumps({"success": False, "reason": reason})
+
+        return json_string, 404, {"content-type": "application/json"}
+
+
+    def generate_gateway_kernel_name(project_uuid, environment_uuid):
+        
+        return _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=project_uuid,
+            environment_uuid=environment_uuid
+        )
+
+
+    def build_environments(environment_uuids, project_uuid):
+        project_path = project_uuid_to_path(project_uuid)
+
+        environment_build_requests = [{
+            "project_uuid": project_uuid,
+            "project_path": project_path,
+            "environment_uuid": environment_uuid,
+        } for environment_uuid in environment_uuids]
+
+        return api_proxy_environment_builds(environment_build_requests, app.config["ORCHEST_API_ADDRESS"])
+
+
+    def build_environments_for_project(project_uuid):
+        environments = get_environments(project_uuid)
+
+        return build_environments([environment.uuid for environment in environments], project_uuid)
+
+
+    def populate_default_environments(project_uuid):
+
+        for env_spec in app.config["DEFAULT_ENVIRONMENTS"]:
+
+            e = Environment(**env_spec)
+
+            e.uuid = str(uuid.uuid4())
+            e.project_uuid = project_uuid
+
+            environment_dir = get_environment_directory(e.uuid, project_uuid)
+            os.makedirs(environment_dir, exist_ok=True)
+
+            serialize_environment_to_disk(e, environment_dir)
+
+
+    def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid):
+
+        # for each step set correct notebook kernel if it exists
+
+        steps = pipeline_json["steps"].keys()
+
+        for key in steps:
+            step = pipeline_json["steps"][key]
+
+            if "ipynb" == step["file_path"].split(".")[-1]:
+
+                notebook_path = os.path.join(pipeline_directory, step["file_path"])
+
+                if os.path.isfile(notebook_path):
+
+                    gateway_kernel = generate_gateway_kernel_name(
+                        project_uuid, step["environment"]
+                    )
+
+                    with open(notebook_path, "r") as file:
+                        notebook_json = json.load(file)
+
+                    notebook_changed = False
+
+                    if (
+                        notebook_json["metadata"]["kernelspec"]["name"]
+                        != gateway_kernel
+                    ):
+                        notebook_changed = True
+                        notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+                    
+                    environment = Environment.query.filter(
+                        Environment.uuid==step['environment']
+                    ).filter(
+                        Environment.project_uuid==project_uuid
+                    ).first()
+
+                    if environment is not None:
+                        if (
+                            notebook_json["metadata"]["kernelspec"]["display_name"]
+                            != environment.name
+                        ):
+                            notebook_changed = True
+                            notebook_json["metadata"]["kernelspec"]["display_name"] = environment.name
+                    else:
+                        logging.warn("Could not find environment [%s] while setting notebook kernelspec for notebook %s." % (
+                            step['environment'], notebook_path))
+
+                    if notebook_changed:
+                        with open(notebook_path, "w") as file:
+                            file.write(json.dumps(notebook_json, indent=2))
+
+                else:
+                    logging.info(
+                        "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s"
+                        % notebook_path
+                    )
+
+
+    def generate_ipynb_from_template(step, project_uuid):
+
+        # TODO: support additional languages to Python and R
+        if "python" in step["kernel"]["name"].lower():
+            template_json = json.load(
+                open(
+                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template.json"), "r"
+                )
+            )
+        else:
+            template_json = json.load(
+                open(
+                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template_r.json"),
+                    "r",
+                )
+            )
+
+        template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
+            "display_name"
+        ]
+        template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
+            project_uuid,
+            step["environment"]
+        )
+
+        return json.dumps(template_json, indent=2)
+
+
+    def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
+
+        # Currently, we check per step whether the file exists.
+        # If not, we create it (empty by default).
+        # In case the file has an .ipynb extension we generate the file from a
+        # template with a kernel based on the kernel description in the JSON step.
+
+        # Iterate over steps
+        steps = pipeline_json["steps"].keys()
+
+        for key in steps:
+            step = pipeline_json["steps"][key]
+
+            file_name = step["file_path"]
+
+            full_file_path = os.path.join(pipeline_directory, file_name)
+            file_name_split = file_name.split(".")
+            file_name_without_ext = ".".join(file_name_split[:-1])
+            ext = file_name_split[-1]
+
+            file_content = None
+
+            if not os.path.isfile(full_file_path):
+
+                if len(file_name_without_ext) > 0:
+                    file_content = ""
+
+                if ext == "ipynb":
+                    file_content = generate_ipynb_from_template(step, project_uuid)
+                    
+            elif ext == "ipynb":
+                # check for empty .ipynb, for which we also generate a template notebook
+                if os.stat(full_file_path).st_size == 0:
+                    file_content = generate_ipynb_from_template(step, project_uuid)
+
+            if file_content is not None:
+                with open(full_file_path, "w") as file:
+                    file.write(file_content)
+                        
+
+    def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+
+        experiment_path = os.path.join(
+            app.config["USER_DIR"],
+            "experiments",
+            project_uuid,
+            pipeline_uuid,
+            experiment_uuid,
+        )
+
+        os.makedirs(experiment_path)
+        snapshot_path = os.path.join(experiment_path, "snapshot")
+        project_dir = os.path.join(
+            app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
+        )
+        os.system("cp -R %s %s" % (project_dir, snapshot_path))
+
+
+    def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+
+        experiment_project_path = os.path.join(
+            app.config["USER_DIR"], "experiments", project_uuid
+        )
+
+        experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
+
+        experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
+
+        if os.path.isdir(experiment_path):
+            os.system("rm -r %s" % (experiment_path))
+
+        # clean up parent directory if this experiment removal created empty directories
+        remove_dir_if_empty(experiment_pipeline_path)
+        remove_dir_if_empty(experiment_project_path)
+
+    
     @app.route("/", methods=["GET"])
     def index():
 
@@ -486,223 +527,6 @@ def register_views(app, db):
         )
 
 
-    @app.route("/catch/api-proxy/api/checks/gate/<project_uuid>", methods=["POST"])
-    def catch_api_proxy_checks_gate(project_uuid):
-
-        environment_uuids = [environment.uuid for environment in get_environments(project_uuid)]
-        
-        resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/checks/gate/%s" % project_uuid,
-            json={
-                "type": "shallow",
-                "environment_uuids": environment_uuids
-            },
-            stream=True,
-        )
-        return resp.raw.read(), resp.status_code, resp.headers.items() 
-
-
-    @app.route("/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>/<environment_uuid>", methods=["GET"])
-    def catch_api_proxy_environment_build_most_recent(project_uuid, environment_uuid):
-        
-        resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/most-recent/%s/%s" % (project_uuid, environment_uuid),
-            stream=True,
-        )
-
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-
-    @app.route("/catch/api-proxy/api/environment-builds/<environment_build_uuid>", methods=["DELETE"])
-    def catch_api_proxy_environment_build_delete(environment_build_uuid):
-        
-        resp = requests.delete(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/%s" % (environment_build_uuid),
-            stream=True,
-        )
-
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-    
-    @app.route("/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>", methods=["GET"])
-    def catch_api_proxy_environment_builds_most_recent(project_uuid):
-        
-        resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/most-recent/%s" % project_uuid,
-            stream=True,
-        )
-
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-
-    @app.route("/catch/api-proxy/api/environment-builds", methods=["POST"])
-    def catch_api_proxy_environment_builds():
-        
-        environment_build_requests = request.json["environment_build_requests"]
-
-        for environment_build_request in environment_build_requests:
-            environment_build_request["project_path"] = project_uuid_to_path(environment_build_request["project_uuid"])
-            
-        resp = api_proxy_environment_builds(environment_build_requests)
-            
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-
-    def api_proxy_environment_builds(environment_build_requests):
-        """
-            environment_build_requests: List[] of EnvironmentBuildRequest
-            EnvironmentBuildRequest = {
-                project_uuid:str
-                environment_uuid:str
-                project_path:str
-            }
-        """
-        
-        json_obj = {
-            "environment_build_requests": environment_build_requests
-        }
-
-        resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/",
-            json=json_obj,
-            stream=True,
-        )
-
-        return resp
-
-
-    def build_environments(environment_uuids, project_uuid):
-        project_path = project_uuid_to_path(project_uuid)
-
-        environment_build_requests = [{
-            "project_uuid": project_uuid,
-            "project_path": project_path,
-            "environment_uuid": environment_uuid,
-        } for environment_uuid in environment_uuids]
-
-        return api_proxy_environment_builds(environment_build_requests)
-
-
-    def build_environments_for_project(project_uuid):
-        environments = get_environments(project_uuid)
-
-        return build_environments([environment.uuid for environment in environments], project_uuid)
-
-
-    @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
-    def catch_api_proxy_runs():
-
-        json_obj = request.json
-
-        # add image mapping
-        # TODO: replace with dynamic mapping instead of hardcoded
-        json_obj["run_config"] = {
-            "project_dir": get_project_directory(
-                json_obj["project_uuid"], host_path=True
-            ),
-            "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_description"]["uuid"], json_obj["project_uuid"]
-            ),
-        }
-
-        resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
-            json=json_obj,
-            stream=True,
-        )
-
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-    @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
-    def catch_api_proxy_sessions():
-
-        json_obj = request.json
-
-        json_obj["project_dir"] = get_project_directory(
-            json_obj["project_uuid"], host_path=True
-        )
-
-        json_obj["pipeline_path"] = pipeline_uuid_to_path(
-            json_obj["pipeline_uuid"], json_obj["project_uuid"],
-        )
-
-        json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
-
-        resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
-            json=json_obj,
-            stream=True,
-        )
-
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-    @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
-    def catch_api_proxy_experiments_post():
-
-        json_obj = request.json
-
-        json_obj["pipeline_run_spec"]["run_config"] = {
-            "host_user_dir": app.config["HOST_USER_DIR"],
-            "project_dir": get_project_directory(
-                json_obj["project_uuid"], host_path=True
-            ),
-            "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_uuid"], json_obj["project_uuid"],
-            ),
-        }
-
-        resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/",
-            json=json_obj,
-            stream=True,
-        )
-
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-    @app.route("/catch/api-proxy/api/experiments/<experiment_uuid>", methods=["GET"])
-    def catch_api_proxy_experiments_get(experiment_uuid):
-
-        resp = requests.get(
-            "http://"
-            + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/experiments/"
-            + experiment_uuid,
-            stream=True,
-        )
-
-        # get PipelineRuns to augment response
-        pipeline_runs = PipelineRun.query.filter(
-            PipelineRun.experiment == experiment_uuid
-        ).all()
-
-        pipeline_runs_dict = {}
-
-        for pipeline_run in pipeline_runs:
-            pipeline_runs_dict[pipeline_run.id] = pipeline_run
-
-        json_return = resp.json()
-        json_return["pipeline_runs"] = sorted(
-            json_return["pipeline_runs"], key=lambda x: x["pipeline_run_id"]
-        )
-
-        # augment response with parameter values that are stored on the webserver
-        if resp.status_code == 200:
-
-            try:
-                logging.info(json_return)
-
-                for run in json_return["pipeline_runs"]:
-                    run["parameters"] = pipeline_runs_dict[
-                        run["pipeline_run_id"]
-                    ].parameter_json
-
-                return jsonify(json_return)
-            except Exception as e:
-                return str(e), 500
-
-        else:
-            return resp.raw.read(), resp.status_code
-
     @app.route("/async/spawn-update-server", methods=["GET"])
     def spawn_update_server():
 
@@ -712,9 +536,11 @@ def register_views(app, db):
 
         return ""
 
+
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():
         return ""
+
 
     @app.route("/async/restart", methods=["POST"])
     def restart_server():
@@ -727,6 +553,7 @@ def register_views(app, db):
             run_orchest_ctl(client, ["restart"])
 
         return ""
+
 
     @app.route("/async/version", methods=["GET"])
     def version():
@@ -743,6 +570,7 @@ def register_views(app, db):
         outs, _ = git_proc.communicate()
 
         return outs
+
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
@@ -794,6 +622,7 @@ def register_views(app, db):
         else:
             return jsonify({"message": "Pipeline could not be found."}), 404
 
+
     @app.route("/async/experiments/create", methods=["POST"])
     def experiments_create():
 
@@ -818,6 +647,7 @@ def register_views(app, db):
 
         return jsonify(experiment_schema.dump(new_ex))
 
+
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():
 
@@ -837,6 +667,7 @@ def register_views(app, db):
         db.session.commit()
 
         return jsonify({"success": True})
+
 
     @app.route("/async/pipelines/create/<project_uuid>", methods=["POST"])
     def pipelines_create(project_uuid):
@@ -883,6 +714,7 @@ def register_views(app, db):
                 409,
             )
 
+
     # Note: only pipelines in project directories can be renamed (not in experiments)
     @app.route(
         "/async/pipelines/rename/<project_uuid>/<pipeline_uuid>", methods=["POST"]
@@ -909,30 +741,6 @@ def register_views(app, db):
                 return "", 404
         else:
             return "", 404
-
-
-    def populate_default_environments(project_uuid):
-
-        for env_spec in app.config["DEFAULT_ENVIRONMENTS"]:
-
-            e = Environment(**env_spec)
-
-            e.uuid = str(uuid.uuid4())
-            e.project_uuid = project_uuid
-
-            environment_dir = get_environment_directory(e.uuid, project_uuid)
-            os.makedirs(environment_dir, exist_ok=True)
-
-            serialize_environment_to_disk(e, environment_dir)
-
-
-    @app.route("/async/background-tasks/<task_uuid>", methods=["GET"])
-    def get_background_task(task_uuid):
-        # TODO: implement actual task status
-        return jsonify({
-            "status": "SUCCESS",
-            "result": "Finished importing the git project."
-        })
 
 
     @app.route("/async/projects/git-import", methods=["POST"])
@@ -1045,6 +853,7 @@ def register_views(app, db):
 
             return jsonify({"message": "Project created."})
 
+
     @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["GET"])
     def pipeline_get(project_uuid, pipeline_uuid):
 
@@ -1058,6 +867,7 @@ def register_views(app, db):
             return jsonify({"message": "Pipeline doesn't exist."}), 404
         else:
             return jsonify(pipeline_schema.dump(pipeline))
+
 
     @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
     def pipelines_get(project_uuid):
@@ -1078,7 +888,6 @@ def register_views(app, db):
             .filter(Pipeline.project_uuid == project_uuid)
             .all()
         ]
-
 
         # TODO: handle existing pipeline assignments
         new_pipeline_paths = set(pipeline_paths) - set(existing_pipeline_paths)
@@ -1147,6 +956,7 @@ def register_views(app, db):
         json_string = json.dumps({"success": True, "result": pipelines_augmented})
 
         return json_string, 200, {"content-type": "application/json"}
+
 
     @app.route(
         "/async/notebook_html/<project_uuid>/<pipeline_uuid>/<step_uuid>",
@@ -1263,6 +1073,7 @@ def register_views(app, db):
 
         return jsonify({"cwd": cwd})
 
+
     @app.route("/async/file-picker-tree/<project_uuid>", methods=["GET"])
     def get_file_picker_tree(project_uuid):
 
@@ -1322,6 +1133,7 @@ def register_views(app, db):
 
         return jsonify(tree)
 
+
     @app.route("/async/project-files/create/<project_uuid>", methods=["POST"])
     def create_project_file(project_uuid):
         """Create project file in specified directory within project."""
@@ -1340,6 +1152,7 @@ def register_views(app, db):
             return jsonify({"message": "File created."})
         except IOError as e:
             logging.error("Could not create file at %s. Error: %s" % (file_path, e))
+
 
     @app.route("/async/project-files/exists/<project_uuid>/<pipeline_uuid>", methods=["POST"])
     def project_file_exists(project_uuid, pipeline_uuid):
