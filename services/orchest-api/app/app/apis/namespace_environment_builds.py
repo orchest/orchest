@@ -12,7 +12,7 @@ from app.connections import db
 from app.utils import register_schema, update_status_db
 import app.models as models
 
-api = Namespace("environment_builds", description="Managing environment builds")
+api = Namespace("environment-builds", description="Managing environment builds")
 api = register_schema(api)
 
 
@@ -223,7 +223,7 @@ class EnvironmentBuild(Resource):
         return {"message": "Environment build was successfully ABORTED"}, 200
 
 
-@api.route("/most_recent/<string:project_uuid>",)
+@api.route("/most-recent/<string:project_uuid>",)
 @api.param(
     "project_uuid",
     "UUID of the project for which environment builds should be collected",
@@ -261,7 +261,7 @@ class ProjectMostRecentBuildsList(Resource):
         return {"environment_builds": [build.as_dict() for build in env_builds]}
 
 
-@api.route("/most_recent/<string:project_uuid>/<string:environment_uuid>")
+@api.route("/most-recent/<string:project_uuid>/<string:environment_uuid>")
 @api.param("project_uuid", "UUID of the project.")
 @api.param("environment_uuid", "UUID of the environment.")
 class ProjectEnvironmentMostRecentBuild(Resource):
