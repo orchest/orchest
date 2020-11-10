@@ -289,6 +289,13 @@ def register_views(app, db):
                 # refresh kernels after change in environments
                 populate_kernels(app, db)
 
+                try:
+                    requests.delete(
+                        "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-images/%s/%s" % (project_uuid, environment_uuid)
+                    )
+                except Exception as e:
+                    logging.warn("Failed to delete EnvironmentImage: %s" % e)
+
                 return jsonify({"message": "Environment deletion was successful."})
 
             def post(self, project_uuid, environment_uuid):
