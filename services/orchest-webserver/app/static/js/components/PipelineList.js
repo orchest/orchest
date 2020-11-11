@@ -8,6 +8,9 @@ import {
   PromiseManager,
   RefManager,
 } from "../lib/utils/all";
+import {
+  checkGate
+} from "../utils/webserver-utils";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
@@ -85,8 +88,7 @@ class PipelineList extends React.Component {
     });
   }
 
-  onClickListItem(row, idx, e) {
-    let pipeline = this.state.pipelines[idx];
+  openPipeline(pipeline, readOnly){
 
     // load pipeline view
     let props = {
@@ -95,11 +97,29 @@ class PipelineList extends React.Component {
       pipeline_path: pipeline.path,
     };
 
-    if (e.ctrlKey || e.metaKey) {
+    if(readOnly){
       props.readOnly = true;
     }
 
     orchest.loadView(PipelineView, props);
+  }
+
+  onClickListItem(row, idx, e) {
+
+    let pipeline = this.state.pipelines[idx];
+    let readOnly = false;
+
+    if (e.ctrlKey || e.metaKey) {
+      readOnly = true;
+    }
+
+    let checkGatePromise = checkGate(this.props.project_uuid);
+    checkGatePromise.then(() => {
+      this.openPipeline(pipeline, readOnly);
+    }).catch((result) => {
+      this.openPipeline(pipeline, true);
+    })
+    
   }
 
   onDeleteClick() {
@@ -202,9 +222,9 @@ class PipelineList extends React.Component {
       .catch((response) => {
         try {
           let data = JSON.parse(response.body);
-          orchest.alert("Could not create pipeline. " + data.message);
+          orchest.alert("Error", "Could not create pipeline. " + data.message);
         } catch {
-          orchest.alert("Could not create pipeline. Reason unknown.");
+          orchest.alert("Error", "Could not create pipeline. Reason unknown.");
         }
 
         this.setState({

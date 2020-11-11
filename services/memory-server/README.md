@@ -9,5 +9,5 @@ nodes have received the data from the source.
 ```bash
 # Specify the branch of the sdk to use when installing the server. It
 # defaults to master.
-docker build -t orchestsoftware/memory-server --build-arg sdk_branch="master" .
+docker build -t orchest/memory-server --build-arg sdk_branch="master" .
 ```

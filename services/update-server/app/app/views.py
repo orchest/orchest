@@ -57,7 +57,7 @@ def register_views(app):
             # get latest orchest-ctl
             yield "Pulling orchest-ctl ...\n"
             try:
-                client.images.pull("orchestsoftware/orchest-ctl:latest")
+                client.images.pull("orchest/orchest-ctl:latest")
             except docker.errors.APIError as e:
                 logging.error(e)
             yield "Pulled orchest-ctl. Starting update ...\n"

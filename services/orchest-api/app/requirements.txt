@@ -9,4 +9,6 @@ flask-restplus==0.13.0
 Flask-SQLAlchemy==2.4.1
 requests==2.22.0
 Werkzeug==0.16.0
+python-engineio==3.13.2
+python-socketio[client]==4.6.0
 -e ../../../lib/python/orchest-internals

@@ -12,12 +12,15 @@ class Dialogs extends React.Component {
     };
   }
 
-  alert(title, content) {
+  alert(title, content, onClose) {
     let uuid = uuidv4();
     this.state.dialogs.push(
       <AlertDialog
         uuid={uuid}
         onClose={() => {
+          if(onClose){
+            onClose();
+          }
           this.remove(uuid);
         }}
         title={title}
@@ -30,13 +33,16 @@ class Dialogs extends React.Component {
     });
   }
 
-  confirm(title, content, onConfirm) {
+  confirm(title, content, onConfirm, onCancel) {
     let uuid = uuidv4();
     this.state.dialogs.push(
       <ConfirmDialog
         onConfirm={onConfirm}
         uuid={uuid}
         onClose={() => {
+          if(onCancel){
+            onCancel();
+          }
           this.remove(uuid);
         }}
         title={title}

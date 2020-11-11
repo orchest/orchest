@@ -10,7 +10,6 @@ from flask_restplus import Model, fields
 
 from _orchest.internals import config as _config
 
-
 # Namespace: Sessions
 server = Model(
     "Server",
@@ -289,5 +288,118 @@ experiments = Model(
         "experiments": fields.List(
             fields.Nested(experiment), description="Collection of all experiments"
         ),
+    },
+)
+
+environment_build = Model(
+    "EnvironmentBuild",
+    {
+        "build_uuid": fields.String(
+            required=True, description="UUID of the environment build"
+        ),
+        "project_uuid": fields.String(required=True, description="UUID of the project"),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of the environment"
+        ),
+        "project_path": fields.String(required=True, description="Project path"),
+        "requested_time": fields.String(
+            required=True, description="Time at which the build was requested"
+        ),
+        "started_time": fields.String(
+            required=True, description="Time at which the build started executing"
+        ),
+        "finished_time": fields.String(
+            required=True, description="Time at which the build finished executing"
+        ),
+        "status": fields.String(
+            required=True,
+            description="Status of the build",
+            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+        ),
+    },
+)
+
+environment_builds = Model(
+    "EnvironmentBuilds",
+    {
+        "environment_builds": fields.List(
+            fields.Nested(environment_build),
+            description="Collection of environment_builds",
+        ),
+    },
+)
+
+environment_build_request = Model(
+    "EnvironmentBuildRequest",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of the project"),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of the environment"
+        ),
+        "project_path": fields.String(required=True, description="Project path"),
+    },
+)
+
+environment_build_requests = Model(
+    "EnvironmentBuildRequests",
+    {
+        "environment_build_requests": fields.List(
+            fields.Nested(environment_build_request),
+            description="Collection of environment_build_request",
+            unique=True,
+        ),
+    },
+)
+
+gate_check = Model(
+    "GateCheck",
+    {
+        "type": fields.String(
+            required=True,
+            description="The granulity of the gate check",
+            enum=["shallow", "deep"],
+        ),
+        "environment_uuids": fields.List(
+            fields.String(),
+            required=False,
+            description="UUIDs to check for type=shallow",
+        ),
+        "pipeline_definitions": fields.List(
+            fields.Raw(description="Pipeline definitions in JSON"),
+            required=False,
+            description="Pipeline defitions to check for type=deep",
+        ),
+    },
+)
+
+gate_check_result_descr = Model(
+    "GateCheckResultDescr",
+    {
+        "environment_uuids": fields.List(
+            fields.String(), required=True, description="Environment UUIDs"
+        ),
+        "actions": fields.List(
+            fields.String(enum=["WAIT", "BUILD", "RETRY"]),
+            required=False,
+            description="Action to go from fail to pass",
+        ),
+        "pipeline_uuids": fields.List(
+            fields.String(), required=False, description="Pipeline UUIDs"
+        ),
+    },
+)
+
+gate_check_result = Model(
+    "GateCheckResult",
+    {
+        "gate": fields.String(
+            required=True,
+            description="Whether the gate check passed or failed",
+            enum=["pass", "fail"],
+        ),
+        "fail": fields.Nested(
+            gate_check_result_descr, description="Failed environments"),
+        "pass": fields.Nested(
+            gate_check_result_descr, description="Passed environments"),
     },
 )

@@ -67,6 +67,8 @@ class PipelineDetails extends React.Component {
       case 0:
         subView = (
           <PipelineDetailsProperties
+            project_uuid={this.props.project_uuid}
+            pipeline_uuid={this.props.pipeline.uuid}
             readOnly={this.props.readOnly}
             onNameUpdate={this.props.onNameUpdate}
             onSave={this.props.onSave}

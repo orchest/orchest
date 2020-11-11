@@ -1,6 +1,6 @@
 {
   "language": "{language}",
-  "display_name": "{image_name}",
+  "display_name": "{display_name}",
   "metadata": {
     "process_proxy": {
       "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",

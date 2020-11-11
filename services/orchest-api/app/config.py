@@ -14,6 +14,7 @@ class Config:
 
     # TODO: for now this is put here.
     ORCHEST_API_ADDRESS = "http://orchest-api:80/api"
+    ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:5000"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
@@ -38,6 +39,7 @@ class Config:
     task_routes = {
         "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "experiments"},
         "app.core.tasks.run_partial": {"queue": "celery"},
+        "app.core.tasks.build_environment": {"queue": "environment_builds"},
     }
 
 

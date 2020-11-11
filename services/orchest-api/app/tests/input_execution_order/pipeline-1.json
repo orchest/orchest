@@ -13,28 +13,28 @@
             "name": "step-1",
             "uuid": "uuid-1",
             "file_path": "",
-            "image": 0.1
+            "environment": 0.1
         },
         "uuid-2": {
             "incoming_connections": ["uuid-1"],
             "name": "step-2",
             "uuid": "uuid-2",
             "file_path": "",
-            "image": 0
+            "environment": 0
         },
         "uuid-3": {
             "incoming_connections": ["uuid-1"],
             "name": "step-3",
             "uuid": "uuid-3",
             "file_path": "",
-            "image": 0.1
+            "environment": 0.1
         },
         "uuid-4": {
             "incoming_connections": ["uuid-1"],
             "name": "step-4",
             "uuid": "uuid-4",
             "file_path": "",
-            "image": 0.2
+            "environment": 0.2
         }
     }
 }

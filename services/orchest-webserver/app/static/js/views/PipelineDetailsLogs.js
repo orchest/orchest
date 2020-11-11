@@ -28,8 +28,11 @@ class PipelineDetailsLogs extends React.Component {
     this.onPtyOutputHandler = (data) => {
       if (data.session_uuid == this.session_uuid) {
         let lines = data.output.split("\n");
-        for (let line of lines) {
-          this.refManager.refs.term.terminal.writeln(line);
+        for (let x = 0; x < lines.length; x++) {          
+          if(x == lines.length - 1 && lines[x].length == 0){
+            continue;
+          }
+          this.refManager.refs.term.terminal.writeln(lines[x]);
         }
       }
     };

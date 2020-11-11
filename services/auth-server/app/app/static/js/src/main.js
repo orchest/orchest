@@ -7,9 +7,11 @@ let view = document.getElementById("app");
 
 let viewName = view.attributes.getNamedItem("data-view").value;
 
+
 switch (viewName) {
   case "Login":
-    ReactDOM.render(<Login />, view);
+    let loginFailedReason = document.querySelector("input[name='LOGIN_FAILED']").value;
+    ReactDOM.render(<Login loginFailedReason={loginFailedReason} />, view);
     break;
   case "Admin":
     ReactDOM.render(

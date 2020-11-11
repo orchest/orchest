@@ -19,7 +19,10 @@ class Config:
     DOCS_ROOT = _config.DOCS_ROOT
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
+    DEFAULT_ENVIRONMENTS = _config.DEFAULT_ENVIRONMENTS
+    DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
+    
     FLASK_ENV = os.environ.get("FLASK_ENV", "PRODUCTION")
 
     DEBUG = True

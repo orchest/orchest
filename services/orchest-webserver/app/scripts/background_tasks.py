@@ -1,0 +1,93 @@
+import argparse
+from enum import Enum
+import os
+import requests
+
+
+class BackgroundTaskStatus(Enum):
+    SUCCESS = 0
+    PENDING = 1
+    STARTED = 2
+    FAILURE = 3
+
+
+def git_clone_project(args):
+    """Clone a git repo given a URL into the projects directory.
+
+    """
+
+    try:
+        # avoid collisions
+        tmp_path = f"/tmp/{args.uuid}/"
+        os.mkdir(tmp_path)
+        os.chdir(tmp_path)
+
+        # this way we clone in a directory with the name of the repo
+        # if the project_name is not provided
+        project_name = args.path
+        if not project_name:
+            project_name = ""
+
+        exit_code = os.system(f"git clone {args.url} {project_name}")
+        if exit_code != 0:
+            msg = "git clone failed"
+        else:
+            msg = "successfully cloned"
+            # should be the only directory in there, also this way we
+            # get the directory without knowing the repo name if the project_name has not been provided
+            res = os.listdir(tmp_path)
+            from_path = os.path.join(tmp_path, res[0])
+            exit_code = os.system(f"mv \"{from_path}\" /userdir/projects/")
+            if exit_code != 0:
+                msg = "project move failed"
+    # cleanup the tmp directory in any case
+    finally:
+        os.system(f"rm -rf {tmp_path}")
+
+    return exit_code, msg
+
+
+_tasks = {"git_clone_project": git_clone_project}
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Launch background tasks.")
+    parser.add_argument(
+        "--type", required=True, type=str, help="type of background tasks"
+    )
+    parser.add_argument(
+        "--uuid", required=True, type=str, help="uuid of the background task. "
+    )
+    parser.add_argument(
+        "--url", required=False, type=str, help="A URL. Semantics depend on the task"
+    )
+    parser.add_argument(
+        "--path",
+        required=False,
+        type=str,
+        help="An absolute path. Semantics depend on the task",
+    )
+
+    args = parser.parse_args()
+
+    PUT_ENDPOINT = " http://localhost/async/background-tasks"
+
+    with requests.sessions.Session() as session:
+        data = {"status": BackgroundTaskStatus.STARTED.name}
+        url = f"{PUT_ENDPOINT}/{args.uuid}"
+        session.put(url, json=data)
+
+        try:
+            task = _tasks[args.type]
+            code, result = task(args)
+        except Exception as e:
+            code = 1
+            result = f"Exception in task: {str(e)}"
+
+        data = {
+            "status": BackgroundTaskStatus.SUCCESS.name
+            if code == 0
+            else BackgroundTaskStatus.FAILURE.name,
+            "code": str(code),
+            "result": str(result),
+        }
+        session.put(url, json=data)

@@ -13,27 +13,45 @@ Orchest
 Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
 your models on the cloud without any knowledge of cloud infrastructure.
 
+A pipeline in Orchest can be thought of as a graph consisting of executable files within their own
+isolated environment (powered by containerization). Users get to describe the execution order of these
+executable files through our visual pipeline editor. After coding your scripts, Orchest allows you
+to select and run any subset of the pipeline whilst keeping in mind the defined execution order.
+
 .. note::
 
     Orchest is in alpha.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Getting started
 
-   overview
-   installation
-   quickstart
-   features
-   sdk/index
-   development/index
-   glossary
-   help
+   getting_started/overview
+   getting_started/orientation
+   getting_started/installation
+   getting_started/starting_orchest
+   getting_started/quickstart
+   getting_started/help
 
 
-.. Indices and tables
-.. ==================
+.. toctree::
+   :maxdepth: 1
+   :caption: User guide
 
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-.. * :ref:`search`
+   user_guide/data_passing
+   user_guide/sdk/index
+   user_guide/environments
+   user_guide/experiments
+   user_guide/data_sources
+   user_guide/other
+   user_guide/glossary
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developer guide
+
+   developer_guide/contributing
+   developer_guide/development_workflow
+   developer_guide/architecture
+   developer_guide/implementation_details

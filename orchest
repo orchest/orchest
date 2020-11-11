@@ -18,7 +18,7 @@ fi
 
 function update_orchest_ctl {
     # Update orchest-ctl to latest before performing update
-    docker pull orchestsoftware/orchest-ctl:latest
+    docker pull orchest/orchest-ctl:latest
 }
 
 # Warnings
@@ -60,4 +60,4 @@ docker run \
     -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \
     -e HOST_REPO_DIR="${DIR}" \
     -e HOST_USER_DIR="${HOST_USER_DIR}" \
-    orchestsoftware/orchest-ctl:latest "$@"
+    orchest/orchest-ctl:latest "$@"

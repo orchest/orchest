@@ -1,9 +1,6 @@
 Python
 ======
 
-Python package to interact with Orchest.
-
-
 Quickstart
 ----------
 
@@ -11,10 +8,13 @@ Quickstart
 
 Data passing
 ~~~~~~~~~~~~
+The SDK manages the target and source of the data, leaving you
+only with the decision what data to pass. The target and source of the data are inferred
+through the :ref:`pipeline definition <pipeline definition>`.
 
-For this example we let the pipeline (defined inside the ``pipeline.json``) be as follows: 
+For this example we let the pipeline be defined as follows: 
 
-.. image:: ../img/pipeline.png
+.. image:: ../../img/pipeline.png
   :width: 400
   :alt: Pipeline defined as: step-1, step-2 --> step-3
   :align: center
@@ -23,8 +23,8 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
 
 .. note:: The order in which the data is retrieved in `step-3` is determined via the UI through the
    `Connections` section in the pipeline step properties pane. Order is from top to bottom, where
-   the first element in the list (returned by :meth:`orchest.transfer.get_inputs`) is the output of
-   the top most step from the `Connections`.
+   the left most element in the list (returned by :meth:`orchest.transfer.get_inputs`) is the output
+   of the top most step from the `Connections`.
 
 
 .. code-block:: python
@@ -58,11 +58,8 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    data = orchest.get_inputs()  # data = [[3, 1, 4], 'Hello, World!']
 
 .. note:: 
-   Since memory resources are scarce we have implemented a custom eviction manager when passing data
-   through memory (between pipeline steps).  Without it, objects do not get evicted from memory
-   (even when an object has no reference) which will eventually lead to the memory reaching its
-   maximum capacity without any room for new data. The eviction is handled by the 
-   `memory-server <https://github.com/orchest/orchest/tree/master/services/memory-server>`_.
+   Memory eviction of objects is disabled by default, refer to :ref:`configuration <configuration>`
+   to learn how to enable it.
 
 
 .. _sdk-quickstart-parameters:
@@ -82,14 +79,18 @@ Parameters
    params['fruit'] = 'apple'
    orchest.update_params(params)
 
+.. note::
+   Parameters are at the core of :ref:`experiments <experiments>`, giving a handle to try out
+   different modeling ideas based on a set of variable inputs.
+
 
 .. _sdk-quickstart-data-sources:
 
 Data sources
 ~~~~~~~~~~~~
 Before you can interact with data sources from within your scripts, you have to configure one
-through the *Data sources* option in the left menu pane. Please refer to
-:ref:`features-data-sources` in the features section.
+through the *Data sources* option in the left menu pane. For more see
+:ref:`data sources <data sources>`.
 
 .. code-block:: python
 

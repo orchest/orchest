@@ -12,6 +12,11 @@ import {
   PromiseManager,
   RefManager,
 } from "../lib/utils/all";
+
+import {
+  checkGate, requestBuild
+} from "../utils/webserver-utils";
+
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
@@ -263,6 +268,14 @@ class PipelineView extends React.Component {
     } else {
       // retrieve interactive run runUUID to show pipeline exeuction state
       this.fetchActivePipelineRuns();
+
+      // for non pipelineRun - read only check gate
+      let checkGatePromise = checkGate(this.props.project_uuid);
+      checkGatePromise.catch((result) => {
+        if(result.reason === "gate-failed"){
+          requestBuild(props.project_uuid, result.data);
+        }
+      })
     }
   }
 
@@ -995,12 +1008,12 @@ class PipelineView extends React.Component {
       title: "",
       uuid: uuidv4(),
       incoming_connections: [],
-      file_path: ".ipynb",
+      file_path: "",
       kernel: {
         name: "python",
         display_name: "Python 3",
       },
-      image: "orchestsoftware/custom-base-kernel-py",
+      environment: "",
       parameters: {},
       meta_data: {
         position: [0, 0],
@@ -1425,7 +1438,7 @@ class PipelineView extends React.Component {
   onSessionFetch(session_details) {
     if (!this.props.readOnly) {
       if (session_details === undefined) {
-        this.refManager.refs.sessionToggleButton.launchSession();
+        this.refManager.refs.sessionToggleButton.toggleSession();
       }
     }
   }

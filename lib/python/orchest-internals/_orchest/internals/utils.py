@@ -2,6 +2,7 @@ import docker
 import os
 import uuid
 import requests
+import urllib.parse
 
 from docker.types import DeviceRequest, Mount
 
@@ -16,7 +17,7 @@ def get_mount(source, target, form="docker-sdk"):
 def run_orchest_ctl(client, command):
 
     return client.containers.run(
-        "orchestsoftware/orchest-ctl:latest",
+        "orchest/orchest-ctl:latest",
         command,
         name="orchest-ctl-" + str(uuid.uuid4()),
         detach=True,
@@ -41,11 +42,11 @@ def run_orchest_ctl(client, command):
     )
 
 
-def get_device_requests(image_name, form="docker-sdk"):
+def get_device_requests(environment_uuid, project_uuid, form="docker-sdk"):
 
     device_requests = []
 
-    capabilities = get_image_capabilities(image_name)
+    capabilities = get_environment_capabilities(environment_uuid, project_uuid)
 
     if len(capabilities) > 0:
 
@@ -59,23 +60,25 @@ def get_device_requests(image_name, form="docker-sdk"):
     return device_requests
 
 
-def get_image_capabilities(image_name):
+def get_environment_capabilities(environment_uuid, project_uuid):
 
     capabilities = []
 
     try:
-        response = requests.post(
-            "http://orchest-webserver/async/image-metadata/", {"image_name": image_name}
+        response = requests.get(
+            "http://orchest-webserver/store/environments/%s/%s"
+            % (project_uuid, environment_uuid)
         )
+
         response.raise_for_status()
 
     except Exception as e:
         print(e)
 
     else:
-        image = response.json()["image"]
+        environment = response.json()
 
-        if image["gpu_support"] == True:
+        if environment["gpu_support"] == True:
             capabilities += ["gpu", "utility", "compute"]
 
     return capabilities

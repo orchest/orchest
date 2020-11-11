@@ -8,7 +8,10 @@ TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
 PROJECT_DIR = "/project-dir"
 
 # Relative to the `userdir` path.
-KERNELSPECS_PATH = ".orchest/kernels"
+KERNELSPECS_PATH = ".orchest/kernels/{project_uuid}"
+
+# Environments
+ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
 
 # Relative to the `project_dir` path.
 LOGS_PATH = ".orchest/{pipeline_uuid}/logs"
@@ -18,11 +21,27 @@ DOCS_ROOT = "https://orchest.readthedocs.io"
 
 # Networking
 ORCHEST_API_ADDRESS = "orchest-api"
+ORCHEST_SOCKETIO_SERVER_ADDRESS = "http://orchest-webserver"
+ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
 
-# Images
-DEFAULT_BASE_IMAGES = [
-    {"name": "orchestsoftware/custom-base-kernel-py", "language": "python"},
-    {"name": "orchestsoftware/custom-base-kernel-r", "language": "r"},
+
+# Environments
+# These environments are added when you create a new project
+DEFAULT_ENVIRONMENTS = [
+    {
+        "name": "custom-base-kernel-py",
+        "base_image": "orchest/custom-base-kernel-py",
+        "language": "python",
+        "startup_script": "",
+        "gpu_support": False,
+    },
+    {
+        "name": "custom-base-kernel-r",
+        "base_image": "orchest/custom-base-kernel-r",
+        "language": "r",
+        "startup_script": "",
+        "gpu_support": False,
+    },
 ]
 
 DEFAULT_DATASOURCES = [

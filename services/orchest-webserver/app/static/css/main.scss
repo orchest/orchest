@@ -81,6 +81,11 @@ h3 {
   }
 }
 
+a.button {
+  text-decoration: none;
+  color: #000;
+}
+
 .view-page {
   padding: $generalPadding;
   overflow-y: auto;
@@ -116,9 +121,24 @@ h3 {
   }
 }
 
+p > i.material-icons.float-left {
+  float: left;
+  margin-right: 10px;
+}
+
 .datetime-input {
   > div {
     margin-bottom: $generalPadding;
+  }
+}
+
+.select-button-columns {
+  display: flex;
+
+  .mdc-button {
+    height: 56px;
+    min-width: 200px;
+    margin-left: $mdcComponentPadding;
   }
 }
 
@@ -144,17 +164,13 @@ h3 {
   font-size: $codeSize;
 }
 
-.edit-commit {
-  .react-codemirror2 {
-    margin-bottom: $generalPadding;
-  }
+.edit-environment {
 
-  .mdc-button {
-    margin-top: $generalPadding;
-    margin-right: $generalPadding;
+  .build-status {
+    font-size: $codeSize;
   }
-
-  .commit-uuid {
+  
+  .environment-uuid {
     font-size: $codeSize;
     color: #555;
     display: inline-block;
@@ -163,6 +179,11 @@ h3 {
 
   .CodeMirror {
     height: auto;
+  }
+
+  .xterm {
+    height: 400px;
+    width: 100%;
   }
 }
 
@@ -451,6 +472,33 @@ h2.header {
   }
 }
 
+.mdc-data-table {
+  a {
+    color: $mdc-theme-secondary;
+    text-decoration: underline;
+  }
+}
+
+.dropdown-file-picker {
+  position: relative;
+
+  .mdc-list-item {
+    .material-icons {
+      margin-right: $mdcComponentPadding/2;
+      font-size: 1.3rem;
+    }
+
+    line-height: 2.25rem;
+    height: auto;
+  }
+
+  .mdc-menu {
+    position: absolute;
+    left: 0;
+    top: 100%;
+  }
+}
+
 .columns {
   overflow: auto;
 
@@ -482,6 +530,16 @@ button.themed-secondary {
 
 .fullwidth {
   width: 100%;
+}
+
+.multi-button {
+  button {
+    margin-left: $mdcComponentPadding;
+  }
+
+  button:first-child {
+    margin-left: 0;
+  }
 }
 
 .docs-notice {

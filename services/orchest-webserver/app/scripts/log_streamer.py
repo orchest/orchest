@@ -6,7 +6,7 @@ import os
 import sys
 import html
 
-from threading import RLock
+from threading import Lock
 from datetime import datetime, timedelta
 from _orchest.internals import config as _config
 
@@ -17,7 +17,7 @@ log_file_store = {}
 file_handles = {}
 
 
-lock = RLock()
+lock = Lock()
 
 
 class LogFile:
@@ -54,7 +54,7 @@ def file_reader_loop(sio):
                 try:
                     read_emit_all_lines(file_handles[session_uuid], sio, session_uuid)
                 except Exception as e:
-                    logging.info("call to read_emit_all_lines failed %s" % e)
+                    logging.info("call to read_emit_all_lines failed %s (%s)" % (e, type(e)))
 
         sio.sleep(0.01)
 
@@ -83,6 +83,10 @@ def read_emit_all_lines(file, sio, session_uuid):
     except IOError as e:
         logging.warn("Could not read latest log file: %s" % e)
         return
+    except Exception as e:
+        logging.error("Could not read latest_log_file for session_uuid[%s]" % session_uuid)
+        return
+
 
     if (
         read_log_uuid != log_file_store[session_uuid].log_uuid
@@ -206,7 +210,10 @@ def get_log_path(log_file):
 def clear_log_file(session_uuid):
 
     close_file_handle(session_uuid)
-    del log_file_store[session_uuid]
+    try:
+        del log_file_store[session_uuid]
+    except Exception:
+        logging.error("Key not in log_file_store: %s" % session_uuid)
 
 
 def create_file_handle(log_file):
@@ -216,10 +223,12 @@ def create_file_handle(log_file):
     try:
         file = open(log_path, "r")
         file.seek(0)
+        file_handles[log_file.session_uuid] = file
+        return True
     except IOError as ioe:
-        logging.error("Could not op log file for path %s. Error: %s" % (log_path, ioe))
+        logging.error("Could not open log file for path %s. Error: %s" % (log_path, ioe))
 
-    file_handles[log_file.session_uuid] = file
+    return False
 
 
 def close_file_handle(session_uuid):
@@ -227,6 +236,8 @@ def close_file_handle(session_uuid):
         file_handles[session_uuid].close()
     except IOError as exc:
         logging.debug("Error closing log file %s" % exc)
+    except Exception as e:
+        logging.debug("close_file_handle filed for session_uuid[%s] with error: %s" % (session_uuid, e))
 
 
 def main():
@@ -271,12 +282,17 @@ def main():
                     log_file.experiment_uuid = data["experiment_uuid"]
 
                 if data["session_uuid"] not in log_file_store:
-                    log_file_store[data["session_uuid"]] = log_file
-                    create_file_handle(log_file)
-                    logging.info(
-                        "Added session_uuid (%s). Sessions active: %d"
-                        % (data["session_uuid"], len(log_file_store))
-                    )
+                    
+                    if create_file_handle(log_file):
+                        log_file_store[data["session_uuid"]] = log_file
+                        logging.info(
+                            "Added session_uuid (%s). Sessions active: %d"
+                            % (data["session_uuid"], len(log_file_store))
+                        )
+                    else:
+                        logging.error(
+                            "Adding session_uuid (%s) failed." % data["session_uuid"]
+                        )
                 else:
                     logging.warn(
                         "Tried to add %s to log_file_store but it already exists."
@@ -284,14 +300,14 @@ def main():
                     )
 
             elif data["action"] == "stop-logs":
-                session_uuid = data["session_uuid"]
-                if session_uuid in log_file_store.keys():
-                    clear_log_file(session_uuid)
-                    logging.info(
-                        "Removed session_uuid (%s). Sessions active: %d"
-                        % (session_uuid, len(log_file_store))
-                    )
-                else:
+                session_uuid = data["session_uuid"]	
+                if session_uuid in log_file_store.keys():	
+                    clear_log_file(session_uuid)	
+                    logging.info(	
+                        "Removed session_uuid (%s). Sessions active: %d"	
+                        % (session_uuid, len(log_file_store))	
+                    )	
+                else:	
                     logging.error(
                         "Tried removing session_uuid (%s) which is not in log_file_store."
                         % session_uuid

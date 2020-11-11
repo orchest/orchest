@@ -10,7 +10,7 @@ export default class Admin extends React.Component {
 
     for (let user of data["users"]) {
       userNodes.push(
-        <div>
+        <div key={user.username}>
           <form className="delete-user-form" method="post">
             <input
               type="hidden"
@@ -28,7 +28,7 @@ export default class Admin extends React.Component {
       <div className="edit-users-form">
         <div className="group">
           <form method="post" action="">
-            <h2>Add user</h2>
+            <h2>Add a user</h2>
             <MDCTextFieldReact label="Username" name="username" />
             <br />
             <MDCTextFieldReact label="Password" password name="password" />
@@ -37,8 +37,8 @@ export default class Admin extends React.Component {
           </form>
         </div>
         <div className="group">
-          <h2>Remove users</h2>
-          {userNodes}
+          <h2>Delete users</h2>
+          {userNodes.length != 0 ? userNodes : <i>There are no users yet.</i> }
         </div>
       </div>
     );
