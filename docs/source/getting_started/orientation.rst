@@ -7,10 +7,12 @@ Orientation
 Orchest concepts
 ----------------
 
-* Build on top of filesystem and what that means for interactive runs and experiments (this will
-  copy the filesystem, read more in ... link)
-* Environments
-* Pipelines
+.. * Build on top of filesystem and what that means for interactive runs and experiments (this will
+..   copy the filesystem, read more in ... link)
+.. * Environments
+.. * Pipelines
+
+Coming soon!
 
 How Orchest works
 -----------------
