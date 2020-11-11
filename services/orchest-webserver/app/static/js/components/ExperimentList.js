@@ -90,37 +90,44 @@ class ExperimentList extends React.Component {
   }
 
   onDeleteClick() {
-    // get experiment selection
-    let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
+    orchest.confirm(
+      "Warning",
+      "Are you sure you want to delete these experiments? (This cannot be undone.)",
+      () => {
+        // get experiment selection
+        let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
 
-    if (selectedRows.length == 0) {
-      return;
-    }
+        if (selectedRows.length == 0) {
+          return;
+        }
 
-    // delete indices
-    let promises = [];
+        // delete indices
+        let promises = [];
 
-    for (let x = 0; x < selectedRows.length; x++) {
-      promises.push(
-        makeRequest(
-          "DELETE",
-          "/store/experiments/" + this.state.experiments[selectedRows[x]].uuid
-        )
-      );
+        for (let x = 0; x < selectedRows.length; x++) {
+          promises.push(
+            makeRequest(
+              "DELETE",
+              "/store/experiments/" +
+                this.state.experiments[selectedRows[x]].uuid
+            )
+          );
 
-      // don't wait for finish on orchest-api DELETE
-      makeRequest(
-        "DELETE",
-        "/api-proxy/api/experiments/" +
-          this.state.experiments[selectedRows[x]].uuid
-      );
-    }
+          // don't wait for finish on orchest-api DELETE
+          makeRequest(
+            "DELETE",
+            "/api-proxy/api/experiments/" +
+              this.state.experiments[selectedRows[x]].uuid
+          );
+        }
 
-    Promise.all(promises).then(() => {
-      this.fetchList();
+        Promise.all(promises).then(() => {
+          this.fetchList();
 
-      this.refManager.refs.experimentTable.setSelectedRowIds([]);
-    });
+          this.refManager.refs.experimentTable.setSelectedRowIds([]);
+        });
+      }
+    );
   }
 
   onSubmitModal() {
