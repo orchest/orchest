@@ -17,7 +17,6 @@ from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
 from subprocess import Popen
 
-
 from app.utils import (
     get_hash,
     get_user_conf,
@@ -34,7 +33,7 @@ from app.utils import (
     get_environment_directory,
     get_environments,
     serialize_environment_to_disk,
-    read_environment_from_disk
+    read_environment_from_disk,
 )
 
 from app.models import (
@@ -44,7 +43,7 @@ from app.models import (
     PipelineRun,
     Project,
     Pipeline,
-    BackgroundTask
+    BackgroundTask,
 )
 
 from app.schemas import (
@@ -60,12 +59,10 @@ from app.views.orchest_api import api_proxy_environment_builds
 from _orchest.internals.utils import run_orchest_ctl
 from _orchest.internals import config as _config
 
-
 logging.basicConfig(level=logging.DEBUG)
 
 
 def register_views(app, db):
-
     errors = {
         "DataSourceNameInUse": {
             "message": "A data source with this name already exists.",
@@ -92,26 +89,32 @@ def register_views(app, db):
 
     experiment_schema = ExperimentSchema()
     experiments_schema = ExperimentSchema(many=True)
-    
+
     background_task_schema = BackgroundTaskSchema()
 
     def register_environments(db, api):
-
         class EnvironmentsResource(Resource):
             def get(self, project_uuid):
-                return environments_schema.dump(get_environments(project_uuid, language=request.args.get('language')))
+                return environments_schema.dump(
+                    get_environments(
+                        project_uuid, language=request.args.get("language")
+                    )
+                )
 
         class EnvironmentResource(Resource):
-
             def put(self, project_uuid, environment_uuid):
                 return self.post(project_uuid, environment_uuid)
 
             def get(self, project_uuid, environment_uuid):
-                environment_dir = get_environment_directory(environment_uuid, project_uuid)
+                environment_dir = get_environment_directory(
+                    environment_uuid, project_uuid
+                )
                 return read_environment_from_disk(environment_dir)
 
             def delete(self, project_uuid, environment_uuid):
-                environment_dir = get_environment_directory(environment_uuid, project_uuid)
+                environment_dir = get_environment_directory(
+                    environment_uuid, project_uuid
+                )
                 shutil.rmtree(environment_dir)
 
                 # refresh kernels after change in environments
@@ -119,7 +122,10 @@ def register_views(app, db):
 
                 try:
                     requests.delete(
-                        "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-images/%s/%s" % (project_uuid, environment_uuid)
+                        "http://"
+                        + app.config["ORCHEST_API_ADDRESS"]
+                        + "/api/environment-images/%s/%s"
+                        % (project_uuid, environment_uuid)
                     )
                 except Exception as e:
                     logging.warn("Failed to delete EnvironmentImage: %s" % e)
@@ -133,7 +139,7 @@ def register_views(app, db):
 
                 e = Environment(
                     uuid=str(uuid.uuid4()),
-                    name=environment_json['name'],
+                    name=environment_json["name"],
                     project_uuid=project_uuid,
                     language=environment_json["language"],
                     startup_script=environment_json["startup_script"],
@@ -146,7 +152,7 @@ def register_views(app, db):
                     e.uuid = environment_uuid
 
                 environment_dir = get_environment_directory(e.uuid, project_uuid)
-                
+
                 os.makedirs(environment_dir, exist_ok=True)
                 serialize_environment_to_disk(e, environment_dir)
 
@@ -155,9 +161,13 @@ def register_views(app, db):
 
                 return environment_schema.dump(e)
 
-        api.add_resource(EnvironmentsResource, "/store/environments/<string:project_uuid>")
-        api.add_resource(EnvironmentResource, "/store/environments/<string:project_uuid>/<string:environment_uuid>")
-
+        api.add_resource(
+            EnvironmentsResource, "/store/environments/<string:project_uuid>"
+        )
+        api.add_resource(
+            EnvironmentResource,
+            "/store/environments/<string:project_uuid>/<string:environment_uuid>",
+        )
 
     def register_datasources(db, api):
         class DataSourcesResource(Resource):
@@ -295,48 +305,47 @@ def register_views(app, db):
             ExperimentResource, "/store/experiments/<string:experiment_uuid>"
         )
 
-
     register_datasources(db, api)
     register_experiments(db, api)
     register_environments(db, api)
-
 
     def return_404(reason=""):
         json_string = json.dumps({"success": False, "reason": reason})
 
         return json_string, 404, {"content-type": "application/json"}
 
-
     def generate_gateway_kernel_name(project_uuid, environment_uuid):
-        
-        return _config.ENVIRONMENT_IMAGE_NAME.format(
-            project_uuid=project_uuid,
-            environment_uuid=environment_uuid
-        )
 
+        return _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=project_uuid, environment_uuid=environment_uuid
+        )
 
     def build_environments(environment_uuids, project_uuid):
         project_path = project_uuid_to_path(project_uuid)
 
-        environment_build_requests = [{
-            "project_uuid": project_uuid,
-            "project_path": project_path,
-            "environment_uuid": environment_uuid,
-        } for environment_uuid in environment_uuids]
+        environment_build_requests = [
+            {
+                "project_uuid": project_uuid,
+                "project_path": project_path,
+                "environment_uuid": environment_uuid,
+            }
+            for environment_uuid in environment_uuids
+        ]
 
-        return api_proxy_environment_builds(environment_build_requests, app.config["ORCHEST_API_ADDRESS"])
-
+        return api_proxy_environment_builds(
+            environment_build_requests, app.config["ORCHEST_API_ADDRESS"]
+        )
 
     def build_environments_for_project(project_uuid):
         environments = get_environments(project_uuid)
 
-        return build_environments([environment.uuid for environment in environments], project_uuid)
-
+        return build_environments(
+            [environment.uuid for environment in environments], project_uuid
+        )
 
     def populate_default_environments(project_uuid):
 
         for env_spec in app.config["DEFAULT_ENVIRONMENTS"]:
-
             e = Environment(**env_spec)
 
             e.uuid = str(uuid.uuid4())
@@ -346,7 +355,6 @@ def register_views(app, db):
             os.makedirs(environment_dir, exist_ok=True)
 
             serialize_environment_to_disk(e, environment_dir)
-
 
     def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid):
 
@@ -378,12 +386,14 @@ def register_views(app, db):
                     ):
                         notebook_changed = True
                         notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
-                    
-                    environment = Environment.query.filter(
-                        Environment.uuid==step['environment']
-                    ).filter(
-                        Environment.project_uuid==project_uuid
-                    ).first()
+
+                    environment = (
+                        Environment.query.filter(
+                            Environment.uuid == step["environment"]
+                        )
+                        .filter(Environment.project_uuid == project_uuid)
+                        .first()
+                    )
 
                     if environment is not None:
                         if (
@@ -391,10 +401,14 @@ def register_views(app, db):
                             != environment.name
                         ):
                             notebook_changed = True
-                            notebook_json["metadata"]["kernelspec"]["display_name"] = environment.name
+                            notebook_json["metadata"]["kernelspec"][
+                                "display_name"
+                            ] = environment.name
                     else:
-                        logging.warn("Could not find environment [%s] while setting notebook kernelspec for notebook %s." % (
-                            step['environment'], notebook_path))
+                        logging.warn(
+                            "Could not find environment [%s] while setting notebook kernelspec for notebook %s."
+                            % (step["environment"], notebook_path)
+                        )
 
                     if notebook_changed:
                         with open(notebook_path, "w") as file:
@@ -405,7 +419,6 @@ def register_views(app, db):
                         "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s"
                         % notebook_path
                     )
-
 
     def generate_ipynb_from_template(step, project_uuid):
 
@@ -428,12 +441,10 @@ def register_views(app, db):
             "display_name"
         ]
         template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-            project_uuid,
-            step["environment"]
+            project_uuid, step["environment"]
         )
 
         return json.dumps(template_json, indent=2)
-
 
     def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
 
@@ -464,7 +475,7 @@ def register_views(app, db):
 
                 if ext == "ipynb":
                     file_content = generate_ipynb_from_template(step, project_uuid)
-                    
+
             elif ext == "ipynb":
                 # check for empty .ipynb, for which we also generate a template notebook
                 if os.stat(full_file_path).st_size == 0:
@@ -473,7 +484,6 @@ def register_views(app, db):
             if file_content is not None:
                 with open(full_file_path, "w") as file:
                     file.write(file_content)
-                        
 
     def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
@@ -492,7 +502,6 @@ def register_views(app, db):
         )
         os.system("cp -R %s %s" % (project_dir, snapshot_path))
 
-
     def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
         experiment_project_path = os.path.join(
@@ -510,7 +519,6 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-    
     @app.route("/", methods=["GET"])
     def index():
 
@@ -528,7 +536,6 @@ def register_views(app, db):
             FLASK_ENV=app.config["FLASK_ENV"],
         )
 
-
     @app.route("/async/spawn-update-server", methods=["GET"])
     def spawn_update_server():
 
@@ -538,11 +545,9 @@ def register_views(app, db):
 
         return ""
 
-
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():
         return ""
-
 
     @app.route("/async/restart", methods=["POST"])
     def restart_server():
@@ -555,7 +560,6 @@ def register_views(app, db):
             run_orchest_ctl(client, ["restart"])
 
         return ""
-
 
     @app.route("/async/version", methods=["GET"])
     def version():
@@ -572,7 +576,6 @@ def register_views(app, db):
         outs, _ = git_proc.communicate()
 
         return outs
-
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
@@ -592,7 +595,6 @@ def register_views(app, db):
             return ""
         else:
             return get_user_conf_raw()
-
 
     @app.route(
         "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
@@ -621,7 +623,6 @@ def register_views(app, db):
         else:
             return jsonify({"message": "Pipeline could not be found."}), 404
 
-
     @app.route("/async/experiments/create", methods=["POST"])
     def experiments_create():
 
@@ -646,14 +647,12 @@ def register_views(app, db):
 
         return jsonify(experiment_schema.dump(new_ex))
 
-
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():
 
         experiment_uuid = request.json["experiment_uuid"]
 
         for idx, pipeline_run in enumerate(request.json["generated_pipeline_runs"]):
-
             pr = PipelineRun(
                 uuid=request.json["experiment_json"]["pipeline_runs"][idx]["run_uuid"],
                 experiment=experiment_uuid,
@@ -666,7 +665,6 @@ def register_views(app, db):
         db.session.commit()
 
         return jsonify({"success": True})
-
 
     @app.route("/async/pipelines/create/<project_uuid>", methods=["POST"])
     def pipelines_create(project_uuid):
@@ -713,7 +711,6 @@ def register_views(app, db):
                 409,
             )
 
-
     # Note: only pipelines in project directories can be renamed (not in experiments)
     @app.route(
         "/async/pipelines/rename/<project_uuid>/<pipeline_uuid>", methods=["POST"]
@@ -741,7 +738,6 @@ def register_views(app, db):
         else:
             return "", 404
 
-
     class ImportGitProjectListResource(Resource):
         def post(self):
             n_uuid = str(uuid.uuid4())
@@ -753,28 +749,30 @@ def register_views(app, db):
 
             # start the background process in charge of cloning
             file_dir = os.path.dirname(os.path.realpath(__file__))
+            args = [
+                "python3",
+                "-m",
+                "scripts.background_tasks",
+                "--type",
+                "git_clone_project",
+                "--uuid",
+                n_uuid,
+                "--url",
+                request.json["url"],
+            ]
+
+            project_name = request.json.get("project_name", None)
+            if project_name:
+                args.append("--path")
+                args.append(str(project_name))
+
             background_task_process = Popen(
-                [
-                    "python3",
-                    "-m",
-                    "scripts.background_tasks",
-                    "--type",
-                    "git_clone_project",
-                    "--uuid",
-                    n_uuid,
-                    "--url",
-                    request.json["url"],
-                    "--path",
-                    request.json["project_name"],
-                ],
-                cwd=os.path.join(file_dir, "../.."),
-                stderr=subprocess.STDOUT,
+                args, cwd=os.path.join(file_dir, "../.."), stderr=subprocess.STDOUT,
             )
 
             return background_task_schema.dump(new_task)
 
     api.add_resource(ImportGitProjectListResource, "/async/projects/import-git")
-
 
     @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
     def projects():
@@ -801,17 +799,21 @@ def register_views(app, db):
 
             # build environments on project detection
             build_environments_for_project(new_project.uuid)
-            
+
         # end of UUID creation
 
         if request.method == "GET":
-            
+
             projects = projects_schema.dump(Project.query.all())
 
             # Get counts for: pipelines, experiments and environments
             for project in projects:
-                project["pipeline_count"] = Pipeline.query.filter(Pipeline.project_uuid == project["uuid"]).count()
-                project["experiment_count"] = Experiment.query.filter(Experiment.project_uuid == project["uuid"]).count()
+                project["pipeline_count"] = Pipeline.query.filter(
+                    Pipeline.project_uuid == project["uuid"]
+                ).count()
+                project["experiment_count"] = Experiment.query.filter(
+                    Experiment.project_uuid == project["uuid"]
+                ).count()
                 project["environment_count"] = len(get_environments(project["uuid"]))
 
             return jsonify(projects)
@@ -879,7 +881,6 @@ def register_views(app, db):
 
             return jsonify({"message": "Project created."})
 
-
     @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["GET"])
     def pipeline_get(project_uuid, pipeline_uuid):
 
@@ -893,7 +894,6 @@ def register_views(app, db):
             return jsonify({"message": "Pipeline doesn't exist."}), 404
         else:
             return jsonify(pipeline_schema.dump(pipeline))
-
 
     @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
     def pipelines_get(project_uuid):
@@ -983,7 +983,6 @@ def register_views(app, db):
 
         return json_string, 200, {"content-type": "application/json"}
 
-
     @app.route(
         "/async/notebook_html/<project_uuid>/<pipeline_uuid>/<step_uuid>",
         methods=["GET"],
@@ -1032,7 +1031,6 @@ def register_views(app, db):
                 )
                 return return_404("Could not find notebook file %s" % notebook_path)
 
-
     @app.route(
         "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]
     )
@@ -1063,7 +1061,9 @@ def register_views(app, db):
             create_pipeline_files(pipeline_json, pipeline_directory, project_uuid)
 
             # side effect: for each Notebook in de pipeline.json set the correct kernel
-            pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid)
+            pipeline_set_notebook_kernels(
+                pipeline_json, pipeline_directory, project_uuid
+            )
 
             with open(pipeline_json_path, "w") as json_file:
                 json_file.write(json.dumps(pipeline_json, indent=2))
@@ -1089,16 +1089,17 @@ def register_views(app, db):
 
             return ""
 
-
-    @app.route("/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>", methods=["GET"])
+    @app.route(
+        "/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>",
+        methods=["GET"],
+    )
     def pipeline_cwd(project_uuid, pipeline_uuid):
-        
+
         pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
         project_dir = get_project_directory(project_uuid)
         cwd = pipeline_dir.replace(project_dir, "")
 
         return jsonify({"cwd": cwd})
-
 
     @app.route("/async/file-picker-tree/<project_uuid>", methods=["GET"])
     def get_file_picker_tree(project_uuid):
@@ -1110,12 +1111,7 @@ def register_views(app, db):
         if not os.path.isdir(project_dir):
             return jsonify({"message": "Project dir %s not found." % project_dir}), 404
 
-        tree = {
-            "type": "directory",
-            "root": True,
-            "name": "/",
-            "children": []
-        }
+        tree = {"type": "directory", "root": True, "name": "/", "children": []}
 
         dir_nodes = {}
 
@@ -1152,13 +1148,14 @@ def register_views(app, db):
                     try:
                         dir_nodes[root]["children"].append(file_node)
                     except KeyError as e:
-                        logging.error("Key %s does not exist in dir_nodes %s. Error: %s" % (root, dir_nodes, e))
+                        logging.error(
+                            "Key %s does not exist in dir_nodes %s. Error: %s"
+                            % (root, dir_nodes, e)
+                        )
                     except Exception as e:
                         logging.error("Error: %e" % e)
 
-
         return jsonify(tree)
-
 
     @app.route("/async/project-files/create/<project_uuid>", methods=["POST"])
     def create_project_file(project_uuid):
@@ -1174,13 +1171,14 @@ def register_views(app, db):
             return jsonify({"message": "File already exists."}), 409
 
         try:
-            open(file_path, 'a').close()
+            open(file_path, "a").close()
             return jsonify({"message": "File created."})
         except IOError as e:
             logging.error("Could not create file at %s. Error: %s" % (file_path, e))
 
-
-    @app.route("/async/project-files/exists/<project_uuid>/<pipeline_uuid>", methods=["POST"])
+    @app.route(
+        "/async/project-files/exists/<project_uuid>/<pipeline_uuid>", methods=["POST"]
+    )
     def project_file_exists(project_uuid, pipeline_uuid):
         """Check whether file exists"""
 

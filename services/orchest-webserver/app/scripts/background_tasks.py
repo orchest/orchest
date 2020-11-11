@@ -19,16 +19,29 @@ def git_clone_project(args):
     url = args.url
     project_name = args.path
 
-    # just something to avoid collision
-    tmp_path = f"/tmp/git_clone_project/{str(uuid.uuid4())}/{project_name}"
+    # avoid collision
+    tmp_path = f"/tmp/{str(uuid.uuid4())}/"
+    os.mkdir(tmp_path)
 
     try:
-        exit_code = os.system(f"git clone {url} {tmp_path}")
+        os.chdir(tmp_path)
+        exit_code = os.system(f"git clone {url}")
         msg = "successfully cloned"
         if exit_code != 0:
             msg = "git clone failed"
         else:
-            exit_code = os.system(f"mv {tmp_path} /userdir/projects")
+            res = os.listdir(tmp_path)
+            print(res)
+            from_path = os.path.join(tmp_path, res[0])
+            if project_name:
+                to_path = f"/userdir/projects/{project_name}"
+                if not os.path.exists(to_path):
+                    exit_code = os.system(f"mv {from_path} {to_path}")
+                else:
+                    exit_code = 1
+            else:
+                exit_code = os.system(f"mv {from_path} /userdir/projects/")
+
             if exit_code != 0:
                 msg = "project move failed"
     # cleanup the tmp directory in any case
@@ -46,7 +59,7 @@ if __name__ == "__main__":
         "--type", required=True, type=str, help="type of background tasks"
     )
     parser.add_argument(
-        "--uuid", required=True, type=str, help="A uuid. Semantics depend on the task"
+        "--uuid", required=True, type=str, help="uuid of the background task. "
     )
     parser.add_argument(
         "--url", required=False, type=str, help="A URL. Semantics depend on the task"
