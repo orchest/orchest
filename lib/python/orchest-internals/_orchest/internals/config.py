@@ -30,14 +30,14 @@ ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
 DEFAULT_ENVIRONMENTS = [
     {
         "name": "custom-base-kernel-py",
-        "base_image": "orchestsoftware/custom-base-kernel-py", 
+        "base_image": "orchest/custom-base-kernel-py",
         "language": "python",
         "startup_script": "",
         "gpu_support": False,
     },
     {
         "name": "custom-base-kernel-r",
-        "base_image": "orchestsoftware/custom-base-kernel-r", 
+        "base_image": "orchest/custom-base-kernel-r",
         "language": "r",
         "startup_script": "",
         "gpu_support": False,

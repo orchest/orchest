@@ -182,9 +182,7 @@ def get_application_url():
         print(e)
         return ""
 
-    port = config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"][
-        "80/tcp"
-    ]
+    port = config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"]["80/tcp"]
     return "http://localhost:%i" % port
 
 
@@ -199,7 +197,7 @@ def dev_mount_inject(container_spec):
     HOST_REPO_DIR = os.environ.get("HOST_REPO_DIR")
 
     # orchest-webserver
-    orchest_webserver_spec = container_spec["orchestsoftware/orchest-webserver:latest"]
+    orchest_webserver_spec = container_spec["orchest/orchest-webserver:latest"]
     orchest_webserver_spec["mounts"] += [
         {
             "source": os.path.join(
@@ -215,7 +213,7 @@ def dev_mount_inject(container_spec):
     orchest_webserver_spec["command"] = ["./debug.sh"]
 
     # auth-server
-    orchest_auth_server_spec = container_spec["orchestsoftware/auth-server:latest"]
+    orchest_auth_server_spec = container_spec["orchest/auth-server:latest"]
     orchest_auth_server_spec["mounts"] += [
         {
             "source": os.path.join(HOST_REPO_DIR, "services", "auth-server", "app"),
@@ -233,7 +231,7 @@ def dev_mount_inject(container_spec):
     ]
 
     # file-manager
-    file_manager_spec = container_spec["orchestsoftware/file-manager:latest"]
+    file_manager_spec = container_spec["orchest/file-manager:latest"]
     file_manager_spec["mounts"] += [
         {
             "source": os.path.join(HOST_REPO_DIR, "services", "file-manager", "static"),
@@ -242,7 +240,7 @@ def dev_mount_inject(container_spec):
     ]
 
     # orchest-api
-    orchest_api_spec = container_spec["orchestsoftware/orchest-api:latest"]
+    orchest_api_spec = container_spec["orchest/orchest-api:latest"]
     orchest_api_spec["mounts"] += [
         {
             "source": os.path.join(HOST_REPO_DIR, "services", "orchest-api", "app"),

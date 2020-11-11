@@ -444,8 +444,8 @@ def _get_mounts(
     # are the only ones that use kernels.
     if host_userdir is not None:
         source_kernelspecs = os.path.join(
-            host_userdir, 
-            _config.KERNELSPECS_PATH.format(project_uuid=project_uuid))
+            host_userdir, _config.KERNELSPECS_PATH.format(project_uuid=project_uuid)
+        )
 
         mounts["kernelspec"] = Mount(
             target="/usr/local/share/jupyter/kernels",
@@ -512,7 +512,7 @@ def _get_container_specs(
     mounts = _get_mounts(uuid, project_uuid, project_dir, host_userdir)
 
     container_specs["memory-server"] = {
-        "image": "orchestsoftware/memory-server:latest",
+        "image": "orchest/memory-server:latest",
         "detach": True,
         "mounts": [mounts["project_dir"], mounts["temp_volume"]],
         # TODO: name not unique... and uuid cannot be used.
@@ -525,7 +525,7 @@ def _get_container_specs(
     # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
     # started by the EG are on the same docker network as the EG.
     container_specs["jupyter-EG"] = {
-        "image": "orchestsoftware/jupyter-enterprise-gateway",  # TODO: make not static.
+        "image": "orchest/jupyter-enterprise-gateway",  # TODO: make not static.
         "detach": True,
         "mounts": [mounts.get("docker_sock"), mounts.get("kernelspec")],
         "name": f"jupyter-EG-{project_uuid}-{uuid}",
@@ -550,7 +550,7 @@ def _get_container_specs(
 
     # Run Jupyter server container.
     container_specs["jupyter-server"] = {
-        "image": "orchestsoftware/jupyter-server:latest",  # TODO: make not static.
+        "image": "orchest/jupyter-server:latest",  # TODO: make not static.
         "detach": True,
         "mounts": [mounts["project_dir"]],
         "name": f"jupyter-server-{project_uuid}-{uuid}",

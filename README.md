@@ -13,27 +13,29 @@
 
 [![Join us on Slack](https://img.shields.io/badge/%20-Join%20us%20on%20Slack-blue?style=for-the-badge&logo=slack&labelColor=5c5c5c)](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
-Orchest is a web based data science tool that works on top of your filesystem allowing you to use
-your editor of choice. With Orchest you get to focus on visually building and iterating on your
-pipeline ideas. Under the hood Orchest runs a collection of containers to provide a scalable
-platform that can run on your laptop as well as on a large scale cloud cluster.
+Orchest is a web based tool for creating data science pipelines. Under the hood Orchest runs a
+collection of containers to provide a scalable platform that can run on your laptop as well as on a
+large scale cloud cluster.
 
-Orchest lets you
+Orchest lets you:
 
-- Interactively build data science pipelines through its visual interface.
-- Automatically run your pipelines in parallel.
-- Develop your code in your favorite editor. Everything is filesystem based.
-- Tag the notebooks cells you want to skip when running a pipeline. Perfect for prototyping as you
-  do not have to maintain a perfectly clean notebook.
-- Run experiments by parametrizing your pipeline. Easily try out all of your modeling ideas.
+- Visually construct pipelines.
+- Write code using JupyterLab.
+- Write code using any other editor of choice.
+- Run any subset of a pipeline.
+- Skip certain cells when executing a notebook top-to-bottom.
+- Parametrize your data science pipelines to experiment with different modeling ideas.
+- Integrate commonly used data sources.
+- Easily define your custom runtime environment.
+- Version your pipelines through git.
 
-## Table of contents
+## Preview
 
-- [Installation](#installation)
-- [Preview](#preview)
-- [License](#license)
-- [Contributing](#contributing)
-- [We love your feedback](#we-love-your-feedback)
+In our docs you can find a comprehensive
+[quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html) tutorial!
+
+![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
+_A preview of running pipelines in the pipeline editor of Orchest._
 
 ## Installation
 
@@ -62,19 +64,19 @@ cd orchest
 
 # Verify the installation. This should print the help message.
 ./orchest
+
 ```
 
 > **NOTE:** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
 > the Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
 > visit https://docs.docker.com/docker-for-windows/wsl/.
 
-## Preview
+## Starting Orchest
 
-In our docs you can find a comprehensive
-[quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html) tutorial!
-
-![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
-_A preview of running pipelines in the pipeline editor of Orchest_
+```bash
+# Make sure to be in the cloned "orchest" directory.
+./orchest start
+```
 
 ## License
 
@@ -93,4 +95,4 @@ for more details.
 ## We love your feedback
 
 We would love to hear what you think and potentially add features based on your ideas. Come chat
-with us on [Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
+with us on [our Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).

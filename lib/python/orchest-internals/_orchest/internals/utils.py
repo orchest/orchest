@@ -17,7 +17,7 @@ def get_mount(source, target, form="docker-sdk"):
 def run_orchest_ctl(client, command):
 
     return client.containers.run(
-        "orchestsoftware/orchest-ctl:latest",
+        "orchest/orchest-ctl:latest",
         command,
         name="orchest-ctl-" + str(uuid.uuid4()),
         detach=True,
@@ -66,9 +66,9 @@ def get_environment_capabilities(environment_uuid, project_uuid):
 
     try:
         response = requests.get(
-            "http://orchest-webserver/store/environments/%s/%s" % (
-                project_uuid, 
-                environment_uuid))
+            "http://orchest-webserver/store/environments/%s/%s"
+            % (project_uuid, environment_uuid)
+        )
 
         response.raise_for_status()
 
