@@ -43,7 +43,7 @@ def start():
     # Dynamically mount certs directory based on whether it exists in
     # nginx-proxy directory on host
     if proxy_certs_exist_on_host():
-        CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["mounts"].append(
+        CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["mounts"].append(
             {
                 "source": os.path.join(
                     config.ENVS["HOST_REPO_DIR"], "services", "nginx-proxy", "certs"
@@ -53,7 +53,7 @@ def start():
         )
     else:
         # in case no certs are found don't expose 443 on host
-        del CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["443/tcp"]
+        del CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"]["443/tcp"]
 
     if config.RUN_MODE == "dev":
         logging.info(
@@ -98,8 +98,12 @@ def start():
     utils.log_server_url()
 
 
-def stop(skip_names=[]):
-    typer.echo("[Shutdown]: ...")
+def stop(skip_names=[], trace=None):
+    # We do not want to print the shutdown in case stop is not called
+    # directly as it is possible that Orchest is not even running. The
+    # user should use verbosity flags instead.
+    if trace is None:
+        typer.echo("[Shutdown]: ...")
 
     # always skip orchest-ctl
     skip_names.append("orchest-ctl")
@@ -162,7 +166,7 @@ def status():
 def _updateserver():
     logging.info("Starting Orchest update service")
 
-    container_image = "orchestsoftware/update-server:latest"
+    container_image = "orchest/update-server:latest"
     container_spec = CONTAINER_MAPPING.get(container_image, {})
     run_config = utils.convert_to_run_config(container_image, container_spec)
 
@@ -180,7 +184,7 @@ def update():
     should_restart = utils.is_orchest_running()
 
     if config.UPDATE_MODE != "web":
-        stop()
+        stop(trace="update")
     else:
         # Both nginx-proxy/update-server are left running
         # during the update to support _updateserver

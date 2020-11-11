@@ -54,77 +54,77 @@ jobs:
       - name: Push README files to DockerHub nginx-proxy
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/nginx-proxy
+          DOCKERHUB_REPOSITORY: orchest/nginx-proxy
           README_FILEPATH: services/nginx-proxy/README.md
 
       - name: Push README files to DockerHub celery-worker
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/celery-worker
+          DOCKERHUB_REPOSITORY: orchest/celery-worker
           README_FILEPATH: services/orchest-api/README.md
 
       - name: Push README files to DockerHub orchest-ctl
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/orchest-ctl
+          DOCKERHUB_REPOSITORY: orchest/orchest-ctl
           README_FILEPATH: services/orchest-ctl/README.md
 
       - name: Push README files to DockerHub custom-base-kernel-r
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/custom-base-kernel-r
+          DOCKERHUB_REPOSITORY: orchest/custom-base-kernel-r
           README_FILEPATH: services/custom-images/custom-base-kernel-r/README.md
 
       - name: Push README files to DockerHub custom-base-kernel-py
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/custom-base-kernel-py
+          DOCKERHUB_REPOSITORY: orchest/custom-base-kernel-py
           README_FILEPATH: services/custom-images/custom-base-kernel-py/README.md
 
       - name: Push README files to DockerHub orchest-api
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/orchest-api
+          DOCKERHUB_REPOSITORY: orchest/orchest-api
           README_FILEPATH: services/orchest-api/README.md
 
       - name: Push README files to DockerHub jupyter-server
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/jupyter-server
+          DOCKERHUB_REPOSITORY: orchest/jupyter-server
           README_FILEPATH: services/jupyter-server/README.md
 
       - name: Push README files to DockerHub jupyter-enterprise-gateway
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/jupyter-enterprise-gateway
+          DOCKERHUB_REPOSITORY: orchest/jupyter-enterprise-gateway
           README_FILEPATH: services/jupyter-enterprise-gateway/README.md
 
       - name: Push README files to DockerHub orchest-webserver
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/orchest-webserver
+          DOCKERHUB_REPOSITORY: orchest/orchest-webserver
           README_FILEPATH: services/orchest-webserver/README.md
 
       - name: Push README files to DockerHub memory-server
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/memory-server
+          DOCKERHUB_REPOSITORY: orchest/memory-server
           README_FILEPATH: services/memory-server/README.md
 
       - name: Push README files to DockerHub auth-server
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/auth-server
+          DOCKERHUB_REPOSITORY: orchest/auth-server
           README_FILEPATH: services/auth-server/README.md
 
       - name: Push README files to DockerHub update-server
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/update-server
+          DOCKERHUB_REPOSITORY: orchest/update-server
           README_FILEPATH: services/update-server/README.md
 
       - name: Push README files to DockerHub file-manager
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchestsoftware/file-manager
+          DOCKERHUB_REPOSITORY: orchest/file-manager
           README_FILEPATH: services/file-manager/README.md

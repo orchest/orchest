@@ -15,30 +15,30 @@ DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 
 # All the images that are used by Orchest.
 ALL_IMAGES = [
-    "orchestsoftware/jupyter-enterprise-gateway:latest",
-    "orchestsoftware/jupyter-server:latest",
-    "orchestsoftware/custom-base-kernel-py:latest",
-    "orchestsoftware/custom-base-kernel-r:latest",
-    "orchestsoftware/memory-server:latest",
-    "orchestsoftware/orchest-ctl:latest",
-    "orchestsoftware/update-server:latest",
-    "orchestsoftware/orchest-api:latest",
-    "orchestsoftware/orchest-webserver:latest",
-    "orchestsoftware/celery-worker:latest",
-    "orchestsoftware/auth-server:latest",
-    "orchestsoftware/file-manager:latest",
-    "orchestsoftware/nginx-proxy:latest",
+    "orchest/jupyter-enterprise-gateway:latest",
+    "orchest/jupyter-server:latest",
+    "orchest/custom-base-kernel-py:latest",
+    "orchest/custom-base-kernel-r:latest",
+    "orchest/memory-server:latest",
+    "orchest/orchest-ctl:latest",
+    "orchest/update-server:latest",
+    "orchest/orchest-api:latest",
+    "orchest/orchest-webserver:latest",
+    "orchest/celery-worker:latest",
+    "orchest/auth-server:latest",
+    "orchest/file-manager:latest",
+    "orchest/nginx-proxy:latest",
     "rabbitmq:3",
 ]
 
 # Images to be run on start of Orchest.
 ON_START_IMAGES = [
-    "orchestsoftware/orchest-api:latest",
-    "orchestsoftware/orchest-webserver:latest",
-    "orchestsoftware/celery-worker:latest",
-    "orchestsoftware/auth-server:latest",
-    "orchestsoftware/file-manager:latest",
-    "orchestsoftware/nginx-proxy:latest",
+    "orchest/orchest-api:latest",
+    "orchest/orchest-webserver:latest",
+    "orchest/celery-worker:latest",
+    "orchest/auth-server:latest",
+    "orchest/file-manager:latest",
+    "orchest/nginx-proxy:latest",
     "rabbitmq:3",
 ]
 
@@ -52,7 +52,7 @@ for var_name in REQUIRED_ENV_VARS:
 
 
 CONTAINER_MAPPING = {
-    "orchestsoftware/orchest-api:latest": {
+    "orchest/orchest-api:latest": {
         "environment": {},
         "command": None,
         "name": "orchest-api",
@@ -67,7 +67,7 @@ CONTAINER_MAPPING = {
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
         ],
     },
-    "orchestsoftware/orchest-webserver:latest": {
+    "orchest/orchest-webserver:latest": {
         "name": "orchest-webserver",
         "environment": {
             "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
@@ -81,7 +81,7 @@ CONTAINER_MAPPING = {
             {"source": ENVS["HOST_REPO_DIR"], "target": "/orchest-host"},
         ],
     },
-    "orchestsoftware/celery-worker:latest": {
+    "orchest/celery-worker:latest": {
         "name": "celery-worker",
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
@@ -104,7 +104,7 @@ CONTAINER_MAPPING = {
             }
         ],
     },
-    "orchestsoftware/auth-server:latest": {
+    "orchest/auth-server:latest": {
         "name": "auth-server",
         "environment": {},
         "mounts": [
@@ -112,16 +112,16 @@ CONTAINER_MAPPING = {
             {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
         ],
     },
-    "orchestsoftware/file-manager:latest": {
+    "orchest/file-manager:latest": {
         "name": "file-manager",
         "mounts": [{"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},],
     },
-    "orchestsoftware/nginx-proxy:latest": {
+    "orchest/nginx-proxy:latest": {
         "name": "nginx-proxy",
         "ports": {"80/tcp": 8000, "443/tcp": 443,},
         "mounts": [],  # dynamically added in start() based on presence of certs on host
     },
-    "orchestsoftware/update-server:latest": {
+    "orchest/update-server:latest": {
         "name": "update-server",
         "environment": {
             "HOST_USER_DIR": ENVS["HOST_USER_DIR"],

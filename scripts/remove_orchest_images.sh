@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker rmi $(docker images |grep 'orchestsoftware')
+docker rmi $(docker images |grep 'orchest')

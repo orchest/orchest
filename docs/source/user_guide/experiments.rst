@@ -1,6 +1,15 @@
+.. _experiments:
+
 Experiments
 ===========
 
+Concepts
+--------
+.. For reproducibility we make a full snapshot by copying the project directory. So make sure to put
+   data in `/data` or some other data source, otherwise it will be copied for experiments.
+
+Run an experiment
+-----------------
 Before we get into experiments, it is good to first cover the notion of parameterizing your pipeline
 steps.
 

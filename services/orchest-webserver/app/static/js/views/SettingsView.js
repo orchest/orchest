@@ -3,6 +3,7 @@ import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import { makeRequest, checkHeartbeat } from "../lib/utils/all";
 import UpdateView from "./UpdateView";
+import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";
 require("codemirror/mode/javascript/javascript");
 
@@ -45,6 +46,10 @@ class SettingsView extends React.Component {
         config: data,
       });
     });
+  }
+
+  onClickManageUsers(){
+    orchest.loadView(ManageUsersView);
   }
 
   saveConfig(config) {
@@ -232,6 +237,13 @@ class SettingsView extends React.Component {
             }
           })()}
         </div>
+
+        <h2>Authentication</h2>
+        <MDCButtonReact 
+          onClick={this.onClickManageUsers.bind(this)} 
+          icon="people" 
+          label="Manage users" />
+
       </div>
     );
   }

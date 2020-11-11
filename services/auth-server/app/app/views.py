@@ -96,7 +96,10 @@ def register_views(app):
             user = User.query.filter(User.username == username).first()
 
             if user is None:
-                return "", 401
+                context = static_render_context()
+                context["login_failed_reason"] = "Incorrect username or password."
+
+                return render_template("login.html", **context)
             else:
                 if check_password_hash(user.password_hash, password):
 
@@ -119,9 +122,7 @@ def register_views(app):
                     return "", 401
 
         else:
-
-            context = static_render_context()
-            return render_template("login.html", **context)
+            return render_template("login.html", **static_render_context())
 
     @app.route("/login/admin", methods=["GET", "POST"])
     def admin():
