@@ -233,7 +233,7 @@ def clear_folder(folder):
 
 def remove_dir_if_empty(path):
     if os.path.isdir(path) and not os.listdir(path):
-        os.system("rm -r %s" % (path))
+        shutil.rmtree(path)
 
 
 def pipeline_uuid_to_path(pipeline_uuid, project_uuid):
