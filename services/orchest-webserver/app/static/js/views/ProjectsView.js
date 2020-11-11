@@ -238,6 +238,7 @@ class ProjectsView extends React.Component {
 
   onSubmitImport(){
     let gitURL = this.refManager.refs.gitURLTextField.mdc.value;
+    let gitProjectName = this.refManager.refs.gitProjectNameTextField.mdc.value;
 
     if(!validURL(gitURL) || !gitURL.startsWith("https://")){
       orchest.alert("Error", "Please make sure you enter a valid HTTPS git-repo URL.");
@@ -252,7 +253,7 @@ class ProjectsView extends React.Component {
 
     makeRequest("POST", `/async/projects/import-git`, {
       type: "json",
-      content: {gitURL: gitURL}
+      content: {url: gitURL, project_name: gitProjectName}
     }).then((response) => {
       let data = JSON.parse(response);
 
@@ -290,9 +291,15 @@ class ProjectsView extends React.Component {
 
                   <p className="push-down">Import a <span className='code'>git</span> by specifying the <span className='code'>HTTPS</span> URL below:</p>
                   <MDCTextFieldReact
-                    classNames={["fullwidth"]}
+                    classNames={["fullwidth push-down"]}
                     label="Git repository URL"
                     ref={this.refManager.nrefs.gitURLTextField}
+                  />
+
+                  <MDCTextFieldReact
+                    classNames={["fullwidth"]}
+                    label="Project name (optional)"
+                    ref={this.refManager.nrefs.gitProjectNameTextField}
                   />
 
                   {(() => {
