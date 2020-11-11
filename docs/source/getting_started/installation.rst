@@ -65,15 +65,14 @@ GPU support
 **Linux** (supported)
 
 For GPU images the host on which Orchest is running is required to have a GPU driver that is
-compatible with the CUDA version installed in the image.
-Compatible version pairs can be found `here
+compatible with the CUDA version installed in the image.  Compatible version pairs can be found
+`here
 <https://docs.nvidia.com/deploy/cuda-compatibility/index.html#binary-compatibility__table-toolkit-driver>`_.
 
-The ``orchest/custom-base-kernel-py-gpu`` includes CUDA Toolkit 10.1. Which
+The GPU supported image ``orchest/custom-base-kernel-py-gpu`` includes CUDA Toolkit 10.1. Which
 requires the NVIDIA driver on the host to be ``>= 418.39``.
 
-To find out which version of the NVIDIA driver you have installed on your host
-run ``nvidia-smi``. 
+To find out which version of the NVIDIA driver you have installed on your host run ``nvidia-smi``.
 
 ``nvidia-smi`` is also available from within the GPU enabled image. Please note that when run from
 within the container it reports the CUDA Toolkit version installed on the *host*. To find out the
@@ -81,12 +80,12 @@ CUDA Toolkit version installed in the container image run ``cat /usr/local/cuda/
 
 Additionally, we require the ``nvidia-container`` package to make sure Docker is able to provide GPU
 enabled containers. Installation of the nvidia-container is done using ``apt-get install
-nvidia-container-runtime``. 
+nvidia-container-runtime``.
 
-Please refer to the `Docker documentation
-<https://docs.docker.com/config/containers/resource_constraints/#gpu>`_ for the
-most up to date instructions on installing Docker with NVIDIA GPU passthrough
-supports.
+.. seealso::
+
+    `Docker GPU documentation <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_
+        Most up to date instructions on installing Docker with NVIDIA GPU passthrough support.
 
 **Windows WSL 2** (supported)
 
