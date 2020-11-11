@@ -565,7 +565,7 @@ def register_views(app, db):
     def version():
 
         git_proc = subprocess.Popen(
-            "echo \"git commit: $(git rev-parse --short HEAD) [$(git rev-parse HEAD)] on branch '$(git rev-parse --abbrev-ref HEAD)'\"",
+            'echo "$(git describe --abbrev=0 --tags) "',
             cwd="/orchest-host",
             shell=True,
             stdout=subprocess.PIPE,

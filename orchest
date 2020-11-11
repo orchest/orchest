@@ -38,8 +38,8 @@ if [ "$1" == "update" ] ; then
                 echo "Cancelled by user. Exiting ..."
                 exit
             fi
-        update_orchest_ctl
         fi
+        update_orchest_ctl
     fi
 fi
 # End of warnings
