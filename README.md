@@ -7,7 +7,7 @@
 
 [Website](https://www.orchest.io) —
 [Docs](https://orchest.readthedocs.io/en/latest/) —
-[Quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html)
+[Quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html)
 
 ---
 
@@ -37,11 +37,14 @@ Orchest lets you
 
 ## Installation
 
-**Note!** Orchest is in alpha.
+> **NOTE:** Orchest is in alpha.
+
+For GPU support and other installation methods, such as building from source, refer to our
+[installation docs](https://orchest.readthedocs.io/en/latest/getting_started/installation.html).
 
 #### Requirements
 
-- Docker (tested on 19.03.9)
+- Docker
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
@@ -53,19 +56,22 @@ Simply follow the steps below to install Orchest. For Windows, please read the n
 git clone https://github.com/orchest/orchest.git
 cd orchest
 
-# The start command will automatically install Orchest if it is not
-# yet installed. After installation is finished Orchest is started
-./orchest start
+# The update command is used both for installation and updating to
+# the newest release.
+./orchest update
+
+# Verify the installation. This should print the help message.
+./orchest
 ```
 
-**Note!** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
-the Linux environment. For more info about Docker with WSL 2, please visit
-https://docs.docker.com/docker-for-windows/wsl/.
+> **NOTE:** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
+> the Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
+> visit https://docs.docker.com/docker-for-windows/wsl/.
 
 ## Preview
 
 In our docs you can find a comprehensive
-[quickstart](https://orchest.readthedocs.io/en/latest/quickstart.html) tutorial!
+[quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html) tutorial!
 
 ![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
 _A preview of running pipelines in the pipeline editor of Orchest_
@@ -81,7 +87,7 @@ The software in this repository is licensed as follows:
 ## Contributing
 
 Contributions are more than welcome! Please see our
-[contributer guides](https://orchest.readthedocs.io/en/latest/development/contributer_guides.html)
+[contributer guides](https://orchest.readthedocs.io/en/latest/developer_guide/contributing.html)
 for more details.
 
 ## We love your feedback
