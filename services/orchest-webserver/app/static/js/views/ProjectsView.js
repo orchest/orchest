@@ -250,7 +250,7 @@ class ProjectsView extends React.Component {
       }
     })
 
-    makeRequest("POST", `/async/projects/git-import`, {
+    makeRequest("POST", `/async/projects/import-git`, {
       type: "json",
       content: {gitURL: gitURL}
     }).then((response) => {

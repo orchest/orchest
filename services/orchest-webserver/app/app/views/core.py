@@ -52,7 +52,8 @@ from app.schemas import (
     PipelineSchema,
     DataSourceSchema,
     EnvironmentSchema,
-    ExperimentSchema
+    ExperimentSchema,
+    BackgroundTaskSchema,
 )
 from app.kernel_manager import populate_kernels
 from app.views.orchest_api import api_proxy_environment_builds
@@ -64,6 +65,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def register_views(app, db):
+
+    errors = {
+        "DataSourceNameInUse": {
+            "message": "A data source with this name already exists.",
+            "status": 409,
+        },
+    }
 
     api = Api(app, errors=errors)
 
@@ -287,20 +295,10 @@ def register_views(app, db):
             ExperimentResource, "/store/experiments/<string:experiment_uuid>"
         )
 
-    def register_rest(app, db):
 
-        errors = {
-            "DataSourceNameInUse": {
-                "message": "A data source with this name already exists.",
-                "status": 409,
-            },
-        }
-
-        register_datasources(db, api)
-        register_experiments(db, api)
-        register_environments(db, api)
-
-    register_rest(app, db)    
+    register_datasources(db, api)
+    register_experiments(db, api)
+    register_environments(db, api)
 
 
     def return_404(reason=""):
