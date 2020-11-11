@@ -11,7 +11,7 @@
                 "name": "python",
                 "display_name": "Python 3"
             },
-            "image": "orchestsoftware/scipy-notebook-augmented",
+            "image": "orchest/scipy-notebook-augmented",
             "experiment_json": "",
             "meta_data": {
                 "position": [
@@ -35,7 +35,7 @@
                 "name": "python",
                 "display_name": "Python 3"
             },
-            "image": "orchestsoftware/scipy-notebook-augmented",
+            "image": "orchest/scipy-notebook-augmented",
             "experiment_json": "",
             "meta_data": {
                 "position": [
@@ -54,7 +54,7 @@
                 "name": "python",
                 "display_name": "Python 3"
             },
-            "image": "orchestsoftware/scipy-notebook-augmented",
+            "image": "orchest/scipy-notebook-augmented",
             "experiment_json": "",
             "meta_data": {
                 "position": [

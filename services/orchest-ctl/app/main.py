@@ -92,7 +92,7 @@ def restart(
     """
     Restart Orchest.
     """
-    config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
+    config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
         "80/tcp": port,
         "443/tcp": 443,
     }

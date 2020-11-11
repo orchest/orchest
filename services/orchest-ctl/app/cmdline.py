@@ -43,7 +43,7 @@ def start():
     # Dynamically mount certs directory based on whether it exists in
     # nginx-proxy directory on host
     if proxy_certs_exist_on_host():
-        CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["mounts"].append(
+        CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["mounts"].append(
             {
                 "source": os.path.join(
                     config.ENVS["HOST_REPO_DIR"], "services", "nginx-proxy", "certs"
@@ -53,7 +53,7 @@ def start():
         )
     else:
         # in case no certs are found don't expose 443 on host
-        del CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"]["443/tcp"]
+        del CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"]["443/tcp"]
 
     if config.RUN_MODE == "dev":
         logging.info(
@@ -166,7 +166,7 @@ def status():
 def _updateserver():
     logging.info("Starting Orchest update service")
 
-    container_image = "orchestsoftware/update-server:latest"
+    container_image = "orchest/update-server:latest"
     container_spec = CONTAINER_MAPPING.get(container_image, {})
     run_config = utils.convert_to_run_config(container_image, container_spec)
 

@@ -42,7 +42,7 @@ def reg(
     \b
         orchest start [OPTIONS]
     """
-    config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
+    config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
         "80/tcp": port,
         "443/tcp": 443,
     }
@@ -63,7 +63,7 @@ def dev(
     in the Docker containers. This allows for active code changes being
     reflected inside the application.
     """
-    config.CONTAINER_MAPPING["orchestsoftware/nginx-proxy:latest"]["ports"] = {
+    config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
         "80/tcp": port,
         "443/tcp": 443,
     }
