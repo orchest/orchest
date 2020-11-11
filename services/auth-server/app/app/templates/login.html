@@ -1,5 +1,7 @@
 {% extends "base.html" %} {% block content %}
 
+<input type="hidden" name="LOGIN_FAILED" value="{{login_failed_reason}}" />
+
 <div id="app" data-view="Login"></div>
 
 {% endblock %}

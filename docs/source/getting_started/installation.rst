@@ -64,45 +64,52 @@ GPU support
 
 **Linux** (supported)
 
-.. TODO(rick/jacopo)
-   We need to give the user an overview of the CUDO version inside our base images. Otherwise
-   they will have to found out themselves. Additionally, we should provide the commands to find out
-   their driver version.
-
 For GPU images the host on which Orchest is running is required to have a GPU driver that is
 compatible with the CUDA version installed in the image.
-Compatible version paris can be found `here
+Compatible version pairs can be found `here
 <https://docs.nvidia.com/deploy/cuda-compatibility/index.html#binary-compatibility__table-toolkit-driver>`_.
 
-Additionally, we require the nvidia-container package to make sure docker is able to provide GPU
+The ``orchest/custom-base-kernel-py-gpu`` includes CUDA Toolkit 10.1. Which
+requires the NVIDIA driver on the host to be ``>= 418.39``.
+
+To find out which version of the NVIDIA driver you have installed on your host
+run ``nvidia-smi``. 
+
+``nvidia-smi`` is also available from within the GPU enabled image. Please note that when run from
+within the container it reports the CUDA Toolkit version installed on the *host*. To find out the
+CUDA Toolkit version installed in the container image run ``cat /usr/local/cuda/version.txt``.
+
+Additionally, we require the ``nvidia-container`` package to make sure Docker is able to provide GPU
 enabled containers. Installation of the nvidia-container is done using ``apt-get install
 nvidia-container-runtime``. 
 
 Please refer to the `Docker documentation
-<https://docs.docker.com/config/containers/resource_constraints/#gpu>`_ for the most up to date GPU
-enabled container setup.
+<https://docs.docker.com/config/containers/resource_constraints/#gpu>`_ for the
+most up to date instructions on installing Docker with NVIDIA GPU passthrough
+supports.
 
+**Windows WSL 2** (supported)
+
+For WSL 2 follow the `CUDA on WSL User Guide
+<https://docs.nvidia.com/cuda/wsl-user-guide/index.html>`_ provided by NVIDIA. 
+
+Please note that the "Docker Desktop WSL 2 backend" (meaning, you've installed Docker not
+directly in the WSL 2 environment but on the Windows host itself) does not
+support CUDA yet.
 
 **macOS** (not supported)
 
-Sadly, nvidia-docker does not support GPU enables images (see `FAQ
+Unfortunately, ``nvidia-docker`` does not support GPU enabled images on macOS (see `FAQ
 <https://github.com/NVIDIA/nvidia-docker/wiki/Frequently-Asked-Questions#is-macos-supported>`_ on
-nvidia-docker).
-
-**Windows WSL 2** (not yet supported)
-
-For WSL follow the `CUDA on WSL User Guide
-<https://docs.nvidia.com/cuda/wsl-user-guide/index.html>`_ provided by nvidia. 
-
-For WSL 2 however, the user guide states: "Note that NVIDIA Container Toolkit does not yet support
-Docker Desktop WSL 2 backend." 
+``nvidia-docker``).
 
 Run Orchest on the cloud
 ------------------------
-Running Orchest on the cloud does not require a special installation. Simply follow the
+Running Orchest on a cloud hosted VM (such as EC2) does not require a special installation. Simply follow the
 :ref:`regular installation process <regular installation>`.
 
-To enable SSL run ``scripts/letsencrypt-nginx.sh`` and restart Orchest ``./orchest restart``.
+To enable SSL run ``scripts/letsencrypt-nginx.sh <domain> <email>`` and restart Orchest ``./orchest restart``.
 
 Please refer to the :ref:`authentication section <authentication>` to enable the authentication
 server, giving you a login screen requiring a username and password before you can access Orchest.
+

@@ -52,10 +52,12 @@ Explanation of possible configuration settings:
 Authentication
 --------------
 
-.. TODO(rick)
-   Explain how to do authentication
+To enable user authentication in Orchest you need to set the ``AUTH_ENABLED``
+config option to ``true`` through Orchest settings pane or in the
+``config.json`` directly.
 
-Coming soon!
+Before enabling authentication, make sure you have created user accounts. Add
+and delete users in the settings pane by clicking *Manage users*.
 
 Tips and tricks
 ---------------

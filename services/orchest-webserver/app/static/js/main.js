@@ -3,6 +3,7 @@ import { MDCDrawer } from "@material/drawer";
 
 import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
+import ManageUsersView from "./views/ManageUsersView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
 import DataSourceEditView from "./views/DataSourceEditView";
@@ -51,6 +52,7 @@ function Orchest() {
     ExperimentsView,
     ExperimentView,
     CreateExperimentView,
+    ManageUsersView,
   };
 
   const drawer = MDCDrawer.attachTo(document.getElementById("main-drawer"));
