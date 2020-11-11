@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    PUT_ENDPOINT = " http://localhost/async/background-task"
+    PUT_ENDPOINT = " http://localhost/async/background-tasks"
 
     with requests.sessions.Session() as session:
         data = {"status": BackgroundTaskStatus.STARTED.name}

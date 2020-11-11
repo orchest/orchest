@@ -15,6 +15,8 @@ from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
+from subprocess import Popen
+
 
 from app.utils import (
     get_hash,
@@ -42,6 +44,7 @@ from app.models import (
     PipelineRun,
     Project,
     Pipeline,
+    BackgroundTask
 )
 
 from app.schemas import (
@@ -62,6 +65,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 def register_views(app, db):
 
+    api = Api(app, errors=errors)
+
     class DataSourceNameInUse(HTTPException):
         pass
 
@@ -79,7 +84,8 @@ def register_views(app, db):
 
     experiment_schema = ExperimentSchema()
     experiments_schema = ExperimentSchema(many=True)
-
+    
+    background_task_schema = BackgroundTaskSchema()
 
     def register_environments(db, api):
 
@@ -289,8 +295,6 @@ def register_views(app, db):
                 "status": 409,
             },
         }
-
-        api = Api(app, errors=errors)
 
         register_datasources(db, api)
         register_experiments(db, api)
@@ -740,12 +744,38 @@ def register_views(app, db):
             return "", 404
 
 
-    @app.route("/async/projects/git-import", methods=["POST"])
-    def git_import_project():
-        # TODO: implement
-        return jsonify({
-            "task_uuid": str(uuid.uuid4())
-        })
+    class ImportGitProjectListResource(Resource):
+        def post(self):
+            n_uuid = str(uuid.uuid4())
+            new_task = BackgroundTask(
+                task_uuid=n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
+            )
+            db.session.add(new_task)
+            db.session.commit()
+
+            # start the background process in charge of cloning
+            file_dir = os.path.dirname(os.path.realpath(__file__))
+            background_task_process = Popen(
+                [
+                    "python3",
+                    "-m",
+                    "scripts.background_tasks",
+                    "--type",
+                    "git_clone_project",
+                    "--uuid",
+                    n_uuid,
+                    "--url",
+                    request.json["url"],
+                    "--path",
+                    request.json["project_name"],
+                ],
+                cwd=os.path.join(file_dir, "../.."),
+                stderr=subprocess.STDOUT,
+            )
+
+            return background_task_schema.dump(new_task)
+
+    api.add_resource(ImportGitProjectListResource, "/async/projects/import-git")
 
 
     @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
