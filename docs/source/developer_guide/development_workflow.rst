@@ -1,6 +1,48 @@
 Development workflow
 ====================
 
+Prerequisites
+-------------
+
+* Docker
+
+Building
+--------
+Since Orchest is a fully containerized application you will first have to build the containers.
+
+.. code-block:: bash
+
+   # It is also possible to specify certain flags, running it without
+   # any will build all containers in parallel. Due to Docker's
+   # layering system this should be rather quick.
+   scripts/build_container.sh
+
+Incremental development
+-----------------------
+Orchest support incremental development by starting Orchest in ``dev`` mode. This allows you to make
+code changes that are instantly reflected, without having to build the containers again.
+
+.. code-block:: bash
+
+   # Before Orchest can be run in "dev" mode the front-end code has to
+   # be compiled.
+   scripts/dev_compile_frontend.sh
+
+   ./orchest start dev
+
+.. note::
+   ``dev`` mode is supported for the following services: ``orchest-webserver``, ``auth-server``,
+   ``file-manager`` and ``orchest-api``. For all other services you will have to run the build
+   script again to rebuild the container (``scripts/build_container.sh -i <service-name>``).
+
+In ``dev`` mode the repository code from the filesystem is mounted (and thus adhering to branches)
+to the appropriate paths in the Docker containers. This allows for active code changes being
+reflected inside the application. In ``dev`` mode the Flask applications are run in development
+mode. 
+
+
+Before committing
+-----------------
 Install all development dependencies using:
 
 .. code-block:: bash
@@ -8,33 +50,7 @@ Install all development dependencies using:
    # https://pre-commit.com/
    pre-commit install
 
-To start hacking on Orchest you simply have to clone the repo from GitHub and start Orchest in
-``dev`` mode:
-
-.. code-block:: bash
-
-   git clone https://github.com/orchest/orchest.git
-   cd orchest
-
-   # Before Orchest can be run in "dev" mode the front-end code has to
-   # be compiled.
-   scripts/dev_compile_frontend.sh
-
-   # Start Orchest in dev mode which mounts the repo code to the correct
-   # paths in the Docker containers to not require any rebuilds. In 
-   # addition, servers build on Flask are started in development mode.
-   ./orchest start dev
-
-``dev`` mode mounts the repository code from the filesystem (and thus adhering to branches) to the
-appropriate paths in the Docker containers. This allows for active code changes being reflected
-inside the application. In ``dev`` mode the Flask applications are run in development mode. The
-following services support ``dev`` mode (others would have to be rebuild to show code changes):
-``orchest-webserver``, ``auth-server``, ``file-manager`` and ``orchest-api``.
-
-Additional useful scripts are included in the root-level ``scripts/`` directory, such as
-``build_container.sh`` and ``run_tests.sh``.
-
-Before submitting pull requests, run lints and tests with:
+Run lints and tests with:
 
 .. code-block:: bash
 

@@ -1,6 +1,8 @@
 Architecture
 ============
 
-.. image:: img/orchest-architecture.png
-  :width: 800
-  :alt: Alternative text
+Common soon!
+
+.. .. image:: img/orchest-architecture.png
+..   :width: 800
+..   :alt: Alternative text

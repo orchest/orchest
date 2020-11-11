@@ -27,7 +27,7 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    :caption: Getting started
 
    getting_started/overview
-   getting_started/concepts
+   getting_started/orientation
    getting_started/installation
    getting_started/starting_orchest
    getting_started/quickstart

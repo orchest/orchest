@@ -1,4 +1,4 @@
-.. _features-data-sources:
+.. _data sources:
 
 Data sources
 ============

@@ -1,4 +1,9 @@
-"""Module to interact with the parameters inside the ``pipeline.json``."""
+"""Module to interact with the parameter values of pipeline steps.
+
+Parameters are stored in the corresponding pipeline definition file,
+e.g. ``pipeline.orchest``.
+
+"""
 import json
 from typing import Any, Dict
 

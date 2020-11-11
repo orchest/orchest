@@ -3,7 +3,7 @@
 Orchest SDK
 ===========
 
-SDK for interacting with Orchest. The Orchest SDK, lets you:
+Convenience wrapper to interact with Orchest. Through code the Orchest SDK, lets you:
 
 * Pass data between pipeline steps.
 * Interact with data sources.

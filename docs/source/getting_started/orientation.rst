@@ -1,6 +1,9 @@
 Orientation
 ===========
 
+.. TODO
+   Pretty much this entire section
+
 Orchest concepts
 ----------------
 
@@ -11,6 +14,12 @@ Orchest concepts
 
 How Orchest works
 -----------------
+
+The shell script ``orchest`` will mount the Docker socket to the ``orchest-ctl`` container to manage
+the local Docker containers necessary for running Orchest. In addition, the Docker socket is
+necessary for the dynamic spawning of containers that occurs when running individual pipeline steps.
+
+.. some
 
 Orchest runs as a collection of Docker containers and stores a global configuration file. The
 location for this config is ``~/.config/orchest/config.json``.
