@@ -1,7 +1,5 @@
 from flask_restful import Api, Resource
 from flask import request
-import os
-import uuid
 
 from app.models import BackgroundTask
 from app.schemas import BackgroundTaskSchema
