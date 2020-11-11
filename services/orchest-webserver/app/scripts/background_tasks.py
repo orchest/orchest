@@ -2,7 +2,6 @@ import argparse
 from enum import Enum
 import os
 import requests
-import uuid
 
 
 class BackgroundTaskStatus(Enum):
@@ -16,31 +15,29 @@ def git_clone_project(args):
     """Clone a git repo given a URL into the projects directory.
 
     """
-    url = args.url
-    project_name = args.path
-
-    # avoid collision
-    tmp_path = f"/tmp/{str(uuid.uuid4())}/"
-    os.mkdir(tmp_path)
 
     try:
+        # avoid collisions
+        tmp_path = f"/tmp/{args.uuid}/"
+        os.mkdir(tmp_path)
         os.chdir(tmp_path)
-        exit_code = os.system(f"git clone {url}")
-        msg = "successfully cloned"
+
+        # this way we clone in a directory with the name of the repo
+        # if the project_name is not provided
+        project_name = args.path
+        if not project_name:
+            project_name = ""
+
+        exit_code = os.system(f"git clone {args.url} {project_name}")
         if exit_code != 0:
             msg = "git clone failed"
         else:
+            msg = "successfully cloned"
+            # should be the only directory in there, also this way we
+            # get the directory without knowing the repo name if the project_name has not been provided
             res = os.listdir(tmp_path)
             from_path = os.path.join(tmp_path, res[0])
-            if project_name:
-                to_path = f"/userdir/projects/{project_name}"
-                if not os.path.exists(to_path):
-                    exit_code = os.system(f"mv {from_path} {to_path}")
-                else:
-                    exit_code = 1
-            else:
-                exit_code = os.system(f"mv {from_path} /userdir/projects/")
-
+            exit_code = os.system(f"mv {from_path} /userdir/projects/")
             if exit_code != 0:
                 msg = "project move failed"
     # cleanup the tmp directory in any case
