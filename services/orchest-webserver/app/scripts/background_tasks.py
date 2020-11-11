@@ -31,7 +31,6 @@ def git_clone_project(args):
             msg = "git clone failed"
         else:
             res = os.listdir(tmp_path)
-            print(res)
             from_path = os.path.join(tmp_path, res[0])
             if project_name:
                 to_path = f"/userdir/projects/{project_name}"
