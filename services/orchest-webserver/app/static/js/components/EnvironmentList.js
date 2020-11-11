@@ -71,7 +71,7 @@ class EnvironmentList extends React.Component {
     }
 
     this.setState({
-      environmentBuilds: environmentBuilds,
+      environmentBuilds: this.state.environmentBuilds,
       listData: this.processListData(this.state.environments),
     });
   }
@@ -111,28 +111,30 @@ class EnvironmentList extends React.Component {
     orchest.loadView(EnvironmentEditView, { project_uuid: this.props.project_uuid });
   }
 
-  removeEnvironment(project_uuid, environment_uuid) {
+  removeEnvironment(project_uuid, environment_uuid, environmentName) {
+
     // ultimately remove Image
     makeRequest("DELETE", `/store/environments/${project_uuid}/${environment_uuid}`)
-      .then((_) => {
-        // reload list once removal succeeds
-        this.fetchEnvironments();
-      })
-      .catch((e) => {
-        let errorMessage = "unknown";
-        try {
-          errorMessage = JSON.parse(e.body).message;
-        } catch (e) {
-          console.error(e);
-        }
-        orchest.alert(
-          "Error",
-          "Deleting environment '" +
-            this.state.environments[idx].name +
-            "' failed. Reason: " +
-            errorMessage
-        );
-      });
+    .then((_) => {
+      // reload list once removal succeeds
+      this.fetchEnvironments();
+    })
+    .catch((e) => {
+      let errorMessage = "unknown";
+      try {
+        errorMessage = JSON.parse(e.body).message;
+      } catch (e) {
+        console.error(e);
+      }
+      orchest.alert(
+        "Error",
+        "Deleting environment '" +
+          environmentName +
+          "' failed. Reason: " +
+          errorMessage
+      );
+    });
+    
   }
 
   onDeleteClick() {
@@ -151,7 +153,7 @@ class EnvironmentList extends React.Component {
 
           let environment_uuid = this.state.environments[idx].uuid;
           let project_uuid = this.state.environments[idx].project_uuid;
-          this.removeEnvironment(project_uuid, environment_uuid);
+          this.removeEnvironment(project_uuid, environment_uuid, this.state.environments[idx].name);
         });
       }
     );
