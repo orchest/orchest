@@ -41,9 +41,6 @@ def register_background_tasks_view(app, db):
 
     class ImportGitProjectListResource(Resource):
         def post(self):
-            # url = request.json["url"]
-            # project_name = request.json["project_name"]
-
             n_uuid = str(uuid.uuid4())
             new_task = BackgroundTask(
                 task_uuid=n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
