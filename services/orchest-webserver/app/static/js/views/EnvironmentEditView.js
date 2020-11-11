@@ -158,6 +158,9 @@ class EnvironmentEditView extends React.Component {
         if(data["action"] == "sio_streamed_task_output" && !this.state.ignoreIncomingLogs){
           let lines = data.output.split("\n");
           for(let x = 0; x < lines.length; x++){
+            if(lines[x] == ""){
+              continue;
+            }
             this.refManager.refs.term.terminal.writeln(lines[x]);
           }
         }
