@@ -1,7 +1,7 @@
 Overview
 ========
 
-.. TODO
+.. TODO(rick)
    Linking to the features in the user guide whilst showing cool images on this page. This attracts
    the user as they will instantly know what they can do with the product. Instead of just writing
    text, what no one likes to read. You cannot scan text.

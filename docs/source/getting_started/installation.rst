@@ -64,7 +64,8 @@ GPU support
 
 **Linux** (supported)
 
-.. TODO We need to give the user an overview of the CUDO version inside our base images. Otherwise
+.. TODO(rick/jacopo)
+   We need to give the user an overview of the CUDO version inside our base images. Otherwise
    they will have to found out themselves. Additionally, we should provide the commands to find out
    their driver version.
 

@@ -8,11 +8,9 @@ Orchest can be started using:
     # Make sure to be in the root-level orchest directly.
     ./orchest start
 
-To show the help output
+To show the help output, run ``./orchest --help``, example output:
 
-.. code-block:: bash
-
-    ./orchest --help
+.. code-block:: text
 
     Usage: orchest [OPTIONS] COMMAND [ARGS]...
 

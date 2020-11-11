@@ -1,6 +1,9 @@
 Installing additional packages
 ==============================
 
+.. TODO
+   This section needs to be updated to the latest environments feature
+
 Orchest runs all your individual pipeline steps (e.g. ``.ipynb`` or ``.R`` scripts) in
 containers. The default images are based on the |jupyter_stack_link| and come with a number of
 |pre_installed_link|.

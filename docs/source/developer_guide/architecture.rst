@@ -1,7 +1,7 @@
 Architecture
 ============
 
-Common soon!
+Coming soon!
 
 .. .. image:: img/orchest-architecture.png
 ..   :width: 800

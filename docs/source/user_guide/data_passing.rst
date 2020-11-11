@@ -8,5 +8,6 @@ convenience wrapper of the project to be used within Orchest.
 See the :ref:`data passing quickstart<sdk-quickstart-data-passing>` of the SDK to get started
 directly.
 
-.. TODO see the note in data passing at SDK quickstart. We need to tell how the Connections are
+.. TODO(yannick)
+   see the note in data passing at SDK quickstart. We need to tell how the Connections are
    handled and the order in which data is received.
