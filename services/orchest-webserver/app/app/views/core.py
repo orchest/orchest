@@ -502,7 +502,7 @@ def register_views(app, db):
         experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
 
         if os.path.isdir(experiment_path):
-            os.system("rm -r %s" % (experiment_path))
+            shutil.rmtree(experiment_path)
 
         # clean up parent directory if this experiment removal created empty directories
         remove_dir_if_empty(experiment_pipeline_path)
@@ -605,10 +605,7 @@ def register_views(app, db):
         ):
 
             pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
-
-            # TODO: find way to not force sudo remove on pipeline dirs
-            # protection: should always be at least length of pipeline UUID, should be careful because of rm -rf command
-            os.system("rm -rf %s" % pipeline_json_path)
+            os.remove(pipeline_json_path)
 
             pipeline = (
                 Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
@@ -801,7 +798,8 @@ def register_views(app, db):
 
                 project_path = project_uuid_to_path(project_uuid)
                 full_project_path = os.path.join(project_dir, project_path)
-                os.system("rm -r %s" % (full_project_path))
+
+                shutil.rmtree(full_project_path)
 
                 db.session.delete(project)
                 db.session.commit()

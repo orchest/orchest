@@ -247,8 +247,8 @@ def prepare_build_context(
 
     # make a snapshot of the project state
     snapshot_path = f"/tmp/{dockerfile_name}"
-    os.system("rm -rf %s" % snapshot_path)
-    os.system("cp -R %s %s" % (userdir_project_path, snapshot_path))
+    os.system("rm -rf \"%s\"" % snapshot_path)
+    os.system("cp -R \"%s\" \"%s\"" % (userdir_project_path, snapshot_path))
     # take the environment from the snapshot
     environment_path = os.path.join(
         snapshot_path, f".orchest/environments/{environment_uuid}"
