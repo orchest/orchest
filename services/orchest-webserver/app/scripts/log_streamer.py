@@ -54,7 +54,9 @@ def file_reader_loop(sio):
                 try:
                     read_emit_all_lines(file_handles[session_uuid], sio, session_uuid)
                 except Exception as e:
-                    logging.info("call to read_emit_all_lines failed %s (%s)" % (e, type(e)))
+                    logging.info(
+                        "call to read_emit_all_lines failed %s (%s)" % (e, type(e))
+                    )
 
         sio.sleep(0.01)
 
@@ -84,9 +86,10 @@ def read_emit_all_lines(file, sio, session_uuid):
         logging.warn("Could not read latest log file: %s" % e)
         return
     except Exception as e:
-        logging.error("Could not read latest_log_file for session_uuid[%s]" % session_uuid)
+        logging.error(
+            "Could not read latest_log_file for session_uuid[%s]" % session_uuid
+        )
         return
-
 
     if (
         read_log_uuid != log_file_store[session_uuid].log_uuid
@@ -226,7 +229,9 @@ def create_file_handle(log_file):
         file_handles[log_file.session_uuid] = file
         return True
     except IOError as ioe:
-        logging.error("Could not open log file for path %s. Error: %s" % (log_path, ioe))
+        logging.error(
+            "Could not open log file for path %s. Error: %s" % (log_path, ioe)
+        )
 
     return False
 
@@ -237,7 +242,10 @@ def close_file_handle(session_uuid):
     except IOError as exc:
         logging.debug("Error closing log file %s" % exc)
     except Exception as e:
-        logging.debug("close_file_handle filed for session_uuid[%s] with error: %s" % (session_uuid, e))
+        logging.debug(
+            "close_file_handle filed for session_uuid[%s] with error: %s"
+            % (session_uuid, e)
+        )
 
 
 def main():
@@ -282,7 +290,7 @@ def main():
                     log_file.experiment_uuid = data["experiment_uuid"]
 
                 if data["session_uuid"] not in log_file_store:
-                    
+
                     if create_file_handle(log_file):
                         log_file_store[data["session_uuid"]] = log_file
                         logging.info(
@@ -300,14 +308,14 @@ def main():
                     )
 
             elif data["action"] == "stop-logs":
-                session_uuid = data["session_uuid"]	
-                if session_uuid in log_file_store.keys():	
-                    clear_log_file(session_uuid)	
-                    logging.info(	
-                        "Removed session_uuid (%s). Sessions active: %d"	
-                        % (session_uuid, len(log_file_store))	
-                    )	
-                else:	
+                session_uuid = data["session_uuid"]
+                if session_uuid in log_file_store.keys():
+                    clear_log_file(session_uuid)
+                    logging.info(
+                        "Removed session_uuid (%s). Sessions active: %d"
+                        % (session_uuid, len(log_file_store))
+                    )
+                else:
                     logging.error(
                         "Tried removing session_uuid (%s) which is not in log_file_store."
                         % session_uuid

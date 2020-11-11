@@ -15,8 +15,12 @@ export default class Login extends React.Component {
             <br />
             <MDCButtonReact classNames={["mdc-button--raised"]} label="Login" />
             {(() => {
-              if(this.props.loginFailedReason.length > 0){
-                return <div className="error push-up">{this.props.loginFailedReason}</div>
+              if (this.props.loginFailedReason.length > 0) {
+                return (
+                  <div className="error push-up">
+                    {this.props.loginFailedReason}
+                  </div>
+                );
               }
             })()}
           </form>

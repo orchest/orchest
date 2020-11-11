@@ -93,7 +93,6 @@ class PipelineDetailsProperties extends React.Component {
   }
 
   onChangeFileName(updatedFileName) {
-
     this.state.step.file_path = updatedFileName;
 
     this.setState({
@@ -102,13 +101,12 @@ class PipelineDetailsProperties extends React.Component {
     });
 
     // block propagation for directory values
-    if(!updatedFileName.endsWith("/")){
+    if (!updatedFileName.endsWith("/")) {
       this.updateStepName();
       // refetch environment options as it changes depending on kernel type
       this.fetchEnvironmentOptions();
       this.props.onSave(this);
     }
-    
   }
 
   onChangeVCPUS(updatedVCPUS) {

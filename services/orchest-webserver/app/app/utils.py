@@ -16,13 +16,13 @@ from app.schemas import EnvironmentSchema
 
 # Directory resolves
 def get_pipeline_path(
-        pipeline_uuid,
-        project_uuid,
-        experiment_uuid=None,
-        pipeline_run_uuid=None,
-        host_path=False,
-        pipeline_path=None,
-    ):
+    pipeline_uuid,
+    project_uuid,
+    experiment_uuid=None,
+    pipeline_run_uuid=None,
+    host_path=False,
+    pipeline_path=None,
+):
     """Returns path to pipeline description file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
@@ -31,7 +31,7 @@ def get_pipeline_path(
 
     if pipeline_path is None:
         pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
-    
+
     project_path = project_uuid_to_path(project_uuid)
 
     if pipeline_run_uuid is None:
@@ -57,6 +57,7 @@ def get_pipeline_path(
             pipeline_path,
         )
 
+
 def get_pipeline_directory(
     pipeline_uuid,
     project_uuid,
@@ -76,6 +77,7 @@ def get_pipeline_directory(
         )
     )[0]
 
+
 def get_project_directory(project_uuid, host_path=False):
     USER_DIR = StaticConfig.USER_DIR
     if host_path == True:
@@ -83,12 +85,15 @@ def get_project_directory(project_uuid, host_path=False):
 
     return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
+
 def get_environment_directory(environment_uuid, project_uuid, host_path=False):
     return os.path.join(
-        get_project_directory(project_uuid, host_path), 
-        ".orchest", 
-        "environments", 
-        environment_uuid)
+        get_project_directory(project_uuid, host_path),
+        ".orchest",
+        "environments",
+        environment_uuid,
+    )
+
 
 # End of directory resolves
 
@@ -113,32 +118,36 @@ def get_environments(project_uuid, language=None):
                     if language == env.language:
                         environments.append(env)
     except FileNotFoundError as e:
-        logging.error("Could not find environments directory in project path %s" % environments_dir)
+        logging.error(
+            "Could not find environments directory in project path %s"
+            % environments_dir
+        )
     except Exception as e:
         logging.error(e)
 
     return environments
+
 
 def serialize_environment_to_disk(environment, env_directory):
 
     environment_schema = EnvironmentSchema()
 
     # treat startup_script separately
-    with open(os.path.join(env_directory, "properties.json"), 'w') as file:
+    with open(os.path.join(env_directory, "properties.json"), "w") as file:
         file.write(environment_schema.dumps(environment))
 
     # write startup_script
-    with open(os.path.join(env_directory, "startup_script.sh"), 'w') as file:
+    with open(os.path.join(env_directory, "startup_script.sh"), "w") as file:
         file.write(environment.startup_script)
 
 
 def read_environment_from_disk(env_directory):
 
     try:
-        with open(os.path.join(env_directory, "properties.json"), 'r') as file:
+        with open(os.path.join(env_directory, "properties.json"), "r") as file:
             env_dat = json.load(file)
 
-        with open(os.path.join(env_directory, "startup_script.sh"), 'r') as file:
+        with open(os.path.join(env_directory, "startup_script.sh"), "r") as file:
             startup_script = file.read()
 
         e = Environment(**env_dat)
@@ -146,7 +155,11 @@ def read_environment_from_disk(env_directory):
 
         return e
     except Exception as e:
-        logging.error("Could not environment from env_directory %s. Error: %s" % (env_directory, e))
+        logging.error(
+            "Could not environment from env_directory %s. Error: %s"
+            % (env_directory, e)
+        )
+
 
 # End of environments
 
@@ -228,7 +241,7 @@ def clear_folder(folder):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+            print("Failed to delete %s. Reason: %s" % (file_path, e))
 
 
 def remove_dir_if_empty(path):
@@ -299,7 +312,7 @@ def find_pipelines_in_dir(path, relative_to=None):
             for fName in files:
                 if fName.endswith(".orchest"):
                     if relative_to is not None:
-                        root = root[len(relative_to):]
+                        root = root[len(relative_to) :]
                         if root.startswith("/"):
                             root = root[1:]
 

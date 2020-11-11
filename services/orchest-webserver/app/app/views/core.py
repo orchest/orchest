@@ -767,7 +767,9 @@ def register_views(app, db):
                 args.append(str(project_name))
 
             background_task_process = Popen(
-                args, cwd=os.path.join(file_dir, "../.."), stderr=subprocess.STDOUT,
+                args,
+                cwd=os.path.join(file_dir, "../.."),
+                stderr=subprocess.STDOUT,
             )
 
             return background_task_schema.dump(new_task)
@@ -793,7 +795,10 @@ def register_views(app, db):
         new_project_paths = set(project_paths) - set(existing_project_paths)
 
         for new_project_path in new_project_paths:
-            new_project = Project(uuid=str(uuid.uuid4()), path=new_project_path,)
+            new_project = Project(
+                uuid=str(uuid.uuid4()),
+                path=new_project_path,
+            )
             db.session.add(new_project)
             db.session.commit()
 
@@ -853,7 +858,10 @@ def register_views(app, db):
                 full_project_path = os.path.join(project_dir, project_path)
                 if not os.path.isdir(full_project_path):
 
-                    new_project = Project(uuid=str(uuid.uuid4()), path=project_path,)
+                    new_project = Project(
+                        uuid=str(uuid.uuid4()),
+                        path=project_path,
+                    )
                     db.session.add(new_project)
                     db.session.commit()
 

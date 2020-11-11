@@ -17,11 +17,11 @@ __ENV_BUILD_FULL_LOGS_DIRECTORY = "/environment_builds_logs"
 
 
 def update_environment_build_status(
-    status: str, session: requests.sessions.Session, environment_build_uuid,
+    status: str,
+    session: requests.sessions.Session,
+    environment_build_uuid,
 ) -> Any:
-    """Update environment build status.
-
-    """
+    """Update environment build status."""
     data = {"status": status}
     if data["status"] == "STARTED":
         data["started_time"] = datetime.utcnow().isoformat()
@@ -247,8 +247,8 @@ def prepare_build_context(
 
     # make a snapshot of the project state
     snapshot_path = f"/tmp/{dockerfile_name}"
-    os.system("rm -rf \"%s\"" % snapshot_path)
-    os.system("cp -R \"%s\" \"%s\"" % (userdir_project_path, snapshot_path))
+    os.system('rm -rf "%s"' % snapshot_path)
+    os.system('cp -R "%s" "%s"' % (userdir_project_path, snapshot_path))
     # take the environment from the snapshot
     environment_path = os.path.join(
         snapshot_path, f".orchest/environments/{environment_uuid}"

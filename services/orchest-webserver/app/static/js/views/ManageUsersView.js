@@ -1,7 +1,6 @@
 import React from "react";
 
 class ManageUsersView extends React.Component {
-
   constructor() {
     super();
   }

@@ -6,22 +6,21 @@ from app.utils import (
     project_uuid_to_path,
     get_project_directory,
     pipeline_uuid_to_path,
-    get_environments
+    get_environments,
 )
+
 
 def api_proxy_environment_builds(environment_build_requests, orchest_api_address):
     """
-        environment_build_requests: List[] of EnvironmentBuildRequest
-        EnvironmentBuildRequest = {
-            project_uuid:str
-            environment_uuid:str
-            project_path:str
-        }
-    """
-    
-    json_obj = {
-        "environment_build_requests": environment_build_requests
+    environment_build_requests: List[] of EnvironmentBuildRequest
+    EnvironmentBuildRequest = {
+        project_uuid:str
+        environment_uuid:str
+        project_path:str
     }
+    """
+
+    json_obj = {"environment_build_requests": environment_build_requests}
 
     resp = requests.post(
         "http://" + orchest_api_address + "/api/environment-builds/",
@@ -33,70 +32,84 @@ def api_proxy_environment_builds(environment_build_requests, orchest_api_address
 
 
 def register_orchest_api_views(app, db):
-
-
     @app.route("/catch/api-proxy/api/checks/gate/<project_uuid>", methods=["POST"])
     def catch_api_proxy_checks_gate(project_uuid):
 
-        environment_uuids = [environment.uuid for environment in get_environments(project_uuid)]
-        
+        environment_uuids = [
+            environment.uuid for environment in get_environments(project_uuid)
+        ]
+
         resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/checks/gate/%s" % project_uuid,
-            json={
-                "type": "shallow",
-                "environment_uuids": environment_uuids
-            },
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/checks/gate/%s" % project_uuid,
+            json={"type": "shallow", "environment_uuids": environment_uuids},
             stream=True,
         )
-        return resp.raw.read(), resp.status_code, resp.headers.items() 
+        return resp.raw.read(), resp.status_code, resp.headers.items()
 
-
-    @app.route("/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>/<environment_uuid>", methods=["GET"])
+    @app.route(
+        "/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>/<environment_uuid>",
+        methods=["GET"],
+    )
     def catch_api_proxy_environment_build_most_recent(project_uuid, environment_uuid):
-        
+
         resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/most-recent/%s/%s" % (project_uuid, environment_uuid),
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/environment-builds/most-recent/%s/%s"
+            % (project_uuid, environment_uuid),
             stream=True,
         )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
-
-    @app.route("/catch/api-proxy/api/environment-builds/<environment_build_uuid>", methods=["DELETE"])
+    @app.route(
+        "/catch/api-proxy/api/environment-builds/<environment_build_uuid>",
+        methods=["DELETE"],
+    )
     def catch_api_proxy_environment_build_delete(environment_build_uuid):
-        
+
         resp = requests.delete(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/%s" % (environment_build_uuid),
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/environment-builds/%s" % (environment_build_uuid),
             stream=True,
         )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
-
-    @app.route("/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>", methods=["GET"])
+    @app.route(
+        "/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>",
+        methods=["GET"],
+    )
     def catch_api_proxy_environment_builds_most_recent(project_uuid):
-        
+
         resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/environment-builds/most-recent/%s" % project_uuid,
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/environment-builds/most-recent/%s" % project_uuid,
             stream=True,
         )
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
-
 
     @app.route("/catch/api-proxy/api/environment-builds", methods=["POST"])
     def catch_api_proxy_environment_builds():
-        
+
         environment_build_requests = request.json["environment_build_requests"]
 
         for environment_build_request in environment_build_requests:
-            environment_build_request["project_path"] = project_uuid_to_path(environment_build_request["project_uuid"])
-            
-        resp = api_proxy_environment_builds(environment_build_requests, app.config["ORCHEST_API_ADDRESS"])
-            
+            environment_build_request["project_path"] = project_uuid_to_path(
+                environment_build_request["project_uuid"]
+            )
+
+        resp = api_proxy_environment_builds(
+            environment_build_requests, app.config["ORCHEST_API_ADDRESS"]
+        )
+
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
-    
     @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
     def catch_api_proxy_runs():
 
@@ -131,7 +144,8 @@ def register_orchest_api_views(app, db):
         )
 
         json_obj["pipeline_path"] = pipeline_uuid_to_path(
-            json_obj["pipeline_uuid"], json_obj["project_uuid"],
+            json_obj["pipeline_uuid"],
+            json_obj["project_uuid"],
         )
 
         json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
@@ -155,7 +169,8 @@ def register_orchest_api_views(app, db):
                 json_obj["project_uuid"], host_path=True
             ),
             "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_uuid"], json_obj["project_uuid"],
+                json_obj["pipeline_uuid"],
+                json_obj["project_uuid"],
             ),
         }
 

@@ -76,7 +76,9 @@ def test_assert_object_is_unserializable_by_pyarrow():
 )
 @pytest.mark.parametrize(
     "test_transfer",
-    [{"method": transfer.output_to_disk, "kwargs": {"pickle_fallback": True}},],
+    [
+        {"method": transfer.output_to_disk, "kwargs": {"pickle_fallback": True}},
+    ],
     ids=["default"],
 )
 @patch("orchest.transfer.get_step_uuid")
@@ -108,7 +110,14 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 )
 @pytest.mark.parametrize(
     "test_transfer",
-    [{"method": transfer.output_to_memory, "kwargs": {"disk_fallback": False,},}],
+    [
+        {
+            "method": transfer.output_to_memory,
+            "kwargs": {
+                "disk_fallback": False,
+            },
+        }
+    ],
     ids=["disk_fallback=False"],
 )
 @patch("orchest.transfer.get_step_uuid")
@@ -142,7 +151,8 @@ def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
 
     with pytest.raises(MemoryError):
         transfer.output_to_memory(
-            data_1, disk_fallback=False,
+            data_1,
+            disk_fallback=False,
         )
 
 
@@ -158,7 +168,8 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 
     mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output_to_memory(
-        data_1, disk_fallback=True,
+        data_1,
+        disk_fallback=True,
     )
 
     # Do as if we are uuid-2
@@ -183,7 +194,8 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
     # Do as if we are uuid-1
     mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output_to_memory(
-        data_1, disk_fallback=True,
+        data_1,
+        disk_fallback=True,
     )
 
     # Do as if we are uuid-2
@@ -211,7 +223,8 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
 
     data_1_new = generate_data(KILOBYTE)
     transfer.output_to_memory(
-        data_1_new, disk_fallback=False,
+        data_1_new,
+        disk_fallback=False,
     )
 
     # Do as if we are uuid-2
@@ -231,7 +244,8 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
 
     data_1 = generate_data(KILOBYTE)
     transfer.output_to_memory(
-        data_1, disk_fallback=False,
+        data_1,
+        disk_fallback=False,
     )
 
     # It is very unlikely you will output through memory and disk in quick

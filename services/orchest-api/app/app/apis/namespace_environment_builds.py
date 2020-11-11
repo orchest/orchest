@@ -44,7 +44,9 @@ def abort_environment_build(environment_build_uuid, is_running=False):
         res.abort()
 
     update_status_db(
-        status_update, model=models.EnvironmentBuild, filter_by=filter_by,
+        status_update,
+        model=models.EnvironmentBuild,
+        filter_by=filter_by,
     )
 
 
@@ -166,7 +168,9 @@ class EnvironmentBuildList(Resource):
         return {"environment_builds": defined_builds}
 
 
-@api.route("/<string:environment_build_uuid>",)
+@api.route(
+    "/<string:environment_build_uuid>",
+)
 @api.param("environment_build_uuid", "UUID of the EnvironmentBuild")
 @api.response(404, "Environment build not found")
 class EnvironmentBuild(Resource):
@@ -189,7 +193,9 @@ class EnvironmentBuild(Resource):
             "build_uuid": environment_build_uuid,
         }
         update_status_db(
-            status_update, model=models.EnvironmentBuild, filter_by=filter_by,
+            status_update,
+            model=models.EnvironmentBuild,
+            filter_by=filter_by,
         )
 
         return {"message": "Status was updated successfully"}, 200
@@ -204,7 +210,8 @@ class EnvironmentBuild(Resource):
         """
         # this first read is to make sure the build exist
         environment_build = models.EnvironmentBuild.query.get_or_404(
-            environment_build_uuid, description="EnvironmentBuildTask not found",
+            environment_build_uuid,
+            description="EnvironmentBuildTask not found",
         )
 
         status = environment_build.status
@@ -223,7 +230,9 @@ class EnvironmentBuild(Resource):
         return {"message": "Environment build was successfully ABORTED"}, 200
 
 
-@api.route("/most-recent/<string:project_uuid>",)
+@api.route(
+    "/most-recent/<string:project_uuid>",
+)
 @api.param(
     "project_uuid",
     "UUID of the project for which environment builds should be collected",
@@ -269,7 +278,7 @@ class ProjectEnvironmentMostRecentBuild(Resource):
     @api.marshal_with(schema.environment_build, code=200)
     def get(self, project_uuid, environment_uuid):
         """Get the most recent environment build for a project_uuid, environment_uuid pair.
-         Only environments for which builds have already been requested are considered.
+        Only environments for which builds have already been requested are considered.
         """
 
         recent = (

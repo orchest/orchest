@@ -208,7 +208,9 @@ class PipelineStepRunner:
         orchest_mounts += get_volume_mounts(run_config, task_id)
 
         device_requests = get_device_requests(
-            self.properties["environment"], run_config["project_uuid"], form="docker-engine"
+            self.properties["environment"],
+            run_config["project_uuid"],
+            form="docker-engine",
         )
 
         # the working directory relative to the project directory is based on the location of the pipeline
@@ -220,7 +222,8 @@ class PipelineStepRunner:
         config = {
             "Image": _config.ENVIRONMENT_IMAGE_NAME.format(
                 project_uuid=run_config["project_uuid"],
-                environment_uuid=self.properties["environment"]),
+                environment_uuid=self.properties["environment"],
+            ),
             "Env": [
                 f'ORCHEST_STEP_UUID={self.properties["uuid"]}',
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
@@ -228,7 +231,10 @@ class PipelineStepRunner:
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
                 "ORCHEST_MEMORY_EVICTION=1",
             ],
-            "HostConfig": {"Binds": orchest_mounts, "DeviceRequests": device_requests,},
+            "HostConfig": {
+                "Binds": orchest_mounts,
+                "DeviceRequests": device_requests,
+            },
             "Cmd": [
                 "/orchest/bootscript.sh",
                 "runnable",

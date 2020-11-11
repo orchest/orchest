@@ -67,7 +67,8 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     data_1 = generate_data(0.6 * PLASMA_KILOBYTES * KILOBYTE)
     mock_get_step_uuid.return_value = "uuid-1______________"
     orchest.transfer.output_to_memory(
-        data_1, disk_fallback=False,
+        data_1,
+        disk_fallback=False,
     )
 
     # Do as if we are uuid-2
@@ -80,7 +81,8 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
 
     data_2 = generate_data(0.1 * PLASMA_KILOBYTES * KILOBYTE)
     orchest.transfer.output_to_memory(
-        data_2, disk_fallback=False,
+        data_2,
+        disk_fallback=False,
     )
 
     # Do as if we are uuid-3. It should fit in memory, since the receive
@@ -93,7 +95,10 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     time.sleep(1)
 
     data_3 = generate_data(0.6 * PLASMA_KILOBYTES * KILOBYTE)
-    res = orchest.transfer.output_to_memory(data_3, disk_fallback=False,)
+    res = orchest.transfer.output_to_memory(
+        data_3,
+        disk_fallback=False,
+    )
 
     assert res is None
 
@@ -109,7 +114,8 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
     data_1 = generate_data(0.6 * PLASMA_KILOBYTES * KILOBYTE)
     mock_get_step_uuid.return_value = "uuid-1______________"
     orchest.transfer.output_to_memory(
-        data_1, disk_fallback=False,
+        data_1,
+        disk_fallback=False,
     )
 
     # Do as if we are uuid-2
@@ -122,7 +128,8 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
 
     data_2 = generate_data(0.1 * PLASMA_KILOBYTES * KILOBYTE)
     orchest.transfer.output_to_memory(
-        data_2, disk_fallback=False,
+        data_2,
+        disk_fallback=False,
     )
 
     # Do as if we are uuid-3. It should fit in memory, since the receive
@@ -137,5 +144,6 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
     data_3 = generate_data(0.6 * PLASMA_KILOBYTES * KILOBYTE)
     with pytest.raises(MemoryError):
         orchest.transfer.output_to_memory(
-            data_3, disk_fallback=False,
+            data_3,
+            disk_fallback=False,
         )

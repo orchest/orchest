@@ -42,7 +42,9 @@ def populate_kernels(app, db):
     for project in projects:
 
         environments = get_environments(project.uuid)
-        kernels_dir_path = os.path.join(app.config["USER_DIR"], ".orchest", "kernels", project.uuid)
+        kernels_dir_path = os.path.join(
+            app.config["USER_DIR"], ".orchest", "kernels", project.uuid
+        )
 
         # remove all kernels
         if not os.path.exists(kernels_dir_path):
@@ -67,16 +69,18 @@ def populate_kernels(app, db):
         for environment in environments:
 
             kernel_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project.uuid, environment_uuid=environment.uuid)
+                project_uuid=project.uuid, environment_uuid=environment.uuid
+            )
             kernel_dir_path = os.path.join(kernels_dir_path, kernel_name)
 
             os.makedirs(kernel_dir_path)
 
             # write filled template kernel.json
-            filled_kernel_json = kernel_json_template.replace(
-                "{image_name}", kernel_name
-            ).replace("{language}", environment.language
-            ).replace("{display_name}", environment.name)
+            filled_kernel_json = (
+                kernel_json_template.replace("{image_name}", kernel_name)
+                .replace("{language}", environment.language)
+                .replace("{display_name}", environment.name)
+            )
 
             kernel_json_path = os.path.join(kernel_dir_path, "kernel.json")
 

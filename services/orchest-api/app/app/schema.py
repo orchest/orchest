@@ -398,8 +398,10 @@ gate_check_result = Model(
             enum=["pass", "fail"],
         ),
         "fail": fields.Nested(
-            gate_check_result_descr, description="Failed environments"),
+            gate_check_result_descr, description="Failed environments"
+        ),
         "pass": fields.Nested(
-            gate_check_result_descr, description="Passed environments"),
+            gate_check_result_descr, description="Passed environments"
+        ),
     },
 )

@@ -20,7 +20,7 @@ class ProjectBasedView extends React.Component {
 
   render() {
     let TagName = this.props.childView;
-    
+
     return (
       <div className="view-page">
         <div className="push-down">
@@ -31,12 +31,21 @@ class ProjectBasedView extends React.Component {
         </div>
 
         {(() => {
-          if(this.state.project_uuid){
+          if (this.state.project_uuid) {
             // TODO: remove key: ... property on childview. Requires al childviews to support property swapping.
-            return <TagName {...{...this.props.childViewProps, ...{project_uuid: this.state.project_uuid, key: this.state.project_uuid}}} />
+            return (
+              <TagName
+                {...{
+                  ...this.props.childViewProps,
+                  ...{
+                    project_uuid: this.state.project_uuid,
+                    key: this.state.project_uuid,
+                  },
+                }}
+              />
+            );
           }
         })()}
-        
       </div>
     );
   }

@@ -9,17 +9,16 @@ from collections import deque
 
 from threading import Lock
 
+
 def register_socketio_broadcast(db, socketio):
 
     # TODO: check whether its size will become a bottleneck
     environment_build_buffer = {}
     lock = Lock()
 
-
     @socketio.on("connect", namespace="/pty")
     def connect_pty():
         logging.info("socket.io client connected on /pty")
-
 
     @socketio.on("connect", namespace="/environment_builds")
     def connect_environment_builds():
@@ -35,13 +34,12 @@ def register_socketio_broadcast(db, socketio):
                     "sio_streamed_task_data",
                     {
                         "identity": key,
-                        "output": ''.join(value),
-                        "action": "sio_streamed_task_output"
+                        "output": "".join(value),
+                        "action": "sio_streamed_task_output",
                     },
                     room=request.sid,
                     namespace="/environment_builds",
                 )
-
 
     @socketio.on("sio_streamed_task_data", namespace="/environment_builds")
     def process_sio_streamed_task_data(data):
@@ -69,8 +67,11 @@ def register_socketio_broadcast(db, socketio):
                 try:
                     del environment_build_buffer[data["identity"]]
                 except KeyError as e:
-                    logging.error("Could not clear buffer for EnvironmentBuild with identity %s" % data["identity"])
-                    
+                    logging.error(
+                        "Could not clear buffer for EnvironmentBuild with identity %s"
+                        % data["identity"]
+                    )
+
                 # broadcast streamed task message
                 socketio.emit(
                     "sio_streamed_task_data",
@@ -79,14 +80,13 @@ def register_socketio_broadcast(db, socketio):
                     namespace="/environment_builds",
                 )
             elif data["action"] == "sio_streamed_task_finished":
-                
+
                 socketio.emit(
                     "sio_streamed_task_data_finished_ack",
                     {},
                     room=request.sid,
                     namespace="/environment_builds",
                 )
-
 
     @socketio.on("pty-log-manager", namespace="/pty")
     def process_log_manager(data):

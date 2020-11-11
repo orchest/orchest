@@ -36,11 +36,13 @@ class CreateExperimentView extends React.Component {
   }
 
   fetchPipeline() {
-    let fetchPipelinePromise = makeCancelable(makeRequest(
-      "GET",
-      `/async/pipelines/json/${this.props.experiment.project_uuid}/${this.props.experiment.pipeline_uuid}`
-    ), this.promiseManager)
-    
+    let fetchPipelinePromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/async/pipelines/json/${this.props.experiment.project_uuid}/${this.props.experiment.pipeline_uuid}`
+      ),
+      this.promiseManager
+    );
 
     fetchPipelinePromise.promise.then((response) => {
       let result = JSON.parse(response);
@@ -174,17 +176,18 @@ class CreateExperimentView extends React.Component {
     });
   }
 
-  attemptRunExperiment(){
+  attemptRunExperiment() {
     let checkGatePromise = checkGate(this.props.experiment.project_uuid);
-    checkGatePromise.then(() => {
-      this.runExperiment();
-    }).catch((result) => {
-      requestBuild(this.props.experiment.project_uuid, result.data);
-    })
+    checkGatePromise
+      .then(() => {
+        this.runExperiment();
+      })
+      .catch((result) => {
+        requestBuild(this.props.experiment.project_uuid, result.data);
+      });
   }
 
   runExperiment() {
-
     this.setState({
       runExperimentLoading: true,
     });
@@ -216,72 +219,73 @@ class CreateExperimentView extends React.Component {
     makeRequest("PUT", "/store/experiments/" + this.props.experiment.uuid, {
       type: "json",
       content: experimentData,
-    }).then((response) => {
-      // after storing on the web server trigger the Orchest API
-      let result = JSON.parse(response);
-
-      let experimentUUID = result.uuid;
-
-      let pipelineDescriptions = this.generatePipelineDescriptions(
-        this.state.pipeline,
-        this.state.generatedPipelineRuns,
-        this.state.selectedIndices
-      );
-
-      let pipelineRunIds = new Array(pipelineDescriptions.length);
-      for (let x = 0; x < pipelineRunIds.length; x++) {
-        pipelineRunIds[x] = x + 1;
-      }
-
-      let apiExperimentData = {
-        experiment_uuid: experimentUUID,
-        pipeline_uuid: this.state.pipeline.uuid,
-        project_uuid: this.props.experiment.project_uuid,
-        pipeline_descriptions: pipelineDescriptions,
-        pipeline_run_ids: pipelineRunIds,
-        pipeline_run_spec: {
-          run_type: "full",
-          uuids: [],
-        },
-        scheduled_start: formValueScheduledStart,
-      };
-
-      makeRequest("POST", "/catch/api-proxy/api/experiments/", {
-        type: "json",
-        content: apiExperimentData,
-      })
-        .then((response) => {
-          let result = JSON.parse(response);
-
-          // TODO: instead of bouncing three requests
-          // (orchest-webserver, orchest-api, orchest-webserver)
-          // perhaps wrap this into one larger request that goes straight
-          // to orchest-webserver (more ACID? - no partial success)
-          makeRequest("POST", "/async/pipelineruns/create", {
-            type: "json",
-            content: {
-              experiment_uuid: experimentUUID,
-              generated_pipeline_runs: this.state.generatedPipelineRuns,
-              experiment_json: result,
-              pipeline_run_ids: pipelineRunIds,
-            },
-          })
-            .then(() => {
-              orchest.loadView(ExperimentsView, {
-                project_uuid: this.props.experiment.project_uuid,
-              });
-            })
-            .catch((e) => {
-              console.log(e);
-            });
-        })
-        .catch((e) => {
-          console.log(e);
-        });
     })
-    .catch((e) => {
-      console.log(e);
-    });
+      .then((response) => {
+        // after storing on the web server trigger the Orchest API
+        let result = JSON.parse(response);
+
+        let experimentUUID = result.uuid;
+
+        let pipelineDescriptions = this.generatePipelineDescriptions(
+          this.state.pipeline,
+          this.state.generatedPipelineRuns,
+          this.state.selectedIndices
+        );
+
+        let pipelineRunIds = new Array(pipelineDescriptions.length);
+        for (let x = 0; x < pipelineRunIds.length; x++) {
+          pipelineRunIds[x] = x + 1;
+        }
+
+        let apiExperimentData = {
+          experiment_uuid: experimentUUID,
+          pipeline_uuid: this.state.pipeline.uuid,
+          project_uuid: this.props.experiment.project_uuid,
+          pipeline_descriptions: pipelineDescriptions,
+          pipeline_run_ids: pipelineRunIds,
+          pipeline_run_spec: {
+            run_type: "full",
+            uuids: [],
+          },
+          scheduled_start: formValueScheduledStart,
+        };
+
+        makeRequest("POST", "/catch/api-proxy/api/experiments/", {
+          type: "json",
+          content: apiExperimentData,
+        })
+          .then((response) => {
+            let result = JSON.parse(response);
+
+            // TODO: instead of bouncing three requests
+            // (orchest-webserver, orchest-api, orchest-webserver)
+            // perhaps wrap this into one larger request that goes straight
+            // to orchest-webserver (more ACID? - no partial success)
+            makeRequest("POST", "/async/pipelineruns/create", {
+              type: "json",
+              content: {
+                experiment_uuid: experimentUUID,
+                generated_pipeline_runs: this.state.generatedPipelineRuns,
+                experiment_json: result,
+                pipeline_run_ids: pipelineRunIds,
+              },
+            })
+              .then(() => {
+                orchest.loadView(ExperimentsView, {
+                  project_uuid: this.props.experiment.project_uuid,
+                });
+              })
+              .catch((e) => {
+                console.log(e);
+              });
+          })
+          .catch((e) => {
+            console.log(e);
+          });
+      })
+      .catch((e) => {
+        console.log(e);
+      });
   }
 
   generatePipelineDescriptions(

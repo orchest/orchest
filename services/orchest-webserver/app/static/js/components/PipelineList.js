@@ -8,9 +8,7 @@ import {
   PromiseManager,
   RefManager,
 } from "../lib/utils/all";
-import {
-  checkGate
-} from "../utils/webserver-utils";
+import { checkGate } from "../utils/webserver-utils";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
@@ -88,8 +86,7 @@ class PipelineList extends React.Component {
     });
   }
 
-  openPipeline(pipeline, readOnly){
-
+  openPipeline(pipeline, readOnly) {
     // load pipeline view
     let props = {
       pipeline_uuid: pipeline.uuid,
@@ -97,7 +94,7 @@ class PipelineList extends React.Component {
       pipeline_path: pipeline.path,
     };
 
-    if(readOnly){
+    if (readOnly) {
       props.readOnly = true;
     }
 
@@ -105,7 +102,6 @@ class PipelineList extends React.Component {
   }
 
   onClickListItem(row, idx, e) {
-
     let pipeline = this.state.pipelines[idx];
     let readOnly = false;
 
@@ -114,12 +110,13 @@ class PipelineList extends React.Component {
     }
 
     let checkGatePromise = checkGate(this.props.project_uuid);
-    checkGatePromise.then(() => {
-      this.openPipeline(pipeline, readOnly);
-    }).catch((result) => {
-      this.openPipeline(pipeline, true);
-    })
-    
+    checkGatePromise
+      .then(() => {
+        this.openPipeline(pipeline, readOnly);
+      })
+      .catch((result) => {
+        this.openPipeline(pipeline, true);
+      });
   }
 
   onDeleteClick() {

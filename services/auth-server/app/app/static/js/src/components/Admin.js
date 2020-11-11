@@ -38,7 +38,7 @@ export default class Admin extends React.Component {
         </div>
         <div className="group">
           <h2>Delete users</h2>
-          {userNodes.length != 0 ? userNodes : <i>There are no users yet.</i> }
+          {userNodes.length != 0 ? userNodes : <i>There are no users yet.</i>}
         </div>
       </div>
     );

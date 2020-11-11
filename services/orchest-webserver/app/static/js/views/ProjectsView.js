@@ -31,8 +31,9 @@ class ProjectsView extends React.Component {
     };
 
     this.ERROR_MAPPING = {
-      "project move failed": "failed to move project because the directory exists."
-    }
+      "project move failed":
+        "failed to move project because the directory exists.",
+    };
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
@@ -40,10 +41,10 @@ class ProjectsView extends React.Component {
     this.backgroundTaskPoller.POLL_FREQUENCY = 1000;
   }
 
-  getMappedErrorMessage(key){
-    if(this.ERROR_MAPPING[key] !== undefined){
+  getMappedErrorMessage(key) {
+    if (this.ERROR_MAPPING[key] !== undefined) {
       return this.ERROR_MAPPING[key];
-    }else{
+    } else {
       return "undefined error. Please try again.";
     }
   }
@@ -61,7 +62,7 @@ class ProjectsView extends React.Component {
     });
   }
 
-  onClickProjectEntity(view, project, e){
+  onClickProjectEntity(view, project, e) {
     e.preventDefault();
     orchest.browserConfig.set("selected_project_uuid", project.uuid);
     orchest.loadView(view);
@@ -73,9 +74,29 @@ class ProjectsView extends React.Component {
     for (let project of projects) {
       listData.push([
         <span>{project.path}</span>,
-        <a onClick={this.onClickProjectEntity.bind(this, PipelinesView, project)}>{project.pipeline_count}</a>,
-        <a onClick={this.onClickProjectEntity.bind(this, ExperimentsView, project)}>{project.experiment_count}</a>,
-        <a onClick={this.onClickProjectEntity.bind(this, EnvironmentsView, project)}>{project.environment_count}</a>,
+        <a
+          onClick={this.onClickProjectEntity.bind(this, PipelinesView, project)}
+        >
+          {project.pipeline_count}
+        </a>,
+        <a
+          onClick={this.onClickProjectEntity.bind(
+            this,
+            ExperimentsView,
+            project
+          )}
+        >
+          {project.experiment_count}
+        </a>,
+        <a
+          onClick={this.onClickProjectEntity.bind(
+            this,
+            EnvironmentsView,
+            project
+          )}
+        >
+          {project.environment_count}
+        </a>,
       ]);
     }
 
@@ -103,9 +124,7 @@ class ProjectsView extends React.Component {
     });
   }
 
-  onClickListItem(row, idx, e) {
-    
-  }
+  onClickListItem(row, idx, e) {}
 
   onDeleteClick() {
     let selectedIndices = this.refManager.refs.projectListView.getSelectedRowIndices();
@@ -231,7 +250,10 @@ class ProjectsView extends React.Component {
         try {
           let data = JSON.parse(response.body);
 
-          orchest.alert("Error", "Could not create project. Reason " + data.message);
+          orchest.alert(
+            "Error",
+            "Could not create project. Reason " + data.message
+          );
         } catch {
           orchest.alert("Error", "Could not create project. Reason unknown.");
         }
@@ -248,113 +270,134 @@ class ProjectsView extends React.Component {
     });
   }
 
-  onSubmitImport(){
+  onSubmitImport() {
     let gitURL = this.refManager.refs.gitURLTextField.mdc.value;
     let gitProjectName = this.refManager.refs.gitProjectNameTextField.mdc.value;
 
-    if(!validURL(gitURL) || !gitURL.startsWith("https://")){
-      orchest.alert("Error", "Please make sure you enter a valid HTTPS git-repo URL.");
+    if (!validURL(gitURL) || !gitURL.startsWith("https://")) {
+      orchest.alert(
+        "Error",
+        "Please make sure you enter a valid HTTPS git-repo URL."
+      );
       return;
     }
 
     this.setState({
       importResult: {
-        status: "PENDING"
-      }
-    })
+        status: "PENDING",
+      },
+    });
 
     makeRequest("POST", `/async/projects/import-git`, {
       type: "json",
-      content: {url: gitURL, project_name: gitProjectName}
+      content: { url: gitURL, project_name: gitProjectName },
     }).then((response) => {
       let data = JSON.parse(response);
 
-      this.backgroundTaskPoller.startPollingBackgroundTask(data.task_uuid, (result) => {
-        this.setState({
-          importResult: result
-        })
-        this.fetchList();
-      });
-    })
-
+      this.backgroundTaskPoller.startPollingBackgroundTask(
+        data.task_uuid,
+        (result) => {
+          this.setState({
+            importResult: result,
+          });
+          this.fetchList();
+        }
+      );
+    });
   }
 
   onCancelImport() {
     this.setState({
-      showImportModal: false
-    })
+      showImportModal: false,
+    });
   }
 
-  onImport(){
+  onImport() {
     this.setState({
       importResult: undefined,
-      showImportModal: true
-    })
+      showImportModal: true,
+    });
   }
 
   render() {
     return (
       <div className={"view-page projects-view"}>
-
         {(() => {
-          if(this.state.showImportModal){
-            return <MDCDialogReact
-              title="Import a project"
-              content={
-                <div className='project-import-modal'>
+          if (this.state.showImportModal) {
+            return (
+              <MDCDialogReact
+                title="Import a project"
+                content={
+                  <div className="project-import-modal">
+                    <p className="push-down">
+                      Import a <span className="code">git</span> by specifying
+                      the <span className="code">HTTPS</span> URL below:
+                    </p>
+                    <MDCTextFieldReact
+                      classNames={["fullwidth push-down"]}
+                      label="Git repository URL"
+                      ref={this.refManager.nrefs.gitURLTextField}
+                    />
 
-                  <p className="push-down">Import a <span className='code'>git</span> by specifying the <span className='code'>HTTPS</span> URL below:</p>
-                  <MDCTextFieldReact
-                    classNames={["fullwidth push-down"]}
-                    label="Git repository URL"
-                    ref={this.refManager.nrefs.gitURLTextField}
-                  />
+                    <MDCTextFieldReact
+                      classNames={["fullwidth"]}
+                      label="Project name (optional)"
+                      ref={this.refManager.nrefs.gitProjectNameTextField}
+                    />
 
-                  <MDCTextFieldReact
-                    classNames={["fullwidth"]}
-                    label="Project name (optional)"
-                    ref={this.refManager.nrefs.gitProjectNameTextField}
-                  />
+                    {(() => {
+                      if (this.state.importResult) {
+                        let result;
 
-                  {(() => {
-                    if(this.state.importResult){
-                      let result;
+                        if (this.state.importResult.status === "PENDING") {
+                          result = <MDCLinearProgressReact />;
+                        } else if (
+                          this.state.importResult.status === "SUCCESS"
+                        ) {
+                          result = (
+                            <p>
+                              <i className="material-icons float-left">check</i>{" "}
+                              Import completed!
+                            </p>
+                          );
+                        } else if (
+                          this.state.importResult.status === "FAILURE"
+                        ) {
+                          result = (
+                            <p>
+                              <i className="material-icons float-left">error</i>{" "}
+                              Import failed:{" "}
+                              {this.getMappedErrorMessage(
+                                this.state.importResult.result
+                              )}
+                            </p>
+                          );
+                        }
 
-                      if(this.state.importResult.status === 'PENDING'){
-                        result = <MDCLinearProgressReact />;
-                      }else if(this.state.importResult.status === 'SUCCESS'){
-                        result = <p><i className="material-icons float-left">check</i> Import completed!</p>;
+                        return <div className="push-up">{result}</div>;
                       }
-                      else if(this.state.importResult.status === 'FAILURE'){
-                        result = <p><i className="material-icons float-left">error</i> Import failed: {this.getMappedErrorMessage(this.state.importResult.result)}</p>;
-                      }
-
-                      return <div className="push-up">
-                        {result}
-                      </div>;
-                    }
-                  })()}
-                  
-                </div>
-              }
-              actions={
-                <Fragment>
-                  <MDCButtonReact
-                    icon="input"
-                    disabled={(this.state.importResult !== undefined)}
-                    classNames={["mdc-button--raised", "themed-secondary"]}
-                    label="Import"
-                    onClick={this.onSubmitImport.bind(this)}
-                  />
-                  <MDCButtonReact
-                    icon="close"
-                    label="Close"
-                    classNames={["push-left"]}
-                    onClick={this.onCancelImport.bind(this)}
-                  />
-                </Fragment>
-              }
-            />
+                    })()}
+                  </div>
+                }
+                actions={
+                  <Fragment>
+                    <MDCButtonReact
+                      icon="input"
+                      disabled={this.state.importResult !== undefined}
+                      classNames={["mdc-button--raised", "themed-secondary"]}
+                      label="Import"
+                      onClick={this.onSubmitImport.bind(this)}
+                    />
+                    <MDCButtonReact
+                      icon="close"
+                      label="Close"
+                      classNames={["push-left"]}
+                      onClick={this.onCancelImport.bind(this)}
+                    />
+                  </Fragment>
+                }
+              />
+            );
           }
         })()}
 
@@ -419,7 +462,12 @@ class ProjectsView extends React.Component {
                   selectable
                   onRowClick={this.onClickListItem.bind(this)}
                   classNames={["fullwidth"]}
-                  headers={["Project", "Pipelines", "Experiments", "Environments"]}
+                  headers={[
+                    "Project",
+                    "Pipelines",
+                    "Experiments",
+                    "Environments",
+                  ]}
                   rows={this.state.listData}
                 />
               </Fragment>

@@ -66,11 +66,11 @@ class APITask(Task):
 # @celery.task(bind=True, base=APITask)
 @celery.task(bind=True)
 def run_partial(
-        self,
-        pipeline_description: PipelineDescription,
-        project_uuid: str,
-        run_config: Dict[str, Union[str, Dict[str, str]]],
-        task_id: Optional[str] = None,
+    self,
+    pipeline_description: PipelineDescription,
+    project_uuid: str,
+    run_config: Dict[str, Union[str, Dict[str, str]]],
+    task_id: Optional[str] = None,
 ) -> str:
     """Runs a pipeline partially.
 
@@ -109,11 +109,11 @@ def run_partial(
 
 @celery.task(bind=True)
 def start_non_interactive_pipeline_run(
-        self,
-        experiment_uuid,
-        project_uuid,
-        pipeline_description: PipelineDescription,
-        run_config: Dict[str, Union[str, Dict[str, str]]],
+    self,
+    experiment_uuid,
+    project_uuid,
+    pipeline_description: PipelineDescription,
+    run_config: Dict[str, Union[str, Dict[str, str]]],
 ) -> str:
     """Starts a non-interactive pipeline run.
 
@@ -174,12 +174,12 @@ def start_non_interactive_pipeline_run(
         json.dump(pipeline_description, f)
 
     with launch_session(
-            docker_client,
-            self.request.id,
-            project_uuid,
-            run_config["pipeline_path"],
-            run_config["project_dir"],
-            interactive=False,
+        docker_client,
+        self.request.id,
+        project_uuid,
+        run_config["pipeline_path"],
+        run_config["project_dir"],
+        interactive=False,
     ) as session:
         status = run_partial(
             pipeline_description, project_uuid, run_config, task_id=self.request.id
@@ -193,10 +193,10 @@ def start_non_interactive_pipeline_run(
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
 def build_environment(
-        self,
-        project_uuid,
-        environment_uuid,
-        project_path,
+    self,
+    project_uuid,
+    environment_uuid,
+    project_path,
 ) -> str:
     """Builds an environment, resulting in a new image in the docker environment.
 
@@ -210,4 +210,6 @@ def build_environment(
 
     """
 
-    return build_environment_task(self.request.id, project_uuid, environment_uuid, project_path)
+    return build_environment_task(
+        self.request.id, project_uuid, environment_uuid, project_path
+    )

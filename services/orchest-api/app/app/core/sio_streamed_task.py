@@ -9,9 +9,7 @@ import threading
 
 # TODO: move this to util?
 class UnbufferedTextStream(object):
-    """A wrapper around a file object to make sure writing is unbuffered even if in TEXTIO mode.
-
-    """
+    """A wrapper around a file object to make sure writing is unbuffered even if in TEXTIO mode."""
 
     def __init__(self, stream):
         self.stream = stream

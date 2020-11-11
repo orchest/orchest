@@ -36,38 +36,44 @@ class EnvironmentList extends React.Component {
     clearInterval(this.environmentBuildsInterval);
   }
 
-  environmentBuildsPolling(){
+  environmentBuildsPolling() {
     this.environmentBuildsRequest();
     clearInterval(this.environmentBuildsInterval);
-    this.environmentBuildsInterval = setInterval(this.environmentBuildsRequest.bind(this), this.BUILD_POLL_FREQUENCY);
+    this.environmentBuildsInterval = setInterval(
+      this.environmentBuildsRequest.bind(this),
+      this.BUILD_POLL_FREQUENCY
+    );
   }
 
-  environmentBuildsRequest(){
-    
+  environmentBuildsRequest() {
     let environmentBuildsRequestPromise = makeCancelable(
-      makeRequest("GET", 
+      makeRequest(
+        "GET",
         `/catch/api-proxy/api/environment-builds/most-recent/${this.props.project_uuid}`
-      ),this.promiseManager);
+      ),
+      this.promiseManager
+    );
 
-    environmentBuildsRequestPromise.promise.then((response) => {
-      try {
-        let environmentBuilds = JSON.parse(response).environment_builds;
-        this.updateStateForEnvironmentBuilds(environmentBuilds);
-      } catch(error) {
-        console.error(error);
-      }
-    })
-    .catch((error) => {
-      console.log(error);
-    });
-
+    environmentBuildsRequestPromise.promise
+      .then((response) => {
+        try {
+          let environmentBuilds = JSON.parse(response).environment_builds;
+          this.updateStateForEnvironmentBuilds(environmentBuilds);
+        } catch (error) {
+          console.error(error);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   }
 
-  updateStateForEnvironmentBuilds(environmentBuilds){
-
+  updateStateForEnvironmentBuilds(environmentBuilds) {
     this.state.environmentBuilds = {};
-    for(let environmentBuild of environmentBuilds){
-      this.state.environmentBuilds[environmentBuild.project_uuid + "-" + environmentBuild.environment_uuid] = environmentBuild;
+    for (let environmentBuild of environmentBuilds) {
+      this.state.environmentBuilds[
+        environmentBuild.project_uuid + "-" + environmentBuild.environment_uuid
+      ] = environmentBuild;
     }
 
     this.setState({
@@ -104,37 +110,43 @@ class EnvironmentList extends React.Component {
 
   onClickListItem(row, idx, e) {
     let environment = this.state.environments[idx];
-    orchest.loadView(EnvironmentEditView, { project_uuid: this.props.project_uuid, environment: environment });
+    orchest.loadView(EnvironmentEditView, {
+      project_uuid: this.props.project_uuid,
+      environment: environment,
+    });
   }
 
   onCreateClick() {
-    orchest.loadView(EnvironmentEditView, { project_uuid: this.props.project_uuid });
+    orchest.loadView(EnvironmentEditView, {
+      project_uuid: this.props.project_uuid,
+    });
   }
 
   removeEnvironment(project_uuid, environment_uuid, environmentName) {
-
     // ultimately remove Image
-    makeRequest("DELETE", `/store/environments/${project_uuid}/${environment_uuid}`)
-    .then((_) => {
-      // reload list once removal succeeds
-      this.fetchEnvironments();
-    })
-    .catch((e) => {
-      let errorMessage = "unknown";
-      try {
-        errorMessage = JSON.parse(e.body).message;
-      } catch (e) {
-        console.error(e);
-      }
-      orchest.alert(
-        "Error",
-        "Deleting environment '" +
-          environmentName +
-          "' failed. Reason: " +
-          errorMessage
-      );
-    });
-    
+    makeRequest(
+      "DELETE",
+      `/store/environments/${project_uuid}/${environment_uuid}`
+    )
+      .then((_) => {
+        // reload list once removal succeeds
+        this.fetchEnvironments();
+      })
+      .catch((e) => {
+        let errorMessage = "unknown";
+        try {
+          errorMessage = JSON.parse(e.body).message;
+        } catch (e) {
+          console.error(e);
+        }
+        orchest.alert(
+          "Error",
+          "Deleting environment '" +
+            environmentName +
+            "' failed. Reason: " +
+            errorMessage
+        );
+      });
   }
 
   onDeleteClick() {
@@ -150,10 +162,13 @@ class EnvironmentList extends React.Component {
       "Are you certain that you want to delete the selected environments?",
       () => {
         selectedIndices.forEach((idx) => {
-
           let environment_uuid = this.state.environments[idx].uuid;
           let project_uuid = this.state.environments[idx].project_uuid;
-          this.removeEnvironment(project_uuid, environment_uuid, this.state.environments[idx].name);
+          this.removeEnvironment(
+            project_uuid,
+            environment_uuid,
+            this.state.environments[idx].name
+          );
         });
       }
     );
@@ -163,14 +178,15 @@ class EnvironmentList extends React.Component {
     let listData = [];
 
     // check for undefined environments
-    if(!environments){
+    if (!environments) {
       return listData;
     }
 
     for (let environment of environments) {
-      
-      let environmentBuild = this.state.environmentBuilds[this.props.project_uuid + "-" + environment.uuid];
-      
+      let environmentBuild = this.state.environmentBuilds[
+        this.props.project_uuid + "-" + environment.uuid
+      ];
+
       listData.push([
         <span>{environment.name}</span>,
         <span>{LANGUAGE_MAP[environment.language]}</span>,
@@ -212,7 +228,12 @@ class EnvironmentList extends React.Component {
                   selectable
                   onRowClick={this.onClickListItem.bind(this)}
                   classNames={["fullwidth"]}
-                  headers={["Environment", "Language", "GPU Support", "Build status"]}
+                  headers={[
+                    "Environment",
+                    "Language",
+                    "GPU Support",
+                    "Build status",
+                  ]}
                   rows={this.state.listData}
                 />
               </Fragment>

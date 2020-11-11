@@ -9,7 +9,9 @@ api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)
 
 
-@api.route("/<string:project_uuid>/<string:environment_uuid>",)
+@api.route(
+    "/<string:project_uuid>/<string:environment_uuid>",
+)
 @api.param("project_uuid", "UUID of the project")
 @api.param("environment_uuid", "UUID of the environment")
 class EnvironmentImage(Resource):

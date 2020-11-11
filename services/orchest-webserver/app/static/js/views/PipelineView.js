@@ -13,9 +13,7 @@ import {
   RefManager,
 } from "../lib/utils/all";
 
-import {
-  checkGate, requestBuild
-} from "../utils/webserver-utils";
+import { checkGate, requestBuild } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "./PipelineDetails";
@@ -272,10 +270,10 @@ class PipelineView extends React.Component {
       // for non pipelineRun - read only check gate
       let checkGatePromise = checkGate(this.props.project_uuid);
       checkGatePromise.catch((result) => {
-        if(result.reason === "gate-failed"){
+        if (result.reason === "gate-failed") {
           requestBuild(props.project_uuid, result.data);
         }
-      })
+      });
     }
   }
 

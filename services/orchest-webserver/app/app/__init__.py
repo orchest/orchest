@@ -36,7 +36,7 @@ def initialize_default_datasources(db, app):
     # pre-populate the datasources
     datasource_names = [datasource.name for datasource in DataSource.query.all()]
 
-    for datasource in app.config['DEFAULT_DATASOURCES']:
+    for datasource in app.config["DEFAULT_DATASOURCES"]:
         if datasource["name"] not in datasource_names:
 
             connection_details = datasource["connection_details"]
@@ -114,7 +114,6 @@ def create_app():
         db.create_all()
 
         initialize_default_datasources(db, app)
-
 
     # static file serving
     @app.route("/public/<path:path>")

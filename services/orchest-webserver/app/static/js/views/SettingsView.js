@@ -48,7 +48,7 @@ class SettingsView extends React.Component {
     });
   }
 
-  onClickManageUsers(){
+  onClickManageUsers() {
     orchest.loadView(ManageUsersView);
   }
 
@@ -197,7 +197,10 @@ class SettingsView extends React.Component {
               );
             }
           })()}
-          <p className={"push-down"}>Application mode: <span className='code'>{orchest.environment}</span>.</p>
+          <p className={"push-down"}>
+            Application mode:{" "}
+            <span className="code">{orchest.environment}</span>.
+          </p>
         </div>
 
         <h2>Updates</h2>
@@ -239,11 +242,11 @@ class SettingsView extends React.Component {
         </div>
 
         <h2>Authentication</h2>
-        <MDCButtonReact 
-          onClick={this.onClickManageUsers.bind(this)} 
-          icon="people" 
-          label="Manage users" />
-
+        <MDCButtonReact
+          onClick={this.onClickManageUsers.bind(this)}
+          icon="people"
+          label="Manage users"
+        />
       </div>
     );
   }

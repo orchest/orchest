@@ -50,7 +50,12 @@ def main():
 
     elif file_extension in ["py", "r", "sh", ""]:
 
-        extension_script_mapping = {"py": "python3", "r": "Rscript", "sh": "sh", "": "sh"}
+        extension_script_mapping = {
+            "py": "python3",
+            "r": "Rscript",
+            "sh": "sh",
+            "": "sh",
+        }
 
         pr = ProcessRunner(pipeline_uuid, step_uuid, working_dir)
         sys.exit(pr.run(extension_script_mapping[file_extension], filename))

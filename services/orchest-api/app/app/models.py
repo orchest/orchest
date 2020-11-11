@@ -25,16 +25,37 @@ class BaseModel(db.Model):
 class InteractiveSession(BaseModel):
     __tablename__ = "interactive_sessions"
 
-    project_uuid = db.Column(db.String(36), primary_key=True,)
-    pipeline_uuid = db.Column(db.String(36), primary_key=True,)
-    status = db.Column(db.String(10), primary_key=False,)
+    project_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
+    )
+    pipeline_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
+    )
+    status = db.Column(
+        db.String(10),
+        primary_key=False,
+    )
     # Used to connect to Jupyter notebook server.
-    jupyter_server_ip = db.Column(db.String(15), unique=True, nullable=True,)  # IPv4
+    jupyter_server_ip = db.Column(
+        db.String(15),
+        unique=True,
+        nullable=True,
+    )  # IPv4
     # Used to connect to Jupyter notebook server.
-    notebook_server_info = db.Column(db.JSON, unique=True, nullable=True,)
+    notebook_server_info = db.Column(
+        db.JSON,
+        unique=True,
+        nullable=True,
+    )
     # Docker container IDs. Used internally to identify the resources of
     # a specific session.
-    container_ids = db.Column(db.JSON, unique=False, nullable=True,)
+    container_ids = db.Column(
+        db.JSON,
+        unique=False,
+        nullable=True,
+    )
 
     def __repr__(self):
         return f"<Launch {self.pipeline_uuid}>"
@@ -43,8 +64,14 @@ class InteractiveSession(BaseModel):
 class PipelineRun(BaseModel):
     __abstract__ = True
 
-    project_uuid = db.Column(db.String(36),)
-    pipeline_uuid = db.Column(db.String(36), unique=False, nullable=False,)
+    project_uuid = db.Column(
+        db.String(36),
+    )
+    pipeline_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+    )
     status = db.Column(db.String(15), unique=False, nullable=True)
 
     def __repr__(self):
@@ -89,7 +116,11 @@ class NonInteractiveRun(PipelineRun):
     run_uuid = db.Column(db.String(36), primary_key=True)
     # This run_id is used to identify the pipeline run within the
     # experiment and maintain a consistent ordering.
-    pipeline_run_id = db.Column(db.Integer, unique=False, nullable=False,)
+    pipeline_run_id = db.Column(
+        db.Integer,
+        unique=False,
+        nullable=False,
+    )
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
 
@@ -113,11 +144,21 @@ class Experiment(BaseModel):
     __bind_key__ = "persistent_db"
 
     experiment_uuid = db.Column(db.String(36), primary_key=True)
-    project_uuid = db.Column(db.String(36),)
+    project_uuid = db.Column(
+        db.String(36),
+    )
     pipeline_uuid = db.Column(db.String(36), primary_key=False)
-    total_number_of_pipeline_runs = db.Column(db.Integer, unique=False, nullable=False,)
+    total_number_of_pipeline_runs = db.Column(
+        db.Integer,
+        unique=False,
+        nullable=False,
+    )
     scheduled_start = db.Column(db.DateTime, nullable=False)
-    completed_pipeline_runs = db.Column(db.Integer, unique=False, default=0,)
+    completed_pipeline_runs = db.Column(
+        db.Integer,
+        unique=False,
+        default=0,
+    )
 
     pipeline_runs = db.relationship("NonInteractiveRun", lazy="joined")
 
