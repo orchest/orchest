@@ -41,3 +41,8 @@ class ExperimentSchema(ma.Schema):
             "strategy_json",
             "draft",
         )
+
+
+class BackgroundTaskSchema(ma.Schema):
+    class Meta:
+        fields = ("task_uuid", "task_type", "status", "code", "result")
