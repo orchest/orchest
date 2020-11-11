@@ -30,10 +30,22 @@ class ProjectsView extends React.Component {
       loading: true,
     };
 
+    this.ERROR_MAPPING = {
+      "project move failed": "failed to move project because the directory exists."
+    }
+
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
     this.backgroundTaskPoller = new BackgroundTaskPoller();
     this.backgroundTaskPoller.POLL_FREQUENCY = 1000;
+  }
+
+  getMappedErrorMessage(key){
+    if(this.ERROR_MAPPING[key] !== undefined){
+      return this.ERROR_MAPPING[key];
+    }else{
+      return "undefined error. Please try again.";
+    }
   }
 
   componentWillUnmount() {
@@ -261,6 +273,7 @@ class ProjectsView extends React.Component {
         this.setState({
           importResult: result
         })
+        this.fetchList();
       });
     })
 
@@ -274,6 +287,7 @@ class ProjectsView extends React.Component {
 
   onImport(){
     this.setState({
+      importResult: undefined,
       showImportModal: true
     })
   }
@@ -312,7 +326,7 @@ class ProjectsView extends React.Component {
                         result = <p><i className="material-icons float-left">check</i> Import completed!</p>;
                       }
                       else if(this.state.importResult.status === 'FAILURE'){
-                        result = <p><i className="material-icons float-left">error</i> Import failed: {this.state.importResult.result}</p>;
+                        result = <p><i className="material-icons float-left">error</i> Import failed: {this.getMappedErrorMessage(this.state.importResult.result)}</p>;
                       }
 
                       return <div className="push-up">
