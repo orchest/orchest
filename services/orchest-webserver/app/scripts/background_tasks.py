@@ -37,7 +37,7 @@ def git_clone_project(args):
             # get the directory without knowing the repo name if the project_name has not been provided
             res = os.listdir(tmp_path)
             from_path = os.path.join(tmp_path, res[0])
-            exit_code = os.system(f"mv {from_path} /userdir/projects/")
+            exit_code = os.system(f"mv \"{from_path}\" /userdir/projects/")
             if exit_code != 0:
                 msg = "project move failed"
     # cleanup the tmp directory in any case
