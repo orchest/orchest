@@ -74,6 +74,7 @@ cd orchest
 ## Starting Orchest
 
 ```bash
+# Make sure to be in the cloned "orchest" directory.
 ./orchest start
 ```
 
