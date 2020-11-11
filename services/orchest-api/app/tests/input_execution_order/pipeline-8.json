@@ -18,63 +18,63 @@
             "name": "step-1",
             "uuid": "uuid-1",
             "file_path": "",
-            "image": 0.1
+            "environment": 0.1
         },
         "uuid-2": {
             "incoming_connections": [],
             "name": "step-2",
             "uuid": "uuid-2",
             "file_path": "",
-            "image": 0.0
+            "environment": 0.0
         },
         "uuid-3": {
             "incoming_connections": ["uuid-1", "uuid-2"],
             "name": "step-3",
             "uuid": "uuid-3",
             "file_path": "",
-            "image": 0.1
+            "environment": 0.1
         },
         "uuid-4": {
             "incoming_connections": ["uuid-2", "uuid-1"],
             "name": "step-4",
             "uuid": "uuid-4",
             "file_path": "",
-            "image": 0.2
+            "environment": 0.2
         },
         "uuid-5": {
             "incoming_connections": ["uuid-3"],
             "name": "step-5",
             "uuid": "uuid-5",
             "file_path": "",
-            "image": 0.5
+            "environment": 0.5
         },
         "uuid-6": {
             "incoming_connections": ["uuid-4"],
             "name": "step-6",
             "uuid": "uuid-6",
             "file_path": "",
-            "image": 0.1
+            "environment": 0.1
         },
         "uuid-7": {
             "incoming_connections": ["uuid-5", "uuid-6"],
             "name": "step-7",
             "uuid": "uuid-7",
             "file_path": "",
-            "image": 0.2
+            "environment": 0.2
         },
         "uuid-8": {
             "incoming_connections": ["uuid-6"],
             "name": "step-8",
             "uuid": "uuid-8",
             "file_path": "",
-            "image": 0.1
+            "environment": 0.1
         },
         "uuid-9": {
             "incoming_connections": ["uuid-8"],
             "name": "step-9",
             "uuid": "uuid-9",
             "file_path": "",
-            "image": 0.6
+            "environment": 0.6
         }
     }
 }

@@ -15,6 +15,7 @@ import pytest
 
 from app.core import pipelines
 from app.core.pipelines import Pipeline
+from _orchest.internals import config as _config
 
 
 class IO:
@@ -63,7 +64,16 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         # It gets the config that get's passed to the
         # `aiodocker.Docker().containers.run(config=config)`
         mock_class = MockDockerContainer(
-            kwargs["config"]["Image"], kwargs["config"]["tests-uuid"], execution_order
+            float(
+                kwargs["config"]["Image"].replace(
+                    _config.ENVIRONMENT_IMAGE_NAME.format(
+                        project_uuid="", environment_uuid=""
+                    ),
+                    "",
+                )
+            ),
+            kwargs["config"]["tests-uuid"],
+            execution_order,
         )
 
         return mock_class
