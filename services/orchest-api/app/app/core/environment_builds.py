@@ -138,19 +138,19 @@ def write_environment_dockerfile(base_image, work_dir, bash_script, flag, path):
     """
     statements = []
     statements.append(f"FROM {base_image}")
-    statements.append(f"WORKDIR {os.path.join('/', work_dir)}")
 
     # copy the entire context, that is, given the current use case,
     # that we are copying the project directory (from the snapshot) into the docker image that is to be built,
     # this allows the user defined script defined through orchest to make use of files
     # that are part of its project, e.g. a requirements.txt or other scripts.
-    statements.append("COPY . .")
+    statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
     # note: commands are concatenated with && because this way an exit_code != 0 will bubble up
     # and cause the docker build to fail, as it should.
     # the bash script is removed so that the user won't be able to see it after the build is done
     statements.append(
-        f'RUN chmod +x {bash_script} && echo "{flag}" && bash {bash_script} && echo "{flag}" && rm {bash_script}'
+        f"RUN cd \"{os.path.join('/', work_dir)}\" && chmod +x {bash_script} && echo \"{flag}\" && bash {bash_script} && echo \"{flag}\" && rm {bash_script}"
     )
+
     statements = "\n".join(statements)
 
     with open(path, "w") as dockerfile:
