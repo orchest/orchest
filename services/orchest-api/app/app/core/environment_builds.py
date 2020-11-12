@@ -198,17 +198,8 @@ def check_environment_correctness(project_uuid, environment_uuid, project_path):
         if "base_image" not in environment_properties:
             raise ValueError("base_image not found in environment properties.json")
 
-        if "project_uuid" not in environment_properties:
-            raise ValueError("project_uuid not found in environment properties.json")
-
         if "uuid" not in environment_properties:
             raise ValueError("uuid not found in environment properties.json")
-
-        if environment_properties["project_uuid"] != project_uuid:
-            raise ValueError(
-                f"The environment properties project "
-                f"uuid {environment_properties['project_uuid']} differs {project_uuid}"
-            )
 
         if environment_properties["uuid"] != environment_uuid:
             raise ValueError(
