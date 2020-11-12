@@ -2,7 +2,7 @@
     "name": "my-pipeline",
     "uuid": "pipeline-uuid",
     "settings": {
-        "auto-eviction": true
+        "auto_eviction": true
     },
     "steps": {
         "uuid-1______________": {

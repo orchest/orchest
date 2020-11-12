@@ -3,6 +3,7 @@ import os
 import uuid
 import requests
 import urllib.parse
+import logging
 
 from docker.types import DeviceRequest, Mount
 
@@ -69,17 +70,18 @@ def get_environment_capabilities(environment_uuid, project_uuid):
             "http://orchest-webserver/store/environments/%s/%s"
             % (project_uuid, environment_uuid)
         )
-
         response.raise_for_status()
-
     except Exception as e:
-        print(e)
+        logging.error(
+            "Failed to get environment for environment_uuid[%s] and project_uuid[%s]. Error: %s (%s)"
+            % (environment_uuid, project_uuid, e, type(e))
+        )
+        return capabilities
 
-    else:
-        environment = response.json()
+    environment = response.json()
 
-        if environment["gpu_support"] == True:
-            capabilities += ["gpu", "utility", "compute"]
+    if environment["gpu_support"] == True:
+        capabilities += ["gpu", "utility", "compute"]
 
     return capabilities
 

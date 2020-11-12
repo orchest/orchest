@@ -698,6 +698,7 @@ def register_views(app, db):
                 "name": request.json["name"],
                 "version": "1.0.0",
                 "uuid": pipeline_uuid,
+                "settings": {"auto_eviction": False},
                 "steps": {},
             }
 
@@ -712,33 +713,6 @@ def register_views(app, db):
                 ),
                 409,
             )
-
-    # Note: only pipelines in project directories can be renamed (not in experiments)
-    @app.route(
-        "/async/pipelines/rename/<project_uuid>/<pipeline_uuid>", methods=["POST"]
-    )
-    def pipelines_rename(project_uuid, pipeline_uuid):
-
-        if Pipeline.query.filter(Pipeline.uuid == pipeline_uuid).count() > 0:
-
-            pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
-
-            if os.path.isfile(pipeline_json_path):
-
-                with open(pipeline_json_path, "r") as json_file:
-                    pipeline_json = json.load(json_file)
-
-                pipeline_json["name"] = request.form.get("name")
-
-                with open(pipeline_json_path, "w") as json_file:
-                    json_file.write(json.dumps(pipeline_json, indent=2))
-
-                json_string = json.dumps({"success": True})
-                return json_string, 200, {"content-type": "application/json"}
-            else:
-                return "", 404
-        else:
-            return "", 404
 
     class ImportGitProjectListResource(Resource):
         def post(self):
@@ -1044,7 +1018,7 @@ def register_views(app, db):
     @app.route(
         "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]
     )
-    def pipelines_json_get(project_uuid, pipeline_uuid):
+    def pipelines_json(project_uuid, pipeline_uuid):
 
         pipeline_json_path = get_pipeline_path(
             pipeline_uuid,
@@ -1078,7 +1052,7 @@ def register_views(app, db):
             with open(pipeline_json_path, "w") as json_file:
                 json_file.write(json.dumps(pipeline_json, indent=2))
 
-            return jsonify({"success": True})
+            return jsonify({"message": "Successfully saved pipeline."})
 
         elif request.method == "GET":
 

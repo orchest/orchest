@@ -10,7 +10,7 @@ def construct_pipeline(pipeline_fname):
         description = json.load(f)
 
     try:
-        auto_eviction = description["settings"].get("auto-eviction", False)
+        auto_eviction = description["settings"].get("auto_eviction", False)
     except KeyError:
         auto_eviction = False
 
@@ -94,7 +94,7 @@ def start_manager(store_socket_name, pipeline_fname):
     # (aka edge) is set to 1. If the outdegree of a step is equal to the
     # sum of the weight of its outgoing edges, then we know that all the
     # receiving steps have already read the output. If the
-    # `auto-eviction` is set in the `pipeline.json`, then this will
+    # `auto_eviction` is set in the `pipeline.json`, then this will
     # cause that output to be removed from the store.
     pipeline = construct_pipeline(pipeline_fname=pipeline_fname)
 

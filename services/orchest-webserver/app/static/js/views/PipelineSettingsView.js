@@ -1,6 +1,5 @@
 import React from "react";
 import PipelineView from "./PipelineView";
-import { MDCTextField } from "@material/textfield";
 import {
   makeRequest,
   PromiseManager,
@@ -8,23 +7,20 @@ import {
   RefManager,
 } from "../lib/utils/all";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
-import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
+import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
+import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
+import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 
 class PipelineSettingsView extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      active_tab_index: 0,
       restartingMemoryServer: false,
     };
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
-  }
-
-  initComponent() {
-    this.initiateMDCComponents();
   }
 
   componentWillUnmount() {
@@ -46,8 +42,6 @@ class PipelineSettingsView extends React.Component {
       if (result.success) {
         let pipelineJson = JSON.parse(result["pipeline_json"]);
         this.setState({ pipelineJson: pipelineJson });
-
-        this.initComponent();
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -55,19 +49,7 @@ class PipelineSettingsView extends React.Component {
     });
   }
 
-  initiateMDCComponents() {
-    if (this.refManager.refs.pipelineNameField) {
-      this.pipelineNameField = new MDCTextField(
-        this.refManager.refs.pipelineNameField
-      );
-      this.pipelineNameField.value = this.state.pipelineJson.name;
-      this.pipelineNameField.focus();
-    }
-  }
-
-  componentDidUpdate(prevProps, prevState, snapshot) {
-    this.initiateMDCComponents();
-  }
+  componentDidUpdate(prevProps, prevState, snapshot) {}
 
   closeSettings() {
     orchest.loadView(PipelineView, {
@@ -76,30 +58,39 @@ class PipelineSettingsView extends React.Component {
     });
   }
 
+  onChangeName(value) {
+    this.state.pipelineJson.name = value;
+  }
+  onChangeEviction(value) {
+    // create settings object if it doesn't exist
+    if (!this.state.pipelineJson.settings) {
+      this.state.pipelineJson.settings = {};
+    }
+
+    this.state.pipelineJson.settings.auto_eviction = value == true;
+  }
+
   saveGeneralForm(e) {
     e.preventDefault();
 
-    // new name
-    let pipelineName = this.pipelineNameField.value;
-
     let formData = new FormData();
-    formData.append("name", pipelineName);
+    formData.append("pipeline_json", JSON.stringify(this.state.pipelineJson));
 
     // perform POST to save
     makeRequest(
       "POST",
-      `/async/pipelines/rename/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+      `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
       { type: "FormData", content: formData }
-    ).then((response) => {
-      let json = JSON.parse(response);
-      console.log(json);
-      if (json.success === true) {
+    )
+      .then(() => {
         orchest.loadView(PipelineView, {
           pipeline_uuid: this.props.pipeline_uuid,
           project_uuid: this.props.project_uuid,
         });
-      }
-    });
+      })
+      .catch((response) => {
+        console.error(response);
+      });
   }
 
   restartMemoryServer() {
@@ -118,7 +109,7 @@ class PipelineSettingsView extends React.Component {
       );
 
       restartPromise.promise
-        .then((response) => {
+        .then(() => {
           this.setState({
             restartingMemoryServer: false,
           });
@@ -149,65 +140,60 @@ class PipelineSettingsView extends React.Component {
       <div className={"view-page view-pipeline-settings"}>
         <h2>Pipeline settings</h2>
 
-        <MDCTabBarReact items={["General"]} icons={["subject"]} />
-
-        <div className={"tab-content"}>
-          {(() => {
-            switch (this.state.active_tab_index) {
-              case 0:
-                return (
+        {(() => {
+          if (this.state.pipelineJson) {
+            return (
+              <div>
+                <form>
                   <div>
-                    <form>
-                      <div>
-                        <div
-                          ref={this.refManager.nrefs.pipelineNameField}
-                          className="mdc-text-field"
-                        >
-                          <input
-                            type="text"
-                            id="my-text-field"
-                            onChange={this.stub}
-                            className="mdc-text-field__input"
-                          />
-                          <label
-                            className="mdc-floating-label"
-                            htmlFor="my-text-field"
-                          >
-                            Pipeline name
-                          </label>
-                          <div className="mdc-line-ripple"></div>
-                        </div>
-                      </div>
-
-                      <MDCButtonReact
-                        label="save"
-                        classNames={["mdc-button--raised"]}
-                        onClick={this.saveGeneralForm.bind(this)}
-                      />
-                    </form>
-
-                    <h3 className="push-up push-down">Data passing</h3>
-
-                    <MDCButtonReact
-                      disabled={this.state.restartingMemoryServer}
-                      label="Clear memory"
-                      icon="memory"
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.restartMemoryServer.bind(this)}
+                    <MDCTextFieldReact
+                      ref={this.refManager.nrefs.pipelineNameTextField}
+                      value={this.state.pipelineJson.name}
+                      onChange={this.onChangeName.bind(this)}
+                      label="Pipeline name"
+                      classNames={["push-down"]}
                     />
 
-                    {(() => {
-                      if (this.state.restartingMemoryServer) {
-                        return (
-                          <p className="push-up">Restarting in progress...</p>
-                        );
+                    <MDCCheckboxReact
+                      value={
+                        this.state.pipelineJson.settings
+                          ? this.state.pipelineJson.settings.auto_eviction ==
+                            true
+                          : false
                       }
-                    })()}
+                      onChange={this.onChangeEviction.bind(this)}
+                      label="Automatic memory eviction"
+                    />
                   </div>
-                );
-            }
-          })()}
-        </div>
+
+                  <MDCButtonReact
+                    label="save"
+                    classNames={["mdc-button--raised"]}
+                    onClick={this.saveGeneralForm.bind(this)}
+                  />
+                </form>
+
+                <h3 className="push-up push-down">Data passing</h3>
+
+                <MDCButtonReact
+                  disabled={this.state.restartingMemoryServer}
+                  label="Clear memory"
+                  icon="memory"
+                  classNames={["mdc-button--raised"]}
+                  onClick={this.restartMemoryServer.bind(this)}
+                />
+
+                {(() => {
+                  if (this.state.restartingMemoryServer) {
+                    return <p className="push-up">Restarting in progress...</p>;
+                  }
+                })()}
+              </div>
+            );
+          } else {
+            return <MDCLinearProgressReact />;
+          }
+        })()}
 
         <MDCButtonReact
           classNames={["close-button"]}
