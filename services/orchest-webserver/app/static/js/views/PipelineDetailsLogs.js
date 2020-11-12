@@ -40,7 +40,7 @@ class PipelineDetailsLogs extends React.Component {
 
     this.onPtyReset = (data) => {
       if (data.session_uuid == this.session_uuid) {
-        this.refManager.refs.term.terminal.clear();
+        this.refManager.refs.term.terminal.reset();
       }
     };
 

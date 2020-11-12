@@ -192,7 +192,7 @@ class EnvironmentEditView extends React.Component {
     });
 
     if (this.refManager.refs.term) {
-      this.refManager.refs.term.terminal.clear();
+      this.refManager.refs.term.terminal.reset();
 
       this.setState({
         ignoreIncomingLogs: true,
