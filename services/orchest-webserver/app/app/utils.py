@@ -1,6 +1,7 @@
 import json
 import os
 import hashlib
+import json
 import random
 import string
 import logging
@@ -136,12 +137,12 @@ def serialize_environment_to_disk(environment, env_directory):
     # treat startup_script separately
     with open(os.path.join(env_directory, "properties.json"), "w") as file:
 
-        environmentJSON = environment_schema.dumps(environment)
+        environmentDICT = environment_schema.dump(environment)
 
         # don't serialize project_uuid
-        del environmentJSON["project_uuid"]
+        del environmentDICT["project_uuid"]
 
-        file.write(environmentJSON)
+        file.write(json.dumps(environmentDICT))
 
     # write startup_script
     with open(os.path.join(env_directory, "startup_script.sh"), "w") as file:
