@@ -109,7 +109,9 @@ def register_views(app, db):
                 environment_dir = get_environment_directory(
                     environment_uuid, project_uuid
                 )
-                return environment_schema.dump(read_environment_from_disk(environment_dir))
+                return environment_schema.dump(
+                    read_environment_from_disk(environment_dir)
+                )
 
             def delete(self, project_uuid, environment_uuid):
                 environment_dir = get_environment_directory(
