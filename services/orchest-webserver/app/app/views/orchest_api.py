@@ -245,23 +245,34 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/api/runs/<run_uuid>", methods=["GET", "DELETE"])
     def catch_api_proxy_runs_single(run_uuid):
 
-        request_method = dynamic_request_method(request.method)
+        if request.method == "GET":
 
-        resp = request_method(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/%s" % run_uuid,
-            stream=True,
-        )
+            resp = requests.get(
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/runs/%s" % run_uuid,
+                stream=True,
+            )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+            return resp.raw.read(), resp.status_code, resp.headers.items()
+
+        elif request.method == "DELETE":
+
+            resp = requests.delete(
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/runs/%s" % run_uuid,
+                stream=True,
+            )
+
+            return resp.raw.read(), resp.status_code, resp.headers.items()
 
     @app.route(
         "/catch/api-proxy/api/experiments/<experiment_uuid>/<run_uuid>", methods=["GET"]
     )
     def catch_api_proxy_experiment_runs_single(experiment_uuid, run_uuid):
 
-        request_method = dynamic_request_method(request.method)
-
-        resp = request_method(
+        resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/experiments/%s/%s" % (experiment_uuid, run_uuid),
