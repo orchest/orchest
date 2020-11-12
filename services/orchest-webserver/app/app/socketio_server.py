@@ -79,14 +79,6 @@ def register_socketio_broadcast(db, socketio):
                     include_self=False,
                     namespace="/environment_builds",
                 )
-            elif data["action"] == "sio_streamed_task_finished":
-
-                socketio.emit(
-                    "sio_streamed_task_data_finished_ack",
-                    {},
-                    room=request.sid,
-                    namespace="/environment_builds",
-                )
 
     @socketio.on("pty-log-manager", namespace="/pty")
     def process_log_manager(data):

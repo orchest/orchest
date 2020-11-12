@@ -166,10 +166,11 @@ class EnvironmentEditView extends React.Component {
         ) {
           let lines = data.output.split("\n");
           for (let x = 0; x < lines.length; x++) {
-            if (x == lines.length - 1 && lines[x].length == 0) {
-              continue;
+            if (x == lines.length - 1) {
+              this.refManager.refs.term.terminal.write(lines[x]);
+            } else {
+              this.refManager.refs.term.terminal.writeln(lines[x]);
             }
-            this.refManager.refs.term.terminal.writeln(lines[x]);
           }
         } else if (data["action"] == "sio_streamed_task_started") {
           // This blocking mechanism makes sure old build logs are
