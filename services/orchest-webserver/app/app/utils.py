@@ -9,6 +9,7 @@ import tarfile
 import io
 import docker
 import shutil
+import requests
 
 from app.models import Pipeline, Project, Environment
 from app.config import CONFIG_CLASS as StaticConfig
@@ -110,7 +111,7 @@ def get_environments(project_uuid, language=None):
             environment_dir = os.path.join(environments_dir, path)
 
             if os.path.isdir(environment_dir):
-                env = read_environment_from_disk(environment_dir)
+                env = read_environment_from_disk(environment_dir, project_uuid)
 
                 if language is None:
                     environments.append(env)
@@ -134,14 +135,20 @@ def serialize_environment_to_disk(environment, env_directory):
 
     # treat startup_script separately
     with open(os.path.join(env_directory, "properties.json"), "w") as file:
-        file.write(environment_schema.dumps(environment))
+
+        environmentJSON = environment_schema.dumps(environment)
+
+        # don't serialize project_uuid
+        del environmentJSON["project_uuid"]
+
+        file.write(environmentJSON)
 
     # write startup_script
     with open(os.path.join(env_directory, "startup_script.sh"), "w") as file:
         file.write(environment.startup_script)
 
 
-def read_environment_from_disk(env_directory):
+def read_environment_from_disk(env_directory, project_uuid):
 
     try:
         with open(os.path.join(env_directory, "properties.json"), "r") as file:
@@ -151,6 +158,7 @@ def read_environment_from_disk(env_directory):
             startup_script = file.read()
 
         e = Environment(**env_dat)
+        e.project_uuid = project_uuid
         e.startup_script = startup_script
 
         return e
@@ -162,6 +170,20 @@ def read_environment_from_disk(env_directory):
 
 
 # End of environments
+
+
+def dynamic_request_method(method):
+    method_functions = {
+        "GET": requests.get,
+        "PUT": requests.put,
+        "POST": requests.post,
+        "DELETE": requests.delete,
+    }
+
+    if method not in method_functions:
+        raise Exception("Method %s does not exist in requests." % method)
+
+    return method_functions[method]
 
 
 def get_hash(path):

@@ -232,7 +232,7 @@ class PipelineView extends React.Component {
       openedStep: undefined,
       selectedSteps: [],
       runUUID: undefined,
-      runStatusEndpoint: "/api-proxy/api/runs/",
+      runStatusEndpoint: "/catch/api-proxy/api/runs/",
       unsavedChanges: false,
       stepSelector: {
         active: false,
@@ -255,7 +255,7 @@ class PipelineView extends React.Component {
       try {
         this.state.runUUID = this.props.pipelineRun.run_uuid;
         this.state.runStatusEndpoint =
-          "/api-proxy/api/experiments/" +
+          "/catch/api-proxy/api/experiments/" +
           this.props.pipelineRun.experiment_uuid +
           "/";
         this.pollPipelineStepStatuses();
@@ -279,7 +279,10 @@ class PipelineView extends React.Component {
 
   fetchActivePipelineRuns() {
     let pipelineRunsPromise = makeCancelable(
-      makeRequest("GET", "/api-proxy/api/runs/"),
+      makeRequest(
+        "GET",
+        `/catch/api-proxy/api/runs/?project_uuid=${this.props.project_uuid}&pipeline_uuid=${this.props.pipeline_uuid}`
+      ),
       this.promiseManager
     );
 
@@ -1219,6 +1222,12 @@ class PipelineView extends React.Component {
 
         this.parseRunStatuses(result);
 
+        if (["PENDING", "STARTED"].indexOf(result.status) !== -1) {
+          this.setState({
+            pipelineRunning: true,
+          });
+        }
+
         if (result.status === "SUCCESS") {
           // make sure stale opened files are reloaded in active
           // Jupyter instance
@@ -1252,6 +1261,29 @@ class PipelineView extends React.Component {
     this.saveBeforeAction(() => {
       this.runStepUUIDs(this.state.selectedSteps, "incoming");
     });
+  }
+
+  cancelRun() {
+    if (!this.state.pipelineRunning) {
+      orchest.alert("Error", "There is no pipeline running.");
+      return;
+    }
+
+    ((runUUID) => {
+      makeRequest("DELETE", `/catch/api-proxy/api/runs/${runUUID}`)
+        .then(() => {
+          this.setState({
+            pipelineRunning: false,
+            runUUID: undefined,
+          });
+        })
+        .catch((response) => {
+          orchest.alert(
+            "Error",
+            `Could not cancel pipeline run for runUUID ${runUUID}`
+          );
+        });
+    })(this.state.runUUID);
   }
 
   runStepUUIDs(uuids, type) {
@@ -1594,20 +1626,33 @@ class PipelineView extends React.Component {
                 !this.state.stepSelector.active &&
                 !this.props.readOnly
               ) {
-                return (
-                  <div className="selection-buttons">
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      onClick={this.runSelectedSteps.bind(this)}
-                      label="Run selected steps"
-                    />
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      onClick={this.onRunIncoming.bind(this)}
-                      label="Run incoming steps"
-                    />
-                  </div>
-                );
+                if (!this.state.pipelineRunning) {
+                  return (
+                    <div className="selection-buttons">
+                      <MDCButtonReact
+                        classNames={["mdc-button--raised", "themed-secondary"]}
+                        onClick={this.runSelectedSteps.bind(this)}
+                        label="Run selected steps"
+                      />
+                      <MDCButtonReact
+                        classNames={["mdc-button--raised", "themed-secondary"]}
+                        onClick={this.onRunIncoming.bind(this)}
+                        label="Run incoming steps"
+                      />
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="selection-buttons">
+                      <MDCButtonReact
+                        classNames={["mdc-button--raised"]}
+                        onClick={this.cancelRun.bind(this)}
+                        icon="close"
+                        label="Cancel run"
+                      />
+                    </div>
+                  );
+                }
               }
             })()}
           </div>

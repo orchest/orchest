@@ -112,16 +112,31 @@ class PipelineSettingsView extends React.Component {
       let restartPromise = makeCancelable(
         makeRequest(
           "PUT",
-          `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+          `/catch/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`
         ),
         this.promiseManager
       );
 
-      restartPromise.promise.then((response) => {
-        this.setState({
-          restartingMemoryServer: false,
+      restartPromise.promise
+        .then((response) => {
+          this.setState({
+            restartingMemoryServer: false,
+          });
+        })
+        .catch((response) => {
+          let errorMessage =
+            "Could not clear memory server, reason unknown. Please try again later.";
+          try {
+            errorMessage = JSON.parse(response.body)["message"];
+          } catch (error) {
+            console.error(error);
+          }
+          orchest.alert("Error", errorMessage);
+
+          this.setState({
+            restartingMemoryServer: false,
+          });
         });
-      });
     } else {
       console.error(
         "Already busy restarting memory server. UI should prohibit this call."

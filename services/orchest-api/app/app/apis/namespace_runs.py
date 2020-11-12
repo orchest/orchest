@@ -29,7 +29,19 @@ class RunList(Resource):
         These pipeline runs are either pending, running or have already
         completed.
         """
-        runs = models.InteractiveRun.query.all()
+
+        query = models.InteractiveRun.query
+
+        # Ability to query a specific runs given the `pipeline_uuid` or `project_uuid`
+        # through the URL (using `request.args`).
+        if "pipeline_uuid" in request.args and "project_uuid" in request.args:
+            query = query.filter_by(
+                pipeline_uuid=request.args.get("pipeline_uuid")
+            ).filter_by(project_uuid=request.args.get("project_uuid"))
+        elif "project_uuid" in request.args:
+            query = query.filter_by(project_uuid=request.args.get("project_uuid"))
+
+        runs = query.all()
         return {"runs": [run.as_dict() for run in runs]}, 200
 
     @api.doc("start_run")

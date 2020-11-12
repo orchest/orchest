@@ -7,6 +7,7 @@ from app.utils import (
     get_project_directory,
     pipeline_uuid_to_path,
     get_environments,
+    dynamic_request_method,
 )
 
 
@@ -110,29 +111,43 @@ def register_orchest_api_views(app, db):
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/runs/", methods=["POST"])
+    @app.route("/catch/api-proxy/api/runs/", methods=["GET", "POST"])
     def catch_api_proxy_runs():
 
-        json_obj = request.json
+        if request.method == "POST":
 
-        # add image mapping
-        # TODO: replace with dynamic mapping instead of hardcoded
-        json_obj["run_config"] = {
-            "project_dir": get_project_directory(
-                json_obj["project_uuid"], host_path=True
-            ),
-            "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_description"]["uuid"], json_obj["project_uuid"]
-            ),
-        }
+            json_obj = request.json
 
-        resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
-            json=json_obj,
-            stream=True,
-        )
+            # add image mapping
+            # TODO: replace with dynamic mapping instead of hardcoded
+            json_obj["run_config"] = {
+                "project_dir": get_project_directory(
+                    json_obj["project_uuid"], host_path=True
+                ),
+                "pipeline_path": pipeline_uuid_to_path(
+                    json_obj["pipeline_description"]["uuid"], json_obj["project_uuid"]
+                ),
+            }
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+            resp = requests.post(
+                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
+                json=json_obj,
+                stream=True,
+            )
+
+            return resp.raw.read(), resp.status_code, resp.headers.items()
+
+        elif request.method == "GET":
+
+            resp = requests.get(
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/runs/?"
+                + request.query_string.decode(),
+                stream=True,
+            )
+
+            return resp.raw.read(), resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
     def catch_api_proxy_sessions():
@@ -177,6 +192,79 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/",
             json=json_obj,
+            stream=True,
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
+    @app.route(
+        "/catch/api-proxy/api/sessions/<project_uuid>/<pipeline_uuid>", methods=["PUT"]
+    )
+    def catch_api_proxy_session_put(project_uuid, pipeline_uuid):
+
+        # check whether session is running
+        try:
+            resp = requests.get(
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/runs/?project_uuid=%s&pipeline_uuid=%s"
+                % (project_uuid, pipeline_uuid)
+            )
+
+            runs = resp.json()["runs"]
+
+            active_runs = False
+            for run in runs:
+                if run["status"] in ["PENDING", "STARTED"]:
+                    active_runs = True
+
+            if active_runs:
+                return (
+                    jsonify(
+                        {"message": "Cannot clear memory while pipeline is running."}
+                    ),
+                    423,
+                )
+            else:
+                resp = requests.put(
+                    "http://"
+                    + app.config["ORCHEST_API_ADDRESS"]
+                    + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
+                    stream=True,
+                )
+
+                return resp.raw.read(), resp.status_code, resp.headers.items()
+        except Exception as e:
+            logging.error(
+                "Could not get session information from orchest-api. Error: %s (%s)"
+                % (e, type(e))
+            )
+
+        return "", 500
+
+    @app.route("/catch/api-proxy/api/runs/<run_uuid>", methods=["GET", "DELETE"])
+    def catch_api_proxy_runs_single(run_uuid):
+
+        request_method = dynamic_request_method(request.method)
+
+        resp = request_method(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/%s" % run_uuid,
+            stream=True,
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
+    @app.route(
+        "/catch/api-proxy/api/experiments/<experiment_uuid>/<run_uuid>", methods=["GET"]
+    )
+    def catch_api_proxy_experiment_runs_single(experiment_uuid, run_uuid):
+
+        request_method = dynamic_request_method(request.method)
+
+        resp = request_method(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/experiments/%s/%s" % (experiment_uuid, run_uuid),
             stream=True,
         )
 
