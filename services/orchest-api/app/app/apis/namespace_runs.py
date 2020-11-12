@@ -2,7 +2,6 @@
 
 Note: "run" is short for "interactive pipeline run".
 """
-from celery.task.control import revoke
 from celery.contrib.abortable import AbortableAsyncResult
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
@@ -144,6 +143,7 @@ class Run(Resource):
         # it is responsibility of the task to terminate by reading it's aborted status
         res.abort()
 
+        celery_app.control.revoke(run_uuid)
         # TODO: possibly set status of steps and Run to "ABORTED"
 
         return {"message": "Run termination was successful"}, 200
