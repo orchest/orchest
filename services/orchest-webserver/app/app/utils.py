@@ -172,20 +172,6 @@ def read_environment_from_disk(env_directory, project_uuid):
 # End of environments
 
 
-def dynamic_request_method(method):
-    method_functions = {
-        "GET": requests.get,
-        "PUT": requests.put,
-        "POST": requests.post,
-        "DELETE": requests.delete,
-    }
-
-    if method not in method_functions:
-        raise Exception("Method %s does not exist in requests." % method)
-
-    return method_functions[method]
-
-
 def get_hash(path):
     BLOCKSIZE = 8192 * 8
     hasher = hashlib.md5()
