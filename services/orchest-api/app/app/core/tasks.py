@@ -60,12 +60,9 @@ class APITask(Task):
         return self._session
 
 
-# TODO: rename this function maybe? `start_pipeline_run` since it no
-#       longer constructs the partial, the construct is already done
-#       in the API. `run_pipeline` sounds even better to me
 # @celery.task(bind=True, base=APITask)
 @celery.task(bind=True)
-def run_partial(
+def run_pipeline(
     self,
     pipeline_description: PipelineDescription,
     project_uuid: str,
@@ -102,7 +99,7 @@ def run_partial(
     # Run the subgraph in parallel. And pass the id of the AsyncResult
     # object.
     # TODO: The commented line below is once we can introduce sessions.
-    # session = run_partial.session
+    # session = run_pipeline.session
     task_id = task_id if task_id is not None else self.request.id
     return asyncio.run(pipeline.run(task_id, run_config=run_config))
 
@@ -181,7 +178,7 @@ def start_non_interactive_pipeline_run(
         run_config["project_dir"],
         interactive=False,
     ) as session:
-        status = run_partial(
+        status = run_pipeline(
             pipeline_description, project_uuid, run_config, task_id=self.request.id
         )
 

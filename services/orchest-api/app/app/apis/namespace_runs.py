@@ -66,7 +66,7 @@ class RunList(Resource):
         # Start the run as a background task on Celery. Due to circular
         # imports we send the task by name instead of importing the
         # function directly.
-        res = celery.send_task("app.core.tasks.run_partial", kwargs=celery_job_kwargs)
+        res = celery.send_task("app.core.tasks.run_pipeline", kwargs=celery_job_kwargs)
 
         # NOTE: this is only if a backend is configured.  The task does
         # not return anything. Therefore we can forget its result and
