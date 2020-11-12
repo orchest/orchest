@@ -1127,14 +1127,12 @@ def register_views(app, db):
 
         for root, dirs, files in os.walk(project_dir):
 
+            # exclude directories that start with "." from file_picker
+            dirs[:] = [dirname for dirname in dirs if not dirname.startswith(".")]
+
             for dirname in dirs:
 
-                if dirname.startswith("."):
-                    dirs.remove(dirname)
-                    continue
-
                 dir_path = os.path.join(root, dirname)
-
                 dir_node = {
                     "type": "directory",
                     "name": dirname,
