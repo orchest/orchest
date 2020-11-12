@@ -13,6 +13,9 @@ KERNELSPECS_PATH = ".orchest/kernels/{project_uuid}"
 # Environments
 ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
 
+# Containers
+PIPELINE_STEP_CONTAINER_NAME = "orchest-step-{run_uuid}-{step_uuid}"
+
 # Relative to the `project_dir` path.
 LOGS_PATH = ".orchest/{pipeline_uuid}/logs"
 

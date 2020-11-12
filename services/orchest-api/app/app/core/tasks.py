@@ -1,7 +1,8 @@
 import asyncio
 import json
 import os
-from typing import Dict, Optional, Union
+
+from typing import Dict, Optional, Union, Any, List
 
 import aiohttp
 from celery import Task
@@ -13,7 +14,11 @@ from app.core.pipelines import Pipeline, PipelineDescription
 from app.core.sessions import launch_session
 from app.core.environment_builds import build_environment_task
 from config import CONFIG_CLASS
-from celery.contrib.abortable import AbortableTask
+from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
+from celery.utils.log import get_task_logger
+from _orchest.internals import config as _config
+
+logger = get_task_logger(__name__)
 
 # TODO: create_app is called twice, meaning create_all (create
 # databases) is called twice, which means celery-worker needs the
@@ -60,6 +65,26 @@ class APITask(Task):
         return self._session
 
 
+async def get_run_status(
+    task_id: str,
+    type: str,
+    run_endpoint: str,
+    uuid: Optional[str] = None,
+) -> Any:
+
+    base_url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_endpoint}/{task_id}"
+
+    if type == "step":
+        url = f"{base_url}/{uuid}"
+
+    elif type == "pipeline":
+        url = base_url
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.json()
+
+
 # @celery.task(bind=True, base=APITask)
 @celery.task(bind=True)
 def run_pipeline(
@@ -101,7 +126,62 @@ def run_pipeline(
     # TODO: The commented line below is once we can introduce sessions.
     # session = run_pipeline.session
     task_id = task_id if task_id is not None else self.request.id
-    return asyncio.run(pipeline.run(task_id, run_config=run_config))
+
+    def kill_all_running_steps(pipeline, task_id):
+
+        logger.info("Aborted: kill_all_running_steps")
+
+        # list containers
+        containers = docker_client.containers.list()
+
+        container_names_to_kill = set(
+            [
+                _config.PIPELINE_STEP_CONTAINER_NAME.format(
+                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
+                )
+                for pipeline_step in pipeline.steps
+            ]
+        )
+
+        for container in containers:
+            if container.name in container_names_to_kill:
+                try:
+                    container.kill()
+                except Exception as e:
+                    logger.error(
+                        "Failed to kill container %s. Error: %s (%s)"
+                        % (container.get("name"), e, type(e))
+                    )
+
+    # Periodically check whether task has been aborted, if it has been, kill all
+    # running containers to short-circuit pipeline run.
+    async def check_task_status(run_config, pipeline, task_id):
+
+        while True:
+
+            # check status every second
+            await asyncio.sleep(1)
+
+            aborted = AbortableAsyncResult(task_id).is_aborted()
+            run_status = await get_run_status(
+                task_id, "pipeline", run_config["run_endpoint"]
+            )
+            ready = run_status["status"] in ["SUCCESS", "FAILURE"]
+
+            if aborted:
+                kill_all_running_steps(pipeline, task_id)
+            if ready or aborted:
+                break
+
+    async def run_pipeline_async(run_config, pipeline, task_id):
+        await asyncio.gather(
+            *[
+                asyncio.create_task(pipeline.run(task_id, run_config=run_config)),
+                asyncio.create_task(check_task_status(run_config, pipeline, task_id)),
+            ]
+        )
+
+    return asyncio.run(run_pipeline_async(run_config, pipeline, task_id))
 
 
 @celery.task(bind=True)

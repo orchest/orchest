@@ -2,8 +2,8 @@
 
 Note: "run" is short for "interactive pipeline run".
 """
-
 from celery.task.control import revoke
+from celery.contrib.abortable import AbortableAsyncResult
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
@@ -137,20 +137,14 @@ class Run(Resource):
     @api.response(200, "Run terminated")
     def delete(self, run_uuid):
         """Stops a pipeline run given its UUID."""
-        # TODO: Decide what we want to do in case a pipeline run is
-        #       hanging. Currently, the user has to manually kill the
-        #       respectively running Docker containers.
 
-        # From the Celery docs:
-        # "The terminate option is a last resort for administrators when
-        # a task is stuck. It’s not for terminating the task, it’s for
-        # terminating the process that’s executing the task, and that
-        # process may have already started processing another task at
-        # the point when the signal is sent, so for this reason you must
-        # never call this programmatically."
-        revoke(run_uuid)
+        celery_app = make_celery(current_app)
+        res = AbortableAsyncResult(run_uuid, app=celery_app)
 
-        # TODO: possibly set status of steps and Run to "REVOKED"
+        # it is responsibility of the task to terminate by reading it's aborted status
+        res.abort()
+
+        # TODO: possibly set status of steps and Run to "ABORTED"
 
         return {"message": "Run termination was successful"}, 200
 

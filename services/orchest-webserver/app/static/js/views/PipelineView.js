@@ -231,7 +231,6 @@ class PipelineView extends React.Component {
     this.state = {
       openedStep: undefined,
       selectedSteps: [],
-      runUUID: undefined,
       runStatusEndpoint: "/catch/api-proxy/api/runs/",
       unsavedChanges: false,
       stepSelector: {
@@ -242,6 +241,8 @@ class PipelineView extends React.Component {
         y2: 0,
       },
       pipelineRunning: false,
+      waitingOnCancel: false,
+      runUUID: undefined,
       stepExecutionState: {},
       steps: {},
       defaultDetailViewIndex: 0,
@@ -1236,6 +1237,7 @@ class PipelineView extends React.Component {
 
           this.setState({
             pipelineRunning: false,
+            waitingOnCancel: false,
           });
           clearInterval(this.pipelineStepStatusPollingInterval);
         }
@@ -1273,8 +1275,7 @@ class PipelineView extends React.Component {
       makeRequest("DELETE", `/catch/api-proxy/api/runs/${runUUID}`)
         .then(() => {
           this.setState({
-            pipelineRunning: false,
-            runUUID: undefined,
+            waitingOnCancel: true,
           });
         })
         .catch((response) => {
@@ -1648,6 +1649,7 @@ class PipelineView extends React.Component {
                         classNames={["mdc-button--raised"]}
                         onClick={this.cancelRun.bind(this)}
                         icon="close"
+                        disabled={this.state.waitingOnCancel}
                         label="Cancel run"
                       />
                     </div>

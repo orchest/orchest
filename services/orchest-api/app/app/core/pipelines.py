@@ -254,7 +254,12 @@ class PipelineStepRunner:
         # command does). Therefore the option to await the container
         # completion is introduced.
         try:
-            container = await docker_client.containers.run(config=config)
+            container = await docker_client.containers.run(
+                config=config,
+                name=_config.PIPELINE_STEP_CONTAINER_NAME.format(
+                    run_uuid=task_id, step_uuid=self.properties["uuid"]
+                ),
+            )
         except Exception as e:
             print("Exception", e)
 
