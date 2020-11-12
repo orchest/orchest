@@ -7,7 +7,6 @@ from app.utils import (
     get_project_directory,
     pipeline_uuid_to_path,
     get_environments,
-    dynamic_request_method,
 )
 
 
