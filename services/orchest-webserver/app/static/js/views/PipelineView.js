@@ -11,6 +11,7 @@ import {
   makeCancelable,
   PromiseManager,
   RefManager,
+  kernelNameToLanguage,
 } from "../lib/utils/all";
 
 import { checkGate, requestBuild } from "../utils/webserver-utils";
@@ -1006,46 +1007,62 @@ class PipelineView extends React.Component {
   newStep() {
     this.deselectSteps();
 
-    let step = {
-      title: "",
-      uuid: uuidv4(),
-      incoming_connections: [],
-      file_path: "",
-      kernel: {
-        name: "python",
-        display_name: "Python 3",
-      },
-      environment: "",
-      parameters: {},
-      meta_data: {
-        position: [0, 0],
-        _dragged: false,
-        _drag_count: 0,
-        hidden: true,
-      },
-    };
+    let environmentsEndpoint = `/store/environments/${this.props.project_uuid}`;
+    let fetchEnvironmentsPromise = makeCancelable(
+      makeRequest("GET", environmentsEndpoint),
+      this.promiseManager
+    );
 
-    this.state.steps[step.uuid] = step;
-    this.setState({ steps: this.state.steps });
+    fetchEnvironmentsPromise.promise.then((response) => {
+      let result = JSON.parse(response);
 
-    this.selectStep(step.uuid);
+      let environmentUUID = "";
+      if (result.length > 0) {
+        environmentUUID = result[0].uuid;
+      }
 
-    // wait for single render call
-    setTimeout(() => {
-      step["meta_data"]["position"] = [
-        this.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 - 190 / 2,
-        this.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
-          105 / 2,
-      ];
+      let step = {
+        title: "",
+        uuid: uuidv4(),
+        incoming_connections: [],
+        file_path: "",
+        kernel: {
+          name: "python",
+          display_name: "Python 3",
+        },
+        environment: environmentUUID,
+        parameters: {},
+        meta_data: {
+          position: [0, 0],
+          _dragged: false,
+          _drag_count: 0,
+          hidden: true,
+        },
+      };
 
-      // to avoid repositioning flash (creating a step can affect the size of the viewport)
-      step["meta_data"]["hidden"] = false;
-
+      this.state.steps[step.uuid] = step;
       this.setState({ steps: this.state.steps });
-      this.refManager.refs[step.uuid].updatePosition(
-        this.state.steps[step.uuid].meta_data.position
-      );
-    }, 0);
+
+      this.selectStep(step.uuid);
+
+      // wait for single render call
+      setTimeout(() => {
+        step["meta_data"]["position"] = [
+          this.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
+            190 / 2,
+          this.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
+            105 / 2,
+        ];
+
+        // to avoid repositioning flash (creating a step can affect the size of the viewport)
+        step["meta_data"]["hidden"] = false;
+
+        this.setState({ steps: this.state.steps });
+        this.refManager.refs[step.uuid].updatePosition(
+          this.state.steps[step.uuid].meta_data.position
+        );
+      }, 0);
+    });
   }
 
   selectStep(pipelineStepUUID) {
