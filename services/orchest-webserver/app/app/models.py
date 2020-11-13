@@ -45,8 +45,6 @@ class DataSource(db.Model):
 class Environment(db.Model):
     __tablename__ = "environments"
 
-    # Note: uuids for environments need to be unique across all environments.
-    # This needs to be checked on project import (to check for conflicting environment uuids).
     uuid = db.Column(
         db.String(255), unique=True, nullable=False, primary_key=True, default=str_uuid4
     )
