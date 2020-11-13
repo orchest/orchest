@@ -261,7 +261,6 @@ class ProjectFilePicker extends React.Component {
                       <div className="push-down field-select-combo">
                         <MDCTextFieldReact
                           ref={this.refManager.nrefs.createFileTextField}
-                          classNames={[""]}
                           label="File name"
                           onChange={this.onChangeNewFilename.bind(this)}
                         />
@@ -269,7 +268,6 @@ class ProjectFilePicker extends React.Component {
                           ref={
                             this.refManager.nrefs.createFileExtensionDropdown
                           }
-                          classNames={[""]}
                           label="Extension"
                           value={"." + ALLOWED_STEP_EXTENSIONS[0]}
                           options={ALLOWED_STEP_EXTENSIONS.map((el) => [
