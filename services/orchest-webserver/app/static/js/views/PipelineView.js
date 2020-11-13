@@ -1178,7 +1178,7 @@ class PipelineView extends React.Component {
       selectedSteps: this.getSelectedSteps(),
     });
 
-    // make sure step is close if it was open
+    // make sure step is closed if it is open
     if (this.state.openedStep == uuid) {
       this.setState({
         openedStep: undefined,
