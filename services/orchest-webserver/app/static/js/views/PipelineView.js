@@ -11,14 +11,14 @@ import {
   makeCancelable,
   PromiseManager,
   RefManager,
-  kernelNameToLanguage,
 } from "../lib/utils/all";
 
 import { checkGate, requestBuild } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
-import PipelineDetails from "./PipelineDetails";
-import PipelineStep from "./PipelineStep";
+import PipelineDetails from "../components/PipelineDetails";
+import MultiPipelinestepDetails from "../components/MultiPipelinestepDetails";
+import PipelineStep from "../components/PipelineStep";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import NotebookPreviewView from "./NotebookPreviewView";
 import io from "socket.io-client";
@@ -231,6 +231,7 @@ class PipelineView extends React.Component {
 
     this.state = {
       openedStep: undefined,
+      openedMultistep: undefined,
       selectedSteps: [],
       runStatusEndpoint: "/catch/api-proxy/api/runs/",
       unsavedChanges: false,
@@ -590,8 +591,6 @@ class PipelineView extends React.Component {
     let _this = this;
 
     $(document).on("mouseup.initializePipeline", function (e) {
-      let dragOp = false;
-
       if (_this.newConnection) {
         let endNodeUUID = $(e.target)
           .parents(".pipeline-step")
@@ -738,7 +737,7 @@ class PipelineView extends React.Component {
               _this.state.steps[uuid].meta_data.position
             );
 
-            // note: state will be assigned in mouseup event for view updating
+            // note: state will be invalidated in mouseup event for view updating
             _this.state.unsavedChanges = true;
           }
         } else if (_this.selectedItem !== undefined) {
@@ -749,7 +748,7 @@ class PipelineView extends React.Component {
             step.meta_data.position
           );
 
-          // note: state will be assigned in mouseup event for view updating
+          // note: state will be invalidated in mouseup event for view updating
           _this.state.unsavedChanges = true;
         }
 
@@ -793,17 +792,16 @@ class PipelineView extends React.Component {
     );
 
     $(document).on("mouseup.initializePipeline", function (e) {
-      let dragOp = false;
+      let stepClicked = false;
 
       if (_this.selectedItem !== undefined) {
         let step = _this.state.steps[_this.selectedItem];
 
         if (!step.meta_data._dragged) {
+          stepClicked = true;
           _this.refManager.refs[_this.selectedItem].props.onClick(
             _this.selectedItem
           );
-        } else {
-          dragOp = true;
         }
 
         step.meta_data._dragged = false;
@@ -812,10 +810,41 @@ class PipelineView extends React.Component {
 
       // stepSelector
       if (_this.state.stepSelector.active) {
+        // on mouse up trigger onClick if single step is selected
+        // (only if not triggered by clickEnd)
+        if (_this.state.selectedSteps.length == 1 && !stepClicked) {
+          _this.selectStep(_this.state.selectedSteps[0]);
+        } else if (_this.state.selectedSteps.length > 1) {
+          // make sure single step detail view is closed
+          _this.closeDetailsView();
+
+          // show multistep view
+          _this.setState({
+            openedMultistep: true,
+          });
+        }
+
         _this.state.stepSelector.active = false;
         _this.setState({
           stepSelector: _this.state.stepSelector,
         });
+      }
+
+      if (e.button === 0 && _this.state.selectedSteps.length == 0) {
+        // when space bar is held make sure deselection does not occur
+        // on click (as it is a drag event)
+
+        if (
+          (e.target === _this.refManager.refs.pipelineStepsOuterHolder ||
+            e.target === _this.refManager.refs.pipelineStepsHolder) &&
+          _this.keysDown[32] !== true
+        ) {
+          if (_this.selectedConnection) {
+            _this.deselectConnection();
+          }
+
+          _this.deselectSteps();
+        }
       }
 
       // using timeouts to set global (_this) after all event listeners
@@ -834,22 +863,6 @@ class PipelineView extends React.Component {
 
     $(this.refManager.refs.pipelineStepsHolder).on("mousedown", (e) => {
       _this.prevPosition = [e.clientX, e.clientY];
-
-      if (e.button === 0) {
-        // when space bar is held make sure deselection does not occur
-        // on click (as it is a drag event)
-
-        if (
-          e.target === this.refManager.refs.pipelineStepsHolder &&
-          _this.keysDown[32] !== true
-        ) {
-          if (this.selectedConnection) {
-            this.deselectConnection();
-          }
-
-          this.deselectSteps();
-        }
-      }
     });
 
     $(this.refManager.refs.pipelineStepsHolder).on(
@@ -1130,9 +1143,7 @@ class PipelineView extends React.Component {
     });
   }
 
-  onDetailsDelete() {
-    let uuid = this.state.openedStep;
-
+  deleteStep(uuid) {
     // also delete incoming connections that contain this uuid
     for (let key in this.state.steps) {
       if (this.state.steps.hasOwnProperty(key)) {
@@ -1162,7 +1173,22 @@ class PipelineView extends React.Component {
     }
 
     delete this.state.steps[uuid];
-    this.setState({ steps: this.state.steps, openedStep: undefined });
+    this.setState({
+      steps: this.state.steps,
+      selectedSteps: this.getSelectedSteps(),
+    });
+
+    // make sure step is closed if it is open
+    if (this.state.openedStep == uuid) {
+      this.setState({
+        openedStep: undefined,
+      });
+    }
+  }
+
+  onDetailsDelete() {
+    let uuid = this.state.openedStep;
+    this.deleteStep(uuid);
   }
 
   openNotebook() {
@@ -1372,6 +1398,23 @@ class PipelineView extends React.Component {
     });
   }
 
+  closeMultistepView() {
+    this.setState({
+      openedMultistep: undefined,
+    });
+  }
+
+  onCloseMultistep() {
+    this.closeMultistepView();
+  }
+
+  onDeleteMultistep() {
+    for (let x = 0; x < this.state.selectedSteps.length; x++) {
+      this.deleteStep(this.state.selectedSteps[x]);
+    }
+    this.closeMultistepView();
+  }
+
   onDetailsChangeView(newIndex) {
     this.setState({
       defaultDetailViewIndex: newIndex,
@@ -1407,6 +1450,10 @@ class PipelineView extends React.Component {
   }
 
   deselectSteps() {
+    // deselecting will close the detail view
+    this.closeDetailsView();
+    this.onCloseMultistep();
+
     this.state.stepSelector.x1 = Number.MIN_VALUE;
     this.state.stepSelector.y1 = Number.MIN_VALUE;
     this.state.stepSelector.x2 = Number.MIN_VALUE;
@@ -1415,7 +1462,7 @@ class PipelineView extends React.Component {
 
     this.setState({
       stepSelector: this.state.stepSelector,
-      selectedSteps: this.getSelectedSteps(),
+      selectedSteps: [],
     });
   }
 
@@ -1554,6 +1601,7 @@ class PipelineView extends React.Component {
 
         this.setState({
           stepSelector: this.state.stepSelector,
+          selectedSteps: this.getSelectedSteps(),
         });
       }
     }
@@ -1761,6 +1809,14 @@ class PipelineView extends React.Component {
                 step={JSON.parse(
                   JSON.stringify(this.state.steps[this.state.openedStep])
                 )}
+              />
+            );
+          }
+          if (this.state.openedMultistep) {
+            return (
+              <MultiPipelinestepDetails
+                onDelete={this.onDeleteMultistep.bind(this)}
+                onClose={this.onCloseMultistep.bind(this)}
               />
             );
           }
