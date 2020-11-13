@@ -85,36 +85,9 @@ async def get_run_status(
             return await response.json()
 
 
-def kill_all_running_steps(pipeline, task_id):
-
-    logger.info("Aborted: kill_all_running_steps")
-
-    # list containers
-    containers = docker_client.containers.list()
-
-    container_names_to_kill = set(
-        [
-            _config.PIPELINE_STEP_CONTAINER_NAME.format(
-                run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
-            )
-            for pipeline_step in pipeline.steps
-        ]
-    )
-
-    for container in containers:
-        if container.name in container_names_to_kill:
-            try:
-                container.kill()
-            except Exception as e:
-                logger.error(
-                    "Failed to kill container %s. Error: %s (%s)"
-                    % (container.get("name"), e, type(e))
-                )
-
-
 # Periodically check whether task has been aborted, if it has been, kill all
 # running containers to short-circuit pipeline run.
-async def check_task_status(run_config, pipeline, task_id):
+async def check_pipeline_run_task_status(run_config, pipeline, task_id):
 
     while True:
 
@@ -128,7 +101,9 @@ async def check_task_status(run_config, pipeline, task_id):
         ready = run_status["status"] in ["SUCCESS", "FAILURE"]
 
         if aborted:
-            kill_all_running_steps(pipeline, task_id)
+            pipeline.kill_all_running_steps(
+                task_id, "docker", {"docker_client": docker_client}
+            )
         if ready or aborted:
             break
 
@@ -137,7 +112,9 @@ async def run_pipeline_async(run_config, pipeline, task_id):
     await asyncio.gather(
         *[
             asyncio.create_task(pipeline.run(task_id, run_config=run_config)),
-            asyncio.create_task(check_task_status(run_config, pipeline, task_id)),
+            asyncio.create_task(
+                check_pipeline_run_task_status(run_config, pipeline, task_id)
+            ),
         ]
     )
 

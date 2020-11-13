@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import os
+import logging
 from datetime import datetime
 from docker.types import Mount
 from typing import Any, Dict, Iterable, List, Optional  # , TypedDict
@@ -640,7 +641,40 @@ class Pipeline:
         properties = copy.deepcopy(self.properties)
         return Pipeline(steps=list(steps_to_be_included), properties=properties)
 
-    async def run(self, task_id: str, *, run_config: Dict[str, Any]) -> str:
+    def kill_all_running_steps(self, task_id, compute_backend, run_config):
+        run_func = getattr(self, f"kill_all_running_steps_on_{compute_backend}")
+        return run_func(task_id, run_config)
+
+    def kill_all_running_steps_on_docker(self, task_id, run_config):
+
+        logging.info("Aborted: kill_all_running_steps")
+
+        # list containers
+        docker_client = run_config["docker_client"]
+        containers = docker_client.containers.list()
+
+        container_names_to_kill = set(
+            [
+                _config.PIPELINE_STEP_CONTAINER_NAME.format(
+                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
+                )
+                for pipeline_step in self.steps
+            ]
+        )
+
+        for container in containers:
+            if container.name in container_names_to_kill:
+                try:
+                    container.kill()
+                except Exception as e:
+                    logging.error(
+                        "Failed to kill container %s. Error: %s (%s)"
+                        % (container.get("name"), e, type(e))
+                    )
+
+    async def run(
+        self, task_id: str, *, run_config: Dict[str, Any], compute_backend="docker"
+    ) -> str:
         """Runs the Pipeline asynchronously.
 
         Args:
@@ -678,7 +712,7 @@ class Pipeline:
                 session,
                 task_id,
                 run_config=run_config,
-                compute_backend="docker",
+                compute_backend=compute_backend,
             )
 
             # NOTE: the status of a pipeline is always success once it is
