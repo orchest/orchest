@@ -13,6 +13,7 @@ import {
   RefManager,
 } from "../lib/utils/all";
 import FilePicker from "./FilePicker";
+import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 
 class ProjectFilePicker extends React.Component {
   constructor(props) {
@@ -154,9 +155,21 @@ class ProjectFilePicker extends React.Component {
   }
 
   onChangeNewFilename(value) {
+    let extension = this.refManager.refs.createFileExtensionDropdown.mdc.value;
+
     this.setState((state, _) => {
       return {
-        createFileFullProjectPath: state.createFileDir + value,
+        createFileFullProjectPath: state.createFileDir + value + extension,
+      };
+    });
+  }
+
+  onChangeNewFilenameExtension(value) {
+    let fileName = this.refManager.refs.createFileTextField.mdc.value;
+
+    this.setState((state, _) => {
+      return {
+        createFileFullProjectPath: state.createFileDir + fileName + value,
       };
     });
   }
@@ -239,18 +252,34 @@ class ProjectFilePicker extends React.Component {
                 <MDCDialogReact
                   title="Create a new file"
                   content={
-                    <Fragment>
+                    <div className="create-file-input">
                       <div className="push-down">
                         Supported file extensions are:&nbsp;
                         {this.allowedExtensionsMarkup()}.
                       </div>
 
-                      <MDCTextFieldReact
-                        ref={this.refManager.nrefs.createFileTextField}
-                        classNames={["fullwidth push-down"]}
-                        label="File name"
-                        onChange={this.onChangeNewFilename.bind(this)}
-                      />
+                      <div className="push-down field-select-combo">
+                        <MDCTextFieldReact
+                          ref={this.refManager.nrefs.createFileTextField}
+                          classNames={[""]}
+                          label="File name"
+                          onChange={this.onChangeNewFilename.bind(this)}
+                        />
+                        <MDCSelectReact
+                          ref={
+                            this.refManager.nrefs.createFileExtensionDropdown
+                          }
+                          classNames={[""]}
+                          label="Extension"
+                          value={"." + ALLOWED_STEP_EXTENSIONS[0]}
+                          options={ALLOWED_STEP_EXTENSIONS.map((el) => [
+                            "." + el,
+                          ])}
+                          onChange={this.onChangeNewFilenameExtension.bind(
+                            this
+                          )}
+                        />
+                      </div>
                       <MDCTextFieldReact
                         label="Path in project"
                         value={this.state.createFileFullProjectPath}
@@ -258,7 +287,7 @@ class ProjectFilePicker extends React.Component {
                         ref={this.refManager.nrefs.fullFilePath}
                         disabled
                       />
-                    </Fragment>
+                    </div>
                   }
                   actions={
                     <Fragment>

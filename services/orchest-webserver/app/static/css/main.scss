@@ -10,6 +10,10 @@ $generalPadding: 20px;
 $mdcComponentPadding: 16px;
 $codeSize: 14px;
 $borderColor: rgba(0, 0, 0, 0.15);
+$stepBorderRadius: 6px;
+
+$pipelineStepHeight: 105px;
+$pipelineStepWidth: 190px;
 
 * {
   box-sizing: border-box;
@@ -140,6 +144,57 @@ p > i.material-icons.float-left {
     min-width: 200px;
     margin-left: $mdcComponentPadding;
   }
+}
+
+.create-file-input {
+  .field-select-combo {
+    display: flex;
+
+    .mdc-text-field {
+      width: 70%;
+      margin-right: $mdcComponentPadding;
+    }
+  }
+}
+
+.multi-step-pane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  padding: $generalPadding * 2;
+
+  .dummy-steps {
+    position: relative;
+    width: $pipelineStepWidth;
+
+    .dummy-step {
+      width: $pipelineStepWidth;
+      height: $pipelineStepHeight;
+      border-radius: $stepBorderRadius;
+      border: 1px solid $borderColor;
+      background: rgba(250, 250, 250);
+      color: #ccc;
+
+      &:nth-child(2) {
+        margin-left: 20px;
+        margin-top: -$pipelineStepHeight + 20px;
+      }
+    }
+  }
+}
+
+/* override title styling on overflow */
+.mdc-dialog--scrollable .mdc-dialog__title {
+  padding-bottom: 9px;
+}
+.mdc-dialog.mdc-dialog--scrollable .mdc-dialog__title,
+.mdc-dialog.mdc-dialog--scrollable .mdc-dialog__actions {
+  border-color: transparent;
+}
+.mdc-dialog--scrollable .mdc-dialog__content {
+  padding-top: 0;
+  padding-bottom: 20px;
 }
 
 // rounded notched buttons
@@ -700,18 +755,15 @@ span.code {
     }
 
     .pipeline-step {
-      $pipelineHeight: 105px;
-      $pipelineWidth: 190px;
-
       position: absolute;
       background: #fff;
       padding: $generalPadding/2 $generalPadding;
       border: 1px solid $borderColor;
-      border-radius: 6px;
+      border-radius: $stepBorderRadius;
       cursor: pointer;
       user-select: none;
-      width: $pipelineWidth;
-      height: $pipelineHeight;
+      width: $pipelineStepWidth;
+      height: $pipelineStepHeight;
       text-align: center;
       z-index: 2;
 
@@ -751,10 +803,13 @@ span.code {
 
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 
-      &.selected,
-      &:active {
+      &.selected {
         border-color: $mdc-theme-secondary;
         background: rgb(245, 245, 255);
+      }
+
+      &:active {
+        background: rgb(250, 250, 250);
       }
 
       .step-label-holder {
@@ -766,10 +821,10 @@ span.code {
 
       .step-label {
         text-overflow: ellipsis;
-        height: $pipelineHeight - $generalPadding;
-        max-height: $pipelineHeight - $generalPadding;
-        width: $pipelineWidth - $generalPadding * 2;
-        max-width: $pipelineWidth - $generalPadding * 2;
+        height: $pipelineStepHeight - $generalPadding;
+        max-height: $pipelineStepHeight - $generalPadding;
+        width: $pipelineStepWidth - $generalPadding * 2;
+        max-width: $pipelineStepWidth - $generalPadding * 2;
         display: table-cell;
         vertical-align: middle;
         overflow: hidden;
