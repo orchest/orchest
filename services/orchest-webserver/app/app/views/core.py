@@ -34,6 +34,7 @@ from app.utils import (
     get_environments,
     serialize_environment_to_disk,
     read_environment_from_disk,
+    delete_environment,
 )
 
 from app.models import (
@@ -114,23 +115,10 @@ def register_views(app, db):
                 )
 
             def delete(self, project_uuid, environment_uuid):
-                environment_dir = get_environment_directory(
-                    environment_uuid, project_uuid
-                )
-                shutil.rmtree(environment_dir)
 
+                delete_environment(project_uuid, environment_uuid)
                 # refresh kernels after change in environments
                 populate_kernels(app, db)
-
-                try:
-                    requests.delete(
-                        "http://"
-                        + app.config["ORCHEST_API_ADDRESS"]
-                        + "/api/environment-images/%s/%s"
-                        % (project_uuid, environment_uuid)
-                    )
-                except Exception as e:
-                    logging.warn("Failed to delete EnvironmentImage: %s" % e)
 
                 return jsonify({"message": "Environment deletion was successful."})
 
@@ -809,6 +797,11 @@ def register_views(app, db):
 
                 project_path = project_uuid_to_path(project_uuid)
                 full_project_path = os.path.join(project_dir, project_path)
+
+                # go through each environment and delete it
+                proj_envs = get_environments(project_uuid)
+                for env in proj_envs:
+                    delete_environment(project_uuid, env.uuid)
 
                 shutil.rmtree(full_project_path)
 

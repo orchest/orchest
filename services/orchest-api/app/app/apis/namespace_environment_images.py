@@ -24,7 +24,8 @@ class EnvironmentImage(Resource):
         )
 
         try:
-            docker_client.images.remove(image_name)
+            # using force true will actually remove the image instead of simply untagging it
+            docker_client.images.remove(image_name, force=True)
         except errors.ImageNotFound:
             return {"message": f"Environment image {image_name} not found"}, 404
         except Exception as e:

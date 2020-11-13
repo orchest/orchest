@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import os
 import requests
+import time
 
 from celery.contrib.abortable import AbortableAsyncResult
 
@@ -14,6 +15,51 @@ from app.core.sio_streamed_task import SioStreamedTask
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 __ENV_STARTUP_SCRIPT_NAME = "startup_script.sh"
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/environment_builds_logs"
+
+
+def cleanup_env_build_docker_artifacts(filters):
+    """Cleanup container(s) and images given filters.
+
+    Args:
+        filters:
+
+    Returns:
+
+    """
+    # actually we are just looking for a single container, but the syntax is the same as looking for N
+    containers_to_prune = docker_client.containers.list(filters=filters, all=True)
+    tries = 0
+    while containers_to_prune:
+        docker_client.containers.prune(filters=filters)
+        containers_to_prune = docker_client.containers.list(filters=filters, all=True)
+        # be as responsive as possible, only sleep at the first iteration if necessary
+        if containers_to_prune:
+            tries += 1
+            if tries > 100:
+                break
+            time.sleep(1)
+        else:
+            break
+
+    # only get to this point once there are no depending containers
+    # we DO NOT use all=True as an argument here because it will also return intermediate layers, which will
+    # not be pruneable if the build is successful. Those layers will be automatically deleted when the env
+    # image is deleted. What we are actually doing here is getting the last image created by the build process
+    # by getting all the images created by the build process. Removing n-1 of them will result in a no op,
+    # but 1 of them will cause the "ancestor" images to be removed as well.
+    images_to_prune = docker_client.images.list(filters=filters)
+    tries = 0
+    while images_to_prune:
+        docker_client.images.prune(filters=filters)
+        images_to_prune = docker_client.images.list(filters=filters)
+        # be as responsive as possible, only sleep at the first iteration if necessary
+        if images_to_prune:
+            tries += 1
+            if tries > 100:
+                break
+            time.sleep(1)
+        else:
+            break
 
 
 def update_environment_build_status(
@@ -50,6 +96,14 @@ def build_docker_image(
 
     """
     with open(complete_logs_path, "w") as complete_logs_file_object:
+
+        # get the previous image, keep it as a reference so that it can be later removed once
+        # the image has been substituted with the new one
+        try:
+            previous_image = docker_client.images.get(image_name)
+        except Exception:
+            previous_image = None
+            pass
 
         # connect to docker and issue the build
         generator = docker_client.api.build(
@@ -110,17 +164,28 @@ def build_docker_image(
             msg = (
                 "There was a problem building the image. "
                 "Either the base image does not exist or the "
-                "building script had a non 0 exit code, build failed"
+                "building script had a non 0 exit code, build failed\n"
             )
             user_logs_file_object.write(msg)
             complete_logs_file_object.write(msg)
             complete_logs_file_object.flush()
+
             return "FAILURE"
+
+        # note: we only attempt to cleanup if the environment was correctly created
+        if previous_image:
+            try:
+                # using force true will actually remove the image instead of simply untagging it
+                docker_client.images.remove(previous_image.id, force=True)
+            except Exception:
+                pass
 
         return "SUCCESS"
 
 
-def write_environment_dockerfile(base_image, work_dir, bash_script, flag, path):
+def write_environment_dockerfile(
+    base_image, task_uuid, work_dir, bash_script, flag, path
+):
     """Write a custom dockerfile with the given specifications. This dockerfile is built in an ad-hoc way
      to later be able to only log stuff related to the user script.
 
@@ -128,6 +193,7 @@ def write_environment_dockerfile(base_image, work_dir, bash_script, flag, path):
 
     Args:
         base_image: Base image of the docker file.
+        task_uuid
         work_dir: Working directory.
         bash_script: Script to run in a RUN command.
         flag: Flag to use to be able to differentiate between logs of the bash_script and logs to be ignored.
@@ -138,18 +204,23 @@ def write_environment_dockerfile(base_image, work_dir, bash_script, flag, path):
     """
     statements = []
     statements.append(f"FROM {base_image}")
+    # use this to cleanup in case of failure
+    statements.append("LABEL _orchest_env_build_is_intermediate=1")
+    statements.append(f"LABEL _orchest_build_task_uuid={task_uuid}")
 
     # copy the entire context, that is, given the current use case,
     # that we are copying the project directory (from the snapshot) into the docker image that is to be built,
     # this allows the user defined script defined through orchest to make use of files
     # that are part of its project, e.g. a requirements.txt or other scripts.
     statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
+
     # note: commands are concatenated with && because this way an exit_code != 0 will bubble up
     # and cause the docker build to fail, as it should.
     # the bash script is removed so that the user won't be able to see it after the build is done
     statements.append(
         f"RUN cd \"{os.path.join('/', work_dir)}\" && chmod +x {bash_script} && echo \"{flag}\" && bash {bash_script} && echo \"{flag}\" && rm {bash_script}"
     )
+    statements.append("LABEL _orchest_env_build_is_intermediate=0")
 
     statements = "\n".join(statements)
 
@@ -208,9 +279,7 @@ def check_environment_correctness(project_uuid, environment_uuid, project_path):
             )
 
 
-def prepare_build_context(
-    dockerfile_name, project_uuid, environment_uuid, project_path
-):
+def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_path):
     """Prepares the docker build context for a given environment.
 
     Prepares the docker build context by taking a snapshot of the project directory, and using this
@@ -219,7 +288,7 @@ def prepare_build_context(
     only the messages that are related to the user script while building the docker image.
 
     Args:
-        dockerfile_name:
+        task_uuid:
         project_uuid:
         environment_uuid:
         project_path:
@@ -230,6 +299,7 @@ def prepare_build_context(
     Raises:
         See the check_environment_correctness_function
     """
+    dockerfile_name = task_uuid
     # the project path we receive is relative to the projects directory
     userdir_project_path = os.path.join("/userdir/projects", project_path)
 
@@ -254,6 +324,7 @@ def prepare_build_context(
         bash_script_name = f".{dockerfile_name}.sh"
         write_environment_dockerfile(
             environment_properties["base_image"],
+            task_uuid,
             _config.PROJECT_DIR,
             bash_script_name,
             __DOCKERFILE_RESERVED_FLAG,
@@ -344,5 +415,14 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
         except Exception as e:
             update_environment_build_status("FAILURE", session, task_uuid)
             raise e
+        finally:
+            filters = {
+                "label": [
+                    "_orchest_env_build_is_intermediate=1",
+                    f"_orchest_build_task_uuid={task_uuid}",
+                ]
+            }
+
+            cleanup_env_build_docker_artifacts(filters)
 
     return status
