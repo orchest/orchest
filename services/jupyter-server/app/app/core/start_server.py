@@ -59,9 +59,10 @@ def main():
     # file that can be accessed outside of the subprocess in order to
     # connect to the started server.
     la = LabApp()
-    la.initialize()
 
-    _write_server_info_to_file(la.server_info(), "server_info.json")
+    serverapp = la.initialize_server(argv=sys.argv)
+
+    _write_server_info_to_file(serverapp.server_info(), "server_info.json")
 
     # This print is mandatory. The message can be changed, but the
     # subprocess is piping this output to stdout to confirm that
@@ -71,7 +72,7 @@ def main():
     # TODO: if the starting takes too long, then the front-end will
     #       already try to connect to the lab instance. Resulting in an
     #       error. This should obviously be more robust.
-    la.start()
+    serverapp.start()
 
 
 if __name__ == "__main__":
