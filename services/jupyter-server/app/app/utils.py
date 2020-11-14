@@ -30,9 +30,6 @@ def shutdown_jupyter_server(
     except FileNotFoundError:
         return False
 
-    # Authentication is done via the token of the server.
-    headers = {"Authorization": f'Token {server_info["token"]}'}
-
     # Due to the running "nginx_proxy" to route traffic for the Orchest
     # application. A "base_url" is included for Jupyter, which contains
     # a slash at the end, e.g. "base/url/".
@@ -42,7 +39,7 @@ def shutdown_jupyter_server(
     # kernels.
     # NOTE: Do not use /api/shutdown to gracefully shut down all kernels
     # as it is non-blocking, causing container based kernels to persist!
-    r = requests.get(f"{url}api/kernels", headers=headers)
+    r = requests.get(f"{url}api/kernels")
 
     kernels_json = r.json()
 
@@ -53,10 +50,10 @@ def shutdown_jupyter_server(
     # kernels.
     if isinstance(kernels_json, list):
         for kernel in kernels_json:
-            requests.delete(f'{url}api/kernels/{kernel.get("id")}', headers=headers)
+            requests.delete(f'{url}api/kernels/{kernel.get("id")}')
 
     # Now that all kernels all shut down, also shut down the Jupyter
     # server itself.
-    r = requests.post(f"{url}api/shutdown", headers=headers)
+    r = requests.post(f"{url}api/shutdown")
 
     return True

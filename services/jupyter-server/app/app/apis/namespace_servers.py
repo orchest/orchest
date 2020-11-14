@@ -20,16 +20,7 @@ server = api.model(
             required=True, default="localhost", description="Hostname"
         ),
         "port": fields.Integer(required=True, description="Port to access the server"),
-        "secure": fields.Boolean(
-            required=True, description="Any extra security measures"
-        ),
         "base_url": fields.String(required=True, default="/", description="Base URL"),
-        "token": fields.String(required=True, description="Token for authentication"),
-        "notebook_dir": fields.String(
-            required=True, description="Directory of the server"
-        ),
-        "password": fields.Boolean(required=True, description="Password if one is set"),
-        "pid": fields.Integer(required=True, description="PID"),
     },
 )
 
@@ -38,7 +29,7 @@ jupyter_config = api.model(
     "Jupyter Config",
     {
         "gateway-url": fields.String(required=True, description="URL of the EG"),
-        "NotebookApp.base_url": fields.String(
+        "ServerApp.base_url": fields.String(
             required=True, description="Base URL of Jupyter notebook"
         ),
     },

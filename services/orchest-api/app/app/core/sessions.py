@@ -265,7 +265,7 @@ class InteractiveSession(Session):
         )
         payload = {
             "gateway-url": f"http://{IP.jupyter_EG}:8888",
-            "NotebookApp.base_url": f'/jupyter_{IP.jupyter_server.replace(".", "_")}/',
+            "ServerApp.base_url": f'/jupyter_{IP.jupyter_server.replace(".", "_")}/',
         }
         for i in range(10):
             try:

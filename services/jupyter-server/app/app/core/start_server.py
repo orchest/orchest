@@ -1,6 +1,10 @@
 import json
 import os
 import sys
+import argparse
+import subprocess
+import logging
+
 from typing import Any, Dict
 
 from jupyterlab.labapp import LabApp
@@ -19,14 +23,7 @@ def _write_server_info_to_file(
             instance. Example:
             {
                 'base_url': '/',
-                'hostname': 'localhost',
-                'notebook_dir': '/project-dir',
-                'password': False,
-                'pid': 94619,
                 'port': 8888,
-                'secure': False,
-                'token': '<some-token>',
-                'url': 'http://localhost:8888/'
             }
         file_name: name of the file to write the information to.
         respective_path: path relative to this module to create the
@@ -46,23 +43,29 @@ def main():
     #       docker image has to be changed in order to allow another
     #       user. For now, it just works.
     formatted_args = [
+        "--port=8888",
         "--allow-root",
         "--no-browser",
         "--debug",
-        "--ip=0.0.0.0",
-        "--port=8888",
     ]
 
+    # remove first arg (script name)
+    sys.argv = sys.argv[1:]
     sys.argv.extend(formatted_args)
+
+    parser = argparse.ArgumentParser(description='Jupyter Lab args')
+    parser.add_argument('--ServerApp.base_url', required=True, type=str)
+    parser.add_argument('--port', required=True, type=int)
+    args, _ = parser.parse_known_args()
+    args = vars(args)
 
     # Initializes the Lab instance and writes its server info to a json
     # file that can be accessed outside of the subprocess in order to
     # connect to the started server.
-    la = LabApp()
-
-    serverapp = la.initialize_server(argv=sys.argv)
-
-    _write_server_info_to_file(serverapp.server_info(), "server_info.json")
+    _write_server_info_to_file({
+        "port": args["port"],
+        "base_url": args["ServerApp.base_url"]
+    }, "server_info.json")
 
     # This print is mandatory. The message can be changed, but the
     # subprocess is piping this output to stdout to confirm that
@@ -72,7 +75,18 @@ def main():
     # TODO: if the starting takes too long, then the front-end will
     #       already try to connect to the lab instance. Resulting in an
     #       error. This should obviously be more robust.
-    serverapp.start()
+    args = ["jupyter", "lab"]
+    args.extend([arg for arg in sys.argv])
+
+    logging.info(args)
+
+    # Start a Jupyter lab within a subprocess.
+    proc = subprocess.Popen(
+        args=args, stdout=subprocess.PIPE
+    )
+
+    # make this process blocking
+    proc.wait()
 
 
 if __name__ == "__main__":

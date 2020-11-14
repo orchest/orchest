@@ -1010,11 +1010,8 @@ class PipelineView extends React.Component {
     let baseAddress =
       "//" +
       window.location.host +
-      "/jupyter_" +
-      this.state.backend.jupyter_server_ip.replace(/\./g, "_") +
-      "/";
-    let token = this.state.backend.notebook_server_info.token;
-    orchest.jupyter.updateJupyterInstance(baseAddress, token);
+      this.state.backend.notebook_server_info.base_url;
+    orchest.jupyter.updateJupyterInstance(baseAddress);
   }
 
   newStep() {
@@ -1511,9 +1508,7 @@ class PipelineView extends React.Component {
     this.state.backend.running = running;
 
     if (session_details) {
-      this.state.backend.jupyter_server_ip = session_details.jupyter_server_ip;
-      this.state.backend.notebook_server_info =
-        session_details.notebook_server_info;
+      this.state.backend.notebook_server_info = session_details.notebook_server_info;
     }
 
     this.setState({

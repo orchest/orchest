@@ -5,21 +5,18 @@ class Jupyter {
 
     this.initializeJupyter();
 
-    // TODO: change setJupyterAddress non-hardcoded
     this.baseAddress = "";
-    this.token = "";
 
     this.reloadOnShow = false;
   }
 
-  updateJupyterInstance(baseAddress, token) {
-    if (this.baseAddress != baseAddress || this.token != this.token) {
-      // when a new token is set, unload iframe since it is no longer valid
+  updateJupyterInstance(baseAddress) {
+    if (this.baseAddress != baseAddress) {
+      // when a new baseAddress is set, unload iframe since it is no longer valid
       this.unload();
     }
 
     this.baseAddress = baseAddress;
-    this.token = token;
   }
 
   show() {
@@ -87,9 +84,7 @@ class Jupyter {
       this.setJupyterAddress(
         this.baseAddress +
           "lab/workspaces/main/tree/" +
-          filePath +
-          "?token=" +
-          this.token
+          filePath
       );
     }
   }

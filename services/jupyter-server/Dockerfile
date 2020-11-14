@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
 RUN pip3 install jupyterlab==3.0.0rc8
+
+COPY ./patch/handlers.py /usr/local/lib/python3.7/site-packages/jupyter_server/gateway/handlers.py
+
 RUN pip3 install flask_socketio \
     flask_restplus \
     requests \
@@ -21,6 +24,6 @@ RUN jupyter labextension install /jupyter-extensions/orchest-integration
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 RUN mkdir /root/.jupyter/
-COPY ./jupyter_lab_config.py /root/.jupyter/jupyter_lab_config.py
+COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 
 COPY ./app /app

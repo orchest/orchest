@@ -569,7 +569,7 @@ c.ServerApp.allow_origin = "*"
 
 ## The IP address the Jupyter server will listen on.
 #  Default: 'localhost'
-# c.ServerApp.ip = 'localhost'
+c.ServerApp.ip = '0.0.0.0'
 
 ## Supply extra arguments that will be passed to Jinja environment.
 #  Default: {}
@@ -746,7 +746,7 @@ c.ServerApp.allow_origin = "*"
 #  Setting to an empty string disables authentication altogether, which is NOT
 #  RECOMMENDED.
 #  Default: '<generated>'
-# c.ServerApp.token = '<generated>'
+c.ServerApp.token = ''
 
 ## Supply overrides for the tornado.web.Application that the Jupyter server uses.
 #  Default: {}

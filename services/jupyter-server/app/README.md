@@ -6,14 +6,7 @@ which can be found in the `server_info`, e.g.:
 ```json
 {
   "base_url": "/",
-  "hostname": "localhost",
-  "notebook_dir": "/project-dir",
-  "password": False,
-  "pid": 94619,
   "port": 8888,
-  "secure": False,
-  "token": "01cbad9aab25e243e0a6e98f5a848d32c3092fa909fef666",
-  "url": "http://localhost:8888/"
 }
 ```
 
