@@ -750,6 +750,23 @@ def register_views(app, db):
             if os.path.isdir(os.path.join(project_dir, name))
         ]
 
+        # look for projects that have been removed through the filesystem by the user, for these projects
+        # try to remove any old environment, then remove them from the db
+        fs_removed_projects = Project.query.filter(
+            Project.path.notin_(project_paths)
+        ).all()
+        for removed_proj in fs_removed_projects:
+            try:
+                requests.delete(
+                    "http://"
+                    + app.config["ORCHEST_API_ADDRESS"]
+                    + "/api/environment-images/fuzzy/%s" % removed_proj.uuid
+                )
+            except Exception as e:
+                logging.warning("Failed to delete EnvironmentImage: %s" % e)
+            db.session.delete(removed_proj)
+        db.session.commit()
+
         # create UUID entry for all projects that do not yet exist
         existing_project_paths = [
             project.path

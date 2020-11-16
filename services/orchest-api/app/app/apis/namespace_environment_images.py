@@ -38,3 +38,45 @@ class EnvironmentImage(Resource):
             {"message": f"Environment image {image_name} was successfully deleted"},
             200,
         )
+
+
+@api.route(
+    "/fuzzy/<string:project_uuid>",
+)
+@api.param("project_uuid", "UUID of the project")
+class FuzzyProjectEnvironmentImages(Resource):
+    @api.doc("delete-project_environment-images")
+    def delete(self, project_uuid):
+        """Tries to remove all environment images of a project by matching their name to the project properties"""
+
+        # use environment_uuid="" because we are looking for all of them
+        image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=project_uuid, environment_uuid=""
+        )
+
+        image_names_to_remove = [
+            img.attrs["RepoTags"][0]
+            for img in docker_client.images.list()
+            if img.attrs["RepoTags"]
+            and isinstance(img.attrs["RepoTags"][0], str)
+            and img.attrs["RepoTags"][0].startswith(image_name)
+        ]
+
+        try:
+            for image_name in image_names_to_remove:
+                # using force true will actually remove the image instead of simply untagging it
+                docker_client.images.remove(image_name, force=True)
+        except errors.ImageNotFound:
+            return {"message": f"Environment image {image_name} not found"}, 404
+        except Exception as e:
+            return (
+                {"message": f"There was an error deleting the image {image_name}."},
+                500,
+            )
+
+        return (
+            {
+                "message": f"Project {project_uuid} environment images were successfully deleted"
+            },
+            200,
+        )
