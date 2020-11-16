@@ -126,7 +126,8 @@ def stop(skip_names=[], trace=None):
                 pass
 
             try:
-                container.remove()
+                # remove unnamed volumes on shutdown
+                container.remove(v=True)
             except Exception:
                 # logging.debug(e) (remove() does not always succeed - e.g. the
                 # container could be configured to autoremove)
