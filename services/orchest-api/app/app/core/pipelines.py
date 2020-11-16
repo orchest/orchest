@@ -672,6 +672,48 @@ class Pipeline:
                         % (container.get("name"), e, type(e))
                     )
 
+    def remove_containerization_resources(self, task_id, compute_backend, run_config):
+        run_func = getattr(
+            self, f"remove_containerization_resources_on_{compute_backend}"
+        )
+        return run_func(task_id, run_config)
+
+    def remove_containerization_resources_on_docker(self, task_id, run_config):
+
+        logging.info("Cleaning up containerization resources on docker")
+
+        # list containers
+        docker_client = run_config["docker_client"]
+        # use all=True to get stopped containers
+        containers = docker_client.containers.list(all=True)
+
+        container_names_to_remove = set(
+            [
+                _config.PIPELINE_STEP_CONTAINER_NAME.format(
+                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
+                )
+                for pipeline_step in self.steps
+            ]
+        )
+        logging.info(container_names_to_remove)
+
+        for container in containers:
+            if container.name in container_names_to_remove:
+                try:
+                    logging.info("removing container %s" % container.name)
+                    # force=False so we log if a container happened to be still running while we expected it to
+                    # not be
+                    # v=True does not actually do anything because, given the docker docs:
+                    # https://docs.docker.com/engine/reference/commandline/rm/
+                    # "This command removes the container and any volumes associated with it.
+                    # Note that if a volume was specified with a name, it will not be removed."
+                    container.remove(force=False, v=True)
+                except Exception as e:
+                    logging.error(
+                        "Failed to remove container %s. Error: %s (%s)"
+                        % (container.get("name"), e, type(e))
+                    )
+
     async def run(
         self, task_id: str, *, run_config: Dict[str, Any], compute_backend="docker"
     ) -> str:
