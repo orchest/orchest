@@ -2,6 +2,8 @@ import asyncio
 import json
 import os
 import subprocess
+import logging
+import time
 
 from flask import current_app, request
 from flask_restplus import Namespace, Resource, fields
@@ -89,26 +91,31 @@ class Server(Resource):
         args.extend([f"--{arg}={value}" for arg, value in post_data.items()])
         args.extend([f'--notebook-dir={current_app.config["NOTEBOOK_DIR"]}'])
 
-        # Need to start a new event loop to start a subprocess.
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
         # Start a Jupyter server within a subprocess.  The "-u" option
         # is to avoid buffering. Since it will be a long running
         # process, we want output whilst the program is running such
         # that we know when and if the server did successfully start.
-        proc = subprocess.Popen(
+        subprocess.Popen(
             args=args, stdout=subprocess.PIPE, cwd=current_app.config["NOTEBOOK_DIR"]
         )
 
-        # Wait for the server to be booted, it will write a message to
-        # stdout once successful.
-        _ = proc.stdout.readline()
-
         # Get the information to connect to the server.
-        with open(self.connection_file, "r") as f:
-            server_info = json.load(f)
+        server_info = None
 
-        # TODO: return 404 in case it did not work!
+        for _ in range(10):
+            try:
+                with open(self.connection_file, "r") as f:
+                    server_info = json.load(f)
+                    break
+            except FileNotFoundError:
+                logging.info("Connection file")
+                time.sleep(0.5)
+
+        if server_info is None:
+            logging.error(
+                "Failed to start JupyterLab server. Connection file was never written."
+            )
+            return "", 500
 
         return server_info, 201
 

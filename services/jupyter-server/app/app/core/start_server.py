@@ -7,8 +7,6 @@ import logging
 
 from typing import Any, Dict
 
-from jupyterlab.labapp import LabApp
-
 
 def _write_server_info_to_file(
     server_info: Dict[str, Any], file_name: str, respective_path: str = "../tmp/"
@@ -50,22 +48,21 @@ def main():
     ]
 
     # remove first arg (script name)
-    sys.argv = sys.argv[1:]
     sys.argv.extend(formatted_args)
 
-    parser = argparse.ArgumentParser(description='Jupyter Lab args')
-    parser.add_argument('--ServerApp.base_url', required=True, type=str)
-    parser.add_argument('--port', required=True, type=int)
+    parser = argparse.ArgumentParser(description="Jupyter Lab args")
+    parser.add_argument("--ServerApp.base_url", required=True, type=str)
+    parser.add_argument("--port", required=True, type=int)
     args, _ = parser.parse_known_args()
     args = vars(args)
 
     # Initializes the Lab instance and writes its server info to a json
     # file that can be accessed outside of the subprocess in order to
     # connect to the started server.
-    _write_server_info_to_file({
-        "port": args["port"],
-        "base_url": args["ServerApp.base_url"]
-    }, "server_info.json")
+    _write_server_info_to_file(
+        {"port": args["port"], "base_url": args["ServerApp.base_url"]},
+        "server_info.json",
+    )
 
     # This print is mandatory. The message can be changed, but the
     # subprocess is piping this output to stdout to confirm that
@@ -76,14 +73,14 @@ def main():
     #       already try to connect to the lab instance. Resulting in an
     #       error. This should obviously be more robust.
     args = ["jupyter", "lab"]
-    args.extend([arg for arg in sys.argv])
+
+    # don't include script argument
+    args.extend([arg for arg in sys.argv[1:]])
 
     logging.info(args)
 
     # Start a Jupyter lab within a subprocess.
-    proc = subprocess.Popen(
-        args=args, stdout=subprocess.PIPE
-    )
+    proc = subprocess.Popen(args=args, stdout=subprocess.PIPE)
 
     # make this process blocking
     proc.wait()
