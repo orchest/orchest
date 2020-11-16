@@ -5,14 +5,15 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 # install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
-RUN pip3 install jupyterlab==3.0.0rc8
+RUN pip3 install pip --upgrade
 
-COPY ./patch/handlers.py /usr/local/lib/python3.7/site-packages/jupyter_server/gateway/handlers.py
-
-RUN pip3 install flask_socketio \
+RUN pip3 install jupyterlab==3.0.0rc9 \
+    flask_socketio \
     flask_restplus \
     requests \
     Werkzeug==0.16.1
+
+COPY ./patch/handlers.py /usr/local/lib/python3.7/site-packages/jupyter_server/gateway/handlers.py
 
 RUN git clone --single-branch --branch jupyterlab3 https://github.com/orchest/visual-tags.git /jupyter-extensions/visual-tags
 RUN git clone --single-branch --branch jupyterlab3 https://github.com/orchest/orchest-integration.git /jupyter-extensions/orchest-integration

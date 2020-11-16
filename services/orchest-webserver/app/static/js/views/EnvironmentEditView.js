@@ -92,7 +92,11 @@ class EnvironmentEditView extends React.Component {
   }
 
   fitTerminal() {
-    if (this.refManager.refs.term && this.state.showingBuildLogs) {
+    if (
+      this.refManager.refs.term &&
+      this.state.showingBuildLogs &&
+      this.refManager.refs.term.terminal.element.offsetParent
+    ) {
       this.fitAddon.fit();
     }
   }
