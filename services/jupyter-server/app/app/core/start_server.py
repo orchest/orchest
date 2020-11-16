@@ -86,7 +86,10 @@ def main():
     for _ in range(10):
         time.sleep(1)
         try:
-            r = requests.get(f"http://127.0.0.1:{parsed_args['port']}/api", timeout=1)
+            r = requests.get(
+                f"http://127.0.0.1:{parsed_args['port']}{parsed_args['ServerApp.base_url']}api",
+                timeout=1,
+            )
             r.raise_for_status()
 
             jupyterlab_running = True
