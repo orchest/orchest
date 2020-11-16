@@ -36,8 +36,6 @@ def client():
     abs_path = os.path.dirname(os.path.abspath(__file__))
     connection_file = os.path.join(abs_path, "..", "app", "tmp", "server_info.json")
 
-    _ = shutdown_jupyter_server(connection_file)
-
     if os.path.exists(connection_file):
         os.remove(connection_file)
 
