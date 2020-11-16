@@ -4,6 +4,8 @@ import sys
 import argparse
 import subprocess
 import logging
+import time
+import requests
 
 from typing import Any, Dict
 
@@ -54,15 +56,11 @@ def main():
     parser.add_argument("--ServerApp.base_url", required=True, type=str)
     parser.add_argument("--port", required=True, type=int)
     args, _ = parser.parse_known_args()
-    args = vars(args)
+    parsed_args = vars(args)
 
     # Initializes the Lab instance and writes its server info to a json
     # file that can be accessed outside of the subprocess in order to
     # connect to the started server.
-    _write_server_info_to_file(
-        {"port": args["port"], "base_url": args["ServerApp.base_url"]},
-        "server_info.json",
-    )
 
     # This print is mandatory. The message can be changed, but the
     # subprocess is piping this output to stdout to confirm that
@@ -82,8 +80,31 @@ def main():
     # Start a Jupyter lab within a subprocess.
     proc = subprocess.Popen(args=args, stdout=subprocess.PIPE)
 
-    # make this process blocking
-    proc.wait()
+    # Write connection file once JupyterLab is reachable
+    jupyterlab_running = False
+
+    for _ in range(10):
+        time.sleep(1)
+        try:
+            r = requests.get(f"http://127.0.0.1:{parsed_args['port']}/api", timeout=1)
+            r.raise_for_status()
+
+            jupyterlab_running = True
+            break
+        except:
+            logging.info("Still booting JupyterLab...")
+
+    if jupyterlab_running:
+        _write_server_info_to_file(
+            {
+                "port": parsed_args["port"],
+                "base_url": parsed_args["ServerApp.base_url"],
+            },
+            "server_info.json",
+        )
+
+        # make this process blocking
+        proc.wait()
 
 
 if __name__ == "__main__":
