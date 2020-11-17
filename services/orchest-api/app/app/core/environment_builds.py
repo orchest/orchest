@@ -38,8 +38,6 @@ def cleanup_env_build_docker_artifacts(filters):
             if tries > 100:
                 break
             time.sleep(1)
-        else:
-            break
 
     # only get to this point once there are no depending containers
     # we DO NOT use all=True as an argument here because it will also return intermediate layers, which will
@@ -58,8 +56,6 @@ def cleanup_env_build_docker_artifacts(filters):
             if tries > 100:
                 break
             time.sleep(1)
-        else:
-            break
 
 
 def update_environment_build_status(
@@ -173,7 +169,7 @@ def build_docker_image(
             return "FAILURE"
 
         # note: we only attempt to cleanup if the environment was correctly created
-        if previous_image:
+        if previous_image is not None:
             try:
                 # using force true will actually remove the image instead of simply untagging it
                 docker_client.images.remove(previous_image.id, force=True)

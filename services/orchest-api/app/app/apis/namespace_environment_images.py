@@ -62,15 +62,22 @@ class ProjectEnvironmentImages(Resource):
             and img.attrs["RepoTags"][0].startswith(image_name)
         ]
 
-        try:
-            for image_name in image_names_to_remove:
+        image_remove_exceptions = []
+        for image_name in image_names_to_remove:
+            try:
                 # using force true will actually remove the image instead of simply untagging it
                 docker_client.images.remove(image_name, force=True)
-        except errors.ImageNotFound:
-            return {"message": f"Environment image {image_name} not found"}, 404
-        except Exception as e:
+            except Exception as e:
+                image_remove_exceptions.append(
+                    f"There was an error deleting the image {image_name}:\n{e}"
+                )
+
+        if len(image_remove_exceptions) > 0:
+            image_remove_exceptions = "\n".join(image_remove_exceptions)
             return (
-                {"message": f"There was an error deleting the image {image_name}."},
+                {
+                    "message": f"There were errors in deleting the images of project {project_uuid}:\n{image_remove_exceptions}"
+                },
                 500,
             )
 

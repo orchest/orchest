@@ -171,12 +171,10 @@ class Session:
             # we are relying on the fact
             # that the session_identity_uuid and project_uuid are consistent among
             # these containers, i.e. there is 1 of each
-            if not session_identity_uuid:
-                session_identity_uuid = container.labels.get(
-                    "session_identity_uuid", None
-                )
-            if not project_uuid:
-                project_uuid = container.labels.get("project_uuid", None)
+            if session_identity_uuid is not None:
+                session_identity_uuid = container.labels.get("session_identity_uuid")
+            if project_uuid is not None:
+                project_uuid = container.labels.get("project_uuid")
 
             container.stop()
             container.remove()
