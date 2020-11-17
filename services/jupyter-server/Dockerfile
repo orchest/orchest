@@ -1,12 +1,15 @@
-FROM tiangolo/uwsgi-nginx-flask:python3.7
+FROM python:3.7-slim
 
 # refresh SSL certificates
-RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
+RUN apt-get update && apt-get install -y git curl ca-certificates && update-ca-certificates --fresh
 # install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
-RUN pip3 install pip --upgrade
+# Swap dash for normal bash to get more full fledged terminal session in Jupyter
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
+# Install Jupyter Lab
+RUN pip3 install pip --upgrade
 RUN pip3 install jupyterlab==3.0.0rc9 \
     flask_socketio \
     flask_restplus \
@@ -21,10 +24,8 @@ RUN git clone --single-branch --branch jupyterlab3 https://github.com/orchest/or
 RUN jupyter labextension install /jupyter-extensions/visual-tags --no-build
 RUN jupyter labextension install /jupyter-extensions/orchest-integration
 
-# Swap dash for normal bash to get more full fledged terminal session in Jupyter
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-
 RUN mkdir /root/.jupyter/
 COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 
-COPY ./app /app
+
+ENTRYPOINT [ "jupyter", "lab" ]

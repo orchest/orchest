@@ -95,7 +95,7 @@ CONTAINER_MAPPING = {
     },
     "rabbitmq:3": {
         "name": "rabbitmq-server",
-        "hostname": "rabbitmq-hostname",
+        "hostname": "rabbitmq-server",
         "mounts": [
             {
                 # Persisting RabbitMQ Queues.

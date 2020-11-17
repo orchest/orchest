@@ -11,6 +11,7 @@ from docker.types import Mount
 import requests
 
 from _orchest.internals import config as _config
+from app.utils import shutdown_jupyter_server
 
 
 # TODO: logging should probably be done toplevel instead of here.
@@ -51,7 +52,11 @@ class Session:
 
     @classmethod
     def from_container_IDs(
-        cls, client, container_IDs: Dict[str, str], network: Optional[str] = None
+        cls,
+        client,
+        container_IDs: Dict[str, str],
+        network: Optional[str] = None,
+        notebook_server_info: Dict[str, str] = None,
     ) -> "Session":
         """Constructs a session object from container IDs.
 
@@ -68,6 +73,9 @@ class Session:
 
         """
         session = cls(client)
+
+        session._notebook_server_info = notebook_server_info
+
         for resource, ID in container_IDs.items():
             container = session.client.containers.get(ID)
 
@@ -263,27 +271,27 @@ class InteractiveSession(Session):
             "Starting Jupyter Server on %s with Enterprise "
             "Gateway on %s" % (IP.jupyter_server, IP.jupyter_EG)
         )
-        payload = {
-            "gateway-url": f"http://{IP.jupyter_EG}:8888",
-            "ServerApp.base_url": f'/jupyter_{IP.jupyter_server.replace(".", "_")}/',
+
+        self._notebook_server_info = {
+            "port": 8888,
+            "base_url": "/%s"
+            % _config.JUPYTER_SERVER_NAME.format(
+                project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
+                pipeline_uuid=pipeline_uuid[: _config.TRUNCATED_UUID_LENGTH],
+            ),
         }
-        for i in range(10):
+
+        # Poll jupyter_server until available
+        for _ in range(10):
             try:
-                # Starts the Jupyter server and connects it to the given
-                # Enterprise Gateway.
-                r = requests.post(
-                    f"http://{IP.jupyter_server}:80/api/servers/", json=payload
+                requests.get(
+                    f"http://{IP.jupyter_server}{self._notebook_server_info['base_url']}/api"
                 )
             except requests.ConnectionError:
-                # TODO: there is probably a robuster way than a sleep.
-                #       Does the EG url have to given at startup? Because
-                #       else we don't need a time-out and simply give it
-                #       later.
                 time.sleep(0.5)
             else:
                 break
 
-        self._notebook_server_info = r.json()
         return
 
     def shutdown(self) -> None:
@@ -306,7 +314,10 @@ class InteractiveSession(Session):
         # TODO: make sure a graceful shutdown is instantiated via a
         #       DELETE request to the flask API inside the jupyter-server
         IP = self.get_containers_IP()
-        requests.delete(f"http://{IP.jupyter_server}:80/api/servers/")
+
+        shutdown_jupyter_server(
+            f"http://{IP.jupyter_server}:8888{self._notebook_server_info['base_url']}/"
+        )
 
         return super().shutdown()
 
@@ -524,11 +535,16 @@ def _get_container_specs(
 
     # Run EG container, where EG_DOCKER_NETWORK ensures that kernels
     # started by the EG are on the same docker network as the EG.
+    gateway_hostname = _config.JUPYTER_EG_SERVER_NAME.format(
+        project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
+        pipeline_uuid=uuid[: _config.TRUNCATED_UUID_LENGTH],
+    )
+
     container_specs["jupyter-EG"] = {
         "image": "orchest/jupyter-enterprise-gateway",  # TODO: make not static.
         "detach": True,
         "mounts": [mounts.get("docker_sock"), mounts.get("kernelspec")],
-        "name": f"jupyter-EG-{project_uuid}-{uuid}",
+        "name": gateway_hostname,
         "environment": [
             f"EG_DOCKER_NETWORK={network}",
             "EG_MIRROR_WORKING_DIRS=True",
@@ -548,14 +564,27 @@ def _get_container_specs(
         "network": network,
     }
 
+    jupyter_hostname = _config.JUPYTER_SERVER_NAME.format(
+        project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
+        pipeline_uuid=uuid[: _config.TRUNCATED_UUID_LENGTH],
+    )
     # Run Jupyter server container.
     container_specs["jupyter-server"] = {
         "image": "orchest/jupyter-server:latest",  # TODO: make not static.
         "detach": True,
         "mounts": [mounts["project_dir"]],
-        "name": f"jupyter-server-{project_uuid}-{uuid}",
+        "name": jupyter_hostname,
         "network": network,
         "environment": ["KERNEL_UID=0"],
+        "command": [
+            "--allow-root",
+            "--port=8888",
+            "--no-browser",
+            "--debug",
+            f"--gateway-url={'http://' + gateway_hostname}:8888",
+            f"--notebook-dir={_config.PROJECT_DIR}",
+            f"--ServerApp.base_url=/{jupyter_hostname}",
+        ],
     }
 
     return container_specs

@@ -128,6 +128,7 @@ class Session(Resource):
             docker_client,
             container_IDs=session.container_ids,
             network="orchest",
+            notebook_server_info=session.notebook_server_info,
         )
 
         # TODO: error handling?
@@ -150,6 +151,7 @@ class Session(Resource):
             docker_client,
             container_IDs=session.container_ids,
             network="orchest",
+            notebook_server_info=session.notebook_server_info,
         )
 
         # Note: The entry in the database does not have to be updated
