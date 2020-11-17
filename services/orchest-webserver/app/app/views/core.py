@@ -780,6 +780,17 @@ def register_views(app, db):
             db.session.add(new_project)
             db.session.commit()
 
+            expected_env_dir = os.path.join(
+                project_dir, new_project_path, ".orchest", "environments"
+            )
+            # initialize with default environments if the project has no environments directory, e.g.
+            # if it was just created through the file system or git clone'd into the projects dir
+            if not os.path.isdir(expected_env_dir):
+                logging.info(
+                    f"No environment directory detected ({expected_env_dir}), initializing..."
+                )
+                populate_default_environments(new_project.uuid)
+
             # build environments on project detection
             build_environments_for_project(new_project.uuid)
 
