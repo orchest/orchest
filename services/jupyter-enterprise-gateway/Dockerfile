@@ -1,4 +1,5 @@
 FROM elyra/enterprise-gateway:2.2.0
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 COPY ./lib /orchest/lib
 

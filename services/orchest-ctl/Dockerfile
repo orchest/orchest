@@ -1,4 +1,5 @@
 FROM jupyter/minimal-notebook:04f7f60d34a6
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Install `git` as it's used by update procedure
 USER root

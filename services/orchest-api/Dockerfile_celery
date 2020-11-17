@@ -1,4 +1,5 @@
 FROM python:3.7-slim
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # We can simply copy the entire build context, because in the 
 # dockerignore we specified precisely what we want to include in the

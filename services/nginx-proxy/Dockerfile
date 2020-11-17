@@ -1,4 +1,5 @@
 FROM openresty/openresty:1.15.8.3-2-buster-nosse42
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 RUN apt-get update && apt-get install python3 -y
 

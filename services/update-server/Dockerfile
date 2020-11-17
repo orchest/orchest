@@ -1,4 +1,5 @@
 FROM tiangolo/meinheld-gunicorn-flask:python3.7
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Get the orchest application, specifically the auth-server
 COPY ./lib /orchest/lib
