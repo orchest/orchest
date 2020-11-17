@@ -1,6 +1,7 @@
 from typing import Any
 from datetime import datetime
 import json
+import logging
 import os
 import requests
 import time
@@ -36,6 +37,10 @@ def cleanup_env_build_docker_artifacts(filters):
         if containers_to_prune:
             tries += 1
             if tries > 100:
+                logging.error(
+                    "Could not prune containers: %s"
+                    % [con.attrs for con in containers_to_prune]
+                )
                 break
             time.sleep(1)
 
@@ -54,6 +59,10 @@ def cleanup_env_build_docker_artifacts(filters):
         if images_to_prune:
             tries += 1
             if tries > 100:
+                logging.error(
+                    "Could not prune images: %s"
+                    % [img.attrs for img in images_to_prune]
+                )
                 break
             time.sleep(1)
 

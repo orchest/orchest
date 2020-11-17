@@ -520,6 +520,8 @@ def register_views(app, db):
 
         """
         for removed_proj in fs_removed_projects:
+            # TODO: make use of this in the PR where we completely cleanup a project and it's resources when it's
+            #  deleted
             # remove experiments related to the project
             # exs_to_remove = Experiment.query.filter(Experiment.project_uuid == removed_proj.uuid).all()
             # for ex in exs_to_remove:

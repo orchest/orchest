@@ -47,7 +47,7 @@ class EnvironmentImage(Resource):
 class ProjectEnvironmentImages(Resource):
     @api.doc("delete-project_environment-images")
     def delete(self, project_uuid):
-        """Removes all environment images a project."""
+        """Removes all environment images of a project."""
 
         # use environment_uuid="" because we are looking for all of them
         image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
