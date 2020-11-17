@@ -8,7 +8,6 @@ from typing import Any, Dict, Iterable, List, Optional  # , TypedDict
 
 import aiodocker
 import aiohttp
-import requests
 
 from config import CONFIG_CLASS
 from _orchest.internals import config as _config

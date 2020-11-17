@@ -1,6 +1,8 @@
 Installing additional packages
 ==============================
 
+.. _environments:
+
 Environments
 ------------
 
