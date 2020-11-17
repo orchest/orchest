@@ -41,13 +41,13 @@ class EnvironmentImage(Resource):
 
 
 @api.route(
-    "/fuzzy/<string:project_uuid>",
+    "/<string:project_uuid>",
 )
 @api.param("project_uuid", "UUID of the project")
-class FuzzyProjectEnvironmentImages(Resource):
+class ProjectEnvironmentImages(Resource):
     @api.doc("delete-project_environment-images")
     def delete(self, project_uuid):
-        """Tries to remove all environment images of a project by matching their name to the project properties"""
+        """Removes all environment images a project."""
 
         # use environment_uuid="" because we are looking for all of them
         image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
