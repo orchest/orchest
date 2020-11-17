@@ -1,4 +1,5 @@
 from app.connections import ma
+from _orchest.internals import config as _config
 
 
 class ProjectSchema(ma.Schema):
@@ -25,7 +26,7 @@ class EnvironmentSchema(ma.Schema):
             "language",
             "base_image",
             "gpu_support",
-            "startup_script",
+            _config.ENV_SETUP_SCRIPT_PROPERTY_NAME,
         )
 
 

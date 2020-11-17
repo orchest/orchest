@@ -12,7 +12,6 @@ from app.connections import docker_client
 from app.core.sio_streamed_task import SioStreamedTask
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
-__ENV_STARTUP_SCRIPT_NAME = "startup_script.sh"
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/environment_builds_logs"
 
 
@@ -186,10 +185,12 @@ def check_environment_correctness(project_uuid, environment_uuid, project_path):
     if not os.path.isfile(environment_properties):
         raise OSError("Environment properties file (properties.json) not found")
 
-    environment_user_script = os.path.join(environment_path, __ENV_STARTUP_SCRIPT_NAME)
+    environment_user_script = os.path.join(
+        environment_path, _config.ENV_SETUP_SCRIPT_FILE_NAME
+    )
     if not os.path.isfile(environment_user_script):
         raise OSError(
-            f"Environment user script ({__ENV_STARTUP_SCRIPT_NAME}) not found"
+            f"Environment user script ({_config.ENV_SETUP_SCRIPT_FILE_NAME}) not found"
         )
 
     with open(environment_properties) as json_file:
@@ -264,7 +265,7 @@ def prepare_build_context(
         os.system(
             "cp %s %s"
             % (
-                os.path.join(environment_path, __ENV_STARTUP_SCRIPT_NAME),
+                os.path.join(environment_path, _config.ENV_SETUP_SCRIPT_FILE_NAME),
                 os.path.join(snapshot_path, bash_script_name),
             )
         )
