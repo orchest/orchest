@@ -509,6 +509,36 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
+    def cleanup_fs_removed_projects(fs_removed_projects):
+        """Cleanup a project that was removed through the filesystem.
+
+        Currently takes care of removing environment images from docker and the projects records from the db.
+        Args:
+            fs_removed_projects:
+
+        Returns:
+
+        """
+        for removed_proj in fs_removed_projects:
+            # remove experiments related to the project
+            # exs_to_remove = Experiment.query.filter(Experiment.project_uuid == removed_proj.uuid).all()
+            # for ex in exs_to_remove:
+            #     remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
+            #     db.session.delete(ex)
+
+            # remove environment images related to the project
+            try:
+                requests.delete(
+                    "http://"
+                    + app.config["ORCHEST_API_ADDRESS"]
+                    + "/api/environment-images/fuzzy/%s" % removed_proj.uuid
+                )
+            except Exception as e:
+                logging.warning("Failed to delete EnvironmentImage: %s" % e)
+
+            db.session.delete(removed_proj)
+        db.session.commit()
+
     @app.route("/", methods=["GET"])
     def index():
 
@@ -750,22 +780,12 @@ def register_views(app, db):
             if os.path.isdir(os.path.join(project_dir, name))
         ]
 
-        # look for projects that have been removed through the filesystem by the user, for these projects
-        # try to remove any old environment, then remove them from the db
+        # look for projects that have been removed through the filesystem by the user, cleanup
+        # dangling resources
         fs_removed_projects = Project.query.filter(
             Project.path.notin_(project_paths)
         ).all()
-        for removed_proj in fs_removed_projects:
-            try:
-                requests.delete(
-                    "http://"
-                    + app.config["ORCHEST_API_ADDRESS"]
-                    + "/api/environment-images/fuzzy/%s" % removed_proj.uuid
-                )
-            except Exception as e:
-                logging.warning("Failed to delete EnvironmentImage: %s" % e)
-            db.session.delete(removed_proj)
-        db.session.commit()
+        cleanup_fs_removed_projects(fs_removed_projects)
 
         # create UUID entry for all projects that do not yet exist
         existing_project_paths = [
