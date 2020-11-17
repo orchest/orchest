@@ -5,7 +5,8 @@ Experiments
 
 Concepts
 --------
-.. For reproducibility we make a full snapshot by copying the project directory. So make sure to put
+.. TODO(yannick)
+   For reproducibility we make a full snapshot by copying the project directory. So make sure to put
    data in `/data` or some other data source, otherwise it will be copied for experiments.
 
 Coming soon!

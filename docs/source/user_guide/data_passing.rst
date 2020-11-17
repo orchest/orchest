@@ -1,3 +1,5 @@
+.. _data passing:
+
 Passing data between pipeline steps
 ===================================
 
