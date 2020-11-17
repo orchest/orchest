@@ -2,10 +2,12 @@ import asyncio
 import json
 import os
 
-from typing import Dict, Optional, Union, Any, List
+from typing import Dict, Optional, Union, Any
 
 import aiohttp
 from celery import Task
+from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
+from celery.utils.log import get_task_logger
 
 from app import create_app
 from app.celery_app import make_celery
@@ -14,9 +16,6 @@ from app.core.pipelines import Pipeline, PipelineDescription
 from app.core.sessions import launch_session
 from app.core.environment_builds import build_environment_task
 from config import CONFIG_CLASS
-from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
-from celery.utils.log import get_task_logger
-from _orchest.internals import config as _config
 
 logger = get_task_logger(__name__)
 
@@ -161,6 +160,10 @@ def run_pipeline(
     # session = run_pipeline.session
     task_id = task_id if task_id is not None else self.request.id
 
+    # TODO: could make the celery task fail in case the pipeline run
+    # failed. Although the run did complete successfully from a task
+    # scheduler perspective.
+    # https://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
     return asyncio.run(run_pipeline_async(run_config, pipeline, task_id))
 
 

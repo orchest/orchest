@@ -17,14 +17,16 @@ Coming soon!
 How Orchest works
 -----------------
 
-The shell script ``orchest`` will mount the Docker socket to the ``orchest-ctl`` container to manage
-the local Docker containers necessary for running Orchest. In addition, the Docker socket is
-necessary for the dynamic spawning of containers that occurs when running individual pipeline steps.
+Orchest is a fully containerized application and its runtime can be managed through the ``orchest``
+shell script. In the script you can see that the Docker socket ``/var/run/docker.sock`` is mounted,
+which Orchest requires in order order to dynamically spawn Docker containers when running pipelines.
+Global configurations are stored at ``~/.config/orchest/config.json``, for possible configuration
+values see :ref:`configuration <configuration>`.
 
-.. some
-
-Orchest runs as a collection of Docker containers and stores a global configuration file. The
-location for this config is ``~/.config/orchest/config.json``.
+.. build on top of your filesystem (giving you the flexibility to edit the files in whatever way you
+   like, through terminal, your editor or through our UI with deep Jupyter integration). You do need
+   to follow a certain directory structure.
+   projects and pipelines and environments(link to section)
 
 Orchest is powered by your filesystem. Upon launching, Orchest will mount the content of the
 ``orchest/userdir/`` directory, where ``orchest/`` is the install directory from GitHub, at
@@ -45,11 +47,12 @@ Giving a directory structure similar to the following:
 
 .. code-block:: bash
 
-    .
-    ├── preprocessing.ipynb
-    ├── .ipynb_checkpoints/
-    ├── .orchest
-    │   ├── data/
-    │   ├── logs/
-    │   └── pipeline.json
-    └── model-training.ipynb
+    myproject
+        ├── .orchest
+        │   ├── data/
+        │   ├── logs/
+        │   └── environments/
+        ├── pipeline.orchest
+        ├── prep.ipynb
+        └── training.py
+

@@ -10,4 +10,5 @@ directly.
 
 .. TODO(yannick)
    see the note in data passing at SDK quickstart. We need to tell how the Connections are
-   handled and the order in which data is received.
+   handled and the order in which data is received. Probably only needed once we support multiple
+   languages, because having the message only in the quickstart right now is better.
