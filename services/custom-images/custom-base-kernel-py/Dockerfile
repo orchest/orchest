@@ -1,5 +1,5 @@
 # Ubuntu 18.04.1 LTS Bionic
-FROM elyra/kernel-py:2.2.0
+FROM elyra/kernel-py:2.3.0
 
 USER root
 

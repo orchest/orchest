@@ -1,4 +1,4 @@
-FROM elyra/enterprise-gateway:2.2.0
+FROM elyra/enterprise-gateway:2.3.0
 
 COPY ./lib /orchest/lib
 
