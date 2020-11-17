@@ -11,9 +11,9 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # Install Jupyter Lab
 RUN pip3 install pip --upgrade
 RUN pip3 install jupyterlab==3.0.0rc9 \
-    flask_socketio \
-    flask_restplus \
-    requests \
+    flask_socketio==4.3.1 \
+    flask_restplus==0.13.0 \
+    requests==2.25.0 \
     Werkzeug==0.16.1
 
 COPY ./patch/handlers.py /usr/local/lib/python3.7/site-packages/jupyter_server/gateway/handlers.py
