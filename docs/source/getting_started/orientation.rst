@@ -1,8 +1,8 @@
-Orientation
-===========
+.. Orientation
+.. ===========
 
-Orchest concepts
-----------------
+.. Orchest concepts
+.. ----------------
 
 .. TODO(yannick)
    Pretty much this entire section
@@ -13,10 +13,10 @@ Orchest concepts
 .. * Environments
 .. * Projects and Pipelines
 
-Coming soon!
+.. Coming soon!
 
 How Orchest works
------------------
+=================
 
 Orchest is a fully containerized application and its runtime can be managed through the ``orchest``
 shell script. In the script you can see that the Docker socket ``/var/run/docker.sock`` is mounted,
