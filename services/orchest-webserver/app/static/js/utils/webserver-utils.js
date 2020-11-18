@@ -3,11 +3,17 @@ import EnvironmentsView from "../views/EnvironmentsView";
 
 export function checkGate(project_uuid) {
   return new Promise((resolve, reject) => {
-    makeRequest("POST", `/catch/api-proxy/api/checks/gate/${project_uuid}`)
+    // we validate whether all environments have been built on the server
+    makeRequest("POST", `/catch/api-proxy/api/validations/environments`, {
+      type: "json",
+      content: {
+        project_uuid: project_uuid,
+      },
+    })
       .then((response) => {
         try {
           let json = JSON.parse(response);
-          if (json.gate === "pass") {
+          if (json.validation === "pass") {
             resolve();
           } else {
             reject({ reason: "gate-failed", data: json });
@@ -22,14 +28,13 @@ export function checkGate(project_uuid) {
   });
 }
 
-export function requestBuild(project_uuid, gateData) {
+export function requestBuild(project_uuid, environmentValidationData) {
   return new Promise((resolve, reject) => {
-    let failResult = gateData.fail;
-    let missingEnvironments = failResult.environment_uuids;
     let environmentsToBeBuilt = [];
-    for (let x = 0; x < failResult.actions.length; x++) {
-      if (failResult.actions[x] == "BUILD") {
-        environmentsToBeBuilt.push(missingEnvironments[x]);
+
+    for (let x = 0; x < environmentValidationData.actions.length; x++) {
+      if (environmentValidationData.actions[x] == "BUILD") {
+        environmentsToBeBuilt.push(environmentValidationData.fail[x]);
       }
     }
 

@@ -32,8 +32,10 @@ def api_proxy_environment_builds(environment_build_requests, orchest_api_address
 
 
 def register_orchest_api_views(app, db):
-    @app.route("/catch/api-proxy/api/checks/gate/<project_uuid>", methods=["POST"])
-    def catch_api_proxy_checks_gate(project_uuid):
+    @app.route("/catch/api-proxy/api/validations/environments", methods=["POST"])
+    def catch_api_proxy_checks_gate():
+
+        project_uuid = request.json["project_uuid"]
 
         environment_uuids = [
             environment.uuid for environment in get_environments(project_uuid)
@@ -42,10 +44,11 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/checks/gate/%s" % project_uuid,
-            json={"type": "shallow", "environment_uuids": environment_uuids},
+            + "/api/validations/environments",
+            json={"project_uuid": project_uuid, "environment_uuids": environment_uuids},
             stream=True,
         )
+
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
     @app.route(
