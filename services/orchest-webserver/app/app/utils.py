@@ -115,11 +115,14 @@ def get_environments(project_uuid, language=None):
             if os.path.isdir(environment_dir):
                 env = read_environment_from_disk(environment_dir, project_uuid)
 
-                if language is None:
-                    environments.append(env)
-                else:
-                    if language == env.language:
+                # read_environment_from_disk is not guaranteed to succeed
+                # on failure it returns None, and logs the error.
+                if env is not None:
+                    if language is None:
                         environments.append(env)
+                    else:
+                        if language == env.language:
+                            environments.append(env)
     except FileNotFoundError as e:
         logging.error(
             "Could not find environments directory in project path %s"
@@ -170,7 +173,7 @@ def read_environment_from_disk(env_directory, project_uuid):
         return e
     except Exception as e:
         logging.error(
-            "Could not environment from env_directory %s. Error: %s"
+            "Could not get environment from env_directory %s. Error: %s"
             % (env_directory, e)
         )
 
