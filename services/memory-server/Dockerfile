@@ -1,4 +1,5 @@
 FROM python:3.7-slim
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 COPY ./ /orchest/services/memory-server/
 RUN mv /orchest/services/memory-server/lib /orchest/lib

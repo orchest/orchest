@@ -34,6 +34,7 @@ from app.utils import (
     get_environments,
     serialize_environment_to_disk,
     read_environment_from_disk,
+    delete_environment,
 )
 
 from app.models import (
@@ -114,23 +115,10 @@ def register_views(app, db):
                 )
 
             def delete(self, project_uuid, environment_uuid):
-                environment_dir = get_environment_directory(
-                    environment_uuid, project_uuid
-                )
-                shutil.rmtree(environment_dir)
 
+                delete_environment(project_uuid, environment_uuid)
                 # refresh kernels after change in environments
                 populate_kernels(app, db)
-
-                try:
-                    requests.delete(
-                        "http://"
-                        + app.config["ORCHEST_API_ADDRESS"]
-                        + "/api/environment-images/%s/%s"
-                        % (project_uuid, environment_uuid)
-                    )
-                except Exception as e:
-                    logging.warn("Failed to delete EnvironmentImage: %s" % e)
 
                 return jsonify({"message": "Environment deletion was successful."})
 
@@ -144,7 +132,7 @@ def register_views(app, db):
                     name=environment_json["name"],
                     project_uuid=project_uuid,
                     language=environment_json["language"],
-                    startup_script=environment_json["startup_script"],
+                    setup_script=environment_json["setup_script"],
                     base_image=environment_json["base_image"],
                     gpu_support=environment_json["gpu_support"],
                 )
@@ -521,6 +509,114 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
+    def cleanup_fs_removed_projects(fs_removed_projects):
+        """Cleanup a project that was removed through the filesystem.
+
+        Currently takes care of removing environment images from docker and the projects records from the db.
+        Args:
+            fs_removed_projects:
+
+        Returns:
+
+        """
+        for removed_proj in fs_removed_projects:
+            # TODO: make use of this in the PR where we completely cleanup a project and it's resources when it's
+            #  deleted
+            # remove experiments related to the project
+            # exs_to_remove = Experiment.query.filter(Experiment.project_uuid == removed_proj.uuid).all()
+            # for ex in exs_to_remove:
+            #     remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
+            #     db.session.delete(ex)
+
+            # remove environment images related to the project
+            try:
+                requests.delete(
+                    "http://"
+                    + app.config["ORCHEST_API_ADDRESS"]
+                    + "/api/environment-images/%s" % removed_proj.uuid
+                )
+            except Exception as e:
+                logging.warning("Failed to delete EnvironmentImage: %s" % e)
+
+            db.session.delete(removed_proj)
+        db.session.commit()
+
+        # refresh kernels after change in environments
+        populate_kernels(app, db)
+
+    def init_project(project_path: str):
+        """Inits an orchest project.
+
+        Given a directory it will detect what parts are missing from the .orchest directory for the project to
+        be considered initialized, e.g. the actual .orchest directory, .gitignore file, environments directory, etc.
+        As part of process initialization environments are built and kernels refreshed.
+
+        Args:
+            project_path: Directory of the project
+
+        Returns:
+
+        """
+        projects_dir = os.path.join(app.config["USER_DIR"], "projects")
+        full_project_path = os.path.join(projects_dir, project_path)
+
+        new_project = Project(
+            uuid=str(uuid.uuid4()),
+            path=project_path,
+        )
+        db.session.add(new_project)
+        db.session.commit()
+
+        try:
+            # this would actually be created as a collateral effect when populating with default environments,
+            # let's not rely on that
+            expected_internal_dir = os.path.join(full_project_path, ".orchest")
+            if os.path.isfile(expected_internal_dir):
+                raise NotADirectoryError(
+                    "The expected internal directory (.orchest) is a file."
+                )
+            elif not os.path.isdir(expected_internal_dir):
+                os.makedirs(expected_internal_dir)
+
+            # init the .gitignore file if it is not there already
+            expected_git_ignore_file = os.path.join(
+                full_project_path, ".orchest", ".gitignore"
+            )
+            if os.path.isdir(expected_git_ignore_file):
+                raise FileExistsError(".orchest/.gitignore is a directory")
+            elif not os.path.isfile(expected_git_ignore_file):
+                with open(expected_git_ignore_file, "w") as ign_file:
+                    ign_file.write(app.config["PROJECT_ORCHEST_GIT_IGNORE_CONTENT"])
+
+            # initialize with default environments only if the project has no environments directory
+            expected_env_dir = os.path.join(
+                full_project_path, ".orchest", "environments"
+            )
+            if os.path.isfile(expected_env_dir):
+                raise NotADirectoryError(
+                    "The expected environments directory (.orchest/environments) is a file."
+                )
+            elif not os.path.isdir(expected_env_dir):
+                populate_default_environments(new_project.uuid)
+
+            # refresh kernels after change in environments, given that  either we added the default environments
+            # or the project has environments of its own
+            populate_kernels(app, db)
+
+            # build environments on project creation
+            build_environments_for_project(new_project.uuid)
+
+        # some calls rely on the project being in the db, like populate_default_environments or populate_kernels,
+        # for this reason we need to commit the project to the db before the init actually finishes
+        # if an exception is raised during project init we have to cleanup the newly added project from the db
+        # TODO: make use of the complete cleanup of a project from orchest once that is implemented, so that we
+        #  use the same code path
+        except Exception as e:
+            db.session.delete(new_project)
+            db.session.commit()
+            populate_kernels(app, db)
+            raise e
+
     @app.route("/", methods=["GET"])
     def index():
 
@@ -755,33 +851,33 @@ def register_views(app, db):
     @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
     def projects():
 
-        project_dir = os.path.join(app.config["USER_DIR"], "projects")
+        projects_dir = os.path.join(app.config["USER_DIR"], "projects")
         project_paths = [
             name
-            for name in os.listdir(project_dir)
-            if os.path.isdir(os.path.join(project_dir, name))
+            for name in os.listdir(projects_dir)
+            if os.path.isdir(os.path.join(projects_dir, name))
         ]
 
-        # create UUID entry for all projects that do not yet exist
+        # look for projects that have been removed through the filesystem by the user, cleanup
+        # dangling resources
+        fs_removed_projects = Project.query.filter(
+            Project.path.notin_(project_paths)
+        ).all()
+        cleanup_fs_removed_projects(fs_removed_projects)
+
+        # detect new projects by detecting directories that were not registered in the db as projects
         existing_project_paths = [
             project.path
             for project in Project.query.filter(Project.path.in_(project_paths)).all()
         ]
-
         new_project_paths = set(project_paths) - set(existing_project_paths)
-
         for new_project_path in new_project_paths:
-            new_project = Project(
-                uuid=str(uuid.uuid4()),
-                path=new_project_path,
-            )
-            db.session.add(new_project)
-            db.session.commit()
-
-            # build environments on project detection
-            build_environments_for_project(new_project.uuid)
-
-        # end of UUID creation
+            try:
+                init_project(new_project_path)
+            except Exception as e:
+                logging.error(
+                    f"Error during project initialization of {new_project_path}: {e}"
+                )
 
         if request.method == "GET":
 
@@ -808,7 +904,12 @@ def register_views(app, db):
             if project != None:
 
                 project_path = project_uuid_to_path(project_uuid)
-                full_project_path = os.path.join(project_dir, project_path)
+                full_project_path = os.path.join(projects_dir, project_path)
+
+                # go through each environment and delete it
+                proj_envs = get_environments(project_uuid)
+                for env in proj_envs:
+                    delete_environment(project_uuid, env.uuid)
 
                 shutil.rmtree(full_project_path)
 
@@ -831,27 +932,25 @@ def register_views(app, db):
             project_path = request.json["name"]
 
             if project_path not in project_paths:
-                full_project_path = os.path.join(project_dir, project_path)
+                full_project_path = os.path.join(projects_dir, project_path)
                 if not os.path.isdir(full_project_path):
-
-                    new_project = Project(
-                        uuid=str(uuid.uuid4()),
-                        path=project_path,
-                    )
-                    db.session.add(new_project)
-                    db.session.commit()
-
                     os.makedirs(full_project_path)
-
-                    # initialize with default environments
-                    populate_default_environments(new_project.uuid)
-
-                    # refresh kernels after change in environments
-                    populate_kernels(app, db)
-
-                    # build environments on project creation
-                    build_environments_for_project(new_project.uuid)
-
+                    # note that given the current pattern we have in the GUI, where we POST and then GET projects,
+                    # this line does not strictly need to be there, since the new directory will be picked up
+                    # on the GET request and initialized, placing it here is more explicit and less relying
+                    # on the POST->GET pattern from the GUI
+                    try:
+                        init_project(project_path)
+                    except Exception as e:
+                        return (
+                            jsonify(
+                                {
+                                    "message": "Failed to create the project. Error: %s"
+                                    % e
+                                }
+                            ),
+                            500,
+                        )
                 else:
                     return (
                         jsonify({"message": "Project directory already exists."}),

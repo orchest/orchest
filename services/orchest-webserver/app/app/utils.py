@@ -15,6 +15,7 @@ import requests
 from app.models import Pipeline, Project, Environment
 from app.config import CONFIG_CLASS as StaticConfig
 from app.schemas import EnvironmentSchema
+from _orchest.internals import config as _config
 
 # Directory resolves
 def get_pipeline_path(
@@ -25,7 +26,7 @@ def get_pipeline_path(
     host_path=False,
     pipeline_path=None,
 ):
-    """Returns path to pipeline description file (including .orchest)"""
+    """Returns path to pipeline definition file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
     if host_path == True:
@@ -67,7 +68,7 @@ def get_pipeline_directory(
     pipeline_run_uuid=None,
     host_path=False,
 ):
-    """Returns path to directory CONTAINING the pipeline description file."""
+    """Returns path to directory CONTAINING the pipeline definition file."""
 
     return os.path.split(
         get_pipeline_path(
@@ -114,11 +115,19 @@ def get_environments(project_uuid, language=None):
             if os.path.isdir(environment_dir):
                 env = read_environment_from_disk(environment_dir, project_uuid)
 
-                if language is None:
-                    environments.append(env)
-                else:
-                    if language == env.language:
+                # read_environment_from_disk is not guaranteed to succeed
+                # on failure it returns None, and logs the error.
+                if env is not None:
+                    if language is None:
                         environments.append(env)
+                    else:
+                        if language == env.language:
+                            environments.append(env)
+                else:
+                    logging.info(
+                        "Could not read environment for env dir %s and project_uuid %s"
+                        % (environment_dir, project_uuid)
+                    )
     except FileNotFoundError as e:
         logging.error(
             "Could not find environments directory in project path %s"
@@ -134,19 +143,23 @@ def serialize_environment_to_disk(environment, env_directory):
 
     environment_schema = EnvironmentSchema()
 
-    # treat startup_script separately
+    # treat setup_script separately
     with open(os.path.join(env_directory, "properties.json"), "w") as file:
 
         environmentDICT = environment_schema.dump(environment)
 
         # don't serialize project_uuid
         del environmentDICT["project_uuid"]
+        # setup scripts is serialized separately
+        del environmentDICT["setup_script"]
 
         file.write(json.dumps(environmentDICT))
 
-    # write startup_script
-    with open(os.path.join(env_directory, "startup_script.sh"), "w") as file:
-        file.write(environment.startup_script)
+    # write setup_script
+    with open(
+        os.path.join(env_directory, _config.ENV_SETUP_SCRIPT_FILE_NAME), "w"
+    ) as file:
+        file.write(environment.setup_script)
 
 
 def read_environment_from_disk(env_directory, project_uuid):
@@ -155,19 +168,44 @@ def read_environment_from_disk(env_directory, project_uuid):
         with open(os.path.join(env_directory, "properties.json"), "r") as file:
             env_dat = json.load(file)
 
-        with open(os.path.join(env_directory, "startup_script.sh"), "r") as file:
-            startup_script = file.read()
+        with open(
+            os.path.join(env_directory, _config.ENV_SETUP_SCRIPT_FILE_NAME), "r"
+        ) as file:
+            setup_script = file.read()
 
         e = Environment(**env_dat)
         e.project_uuid = project_uuid
-        e.startup_script = startup_script
+        e.setup_script = setup_script
 
         return e
     except Exception as e:
         logging.error(
-            "Could not environment from env_directory %s. Error: %s"
+            "Could not get environment from env_directory %s. Error: %s"
             % (env_directory, e)
         )
+
+
+def delete_environment(project_uuid, environment_uuid):
+    """Delete an environment from disk and from the runtime environment (docker).
+
+    Args:
+        project_uuid:
+        environment_uuid:
+
+    Returns:
+
+    """
+    environment_dir = get_environment_directory(environment_uuid, project_uuid)
+    shutil.rmtree(environment_dir)
+
+    try:
+        requests.delete(
+            "http://"
+            + StaticConfig.ORCHEST_API_ADDRESS
+            + "/api/environment-images/%s/%s" % (project_uuid, environment_uuid)
+        )
+    except Exception as e:
+        logging.warning("Failed to delete EnvironmentImage: %s" % e)
 
 
 # End of environments

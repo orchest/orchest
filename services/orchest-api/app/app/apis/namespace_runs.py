@@ -57,7 +57,7 @@ class RunList(Resource):
         # kwargs for the job.
         celery = make_celery(current_app)
         celery_job_kwargs = {
-            "pipeline_description": pipeline.to_dict(),
+            "pipeline_definition": pipeline.to_dict(),
             "project_uuid": post_data["project_uuid"],
             "run_config": post_data["run_config"],
         }

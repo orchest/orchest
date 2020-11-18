@@ -69,8 +69,13 @@ class PipelineDetailsLogs extends React.Component {
     clearInterval(this.heartBeatInterval);
   }
 
-  componentDidUpdate(prevProps) {
-    this.fitAddon.fit();
+  componentDidUpdate() {
+    if (
+      this.refManager.refs.term &&
+      this.refManager.refs.term.terminal.element.offsetParent != null
+    ) {
+      this.fitAddon.fit();
+    }
   }
 
   stopLog() {

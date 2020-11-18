@@ -107,10 +107,12 @@ class DataSourcesView extends React.Component {
                 <div className={"data-source-actions"}>
                   <MDCIconButtonToggleReact
                     icon="add"
+                    tooltipText="Add data source"
                     onClick={this.onCreateClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
                     icon="delete"
+                    tooltipText="Delete data source"
                     onClick={this.onDeleteClick.bind(this)}
                   />
                 </div>

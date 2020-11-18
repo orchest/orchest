@@ -316,10 +316,12 @@ class ExperimentList extends React.Component {
                 <div className={"experiment-actions"}>
                   <MDCIconButtonToggleReact
                     icon="add"
+                    tooltipText="Add experiment"
                     onClick={this.onCreateClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
                     icon="delete"
+                    tooltipText="Delete experiment"
                     onClick={this.onDeleteClick.bind(this)}
                   />
                 </div>

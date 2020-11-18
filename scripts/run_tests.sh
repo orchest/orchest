@@ -49,7 +49,6 @@ done
 # them.
 if [ ${#SERVICES[@]} -eq 0 ]; then
     SERVICES=(
-        "jupyter-server"
         "memory-server"
         "orchest-api"
         "orchest-sdk"
@@ -78,11 +77,6 @@ do
     # Install requirements.txt
     echo "[$SERVICE]: Installing dependencies..."
 
-    if [ $SERVICE == "jupyter-server" ]; then
-        TEST_DIR=$DIR/../services/jupyter-server/app
-        REQ_DIR=$TEST_DIR
-        REQ_FILE=$REQ_DIR/requirements.txt
-    fi
     if [ $SERVICE == "memory-server" ]; then
         TEST_DIR=$DIR/../services/memory-server
         REQ_DIR=$TEST_DIR

@@ -24,7 +24,8 @@ class EnvironmentImage(Resource):
         )
 
         try:
-            docker_client.images.remove(image_name)
+            # using force true will actually remove the image instead of simply untagging it
+            docker_client.images.remove(image_name, force=True)
         except errors.ImageNotFound:
             return {"message": f"Environment image {image_name} not found"}, 404
         except Exception as e:
@@ -35,5 +36,54 @@ class EnvironmentImage(Resource):
 
         return (
             {"message": f"Environment image {image_name} was successfully deleted"},
+            200,
+        )
+
+
+@api.route(
+    "/<string:project_uuid>",
+)
+@api.param("project_uuid", "UUID of the project")
+class ProjectEnvironmentImages(Resource):
+    @api.doc("delete-project_environment-images")
+    def delete(self, project_uuid):
+        """Removes all environment images of a project."""
+
+        # use environment_uuid="" because we are looking for all of them
+        image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=project_uuid, environment_uuid=""
+        )
+
+        image_names_to_remove = [
+            img.attrs["RepoTags"][0]
+            for img in docker_client.images.list()
+            if img.attrs["RepoTags"]
+            and isinstance(img.attrs["RepoTags"][0], str)
+            and img.attrs["RepoTags"][0].startswith(image_name)
+        ]
+
+        image_remove_exceptions = []
+        for image_name in image_names_to_remove:
+            try:
+                # using force true will actually remove the image instead of simply untagging it
+                docker_client.images.remove(image_name, force=True)
+            except Exception as e:
+                image_remove_exceptions.append(
+                    f"There was an error deleting the image {image_name}:\n{e}"
+                )
+
+        if len(image_remove_exceptions) > 0:
+            image_remove_exceptions = "\n".join(image_remove_exceptions)
+            return (
+                {
+                    "message": f"There were errors in deleting the images of project {project_uuid}:\n{image_remove_exceptions}"
+                },
+                500,
+            )
+
+        return (
+            {
+                "message": f"Project {project_uuid} environment images were successfully deleted"
+            },
             200,
         )

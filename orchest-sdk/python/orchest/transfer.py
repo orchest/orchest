@@ -180,10 +180,10 @@ def output_to_disk(
         to be only calling the function once.
 
     """
-    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
-        pipeline_description = json.load(f)
+    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
+        pipeline_definition = json.load(f)
 
-    pipeline = Pipeline.from_json(pipeline_description)
+    pipeline = Pipeline.from_json(pipeline_definition)
 
     try:
         step_uuid = get_step_uuid(pipeline)
@@ -401,10 +401,10 @@ def output_to_memory(
     """
     # TODO: we might want to wrap this so we can throw a custom error,
     #       if the file cannot be found, i.e. FileNotFoundError.
-    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
-        pipeline_description = json.load(f)
+    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
+        pipeline_definition = json.load(f)
 
-    pipeline = Pipeline.from_json(pipeline_description)
+    pipeline = Pipeline.from_json(pipeline_definition)
 
     try:
         step_uuid = get_step_uuid(pipeline)
@@ -691,10 +691,10 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]
         data or maintain a copy yourself.
 
     """
-    with open(Config.PIPELINE_DESCRIPTION_PATH, "r") as f:
-        pipeline_description = json.load(f)
+    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
+        pipeline_definition = json.load(f)
 
-    pipeline = Pipeline.from_json(pipeline_description)
+    pipeline = Pipeline.from_json(pipeline_definition)
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:

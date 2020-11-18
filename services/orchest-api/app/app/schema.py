@@ -14,23 +14,10 @@ from _orchest.internals import config as _config
 server = Model(
     "Server",
     {
-        "url": fields.String(required=True, description="URL of the server"),
-        "hostname": fields.String(
-            required=True, default="localhost", description="Hostname"
-        ),
         "port": fields.Integer(
             required=True, default=8888, description="Port to access the server"
         ),
-        "secure": fields.Boolean(
-            required=True, description="Any extra security measures"
-        ),
         "base_url": fields.String(required=True, default="/", description="Base URL"),
-        "token": fields.String(required=True, description="Token for authentication"),
-        "notebook_dir": fields.String(
-            required=True, default=_config.PROJECT_DIR, description="Working directory"
-        ),
-        "password": fields.Boolean(required=True, description="Password if one is set"),
-        "pid": fields.Integer(required=True, description="PID"),
     },
 )
 
@@ -144,8 +131,8 @@ interactive_run_config = pipeline_run_config.inherit("InteractiveRunConfig", {})
 interactive_run_spec = pipeline_run_spec.inherit(
     "InteractiveRunSpec",
     {
-        "pipeline_description": fields.Raw(
-            required=True, description="Pipeline description in JSON"
+        "pipeline_definition": fields.Raw(
+            required=True, description="Pipeline definition in JSON"
         ),
         "run_config": fields.Nested(
             interactive_run_config,
@@ -227,20 +214,20 @@ experiment_spec = Model(
         ),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "pipeline_descriptions": fields.List(
-            fields.Raw(description="Pipeline description in JSON"),
+        "pipeline_definitions": fields.List(
+            fields.Raw(description="Pipeline definition in JSON"),
             required=True,
-            description="Collection of pipeline descriptions",
+            description="Collection of pipeline definitions",
         ),
         "pipeline_run_ids": fields.List(
             fields.Integer(
                 description=(
                     "Pipeline index corresponding to respective "
-                    "list entries in pipeline_descriptions."
+                    "list entries in pipeline_definitions."
                 )
             ),
             required=True,
-            description="Collection of pipeline description indices.",
+            description="Collection of pipeline definition indices.",
         ),
         "pipeline_run_spec": fields.Nested(
             non_interactive_run_spec,

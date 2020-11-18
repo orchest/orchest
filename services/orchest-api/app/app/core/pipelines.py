@@ -8,7 +8,6 @@ from typing import Any, Dict, Iterable, List, Optional  # , TypedDict
 
 import aiodocker
 import aiohttp
-import requests
 
 from config import CONFIG_CLASS
 from _orchest.internals import config as _config
@@ -32,7 +31,7 @@ class PipelineStepProperties(TypedDict):
     meta_data: Dict[str, List[int]]
 
 
-class PipelineDescription(TypedDict):
+class PipelineDefinition(TypedDict):
     name: str
     uuid: str
     steps: Dict[str, PipelineStepProperties]
@@ -41,7 +40,7 @@ class PipelineDescription(TypedDict):
 def construct_pipeline(
     uuids: Iterable[str],
     run_type: str,
-    pipeline_description: PipelineDescription,
+    pipeline_definition: PipelineDefinition,
     **kwargs,
 ) -> "Pipeline":
     """Constructs a pipeline from a description with selection criteria.
@@ -62,13 +61,13 @@ def construct_pipeline(
         uuids: a selection/sequence of pipeline step UUIDs. If `run_type`
             equals "full", then this argument is ignored.
         run_type: one of ("full", "selection", "incoming").
-        pipeline_description: a json description of the pipeline.
+        pipeline_definition: a json description of the pipeline.
         config: configuration for the `run_type`.
 
     Returns:
         Always returns a Pipeline. Depending on the `run_type` the
         Pipeline is constructed as follows from the given
-        `pipeline_description`:
+        `pipeline_definition`:
             * "full" -> entire pipeline from description
             * "selection" -> induced subgraph based on selection.
             * "incoming" -> all incoming steps of the selection. In other
@@ -80,9 +79,9 @@ def construct_pipeline(
     Raises:
         ValueError if the `run_type` is incorrectly specified.
     """
-    # Create a pipeline from the pipeline_description. And run the
+    # Create a pipeline from the pipeline_definition. And run the
     # appropriate method based on the run_type.
-    pipeline = Pipeline.from_json(pipeline_description)
+    pipeline = Pipeline.from_json(pipeline_definition)
 
     if run_type == "full":
         return pipeline
@@ -452,7 +451,7 @@ class Pipeline:
         self._sentinel: Optional[PipelineStep] = None
 
     @classmethod
-    def from_json(cls, description: PipelineDescription) -> "Pipeline":
+    def from_json(cls, description: PipelineDefinition) -> "Pipeline":
         """Constructs a pipeline from a json description.
 
         This is an alternative constructur.
@@ -478,9 +477,9 @@ class Pipeline:
         properties = {"name": description["name"], "uuid": description["uuid"]}
         return cls(list(steps.values()), properties)
 
-    def to_dict(self) -> PipelineDescription:
+    def to_dict(self) -> PipelineDefinition:
         """Convert the Pipeline to its dictionary description."""
-        description: PipelineDescription = {"steps": {}}
+        description: PipelineDefinition = {"steps": {}}
         for step in self.steps:
             description["steps"][step.properties["uuid"]] = step.properties
 
@@ -669,6 +668,48 @@ class Pipeline:
                 except Exception as e:
                     logging.error(
                         "Failed to kill container %s. Error: %s (%s)"
+                        % (container.get("name"), e, type(e))
+                    )
+
+    def remove_containerization_resources(self, task_id, compute_backend, run_config):
+        run_func = getattr(
+            self, f"remove_containerization_resources_on_{compute_backend}"
+        )
+        return run_func(task_id, run_config)
+
+    def remove_containerization_resources_on_docker(self, task_id, run_config):
+
+        logging.info("Cleaning up containerization resources on docker")
+
+        # list containers
+        docker_client = run_config["docker_client"]
+        # use all=True to get stopped containers
+        containers = docker_client.containers.list(all=True)
+
+        container_names_to_remove = set(
+            [
+                _config.PIPELINE_STEP_CONTAINER_NAME.format(
+                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
+                )
+                for pipeline_step in self.steps
+            ]
+        )
+        logging.info(container_names_to_remove)
+
+        for container in containers:
+            if container.name in container_names_to_remove:
+                try:
+                    logging.info("removing container %s" % container.name)
+                    # force=False so we log if a container happened to be still running while we expected it to
+                    # not be
+                    # v=True does not actually do anything because, given the docker docs:
+                    # https://docs.docker.com/engine/reference/commandline/rm/
+                    # "This command removes the container and any volumes associated with it.
+                    # Note that if a volume was specified with a name, it will not be removed."
+                    container.remove(force=False, v=True)
+                except Exception as e:
+                    logging.error(
+                        "Failed to remove container %s. Error: %s (%s)"
                         % (container.get("name"), e, type(e))
                     )
 

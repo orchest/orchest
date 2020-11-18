@@ -798,20 +798,41 @@ class PipelineView extends React.Component {
         let step = _this.state.steps[_this.selectedItem];
 
         if (!step.meta_data._dragged) {
-          stepClicked = true;
-          _this.refManager.refs[_this.selectedItem].props.onClick(
-            _this.selectedItem
-          );
+          if (!e.ctrlKey) {
+            stepClicked = true;
+            _this.refManager.refs[_this.selectedItem].props.onClick(
+              _this.selectedItem
+            );
+          } else {
+            // if clicked step is not selected, select it on Ctrl+Mouseup
+            if (_this.state.selectedSteps.indexOf(_this.selectedItem) === -1) {
+              _this.state.selectedSteps = _this.state.selectedSteps.concat(
+                _this.selectedItem
+              );
+
+              _this.setState({
+                selectedSteps: _this.state.selectedSteps,
+              });
+            } else {
+              // remove from selection
+              _this.state.selectedSteps.splice(
+                _this.state.selectedSteps.indexOf(_this.selectedItem),
+                1
+              );
+
+              _this.setState({
+                selectedSteps: _this.state.selectedSteps,
+              });
+            }
+          }
         }
 
         step.meta_data._dragged = false;
         step.meta_data._drag_count = 0;
       }
 
-      // stepSelector
-      if (_this.state.stepSelector.active) {
-        // on mouse up trigger onClick if single step is selected
-        // (only if not triggered by clickEnd)
+      // check if step needs to be selected based on selectedSteps
+      if (_this.state.stepSelector.active || _this.selectedItem !== undefined) {
         if (_this.state.selectedSteps.length == 1 && !stepClicked) {
           _this.selectStep(_this.state.selectedSteps[0]);
         } else if (_this.state.selectedSteps.length > 1) {
@@ -823,7 +844,12 @@ class PipelineView extends React.Component {
             openedMultistep: true,
           });
         }
+      }
 
+      // handle step selector
+      if (_this.state.stepSelector.active) {
+        // on mouse up trigger onClick if single step is selected
+        // (only if not triggered by clickEnd)
         _this.state.stepSelector.active = false;
         _this.setState({
           stepSelector: _this.state.stepSelector,
@@ -1010,11 +1036,8 @@ class PipelineView extends React.Component {
     let baseAddress =
       "//" +
       window.location.host +
-      "/jupyter_" +
-      this.state.backend.jupyter_server_ip.replace(/\./g, "_") +
-      "/";
-    let token = this.state.backend.notebook_server_info.token;
-    orchest.jupyter.updateJupyterInstance(baseAddress, token);
+      this.state.backend.notebook_server_info.base_url;
+    orchest.jupyter.updateJupyterInstance(baseAddress);
   }
 
   newStep() {
@@ -1089,6 +1112,10 @@ class PipelineView extends React.Component {
       openedStep: pipelineStepUUID,
       selectedSteps: [pipelineStepUUID],
     });
+  }
+
+  onClickStepHandler(stepUUID) {
+    this.selectStep(stepUUID);
   }
 
   stepNameUpdate(pipelineStepUUID, title, file_path) {
@@ -1176,6 +1203,7 @@ class PipelineView extends React.Component {
     this.setState({
       steps: this.state.steps,
       selectedSteps: this.getSelectedSteps(),
+      unsavedChanges: true,
     });
 
     // make sure step is closed if it is open
@@ -1356,7 +1384,7 @@ class PipelineView extends React.Component {
       uuids: uuids,
       project_uuid: this.props.project_uuid,
       run_type: type,
-      pipeline_description: this.getPipelineJSON(),
+      pipeline_definition: this.getPipelineJSON(),
     };
 
     let runStepUUIDsPromise = makeCancelable(
@@ -1511,7 +1539,6 @@ class PipelineView extends React.Component {
     this.state.backend.running = running;
 
     if (session_details) {
-      this.state.backend.jupyter_server_ip = session_details.jupyter_server_ip;
       this.state.backend.notebook_server_info =
         session_details.notebook_server_info;
     }
@@ -1640,7 +1667,7 @@ class PipelineView extends React.Component {
             ref={this.refManager.nrefs[step.uuid]}
             executionState={this.getStepExecutionState(step.uuid)}
             onConnect={this.makeConnection.bind(this)}
-            onClick={this.selectStep.bind(this)}
+            onClick={this.onClickStepHandler.bind(this)}
           />
         );
       }

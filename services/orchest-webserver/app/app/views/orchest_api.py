@@ -127,7 +127,7 @@ def register_orchest_api_views(app, db):
                     json_obj["project_uuid"], host_path=True
                 ),
                 "pipeline_path": pipeline_uuid_to_path(
-                    json_obj["pipeline_description"]["uuid"], json_obj["project_uuid"]
+                    json_obj["pipeline_definition"]["uuid"], json_obj["project_uuid"]
                 ),
             }
 

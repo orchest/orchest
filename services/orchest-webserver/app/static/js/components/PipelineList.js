@@ -289,10 +289,12 @@ class PipelineList extends React.Component {
           <div className={"pipeline-actions push-down"}>
             <MDCIconButtonToggleReact
               icon="add"
+              tooltipText="Add pipeline"
               onClick={this.onCreateClick.bind(this)}
             />
             <MDCIconButtonToggleReact
               icon="delete"
+              tooltipText="Delete pipeline"
               onClick={this.onDeleteClick.bind(this)}
             />
           </div>
