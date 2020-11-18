@@ -29,7 +29,7 @@ JUPYTER_EG_SERVER_NAME = "jupyter-EG-{project_uuid}-{pipeline_uuid}"
 TRUNCATED_UUID_LENGTH = 18
 
 # Relative to the `project_dir` path.
-LOGS_PATH = ".orchest/{pipeline_uuid}/logs"
+LOGS_PATH = ".orchest/pipelines/{pipeline_uuid}/logs"
 
 WEBSERVER_LOGS = "/orchest/services/orchest-webserver/app/orchest-webserver.log"
 DOCS_ROOT = "https://orchest.readthedocs.io"
