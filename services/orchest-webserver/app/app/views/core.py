@@ -941,7 +941,18 @@ def register_views(app, db):
                     # this line does not strictly need to be there, since the new directory will be picked up
                     # on the GET request and initialized, placing it here is more explicit and less relying
                     # on the POST->GET pattern from the GUI
-                    init_project(project_path)
+                    try:
+                        init_project(project_path)
+                    except Exception as e:
+                        return (
+                            jsonify(
+                                {
+                                    "message": "Failed to create the project. Error: %s"
+                                    % e
+                                }
+                            ),
+                            409,
+                        )
                 else:
                     return (
                         jsonify({"message": "Project directory already exists."}),
