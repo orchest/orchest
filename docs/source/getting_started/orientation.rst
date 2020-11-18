@@ -48,18 +48,18 @@ following directory structure of a project:
 
     myproject
         ├── .orchest
-        │   ├── data/
-        │   ├── logs/
+        │   ├── pipelines/
         │   └── environments/
         ├── pipeline.orchest
         ├── prep.ipynb
         └── training.py
 
 .. note::
-   Again Orchest creates a ``.orchest/`` directory to store state. In the ``.orchest/data/``
-   directory the passed data between steps is stored, if disk based data passing is used instead of
-   (the default) memory data passing, see :ref:`data passing <data passing>`. The ``.orchest/logs/``
-   directory contains the STDOUT of the scripts and can be inspected through the Orchest UI.
+   Again Orchest creates a ``.orchest/`` directory to store state. In the ``.orchest/pipelines/``
+   directory the passed data between steps is stored (per pipeline in ``data/``), if disk based data
+   passing is used instead of (the default) memory data passing, see :ref:`data passing <data
+   passing>`. Per pipeline (inside ``.orchest/pipelines/``) there is also a ``logs/`` directory
+   containing the STDOUT of the scripts, the STDOUT can be inspected through the Orchest UI.
 
 .. warning::
    You should not put large files inside your project and instead use :ref:`data sources <data
