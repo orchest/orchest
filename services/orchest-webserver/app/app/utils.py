@@ -123,6 +123,11 @@ def get_environments(project_uuid, language=None):
                     else:
                         if language == env.language:
                             environments.append(env)
+                else:
+                    logging.info(
+                        "Could not read environment for env dir %s and project_uuid %s"
+                        % (environment_dir, project_uuid)
+                    )
     except FileNotFoundError as e:
         logging.error(
             "Could not find environments directory in project path %s"
@@ -145,6 +150,8 @@ def serialize_environment_to_disk(environment, env_directory):
 
         # don't serialize project_uuid
         del environmentDICT["project_uuid"]
+        # setup scripts is serialized separately
+        del environmentDICT["setup_script"]
 
         file.write(json.dumps(environmentDICT))
 
