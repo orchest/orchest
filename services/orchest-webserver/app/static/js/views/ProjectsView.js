@@ -445,14 +445,17 @@ class ProjectsView extends React.Component {
                 <div className={"pipeline-actions push-down"}>
                   <MDCIconButtonToggleReact
                     icon="add"
+                    tooltipText="Add project"
                     onClick={this.onCreateClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
                     icon="delete"
+                    tooltipText="Delete project"
                     onClick={this.onDeleteClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
                     icon="input"
+                    tooltipText="Import project"
                     onClick={this.onImport.bind(this)}
                   />
                 </div>
