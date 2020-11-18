@@ -1,4 +1,5 @@
 FROM tiangolo/uwsgi-nginx-flask:python3.7
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 COPY ./lib /orchest/lib
 COPY ./app /orchest/services/orchest-api/app

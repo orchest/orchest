@@ -1,4 +1,5 @@
 FROM filebrowser/filebrowser:v2.8.0-alpine
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 COPY .docker.json /.filebrowser.json
 

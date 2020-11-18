@@ -1,7 +1,7 @@
 Quickstart
 ==========
 
-.. TODO
+.. TODO(rick)
    Needs to be updated
 
 General workflow in Orchest

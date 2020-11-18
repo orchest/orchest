@@ -1,4 +1,5 @@
 FROM tiangolo/uwsgi-nginx-flask:python3.7
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Refresh SSL certificates
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh

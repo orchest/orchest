@@ -1,5 +1,6 @@
 # Ubuntu 18.04.1 LTS Bionic
 FROM elyra/kernel-r:2.3.0
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 USER root
 

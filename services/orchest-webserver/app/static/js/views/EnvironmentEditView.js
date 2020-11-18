@@ -60,7 +60,7 @@ class EnvironmentEditView extends React.Component {
             project_uuid: this.props.project_uuid,
             base_image: "",
             language: "python",
-            startup_script: `#!/bin/bash
+            setup_script: `#!/bin/bash
 
 # Install any dependencies you have in this shell script.
 
@@ -509,7 +509,7 @@ class EnvironmentEditView extends React.Component {
         </div>
 
         <CodeMirror
-          value={this.state.environment.startup_script}
+          value={this.state.environment.setup_script}
           options={{
             mode: "application/x-sh",
             theme: "default",
@@ -517,7 +517,7 @@ class EnvironmentEditView extends React.Component {
             viewportMargin: Infinity,
           }}
           onBeforeChange={(editor, data, value) => {
-            this.state.environment.startup_script = value;
+            this.state.environment.setup_script = value;
 
             this.setState({
               environment: this.state.environment,

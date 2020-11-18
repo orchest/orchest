@@ -21,7 +21,9 @@ class Pipeline(db.Model):
     __tablename__ = "pipeline"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
-    project_uuid = db.Column(db.ForeignKey("project.uuid"), primary_key=True)
+    project_uuid = db.Column(
+        db.ForeignKey("project.uuid", ondelete="CASCADE"), primary_key=True
+    )
     path = db.Column(db.String(255), nullable=False)
 
     __table_args__ = (UniqueConstraint("uuid", "project_uuid"),)
@@ -45,8 +47,6 @@ class DataSource(db.Model):
 class Environment(db.Model):
     __tablename__ = "environments"
 
-    # Note: uuids for environments need to be unique across all environments.
-    # This needs to be checked on project import (to check for conflicting environment uuids).
     uuid = db.Column(
         db.String(255), unique=True, nullable=False, primary_key=True, default=str_uuid4
     )
@@ -55,7 +55,8 @@ class Environment(db.Model):
     language = db.Column(db.String(255), nullable=False)
 
     # Startup script is stored as separate file (start_script.sh)
-    startup_script = db.Column(db.String(255), default="")
+    # TODO: find a clean way of using internal config._ENV_SETUP_SCRIPT_PROPERTY_NAME as the column name
+    setup_script = db.Column(db.String(255), default="")
     base_image = db.Column(db.String(255), nullable=False)
     gpu_support = db.Column(db.Boolean, default=False)
 
@@ -81,7 +82,7 @@ class PipelineRun(db.Model):
 
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     id = db.Column(db.Integer(), unique=False)
-    experiment = db.Column(db.ForeignKey("experiments.uuid"))
+    experiment = db.Column(db.ForeignKey("experiments.uuid", ondelete="CASCADE"))
     parameter_json = db.Column(db.JSON, nullable=False)
 
 
