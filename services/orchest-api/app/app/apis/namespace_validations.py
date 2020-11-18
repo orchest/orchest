@@ -1,4 +1,4 @@
-"""API endpoint to do validations."""
+"""API endpoint to do system level validations."""
 
 from typing import Tuple, Optional
 
@@ -25,8 +25,9 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
           docker namespace.
 
     Args:
-        project_uuid
-        env_uuid
+        project_uuid: Project UUID for which the environment should
+            exist.
+        env_uuid: Environment UUID to check.
 
     Returns:
         (check, action)
@@ -36,17 +37,15 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
         `action` is one of ["BUILD", "WAIT", "RETRY", None]
 
     """
-
     # Check the docker namespace.
     docker_image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
         project_uuid=project_uuid, environment_uuid=env_uuid
     )
     try:
         docker_client.images.get(docker_image_name)
-        return "pass", None
     except docker.errors.ImageNotFound:
-
-        # Check the build history for the environment.
+        # Check the build history for the environment to determine the
+        # action.
         env_builds = models.EnvironmentBuild.query.filter_by(
             project_uuid=project_uuid, environment_uuid=env_uuid
         )
@@ -63,6 +62,8 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
         # We cannot determine what happened, so better be safe than
         # sorry.
         return "fail", "RETRY"
+
+    return "pass", None
 
 
 @api.route("/environments")
