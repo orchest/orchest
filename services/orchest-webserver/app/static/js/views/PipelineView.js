@@ -1384,7 +1384,7 @@ class PipelineView extends React.Component {
       uuids: uuids,
       project_uuid: this.props.project_uuid,
       run_type: type,
-      pipeline_description: this.getPipelineJSON(),
+      pipeline_definition: this.getPipelineJSON(),
     };
 
     let runStepUUIDsPromise = makeCancelable(

@@ -131,8 +131,8 @@ interactive_run_config = pipeline_run_config.inherit("InteractiveRunConfig", {})
 interactive_run_spec = pipeline_run_spec.inherit(
     "InteractiveRunSpec",
     {
-        "pipeline_description": fields.Raw(
-            required=True, description="Pipeline description in JSON"
+        "pipeline_definition": fields.Raw(
+            required=True, description="Pipeline definition in JSON"
         ),
         "run_config": fields.Nested(
             interactive_run_config,
@@ -214,20 +214,20 @@ experiment_spec = Model(
         ),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "pipeline_descriptions": fields.List(
-            fields.Raw(description="Pipeline description in JSON"),
+        "pipeline_definitions": fields.List(
+            fields.Raw(description="Pipeline definition in JSON"),
             required=True,
-            description="Collection of pipeline descriptions",
+            description="Collection of pipeline definitions",
         ),
         "pipeline_run_ids": fields.List(
             fields.Integer(
                 description=(
                     "Pipeline index corresponding to respective "
-                    "list entries in pipeline_descriptions."
+                    "list entries in pipeline_definitions."
                 )
             ),
             required=True,
-            description="Collection of pipeline description indices.",
+            description="Collection of pipeline definition indices.",
         ),
         "pipeline_run_spec": fields.Nested(
             non_interactive_run_spec,

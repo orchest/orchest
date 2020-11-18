@@ -47,10 +47,10 @@ class ExperimentList(Resource):
 
         pipeline_runs = []
         pipeline_run_spec = post_data["pipeline_run_spec"]
-        for pipeline_description, id_ in zip(
-            post_data["pipeline_descriptions"], post_data["pipeline_run_ids"]
+        for pipeline_definition, id_ in zip(
+            post_data["pipeline_definitions"], post_data["pipeline_run_ids"]
         ):
-            pipeline_run_spec["pipeline_description"] = pipeline_description
+            pipeline_run_spec["pipeline_definition"] = pipeline_definition
             pipeline = construct_pipeline(**post_data["pipeline_run_spec"])
 
             # TODO: This can be made more efficient, since the pipeline
@@ -63,7 +63,7 @@ class ExperimentList(Resource):
             celery_job_kwargs = {
                 "experiment_uuid": post_data["experiment_uuid"],
                 "project_uuid": post_data["project_uuid"],
-                "pipeline_description": pipeline.to_dict(),
+                "pipeline_definition": pipeline.to_dict(),
                 "run_config": pipeline_run_spec["run_config"],
             }
 

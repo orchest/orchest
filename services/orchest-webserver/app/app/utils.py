@@ -26,7 +26,7 @@ def get_pipeline_path(
     host_path=False,
     pipeline_path=None,
 ):
-    """Returns path to pipeline description file (including .orchest)"""
+    """Returns path to pipeline definition file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
     if host_path == True:
@@ -68,7 +68,7 @@ def get_pipeline_directory(
     pipeline_run_uuid=None,
     host_path=False,
 ):
-    """Returns path to directory CONTAINING the pipeline description file."""
+    """Returns path to directory CONTAINING the pipeline definition file."""
 
     return os.path.split(
         get_pipeline_path(

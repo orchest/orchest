@@ -18,7 +18,7 @@ class PipelineStepProperties(TypedDict):
     meta_data: Dict[str, List[int]]
 
 
-class PipelineDescription(TypedDict):
+class PipelineDefinition(TypedDict):
     name: str
     uuid: str
     steps: Dict[str, PipelineStepProperties]
@@ -72,7 +72,7 @@ class Pipeline:
         self.properties = properties
 
     @classmethod
-    def from_json(cls, description: PipelineDescription) -> "Pipeline":
+    def from_json(cls, description: PipelineDefinition) -> "Pipeline":
         """Constructs a pipeline from a json description.
 
         This is an alternative constructur.
@@ -102,8 +102,8 @@ class Pipeline:
         }
         return cls(list(steps.values()), properties)
 
-    def to_dict(self) -> PipelineDescription:
-        description: PipelineDescription = {"steps": {}}
+    def to_dict(self) -> PipelineDefinition:
+        description: PipelineDefinition = {"steps": {}}
         for step in self.steps:
             description["steps"][step.properties["uuid"]] = step.properties
 

@@ -23,8 +23,8 @@ class Config:
     # internal config library is not possible due to the license difference.
     STEP_DATA_DIR = "/project-dir/.orchest/" + PIPELINE_UUID + "/data/{step_uuid}"
 
-    # Path to the file that contains the pipeline description.
-    PIPELINE_DESCRIPTION_PATH = f"/project-dir/{PIPELINE_PATH}"
+    # Path to the file that contains the pipeline definition.
+    PIPELINE_DEFINITION_PATH = f"/project-dir/{PIPELINE_PATH}"
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:
