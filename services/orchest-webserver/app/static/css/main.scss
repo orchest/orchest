@@ -664,6 +664,10 @@ span.code {
       .selection-buttons {
         display: inline-block;
         padding-left: $generalPadding;
+
+        button {
+          margin-top: $generalPadding;
+        }
       }
     }
 

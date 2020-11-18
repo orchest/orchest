@@ -217,6 +217,7 @@ class PipelineView extends React.Component {
     this.keysDown = {};
     this.draggingPipeline = false;
     this.pipelineOffset = [0, 0];
+    this.zoomFactor = 1;
 
     this.connections = [];
     this.pipelineSteps = {};
@@ -1322,9 +1323,25 @@ class PipelineView extends React.Component {
     this.pipelineOffset[0] = 0;
     this.pipelineOffset[1] = 0;
 
-    this.renderBackground();
+    this.zoomFactor = 1;
+    this.renderPipelineHolder();
+  }
 
-    this.forceUpdate();
+  zoomOut() {
+    this.zoomFactor = Math.max(this.zoomFactor - 0.25, 0.25);
+    this.renderPipelineHolder();
+  }
+
+  zoomIn() {
+    this.zoomFactor = Math.min(this.zoomFactor + 0.25, 2);
+    this.renderPipelineHolder();
+  }
+
+  onPipelineStepsOuterHolderWheel(e) {
+    this.zoomFactor -= e.nativeEvent.deltaY / 2000;
+    this.zoomFactor = Math.min(Math.max(this.zoomFactor, 0.25), 2);
+
+    this.renderPipelineHolder();
   }
 
   runSelectedSteps() {
@@ -1589,23 +1606,27 @@ class PipelineView extends React.Component {
       this.pipelineOffset[0] -= dx / window.devicePixelRatio;
       this.pipelineOffset[1] -= dy / window.devicePixelRatio;
 
-      this.renderBackground();
+      this.renderPipelineHolder();
     }
   }
 
-  renderBackground() {
+  renderPipelineHolder() {
     $(this.refManager.refs.pipelineStepsHolder).css({
       transform:
         "translateX(" +
         -this.pipelineOffset[0] +
         "px) translateY(" +
         -this.pipelineOffset[1] +
-        "px)",
+        "px) scale(" +
+        this.zoomFactor +
+        ")",
     });
 
     $(this.refManager.refs.pipelineStepsOuterHolder).css({
       backgroundPosition:
         -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px",
+      backgroundSize:
+        this.zoomFactor * 40 + "px " + this.zoomFactor * 41 + "px",
     });
   }
 
@@ -1644,10 +1665,6 @@ class PipelineView extends React.Component {
       height: Math.abs(this.state.stepSelector.y2 - this.state.stepSelector.y1),
     };
     return rect;
-  }
-
-  centerButtonDisabled() {
-    return this.pipelineOffset[0] == 0 && this.pipelineOffset[1] == 0;
   }
 
   render() {
@@ -1707,14 +1724,17 @@ class PipelineView extends React.Component {
     }
 
     return (
-      <div className={"pipeline-view"}>
-        <div className={"pane"}>
-          <div className={"pipeline-actions bottom-left"}>
-            <MDCButtonReact
-              disabled={this.centerButtonDisabled()}
-              onClick={this.centerView.bind(this)}
-              icon="crop_free"
-            />
+      <div className="pipeline-view">
+        <div className="pane">
+          <div className="pipeline-actions bottom-left">
+            <div className="navigation-button">
+              <MDCButtonReact
+                onClick={this.centerView.bind(this)}
+                icon="crop_free"
+              />
+              <MDCButtonReact onClick={this.zoomOut.bind(this)} icon="remove" />
+              <MDCButtonReact onClick={this.zoomIn.bind(this)} icon="add" />
+            </div>
             {(() => {
               if (
                 this.state.selectedSteps.length > 0 &&
@@ -1806,9 +1826,10 @@ class PipelineView extends React.Component {
             ref={this.refManager.nrefs.pipelineStepsOuterHolder}
             onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
             onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
+            onWheel={this.onPipelineStepsOuterHolderWheel.bind(this)}
           >
             <div
-              className={"pipeline-steps-holder"}
+              className="pipeline-steps-holder"
               ref={this.refManager.nrefs.pipelineStepsHolder}
             >
               {stepSelectorComponent}
