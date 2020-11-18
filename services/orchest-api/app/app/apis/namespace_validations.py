@@ -20,10 +20,7 @@ api = register_schema(api)
 def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optional[str]]:
     """Validates whether the environments exist on the system.
 
-    Only passes if all of the conditions below are satisfied:
-        * The `project_uuid` and `env_uuid` combination exists in the
-          persistent database `EnvironmentBuild` model.
-        * There is no "PENDING" or "STARTED" build for the environment.
+    Only passes if the condition below is satisfied:
         * The image: ``_config.ENVIRONMENT_IMAGE_NAME`` exists in the
           docker namespace.
 
@@ -39,20 +36,6 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
         `action` is one of ["BUILD", "WAIT", "RETRY", None]
 
     """
-    # Check the build history for the environment.
-    env_builds = models.EnvironmentBuild.query.filter_by(
-        project_uuid=project_uuid, environment_uuid=env_uuid
-    )
-    num_completed_builds = env_builds.count()
-    num_building_builds = env_builds.filter(
-        models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
-    ).count()
-
-    if not num_completed_builds:
-        return "fail", "BUILD"
-
-    if num_building_builds:
-        return "fail", "WAIT"
 
     # Check the docker namespace.
     docker_image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
@@ -60,14 +43,26 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
     )
     try:
         docker_client.images.get(docker_image_name)
+        return "pass", None
     except docker.errors.ImageNotFound:
-        return "fail", "BUILD"
+
+        # Check the build history for the environment.
+        env_builds = models.EnvironmentBuild.query.filter_by(
+            project_uuid=project_uuid, environment_uuid=env_uuid
+        )
+        num_building_builds = env_builds.filter(
+            models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+        ).count()
+
+        if num_building_builds:
+            return "fail", "WAIT"
+        else:
+            return "fail", "BUILD"
+
     except docker.errors.APIError:
         # We cannot determine what happened, so better be safe than
         # sorry.
         return "fail", "RETRY"
-
-    return "pass", None
 
 
 @api.route("/environments")
