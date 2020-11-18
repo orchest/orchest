@@ -23,6 +23,8 @@ class Config:
     DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
+    PROJECT_ORCHEST_GIT_IGNORE_CONTENT = "\n".join(["logs/", "data/"])
+
     FLASK_ENV = os.environ.get("FLASK_ENV", "PRODUCTION")
 
     DEBUG = True
