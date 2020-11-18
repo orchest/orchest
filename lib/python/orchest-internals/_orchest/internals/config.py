@@ -15,6 +15,18 @@ ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
 
 # Containers
 PIPELINE_STEP_CONTAINER_NAME = "orchest-step-{run_uuid}-{step_uuid}"
+JUPYTER_SERVER_NAME = "jupyter-server-{project_uuid}-{pipeline_uuid}"
+JUPYTER_EG_SERVER_NAME = "jupyter-EG-{project_uuid}-{pipeline_uuid}"
+
+# Whenever UUIDs take up too much space in an identifier the UUIDs are
+# truncated to this length. This typically only happens when multiple UUIDs are
+# concatenated.
+# E.g. hostname length is limited to 63 characters per label (parts enclosed in
+# dots).
+# We use a truncated length of 18 since for UUID v4 that means they don't end
+# with a hyphen. Ending with a hyphen can be problematic as it's not allowed for
+# hostnames.
+TRUNCATED_UUID_LENGTH = 18
 
 # Relative to the `project_dir` path.
 LOGS_PATH = ".orchest/{pipeline_uuid}/logs"

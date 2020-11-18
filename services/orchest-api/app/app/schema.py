@@ -14,23 +14,10 @@ from _orchest.internals import config as _config
 server = Model(
     "Server",
     {
-        "url": fields.String(required=True, description="URL of the server"),
-        "hostname": fields.String(
-            required=True, default="localhost", description="Hostname"
-        ),
         "port": fields.Integer(
             required=True, default=8888, description="Port to access the server"
         ),
-        "secure": fields.Boolean(
-            required=True, description="Any extra security measures"
-        ),
         "base_url": fields.String(required=True, default="/", description="Base URL"),
-        "token": fields.String(required=True, description="Token for authentication"),
-        "notebook_dir": fields.String(
-            required=True, default=_config.PROJECT_DIR, description="Working directory"
-        ),
-        "password": fields.Boolean(required=True, description="Password if one is set"),
-        "pid": fields.Integer(required=True, description="PID"),
     },
 )
 
