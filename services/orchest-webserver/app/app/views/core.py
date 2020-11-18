@@ -951,7 +951,7 @@ def register_views(app, db):
                                     % e
                                 }
                             ),
-                            409,
+                            500,
                         )
                 else:
                     return (
