@@ -178,6 +178,11 @@ def build_docker_image(
             return "FAILURE"
 
         # note: we only attempt to cleanup if the environment was correctly created
+        # We use a try catch block because it is still possible for the removal to fail, e.g.
+        # it may happen that an environment build request gets through while
+        # an interactive run or an experiment is running, if a container is using this image then an
+        # exception will be thrown and the image will not be cleaned up. It will end up being a nameless
+        # and tagless image because the newly created environment image has taken the name:tag.
         if previous_image is not None:
             try:
                 # using force true will actually remove the image instead of simply untagging it
