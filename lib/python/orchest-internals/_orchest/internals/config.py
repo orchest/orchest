@@ -40,8 +40,7 @@ ORCHEST_SOCKETIO_SERVER_ADDRESS = "http://orchest-webserver"
 ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
 
 
-ENV_SETUP_SCRIPT_PROPERTY_NAME = "setup_script"
-ENV_SETUP_SCRIPT_FILE_NAME = f"{ENV_SETUP_SCRIPT_PROPERTY_NAME}.sh"
+ENV_SETUP_SCRIPT_FILE_NAME = "setup_script.sh"
 # Environments
 # These environments are added when you create a new project
 DEFAULT_ENVIRONMENTS = [
@@ -49,14 +48,14 @@ DEFAULT_ENVIRONMENTS = [
         "name": "custom-base-kernel-py",
         "base_image": "orchest/custom-base-kernel-py",
         "language": "python",
-        ENV_SETUP_SCRIPT_PROPERTY_NAME: "",
+        "setup_script": "",
         "gpu_support": False,
     },
     {
         "name": "custom-base-kernel-r",
         "base_image": "orchest/custom-base-kernel-r",
         "language": "r",
-        ENV_SETUP_SCRIPT_PROPERTY_NAME: "",
+        "setup_script": "",
         "gpu_support": False,
     },
 ]

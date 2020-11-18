@@ -55,7 +55,6 @@ class Environment(db.Model):
     language = db.Column(db.String(255), nullable=False)
 
     # Startup script is stored as separate file (start_script.sh)
-    # TODO: find a clean way of using internal config._ENV_SETUP_SCRIPT_PROPERTY_NAME as the column name
     setup_script = db.Column(db.String(255), default="")
     base_image = db.Column(db.String(255), nullable=False)
     gpu_support = db.Column(db.Boolean, default=False)

@@ -132,9 +132,7 @@ def register_views(app, db):
                     name=environment_json["name"],
                     project_uuid=project_uuid,
                     language=environment_json["language"],
-                    setup_script=environment_json[
-                        _config.ENV_SETUP_SCRIPT_PROPERTY_NAME
-                    ],
+                    setup_script=environment_json["setup_script"],
                     base_image=environment_json["base_image"],
                     gpu_support=environment_json["gpu_support"],
                 )
