@@ -258,15 +258,8 @@ class InteractiveSession(Session):
             pipeline_uuid, project_uuid, pipeline_path, project_dir, host_userdir
         )
 
-        # TODO: This session should manage additionally that the jupyter
-        #       notebook server is started through the little flask API
-        #       that is running inside the container.
-
         IP = self.get_containers_IP()
-        # The launched jupyter-server container is only running the API
-        # and waits for instructions before the Jupyter server is
-        # started. Tries to start the Jupyter server, by waiting for the
-        # API to be running after container launch.
+
         logging.info(
             "Starting Jupyter Server on %s with Enterprise "
             "Gateway on %s" % (IP.jupyter_server, IP.jupyter_EG)
@@ -274,8 +267,8 @@ class InteractiveSession(Session):
 
         self._notebook_server_info = {
             "port": 8888,
-            "base_url": "/%s"
-            % _config.JUPYTER_SERVER_NAME.format(
+            "base_url": "/"
+            + _config.JUPYTER_SERVER_NAME.format(
                 project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
                 pipeline_uuid=pipeline_uuid[: _config.TRUNCATED_UUID_LENGTH],
             ),
@@ -306,13 +299,8 @@ class InteractiveSession(Session):
         # desired as the front-end would otherwise need to poll whether
         # the Jupyter launch has been shut down (to be able to show its
         # status in the UI).
-        # Uses the API inside the container that is also running the
-        # Jupyter server to shut the server down and clean all running
-        # kernels that are associated with the server.
         # The request is blocking and returns after all kernels and
         # server have been shut down.
-        # TODO: make sure a graceful shutdown is instantiated via a
-        #       DELETE request to the flask API inside the jupyter-server
         IP = self.get_containers_IP()
 
         shutdown_jupyter_server(
