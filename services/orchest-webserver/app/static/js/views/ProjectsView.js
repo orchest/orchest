@@ -264,12 +264,6 @@ class ProjectsView extends React.Component {
     });
   }
 
-  onCancelModal() {
-    this.setState({
-      createModal: false,
-    });
-  }
-
   onSubmitImport() {
     let gitURL = this.refManager.refs.gitURLTextField.mdc.value;
     let gitProjectName = this.refManager.refs.gitProjectNameTextField.mdc.value;
@@ -306,7 +300,21 @@ class ProjectsView extends React.Component {
     });
   }
 
+  onCancelModal() {
+    this.refManager.refs.createProjectDialog.close();
+  }
+
+  onCloseCreateProjectModal() {
+    this.setState({
+      createModal: false,
+    });
+  }
+
   onCancelImport() {
+    this.refManager.refs.importProjectDialog.close();
+  }
+
+  onCloseImportProjectModal() {
     this.setState({
       showImportModal: false,
     });
@@ -327,6 +335,8 @@ class ProjectsView extends React.Component {
             return (
               <MDCDialogReact
                 title="Import a project"
+                onClose={this.onCloseImportProjectModal.bind(this)}
+                ref={this.refManager.nrefs.importProjectDialog}
                 content={
                   <div className="project-import-modal">
                     <p className="push-down">
@@ -406,6 +416,8 @@ class ProjectsView extends React.Component {
             return (
               <MDCDialogReact
                 title="Create a new project"
+                onClose={this.onCloseCreateProjectModal.bind(this)}
+                ref={this.refManager.nrefs.createProjectDialog}
                 content={
                   <MDCTextFieldReact
                     ref={this.refManager.nrefs.createProjectNameTextField}

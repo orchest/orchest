@@ -235,6 +235,10 @@ class PipelineList extends React.Component {
   }
 
   onCancelModal() {
+    this.refManager.refs.createPipelineDialog.close();
+  }
+
+  onCloseCreatePipelineModal() {
     this.setState({
       createModal: false,
     });
@@ -249,6 +253,8 @@ class PipelineList extends React.Component {
               return (
                 <MDCDialogReact
                   title="Create a new pipeline"
+                  onClose={this.onCloseCreatePipelineModal.bind(this)}
+                  ref={this.refManager.nrefs.createPipelineDialog}
                   content={
                     <Fragment>
                       <MDCTextFieldReact

@@ -334,6 +334,10 @@ class EnvironmentEditView extends React.Component {
   }
 
   onCancelAddCustomBaseImageDialog() {
+    this.refManager.refs.addCustomBaseImageDialog.close();
+  }
+
+  onCloseAddCustomBaseImageDialog() {
     this.setState({
       addCustomBaseImageDialog: undefined,
     });
@@ -363,7 +367,8 @@ class EnvironmentEditView extends React.Component {
       addCustomBaseImageDialog: (
         <MDCDialogReact
           title="Add custom base image"
-          onClose={this.onCancelAddCustomBaseImageDialog.bind(this)}
+          ref={this.refManager.nrefs.addCustomBaseImageDialog}
+          onClose={this.onCloseAddCustomBaseImageDialog.bind(this)}
           content={
             <div>
               <MDCTextFieldReact
@@ -381,6 +386,7 @@ class EnvironmentEditView extends React.Component {
                 onClick={this.submitAddCustomBaseImage.bind(this)}
               />
               <MDCButtonReact
+                classNames={["push-left"]}
                 label="Cancel"
                 onClick={this.onCancelAddCustomBaseImageDialog.bind(this)}
               />

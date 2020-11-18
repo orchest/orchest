@@ -178,6 +178,10 @@ class ExperimentList extends React.Component {
     });
   }
   onCancelModal() {
+    this.refManager.refs.createExperimentDialog.close();
+  }
+
+  onCloseCreateExperimentModal() {
     this.setState({
       createModal: false,
     });
@@ -257,6 +261,8 @@ class ExperimentList extends React.Component {
                     return (
                       <MDCDialogReact
                         title="Create a new experiment"
+                        ref={this.refManager.nrefs.createExperimentDialog}
+                        onClose={this.onCloseCreateExperimentModal.bind(this)}
                         content={
                           <Fragment>
                             <div className="create-experiment-modal">
