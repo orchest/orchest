@@ -361,7 +361,7 @@ validation_environments = Model(
         "environment_uuids": fields.List(
             fields.String(),
             required=False,
-            description="UUIDs to check for type=shallow",
+            description="UUIDs to check",
         ),
     },
 )

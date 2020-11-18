@@ -80,7 +80,7 @@ class Gate(Resource):
         description="Validation of environments",
     )
     def post(self):
-        """Checks whether the given environments are build and ready.
+        """Checks whether the given environments have been built and are ready.
 
         NOTE: The order of ``["fail"]`` and ``["action"]`` indicates the
         required action to convert the "fail" to a "pass".
@@ -99,7 +99,7 @@ class Gate(Resource):
         for env_uuid in environment_uuids:
             # Check will be either "fail" or "pass".
             validation, action = validate_environment(project_uuid, env_uuid)
-            res[validation]["environment_uuids"].append(env_uuid)
+            res[validation].append(env_uuid)
 
             if validation == "fail":
                 res["actions"].append(action)
