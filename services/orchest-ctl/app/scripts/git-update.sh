@@ -4,3 +4,12 @@
 # "error: cannot run ssh: No such file or directory"
 # It is caused when the remote "origin" uses SSH.
 git pull https://github.com/orchest/orchest.git --rebase
+
+# Get the user and group of the "orchest" shell script as this is most
+# likely also the user that should own the files in the repository.
+FILE_USER=$(ls -n /orchest-host/orchest | awk '{print $3}')
+FILE_GROUP=$(ls -n /orchest-host/orchest | awk '{print $4}')
+
+# Change the user and group of all the files in the repository, except
+# for the userdir.
+chown -R $FILE_USER:$FILE_GROUP $(ls -I userdir /orchest-host)
