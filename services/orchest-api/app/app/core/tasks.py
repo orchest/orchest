@@ -104,6 +104,9 @@ async def check_pipeline_run_task_status(run_config, pipeline, task_id):
                 task_id, "docker", {"docker_client": docker_client}
             )
         if ready or aborted:
+            # remove containers
+            run_config["docker_client"] = docker_client
+            pipeline.remove_containerization_resources(task_id, "docker", run_config)
             break
 
 

@@ -21,7 +21,9 @@ class Pipeline(db.Model):
     __tablename__ = "pipeline"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
-    project_uuid = db.Column(db.ForeignKey("project.uuid"), primary_key=True)
+    project_uuid = db.Column(
+        db.ForeignKey("project.uuid", ondelete="CASCADE"), primary_key=True
+    )
     path = db.Column(db.String(255), nullable=False)
 
     __table_args__ = (UniqueConstraint("uuid", "project_uuid"),)
@@ -45,8 +47,6 @@ class DataSource(db.Model):
 class Environment(db.Model):
     __tablename__ = "environments"
 
-    # Note: uuids for environments need to be unique across all environments.
-    # This needs to be checked on project import (to check for conflicting environment uuids).
     uuid = db.Column(
         db.String(255), unique=True, nullable=False, primary_key=True, default=str_uuid4
     )
@@ -82,7 +82,7 @@ class PipelineRun(db.Model):
 
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     id = db.Column(db.Integer(), unique=False)
-    experiment = db.Column(db.ForeignKey("experiments.uuid"))
+    experiment = db.Column(db.ForeignKey("experiments.uuid", ondelete="CASCADE"))
     parameter_json = db.Column(db.JSON, nullable=False)
 
 
