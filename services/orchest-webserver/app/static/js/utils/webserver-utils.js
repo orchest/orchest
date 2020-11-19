@@ -132,3 +132,13 @@ export class BackgroundTaskPoller {
     );
   }
 }
+
+export function getScrollLineHeight() {
+  const el = document.createElement("div");
+  el.style.fontSize = "initial";
+  el.style.display = "none";
+  document.body.appendChild(el);
+  const fontSize = window.getComputedStyle(el).fontSize;
+  document.body.removeChild(el);
+  return fontSize ? window.parseInt(fontSize) : undefined;
+}

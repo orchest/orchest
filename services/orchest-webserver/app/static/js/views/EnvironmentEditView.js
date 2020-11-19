@@ -45,7 +45,7 @@ class EnvironmentEditView extends React.Component {
         props.environment &&
         DEFAULT_BASE_IMAGES.indexOf(props.environment.base_image) == -1
           ? DEFAULT_BASE_IMAGES.concat(props.environment.base_image)
-          : DEFAULT_BASE_IMAGES.slice(),
+          : [...DEFAULT_BASE_IMAGES],
       newEnvironment: props.environment === undefined,
       showingBuildLogs: true,
       ignoreIncomingLogs: false,
