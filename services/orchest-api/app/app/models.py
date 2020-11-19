@@ -10,7 +10,7 @@ TODO:
 # from sqlalchemy.ext.declarative import declared_attr
 
 from app.connections import db
-from sqlalchemy import Index
+from sqlalchemy import Index, UniqueConstraint
 
 
 class BaseModel(db.Model):
@@ -104,6 +104,7 @@ class InteractiveRun(PipelineRun):
     run_uuid = db.Column(db.String(36), primary_key=True)
 
     pipeline_steps = db.relationship("InteractiveRunPipelineStep", lazy="joined")
+    image_mappings = db.relationship("InteractiveRunImageMapping", lazy="joined")
 
 
 class NonInteractiveRun(PipelineRun):
@@ -125,6 +126,7 @@ class NonInteractiveRun(PipelineRun):
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
 
     pipeline_steps = db.relationship("NonInteractiveRunPipelineStep", lazy="joined")
+    image_mappings = db.relationship("NonInteractiveRunImageMapping", lazy="joined")
 
 
 class NonInteractiveRunPipelineStep(PipelineRunPipelineStep):
@@ -193,3 +195,55 @@ class EnvironmentBuild(BaseModel):
 
     def __repr__(self):
         return f"<EnvironmentBuildTask: {self.build_uuid}>"
+
+
+class InteractiveRunImageMapping(BaseModel):
+    """Stores mappings between an interactive run and the environment images it uses."""
+
+    __tablename__ = "interactive_run_image_mapping"
+    __table_args__ = (
+        UniqueConstraint("run_uuid", "orchest_environment_uuid"),
+        UniqueConstraint("run_uuid", "docker_img_id"),
+    )
+
+    run_uuid = db.Column(
+        db.ForeignKey(InteractiveRun.run_uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    orchest_environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True
+    )
+    docker_img_id = db.Column(
+        db.String(), unique=False, nullable=False, primary_key=True
+    )
+
+
+class NonInteractiveRunImageMapping(BaseModel):
+    """Stores mappings between a  non interactive run and the environment images it uses."""
+
+    __tablename__ = "non_interactive_pipeline_run_image_mapping"
+    __bind_key__ = "persistent_db"
+    __table_args__ = (
+        UniqueConstraint("run_uuid", "orchest_environment_uuid"),
+        UniqueConstraint("run_uuid", "docker_img_id"),
+    )
+
+    run_uuid = db.Column(
+        db.ForeignKey(NonInteractiveRun.run_uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    orchest_environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+    docker_img_id = db.Column(
+        db.String(), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return f"<NonInteractiveRunImageMapping: {self.run_uuid} | {self.orchest_environment_uuid} | {self.docker_img_id}>"

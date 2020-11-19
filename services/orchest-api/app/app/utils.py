@@ -3,10 +3,12 @@ from typing import Dict
 import requests
 import logging
 
+from docker import errors
 from flask_restplus import Model, Namespace
 
 from app import schema
-from app.connections import db
+from app.connections import db, docker_client
+import app.models as models
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -92,3 +94,46 @@ def update_status_db(
         db.session.commit()
 
     return
+
+
+def get_environment_image_docker_id(name_or_id: str):
+    return docker_client.images.get(name_or_id).id
+
+
+def remove_if_dangling(docker_image_id: str):
+    """Remove an image if its dangling.
+
+    A dangling image is an image that is nameless and tagless, and for which no runs exist that are PENDING
+    or STARTED and that are going to use this image in one of their steps.
+
+    Args:
+        docker_image_id:
+
+    Returns:
+
+    """
+    # use try-catch block because the image might have been cleaned up by a concurrent request
+    try:
+        img = docker_client.images.get(docker_image_id)
+    except errors.ImageNotFound:
+        return False
+    # nameless image
+    if len(img.attrs["RepoTags"]) == 0:
+        int_runs = models.InteractiveRun.query.filter(
+            models.InteractiveRun.image_mappings.any(docker_img_id=docker_image_id),
+            models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
+        ).all()
+        non_int_runs = models.NonInteractiveRun.query.filter(
+            models.NonInteractiveRun.image_mappings.any(docker_img_id=docker_image_id),
+            models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
+        ).all()
+
+        # the image will not be used anymore, since no run that is PENDING or STARTED is pointing to it
+        # and the image is nameless, meaning that all future runs using the same environment will use another image
+        if len(int_runs) == 0 and len(non_int_runs) == 0:
+            # use try-catch block because the image might have been cleaned up by a concurrent request
+            try:
+                docker_client.images.remove(docker_image_id)
+            except errors.ImageNotFound:
+                return False
+    return True
