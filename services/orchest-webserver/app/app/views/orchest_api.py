@@ -1,7 +1,7 @@
 import requests
 import logging
 from app.models import PipelineRun
-from flask import render_template, request, jsonify
+from flask import request, jsonify
 from app.utils import (
     project_uuid_to_path,
     get_project_directory,

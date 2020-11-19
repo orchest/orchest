@@ -632,6 +632,7 @@ def register_views(app, db):
             user_config=get_user_conf(),
             DOCS_ROOT=app.config["DOCS_ROOT"],
             FLASK_ENV=app.config["FLASK_ENV"],
+            SOCKETIO_NAMESPACE_ENV_BUILDS=_config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE,
         )
 
     @app.route("/async/spawn-update-server", methods=["GET"])
