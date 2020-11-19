@@ -34,7 +34,7 @@ the content of the ``orchest/userdir/`` directory, where ``orchest/`` is the ins
 GitHub, in the Docker containers. Giving you access to your scripts from within Orchest, but also
 allowing you to structure and edit the files with any other editor such as VS Code!
 
-.. note::
+.. caution::
    The ``userdir/`` directory not only contains your files and scripts, it also contains the state
    (inside the ``userdir/.orchest/`` directory) that Orchest needs to run. Touching the state can
    result in, for example, losing experiment entries causing them to no longer show up in the UI.

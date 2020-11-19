@@ -17,7 +17,7 @@ menu.
    you'd have to specify the "Host", "Database name", "Username" and "Password".
 5. Lastly, press *Save*.
 
-Next, see :ref:`sdk-quickstart-data-sources` in the SDK section to get started with data sources
+Next, see :ref:`data sources <sdk-quickstart-data-sources>` in the SDK section to get started with data sources
 from within your scripts.
 
 .. note::
