@@ -61,7 +61,7 @@ following directory structure of a project:
    passing>`. Per pipeline (inside ``.orchest/pipelines/``) there is also a ``logs/`` directory
    containing the STDOUT of the scripts, the STDOUT can be inspected through the Orchest UI.
 
-.. warning::
+.. tip::
    You should not put large files inside your project and instead use :ref:`data sources <data
    sources>` or write to the special ``/data`` directory (which is the mounted ``userdir/data/``
    directory that is shared between projects). :ref:`Experiments <experiments>` create snapshots of
