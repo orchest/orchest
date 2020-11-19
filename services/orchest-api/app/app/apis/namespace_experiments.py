@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from celery.contrib.abortable import AbortableAsyncResult
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
@@ -163,9 +164,16 @@ class Experiment(Resource):
 
         run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
 
-        # Revokes all pipeline runs and waits for a reply for 1.0s.
+        # Aborts and revokes all pipeline runs and waits for a reply for 1.0s.
         celery = make_celery(current_app)
         celery.control.revoke(run_uuids, timeout=1.0)
+
+        # TODO: possibly set status of steps and Run to "ABORTED"
+        #  note that a race condition would be present since the task will try to set the status as well
+        for run_uuid in run_uuids:
+            res = AbortableAsyncResult(run_uuid, app=celery)
+            # it is responsibility of the task to terminate by reading it's aborted status
+            res.abort()
 
         # Update the status of the run and step entries to "REVOKED".
         models.NonInteractiveRun.query.filter_by(

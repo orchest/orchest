@@ -170,7 +170,7 @@ def run_pipeline(
     return asyncio.run(run_pipeline_async(run_config, pipeline, task_id))
 
 
-@celery.task(bind=True)
+@celery.task(bind=True, base=AbortableTask)
 def start_non_interactive_pipeline_run(
     self,
     experiment_uuid,
