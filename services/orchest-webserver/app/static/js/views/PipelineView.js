@@ -22,9 +22,9 @@ import PipelineDetails from "../components/PipelineDetails";
 import MultiPipelinestepDetails from "../components/MultiPipelinestepDetails";
 import PipelineStep from "../components/PipelineStep";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
-import NotebookPreviewView from "./NotebookPreviewView";
 import io from "socket.io-client";
 import SessionToggleButton from "../components/SessionToggleButton";
+import FilePreviewView from "./FilePreviewView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -471,16 +471,6 @@ class PipelineView extends React.Component {
     orchest.loadView(PipelineSettingsView, {
       project_uuid: this.props.project_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
-    });
-  }
-
-  onOpenNotebookPreview(step_uuid) {
-    orchest.loadView(NotebookPreviewView, {
-      project_uuid: this.props.project_uuid,
-      pipeline_uuid: this.props.pipeline_uuid,
-      pipelineRun: this.props.pipelineRun,
-      step_uuid: step_uuid,
-      pipelineRun: this.props.pipelineRun,
     });
   }
 
@@ -1273,8 +1263,20 @@ class PipelineView extends React.Component {
     }
   }
 
+  onOpenFilePreviewView(step_uuid) {
+    this.saveBeforeAction(() => {
+      orchest.loadView(FilePreviewView, {
+        project_uuid: this.props.project_uuid,
+        pipeline_uuid: this.props.pipeline_uuid,
+        pipelineRun: this.props.pipelineRun,
+        step_uuid: step_uuid,
+        readOnly: this.props.readOnly,
+      });
+    });
+  }
+
   onOpenNotebook() {
-    if (this.state.backend.running) {
+    if (this.state.backend.running && !this.state.backend.working) {
       this.saveBeforeAction(() => {
         this.openNotebook();
       });
@@ -2020,7 +2022,7 @@ class PipelineView extends React.Component {
                 onNameUpdate={this.stepNameUpdate.bind(this)}
                 onDelete={this.onDetailsDelete.bind(this)}
                 onClose={this.onCloseDetails.bind(this)}
-                onOpenNotebookPreview={this.onOpenNotebookPreview.bind(this)}
+                onOpenFilePreviewView={this.onOpenFilePreviewView.bind(this)}
                 onOpenNotebook={this.onOpenNotebook.bind(this)}
                 connections={connections_list}
                 defaultViewIndex={this.state.defaultDetailViewIndex}

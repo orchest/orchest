@@ -1076,10 +1076,10 @@ def register_views(app, db):
         return json_string, 200, {"content-type": "application/json"}
 
     @app.route(
-        "/async/notebook_html/<project_uuid>/<pipeline_uuid>/<step_uuid>",
+        "/async/file-viewer/<project_uuid>/<pipeline_uuid>/<step_uuid>",
         methods=["GET"],
     )
-    def notebook_html_get(project_uuid, pipeline_uuid, step_uuid):
+    def file_viewer(project_uuid, pipeline_uuid, step_uuid):
 
         experiment_uuid = request.args.get("experiment_uuid")
         pipeline_run_uuid = request.args.get("pipeline_run_uuid")
@@ -1096,9 +1096,11 @@ def register_views(app, db):
                 pipeline_json = json.load(json_file)
 
             try:
-                notebook_path = os.path.join(
+                file_path = os.path.join(
                     pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"]
                 )
+                filename = pipeline_json["steps"][step_uuid]["file_path"]
+                step_title = pipeline_json["steps"][step_uuid]["title"]
             except Exception as e:
                 logging.info(e)
                 return return_404(
@@ -1109,19 +1111,36 @@ def register_views(app, db):
                 "Could not find pipeline.json for pipeline %s" % pipeline_json_path
             )
 
-        if os.path.isfile(notebook_path):
+        file_ext = file_path.split(".")[-1]
+        file_content = ""
+
+        if file_ext == "ipynb":
+            if os.path.isfile(file_path):
+                try:
+
+                    html_exporter = HTMLExporter()
+                    (file_content, _) = html_exporter.from_filename(file_path)
+
+                except IOError as error:
+                    logging.info(
+                        "Error opening notebook file %s error: %s" % (file_path, error)
+                    )
+                    return return_404("Could not find notebook file %s" % file_path)
+        else:
             try:
+                with open(file_path) as file:
+                    file_content = file.read()
+            except (IOError, Exception) as e:
+                return jsonify({"message": "Could not read file."}), 500
 
-                html_exporter = HTMLExporter()
-                (body, _) = html_exporter.from_filename(notebook_path)
-
-                return body
-
-            except IOError as error:
-                logging.info(
-                    "Error opening notebook file %s error: %s" % (notebook_path, error)
-                )
-                return return_404("Could not find notebook file %s" % notebook_path)
+        return jsonify(
+            {
+                "ext": file_ext,
+                "content": file_content,
+                "step_title": step_title,
+                "filename": filename,
+            }
+        )
 
     @app.route(
         "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]

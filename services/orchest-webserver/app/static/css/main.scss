@@ -277,6 +277,41 @@ aside.mdc-drawer {
   }
 }
 
+.file-viewer {
+  .file-description,
+  p {
+    padding: $generalPadding;
+
+    h4 {
+      font-weight: 500;
+    }
+  }
+
+  display: flex;
+  flex-direction: column;
+
+  .file-holder {
+    flex: 1;
+    flex-grow: 1;
+  }
+
+  .react-codemirror2 {
+    padding: $generalPadding;
+
+    .cm-s-default {
+      width: 100%;
+      height: 100%;
+    }
+
+    width: 100%;
+    height: 100%;
+  }
+
+  .close-button {
+    z-index: 99;
+  }
+}
+
 iframe.borderless {
   border: 0;
   display: block;
@@ -981,11 +1016,16 @@ span.code {
       padding: $generalPadding;
       padding-bottom: 0;
 
-      .notebook-actions {
+      .file-actions {
         margin-bottom: $generalPadding;
 
         button {
-          margin-right: $generalPadding;
+          display: block;
+
+          margin-bottom: $generalPadding;
+          &:last-child {
+            margin-bottom: 0;
+          }
         }
       }
 
