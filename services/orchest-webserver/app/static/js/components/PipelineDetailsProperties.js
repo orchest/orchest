@@ -435,16 +435,22 @@ class PipelineDetailsProperties extends React.Component {
           })()}
         </div>
 
-        <div className="input-group">
-          <h3>Connections</h3>
+        {(() => {
+          if (this.state.step.incoming_connections.length != 0) {
+            return (
+              <div className="input-group">
+                <h3>Connections</h3>
 
-          <div
-            className="connection-list"
-            ref={this.refManager.nrefs.connectionList}
-          >
-            {connections}
-          </div>
-        </div>
+                <div
+                  className="connection-list"
+                  ref={this.refManager.nrefs.connectionList}
+                >
+                  {connections}
+                </div>
+              </div>
+            );
+          }
+        })()}
       </div>
     );
   }
