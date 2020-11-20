@@ -159,7 +159,7 @@ def lock_environment_images_for_run(
         between the read of the images docker ids and the commit
         to the db of the mappings a new environment could have been
         built, an image could have become nameless and be
-        subsequently removed because the image mappings where not
+        subsequently removed because the image mappings were not
         in the db yet, and we would end up with  mappings that are
         pointing to an image that does not exist.
         If we would only check for the existence of the img we could
@@ -256,6 +256,9 @@ def remove_if_dangling(img):
         img:
 
     Returns:
+        True if the image was successfully removed.
+        False if not, e.g. if it is not nameless or if it is being used
+        or will be used by a run.
 
     """
     # nameless image
@@ -280,4 +283,5 @@ def remove_if_dangling(img):
                 docker_client.images.remove(img.id)
             except errors.ImageNotFound:
                 return False
-    return True
+            return True
+    return False
