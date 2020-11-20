@@ -2,7 +2,9 @@
 
 Note: "run" is short for "interactive pipeline run".
 """
+import uuid
 from celery.contrib.abortable import AbortableAsyncResult
+from docker import errors
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
@@ -11,8 +13,8 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
 from app.utils import register_schema, update_status_db
+from app.utils import lock_environment_images_for_run
 import app.models as models
-
 
 api = Namespace("runs", description="Manages interactive pipeline runs")
 api = register_schema(api)
@@ -53,40 +55,23 @@ class RunList(Resource):
 
         pipeline = construct_pipeline(**post_data)
 
-        # Create Celery object with the Flask context and construct the
-        # kwargs for the job.
-        celery = make_celery(current_app)
-        celery_job_kwargs = {
-            "pipeline_definition": pipeline.to_dict(),
-            "project_uuid": post_data["project_uuid"],
-            "run_config": post_data["run_config"],
-        }
-
-        # Start the run as a background task on Celery. Due to circular
-        # imports we send the task by name instead of importing the
-        # function directly.
-        res = celery.send_task("app.core.tasks.run_pipeline", kwargs=celery_job_kwargs)
-
-        # NOTE: this is only if a backend is configured.  The task does
-        # not return anything. Therefore we can forget its result and
-        # make sure that the Celery backend releases recourses (for
-        # storing and transmitting results) associated to the task.
-        # Uncomment the line below if applicable.
-        res.forget()
+        # specify the task_id beforehand to avoid race conditions
+        # between the task and its presence in the db
+        task_id = str(uuid.uuid4())
 
         # NOTE: we are setting the status of the run ourselves without
         # using the option of celery to get the status of tasks. This
         # way we do not have to configure a backend (where the default
         # of "rpc://" does not give the results we would want).
         run = {
-            "run_uuid": res.id,
+            "run_uuid": task_id,
             "pipeline_uuid": pipeline.properties["uuid"],
             "project_uuid": post_data["project_uuid"],
             "status": "PENDING",
         }
         db.session.add(models.InteractiveRun(**run))
 
-        # Set an initial value for the status of the pipline steps that
+        # Set an initial value for the status of the pipeline steps that
         # will be run.
         step_uuids = [s.properties["uuid"] for s in pipeline.steps]
 
@@ -94,12 +79,53 @@ class RunList(Resource):
         for step_uuid in step_uuids:
             pipeline_steps.append(
                 models.InteractiveRunPipelineStep(
-                    **{"run_uuid": res.id, "step_uuid": step_uuid, "status": "PENDING"}
+                    **{"run_uuid": task_id, "step_uuid": step_uuid, "status": "PENDING"}
                 )
             )
         db.session.bulk_save_objects(pipeline_steps)
         db.session.commit()
 
+        # get docker ids of images to use and make it so that the images
+        # will not be deleted in case they become outdated by an
+        # environment rebuild
+        try:
+            env_uuid_docker_id_mappings = lock_environment_images_for_run(
+                task_id,
+                post_data["project_uuid"],
+                pipeline.get_environments(),
+                is_interactive=True,
+            )
+        except errors.ImageNotFound as e:
+            return (
+                f"Pipeline was referencing environments for "
+                f"which an image does not exist, {e}",
+                500,
+            )
+
+        # Create Celery object with the Flask context and construct the
+        # kwargs for the job.
+        celery = make_celery(current_app)
+        run_config = post_data["run_config"]
+        run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
+        celery_job_kwargs = {
+            "pipeline_definition": pipeline.to_dict(),
+            "project_uuid": post_data["project_uuid"],
+            "run_config": run_config,
+        }
+
+        # Start the run as a background task on Celery. Due to circular
+        # imports we send the task by name instead of importing the
+        # function directly.
+        res = celery.send_task(
+            "app.core.tasks.run_pipeline", kwargs=celery_job_kwargs, task_id=task_id
+        )
+
+        # NOTE: this is only if a backend is configured.  The task does
+        # not return anything. Therefore we can forget its result and
+        # make sure that the Celery backend releases recourses (for
+        # storing and transmitting results) associated to the task.
+        # Uncomment the line below if applicable.
+        res.forget()
         run["pipeline_steps"] = pipeline_steps
         return run, 201
 

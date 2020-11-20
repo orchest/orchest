@@ -4,7 +4,7 @@ import os
 import logging
 from datetime import datetime
 from docker.types import Mount
-from typing import Any, Dict, Iterable, List, Optional  # , TypedDict
+from typing import Any, Dict, Iterable, List, Set, Optional
 
 import aiodocker
 import aiohttp
@@ -223,10 +223,9 @@ class PipelineStepRunner:
         working_dir = os.path.split(run_config["pipeline_path"])[0]
 
         config = {
-            "Image": _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=run_config["project_uuid"],
-                environment_uuid=self.properties["environment"],
-            ),
+            "Image": run_config["env_uuid_docker_id_mappings"][
+                self.properties["environment"]
+            ],
             "Env": [
                 f'ORCHEST_STEP_UUID={self.properties["uuid"]}',
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
@@ -488,6 +487,15 @@ class Pipeline:
 
         description.update(self.properties)
         return description
+
+    def get_environments(self) -> Set[str]:
+        """Returns the set of UUIDs of the used environments
+
+        Returns:
+            Set of environments uuids used among the pipeline steps.
+
+        """
+        return set([step.properties["environment"] for step in self.steps])
 
     @property
     def sentinel(self) -> PipelineStep:

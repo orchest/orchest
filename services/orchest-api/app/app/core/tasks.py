@@ -104,9 +104,6 @@ async def check_pipeline_run_task_status(run_config, pipeline, task_id):
                 task_id, "docker", {"docker_client": docker_client}
             )
         if ready or aborted:
-            # remove containers
-            run_config["docker_client"] = docker_client
-            pipeline.remove_containerization_resources(task_id, "docker", run_config)
             break
 
 
@@ -119,9 +116,15 @@ async def run_pipeline_async(run_config, pipeline, task_id):
             ),
         ]
     )
+    # any code that depends on the fact that both pipeline.run and
+    # check_pipeline_run_task_status have terminated should be here.
+    # for example, pipeline.run  PUTs the state of the run when it ends,
+    # so any code dependant on the status being set cannot be run
+    # in check_pipeline_run_task_status
+    run_config["docker_client"] = docker_client
+    pipeline.remove_containerization_resources(task_id, "docker", run_config)
 
 
-# @celery.task(bind=True, base=APITask)
 @celery.task(bind=True, base=AbortableTask)
 def run_pipeline(
     self,
@@ -142,6 +145,10 @@ def run_pipeline(
             Example: {
                 'run_endpoint': 'runs',
                 'project_dir': '/home/../pipelines/uuid',
+                'env_uuid_docker_id_mappings': {
+                    'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
+                        'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
+                }
             }
 
     Returns:
@@ -190,6 +197,10 @@ def start_non_interactive_pipeline_run(
             Example: {
                 'host_user_dir': '/home/../userdir',
                 'project_dir': '/home/../pipelines/uuid',
+                'env_uuid_docker_id_mappings': {
+                    'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
+                        'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
+                }
             }
 
     Returns:

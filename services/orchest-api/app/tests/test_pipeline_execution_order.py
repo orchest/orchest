@@ -87,6 +87,10 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     def mock_get_volume_mount(*args, **kwargs):
         return []
 
+    class MockEnvUUIDDockerIDMapping:
+        def __getitem__(self, item):
+            return str(item)
+
     # We use that the class will point to the same object list to write
     # the calling order to.
     execution_order = []
@@ -103,6 +107,7 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         "pipeline_uuid": "",
         "project_uuid": "",
         "run_endpoint": None,
+        "env_uuid_docker_id_mappings": MockEnvUUIDDockerIDMapping(),
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 

@@ -1,8 +1,10 @@
 from docker import errors
+from flask import abort
 from flask_restplus import Namespace, Resource
 
 from app.connections import docker_client
-from app.utils import register_schema
+import app.models as models
+from app.utils import register_schema, remove_if_dangling
 from _orchest.internals import config as _config
 
 api = Namespace("environment-images", description="Managing environment images")
@@ -87,3 +89,33 @@ class ProjectEnvironmentImages(Resource):
             },
             200,
         )
+
+
+@api.route(
+    "/dangling/<string:project_uuid>/<string:environment_uuid>",
+)
+@api.param("project_uuid", "UUID of the project")
+@api.param("environment_uuid", "UUID of the environment")
+class ProjectEnvironmentDanglingImages(Resource):
+    @api.doc("delete-project-environment-dangling-images")
+    def delete(self, project_uuid, environment_uuid):
+        """Removes dangling images related to a project and environment.
+        Dangling images are images that have been left nameless and
+        tag-less and which are not referenced by any run
+        or experiment which are pending or running."""
+
+        # look only through runs belonging to the project
+        # consider only docker ids related to the environment_uuid
+        filters = {
+            "label": [
+                f"_orchest_project_uuid={project_uuid}",
+                f"_orchest_environment_uuid={environment_uuid}",
+            ]
+        }
+
+        project_env_images = docker_client.images.list(filters=filters)
+
+        for docker_img in project_env_images:
+            remove_if_dangling(docker_img)
+
+        return {"message": "Successfully removed dangling images"}, 200
