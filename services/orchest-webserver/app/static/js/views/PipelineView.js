@@ -36,28 +36,26 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.pipelineView = pipelineView;
   this.pipelineViewEl = $(pipelineView.refManager.refs.pipelineStepsHolder);
 
-  this.nodeCenter = function (el, parentEl, scaleFactor) {
-    let nodePosition = this.localElementPosition(el, parentEl, scaleFactor);
+  this.nodeCenter = function (el, parentEl) {
+    let nodePosition = this.localElementPosition(el, parentEl);
     nodePosition.x += el.width() / 2;
     nodePosition.y += el.height() / 2;
     return nodePosition;
   };
 
-  this.localElementPosition = function (el, parentEl, scaleFactor) {
+  this.localElementPosition = function (el, parentEl) {
     let position = {};
-    position.x =
-      el.offset().left / scaleFactor - parentEl.offset().left / scaleFactor;
-    position.y =
-      el.offset().top / scaleFactor - parentEl.offset().top / scaleFactor;
+    position.x = this.pipelineView.scaleCorrectedPosition(
+      el.offset().left - parentEl.offset().left
+    );
+    position.y = this.pipelineView.scaleCorrectedPosition(
+      el.offset().top - parentEl.offset().top
+    );
     return position;
   };
 
   // initialize xEnd and yEnd at startNode position
-  let startNodePosition = this.nodeCenter(
-    this.startNode,
-    this.pipelineViewEl,
-    this.pipelineView.scaleFactor
-  );
+  let startNodePosition = this.nodeCenter(this.startNode, this.pipelineViewEl);
 
   this.xEnd = startNodePosition.x;
   this.yEnd = startNodePosition.y;
@@ -119,8 +117,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.render = function () {
     let startNodePosition = this.nodeCenter(
       this.startNode,
-      this.pipelineViewEl,
-      this.pipelineView.scaleFactor
+      this.pipelineViewEl
     );
     this.x = startNodePosition.x;
     this.y = startNodePosition.y;
@@ -128,11 +125,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
     // set xEnd and yEnd if endNode is defined
 
     if (this.endNode) {
-      let endNodePosition = this.nodeCenter(
-        this.endNode,
-        this.pipelineViewEl,
-        this.pipelineView.scaleFactor
-      );
+      let endNodePosition = this.nodeCenter(this.endNode, this.pipelineViewEl);
       this.xEnd = endNodePosition.x;
       this.yEnd = endNodePosition.y;
     }
@@ -742,13 +735,13 @@ class PipelineView extends React.Component {
     $(this.refManager.refs.pipelineStepsOuterHolder).on("mousemove", (e) => {
       if (this.selectedItem !== undefined) {
         let delta = [
-          this.zoomCorrectEventPosition(e.clientX) - this.prevPosition[0],
-          this.zoomCorrectEventPosition(e.clientY) - this.prevPosition[1],
+          this.scaleCorrectedPosition(e.clientX) - this.prevPosition[0],
+          this.scaleCorrectedPosition(e.clientY) - this.prevPosition[1],
         ];
 
         this.prevPosition = [
-          this.zoomCorrectEventPosition(e.clientX),
-          this.zoomCorrectEventPosition(e.clientY),
+          this.scaleCorrectedPosition(e.clientX),
+          this.scaleCorrectedPosition(e.clientY),
         ];
 
         let step = this.state.steps[this.selectedItem];
@@ -792,11 +785,11 @@ class PipelineView extends React.Component {
         ).offset();
 
         this.newConnection.xEnd =
-          this.zoomCorrectEventPosition(e.clientX) -
-          this.zoomCorrectEventPosition(pipelineStepHolderOffset.left);
+          this.scaleCorrectedPosition(e.clientX) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.left);
         this.newConnection.yEnd =
-          this.zoomCorrectEventPosition(e.clientY) -
-          this.zoomCorrectEventPosition(pipelineStepHolderOffset.top);
+          this.scaleCorrectedPosition(e.clientY) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.top);
         this.newConnection.render();
 
         // check for hovering over incoming-connections div
@@ -918,8 +911,8 @@ class PipelineView extends React.Component {
 
     $(this.refManager.refs.pipelineStepsHolder).on("mousedown", (e) => {
       this.prevPosition = [
-        this.zoomCorrectEventPosition(e.clientX),
-        this.zoomCorrectEventPosition(e.clientY),
+        this.scaleCorrectedPosition(e.clientX),
+        this.scaleCorrectedPosition(e.clientY),
       ];
     });
 
@@ -1385,14 +1378,16 @@ class PipelineView extends React.Component {
     ).offset();
 
     let centerOrigin = [
-      (pipelineStepsOuterHolderOffset.left -
-        pipelineStepsHolderOffset.left +
-        pipelineStepsOuterHolderJ.width() / 2) /
-        this.scaleFactor,
-      (pipelineStepsOuterHolderOffset.top -
-        pipelineStepsHolderOffset.top +
-        pipelineStepsOuterHolderJ.height() / 2) /
-        this.scaleFactor,
+      this.scaleCorrectedPosition(
+        pipelineStepsOuterHolderOffset.left -
+          pipelineStepsHolderOffset.left +
+          pipelineStepsOuterHolderJ.width() / 2
+      ),
+      this.scaleCorrectedPosition(
+        pipelineStepsOuterHolderOffset.top -
+          pipelineStepsHolderOffset.top +
+          pipelineStepsOuterHolderJ.height() / 2
+      ),
     ];
 
     this.setPipelineHolderOrigin(centerOrigin);
@@ -1410,12 +1405,8 @@ class PipelineView extends React.Component {
     this.renderPipelineHolder();
   }
 
-  zoomCorrectEventPosition(position) {
+  scaleCorrectedPosition(position) {
     position /= this.scaleFactor;
-    return position;
-  }
-  inverseZoomCorrectEventPosition(position) {
-    position *= this.scaleFactor;
     return position;
   }
 
@@ -1731,8 +1722,12 @@ class PipelineView extends React.Component {
     ).offset();
 
     return [
-      (this.mouseClientX - pipelineStepsolderOffset.left) / this.scaleFactor,
-      (this.mouseClientY - pipelineStepsolderOffset.top) / this.scaleFactor,
+      this.scaleCorrectedPosition(
+        this.mouseClientX - pipelineStepsolderOffset.left
+      ),
+      this.scaleCorrectedPosition(
+        this.mouseClientY - pipelineStepsolderOffset.top
+      ),
     ];
   }
 
@@ -1786,11 +1781,11 @@ class PipelineView extends React.Component {
 
         this.state.stepSelector.active = true;
         this.state.stepSelector.x1 = this.state.stepSelector.x2 =
-          this.zoomCorrectEventPosition(e.clientX) -
-          this.zoomCorrectEventPosition(pipelineStepHolderOffset.left);
+          this.scaleCorrectedPosition(e.clientX) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.left);
         this.state.stepSelector.y1 = this.state.stepSelector.y2 =
-          this.zoomCorrectEventPosition(e.clientY) -
-          this.zoomCorrectEventPosition(pipelineStepHolderOffset.top);
+          this.scaleCorrectedPosition(e.clientY) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.top);
 
         this.setState({
           stepSelector: this.state.stepSelector,
@@ -1810,11 +1805,11 @@ class PipelineView extends React.Component {
       ).offset();
 
       this.state.stepSelector.x2 =
-        this.zoomCorrectEventPosition(e.clientX) -
-        this.zoomCorrectEventPosition(pipelineStepHolderOffset.left);
+        this.scaleCorrectedPosition(e.clientX) -
+        this.scaleCorrectedPosition(pipelineStepHolderOffset.left);
       this.state.stepSelector.y2 =
-        this.zoomCorrectEventPosition(e.clientY) -
-        this.zoomCorrectEventPosition(pipelineStepHolderOffset.top);
+        this.scaleCorrectedPosition(e.clientY) -
+        this.scaleCorrectedPosition(pipelineStepHolderOffset.top);
 
       this.setState({
         stepSelector: this.state.stepSelector,
