@@ -25,13 +25,14 @@ import UpdateView from "./views/UpdateView";
 import { PersistentLocalConfig } from "./lib/utils/all";
 
 function Orchest() {
-  this.environment = "production";
+  // load server side config populated by flask template
+  this.config = {};
+  this.config = JSON.parse(window.ORCHEST_CONFIG);
 
-  if ($('input[name="FLASK_ENV"]').val() == "development") {
+  this.environment = "production";
+  if (this.config["FLASK_ENV"] == "development") {
     this.environment = "development";
   }
-  this.config = {};
-  this.config["DOCS_ROOT"] = $('input[name="DOCS_ROOT"]').val();
 
   console.log("Orchest is running in environment: " + this.environment);
 

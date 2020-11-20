@@ -11,6 +11,7 @@ import subprocess
 
 from sqlalchemy.sql.expression import not_
 from flask import render_template, request, jsonify
+from flask import json as flask_json
 from flask_restful import Api, Resource, HTTPException
 from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
@@ -625,14 +626,21 @@ def register_views(app, db):
         )
         css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
 
+        front_end_config = ["DOCS_ROOT", "FLASK_ENV", "ENVIRONMENT_DEFAULTS"]
+
+        front_end_config_internal = ["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"]
+
         return render_template(
             "index.html",
             javascript_bundle_hash=get_hash(js_bundle_path),
             css_bundle_hash=get_hash(css_bundle_path),
             user_config=get_user_conf(),
-            DOCS_ROOT=app.config["DOCS_ROOT"],
-            FLASK_ENV=app.config["FLASK_ENV"],
-            SOCKETIO_NAMESPACE_ENV_BUILDS=_config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE,
+            config_json=flask_json.htmlsafe_dumps(
+                {
+                    **{key: app.config[key] for key in front_end_config},
+                    **{key: getattr(_config, key) for key in front_end_config_internal},
+                }
+            ),
         )
 
     @app.route("/async/spawn-update-server", methods=["GET"])

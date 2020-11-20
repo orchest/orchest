@@ -41,9 +41,8 @@ class EnvironmentEditView extends React.Component {
     this.BUILD_POLL_FREQUENCY = 3000;
     this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
     this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
-    this.SOCKETIO_NAMESPACE_ENV_BUILDS = $(
-      'input[name="SOCKETIO_NAMESPACE_ENV_BUILDS"]'
-    ).val();
+    this.SOCKETIO_NAMESPACE_ENV_BUILDS =
+      orchest.config["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"];
 
     this.state = {
       baseImages:
@@ -60,19 +59,12 @@ class EnvironmentEditView extends React.Component {
         ? props.environment
         : {
             uuid: "new",
-            name: "",
-            gpu_support: false,
+            name: orchest.config.ENVIRONMENT_DEFAULTS.name,
+            gpu_support: orchest.config.ENVIRONMENT_DEFAULTS.gpu_support,
             project_uuid: this.props.project_uuid,
-            base_image: "",
-            language: "python",
-            setup_script: `#!/bin/bash
-
-# Install any dependencies you have in this shell script.
-
-# E.g. pip install tensorflow
-
-
-`,
+            base_image: orchest.config.ENVIRONMENT_DEFAULTS.base_image,
+            language: orchest.config.ENVIRONMENT_DEFAULTS.language,
+            setup_script: orchest.config.ENVIRONMENT_DEFAULTS.setup_script,
           },
       environmentBuild: undefined,
     };

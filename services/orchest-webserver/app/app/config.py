@@ -23,6 +23,14 @@ class Config:
     DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
+    ENVIRONMENT_DEFAULTS = {
+        "name": "",
+        "language": "python",
+        "gpu_support": False,
+        "base_image": DEFAULT_ENVIRONMENTS[0]["base_image"],
+        "setup_script": _config.DEFAULT_SETUP_SCRIPT,
+    }
+
     PROJECT_ORCHEST_GIT_IGNORE_CONTENT = "\n".join(["logs/", "data/"])
 
     FLASK_ENV = os.environ.get("FLASK_ENV", "PRODUCTION")

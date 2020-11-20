@@ -41,6 +41,15 @@ ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
 
 
 ENV_SETUP_SCRIPT_FILE_NAME = "setup_script.sh"
+
+DEFAULT_SETUP_SCRIPT = """#!/bin/bash
+
+# Install any dependencies you have in this shell script.
+
+# E.g. pip install tensorflow
+
+"""
+
 # Environments
 # These environments are added when you create a new project
 DEFAULT_ENVIRONMENTS = [
@@ -48,14 +57,14 @@ DEFAULT_ENVIRONMENTS = [
         "name": "custom-base-kernel-py",
         "base_image": "orchest/custom-base-kernel-py",
         "language": "python",
-        "setup_script": "",
+        "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
     },
     {
         "name": "custom-base-kernel-r",
         "base_image": "orchest/custom-base-kernel-r",
         "language": "r",
-        "setup_script": "",
+        "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
     },
 ]

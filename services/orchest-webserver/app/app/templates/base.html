@@ -16,13 +16,9 @@
     <link rel="icon" href="public/image/favicon.png" type="image/x-icon" />
   </head>
   <body>
-    <input type="hidden" name="FLASK_ENV" value="{{FLASK_ENV}}" />
-    <input type="hidden" name="DOCS_ROOT" value="{{DOCS_ROOT}}" />
-    <input
-      type="hidden"
-      name="SOCKETIO_NAMESPACE_ENV_BUILDS"
-      value="{{SOCKETIO_NAMESPACE_ENV_BUILDS}}"
-    />
+    <script>
+      window.ORCHEST_CONFIG = {{config_json|tojson}};
+    </script>
 
     <aside class="mdc-drawer mdc-drawer--dismissible" id="main-drawer">
       <div class="mdc-drawer__content">
