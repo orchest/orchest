@@ -220,6 +220,13 @@ class InteractiveRunImageMapping(BaseModel):
         db.String(), unique=False, nullable=False, primary_key=True
     )
 
+    def __repr__(self):
+        return (
+            f"<InteractiveRunImageMapping: {self.run_uuid} | "
+            f"{self.orchest_environment_uuid} | "
+            f"{self.docker_img_id}>"
+        )
+
 
 class NonInteractiveRunImageMapping(BaseModel):
     """Stores mappings between a  non interactive run and the environment images it uses."""
@@ -246,4 +253,8 @@ class NonInteractiveRunImageMapping(BaseModel):
     )
 
     def __repr__(self):
-        return f"<NonInteractiveRunImageMapping: {self.run_uuid} | {self.orchest_environment_uuid} | {self.docker_img_id}>"
+        return (
+            f"<NonInteractiveRunImageMapping: {self.run_uuid} | "
+            f"{self.orchest_environment_uuid} | "
+            f"{self.docker_img_id}>"
+        )
