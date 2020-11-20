@@ -198,7 +198,13 @@ class EnvironmentBuild(BaseModel):
 
 
 class InteractiveRunImageMapping(BaseModel):
-    """Stores mappings between an interactive run and the environment images it uses."""
+    """Stores mappings between an interactive run and the environment
+     images it uses.
+
+    Used to understand if an image can be removed from the docker
+    environment if it's not used by a run which is PENDING or STARTED.
+
+    """
 
     __tablename__ = "interactive_run_image_mapping"
     __table_args__ = (
@@ -229,7 +235,13 @@ class InteractiveRunImageMapping(BaseModel):
 
 
 class NonInteractiveRunImageMapping(BaseModel):
-    """Stores mappings between a  non interactive run and the environment images it uses."""
+    """Stores mappings between a non interactive run and the environment
+     images it uses.
+
+    Used to understand if an image can be removed from the docker
+    environment if it's not used by a run which is PENDING or STARTED.
+
+    """
 
     __tablename__ = "non_interactive_pipeline_run_image_mapping"
     __bind_key__ = "persistent_db"

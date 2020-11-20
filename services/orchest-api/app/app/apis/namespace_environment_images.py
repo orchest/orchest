@@ -91,7 +91,6 @@ class ProjectEnvironmentImages(Resource):
         )
 
 
-# currently unused, might be used later to delete dangling images when deleting an environment
 @api.route(
     "/dangling/<string:project_uuid>/<string:environment_uuid>",
 )
@@ -101,83 +100,22 @@ class ProjectEnvironmentDanglingImages(Resource):
     @api.doc("delete-project-environment-dangling-images")
     def delete(self, project_uuid, environment_uuid):
         """Removes dangling images related to a project and environment.
-        Dangling images are images that have been left nameless and tagless and which are not referenced by any run
+        Dangling images are images that have been left nameless and
+        tag-less and which are not referenced by any run
         or experiment which are pending or running."""
 
         # look only through runs belonging to the project
         # consider only docker ids related to the environment_uuid
-        run_img_docker_ids = [
-            *models.NonInteractiveRun()
-            .query.filter_by(project_uuid=project_uuid)
-            .join(models.NonInteractiveRunImageMapping)
-            .filter_by(orchest_environment_uuid=environment_uuid)
-            .with_entities(models.NonInteractiveRunImageMapping.docker_img_id)
-            .distinct()
-            .all(),
-            *models.InteractiveRun()
-            .query.filter_by(project_uuid=project_uuid)
-            .join(models.InteractiveRunImageMapping)
-            .filter_by(orchest_environment_uuid=environment_uuid)
-            .with_entities(models.InteractiveRunImageMapping.docker_img_id)
-            .distinct()
-            .all(),
-        ]
-        run_img_docker_ids = [result[0] for result in run_img_docker_ids]
+        filters = {
+            "label": [
+                f"_orchest_project_uuid={project_uuid}",
+                f"_orchest_environment_uuid={environment_uuid}",
+            ]
+        }
 
-        for img_docker_id in run_img_docker_ids:
-            remove_if_dangling(img_docker_id)
+        project_env_images = docker_client.images.list(filters=filters)
+
+        for docker_img in project_env_images:
+            remove_if_dangling(docker_img)
 
         return {"message": "Successfully removed dangling images"}, 200
-
-
-# currently unused, might be used later to delete dangling images when deleting a project
-@api.route(
-    "/dangling/<string:project_uuid>",
-)
-@api.param("project_uuid", "UUID of the project")
-class ProjectDanglingImages(Resource):
-    @api.doc("delete-project-dangling-images")
-    def delete(self, project_uuid):
-        """Removes dangling images related to a project.
-        Dangling images are images that have been left nameless and tagless and which are not referenced by any run
-        or experiment which are pending or running."""
-
-        # look only through runs belonging to the project
-        # consider only docker ids related to the environment_uuid
-        run_img_docker_ids = [
-            *models.NonInteractiveRun()
-            .query.filter_by(project_uuid=project_uuid)
-            .join(models.NonInteractiveRunImageMapping)
-            .with_entities(models.NonInteractiveRunImageMapping.docker_img_id)
-            .distinct()
-            .all(),
-            *models.InteractiveRun()
-            .query.filter_by(project_uuid=project_uuid)
-            .join(models.InteractiveRunImageMapping)
-            .with_entities(models.InteractiveRunImageMapping.docker_img_id)
-            .distinct()
-            .all(),
-        ]
-        run_img_docker_ids = [result[0] for result in run_img_docker_ids]
-
-        for img_docker_id in run_img_docker_ids:
-            remove_if_dangling(img_docker_id)
-
-        return {"message": "Successfully removed dangling images"}, 200
-
-
-@api.route(
-    "/dangling/docker/<string:docker_img_id>",
-)
-@api.param("docker_img_id", "Docker ID of the image to be deleted if it's dangling")
-class DanglingImages(Resource):
-    @api.doc("delete-dangling-image")
-    def delete(self, docker_img_id):
-        """Removes an image if its dangling.
-        Dangling images are images that have been left nameless and tagless and which are not referenced by any run
-        or experiment which are pending or running."""
-
-        if remove_if_dangling(docker_img_id):
-            return {"message": "Successfully removed dangling images"}, 200
-        else:
-            return {"message": "Not a dangling image"}, 500

@@ -1,6 +1,7 @@
 from datetime import datetime
 import uuid
 
+from docker import errors
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
@@ -8,14 +9,8 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.utils import (
-    register_schema,
-    update_status_db,
-    get_environment_image_docker_id,
-    remove_if_dangling,
-)
+from app.utils import register_schema, update_status_db, lock_environment_images_for_run
 import app.models as models
-from _orchest.internals import config as _config
 
 
 api = Namespace("experiments", description="Managing experiments")
@@ -80,96 +75,6 @@ class ExperimentList(Resource):
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
 
-            # for each environment used in the run get its docker id
-            # this way the run will be getting to the environment images through docker ids instead
-            # of the image name, since the image might become nameless if a new version of the environment is built
-            first_run = env_uuid_docker_id_mappings is None
-            if first_run:
-                # compute it only once because this way we are guaranteed that the mappings will be the same
-                # for all runs, having a new environment build terminate while submitting the different runs
-                # won't affect the experiment
-                env_uuid_docker_id_mappings = {
-                    env: get_environment_image_docker_id(
-                        _config.ENVIRONMENT_IMAGE_NAME.format(
-                            project_uuid=post_data["project_uuid"], environment_uuid=env
-                        )
-                    )
-                    for env in pipeline.environments
-                }
-
-            # write to the db the image_uuids and docker ids the run uses
-            non_interactive_run_image_mappings = [
-                models.NonInteractiveRunImageMapping(
-                    **{
-                        "run_uuid": task_id,
-                        "orchest_environment_uuid": env_uuid,
-                        "docker_img_id": docker_id,
-                    }
-                )
-                for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-            ]
-            db.session.bulk_save_objects(non_interactive_run_image_mappings)
-            db.session.commit()
-
-            # this is necessary because between the read of the images docker ids and the commit to the db
-            # of the mappings a new environment could have been built, an image could have become nameless
-            # and subsequently removed because the image mappings where not in the db yet, and we would
-            # end up with mappings that are pointing to an image that does not exist
-            if first_run:
-                env_uuid_docker_id_mappings2 = {
-                    env: get_environment_image_docker_id(
-                        _config.ENVIRONMENT_IMAGE_NAME.format(
-                            project_uuid=post_data["project_uuid"], environment_uuid=env
-                        )
-                    )
-                    for env in pipeline.environments
-                }
-                while set(env_uuid_docker_id_mappings.values()) != set(
-                    env_uuid_docker_id_mappings2.values()
-                ):
-                    # this fixes the following situation:
-                    # 1) image becomes nameless after an env build
-                    # 2) its not removed as a dangling image because of the mappings that we have just committed
-                    # 3) we have detected a name change due to the new env build, and will remove the previously
-                    #    committed mappings, which implies the dangling image will never be removed otherwise
-                    for env_uuid, img_id in env_uuid_docker_id_mappings.items():
-                        # if it was one of the images that became nameless
-                        if env_uuid_docker_id_mappings2[env_uuid] != img_id:
-                            remove_if_dangling(img_id)
-
-                    env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
-
-                    # cleanup previous mappings
-                    models.NonInteractiveRunImageMapping.query.filter(
-                        models.NonInteractiveRunImageMapping.run_uuid == task_id
-                    ).delete()
-
-                    # add new updated mappings
-                    non_interactive_run_image_mappings = [
-                        models.NonInteractiveRunImageMapping(
-                            **{
-                                "run_uuid": task_id,
-                                "orchest_environment_uuid": env_uuid,
-                                "docker_img_id": docker_id,
-                            }
-                        )
-                        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-                    ]
-                    db.session.bulk_save_objects(non_interactive_run_image_mappings)
-                    db.session.commit()
-
-                    # the next time we check for equality, if they are equal that means that we know that we are
-                    # pointing to images that won't be deleted because the run is already in the db as PENDING
-                    env_uuid_docker_id_mappings2 = {
-                        env: get_environment_image_docker_id(
-                            _config.ENVIRONMENT_IMAGE_NAME.format(
-                                project_uuid=post_data["project_uuid"],
-                                environment_uuid=env,
-                            )
-                        )
-                        for env in pipeline.environments
-                    }
-
             # TODO: this code is also in `namespace_runs`. Could
             #       potentially be put in a function for modularity.
             # Set an initial value for the status of the pipeline steps that
@@ -189,6 +94,41 @@ class ExperimentList(Resource):
                 )
             db.session.bulk_save_objects(pipeline_steps)
             db.session.commit()
+
+            # get docker ids of images to use and make it so that the images
+            # will not be deleted in case they become outdated by an
+            # environment rebuild
+            # compute it only once because this way we are guaranteed
+            # that the mappings will be the same for all runs, having
+            # a new environment build terminate while submitting the
+            # different runs won't affect the experiment
+            if env_uuid_docker_id_mappings is None:
+                try:
+                    env_uuid_docker_id_mappings = lock_environment_images_for_run(
+                        task_id,
+                        post_data["project_uuid"],
+                        pipeline.get_environments(),
+                        is_interactive=False,
+                    )
+                except errors.ImageNotFound as e:
+                    return (
+                        f"Pipeline was referencing environments for "
+                        f"which an image does not exist, {e}",
+                        500,
+                    )
+            else:
+                image_mappings = [
+                    models.NonInteractiveRunImageMapping(
+                        **{
+                            "run_uuid": task_id,
+                            "orchest_environment_uuid": env_uuid,
+                            "docker_img_id": docker_id,
+                        }
+                    )
+                    for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
+                ]
+                db.session.bulk_save_objects(image_mappings)
+                db.session.commit()
 
             # Create Celery object with the Flask context and construct the
             # kwargs for the job.

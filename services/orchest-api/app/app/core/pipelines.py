@@ -4,7 +4,7 @@ import os
 import logging
 from datetime import datetime
 from docker.types import Mount
-from typing import Any, Dict, Iterable, List, Optional  # , TypedDict
+from typing import Any, Dict, Iterable, List, Set, Optional
 
 import aiodocker
 import aiohttp
@@ -485,15 +485,14 @@ class Pipeline:
         description.update(self.properties)
         return description
 
-    @property
-    def environments(self) -> List[str]:
-        """Returns the list of UUIDs of the used environments
+    def get_environments(self) -> Set[str]:
+        """Returns the set of UUIDs of the used environments
 
         Returns:
-            Unique list of environments uuids used among the pipeline steps.
+            Set of environments uuids used among the pipeline steps.
 
         """
-        return list(set([step.properties["environment"] for step in self.steps]))
+        return set([step.properties["environment"] for step in self.steps])
 
     @property
     def sentinel(self) -> PipelineStep:

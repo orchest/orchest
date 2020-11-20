@@ -116,24 +116,15 @@ async def run_pipeline_async(run_config, pipeline, task_id):
             ),
         ]
     )
-    # having this code here makes it easier to understand what's going to happen, given
-    # that we know that both functions have terminated
-    # one advantage is that it allows to avoid race conditions, e.g. the pipeline
-    # might set its status to "SUCCESS" after check_pipeline_run_task_status has finished
-    # this is useful, for example, when deleting dangling images, which depends on the run not still
-    # being "STARTED"
+    # any code that depends on the fact that both pipeline.run and
+    # check_pipeline_run_task_status have terminated should be here.
+    # for example, pipeline.run  PUTs the state of the run when it ends,
+    # so any code dependant on the status being set cannot be run
+    # in check_pipeline_run_task_status
     run_config["docker_client"] = docker_client
     pipeline.remove_containerization_resources(task_id, "docker", run_config)
 
-    # cleanup any dangling images if present, e.g. if this run was the last run
-    # pointing to a nameless image, e.g. an environment which is now out of date because of a rebuild
-    async with aiohttp.ClientSession() as session:
-        url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/runs/dangling-images/{task_id}"
-        async with session.delete(url) as response:
-            await response.json()
 
-
-# @celery.task(bind=True, base=APITask)
 @celery.task(bind=True, base=AbortableTask)
 def run_pipeline(
     self,

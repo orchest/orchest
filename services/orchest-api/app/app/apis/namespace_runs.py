@@ -4,7 +4,8 @@ Note: "run" is short for "interactive pipeline run".
 """
 import uuid
 from celery.contrib.abortable import AbortableAsyncResult
-from flask import current_app, request, abort
+from docker import errors
+from flask import current_app, request
 from flask_restplus import Namespace, Resource
 
 from app import schema
@@ -12,9 +13,8 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
 from app.utils import register_schema, update_status_db
-from app.utils import get_environment_image_docker_id, remove_if_dangling
+from app.utils import lock_environment_images_for_run
 import app.models as models
-from _orchest.internals import config as _config
 
 api = Namespace("runs", description="Manages interactive pipeline runs")
 api = register_schema(api)
@@ -55,8 +55,8 @@ class RunList(Resource):
 
         pipeline = construct_pipeline(**post_data)
 
-        # specify the task_id beforehand to avoid race conditions between the task and its
-        # presence in the db
+        # specify the task_id beforehand to avoid race conditions
+        # between the task and its presence in the db
         task_id = str(uuid.uuid4())
 
         # NOTE: we are setting the status of the run ourselves without
@@ -71,91 +71,6 @@ class RunList(Resource):
         }
         db.session.add(models.InteractiveRun(**run))
 
-        # for each environment used in the run get its docker id
-        # this way the run will be getting to the environment images through docker ids instead
-        # of the image name, since the image might become nameless if a new version of the environment is built
-        env_uuid_docker_id_mappings = {
-            env: get_environment_image_docker_id(
-                _config.ENVIRONMENT_IMAGE_NAME.format(
-                    project_uuid=post_data["project_uuid"], environment_uuid=env
-                )
-            )
-            for env in pipeline.environments
-        }
-
-        # write to the db the image_uuids and docker ids the run uses
-        interactive_run_image_mappings = [
-            models.InteractiveRunImageMapping(
-                **{
-                    "run_uuid": task_id,
-                    "orchest_environment_uuid": env_uuid,
-                    "docker_img_id": docker_id,
-                }
-            )
-            for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-        ]
-        db.session.bulk_save_objects(interactive_run_image_mappings)
-        db.session.commit()
-
-        # this is necessary because between the read of the images docker ids and the commit to the db
-        # of the mappings a new environment could have been built, an image could have become nameless
-        # and subsequently removed because the image mappings where not in the db yet, and we would
-        # end up with mappings that are pointing to an image that does not exist
-        # if we would only check for the existence of the img we could still be in a race condition, so we
-        # must act on the image becoming nameless, not deleted
-        env_uuid_docker_id_mappings2 = {
-            env: get_environment_image_docker_id(
-                _config.ENVIRONMENT_IMAGE_NAME.format(
-                    project_uuid=post_data["project_uuid"], environment_uuid=env
-                )
-            )
-            for env in pipeline.environments
-        }
-        while set(env_uuid_docker_id_mappings.values()) != set(
-            env_uuid_docker_id_mappings2.values()
-        ):
-            # this fixes the following situation:
-            # 1) image becomes nameless after an env build
-            # 2) its not removed as a dangling image because of the mappings that we have just committed
-            # 3) we have detected a name change due to the new env build, and will remove the previously
-            #    committed mappings, which implies the dangling image will never be removed otherwise
-            for env_uuid, img_id in env_uuid_docker_id_mappings.items():
-                # if it was one of the images that became nameless
-                if env_uuid_docker_id_mappings2[env_uuid] != img_id:
-                    remove_if_dangling(img_id)
-
-            env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
-
-            # cleanup previous mappings
-            models.InteractiveRunImageMapping.query.filter(
-                models.InteractiveRunImageMapping.run_uuid == task_id
-            ).delete()
-
-            # add new updated mappings
-            interactive_run_image_mappings = [
-                models.InteractiveRunImageMapping(
-                    **{
-                        "run_uuid": task_id,
-                        "orchest_environment_uuid": env_uuid,
-                        "docker_img_id": docker_id,
-                    }
-                )
-                for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-            ]
-            db.session.bulk_save_objects(interactive_run_image_mappings)
-            db.session.commit()
-
-            # the next time we check for equality, if they are equal that means that we know that we are
-            # pointing to images that won't be deleted because the run is already in the db as PENDING
-            env_uuid_docker_id_mappings2 = {
-                env: get_environment_image_docker_id(
-                    _config.ENVIRONMENT_IMAGE_NAME.format(
-                        project_uuid=post_data["project_uuid"], environment_uuid=env
-                    )
-                )
-                for env in pipeline.environments
-            }
-
         # Set an initial value for the status of the pipeline steps that
         # will be run.
         step_uuids = [s.properties["uuid"] for s in pipeline.steps]
@@ -169,6 +84,23 @@ class RunList(Resource):
             )
         db.session.bulk_save_objects(pipeline_steps)
         db.session.commit()
+
+        # get docker ids of images to use and make it so that the images
+        # will not be deleted in case they become outdated by an
+        # environment rebuild
+        try:
+            env_uuid_docker_id_mappings = lock_environment_images_for_run(
+                task_id,
+                post_data["project_uuid"],
+                pipeline.get_environments(),
+                is_interactive=True,
+            )
+        except errors.ImageNotFound as e:
+            return (
+                f"Pipeline was referencing environments for "
+                f"which an image does not exist, {e}",
+                500,
+            )
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
@@ -279,39 +211,3 @@ class StepStatus(Resource):
         )
 
         return {"message": "Status was updated successfully"}, 200
-
-
-@api.route(
-    "/dangling-images/<string:run_uuid>",
-)
-@api.param("run_uuid", "UUID of the run")
-class ProjectDanglingEnvironmentImages(Resource):
-    @api.doc("delete-run-dangling-environment-images")
-    def delete(self, run_uuid):
-        """Removes dandling images for which this run was the last non terminated run referencing them.
-        Dangling images are images that have been left nameless and tagless and which are not referenced by any run
-        or experiment which are pending or running."""
-
-        # get what images the run was/is using, check for both interactive and non interactive run mappings
-        # because the task might be any of the two. Note that, in the chance that the same uuid is present
-        # in both the interactive and non interactive run tables, this code path will not lead
-        # to any wrongful deletion, since the deletion of an image will only happen if there are no
-        # interactive runs nor non interactive runs that are using it or are going to use it
-        run_img_docker_ids = [
-            *models.NonInteractiveRunImageMapping()
-            .query.with_entities(models.NonInteractiveRunImageMapping.docker_img_id)
-            .filter_by(run_uuid=run_uuid)
-            .distinct()
-            .all(),
-            *models.InteractiveRunImageMapping()
-            .query.with_entities(models.InteractiveRunImageMapping.docker_img_id)
-            .filter_by(run_uuid=run_uuid)
-            .distinct()
-            .all(),
-        ]
-        run_img_docker_ids = [result[0] for result in run_img_docker_ids]
-
-        for img_docker_id in run_img_docker_ids:
-            remove_if_dangling(img_docker_id)
-
-        return {"message": "Successfully removed dangling images"}, 200

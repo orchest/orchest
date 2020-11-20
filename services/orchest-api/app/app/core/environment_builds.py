@@ -101,14 +101,6 @@ def build_docker_image(
     """
     with open(complete_logs_path, "w") as complete_logs_file_object:
 
-        # get the previous image, keep it as a reference so that it can be later removed once
-        # the image has been substituted with the new one
-        try:
-            previous_image = docker_client.images.get(image_name)
-        except Exception:
-            previous_image = None
-            pass
-
         # connect to docker and issue the build
         generator = docker_client.api.build(
             path=context_path,
@@ -176,20 +168,11 @@ def build_docker_image(
 
             return "FAILURE"
 
-        # note: we only attempt to cleanup if the environment was correctly created
-        if previous_image is not None:
-            try:
-                with requests.sessions.Session() as session:
-                    url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/environment-images/dangling/docker/{previous_image.id}"
-                    session.delete(url)
-            except Exception:
-                pass
-
         return "SUCCESS"
 
 
 def write_environment_dockerfile(
-    base_image, task_uuid, work_dir, bash_script, flag, path
+    base_image, project_uuid, env_uuid, work_dir, bash_script, flag, path
 ):
     """Write a custom dockerfile with the given specifications. This dockerfile is built in an ad-hoc way
      to later be able to only log stuff related to the user script.
@@ -198,7 +181,8 @@ def write_environment_dockerfile(
 
     Args:
         base_image: Base image of the docker file.
-        task_uuid
+        project_uuid:
+        env_uuid:
         work_dir: Working directory.
         bash_script: Script to run in a RUN command.
         flag: Flag to use to be able to differentiate between logs of the bash_script and logs to be ignored.
@@ -211,7 +195,8 @@ def write_environment_dockerfile(
     statements.append(f"FROM {base_image}")
     # use this to cleanup in case of failure
     statements.append("LABEL _orchest_env_build_is_intermediate=1")
-    statements.append(f"LABEL _orchest_build_task_uuid={task_uuid}")
+    statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
+    statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
 
     # copy the entire context, that is, given the current use case,
     # that we are copying the project directory (from the snapshot) into the docker image that is to be built,
@@ -331,7 +316,8 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         bash_script_name = f".{dockerfile_name}.sh"
         write_environment_dockerfile(
             environment_properties["base_image"],
-            task_uuid,
+            project_uuid,
+            environment_uuid,
             _config.PROJECT_DIR,
             bash_script_name,
             __DOCKERFILE_RESERVED_FLAG,
@@ -426,10 +412,19 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             filters = {
                 "label": [
                     "_orchest_env_build_is_intermediate=1",
-                    f"_orchest_build_task_uuid={task_uuid}",
+                    f"_orchest_project_uuid={project_uuid}",
+                    f"_orchest_environment_uuid={environment_uuid}",
                 ]
             }
 
+            # artifacts of this build (intermediate containers, images, etc.)
             cleanup_env_build_docker_artifacts(filters)
+
+            # see if outdated images of this environment can be cleaned up
+            url = (
+                f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}"
+                f"/environment-images/dangling/{project_uuid}/{environment_uuid}"
+            )
+            session.delete(url)
 
     return status
