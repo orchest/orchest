@@ -130,6 +130,9 @@ def get_volume_mounts(run_config, task_id):
 
     # Determine the appropriate name for the volume that shares
     # temporary data amongst containers.
+
+    # This branching logic is because the volume is shared with Jupyter kernels
+    # for the InteractiveRuns, while for NonInteractiveRuns it's unique to the task.
     if run_config["run_endpoint"] == "runs":
         volume_uuid = run_config["pipeline_uuid"]
     elif run_config["run_endpoint"].startswith("experiments"):
