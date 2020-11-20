@@ -230,7 +230,7 @@ class ExperimentList extends React.Component {
       rows.push([
         experiments[x].name,
         experiments[x].pipeline_name,
-        experiments[x].created,
+        experiments[x].created.replace(/T/, " ").replace(/\..+/, ""),
         experiments[x].draft ? "Draft" : "",
       ]);
     }
