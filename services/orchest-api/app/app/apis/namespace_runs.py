@@ -108,7 +108,7 @@ class RunList(Resource):
         run_config = post_data["run_config"]
         run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
         celery_job_kwargs = {
-            "pipeline_description": pipeline.to_dict(),
+            "pipeline_definition": pipeline.to_dict(),
             "project_uuid": post_data["project_uuid"],
             "run_config": run_config,
         }
