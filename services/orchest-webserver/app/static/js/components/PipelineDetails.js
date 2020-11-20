@@ -33,8 +33,10 @@ class PipelineDetails extends React.Component {
     this.props.onOpenNotebook();
   }
 
-  onOpenNotebookPreview() {
-    this.props.onOpenNotebookPreview(this.props.step.uuid);
+  onOpenFilePreviewView(step_uuid) {
+    if (this.props.onOpenFilePreviewView) {
+      this.props.onOpenFilePreviewView(step_uuid);
+    }
   }
 
   componentDidMount() {
@@ -108,29 +110,29 @@ class PipelineDetails extends React.Component {
 
         <div className={"action-buttons-bottom"}>
           {(() => {
-            if (!this.props.readOnly) {
-              return (
-                <div className={"notebook-actions"}>
-                  <MDCButtonReact
-                    icon="launch"
-                    classNames={["mdc-button--raised", "themed-secondary"]}
-                    label="Open in Jupyter"
-                    onClick={this.onOpenNotebook.bind(this)}
-                  />
-                </div>
-              );
-            } else {
-              return (
-                <div className={"notebook-actions"}>
-                  <MDCButtonReact
-                    icon="visibility"
-                    classNames={["mdc-button--raised", "themed-secondary"]}
-                    label="View Notebook"
-                    onClick={this.onOpenNotebookPreview.bind(this)}
-                  />
-                </div>
-              );
-            }
+            return (
+              <div className={"file-actions"}>
+                <MDCButtonReact
+                  icon="launch"
+                  classNames={[
+                    "mdc-button--raised",
+                    "themed-secondary",
+                    "push-right",
+                  ]}
+                  label="Edit in JupyterLab"
+                  onClick={this.onOpenNotebook.bind(this)}
+                />
+                <MDCButtonReact
+                  icon="visibility"
+                  classNames={["mdc-button--raised"]}
+                  label="View file"
+                  onClick={this.onOpenFilePreviewView.bind(
+                    this,
+                    this.props.step.uuid
+                  )}
+                />
+              </div>
+            );
           })()}
 
           <div className={"general-actions"}>
