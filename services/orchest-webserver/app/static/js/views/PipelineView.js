@@ -121,6 +121,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
     );
     this.x = startNodePosition.x;
     this.y = startNodePosition.y;
+    this.lineHeight = 2;
 
     // set xEnd and yEnd if endNode is defined
 
@@ -157,7 +158,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
       "translateX(" +
         (this.x - this.svgPadding + xOffset) +
         "px) translateY(" +
-        (this.y - this.svgPadding + yOffset) +
+        (this.y - this.svgPadding + yOffset - this.lineHeight / 2) +
         "px)"
     );
 
