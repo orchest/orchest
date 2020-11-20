@@ -1741,6 +1741,9 @@ class PipelineView extends React.Component {
      * displacement for the transformed/scaled parent (pipelineStepHolder)
      * that avoids visual displacement when the origin of the
      * transformed/scaled parent is modified.
+     *
+     * the adjustedScaleFactor was derived by analysing the geometric behavior
+     * of applying the css transform: translate(...) scale(...);.
      */
 
     let adjustedScaleFactor = scaleFactor - 1;
