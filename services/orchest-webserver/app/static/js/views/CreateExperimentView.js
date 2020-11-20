@@ -176,15 +176,32 @@ class CreateExperimentView extends React.Component {
     });
   }
 
+  validateExperimentConfig() {
+    if (this.state.selectedIndices.reduce((acc, val) => acc + val, 0) == 0) {
+      return {
+        pass: false,
+        reason:
+          "You selected 0 pipeline runs. Please choose at least one pipeline run configuration.",
+      };
+    }
+    return { pass: true };
+  }
+
   attemptRunExperiment() {
-    let checkGatePromise = checkGate(this.props.experiment.project_uuid);
-    checkGatePromise
-      .then(() => {
-        this.runExperiment();
-      })
-      .catch((result) => {
-        requestBuild(this.props.experiment.project_uuid, result.data);
-      });
+    // validate experiment configuration
+    let validation = this.validateExperimentConfig();
+
+    if (validation.pass === true) {
+      checkGate(this.props.experiment.project_uuid)
+        .then(() => {
+          this.runExperiment();
+        })
+        .catch((result) => {
+          requestBuild(this.props.experiment.project_uuid, result.data);
+        });
+    } else {
+      orchest.alert("Error", validation.reason);
+    }
   }
 
   runExperiment() {

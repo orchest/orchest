@@ -1,3 +1,3 @@
 #!/bin/bash
 
-npx webpack --watch
+npx webpack --mode=development --watch
