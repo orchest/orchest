@@ -149,6 +149,10 @@ class ProjectFilePicker extends React.Component {
   }
 
   onCancelModal() {
+    this.refManager.refs.createFileDialog.close();
+  }
+
+  onCloseCreateFileModal() {
     this.setState({
       createFileModal: false,
     });
@@ -251,6 +255,8 @@ class ProjectFilePicker extends React.Component {
               return (
                 <MDCDialogReact
                   title="Create a new file"
+                  onClose={this.onCloseCreateFileModal.bind(this)}
+                  ref={this.refManager.nrefs.createFileDialog}
                   content={
                     <div className="create-file-input">
                       <div className="push-down">

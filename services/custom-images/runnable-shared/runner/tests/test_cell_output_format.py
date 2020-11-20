@@ -21,7 +21,9 @@ def test_cell_output_format():
 
     # check log file
     with open(
-        os.path.join(Config.PROJECT_DIR, ".orchest/pipeline_uuid/logs/step_uuid.log"),
+        os.path.join(
+            Config.PROJECT_DIR, ".orchest/pipelines/pipeline_uuid/logs/step_uuid.log"
+        ),
         "r",
     ) as f:
         contents = f.read()

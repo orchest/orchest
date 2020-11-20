@@ -1,7 +1,7 @@
 import requests
 import logging
 from app.models import PipelineRun
-from flask import render_template, request, jsonify
+from flask import request, jsonify
 from app.utils import (
     project_uuid_to_path,
     get_project_directory,
@@ -32,8 +32,10 @@ def api_proxy_environment_builds(environment_build_requests, orchest_api_address
 
 
 def register_orchest_api_views(app, db):
-    @app.route("/catch/api-proxy/api/checks/gate/<project_uuid>", methods=["POST"])
-    def catch_api_proxy_checks_gate(project_uuid):
+    @app.route("/catch/api-proxy/api/validations/environments", methods=["POST"])
+    def catch_api_proxy_checks_gate():
+
+        project_uuid = request.json["project_uuid"]
 
         environment_uuids = [
             environment.uuid for environment in get_environments(project_uuid)
@@ -42,10 +44,11 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/checks/gate/%s" % project_uuid,
-            json={"type": "shallow", "environment_uuids": environment_uuids},
+            + "/api/validations/environments",
+            json={"project_uuid": project_uuid, "environment_uuids": environment_uuids},
             stream=True,
         )
+
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
     @app.route(
@@ -124,7 +127,7 @@ def register_orchest_api_views(app, db):
                     json_obj["project_uuid"], host_path=True
                 ),
                 "pipeline_path": pipeline_uuid_to_path(
-                    json_obj["pipeline_description"]["uuid"], json_obj["project_uuid"]
+                    json_obj["pipeline_definition"]["uuid"], json_obj["project_uuid"]
                 ),
             }
 

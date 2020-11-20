@@ -1084,9 +1084,11 @@ class PipelineView extends React.Component {
       // wait for single render call
       setTimeout(() => {
         step["meta_data"]["position"] = [
-          this.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
+          this.pipelineOffset[0] +
+            this.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
             190 / 2,
-          this.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
+          this.pipelineOffset[1] +
+            this.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
             105 / 2,
         ];
 
@@ -1384,7 +1386,7 @@ class PipelineView extends React.Component {
       uuids: uuids,
       project_uuid: this.props.project_uuid,
       run_type: type,
-      pipeline_description: this.getPipelineJSON(),
+      pipeline_definition: this.getPipelineJSON(),
     };
 
     let runStepUUIDsPromise = makeCancelable(

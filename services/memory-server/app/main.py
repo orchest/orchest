@@ -36,7 +36,7 @@ def get_command_line_args():
         default=os.path.join(
             _config.PROJECT_DIR, os.environ.get("ORCHEST_PIPELINE_PATH", "")
         ),
-        help="file containing pipeline description",
+        help="file containing pipeline definition",
     )
 
     args = parser.parse_args()

@@ -171,6 +171,7 @@ class Run(Resource):
 
         celery_app.control.revoke(run_uuid)
         # TODO: possibly set status of steps and Run to "ABORTED"
+        #  note that a race condition would be present since the task will try to set the status as well
 
         return {"message": "Run termination was successful"}, 200
 

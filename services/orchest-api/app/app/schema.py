@@ -131,8 +131,8 @@ interactive_run_config = pipeline_run_config.inherit("InteractiveRunConfig", {})
 interactive_run_spec = pipeline_run_spec.inherit(
     "InteractiveRunSpec",
     {
-        "pipeline_description": fields.Raw(
-            required=True, description="Pipeline description in JSON"
+        "pipeline_definition": fields.Raw(
+            required=True, description="Pipeline definition in JSON"
         ),
         "run_config": fields.Nested(
             interactive_run_config,
@@ -214,20 +214,20 @@ experiment_spec = Model(
         ),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "pipeline_descriptions": fields.List(
-            fields.Raw(description="Pipeline description in JSON"),
+        "pipeline_definitions": fields.List(
+            fields.Raw(description="Pipeline definition in JSON"),
             required=True,
-            description="Collection of pipeline descriptions",
+            description="Collection of pipeline definitions",
         ),
         "pipeline_run_ids": fields.List(
             fields.Integer(
                 description=(
                     "Pipeline index corresponding to respective "
-                    "list entries in pipeline_descriptions."
+                    "list entries in pipeline_definitions."
                 )
             ),
             required=True,
-            description="Collection of pipeline description indices.",
+            description="Collection of pipeline definition indices.",
         ),
         "pipeline_run_spec": fields.Nested(
             non_interactive_run_spec,
@@ -338,57 +338,43 @@ environment_build_requests = Model(
     },
 )
 
-gate_check = Model(
+validation_environments = Model(
     "GateCheck",
     {
-        "type": fields.String(
+        "project_uuid": fields.String(
             required=True,
-            description="The granulity of the gate check",
-            enum=["shallow", "deep"],
+            description="The project UUID",
         ),
         "environment_uuids": fields.List(
             fields.String(),
             required=False,
-            description="UUIDs to check for type=shallow",
-        ),
-        "pipeline_definitions": fields.List(
-            fields.Raw(description="Pipeline definitions in JSON"),
-            required=False,
-            description="Pipeline defitions to check for type=deep",
+            description="UUIDs to check",
         ),
     },
 )
 
-gate_check_result_descr = Model(
-    "GateCheckResultDescr",
-    {
-        "environment_uuids": fields.List(
-            fields.String(), required=True, description="Environment UUIDs"
-        ),
-        "actions": fields.List(
-            fields.String(enum=["WAIT", "BUILD", "RETRY"]),
-            required=False,
-            description="Action to go from fail to pass",
-        ),
-        "pipeline_uuids": fields.List(
-            fields.String(), required=False, description="Pipeline UUIDs"
-        ),
-    },
-)
-
-gate_check_result = Model(
+validation_environments_result = Model(
     "GateCheckResult",
     {
-        "gate": fields.String(
+        "validation": fields.String(
             required=True,
             description="Whether the gate check passed or failed",
             enum=["pass", "fail"],
         ),
-        "fail": fields.Nested(
-            gate_check_result_descr, description="Failed environments"
+        "fail": fields.List(
+            fields.String(),
+            required=True,
+            description="Environment UUIDs that failed the validation",
         ),
-        "pass": fields.Nested(
-            gate_check_result_descr, description="Passed environments"
+        "actions": fields.List(
+            fields.String(enum=["WAIT", "BUILD", "RETRY"]),
+            required=True,
+            description="Action to convert environment 'fail' to 'pass'",
+        ),
+        "pass": fields.List(
+            fields.String(),
+            required=True,
+            description="Environment UUIDs that passed the validation",
         ),
     },
 )

@@ -25,7 +25,9 @@ class EnvironmentEditView extends React.Component {
   componentWillUnmount() {
     if (this.socket) {
       this.socket.close();
-      console.log("SocketIO with namespace /environment_builds disconnected.");
+      console.log(
+        `SocketIO with namespace ${this.SOCKETIO_NAMESPACE_ENV_BUILDS} disconnected.`
+      );
     }
 
     this.promiseManager.cancelCancelablePromises();
@@ -39,6 +41,9 @@ class EnvironmentEditView extends React.Component {
     this.BUILD_POLL_FREQUENCY = 3000;
     this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
     this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
+    this.SOCKETIO_NAMESPACE_ENV_BUILDS = $(
+      'input[name="SOCKETIO_NAMESPACE_ENV_BUILDS"]'
+    ).val();
 
     this.state = {
       baseImages:
@@ -150,12 +155,14 @@ class EnvironmentEditView extends React.Component {
 
   connectSocketIO() {
     // disable polling
-    this.socket = io.connect("/environment_builds", {
+    this.socket = io.connect(this.SOCKETIO_NAMESPACE_ENV_BUILDS, {
       transports: ["websocket"],
     });
 
     this.socket.on("connect", () => {
-      console.log("SocketIO connected on /environment_builds");
+      console.log(
+        `SocketIO connected on ${this.SOCKETIO_NAMESPACE_ENV_BUILDS}`
+      );
     });
 
     this.socket.on("sio_streamed_task_data", (data) => {
@@ -334,6 +341,10 @@ class EnvironmentEditView extends React.Component {
   }
 
   onCancelAddCustomBaseImageDialog() {
+    this.refManager.refs.addCustomBaseImageDialog.close();
+  }
+
+  onCloseAddCustomBaseImageDialog() {
     this.setState({
       addCustomBaseImageDialog: undefined,
     });
@@ -363,7 +374,8 @@ class EnvironmentEditView extends React.Component {
       addCustomBaseImageDialog: (
         <MDCDialogReact
           title="Add custom base image"
-          onClose={this.onCancelAddCustomBaseImageDialog.bind(this)}
+          ref={this.refManager.nrefs.addCustomBaseImageDialog}
+          onClose={this.onCloseAddCustomBaseImageDialog.bind(this)}
           content={
             <div>
               <MDCTextFieldReact
@@ -381,6 +393,7 @@ class EnvironmentEditView extends React.Component {
                 onClick={this.submitAddCustomBaseImage.bind(this)}
               />
               <MDCButtonReact
+                classNames={["push-left"]}
                 label="Cancel"
                 onClick={this.onCancelAddCustomBaseImageDialog.bind(this)}
               />

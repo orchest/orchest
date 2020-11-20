@@ -226,13 +226,13 @@ class CreateExperimentView extends React.Component {
 
         let experimentUUID = result.uuid;
 
-        let pipelineDescriptions = this.generatePipelineDescriptions(
+        let pipelineDefinitions = this.generatePipelineDefinitions(
           this.state.pipeline,
           this.state.generatedPipelineRuns,
           this.state.selectedIndices
         );
 
-        let pipelineRunIds = new Array(pipelineDescriptions.length);
+        let pipelineRunIds = new Array(pipelineDefinitions.length);
         for (let x = 0; x < pipelineRunIds.length; x++) {
           pipelineRunIds[x] = x + 1;
         }
@@ -241,7 +241,7 @@ class CreateExperimentView extends React.Component {
           experiment_uuid: experimentUUID,
           pipeline_uuid: this.state.pipeline.uuid,
           project_uuid: this.props.experiment.project_uuid,
-          pipeline_descriptions: pipelineDescriptions,
+          pipeline_definitions: pipelineDefinitions,
           pipeline_run_ids: pipelineRunIds,
           pipeline_run_spec: {
             run_type: "full",
@@ -288,7 +288,7 @@ class CreateExperimentView extends React.Component {
       });
   }
 
-  generatePipelineDescriptions(
+  generatePipelineDefinitions(
     pipeline,
     generatedPipelineRuns,
     selectedIndices

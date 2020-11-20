@@ -103,8 +103,7 @@ function Orchest() {
   };
 
   this.initializeFirstView = function () {
-    // load first pipeline
-    this.loadView(PipelinesView);
+    this.loadView(ProjectsView);
   };
 
   setTimeout(() => {

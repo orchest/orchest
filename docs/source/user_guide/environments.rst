@@ -1,6 +1,11 @@
 Installing additional packages
 ==============================
 
+.. warning::
+   Do not install packages by running :code:`!pip install <package-name>` inside your
+   Jupyter Notebook. This causes the package to be installed every time you run the pipeline
+   step. It is not saved in the environment as containers are stateless!
+
 .. _environments:
 
 Environments
@@ -23,6 +28,21 @@ image.
 6. Install additional packages, e.g. :code:`pip install tensorflow` or
    :code:`apt install vim`.
 
+.. tip::
+
+    The shell script that installs the additional packages is run inside the ``/project-dir``,
+    meaning that you can directly interact with your project files from within the script. For
+    example:
+
+    .. code-block:: bash
+
+       #!/bin/bash
+
+       # Install any dependencies you have in this shell script.
+
+       # E.g. pip install tensorflow
+       pip install -r requirements.txt
+
 .. |jupyter_stack_link| raw:: html
 
   <a href="https://jupyter-docker-stacks.readthedocs.io/en/latest/"
@@ -33,8 +53,3 @@ image.
    <a
    href="https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html"
    target="_nlank">pre-installed packages</a>
-
-.. warning::
-   Do not install packages by running :code:`!pip install <package-name>` inside your
-   Jupyter Notebook. This causes the package to be installed every time you run the pipeline
-   step. It is not saved in the environment as containers are stateless!

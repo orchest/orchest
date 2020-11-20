@@ -215,10 +215,12 @@ class EnvironmentList extends React.Component {
                 <div className={"environment-actions push-down"}>
                   <MDCIconButtonToggleReact
                     icon="add"
+                    tooltipText="Add environment"
                     onClick={this.onCreateClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
                     icon="delete"
+                    tooltipText="Delete environment"
                     onClick={this.onDeleteClick.bind(this)}
                   />
                 </div>

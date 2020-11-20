@@ -38,11 +38,12 @@ def get_step_uuid(pipeline: Pipeline) -> str:
     launches_url = f'http://orchest-api/api/sessions/{Config.PROJECT_UUID}/{pipeline.properties["uuid"]}'
     launch_data = _request_json(launches_url)
 
-    jupyter_api_url = "http://{ip}:{port}/{proxy_prefix}/api/sessions"
+    # NOTE: the `proxy_prefix` already includes the "/" at the start
+    jupyter_api_url = "http://{ip}:{port}{proxy_prefix}/api/sessions"
     jupyter_api_url = jupyter_api_url.format(
         ip=launch_data["jupyter_server_ip"],
         port=launch_data["notebook_server_info"]["port"],
-        proxy_prefix="jupyter_" + launch_data["jupyter_server_ip"].replace(".", "_"),
+        proxy_prefix=launch_data["notebook_server_info"]["base_url"],
     )
     jupyter_sessions = _request_json(jupyter_api_url)
 

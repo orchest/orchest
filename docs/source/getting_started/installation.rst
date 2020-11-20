@@ -54,7 +54,7 @@ You should expect the build to finish in roughly 25 minutes.
    # Verify the installation. This should print the help message.
    ./orchest
 
-.. warning::
+.. tip::
 
     We recommend building a tagged commit indicating a release. Other commits cannot be considered
     stable.

@@ -26,7 +26,7 @@ class EnvironmentSchema(ma.Schema):
             "language",
             "base_image",
             "gpu_support",
-            _config.ENV_SETUP_SCRIPT_PROPERTY_NAME,
+            "setup_script",
         )
 
 

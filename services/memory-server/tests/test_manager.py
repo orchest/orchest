@@ -57,7 +57,7 @@ def memory_store(monkeypatch):
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     store_socket_name, pipeline_fname = memory_store
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = pipeline_fname
+    orchest.Config.PIPELINE_DEFINITION_PATH = pipeline_fname
 
     # Setup environment variables.
     envs = {"ORCHEST_MEMORY_EVICTION": "True"}
@@ -108,7 +108,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
 def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
     store_socket_name, pipeline_fname = memory_store
 
-    orchest.Config.PIPELINE_DESCRIPTION_PATH = pipeline_fname
+    orchest.Config.PIPELINE_DEFINITION_PATH = pipeline_fname
 
     # Do as if we are uuid-1
     data_1 = generate_data(0.6 * PLASMA_KILOBYTES * KILOBYTE)

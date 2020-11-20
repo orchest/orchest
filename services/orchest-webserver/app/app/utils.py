@@ -26,7 +26,7 @@ def get_pipeline_path(
     host_path=False,
     pipeline_path=None,
 ):
-    """Returns path to pipeline description file (including .orchest)"""
+    """Returns path to pipeline definition file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
     if host_path == True:
@@ -68,7 +68,7 @@ def get_pipeline_directory(
     pipeline_run_uuid=None,
     host_path=False,
 ):
-    """Returns path to directory CONTAINING the pipeline description file."""
+    """Returns path to directory CONTAINING the pipeline definition file."""
 
     return os.path.split(
         get_pipeline_path(
@@ -115,11 +115,19 @@ def get_environments(project_uuid, language=None):
             if os.path.isdir(environment_dir):
                 env = read_environment_from_disk(environment_dir, project_uuid)
 
-                if language is None:
-                    environments.append(env)
-                else:
-                    if language == env.language:
+                # read_environment_from_disk is not guaranteed to succeed
+                # on failure it returns None, and logs the error.
+                if env is not None:
+                    if language is None:
                         environments.append(env)
+                    else:
+                        if language == env.language:
+                            environments.append(env)
+                else:
+                    logging.info(
+                        "Could not read environment for env dir %s and project_uuid %s"
+                        % (environment_dir, project_uuid)
+                    )
     except FileNotFoundError as e:
         logging.error(
             "Could not find environments directory in project path %s"
@@ -142,6 +150,8 @@ def serialize_environment_to_disk(environment, env_directory):
 
         # don't serialize project_uuid
         del environmentDICT["project_uuid"]
+        # setup scripts is serialized separately
+        del environmentDICT["setup_script"]
 
         file.write(json.dumps(environmentDICT))
 
@@ -170,7 +180,7 @@ def read_environment_from_disk(env_directory, project_uuid):
         return e
     except Exception as e:
         logging.error(
-            "Could not environment from env_directory %s. Error: %s"
+            "Could not get environment from env_directory %s. Error: %s"
             % (env_directory, e)
         )
 

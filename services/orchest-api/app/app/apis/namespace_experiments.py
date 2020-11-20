@@ -1,6 +1,7 @@
 from datetime import datetime
 import uuid
 
+from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
@@ -50,19 +51,19 @@ class ExperimentList(Resource):
         pipeline_runs = []
         pipeline_run_spec = post_data["pipeline_run_spec"]
         env_uuid_docker_id_mappings = None
-        for pipeline_description, id_ in zip(
-            post_data["pipeline_descriptions"], post_data["pipeline_run_ids"]
+
+        # TODO: This can be made more efficient, since the pipeline
+        #       is the same for all pipeline runs. The only
+        #       difference is the parameters. So all the jobs could
+        #       be created in batch.
+        for pipeline_definition, id_ in zip(
+            post_data["pipeline_definitions"], post_data["pipeline_run_ids"]
         ):
-            pipeline_run_spec["pipeline_description"] = pipeline_description
+            pipeline_run_spec["pipeline_definition"] = pipeline_definition
             pipeline = construct_pipeline(**post_data["pipeline_run_spec"])
 
-            # TODO: This can be made more efficient, since the pipeline
-            #       is the same for all pipeline runs. The only
-            #       difference is the parameters. So all the jobs could
-            #       be created in batch.
-
-            # specify the task_id beforehand to avoid race conditions between the task and its
-            # presence in the db
+            # specify the task_id beforehand to avoid race conditions
+            # between the task and its presence in the db
             task_id = str(uuid.uuid4())
 
             non_interactive_run = {
@@ -77,8 +78,8 @@ class ExperimentList(Resource):
 
             # TODO: this code is also in `namespace_runs`. Could
             #       potentially be put in a function for modularity.
-            # Set an initial value for the status of the pipeline steps that
-            # will be run.
+            # Set an initial value for the status of the pipeline
+            # steps that will be run.
             step_uuids = [s.properties["uuid"] for s in pipeline.steps]
             pipeline_steps = []
             for step_uuid in step_uuids:
@@ -95,9 +96,9 @@ class ExperimentList(Resource):
             db.session.bulk_save_objects(pipeline_steps)
             db.session.commit()
 
-            # get docker ids of images to use and make it so that the images
-            # will not be deleted in case they become outdated by an
-            # environment rebuild
+            # get docker ids of images to use and make it so that the
+            # images will not be deleted in case they become
+            # outdated by an environment rebuild
             # compute it only once because this way we are guaranteed
             # that the mappings will be the same for all runs, having
             # a new environment build terminate while submitting the
@@ -209,9 +210,16 @@ class Experiment(Resource):
 
         run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
 
-        # Revokes all pipeline runs and waits for a reply for 1.0s.
+        # Aborts and revokes all pipeline runs and waits for a reply for 1.0s.
         celery = make_celery(current_app)
         celery.control.revoke(run_uuids, timeout=1.0)
+
+        # TODO: possibly set status of steps and Run to "ABORTED"
+        #  note that a race condition would be present since the task will try to set the status as well
+        for run_uuid in run_uuids:
+            res = AbortableAsyncResult(run_uuid, app=celery)
+            # it is responsibility of the task to terminate by reading it's aborted status
+            res.abort()
 
         # Update the status of the run and step entries to "REVOKED".
         models.NonInteractiveRun.query.filter_by(

@@ -31,7 +31,7 @@ class PipelineStepProperties(TypedDict):
     meta_data: Dict[str, List[int]]
 
 
-class PipelineDescription(TypedDict):
+class PipelineDefinition(TypedDict):
     name: str
     uuid: str
     steps: Dict[str, PipelineStepProperties]
@@ -40,7 +40,7 @@ class PipelineDescription(TypedDict):
 def construct_pipeline(
     uuids: Iterable[str],
     run_type: str,
-    pipeline_description: PipelineDescription,
+    pipeline_definition: PipelineDefinition,
     **kwargs,
 ) -> "Pipeline":
     """Constructs a pipeline from a description with selection criteria.
@@ -61,13 +61,13 @@ def construct_pipeline(
         uuids: a selection/sequence of pipeline step UUIDs. If `run_type`
             equals "full", then this argument is ignored.
         run_type: one of ("full", "selection", "incoming").
-        pipeline_description: a json description of the pipeline.
+        pipeline_definition: a json description of the pipeline.
         config: configuration for the `run_type`.
 
     Returns:
         Always returns a Pipeline. Depending on the `run_type` the
         Pipeline is constructed as follows from the given
-        `pipeline_description`:
+        `pipeline_definition`:
             * "full" -> entire pipeline from description
             * "selection" -> induced subgraph based on selection.
             * "incoming" -> all incoming steps of the selection. In other
@@ -79,9 +79,9 @@ def construct_pipeline(
     Raises:
         ValueError if the `run_type` is incorrectly specified.
     """
-    # Create a pipeline from the pipeline_description. And run the
+    # Create a pipeline from the pipeline_definition. And run the
     # appropriate method based on the run_type.
-    pipeline = Pipeline.from_json(pipeline_description)
+    pipeline = Pipeline.from_json(pipeline_definition)
 
     if run_type == "full":
         return pipeline
@@ -450,7 +450,7 @@ class Pipeline:
         self._sentinel: Optional[PipelineStep] = None
 
     @classmethod
-    def from_json(cls, description: PipelineDescription) -> "Pipeline":
+    def from_json(cls, description: PipelineDefinition) -> "Pipeline":
         """Constructs a pipeline from a json description.
 
         This is an alternative constructur.
@@ -476,9 +476,9 @@ class Pipeline:
         properties = {"name": description["name"], "uuid": description["uuid"]}
         return cls(list(steps.values()), properties)
 
-    def to_dict(self) -> PipelineDescription:
+    def to_dict(self) -> PipelineDefinition:
         """Convert the Pipeline to its dictionary description."""
-        description: PipelineDescription = {"steps": {}}
+        description: PipelineDefinition = {"steps": {}}
         for step in self.steps:
             description["steps"][step.properties["uuid"]] = step.properties
 

@@ -12,7 +12,7 @@ from celery.utils.log import get_task_logger
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import docker_client
-from app.core.pipelines import Pipeline, PipelineDescription
+from app.core.pipelines import Pipeline, PipelineDefinition
 from app.core.sessions import launch_session
 from app.core.environment_builds import build_environment_task
 from config import CONFIG_CLASS
@@ -128,19 +128,19 @@ async def run_pipeline_async(run_config, pipeline, task_id):
 @celery.task(bind=True, base=AbortableTask)
 def run_pipeline(
     self,
-    pipeline_description: PipelineDescription,
+    pipeline_definition: PipelineDefinition,
     project_uuid: str,
     run_config: Dict[str, Union[str, Dict[str, str]]],
     task_id: Optional[str] = None,
 ) -> str:
     """Runs a pipeline partially.
 
-    A partial run is described by the pipeline description The
+    A partial run is described by the pipeline definition The
     call-order of the steps is always preserved, e.g. a --> b then a
     will always be run before b.
 
     Args:
-        pipeline_description: a json description of the pipeline.
+        pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
             Example: {
                 'run_endpoint': 'runs',
@@ -155,11 +155,11 @@ def run_pipeline(
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
-    run_config["pipeline_uuid"] = pipeline_description["uuid"]
+    run_config["pipeline_uuid"] = pipeline_definition["uuid"]
     run_config["project_uuid"] = project_uuid
 
     # Get the pipeline to run.
-    pipeline = Pipeline.from_json(pipeline_description)
+    pipeline = Pipeline.from_json(pipeline_definition)
 
     # TODO: don't think this task_id is needed anymore. It was
     #       introduced as part of the scheduled runs which we don't use
@@ -177,12 +177,12 @@ def run_pipeline(
     return asyncio.run(run_pipeline_async(run_config, pipeline, task_id))
 
 
-@celery.task(bind=True)
+@celery.task(bind=True, base=AbortableTask)
 def start_non_interactive_pipeline_run(
     self,
     experiment_uuid,
     project_uuid,
-    pipeline_description: PipelineDescription,
+    pipeline_definition: PipelineDefinition,
     run_config: Dict[str, Union[str, Dict[str, str]]],
 ) -> str:
     """Starts a non-interactive pipeline run.
@@ -192,7 +192,7 @@ def start_non_interactive_pipeline_run(
     Args:
         experiment_uuid: UUID of the experiment.
         project_uuid: UUID of the project.
-        pipeline_description: A json description of the pipeline.
+        pipeline_definition: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
             Example: {
                 'host_user_dir': '/home/../userdir',
@@ -207,7 +207,7 @@ def start_non_interactive_pipeline_run(
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
-    pipeline_uuid = pipeline_description["uuid"]
+    pipeline_uuid = pipeline_definition["uuid"]
 
     experiment_dir = os.path.join(
         "/userdir", "experiments", project_uuid, pipeline_uuid, experiment_uuid
@@ -245,7 +245,7 @@ def start_non_interactive_pipeline_run(
     # every step.
     pipeline_json = os.path.join(run_dir, run_config["pipeline_path"])
     with open(pipeline_json, "w") as f:
-        json.dump(pipeline_description, f)
+        json.dump(pipeline_definition, f)
 
     with launch_session(
         docker_client,
@@ -256,7 +256,7 @@ def start_non_interactive_pipeline_run(
         interactive=False,
     ) as session:
         status = run_pipeline(
-            pipeline_description, project_uuid, run_config, task_id=self.request.id
+            pipeline_definition, project_uuid, run_config, task_id=self.request.id
         )
 
     return status

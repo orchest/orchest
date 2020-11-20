@@ -3,7 +3,7 @@
 Experiments
 ===========
 
-.. note::
+.. tip::
    For reproducibility Orchest makes a full snapshot by copying the project directory. So make sure
    to put data in ``/data`` or a data source, otherwise it will be included in the snapshot.
 
@@ -20,8 +20,8 @@ steps.
 5. Make sure to press the black *Save* button towards the top of your screen.
 
 You can now access the value of those parameters (and even update them) from within the script of
-the respective pipeline step.  See :ref:`sdk-quickstart-parameters` to get started on using
-parameters inside your scripts.
+the respective pipeline step.  See the :ref:`parameters section <sdk-quickstart-parameters>` to get
+started on using parameters inside your scripts.
 
 Now that we have covered how to parameterize your pipeline (steps) we will introduce experiments.
 With experiments you get to try out all your modeling ideas by iterating over different parameter

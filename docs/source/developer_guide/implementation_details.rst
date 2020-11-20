@@ -1,6 +1,48 @@
 Implementation details
 ======================
 
+``userdir/`` paths
+------------------
+Overview of the different paths inside the ``userdir/``.
+
+.. code-block:: bash
+
+   .
+   ├── data/
+   ├── experiments
+   │   └── <project-uuid>
+   │       └── <pipeline-uuid>
+   │           └── <experiment-uuid>
+   │               ├── <noninteractive-run-uuid>
+   │               │   └── <copy-myproject-state-after-experiment>
+   │               └── snapshot
+   │                   └── <complete-copy-of-myproject>
+   ├── .orchest
+   │   ├── <state-db>.db
+   │   └── kernels
+   │       └── <project-uuid>
+   │           ├── launch_docker.py
+   │           └── orchest-env-<project-uuid>-<env-uuid>
+   │               └── kernel.json
+   └── projects
+       └── myproject
+           ├── mypipe.orchest
+           ├── .orchest
+           │   ├── pipelines
+           │   │   └── <pipeline-uuid>
+           │   │       ├── logs
+           │   │       │   └── <pipeline-step-uuid>.log
+           │   │       └── data
+           │   │           ├── <pipeline-step-uuid>.<serialization>
+           │   │           └── HEAD
+           │   ├── environments
+           │   │   └── <env-uuid>
+           │   │       ├── properties.json
+           │   │       └── setup_script.sh
+           │   └── .gitignore
+           └── preprocessing.ipynb
+
+
 ENV variables
 -------------
 When it comes to pipeline execution, each pipeline step is executed in its own environment. More
@@ -37,9 +79,8 @@ objects from memory can never be triggered when running notebooks interactively.
 to make the entire project directory available through the JupyterLab UI and is thus only set for
 interactive Jupyter kernels.
 
-Orchest data passing
---------------------
-
+SDK data passing
+----------------
 The :meth:`orchest.transfer.get_inputs` method calls :meth:`orchest.transfer.resolve` which, in
 order to resolve what output data the user most likely wants to get, needs a timestamp of the most
 recent output for every transfer type. E.g. if some step outputs to disk at 1pm and later outputs to

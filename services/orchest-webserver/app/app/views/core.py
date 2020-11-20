@@ -132,9 +132,7 @@ def register_views(app, db):
                     name=environment_json["name"],
                     project_uuid=project_uuid,
                     language=environment_json["language"],
-                    setup_script=environment_json[
-                        _config.ENV_SETUP_SCRIPT_PROPERTY_NAME
-                    ],
+                    setup_script=environment_json["setup_script"],
                     base_image=environment_json["base_image"],
                     gpu_support=environment_json["gpu_support"],
                 )
@@ -634,6 +632,7 @@ def register_views(app, db):
             user_config=get_user_conf(),
             DOCS_ROOT=app.config["DOCS_ROOT"],
             FLASK_ENV=app.config["FLASK_ENV"],
+            SOCKETIO_NAMESPACE_ENV_BUILDS=_config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE,
         )
 
     @app.route("/async/spawn-update-server", methods=["GET"])

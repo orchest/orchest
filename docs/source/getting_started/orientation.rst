@@ -34,7 +34,7 @@ the content of the ``orchest/userdir/`` directory, where ``orchest/`` is the ins
 GitHub, in the Docker containers. Giving you access to your scripts from within Orchest, but also
 allowing you to structure and edit the files with any other editor such as VS Code!
 
-.. note::
+.. caution::
    The ``userdir/`` directory not only contains your files and scripts, it also contains the state
    (inside the ``userdir/.orchest/`` directory) that Orchest needs to run. Touching the state can
    result in, for example, losing experiment entries causing them to no longer show up in the UI.
@@ -48,20 +48,20 @@ following directory structure of a project:
 
     myproject
         ├── .orchest
-        │   ├── data/
-        │   ├── logs/
+        │   ├── pipelines/
         │   └── environments/
         ├── pipeline.orchest
         ├── prep.ipynb
         └── training.py
 
 .. note::
-   Again Orchest creates a ``.orchest/`` directory to store state. In the ``.orchest/data/``
-   directory the passed data between steps is stored, if disk based data passing is used instead of
-   (the default) memory data passing, see :ref:`data passing <data passing>`. The ``.orchest/logs/``
-   directory contains the STDOUT of the scripts and can be inspected through the Orchest UI.
+   Again Orchest creates a ``.orchest/`` directory to store state. In the ``.orchest/pipelines/``
+   directory the passed data between steps is stored (per pipeline in ``data/``), if disk based data
+   passing is used instead of (the default) memory data passing, see :ref:`data passing <data
+   passing>`. Per pipeline (inside ``.orchest/pipelines/``) there is also a ``logs/`` directory
+   containing the STDOUT of the scripts, the STDOUT can be inspected through the Orchest UI.
 
-.. warning::
+.. tip::
    You should not put large files inside your project and instead use :ref:`data sources <data
    sources>` or write to the special ``/data`` directory (which is the mounted ``userdir/data/``
    directory that is shared between projects). :ref:`Experiments <experiments>` create snapshots of
