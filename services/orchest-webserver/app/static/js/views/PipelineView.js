@@ -1117,10 +1117,10 @@ class PipelineView extends React.Component {
       // wait for single render call
       setTimeout(() => {
         step["meta_data"]["position"] = [
-          this.pipelineOffset[0] +
+          -this.pipelineOffset[0] +
             this.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
             190 / 2,
-          this.pipelineOffset[1] +
+          -this.pipelineOffset[1] +
             this.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
             105 / 2,
         ];
