@@ -1422,7 +1422,7 @@ class PipelineView extends React.Component {
   setPipelineHolderOrigin(newOrigin) {
     this.pipelineOrigin = newOrigin;
 
-    let pipelineStepsolderOffset = $(
+    let pipelineStepsHolderOffset = $(
       this.refManager.refs.pipelineStepsHolder
     ).offset();
 
@@ -1431,9 +1431,9 @@ class PipelineView extends React.Component {
     ).offset();
 
     let initialX =
-      pipelineStepsolderOffset.left - pipelineStepsOuterHolderOffset.left;
+      pipelineStepsHolderOffset.left - pipelineStepsOuterHolderOffset.left;
     let initialY =
-      pipelineStepsolderOffset.top - pipelineStepsOuterHolderOffset.top;
+      pipelineStepsHolderOffset.top - pipelineStepsOuterHolderOffset.top;
 
     let translateXY = this.originTransformMapping(
       [...this.pipelineOrigin],
@@ -1737,6 +1737,12 @@ class PipelineView extends React.Component {
   }
 
   originTransformMapping(origin, scaleFactor) {
+    /* By multiplying the transform-origin with the scaleFactor we get the right
+     * displacement for the transformed/scaled parent (pipelineStepHolder)
+     * that avoids visual displacement when the origin of the
+     * transformed/scaled parent is modified.
+     */
+
     let adjustedScaleFactor = scaleFactor - 1;
     origin[0] *= adjustedScaleFactor;
     origin[1] *= adjustedScaleFactor;
