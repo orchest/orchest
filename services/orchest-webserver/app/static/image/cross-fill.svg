@@ -1,4 +1,4 @@
 <svg width="40" height="41" viewBox="0 0 40 41" fill="none" xmlns="http://www.w3.org/2000/svg">
-<line x1="39.5" y1="40" x2="39.5" y2="3.74913e-06" stroke="black" stroke-opacity="0.1"/>
-<line x1="40" y1="40.5" x2="3.77099e-06" y2="40.5" stroke="black" stroke-opacity="0.1"/>
+<line x1="39.5" y1="40" x2="39.5" y2="3.74913e-06" stroke="#e5e5e5" />
+<line x1="40" y1="40.5" x2="3.77099e-06" y2="40.5" stroke="#e5e5e5" />
 </svg>

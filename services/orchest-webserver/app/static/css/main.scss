@@ -659,6 +659,11 @@ span.code {
 
       button {
         margin-bottom: 0;
+        margin-top: $generalPadding;
+      }
+
+      .navigation-buttons {
+        display: inline-block;
       }
 
       .selection-buttons {
@@ -680,10 +685,9 @@ span.code {
 
   .pipeline-steps-outer-holder {
     height: 100%;
+    width: 100%;
     overflow: hidden;
-    position: relative;
-    background-image: url("../image/cross-fill.svg");
-    background-repeat: repeat;
+    position: absolute;
 
     &.dragging {
       cursor: grabbing;
@@ -692,8 +696,11 @@ span.code {
 
   .pipeline-steps-holder {
     height: 100%;
-    position: relative;
+    position: absolute;
     user-select: none;
+    background-image: url("../image/cross-fill.svg");
+    background-repeat: repeat;
+    border: 1px solid #e5e5e5;
 
     .step-selector {
       position: absolute;

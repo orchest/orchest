@@ -13,7 +13,7 @@ class PipelineStep extends React.Component {
   }
 
   updatePosition(position) {
-    // note: outside of normal React loop for performance
+    // note: DOM update outside of normal React loop for performance
     this.refManager.refs.container.style.transform =
       "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
   }

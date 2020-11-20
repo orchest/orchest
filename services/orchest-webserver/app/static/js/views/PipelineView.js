@@ -5,15 +5,17 @@ import {
   intersectRect,
   globalMDCVars,
   extensionFromFilename,
-  nodeCenter,
-  correctedPosition,
   makeRequest,
   makeCancelable,
   PromiseManager,
   RefManager,
 } from "../lib/utils/all";
 
-import { checkGate, requestBuild } from "../utils/webserver-utils";
+import {
+  checkGate,
+  requestBuild,
+  getScrollLineHeight,
+} from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "../components/PipelineDetails";
@@ -32,14 +34,29 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.y = 0;
 
   this.pipelineView = pipelineView;
+  this.pipelineViewEl = $(pipelineView.refManager.refs.pipelineStepsHolder);
+
+  this.nodeCenter = function (el, parentEl) {
+    let nodePosition = this.localElementPosition(el, parentEl);
+    nodePosition.x += el.width() / 2;
+    nodePosition.y += el.height() / 2;
+    return nodePosition;
+  };
+
+  this.localElementPosition = function (el, parentEl) {
+    let position = {};
+    position.x = this.pipelineView.scaleCorrectedPosition(
+      el.offset().left - parentEl.offset().left
+    );
+    position.y = this.pipelineView.scaleCorrectedPosition(
+      el.offset().top - parentEl.offset().top
+    );
+    return position;
+  };
 
   // initialize xEnd and yEnd at startNode position
-  let startNodePosition = nodeCenter(this.startNode);
-  startNodePosition = correctedPosition(
-    startNodePosition.x,
-    startNodePosition.y,
-    $(".pipeline-view")
-  );
+  let startNodePosition = this.nodeCenter(this.startNode, this.pipelineViewEl);
+
   this.xEnd = startNodePosition.x;
   this.yEnd = startNodePosition.y;
 
@@ -98,11 +115,9 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.el.append(this.svgEl);
 
   this.render = function () {
-    let startNodePosition = nodeCenter(this.startNode);
-    startNodePosition = correctedPosition(
-      startNodePosition.x,
-      startNodePosition.y,
-      $(".pipeline-view")
+    let startNodePosition = this.nodeCenter(
+      this.startNode,
+      this.pipelineViewEl
     );
     this.x = startNodePosition.x;
     this.y = startNodePosition.y;
@@ -110,12 +125,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
     // set xEnd and yEnd if endNode is defined
 
     if (this.endNode) {
-      let endNodePosition = nodeCenter(this.endNode);
-      endNodePosition = correctedPosition(
-        endNodePosition.x,
-        endNodePosition.y,
-        $(".pipeline-view")
-      );
+      let endNodePosition = this.nodeCenter(this.endNode, this.pipelineViewEl);
       this.xEnd = endNodePosition.x;
       this.yEnd = endNodePosition.y;
     }
@@ -145,15 +155,9 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
     this.el.css(
       "transform",
       "translateX(" +
-        (this.x -
-          this.svgPadding +
-          xOffset +
-          this.pipelineView.pipelineOffset[0]) +
+        (this.x - this.svgPadding + xOffset) +
         "px) translateY(" +
-        (this.y -
-          this.svgPadding +
-          yOffset +
-          this.pipelineView.pipelineOffset[1]) +
+        (this.y - this.svgPadding + yOffset) +
         "px)"
     );
 
@@ -207,6 +211,10 @@ class PipelineView extends React.Component {
     // class constants
     this.STATUS_POLL_FREQUENCY = 1000;
     this.DRAG_CLICK_SENSITIVITY = 3;
+    this.CANVAS_VIEW_MULTIPLE = 3;
+
+    this.INITIAL_PIPELINE_POSITION = [-1, -1];
+    this.initializedPipeline = false;
 
     this.selectedItem = undefined;
     this.selectedConnection = undefined;
@@ -216,7 +224,14 @@ class PipelineView extends React.Component {
 
     this.keysDown = {};
     this.draggingPipeline = false;
-    this.pipelineOffset = [0, 0];
+    this.pipelineOffset = [
+      this.INITIAL_PIPELINE_POSITION[0],
+      this.INITIAL_PIPELINE_POSITION[1],
+    ];
+    this.pipelineOrigin = [0, 0];
+    this.mouseClientX = 0;
+    this.mouseClientY = 0;
+    this.scaleFactor = 1;
 
     this.connections = [];
     this.pipelineSteps = {};
@@ -471,6 +486,16 @@ class PipelineView extends React.Component {
   componentDidMount() {
     this.fetchPipelineAndInitialize();
     this.connectSocketIO();
+    this.initializeResizeHandlers();
+  }
+
+  initializeResizeHandlers() {
+    this.setPipelineHolderSize();
+    this.renderPipelineHolder();
+
+    $(window).resize(() => {
+      this.setPipelineHolderSize();
+    });
   }
 
   connectSocketIO() {
@@ -588,14 +613,12 @@ class PipelineView extends React.Component {
   }
 
   initializePipelineEditListeners() {
-    let _this = this;
-
-    $(document).on("mouseup.initializePipeline", function (e) {
-      if (_this.newConnection) {
+    $(document).on("mouseup.initializePipeline", (e) => {
+      if (this.newConnection) {
         let endNodeUUID = $(e.target)
           .parents(".pipeline-step")
           .attr("data-uuid");
-        let startNodeUUID = _this.newConnection.startNode
+        let startNodeUUID = this.newConnection.startNode
           .parents(".pipeline-step")
           .attr("data-uuid");
 
@@ -608,7 +631,7 @@ class PipelineView extends React.Component {
         // check whether there already exists a connection
         if (dragEndedInIcomingConnectionsElement) {
           noConnectionExists =
-            _this.refManager.refs[
+            this.refManager.refs[
               endNodeUUID
             ].props.step.incoming_connections.indexOf(startNodeUUID) === -1;
         }
@@ -616,7 +639,7 @@ class PipelineView extends React.Component {
         // check whether connection will create a cycle in Pipeline graph
         let connectionCreatesCycle = false;
         if (noConnectionExists && dragEndedInIcomingConnectionsElement) {
-          connectionCreatesCycle = _this.willCreateCycle(
+          connectionCreatesCycle = this.willCreateCycle(
             startNodeUUID,
             endNodeUUID
           );
@@ -635,20 +658,20 @@ class PipelineView extends React.Component {
           !connectionCreatesCycle
         ) {
           // newConnection
-          _this.newConnection.setEndNode($(e.target));
-          _this.refManager.refs[endNodeUUID].props.onConnect(
+          this.newConnection.setEndNode($(e.target));
+          this.refManager.refs[endNodeUUID].props.onConnect(
             startNodeUUID,
             endNodeUUID
           );
-          _this.newConnection.render();
+          this.newConnection.render();
 
-          _this.setState({
+          this.setState({
             unsavedChanges: true,
           });
         } else {
-          _this.newConnection.el.remove();
-          _this.connections.splice(
-            _this.connections.indexOf(_this.newConnection),
+          this.newConnection.el.remove();
+          this.connections.splice(
+            this.connections.indexOf(this.newConnection),
             1
           );
 
@@ -663,107 +686,111 @@ class PipelineView extends React.Component {
         // clean up hover effects
         $(".incoming-connections").removeClass("hover");
       }
-      _this.newConnection = undefined;
+      this.newConnection = undefined;
 
       // always check unsavedChanges on mouseup
-      _this.setState({
-        unsavedChanges: _this.state.unsavedChanges,
+      this.setState({
+        unsavedChanges: this.state.unsavedChanges,
       });
     });
 
     $(this.refManager.refs.pipelineStepsHolder).on(
       "mousedown",
       ".pipeline-step .outgoing-connections",
-      function (e) {
+      (e) => {
         if (e.button === 0) {
           // create connection
-          _this.createConnection($(e.target));
+          this.createConnection($(e.target));
         }
       }
     );
 
-    $(document).on("keydown.initializePipeline", function (e) {
+    $(document).on("keydown.initializePipeline", (e) => {
       // Ctrl / Meta + S for saving pipeline
       if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
 
-        _this.refManager.refs.saveButton.click();
+        this.refManager.refs.saveButton.click();
       }
     });
 
-    $(document).on("keyup.initializePipeline", function (e) {
+    $(document).on("keyup.initializePipeline", (e) => {
       if (e.keyCode === 8) {
-        if (_this.selectedConnection) {
+        if (this.selectedConnection) {
           e.preventDefault();
 
-          _this.removeConnection(
-            _this.selectedConnection.startNodeUUID,
-            _this.selectedConnection.endNodeUUID
+          this.removeConnection(
+            this.selectedConnection.startNodeUUID,
+            this.selectedConnection.endNodeUUID
           );
-          _this.connections.splice(
-            _this.connections.indexOf(_this.selectedConnection),
+          this.connections.splice(
+            this.connections.indexOf(this.selectedConnection),
             1
           );
-          _this.selectedConnection.remove();
+          this.selectedConnection.remove();
         }
       }
     });
 
-    $(this.refManager.refs.pipelineStepsHolder).on("mousemove", function (e) {
-      if (_this.selectedItem !== undefined) {
+    $(this.refManager.refs.pipelineStepsOuterHolder).on("mousemove", (e) => {
+      if (this.selectedItem !== undefined) {
         let delta = [
-          e.clientX - _this.prevPosition[0],
-          e.clientY - _this.prevPosition[1],
+          this.scaleCorrectedPosition(e.clientX) - this.prevPosition[0],
+          this.scaleCorrectedPosition(e.clientY) - this.prevPosition[1],
         ];
 
-        _this.prevPosition = [e.clientX, e.clientY];
+        this.prevPosition = [
+          this.scaleCorrectedPosition(e.clientX),
+          this.scaleCorrectedPosition(e.clientY),
+        ];
 
-        let step = _this.state.steps[_this.selectedItem];
+        let step = this.state.steps[this.selectedItem];
 
         step.meta_data._drag_count++;
-        if (step.meta_data._drag_count >= _this.DRAG_CLICK_SENSITIVITY) {
+        if (step.meta_data._drag_count >= this.DRAG_CLICK_SENSITIVITY) {
           step.meta_data._dragged = true;
           step.meta_data._drag_count = 0;
         }
 
-        if (_this.state.selectedSteps.length > 1) {
-          for (let key in _this.state.selectedSteps) {
-            let uuid = _this.state.selectedSteps[key];
+        if (this.state.selectedSteps.length > 1) {
+          for (let key in this.state.selectedSteps) {
+            let uuid = this.state.selectedSteps[key];
 
-            _this.state.steps[uuid].meta_data.position[0] += delta[0];
-            _this.state.steps[uuid].meta_data.position[1] += delta[1];
+            this.state.steps[uuid].meta_data.position[0] += delta[0];
+            this.state.steps[uuid].meta_data.position[1] += delta[1];
 
-            _this.refManager.refs[uuid].updatePosition(
-              _this.state.steps[uuid].meta_data.position
+            this.refManager.refs[uuid].updatePosition(
+              this.state.steps[uuid].meta_data.position
             );
 
             // note: state will be invalidated in mouseup event for view updating
-            _this.state.unsavedChanges = true;
+            this.state.unsavedChanges = true;
           }
-        } else if (_this.selectedItem !== undefined) {
+        } else if (this.selectedItem !== undefined) {
           step.meta_data.position[0] += delta[0];
           step.meta_data.position[1] += delta[1];
 
-          _this.refManager.refs[step.uuid].updatePosition(
+          this.refManager.refs[step.uuid].updatePosition(
             step.meta_data.position
           );
 
           // note: state will be invalidated in mouseup event for view updating
-          _this.state.unsavedChanges = true;
+          this.state.unsavedChanges = true;
         }
 
-        _this.renderConnections(_this.connections);
-      } else if (_this.newConnection) {
-        let position = correctedPosition(
-          e.clientX,
-          e.clientY,
-          $(".pipeline-view")
-        );
+        this.renderConnections(this.connections);
+      } else if (this.newConnection) {
+        let pipelineStepHolderOffset = $(
+          this.refManager.refs.pipelineStepsHolder
+        ).offset();
 
-        _this.newConnection.xEnd = position.x;
-        _this.newConnection.yEnd = position.y;
-
-        _this.newConnection.render();
+        this.newConnection.xEnd =
+          this.scaleCorrectedPosition(e.clientX) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.left);
+        this.newConnection.yEnd =
+          this.scaleCorrectedPosition(e.clientY) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.top);
+        this.newConnection.render();
 
         // check for hovering over incoming-connections div
         if ($(e.target).hasClass("incoming-connections")) {
@@ -776,52 +803,50 @@ class PipelineView extends React.Component {
   }
 
   initializePipelineNavigationListeners() {
-    let _this = this;
-
     $(this.refManager.refs.pipelineStepsHolder).on(
       "mousedown",
       ".pipeline-step",
-      function (e) {
+      (e) => {
         if (e.button === 0) {
           if (!$(e.target).hasClass("connection-point")) {
             let stepUUID = $(e.currentTarget).attr("data-uuid");
-            _this.selectedItem = stepUUID;
+            this.selectedItem = stepUUID;
           }
         }
       }
     );
 
-    $(document).on("mouseup.initializePipeline", function (e) {
+    $(document).on("mouseup.initializePipeline", (e) => {
       let stepClicked = false;
 
-      if (_this.selectedItem !== undefined) {
-        let step = _this.state.steps[_this.selectedItem];
+      if (this.selectedItem !== undefined) {
+        let step = this.state.steps[this.selectedItem];
 
         if (!step.meta_data._dragged) {
           if (!e.ctrlKey) {
             stepClicked = true;
-            _this.refManager.refs[_this.selectedItem].props.onClick(
-              _this.selectedItem
+            this.refManager.refs[this.selectedItem].props.onClick(
+              this.selectedItem
             );
           } else {
             // if clicked step is not selected, select it on Ctrl+Mouseup
-            if (_this.state.selectedSteps.indexOf(_this.selectedItem) === -1) {
-              _this.state.selectedSteps = _this.state.selectedSteps.concat(
-                _this.selectedItem
+            if (this.state.selectedSteps.indexOf(this.selectedItem) === -1) {
+              this.state.selectedSteps = this.state.selectedSteps.concat(
+                this.selectedItem
               );
 
-              _this.setState({
-                selectedSteps: _this.state.selectedSteps,
+              this.setState({
+                selectedSteps: this.state.selectedSteps,
               });
             } else {
               // remove from selection
-              _this.state.selectedSteps.splice(
-                _this.state.selectedSteps.indexOf(_this.selectedItem),
+              this.state.selectedSteps.splice(
+                this.state.selectedSteps.indexOf(this.selectedItem),
                 1
               );
 
-              _this.setState({
-                selectedSteps: _this.state.selectedSteps,
+              this.setState({
+                selectedSteps: this.state.selectedSteps,
               });
             }
           }
@@ -832,65 +857,66 @@ class PipelineView extends React.Component {
       }
 
       // check if step needs to be selected based on selectedSteps
-      if (_this.state.stepSelector.active || _this.selectedItem !== undefined) {
-        if (_this.state.selectedSteps.length == 1 && !stepClicked) {
-          _this.selectStep(_this.state.selectedSteps[0]);
-        } else if (_this.state.selectedSteps.length > 1) {
+      if (this.state.stepSelector.active || this.selectedItem !== undefined) {
+        if (this.state.selectedSteps.length == 1 && !stepClicked) {
+          this.selectStep(this.state.selectedSteps[0]);
+        } else if (this.state.selectedSteps.length > 1) {
           // make sure single step detail view is closed
-          _this.closeDetailsView();
+          this.closeDetailsView();
 
           // show multistep view
-          _this.setState({
+          this.setState({
             openedMultistep: true,
           });
         }
       }
 
       // handle step selector
-      if (_this.state.stepSelector.active) {
+      if (this.state.stepSelector.active) {
         // on mouse up trigger onClick if single step is selected
         // (only if not triggered by clickEnd)
-        _this.state.stepSelector.active = false;
-        _this.setState({
-          stepSelector: _this.state.stepSelector,
+        this.state.stepSelector.active = false;
+        this.setState({
+          stepSelector: this.state.stepSelector,
         });
       }
 
-      if (e.button === 0 && _this.state.selectedSteps.length == 0) {
+      if (e.button === 0 && this.state.selectedSteps.length == 0) {
         // when space bar is held make sure deselection does not occur
         // on click (as it is a drag event)
 
         if (
-          (e.target === _this.refManager.refs.pipelineStepsOuterHolder ||
-            e.target === _this.refManager.refs.pipelineStepsHolder) &&
-          _this.keysDown[32] !== true
+          (e.target === this.refManager.refs.pipelineStepsOuterHolder ||
+            e.target === this.refManager.refs.pipelineStepsHolder) &&
+          this.keysDown[32] !== true
         ) {
-          if (_this.selectedConnection) {
-            _this.deselectConnection();
+          if (this.selectedConnection) {
+            this.deselectConnection();
           }
 
-          _this.deselectSteps();
+          this.deselectSteps();
         }
       }
 
-      // using timeouts to set global (_this) after all event listeners
+      // using timeouts to set global (this) after all event listeners
       // have processed.
       setTimeout(() => {
-        _this.selectedItem = undefined;
+        this.selectedItem = undefined;
 
-        if (_this.draggingPipeline) {
-          _this.draggingPipeline = false;
+        if (this.draggingPipeline) {
+          this.draggingPipeline = false;
         }
       }, 1);
-
-      // always force update (due to center button)
-      _this.forceUpdate();
     });
 
     $(this.refManager.refs.pipelineStepsHolder).on("mousedown", (e) => {
-      _this.prevPosition = [e.clientX, e.clientY];
+      this.prevPosition = [
+        this.scaleCorrectedPosition(e.clientX),
+        this.scaleCorrectedPosition(e.clientY),
+      ];
     });
 
+    let _this = this;
     $(this.refManager.refs.pipelineStepsHolder).on(
       "mousedown",
       "#path",
@@ -914,32 +940,32 @@ class PipelineView extends React.Component {
       }
     );
 
-    $(document).on("keydown.initializePipeline", function (e) {
+    $(document).on("keydown.initializePipeline", (e) => {
       if (e.keyCode == 72) {
-        _this.centerView();
+        this.centerView();
       }
 
-      _this.keysDown[e.keyCode] = true;
+      this.keysDown[e.keyCode] = true;
     });
 
-    $(document).on("keyup.initializePipeline", function (e) {
-      _this.keysDown[e.keyCode] = false;
+    $(document).on("keyup.initializePipeline", (e) => {
+      this.keysDown[e.keyCode] = false;
 
       if (e.keyCode) {
-        $(_this.refManager.refs.pipelineStepsOuterHolder).removeClass(
+        $(this.refManager.refs.pipelineStepsOuterHolder).removeClass(
           "dragging"
         );
         this.draggingPipeline = false;
       }
 
       if (e.keyCode === 27) {
-        if (_this.selectedConnection) {
-          _this.deselectConnection();
+        if (this.selectedConnection) {
+          this.deselectConnection();
         }
 
-        _this.deselectSteps();
+        this.deselectSteps();
 
-        _this.closeDetailsView();
+        this.closeDetailsView();
       }
     });
   }
@@ -949,6 +975,13 @@ class PipelineView extends React.Component {
     // this.state.steps is assumed to be populated
     // called after render, assumed dom elements are also available
     // (required by i.e. connections)
+
+    if (this.initializedPipeline) {
+      console.error("PipelineView component should only be initialized once.");
+      return;
+    } else {
+      this.initializedPipeline = true;
+    }
 
     // add all existing connections (this happens only at initialization)
     for (let key in this.state.steps) {
@@ -1319,12 +1352,116 @@ class PipelineView extends React.Component {
   }
 
   centerView() {
-    this.pipelineOffset[0] = 0;
-    this.pipelineOffset[1] = 0;
+    this.pipelineOffset[0] = this.INITIAL_PIPELINE_POSITION[0];
+    this.pipelineOffset[1] = this.INITIAL_PIPELINE_POSITION[1];
+    this.scaleFactor = 1;
 
-    this.renderBackground();
+    this.setPipelineHolderOrigin([0, 0]);
 
-    this.forceUpdate();
+    $(this.refManager.refs.pipelineStepsHolder).css({
+      left: 0,
+      top: 0,
+    });
+
+    this.renderPipelineHolder();
+  }
+
+  centerPipelineOrigin() {
+    let pipelineStepsOuterHolderJ = $(
+      this.refManager.refs.pipelineStepsOuterHolder
+    );
+    let pipelineStepsOuterHolderOffset = $(
+      this.refManager.refs.pipelineStepsOuterHolder
+    ).offset();
+    let pipelineStepsHolderOffset = $(
+      this.refManager.refs.pipelineStepsHolder
+    ).offset();
+
+    let centerOrigin = [
+      this.scaleCorrectedPosition(
+        pipelineStepsOuterHolderOffset.left -
+          pipelineStepsHolderOffset.left +
+          pipelineStepsOuterHolderJ.width() / 2
+      ),
+      this.scaleCorrectedPosition(
+        pipelineStepsOuterHolderOffset.top -
+          pipelineStepsHolderOffset.top +
+          pipelineStepsOuterHolderJ.height() / 2
+      ),
+    ];
+
+    this.setPipelineHolderOrigin(centerOrigin);
+  }
+
+  zoomOut() {
+    this.centerPipelineOrigin();
+    this.scaleFactor = Math.max(this.scaleFactor - 0.25, 0.25);
+    this.renderPipelineHolder();
+  }
+
+  zoomIn() {
+    this.centerPipelineOrigin();
+    this.scaleFactor = Math.min(this.scaleFactor + 0.25, 2);
+    this.renderPipelineHolder();
+  }
+
+  scaleCorrectedPosition(position) {
+    position /= this.scaleFactor;
+    return position;
+  }
+
+  setPipelineHolderOrigin(newOrigin) {
+    this.pipelineOrigin = newOrigin;
+
+    let pipelineStepsHolderOffset = $(
+      this.refManager.refs.pipelineStepsHolder
+    ).offset();
+
+    let pipelineStepsOuterHolderOffset = $(
+      this.refManager.refs.pipelineStepsOuterHolder
+    ).offset();
+
+    let initialX =
+      pipelineStepsHolderOffset.left - pipelineStepsOuterHolderOffset.left;
+    let initialY =
+      pipelineStepsHolderOffset.top - pipelineStepsOuterHolderOffset.top;
+
+    let translateXY = this.originTransformScaling(
+      [...this.pipelineOrigin],
+      this.scaleFactor
+    );
+    $(this.refManager.refs.pipelineStepsHolder).css({
+      left: translateXY[0] + initialX - this.pipelineOffset[0],
+      top: translateXY[1] + initialY - this.pipelineOffset[1],
+    });
+  }
+
+  onPipelineStepsOuterHolderWheel(e) {
+    let pipelineMousePosition = this.getMousePositionRelativeToPipelineStepHolder();
+
+    // set origin at scroll wheel trigger
+    if (
+      pipelineMousePosition[0] != this.pipelineOrigin[0] ||
+      pipelineMousePosition[1] != this.pipelineOrigin[1]
+    ) {
+      this.setPipelineHolderOrigin(pipelineMousePosition);
+    }
+
+    /* mouseWheel contains information about the deltaY variable
+     * WheelEvent.deltaMode can be:
+     * DOM_DELTA_PIXEL = 0x00
+     * DOM_DELTA_LINE = 0x01 (only used in Firefox)
+     * DOM_DELTA_PAGE = 0x02 (which we'll treat identically to DOM_DELTA_LINE)
+     */
+
+    let deltaY = e.nativeEvent.deltaY;
+    if (e.nativeEvent.deltaMode == 0x01 || e.nativeEvent.deltaMode == 0x02) {
+      deltaY = getScrollLineHeight() * deltaY;
+    }
+    this.scaleFactor -= deltaY / 3000;
+    this.scaleFactor = Math.min(Math.max(this.scaleFactor, 0.25), 2);
+
+    this.renderPipelineHolder();
   }
 
   runSelectedSteps() {
@@ -1567,49 +1704,69 @@ class PipelineView extends React.Component {
     }
   }
 
-  onPipelineStepsOuterHolderMove(e) {
-    if (this.state.stepSelector.active) {
-      let pipelineStepHolderOffset = $(
-        this.refManager.refs.pipelineStepsHolder
-      ).offset();
-
-      this.state.stepSelector.x2 = e.clientX - pipelineStepHolderOffset.left;
-      this.state.stepSelector.y2 = e.clientY - pipelineStepHolderOffset.top;
-
-      this.setState({
-        stepSelector: this.state.stepSelector,
-        selectedSteps: this.getSelectedSteps(),
-      });
-    }
-
-    if (this.draggingPipeline) {
-      let dx = e.nativeEvent.movementX;
-      let dy = e.nativeEvent.movementY;
-
-      this.pipelineOffset[0] -= dx / window.devicePixelRatio;
-      this.pipelineOffset[1] -= dy / window.devicePixelRatio;
-
-      this.renderBackground();
-    }
+  setPipelineHolderSize() {
+    // TODO: resize canvas based on pipeline size
+    $(this.refManager.refs.pipelineStepsHolder).css({
+      width:
+        $(this.refManager.refs.pipelineStepsOuterHolder).width() *
+        this.CANVAS_VIEW_MULTIPLE,
+      height:
+        $(this.refManager.refs.pipelineStepsOuterHolder).height() *
+        this.CANVAS_VIEW_MULTIPLE,
+    });
   }
 
-  renderBackground() {
+  getMousePositionRelativeToPipelineStepHolder() {
+    let pipelineStepsolderOffset = $(
+      this.refManager.refs.pipelineStepsHolder
+    ).offset();
+
+    return [
+      this.scaleCorrectedPosition(
+        this.mouseClientX - pipelineStepsolderOffset.left
+      ),
+      this.scaleCorrectedPosition(
+        this.mouseClientY - pipelineStepsolderOffset.top
+      ),
+    ];
+  }
+
+  originTransformScaling(origin, scaleFactor) {
+    /* By multiplying the transform-origin with the scaleFactor we get the right
+     * displacement for the transformed/scaled parent (pipelineStepHolder)
+     * that avoids visual displacement when the origin of the
+     * transformed/scaled parent is modified.
+     *
+     * the adjustedScaleFactor was derived by analysing the geometric behavior
+     * of applying the css transform: translate(...) scale(...);.
+     */
+
+    let adjustedScaleFactor = scaleFactor - 1;
+    origin[0] *= adjustedScaleFactor;
+    origin[1] *= adjustedScaleFactor;
+    return origin;
+  }
+
+  renderPipelineHolder() {
     $(this.refManager.refs.pipelineStepsHolder).css({
+      transformOrigin: `${this.pipelineOrigin[0]}px ${this.pipelineOrigin[1]}px`,
       transform:
         "translateX(" +
-        -this.pipelineOffset[0] +
-        "px) translateY(" +
-        -this.pipelineOffset[1] +
-        "px)",
-    });
-
-    $(this.refManager.refs.pipelineStepsOuterHolder).css({
-      backgroundPosition:
-        -this.pipelineOffset[0] + "px " + -this.pipelineOffset[1] + "px",
+        this.pipelineOffset[0] +
+        "px)" +
+        "translateY(" +
+        this.pipelineOffset[1] +
+        "px)" +
+        "scale(" +
+        this.scaleFactor +
+        ")",
     });
   }
 
   onPipelineStepsOuterHolderDown(e) {
+    this.mouseClientX = e.clientX;
+    this.mouseClientY = e.clientY;
+
     if (
       ($(e.target).hasClass("pipeline-steps-holder") ||
         $(e.target).hasClass("pipeline-steps-outer-holder")) &&
@@ -1623,16 +1780,51 @@ class PipelineView extends React.Component {
         let pipelineStepHolderOffset = $(".pipeline-steps-holder").offset();
 
         this.state.stepSelector.active = true;
-        this.state.stepSelector.x1 = e.clientX - pipelineStepHolderOffset.left;
-        this.state.stepSelector.y1 = e.clientY - pipelineStepHolderOffset.top;
-        this.state.stepSelector.x2 = e.clientX - pipelineStepHolderOffset.left;
-        this.state.stepSelector.y2 = e.clientY - pipelineStepHolderOffset.top;
+        this.state.stepSelector.x1 = this.state.stepSelector.x2 =
+          this.scaleCorrectedPosition(e.clientX) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.left);
+        this.state.stepSelector.y1 = this.state.stepSelector.y2 =
+          this.scaleCorrectedPosition(e.clientY) -
+          this.scaleCorrectedPosition(pipelineStepHolderOffset.top);
 
         this.setState({
           stepSelector: this.state.stepSelector,
           selectedSteps: this.getSelectedSteps(),
         });
       }
+    }
+  }
+
+  onPipelineStepsOuterHolderMove(e) {
+    this.mouseClientX = e.clientX;
+    this.mouseClientY = e.clientY;
+
+    if (this.state.stepSelector.active) {
+      let pipelineStepHolderOffset = $(
+        this.refManager.refs.pipelineStepsHolder
+      ).offset();
+
+      this.state.stepSelector.x2 =
+        this.scaleCorrectedPosition(e.clientX) -
+        this.scaleCorrectedPosition(pipelineStepHolderOffset.left);
+      this.state.stepSelector.y2 =
+        this.scaleCorrectedPosition(e.clientY) -
+        this.scaleCorrectedPosition(pipelineStepHolderOffset.top);
+
+      this.setState({
+        stepSelector: this.state.stepSelector,
+        selectedSteps: this.getSelectedSteps(),
+      });
+    }
+
+    if (this.draggingPipeline) {
+      let dx = e.nativeEvent.movementX;
+      let dy = e.nativeEvent.movementY;
+
+      this.pipelineOffset[0] += dx / window.devicePixelRatio;
+      this.pipelineOffset[1] += dy / window.devicePixelRatio;
+
+      this.renderPipelineHolder();
     }
   }
 
@@ -1644,10 +1836,6 @@ class PipelineView extends React.Component {
       height: Math.abs(this.state.stepSelector.y2 - this.state.stepSelector.y1),
     };
     return rect;
-  }
-
-  centerButtonDisabled() {
-    return this.pipelineOffset[0] == 0 && this.pipelineOffset[1] == 0;
   }
 
   render() {
@@ -1707,14 +1895,17 @@ class PipelineView extends React.Component {
     }
 
     return (
-      <div className={"pipeline-view"}>
-        <div className={"pane"}>
-          <div className={"pipeline-actions bottom-left"}>
-            <MDCButtonReact
-              disabled={this.centerButtonDisabled()}
-              onClick={this.centerView.bind(this)}
-              icon="crop_free"
-            />
+      <div className="pipeline-view">
+        <div className="pane">
+          <div className="pipeline-actions bottom-left">
+            <div className="navigation-buttons">
+              <MDCButtonReact
+                onClick={this.centerView.bind(this)}
+                icon="crop_free"
+              />
+              <MDCButtonReact onClick={this.zoomOut.bind(this)} icon="remove" />
+              <MDCButtonReact onClick={this.zoomIn.bind(this)} icon="add" />
+            </div>
             {(() => {
               if (
                 this.state.selectedSteps.length > 0 &&
@@ -1806,9 +1997,10 @@ class PipelineView extends React.Component {
             ref={this.refManager.nrefs.pipelineStepsOuterHolder}
             onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
             onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
+            onWheel={this.onPipelineStepsOuterHolderWheel.bind(this)}
           >
             <div
-              className={"pipeline-steps-holder"}
+              className="pipeline-steps-holder"
               ref={this.refManager.nrefs.pipelineStepsHolder}
             >
               {stepSelectorComponent}
