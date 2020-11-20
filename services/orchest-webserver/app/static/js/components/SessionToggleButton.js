@@ -54,55 +54,65 @@ class SessionToggleButton extends React.Component {
         session_details = result.sessions[0];
 
         if (session_details.status == "RUNNING") {
-          this.state.working = false;
-          this.state.running = true;
-          this.setState({
-            working: false,
-            running: true,
-            session_details,
-          });
+          this.setState(() => {
+            let working = false;
+            let running = true;
 
-          this.props.onSessionStateChange(
-            this.state.working,
-            this.state.running,
-            session_details
-          );
+            this.props.onSessionStateChange(working, running, session_details);
+
+            return {
+              working: working,
+              running: running,
+              session_details,
+            };
+          });
 
           clearInterval(this.sessionPollingInterval);
         } else if (session_details.status == "LAUNCHING") {
-          this.state.working = true;
-          this.state.running = false;
-          this.setState({
-            working: true,
-            running: false,
+          this.setState(() => {
+            let working = true;
+            let running = false;
+
+            this.props.onSessionStateChange(working, running);
+
+            return {
+              working: working,
+              running: running,
+            };
           });
-          this.props.onSessionStateChange(
-            this.state.working,
-            this.state.running
-          );
 
           this.initializeFetchSessionPolling();
         } else if (session_details.status == "STOPPING") {
-          this.state.working = true;
-          this.state.running = true;
-          this.setState({
-            working: true,
-            running: true,
-            session_details,
-          });
+          this.setState(() => {
+            let working = true;
+            let running = true;
 
-          this.initializeFetchSessionPolling();
+            this.state.working = working;
+            this.state.running = running;
+
+            this.initializeFetchSessionPolling();
+
+            return {
+              working: working,
+              running: running,
+              session_details,
+            };
+          });
         }
       } else {
-        this.state.working = false;
-        this.state.running = false;
-        this.setState({
-          working: false,
-          running: false,
-        });
-        this.props.onSessionStateChange(this.state.working, this.state.running);
+        this.setState(() => {
+          let working = false;
+          let running = false;
 
-        clearInterval(this.sessionPollingInterval);
+          this.props.onSessionStateChange(working, running);
+
+          clearInterval(this.sessionPollingInterval);
+
+          return {
+            working: working,
+            running: running,
+          };
+        });
       }
 
       this.props.onSessionFetch(session_details);
