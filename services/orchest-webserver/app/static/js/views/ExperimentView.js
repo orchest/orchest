@@ -124,6 +124,14 @@ class ExperimentView extends React.Component {
   }
 
   onDetailPipelineView(pipelineRun) {
+    if (pipelineRun.status == "PENDING") {
+      orchest.alert(
+        "Error",
+        "This pipeline is still pending. Please wait until pipeline run has started."
+      );
+      return;
+    }
+
     orchest.loadView(PipelineView, {
       pipelineRun: pipelineRun,
       pipeline_uuid: pipelineRun.pipeline_uuid,
