@@ -57,6 +57,22 @@ under *Manage users*.
 To enable user authentication in Orchest the ``AUTH_ENABLED`` config option has to be set to
 ``true``. Please refer to the :ref:`configuration <configuration>` section above to read how.
 
+Skipping notebook cells
+-----------------------
+Notebooks facilitate an experimental workflow, meaning that there will be cells that should not be
+run when executing the notebook (from top to bottom). Since :ref:`pipeline runs <pipeline run>`
+require your notebooks to be executable Orchest provides an (already installed JupyterLab) extension
+to skip those cells.
+
+To skip a cell during pipeline runs:
+
+1. Open JupyterLab.
+2. Go to the *Property Inspector*, this is the icon with the two gears all the way at the right.
+3. Select the cell you want to skip and give it a tag of: *skip*.
+
+The cells with the *skip* tag are still runnable through JupyterLab, but when executing these
+notebooks as part of pipelines in Orchest they will not be run.
+
 Tips and tricks
 ---------------
 * Hold down ``<Space>`` inside the pipeline editor to drag the canvas (similar to design tools such
