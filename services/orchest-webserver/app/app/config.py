@@ -23,6 +23,8 @@ class Config:
     DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
+    # TODO: point readthedocs to stable instead of latest once stable
+    #  is up
     HELP_MENU_CONTENT = {
         "slack": "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
         "readthedocs": "https://orchest.readthedocs.io/en/latest/",
