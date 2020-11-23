@@ -37,7 +37,7 @@ first.
 
 Build from source
 -----------------
-You should expect the build to finish in roughly 25 minutes.
+You should expect the build to finish in roughly 15 minutes.
 
 .. code-block:: bash
 

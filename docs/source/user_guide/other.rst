@@ -6,10 +6,8 @@ Other
 Configuration
 -------------
 
-.. TODO(yannick)
-   Put this section back once we have the "Pipeline level configurations" section
-.. Global configurations
-.. ~~~~~~~~~~~~~~~~~~~~~
+Global configurations
+~~~~~~~~~~~~~~~~~~~~~
 
 Orchest stores a global configuration file at ``~/.config/orchest/config.json`` (trying to adhere to
 ``XDG_CONFIG_HOME``). The content of the file can be changed from within in the UI through *Settings*.
@@ -26,9 +24,13 @@ Example content:
 
 Explanation of possible configuration settings:
 
-* ``TELEMETRY_UUID``. UUID to track usage across user sessions.
-* ``TELEMETRY_DISABLED``. Option to disable telemetry completely.
-* ``AUTH_ENABLED``. Enable authentication, see :ref:`authentication <authentication>`.
+``TELEMETRY_UUID``
+    UUID to track usage across user sessions.
+``TELEMETRY_DISABLED``
+    Option to disable telemetry completely.
+
+``AUTH_ENABLED``
+    Enable authentication, see :ref:`authentication <authentication>`.
 
 .. note::
    We do not use any third-party to track telemetry, see what telemetry we track and how in `our
@@ -37,15 +39,24 @@ Explanation of possible configuration settings:
    All telemetry is completely anonymized through your ``TELEMETRY_UUID``, and we do not store any
    IP information either on our servers.
 
-.. Pipeline level configurations
-.. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. TODO(yannick)
-   * We first need to add eviction setting through the UI
-   How to enable eviction and some info:
-   Since memory resources are scarce we have implemented a custom eviction manager when passing data
-   through memory.  Without it, objects do not get evicted from memory
-   (even when an object has no reference) which will eventually lead to the memory reaching its
-   maximum capacity leaving no room for new data.
+Pipeline level configurations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+There are also configuration options per pipeline that can be set through the UI by opening a
+pipeline and going to its *Settings* in the top right corner. This will add the following JSON block
+to the corresponding pipeline definition:
+
+.. code-block:: text
+
+   "settings": {
+     "auto_eviction": true
+   }
+
+``auto_eviction``
+    When sending data between pipeline steps through memory all the data is by default kept in
+    memory, only overwriting an object if the same pipeline step passes data again. To free memory
+    you can either *Clear memory* through the pipeline settings or enable auto eviction. Auto
+    eviction will make sure objects are evicted once all depending steps have obtained the data.
+
 
 .. _authentication:
 
@@ -77,5 +88,7 @@ Tips and tricks
 ---------------
 * Hold down ``<Space>`` inside the pipeline editor to drag the canvas (similar to design tools such
   as Sketch).
+* To select a specific selection of pipeline steps: hold ``<Ctrl>`` and click on  pipeline steps you
+  want to select.
 * On your host machine, in the terminal, run :code:`docker ps -f network=orchest` to see all the
   containers that Orchest is running.

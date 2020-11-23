@@ -30,7 +30,6 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    :caption: Getting started
 
    getting_started/overview
-   getting_started/orientation
    getting_started/installation
    getting_started/starting_orchest
    getting_started/quickstart
@@ -41,11 +40,12 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    :maxdepth: 1
    :caption: User guide
 
+   user_guide/how_orchest_works
    user_guide/data_passing
-   user_guide/sdk/index
    user_guide/environments
    user_guide/experiments
    user_guide/data_sources
+   user_guide/sdk/index
    user_guide/other
    user_guide/glossary
 
