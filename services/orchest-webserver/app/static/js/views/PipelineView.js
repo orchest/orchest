@@ -1983,8 +1983,13 @@ class PipelineView extends React.Component {
                 </div>
               );
             } else {
+              // maintain the look and feel of actually using a <button>
+              // tag but make it "disabled" through the inline styling
               return (
-                <div className={"pipeline-actions"}>
+                <div
+                  className={"pipeline-actions"}
+                  style={{ pointerEvents: "none", cursor: "default" }}
+                >
                   <MDCButtonReact
                     classNames={"mdc-button--outlined"}
                     label={"Read only"}
