@@ -18,13 +18,11 @@ swarm_mode = bool(os.getenv("EG_DOCKER_MODE", "swarm").lower() == "swarm")
 
 
 def get_volume_mount(pipeline_uuid, project_uuid):
-    return Mount(
-        target=_config.TEMP_DIRECTORY_PATH,
-        source=_config.TEMP_VOLUME_NAME.format(
-            uuid=pipeline_uuid, project_uuid=project_uuid
-        ),
-        type="volume",
+    target = _config.TEMP_DIRECTORY_PATH
+    source = _config.TEMP_VOLUME_NAME.format(
+        uuid=pipeline_uuid, project_uuid=project_uuid
     )
+    return source, {"bind": target, "mode": "rw"}
 
 
 def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
@@ -119,12 +117,11 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
             project_dir=param_env.get("KERNEL_WORKING_DIR"),
             host_project_dir=param_env.get("ORCHEST_HOST_PROJECT_DIR"),
         )
-        orchest_mounts += [
-            get_volume_mount(
-                param_env.get("ORCHEST_PIPELINE_UUID"),
-                param_env.get("ORCHEST_PROJECT_UUID"),
-            )
-        ]
+        volume_source, volume_spec = get_volume_mount(
+            param_env.get("ORCHEST_PIPELINE_UUID"),
+            param_env.get("ORCHEST_PROJECT_UUID"),
+        )
+        orchest_mounts[volume_source] = volume_spec
 
         # Extract environment_uuid from the image name (last 36 characters)
         extracted_environment_uuid = image_name[-36:]
@@ -134,7 +131,10 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         )
 
         kernel_container = client.containers.run(
-            image_name, mounts=orchest_mounts, device_requests=device_requests, **kwargs
+            image_name,
+            volumes=orchest_mounts,
+            device_requests=device_requests,
+            **kwargs
         )
 
 

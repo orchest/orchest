@@ -1,4 +1,6 @@
+import os
 from typing import Optional
+import warnings
 
 from requests.exceptions import HTTPError
 from sqlalchemy import create_engine
@@ -166,7 +168,19 @@ class HostDirectory:
     """
 
     def __init__(self, data):
-        self.path = "/mounts/" + data["name"]
+        self._path = "/mounts/" + data["name"]
+
+    @property
+    def path(self):
+        if not os.listdir(self._path):
+            msg = (
+                "This directory appears to be empty, are you sure you have not"
+                " mistyped the absolute host directory path when creating this"
+                " data source? If so, please ignore this warning."
+            )
+            warnings.warn(msg, category=UserWarning)
+
+        return self._path
 
 
 # TODO: could extend this class. Could create multiple classes that
