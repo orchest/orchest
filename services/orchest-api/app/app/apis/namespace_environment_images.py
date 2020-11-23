@@ -108,6 +108,7 @@ class ProjectEnvironmentDanglingImages(Resource):
         # consider only docker ids related to the environment_uuid
         filters = {
             "label": [
+                f"_orchest_env_build_is_intermediate=0",
                 f"_orchest_project_uuid={project_uuid}",
                 f"_orchest_environment_uuid={environment_uuid}",
             ]

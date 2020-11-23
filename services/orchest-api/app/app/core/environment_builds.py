@@ -172,7 +172,7 @@ def build_docker_image(
 
 
 def write_environment_dockerfile(
-    base_image, project_uuid, env_uuid, work_dir, bash_script, flag, path
+    base_image, task_uuid, project_uuid, env_uuid, work_dir, bash_script, flag, path
 ):
     """Write a custom dockerfile with the given specifications. This dockerfile is built in an ad-hoc way
      to later be able to only log stuff related to the user script.
@@ -181,6 +181,7 @@ def write_environment_dockerfile(
 
     Args:
         base_image: Base image of the docker file.
+        task_uuid:
         project_uuid:
         env_uuid:
         work_dir: Working directory.
@@ -195,6 +196,7 @@ def write_environment_dockerfile(
     statements.append(f"FROM {base_image}")
     # use this to cleanup in case of failure
     statements.append("LABEL _orchest_env_build_is_intermediate=1")
+    statements.append(f"LABEL _orchest_env_build_task_uuid={task_uuid}")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
     statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
 
@@ -316,6 +318,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         bash_script_name = f".{dockerfile_name}.sh"
         write_environment_dockerfile(
             environment_properties["base_image"],
+            task_uuid,
             project_uuid,
             environment_uuid,
             _config.PROJECT_DIR,
@@ -412,8 +415,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             filters = {
                 "label": [
                     "_orchest_env_build_is_intermediate=1",
-                    f"_orchest_project_uuid={project_uuid}",
-                    f"_orchest_environment_uuid={environment_uuid}",
+                    f"_orchest_env_build_task_uuid={task_uuid}",
                 ]
             }
 
