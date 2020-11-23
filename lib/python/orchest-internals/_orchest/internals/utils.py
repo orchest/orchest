@@ -10,7 +10,8 @@ from docker.types import DeviceRequest, Mount
 
 def get_mount(source, target, form="docker-sdk"):
     if form == "docker-sdk":
-        return Mount(source=source, target=target, type="bind")
+        # return Mount(source=source, target=target, type="bind")
+        return {source: {"bind": target, "mode": "rw"}}
     elif form == "docker-engine":
         return f"{source}:{target}"
 
@@ -89,13 +90,22 @@ def get_environment_capabilities(environment_uuid, project_uuid):
 def get_orchest_mounts(project_dir, host_project_dir, mount_form="docker-sdk"):
     """
     Prepare all mounts that are needed to run Orchest.
+
+    Args:
+        mount_form: One of "docker-sdk" or "docker-engine". The former
+            is used for the "docker-py" package and the latter for
+            "aiodocker".
+
     """
 
     project_dir_mount = get_mount(
         source=host_project_dir, target=project_dir, form=mount_form
     )
 
-    mounts = [project_dir_mount]
+    if mount_form == "docker-sdk":
+        mounts = project_dir_mount
+    else:
+        mounts = [project_dir_mount]
 
     # Mounts for datasources.
     try:
@@ -119,12 +129,15 @@ def get_orchest_mounts(project_dir, host_project_dir, mount_form="docker-sdk"):
             else:
                 target_path = "/mounts/%s" % datasource["name"]
 
-            mounts.append(
-                get_mount(
-                    target=target_path,
-                    source=datasource["connection_details"]["absolute_host_path"],
-                    form=mount_form,
-                )
+            source = datasource["connection_details"]["absolute_host_path"]
+            mount = get_mount(
+                source=source,
+                target=target_path,
+                form=mount_form,
             )
+            if mount_form == "docker-sdk":
+                mounts[source] = mount[source]
+            else:
+                mounts.append(mount)
 
     return mounts
