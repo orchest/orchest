@@ -2,15 +2,13 @@ import docker
 import os
 import uuid
 import requests
-import urllib.parse
 import logging
 
-from docker.types import DeviceRequest, Mount
+from docker.types import DeviceRequest
 
 
 def get_mount(source, target, form="docker-sdk"):
     if form == "docker-sdk":
-        # return Mount(source=source, target=target, type="bind")
         return {source: {"bind": target, "mode": "rw"}}
     elif form == "docker-engine":
         return f"{source}:{target}"
@@ -81,7 +79,7 @@ def get_environment_capabilities(environment_uuid, project_uuid):
 
     environment = response.json()
 
-    if environment["gpu_support"] == True:
+    if environment["gpu_support"]:
         capabilities += ["gpu", "utility", "compute"]
 
     return capabilities
