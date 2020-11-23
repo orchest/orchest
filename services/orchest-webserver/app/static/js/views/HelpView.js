@@ -5,12 +5,13 @@ class HelpView extends React.Component {
     super(props);
 
     this.state = {
-      slack: orchest.config.HELP_MENU_CONTENT.slack,
-      readthedocs: orchest.config.HELP_MENU_CONTENT.readthedocs,
-      readthedocks_quickstart:
-        orchest.config.HELP_MENU_CONTENT.readthedocks_quickstart,
-      github: orchest.config.HELP_MENU_CONTENT.github,
-      website: orchest.config.HELP_MENU_CONTENT.website,
+      readthedocs_quickstart_url:
+        orchest.config.ORCHEST_WEB_URLS.readthedocs +
+        "/getting_started/quickstart.html",
+      readthedocs_url: orchest.config.ORCHEST_WEB_URLS.readthedocs,
+      slack_url: orchest.config.ORCHEST_WEB_URLS.slack,
+      github_url: orchest.config.ORCHEST_WEB_URLS.github,
+      website_url: orchest.config.ORCHEST_WEB_URLS.website,
     };
   }
 
@@ -26,26 +27,26 @@ class HelpView extends React.Component {
         <li className="mdc-list">
           <a
             className="mdc-list-item"
-            href={this.state.readthedocks_quickstart}
+            href={this.state.readthedocs_quickstart_url}
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="public/image/readthedocs.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Quickstart</span>
           </a>
-          <a className="mdc-list-item" href={this.state.readthedocs}>
+          <a className="mdc-list-item" href={this.state.readthedocs_url}>
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="public/image/readthedocs.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Documentation</span>
           </a>
-          <a className="mdc-list-item" href={this.state.slack}>
+          <a className="mdc-list-item" href={this.state.slack_url}>
             <i className="mdc-list-item__graphic" aria-hidden="true">
-              <img src="public/image/slack.png" width="200%" />
+              <img src="public/image/slack.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Slack</span>
           </a>
-          <a className="mdc-list-item" href={this.state.github}>
+          <a className="mdc-list-item" href={this.state.github_url}>
             {/* <i className="material-icons mdc-list-item__graphic" aria-hidden="true"
               >info</i
             > */}
@@ -54,11 +55,13 @@ class HelpView extends React.Component {
             </i>
             <span className="mdc-list-item__text">GitHub</span>
           </a>
-          <a className="mdc-list-item" href={this.state.website}>
+          <a className="mdc-list-item" href={this.state.website_url}>
             <i className="mdc-list-item__graphic" aria-hidden="true">
-              <img src="public/image/favicon.png" width="150%" />
+              <img src="public/image/favicon.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">{this.state.website}</span>
+            <span className="mdc-list-item__text">
+              {this.state.website_url}
+            </span>
           </a>
         </li>
       </div>
