@@ -10,6 +10,9 @@ Orchest
 -- `GitHub <http://www.github.com/orchest/orchest>`_
 -- `Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_
 
+.. tip::
+   👉 Get started with the :ref:`overview <overview>` to see Orchest's key features!
+
 Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
 your models on the cloud without any knowledge of cloud infrastructure.
 
