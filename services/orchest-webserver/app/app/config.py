@@ -23,6 +23,14 @@ class Config:
     DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
+    HELP_MENU_CONTENT = {
+        "slack": "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
+        "readthedocs": "https://orchest.readthedocs.io/en/latest/",
+        "readthedocks_quickstart": "https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html",
+        "github": "https://github.com/orchest/orchest",
+        "website": "https://www.orchest.io",
+    }
+
     ENVIRONMENT_DEFAULTS = {
         "name": "",
         "language": "python",
