@@ -57,6 +57,7 @@ from app.schemas import (
     BackgroundTaskSchema,
 )
 from app.kernel_manager import populate_kernels
+from app.analytics import send_anonymized_pipeline_definition
 from app.views.orchest_api import api_proxy_environment_builds
 from _orchest.internals.utils import run_orchest_ctl
 from _orchest.internals import config as _config
@@ -626,7 +627,12 @@ def register_views(app, db):
         )
         css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
 
-        front_end_config = ["DOCS_ROOT", "FLASK_ENV", "ENVIRONMENT_DEFAULTS"]
+        front_end_config = [
+            "DOCS_ROOT",
+            "FLASK_ENV",
+            "ENVIRONMENT_DEFAULTS",
+            "TELEMETRY_DISABLED",
+        ]
 
         front_end_config_internal = ["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"]
 
@@ -1178,6 +1184,9 @@ def register_views(app, db):
 
             with open(pipeline_json_path, "w") as json_file:
                 json_file.write(json.dumps(pipeline_json, indent=2))
+
+            # Analytics call
+            send_anonymized_pipeline_definition(app, pipeline_json)
 
             return jsonify({"message": "Successfully saved pipeline."})
 

@@ -9,6 +9,8 @@ from app.utils import (
     get_environments,
 )
 
+from app.analytics import send_pipeline_run
+
 
 def api_proxy_environment_builds(environment_build_requests, orchest_api_address):
     """
@@ -131,6 +133,14 @@ def register_orchest_api_views(app, db):
                 ),
             }
 
+            # Analytics call
+            send_pipeline_run(
+                app,
+                f"{json_obj['project_uuid']}-{json_obj['pipeline_definition']['uuid']}",
+                get_project_directory(json_obj["project_uuid"]),
+                "interactive",
+            )
+
             resp = requests.post(
                 "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
                 json=json_obj,
@@ -151,6 +161,38 @@ def register_orchest_api_views(app, db):
 
             return resp.raw.read(), resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
+    def catch_api_proxy_experiments_post():
+
+        json_obj = request.json
+
+        json_obj["pipeline_run_spec"]["run_config"] = {
+            "host_user_dir": app.config["HOST_USER_DIR"],
+            "project_dir": get_project_directory(
+                json_obj["project_uuid"], host_path=True
+            ),
+            "pipeline_path": pipeline_uuid_to_path(
+                json_obj["pipeline_uuid"],
+                json_obj["project_uuid"],
+            ),
+        }
+
+        # Analytics call
+        send_pipeline_run(
+            app,
+            f"{json_obj['project_uuid']}-{json_obj['pipeline_uuid']}",
+            get_project_directory(json_obj["project_uuid"]),
+            "noninteractive",
+        )
+
+        resp = requests.post(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/",
+            json=json_obj,
+            stream=True,
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
     def catch_api_proxy_sessions():
 
@@ -169,30 +211,6 @@ def register_orchest_api_views(app, db):
 
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
-            json=json_obj,
-            stream=True,
-        )
-
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-    @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
-    def catch_api_proxy_experiments_post():
-
-        json_obj = request.json
-
-        json_obj["pipeline_run_spec"]["run_config"] = {
-            "host_user_dir": app.config["HOST_USER_DIR"],
-            "project_dir": get_project_directory(
-                json_obj["project_uuid"], host_path=True
-            ),
-            "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_uuid"],
-                json_obj["project_uuid"],
-            ),
-        }
-
-        resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/",
             json=json_obj,
             stream=True,
         )

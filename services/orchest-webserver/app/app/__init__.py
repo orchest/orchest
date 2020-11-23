@@ -16,6 +16,7 @@ import uuid
 import atexit
 import contextlib
 import subprocess
+import posthog
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
@@ -26,6 +27,7 @@ from subprocess import Popen
 from app.views.core import register_views
 from app.views.orchest_api import register_orchest_api_views
 from app.views.background_tasks import register_background_tasks_view
+from app.views.analytics import register_analytics_views
 from app.socketio_server import register_socketio_broadcast
 from app.models import DataSource
 from app.connections import db, ma
@@ -112,23 +114,14 @@ def create_app():
     # according to SQLAlchemy will only create tables if they do not exist
     with app.app_context():
         db.create_all()
-
         initialize_default_datasources(db, app)
 
-    # static file serving
-    @app.route("/public/<path:path>")
-    def send_files(path):
-        return send_from_directory("../static", path)
+    # Telemetry
+    if not app.config["TELEMETRY_DISABLED"]:
+        # initialize posthog
+        posthog.api_key = app.config["POSTHOG_API_KEY"]
+        posthog.host = app.config["POSTHOG_HOST"]
 
-    register_views(app, db)
-    register_orchest_api_views(app, db)
-    register_background_tasks_view(app, db)
-    register_socketio_broadcast(db, socketio)
-
-    if (
-        "TELEMETRY_DISABLED" not in app.config
-        and os.environ.get("FLASK_ENV") != "development"
-    ):
         # create thread for analytics
         scheduler = BackgroundScheduler()
 
@@ -143,6 +136,17 @@ def create_app():
             args=[app],
         )
         scheduler.start()
+
+    # static file serving
+    @app.route("/public/<path:path>")
+    def send_files(path):
+        return send_from_directory("../static", path)
+
+    register_views(app, db)
+    register_orchest_api_views(app, db)
+    register_background_tasks_view(app, db)
+    register_socketio_broadcast(db, socketio)
+    register_analytics_views(app, db)
 
     processes = []
 

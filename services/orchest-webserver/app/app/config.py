@@ -23,6 +23,9 @@ class Config:
     DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
+    POSTHOG_API_KEY = "syziN0hHpxHABt4PtrOAqFmb_np-v0jtC4IHjvBgZp0"
+    POSTHOG_HOST = "https://analytics.orchestapp.com"
+
     ENVIRONMENT_DEFAULTS = {
         "name": "",
         "language": "python",
@@ -37,6 +40,7 @@ class Config:
 
     DEBUG = True
 
+    TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
 
     if DEBUG:
