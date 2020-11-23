@@ -125,6 +125,31 @@ run_build () {
 
 }
 
+function cleanup() {
+    # build context clean up
+    echo "Cleanup up build contexts..."
+    D=0
+    for i in "${CLEANUP_BUILD_CTX[@]}"
+    do
+        image=${CLEANUP_IMAGES[$D]}
+
+        if ! [ -z "$i" ]; then
+
+            # silent fail because build context can be shared and cleanup can already have happend
+            if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
+                rm -r $i/lib 2> /dev/null
+            fi
+            if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
+                rm -r $i/orchest-sdk 2> /dev/null
+            fi
+            rm $i/.dockerignore 2> /dev/null
+        fi
+        D=$(expr $D + 1)
+    done
+}
+
+trap cleanup SIGINT
+
 # Build the images.
 for IMG in ${IMGS[@]}
 do
@@ -308,27 +333,7 @@ done
 
 wait < <(jobs -p)
 
-# build context clean up
-echo "Cleanup up build contexts..."
-D=0
-for i in "${CLEANUP_BUILD_CTX[@]}"
-do
-    image=${CLEANUP_IMAGES[$D]}
-
-    if ! [ -z "$i" ]; then
-
-        # silent fail because build context can be shared and cleanup can already have happend
-        if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
-            rm -r $i/lib 2> /dev/null
-        fi
-        if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
-            rm -r $i/orchest-sdk 2> /dev/null
-        fi
-        rm $i/.dockerignore 2> /dev/null
-    fi
-    D=$(expr $D + 1)
-done
-# build context cleanup end
+cleanup
 
 echo "[Done]!"
 
