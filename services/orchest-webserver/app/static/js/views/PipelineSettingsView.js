@@ -41,6 +41,18 @@ class PipelineSettingsView extends React.Component {
 
       if (result.success) {
         let pipelineJson = JSON.parse(result["pipeline_json"]);
+
+        // as settings are optional, populate defaults if no values exist
+        if (pipelineJson.settings === undefined) {
+          pipelineJson.settings = {};
+        }
+        if (pipelineJson.settings.auto_eviction === undefined) {
+          pipelineJson.settings.auto_eviction = false;
+        }
+        if (pipelineJson.settings.data_passing_memory_size === undefined) {
+          pipelineJson.settings.data_passing_memory_size = "1GB";
+        }
+
         this.setState({ pipelineJson: pipelineJson });
       } else {
         console.warn("Could not load pipeline.json");
@@ -61,13 +73,18 @@ class PipelineSettingsView extends React.Component {
   onChangeName(value) {
     this.state.pipelineJson.name = value;
   }
+
+  onChangeDataPassingMemorySize(value) {
+    this.state.pipelineJson.settings.data_passing_memory_size = value;
+  }
+
   onChangeEviction(value) {
     // create settings object if it doesn't exist
     if (!this.state.pipelineJson.settings) {
       this.state.pipelineJson.settings = {};
     }
 
-    this.state.pipelineJson.settings.auto_eviction = value == true;
+    this.state.pipelineJson.settings.auto_eviction = value;
   }
 
   saveGeneralForm(e) {
@@ -154,16 +171,36 @@ class PipelineSettingsView extends React.Component {
                       classNames={["push-down"]}
                     />
 
+                    <h3>Data passing</h3>
+
                     <MDCCheckboxReact
-                      value={
-                        this.state.pipelineJson.settings
-                          ? this.state.pipelineJson.settings.auto_eviction ==
-                            true
-                          : false
-                      }
+                      value={this.state.pipelineJson.settings.auto_eviction}
                       onChange={this.onChangeEviction.bind(this)}
                       label="Automatic memory eviction"
+                      classNames={["push-down", "push-up"]}
                     />
+
+                    <MDCTextFieldReact
+                      ref={
+                        this.refManager.nrefs
+                          .pipelineSettingDataPassingMemorySizeTextField
+                      }
+                      value={
+                        this.state.pipelineJson.settings
+                          .data_passing_memory_size
+                      }
+                      onChange={this.onChangeDataPassingMemorySize.bind(this)}
+                      label="Data passing memory size"
+                    />
+                    <p className="push-up">
+                      Change the size of the memory server for data passing. For
+                      units use KB, MB, or GB. E.g.{" "}
+                      <span className="code">1GB</span>.<br />
+                      <br />
+                      <i>
+                        Changing this setting requires restarting the session.
+                      </i>
+                    </p>
                   </div>
 
                   <MDCButtonReact

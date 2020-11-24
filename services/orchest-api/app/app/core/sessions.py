@@ -297,8 +297,8 @@ class InteractiveSession(Session):
             project_uuid,
             pipeline_path,
             project_dir,
-            host_userdir,
             data_passing_memory_size,
+            host_userdir,
         )
 
         IP = self.get_containers_IP()
