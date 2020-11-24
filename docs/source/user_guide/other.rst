@@ -48,7 +48,8 @@ to the corresponding pipeline definition:
 .. code-block:: text
 
    "settings": {
-     "auto_eviction": true
+     "auto_eviction": true,
+     "data_passing_memory_size": "1GB"
    }
 
 ``auto_eviction``
@@ -56,6 +57,12 @@ to the corresponding pipeline definition:
     memory, only overwriting an object if the same pipeline step passes data again. To free memory
     you can either *Clear memory* through the pipeline settings or enable auto eviction. Auto
     eviction will make sure objects are evicted once all depending steps have obtained the data.
+
+``data_passing_memory_size``
+    The size of the memory for data passing. All objects that are passed between steps are by
+    default stored in memory (you can also explicitly use :meth:`orchest.transfer.output_to_disk`)
+    and thus it is recommended to choose an appropriate size for you application. Values have to be
+    strings formatted as floats with a unit of ``GB``, ``MB`` or ``KB``, e.g. ``"5.4GB"``.
 
 
 .. _authentication:
