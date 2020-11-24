@@ -24,6 +24,7 @@ class Config:
 
     POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
     POSTHOG_HOST = "https://analytics.orchestapp.com"
+
     # TODO: point readthedocs to stable instead of latest once stable
     #  is up
     ORCHEST_WEB_URLS = {

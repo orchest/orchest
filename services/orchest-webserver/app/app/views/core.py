@@ -629,7 +629,6 @@ def register_views(app, db):
         css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
 
         front_end_config = [
-            "DOCS_ROOT",
             "FLASK_ENV",
             "TELEMETRY_DISABLED",
             "ENVIRONMENT_DEFAULTS",
