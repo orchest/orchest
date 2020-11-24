@@ -101,6 +101,8 @@ function Orchest() {
 
   this.loadView = function (TagName, dynamicProps) {
     let viewName = this.componentName(TagName);
+
+    // Analytics call
     this.sendEvent("view load", { name: viewName });
 
     // make sure reactRoot is not hidden
@@ -173,11 +175,13 @@ function Orchest() {
   let dialogs = ReactDOM.render(<Dialogs />, this.dialogHolder);
 
   this.alert = function (title, content) {
+    // Analytics call
     this.sendEvent("alert show", { title: title, content: content });
 
     dialogs.alert(title, content);
   };
   this.confirm = function (title, content, cb) {
+    // Analytics call
     this.sendEvent("confirm show", { title: title, content: content });
 
     dialogs.confirm(title, content, cb);
