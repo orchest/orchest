@@ -95,17 +95,18 @@ class ExperimentList extends React.Component {
   }
 
   onDeleteClick() {
+    // get experiment selection
+    let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
+
+    if (selectedRows.length == 0) {
+      orchest.alert("Error", "You haven't selected any experiments.");
+      return;
+    }
+
     orchest.confirm(
       "Warning",
       "Are you sure you want to delete these experiments? (This cannot be undone.)",
       () => {
-        // get experiment selection
-        let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
-
-        if (selectedRows.length == 0) {
-          return;
-        }
-
         // delete indices
         let promises = [];
 
