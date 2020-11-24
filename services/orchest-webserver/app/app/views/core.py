@@ -803,7 +803,10 @@ def register_views(app, db):
                 "name": request.json["name"],
                 "version": "1.0.0",
                 "uuid": pipeline_uuid,
-                "settings": {"auto_eviction": False},
+                "settings": {
+                    "auto_eviction": False,
+                    "data_passing_memory_size": "1GB",
+                },
                 "steps": {},
             }
 

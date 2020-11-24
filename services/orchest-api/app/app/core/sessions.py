@@ -1,17 +1,17 @@
 from abc import abstractmethod
 from contextlib import contextmanager
-import logging
-import sys
-import time
 from typing import Dict, NamedTuple, Optional, Union
 from uuid import uuid4
+import logging
 import os
+import sys
+import time
 
 from docker.types import Mount
 import requests
 
+from app import utils
 from _orchest.internals import config as _config
-from app.utils import shutdown_jupyter_server
 
 
 # TODO: logging should probably be done toplevel instead of here.
@@ -128,6 +128,7 @@ class Session:
         project_uuid: str,
         pipeline_path: str,
         project_dir: str,
+        data_passing_memory_size: int,
         host_userdir: Optional[str] = None,
     ) -> None:
         """Launches pre-configured resources.
@@ -143,11 +144,18 @@ class Session:
             pipeline_path: Path to pipeline file (relative to project_dir).
             project_dir: Path to project directory.
             host_userdir: Path to the userdir on the host
+            data_passing_memory_size: Size for the "memory-server".
 
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
         container_specs = _get_container_specs(
-            uuid, project_uuid, pipeline_path, project_dir, host_userdir, self.network
+            uuid,
+            project_uuid,
+            pipeline_path,
+            project_dir,
+            host_userdir,
+            self.network,
+            data_passing_memory_size,
         )
         for resource in self._resources:
             container = self.client.containers.run(**container_specs[resource])
@@ -272,6 +280,7 @@ class InteractiveSession(Session):
         project_uuid: str,
         pipeline_path: str,
         project_dir: str,
+        data_passing_memory_size: int,
         host_userdir: str,
     ) -> None:
         """Launches the interactive session.
@@ -284,7 +293,12 @@ class InteractiveSession(Session):
 
         """
         super().launch(
-            pipeline_uuid, project_uuid, pipeline_path, project_dir, host_userdir
+            pipeline_uuid,
+            project_uuid,
+            pipeline_path,
+            project_dir,
+            host_userdir,
+            data_passing_memory_size,
         )
 
         IP = self.get_containers_IP()
@@ -331,7 +345,7 @@ class InteractiveSession(Session):
         # server have been shut down.
         IP = self.get_containers_IP()
 
-        shutdown_jupyter_server(
+        utils.shutdown_jupyter_server(
             f"http://{IP.jupyter_server}:8888{self._notebook_server_info['base_url']}/"
         )
 
@@ -378,6 +392,7 @@ class NonInteractiveSession(Session):
         project_uuid: str,
         pipeline_path: str,
         project_dir: str,
+        data_passing_memory_size: int,
     ) -> None:
         """
 
@@ -399,7 +414,9 @@ class NonInteractiveSession(Session):
         if uuid is None:
             uuid = self._session_uuid
 
-        return super().launch(uuid, project_uuid, pipeline_path, project_dir)
+        return super().launch(
+            uuid, project_uuid, pipeline_path, project_dir, data_passing_memory_size
+        )
 
 
 @contextmanager
@@ -409,7 +426,7 @@ def launch_session(
     project_uuid: str,
     pipeline_path: str,
     project_dir: str,
-    interactive: bool = False,
+    data_passing_memory_size: int,
 ) -> Union[InteractiveSession, NonInteractiveSession]:
     """Launch session for a particular pipeline.
 
@@ -420,17 +437,20 @@ def launch_session(
         project_dir: Path to the `project_dir`, which has to be
             mounted into the containers so that the user can interact
             with the files.
-        interactive: If True then launch :class:`InteractiveSession`, if
-            False then launch :class:`NonInteractiveSession`.
+        data_passing_memory_size: Size for the "memory-server".
 
     Yields:
         A Session object that has already launched its resources.
 
     """
-    session = InteractiveSession if interactive else NonInteractiveSession
-
-    session = session(docker_client, network="orchest")
-    session.launch(pipeline_uuid, project_uuid, pipeline_path, project_dir)
+    session = NonInteractiveSession(docker_client, network="orchest")
+    session.launch(
+        pipeline_uuid,
+        project_uuid,
+        pipeline_path,
+        project_dir,
+        data_passing_memory_size,
+    )
     try:
         yield session
     finally:
@@ -507,6 +527,7 @@ def _get_container_specs(
     project_dir: str,
     host_userdir: str,
     network: str,
+    data_passing_memory_size: int,
 ) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
 
@@ -523,6 +544,7 @@ def _get_container_specs(
         host_userdir: Path to the userdir on the host
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
+        data_passing_memory_size: Size for the "memory-server".
 
     Returns:
         Mapping from container name to container specification for the
@@ -545,8 +567,11 @@ def _get_container_specs(
         # TODO: name not unique... and uuid cannot be used.
         "name": f"memory-server-{project_uuid}-{uuid}",
         "network": network,
-        "shm_size": int(1.2e9),  # need to overalocate to get 1G,
-        "environment": [f"ORCHEST_PIPELINE_PATH={pipeline_path}"],
+        "shm_size": utils.calculate_shm_size(data_passing_memory_size),
+        "environment": [
+            f"ORCHEST_PIPELINE_PATH={pipeline_path}",
+            f"ORCHEST_MEMORY_SIZE={data_passing_memory_size}",
+        ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},

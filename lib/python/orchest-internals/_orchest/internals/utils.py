@@ -1,9 +1,9 @@
-import docker
-import os
-import uuid
-import requests
 import logging
+import os
+import requests
+import uuid
 
+import docker
 from docker.types import DeviceRequest
 
 

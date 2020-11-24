@@ -253,7 +253,7 @@ def start_non_interactive_pipeline_run(
         project_uuid,
         run_config["pipeline_path"],
         run_config["project_dir"],
-        interactive=False,
+        pipeline_definition["settings"]["data_passing_memory_size"],
     ) as session:
         status = run_pipeline(
             pipeline_definition, project_uuid, run_config, task_id=self.request.id
