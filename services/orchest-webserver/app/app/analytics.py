@@ -18,7 +18,7 @@ def send_anonymized_pipeline_definition(app, pipeline):
 
     # Statistics
     step_count = len(pipeline.get("steps", []))
-    environments = []
+    environments = set()
 
     pipeline.pop("title", None)
     steps = pipeline.get("steps", {})
@@ -30,8 +30,8 @@ def send_anonymized_pipeline_definition(app, pipeline):
 
         # Capture environments for count
         env = step.get("environment", "")
-        if env not in environments and len(env) > 0:
-            environments.append(env)
+        if len(env) > 0:
+            environments.add(env)
 
     environment_count = len(environments)
 
@@ -62,7 +62,6 @@ def send_pipeline_run(app, pipeline_identifier, project_path, run_type):
 
 
 def get_telemetry_uuid(app):
-    telemetry_uuid = ""
 
     # get UUID if it exists
     if "TELEMETRY_UUID" in app.config:
