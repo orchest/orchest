@@ -484,8 +484,8 @@ class EnvironmentEditView extends React.Component {
                 <a
                   target="_blank"
                   href={
-                    orchest.config["DOCS_ROOT"] +
-                    "/en/latest/getting_started/installation.html"
+                    orchest.config.ORCHEST_WEB_URLS.readthedocs +
+                    "/getting_started/installation.html"
                   }
                 >
                   the documentation

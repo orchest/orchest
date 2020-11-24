@@ -3,6 +3,7 @@ import { MDCDrawer } from "@material/drawer";
 
 import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
+import HelpView from "./views/HelpView";
 import ManageUsersView from "./views/ManageUsersView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
@@ -10,7 +11,7 @@ import DataSourceEditView from "./views/DataSourceEditView";
 import ExperimentsView from "./views/ExperimentsView";
 import PipelinesView from "./views/PipelinesView";
 import CreateExperimentView from "./views/CreateExperimentView";
-import HeaderButtons from "./views/HeaderButtons";
+import HeaderButtons from "./components/HeaderButtons";
 import React from "react";
 import ReactDOM from "react-dom";
 import PipelineView from "./views/PipelineView";
@@ -48,6 +49,7 @@ function Orchest() {
     DataSourceEditView,
     PipelineView,
     SettingsView,
+    HelpView,
     UpdateView,
     PipelinesView,
     ExperimentsView,

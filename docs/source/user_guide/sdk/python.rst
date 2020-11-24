@@ -24,7 +24,8 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
 .. note:: The order in which the data is retrieved in `step-3` is determined via the UI through the
    `Connections` section in the pipeline step properties pane. Order is from top to bottom, where
    the left most element in the list (returned by :meth:`orchest.transfer.get_inputs`) is the output
-   of the top most step from the `Connections`.
+   of the top most step from the `Connections`. See more in the dedicated :ref:`connections section
+   <connections>`.
 
 
 .. code-block:: python

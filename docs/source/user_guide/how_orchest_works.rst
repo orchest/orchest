@@ -1,20 +1,3 @@
-.. Orientation
-.. ===========
-
-.. Orchest concepts
-.. ----------------
-
-.. TODO(yannick)
-   Pretty much this entire section
-
-.. * Build on top of filesystem and what that means for interactive runs and experiments (this will
-..   copy the filesystem, read more in ... link)
-   * Files run inside images and images can be extended through environments.
-.. * Environments
-.. * Projects and Pipelines
-
-.. Coming soon!
-
 How Orchest works
 =================
 
@@ -23,11 +6,6 @@ shell script. In the script you can see that the Docker socket ``/var/run/docker
 which Orchest requires in order order to dynamically spawn Docker containers when running pipelines.
 Global configurations are stored at ``~/.config/orchest/config.json``, for possible configuration
 values see :ref:`configuration <configuration>`.
-
-.. build on top of your filesystem (giving you the flexibility to edit the files in whatever way you
-   like, through terminal, your editor or through our UI with deep Jupyter integration). You do need
-   to follow a certain directory structure.
-   projects and pipelines and environments(link to section)
 
 Orchest is powered by your filesystem, there is no hidden magic. Upon launching, Orchest will mount
 the content of the ``orchest/userdir/`` directory, where ``orchest/`` is the install directory from
@@ -82,3 +60,33 @@ easily change the Docker image, see :ref:`environments <environments>`.
 
 .. note::
    We currently only support Python and R.
+
+
+Concepts
+--------
+At Orchest we believe that Jupyter Notebooks thank their popularity to their interactive nature. It
+is great to get immediate feedback and actively inspect your results without having to run the
+entire script.
+
+To facilitate a similar workflow within Orchest both JupyterLab and :ref:`interactive pipeline runs
+<interactive pipeline run>` get to directly change your notebook files. Lets explain this with an
+example. Assume your pipeline is just a single ``.ipynb`` file (run inside its own environment) with
+the following code:
+
+.. code-block:: python
+
+   print("Hello World!")
+
+If you now, without having executed this cell in JupyterLab, go to the pipeline editor, select the
+step and press *Run selected steps* then you will see in JupyterLab that the cell has outputted
+``"Hello World!"`` without having run it in JupyterLab.
+
+.. note::
+   Even though both interactive pipeline runs and JupyterLab change your files, they do not share
+   the same kernel! They do of course share the same environment.
+
+.. tip::
+   Make sure to save your notebooks before running an interactive pipeline run, otherwise JupyterLab
+   will prompt you with a "File Changed" pop-up whether you want to "Overwrite" or "Revert" on the
+   next save. "Overwrite" would let you keep the changes, however, it would then overwrite the
+   changes made by the interactive run.

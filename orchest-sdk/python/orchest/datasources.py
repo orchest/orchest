@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import List, Optional
 import warnings
 
 from requests.exceptions import HTTPError
@@ -249,7 +249,7 @@ def get_datasource(name: str):
 
     if name in Config.INTERNAL_DATASOURCES:
         raise OrchestInternalDataSourceError(
-            f"Cannot request internal data source {name}."
+            f"Cannot request internal data source: {name}."
         )
 
     try:
@@ -277,3 +277,32 @@ def get_datasource(name: str):
     source_type = datasource_spec["source_type"]
     datasource = datasources[source_type]
     return datasource(datasource_spec)
+
+
+def get_datasources() -> List[str]:
+    """Gets a list of all defined and ready to use data sources.
+
+    This can be helpful to find the names of the defined datasources,
+    without having to go through the UI.
+
+    """
+    try:
+        response = requests.get("http://orchest-webserver/store/datasources")
+        response.raise_for_status()
+
+    except HTTPError as http_err:
+        raise OrchestNetworkError(
+            f"Could not get the datasources from the webserver: {http_err}"
+        )
+
+    else:
+        datasource_specs = response.json()
+
+    datasources = []
+    for ds in datasource_specs:
+        if ds["name"] in Config.INTERNAL_DATASOURCES:
+            continue
+
+        datasources.append(ds["name"])
+
+    return datasources

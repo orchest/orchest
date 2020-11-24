@@ -17,7 +17,6 @@ celery worker -A app.core.tasks \
     -Q celery \
     -n worker-interactive \
     -f celery_interactive.log \
-    --concurrency=1 \
     --pidfile="worker-interactive.pid" \
     --detach
 

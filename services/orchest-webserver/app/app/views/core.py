@@ -631,8 +631,9 @@ def register_views(app, db):
         front_end_config = [
             "DOCS_ROOT",
             "FLASK_ENV",
-            "ENVIRONMENT_DEFAULTS",
             "TELEMETRY_DISABLED",
+            "ENVIRONMENT_DEFAULTS",
+            "ORCHEST_WEB_URLS",
         ]
 
         front_end_config_internal = ["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"]

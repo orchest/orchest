@@ -16,7 +16,6 @@ class Config:
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
-    DOCS_ROOT = _config.DOCS_ROOT
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
     DEFAULT_ENVIRONMENTS = _config.DEFAULT_ENVIRONMENTS
@@ -25,6 +24,14 @@ class Config:
 
     POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
     POSTHOG_HOST = "https://analytics.orchestapp.com"
+    # TODO: point readthedocs to stable instead of latest once stable
+    #  is up
+    ORCHEST_WEB_URLS = {
+        "readthedocs": "https://orchest.readthedocs.io/en/latest",
+        "slack": "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
+        "github": "https://github.com/orchest/orchest",
+        "website": "https://www.orchest.io",
+    }
 
     ENVIRONMENT_DEFAULTS = {
         "name": "",

@@ -32,7 +32,6 @@ TRUNCATED_UUID_LENGTH = 18
 LOGS_PATH = ".orchest/pipelines/{pipeline_uuid}/logs"
 
 WEBSERVER_LOGS = "/orchest/services/orchest-webserver/app/orchest-webserver.log"
-DOCS_ROOT = "https://orchest.readthedocs.io"
 
 # Networking
 ORCHEST_API_ADDRESS = "orchest-api"
