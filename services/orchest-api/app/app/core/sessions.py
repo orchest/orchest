@@ -128,7 +128,7 @@ class Session:
         project_uuid: str,
         pipeline_path: str,
         project_dir: str,
-        host_userdir: str = None,
+        host_userdir: Optional[str] = None,
     ) -> None:
         """Launches pre-configured resources.
 
@@ -187,10 +187,13 @@ class Session:
             container.stop()
             container.remove()
 
-        # the reasons such removal needs to be done in sessions.py instead of pipelines.py are:
-        # 1) in an experiment run, the memory server is the last container that is removed,
-        # that happens when the session is shutting down, before that happens the TMP volume(s) cannot be removed
-        # 2) this way we also cleanup the volumes of an interactive session when the session shuts down
+        # the reasons such removal needs to be done in sessions.py
+        # instead of pipelines.py are: 1) in an experiment run, the
+        # memory server is the last container that is removed, that
+        # happens when the session is shutting down, before that happens
+        # the TMP volume(s) cannot be removed 2) this way we also
+        # cleanup the volumes of an interactive session when the session
+        # shuts down
         if session_identity_uuid and project_uuid:
             volume = self.client.volumes.get(
                 _config.TEMP_VOLUME_NAME.format(
@@ -301,11 +304,10 @@ class InteractiveSession(Session):
         }
 
         # Poll jupyter_server until available
+        url = f"http://{IP.jupyter_server}{self._notebook_server_info['base_url']}/api"
         for _ in range(10):
             try:
-                requests.get(
-                    f"http://{IP.jupyter_server}{self._notebook_server_info['base_url']}/api"
-                )
+                requests.get(url)
             except requests.ConnectionError:
                 time.sleep(0.5)
             else:
@@ -545,8 +547,8 @@ def _get_container_specs(
         "network": network,
         "shm_size": int(1.2e9),  # need to overalocate to get 1G,
         "environment": [f"ORCHEST_PIPELINE_PATH={pipeline_path}"],
-        # labels are used to have a way of keeping track of the containers attributes through
-        # Session.from_container_IDs
+        # Labels are used to have a way of keeping track of the
+        # containers attributes through ``Session.from_container_IDs``
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
 
@@ -579,8 +581,8 @@ def _get_container_specs(
         ],
         "user": "root",
         "network": network,
-        # labels are used to have a way of keeping track of the containers attributes through
-        # Session.from_container_IDs
+        # Labels are used to have a way of keeping track of the
+        # containers attributes through ``Session.from_container_IDs``
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
 
@@ -605,8 +607,8 @@ def _get_container_specs(
             f"--notebook-dir={_config.PROJECT_DIR}",
             f"--ServerApp.base_url=/{jupyter_hostname}",
         ],
-        # labels are used to have a way of keeping track of the containers attributes through
-        # Session.from_container_IDs
+        # Labels are used to have a way of keeping track of the
+        # containers attributes through ``Session.from_container_IDs``
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
 
