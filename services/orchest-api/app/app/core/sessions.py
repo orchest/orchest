@@ -420,15 +420,15 @@ class NonInteractiveSession(Session):
 
 
 @contextmanager
-def launch_session(
+def launch_noninteractive_session(
     docker_client,
     pipeline_uuid: str,
     project_uuid: str,
     pipeline_path: str,
     project_dir: str,
     data_passing_memory_size: int,
-) -> Union[InteractiveSession, NonInteractiveSession]:
-    """Launch session for a particular pipeline.
+) -> NonInteractiveSession:
+    """Launches a non-interactive session for a particular pipeline.
 
     Args:
         docker_client (docker.client.DockerClient): docker client to

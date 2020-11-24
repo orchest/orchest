@@ -13,7 +13,7 @@ from app import create_app
 from app.celery_app import make_celery
 from app.connections import docker_client
 from app.core.pipelines import Pipeline, PipelineDefinition
-from app.core.sessions import launch_session
+from app.core.sessions import launch_noninteractive_session
 from app.core.environment_builds import build_environment_task
 from config import CONFIG_CLASS
 
@@ -247,7 +247,7 @@ def start_non_interactive_pipeline_run(
     with open(pipeline_json, "w") as f:
         json.dump(pipeline_definition, f)
 
-    with launch_session(
+    with launch_noninteractive_session(
         docker_client,
         self.request.id,
         project_uuid,

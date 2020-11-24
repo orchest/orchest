@@ -209,7 +209,7 @@ def register_orchest_api_views(app, db):
         )
 
         json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
-        
+
         pipeline_json = get_pipeline_json(
             json_obj["pipeline_uuid"], json_obj["project_uuid"]
         )
