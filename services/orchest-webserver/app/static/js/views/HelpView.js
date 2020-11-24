@@ -21,7 +21,7 @@ class HelpView extends React.Component {
         <h2>Looking for help, or want to know more?</h2>
         <p className="push-down">
           The documentation should get you up to speed, but feel free to get in
-          touch through Slack or GitHub for any doubt or suggestion.
+          touch through Slack or GitHub for any questions or suggestions.
         </p>
 
         <li className="mdc-list">
@@ -59,9 +59,7 @@ class HelpView extends React.Component {
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="public/image/favicon.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">
-              {this.state.website_url}
-            </span>
+            <span className="mdc-list-item__text">Website</span>
           </a>
         </li>
       </div>
