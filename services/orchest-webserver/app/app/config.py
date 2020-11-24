@@ -16,12 +16,20 @@ class Config:
     USER_DIR = os.path.join("/userdir")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
-    DOCS_ROOT = _config.DOCS_ROOT
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
     DEFAULT_ENVIRONMENTS = _config.DEFAULT_ENVIRONMENTS
     DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
+
+    # TODO: point readthedocs to stable instead of latest once stable
+    #  is up
+    ORCHEST_WEB_URLS = {
+        "readthedocs": "https://orchest.readthedocs.io/en/latest",
+        "slack": "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
+        "github": "https://github.com/orchest/orchest",
+        "website": "https://www.orchest.io",
+    }
 
     ENVIRONMENT_DEFAULTS = {
         "name": "",

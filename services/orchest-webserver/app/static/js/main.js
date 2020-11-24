@@ -3,6 +3,7 @@ import { MDCDrawer } from "@material/drawer";
 
 import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
+import HelpView from "./views/HelpView";
 import ManageUsersView from "./views/ManageUsersView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
@@ -48,6 +49,7 @@ function Orchest() {
     DataSourceEditView,
     PipelineView,
     SettingsView,
+    HelpView,
     UpdateView,
     PipelinesView,
     ExperimentsView,

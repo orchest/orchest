@@ -626,7 +626,11 @@ def register_views(app, db):
         )
         css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
 
-        front_end_config = ["DOCS_ROOT", "FLASK_ENV", "ENVIRONMENT_DEFAULTS"]
+        front_end_config = [
+            "ENVIRONMENT_DEFAULTS",
+            "FLASK_ENV",
+            "ORCHEST_WEB_URLS",
+        ]
 
         front_end_config_internal = ["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"]
 
