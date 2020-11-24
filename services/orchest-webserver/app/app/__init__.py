@@ -17,6 +17,7 @@ import atexit
 import contextlib
 import subprocess
 import posthog
+import base64
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
@@ -119,7 +120,7 @@ def create_app():
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:
         # initialize posthog
-        posthog.api_key = app.config["POSTHOG_API_KEY"]
+        posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"])
         posthog.host = app.config["POSTHOG_HOST"]
 
         # create thread for analytics

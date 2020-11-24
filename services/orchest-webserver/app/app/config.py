@@ -23,7 +23,7 @@ class Config:
     DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
-    POSTHOG_API_KEY = "syziN0hHpxHABt4PtrOAqFmb_np-v0jtC4IHjvBgZp0"
+    POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
     POSTHOG_HOST = "https://analytics.orchestapp.com"
 
     ENVIRONMENT_DEFAULTS = {
