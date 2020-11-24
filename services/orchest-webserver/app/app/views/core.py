@@ -36,6 +36,7 @@ from app.utils import (
     serialize_environment_to_disk,
     read_environment_from_disk,
     delete_environment,
+    get_repo_tag,
 )
 
 from app.models import (
@@ -676,19 +677,7 @@ def register_views(app, db):
 
     @app.route("/async/version", methods=["GET"])
     def version():
-
-        git_proc = subprocess.Popen(
-            'echo "$(git describe --abbrev=0 --tags) "',
-            cwd="/orchest-host",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-
-        outs, _ = git_proc.communicate()
-
-        return outs
+        return get_repo_tag()
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():

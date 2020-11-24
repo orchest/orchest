@@ -32,7 +32,7 @@ from app.views.analytics import register_analytics_views
 from app.socketio_server import register_socketio_broadcast
 from app.models import DataSource
 from app.connections import db, ma
-from app.utils import get_user_conf
+from app.utils import get_user_conf, get_repo_tag
 
 
 def initialize_default_datasources(db, app):
@@ -107,6 +107,8 @@ def create_app():
     except Exception as e:
         logging.warning("Failed to load config.json")
 
+    app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
+
     logging.info("Flask CONFIG: %s" % app.config)
 
     db.init_app(app)
@@ -120,7 +122,7 @@ def create_app():
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:
         # initialize posthog
-        posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"])
+        posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
         posthog.host = app.config["POSTHOG_HOST"]
 
         # create thread for analytics

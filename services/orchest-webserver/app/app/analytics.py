@@ -81,6 +81,8 @@ def send_event(app, event, properties):
             if "mode" not in properties:
                 properties["mode"] = os.environ.get("FLASK_ENV", "production")
 
+            properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
+
             posthog.capture(telemetry_uuid, event, properties)
             logging.debug(
                 "Sending event[%s] to Posthog for anonymized user [%s] with properties: %s"

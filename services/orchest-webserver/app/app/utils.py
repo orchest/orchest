@@ -11,6 +11,7 @@ import io
 import docker
 import shutil
 import requests
+import subprocess
 
 from app.models import Pipeline, Project, Environment
 from app.config import CONFIG_CLASS as StaticConfig
@@ -221,6 +222,22 @@ def get_hash(path):
             buf = afile.read(BLOCKSIZE)
 
     return hasher.hexdigest()
+
+
+def get_repo_tag():
+
+    git_proc = subprocess.Popen(
+        'echo "$(git describe --abbrev=0 --tags) "',
+        cwd="/orchest-host",
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    outs, _ = git_proc.communicate()
+
+    return outs
 
 
 def get_user_conf():
