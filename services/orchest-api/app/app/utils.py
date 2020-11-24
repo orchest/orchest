@@ -310,5 +310,5 @@ def calculate_shm_size(data_passing_memory_size: Union[str, int]) -> int:
 
     conversion = {"KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
     size, unit = data_passing_memory_size[:-2], data_passing_memory_size[-2:]
-    size = int(size) * conversion[unit]
+    size = int(float(size) * conversion[unit])
     return size + allocation
