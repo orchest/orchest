@@ -117,10 +117,7 @@ class FilePreviewView extends React.Component {
               fileComponent = (
                 <iframe
                   className={"notebook-iframe borderless fullsize"}
-                  src={
-                    "data:text/html;charset=utf-8," +
-                    encodeURIComponent(this.state.textFile.content)
-                  }
+                  srcdoc={this.state.textFile.content}
                 ></iframe>
               );
             } else {
