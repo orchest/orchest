@@ -212,6 +212,16 @@ def delete_environment(project_uuid, environment_uuid):
 # End of environments
 
 
+def get_pipeline_json(pipeline_uuid, project_uuid):
+    pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
+
+    try:
+        with open(pipeline_path, "r") as json_file:
+            return json.load(json_file)
+    except Exception as e:
+        logging.error("Could not read pipeline JSON from %s" % e)
+
+
 def get_hash(path):
     BLOCKSIZE = 8192 * 8
     hasher = hashlib.md5()
