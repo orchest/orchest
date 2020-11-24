@@ -45,7 +45,7 @@ class ParameterEditor extends React.Component {
                       }
                       options={{
                         mode: "application/json",
-                        theme: "default",
+                        theme: "jupyter",
                         lineNumbers: true,
                       }}
                       onBeforeChange={(editor, data, value) => {
@@ -98,7 +98,7 @@ class ParameterEditor extends React.Component {
                     }
                     options={{
                       mode: "application/json",
-                      theme: "default",
+                      theme: "jupyter",
                       lineNumbers: true,
                     }}
                   />

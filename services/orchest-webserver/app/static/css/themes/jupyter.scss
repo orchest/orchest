@@ -1,0 +1,119 @@
+/*-----------------------------------------------------------------------------
+| Copyright (c) Jupyter Development Team.
+| Distributed under the terms of the Modified BSD License.
+| Source: https://github.com/jupyterlab/jupyterlab/blob/master/packages/ \
+| codemirror/style/base.css
+|----------------------------------------------------------------------------*/
+
+/**
+   * Here is our jupyter theme for CodeMirror syntax highlighting
+   * This is used in our marked.js syntax highlighting and CodeMirror itself
+   * The string "jupyter" is set in ../codemirror/widget.DEFAULT_CODEMIRROR_THEME
+   * This came from the classic notebook, which came form highlight.js/GitHub
+   */
+
+/**
+   * CodeMirror themes are handling the background/color in this way. This works
+   * fine for CodeMirror editors outside the notebook, but the notebook styles
+   * these things differently.
+   */
+.CodeMirror.cm-s-jupyter {
+  background: white;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+/* In the notebook, we want this styling to be handled by its container */
+.jp-CodeConsole .CodeMirror.cm-s-jupyter,
+.jp-Notebook .CodeMirror.cm-s-jupyter {
+  background: transparent;
+}
+
+.cm-s-jupyter .CodeMirror-cursor {
+  border-left: 1.4px solid rgba(0, 0, 0, 1);
+}
+.cm-s-jupyter span.cm-keyword {
+  color: #008000;
+  font-weight: bold;
+}
+.cm-s-jupyter span.cm-atom {
+  color: #88f;
+}
+.cm-s-jupyter span.cm-number {
+  color: #080;
+}
+.cm-s-jupyter span.cm-def {
+  color: #00f;
+}
+.cm-s-jupyter span.cm-variable {
+  color: #212121;
+}
+.cm-s-jupyter span.cm-variable-2 {
+  color: #05a;
+}
+.cm-s-jupyter span.cm-variable-3 {
+  color: #085;
+}
+.cm-s-jupyter span.cm-punctuation {
+  color: #05a;
+}
+.cm-s-jupyter span.cm-property {
+  color: #05a;
+}
+.cm-s-jupyter span.cm-operator {
+  color: #aa22ff;
+  font-weight: bold;
+}
+.cm-s-jupyter span.cm-comment {
+  color: #408080;
+  font-style: italic;
+}
+.cm-s-jupyter span.cm-string {
+  color: #ba2121;
+}
+.cm-s-jupyter span.cm-string-2 {
+  color: #708;
+}
+.cm-s-jupyter span.cm-meta {
+  color: #aa22ff;
+}
+.cm-s-jupyter span.cm-qualifier {
+  color: #555;
+}
+.cm-s-jupyter span.cm-builtin {
+  color: #008000;
+}
+.cm-s-jupyter span.cm-bracket {
+  color: #997;
+}
+.cm-s-jupyter span.cm-tag {
+  color: #170;
+}
+.cm-s-jupyter span.cm-attribute {
+  color: #00c;
+}
+.cm-s-jupyter span.cm-header {
+  color: blue;
+}
+.cm-s-jupyter span.cm-quote {
+  color: #090;
+}
+.cm-s-jupyter span.cm-link {
+  color: #00c;
+}
+.cm-s-jupyter span.cm-error {
+  color: #f00;
+}
+.cm-s-jupyter span.cm-hr {
+  color: #999;
+}
+
+.cm-s-jupyter span.cm-tab {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAMCAYAAAAkuj5RAAAAAXNSR0IArs4c6QAAAGFJREFUSMft1LsRQFAQheHPowAKoACx3IgEKtaEHujDjORSgWTH/ZOdnZOcM/sgk/kFFWY0qV8foQwS4MKBCS3qR6ixBJvElOobYAtivseIE120FaowJPN75GMu8j/LfMwNjh4HUpwg4LUAAAAASUVORK5CYII=);
+  background-position: right;
+  background-repeat: no-repeat;
+}
+
+.cm-s-jupyter .CodeMirror-activeline-background,
+.cm-s-jupyter .CodeMirror-gutter {
+  background-color: #eeeeee;
+}

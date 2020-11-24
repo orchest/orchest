@@ -412,7 +412,7 @@ class PipelineDetailsProperties extends React.Component {
             value={this.state.editableParameters}
             options={{
               mode: "application/json",
-              theme: "default",
+              theme: "jupyter",
               lineNumbers: true,
               readOnly: this.props.readOnly === true, // not sure whether CodeMirror accepts 'falsy' values
             }}
