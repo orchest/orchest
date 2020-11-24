@@ -12,15 +12,20 @@ from app.utils import write_config
 
 # Analytics related functions
 def send_anonymized_pipeline_definition(app, pipeline):
+    """We send the anonymized pipeline definition to understand the typical
+    structure of pipelines created in Orchest. This teaches how to further
+    improve Orchest's core features.
+    """
 
     # Remove potentially sensitive fields
     pipeline = copy.deepcopy(pipeline)
 
     # Statistics
-    step_count = len(pipeline.get("steps", []))
     environments = set()
+    # The step count helps us understand how large typical pipelines get.
+    step_count = len(pipeline.get("steps", []))
 
-    pipeline.pop("title", None)
+    pipeline.pop("name", None)
     steps = pipeline.get("steps", {})
 
     for _, step in steps.items():
@@ -33,6 +38,8 @@ def send_anonymized_pipeline_definition(app, pipeline):
         if len(env) > 0:
             environments.add(env)
 
+    # The environment count helps us understand how many environments are
+    # typically used within a single pipeline.
     environment_count = len(environments)
 
     send_event(
