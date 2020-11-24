@@ -180,6 +180,15 @@ class PipelineSettingsView extends React.Component {
                       classNames={["push-down", "push-up"]}
                     />
 
+                    <p className="push-down">
+                      Change the size of the memory server for data passing. For
+                      units use KB, MB, or GB. E.g.{" "}
+                      <span className="code">1GB</span>.{" "}
+                      <i>
+                        Changing this setting requires you to restart the
+                        session.
+                      </i>
+                    </p>
                     <MDCTextFieldReact
                       ref={
                         this.refManager.nrefs
@@ -192,15 +201,6 @@ class PipelineSettingsView extends React.Component {
                       onChange={this.onChangeDataPassingMemorySize.bind(this)}
                       label="Data passing memory size"
                     />
-                    <p className="push-up">
-                      Change the size of the memory server for data passing. For
-                      units use KB, MB, or GB. E.g.{" "}
-                      <span className="code">1GB</span>.<br />
-                      <br />
-                      <i>
-                        Changing this setting requires restarting the session.
-                      </i>
-                    </p>
                   </div>
 
                   <MDCButtonReact
@@ -210,8 +210,12 @@ class PipelineSettingsView extends React.Component {
                   />
                 </form>
 
-                <h3 className="push-up push-down">Data passing</h3>
+                <h3 className="push-up push-down">Actions</h3>
 
+                <p className="push-down">
+                  Clear the memory of the pipeline to allow additional data to
+                  be passed between pipeline steps.
+                </p>
                 <MDCButtonReact
                   disabled={this.state.restartingMemoryServer}
                   label="Clear memory"
