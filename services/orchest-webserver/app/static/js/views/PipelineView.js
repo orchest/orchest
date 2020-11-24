@@ -1250,7 +1250,7 @@ class PipelineView extends React.Component {
       this.state.steps[this.state.openedStep].file_path
     );
     orchest.showJupyter();
-    orchest.headerBarComponent.showBack();
+    orchest.headerBarComponent.updateCurrentView("jupyter");
   }
 
   saveBeforeAction(actionCallback) {
@@ -1692,6 +1692,8 @@ class PipelineView extends React.Component {
     if (session_details) {
       this.updateJupyterInstance();
     }
+
+    orchest.headerBarComponent.updateSessionState(running);
   }
 
   onSessionShutdown() {

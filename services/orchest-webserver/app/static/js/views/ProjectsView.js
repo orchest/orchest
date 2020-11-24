@@ -74,29 +74,26 @@ class ProjectsView extends React.Component {
     for (let project of projects) {
       listData.push([
         <span>{project.path}</span>,
-        <a
+        <MDCButtonReact
           onClick={this.onClickProjectEntity.bind(this, PipelinesView, project)}
-        >
-          {project.pipeline_count}
-        </a>,
-        <a
+          label={project.pipeline_count}
+        />,
+        <MDCButtonReact
           onClick={this.onClickProjectEntity.bind(
             this,
             ExperimentsView,
             project
           )}
-        >
-          {project.experiment_count}
-        </a>,
-        <a
+          label={project.experiment_count}
+        />,
+        <MDCButtonReact
           onClick={this.onClickProjectEntity.bind(
             this,
             EnvironmentsView,
             project
           )}
-        >
-          {project.environment_count}
-        </a>,
+          label={project.environment_count}
+        />,
       ]);
     }
 

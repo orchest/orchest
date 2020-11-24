@@ -11,7 +11,7 @@ import DataSourceEditView from "./views/DataSourceEditView";
 import ExperimentsView from "./views/ExperimentsView";
 import PipelinesView from "./views/PipelinesView";
 import CreateExperimentView from "./views/CreateExperimentView";
-import HeaderButtons from "./views/HeaderButtons";
+import HeaderButtons from "./components/HeaderButtons";
 import React from "react";
 import ReactDOM from "react-dom";
 import PipelineView from "./views/PipelineView";

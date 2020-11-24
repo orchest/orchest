@@ -125,6 +125,27 @@ a.button {
   }
 }
 
+.projects-view {
+  .mdc-data-table {
+    .mdc-button {
+      color: $mdc-theme-secondary;
+      font-weight: 500;
+    }
+
+    .mdc-data-table__header-cell:nth-child(1),
+    .mdc-data-table__header-cell:nth-child(2),
+    .mdc-data-table__cell:nth-child(1),
+    .mdc-data-table__cell:nth-child(2) {
+      text-align: left;
+    }
+
+    .mdc-data-table__header-cell,
+    .mdc-data-table__cell {
+      text-align: center;
+    }
+  }
+}
+
 p > i.material-icons.float-left {
   float: left;
   margin-right: 10px;
