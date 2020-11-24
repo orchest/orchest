@@ -98,6 +98,11 @@ class EnvironmentList extends React.Component {
             environments: environments,
             listData: this.processListData(environments),
           });
+
+          // in case environmentListView exists, clear checks
+          if (this.refManager.refs.environmentListView) {
+            this.refManager.refs.environmentListView.setSelectedRowIds([]);
+          }
         } catch (error) {
           console.log(error);
           console.log("Error parsing JSON response: ", result);
