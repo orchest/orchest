@@ -268,6 +268,22 @@ def register_views(app, db):
                 if ex is None:
                     return "", 404
 
+                # tell the orchest-api that the experiment does
+                # not exist anymore, will be stopped if necessary,
+                # then cleaned up from the orchest-api db
+                try:
+                    requests.delete(
+                        "http://"
+                        + app.config["ORCHEST_API_ADDRESS"]
+                        + "/api/experiments/cleanup/%s" % (ex.uuid)
+                    )
+                except Exception as e:
+                    logging.warning(
+                        "Failed to orchest-api \
+                    delete experiment %s:\n %s"
+                        % (ex.uuid, e)
+                    )
+
                 remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
                 db.session.delete(ex)
@@ -510,47 +526,78 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-    def cleanup_fs_removed_projects(fs_removed_projects):
-        """Cleanup a project that was removed through the filesystem.
+    def cleanup_project_from_orchest(project):
+        """Cleanup a project at the orchest level.
 
-        Currently takes care of removing environment images from docker and the projects records from the db.
+        Removes references of the project in the webserver db, and
+        issues a cleanup request to the orchest-api.
+
         Args:
-            fs_removed_projects:
+            project:
 
         Returns:
 
         """
-        for removed_proj in fs_removed_projects:
-            # TODO: make use of this in the PR where we completely cleanup a project and it's resources when it's
-            #  deleted
-            # remove experiments related to the project
-            # exs_to_remove = Experiment.query.filter(Experiment.project_uuid == removed_proj.uuid).all()
-            # for ex in exs_to_remove:
-            #     remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
-            #     db.session.delete(ex)
+        try:
+            requests.delete(
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/projects/%s" % project.uuid
+            )
+        except Exception as e:
+            logging.warning("Failed to orchest-api delete project: %s" % e)
 
-            # remove environment images related to the project
-            try:
-                requests.delete(
-                    "http://"
-                    + app.config["ORCHEST_API_ADDRESS"]
-                    + "/api/environment-images/%s" % removed_proj.uuid
-                )
-            except Exception as e:
-                logging.warning("Failed to delete EnvironmentImage: %s" % e)
+        experiments = Experiment.query.filter(
+            Experiment.project_uuid == project.uuid
+        ).all()
 
-            db.session.delete(removed_proj)
+        for ex in experiments:
+            remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
+
+        # will delete cascade
+        # pipeline
+        # experiment -> pipeline run
+        db.session.delete(project)
         db.session.commit()
 
         # refresh kernels after change in environments
         populate_kernels(app, db)
 
+    def cleanup_pipeline_from_orchest(pipeline):
+        """Cleanup a pipeline at the orchest level.
+
+        Removes references of the pipeline in the webserver db, and
+        issues a cleanup request to the orchest-api.
+
+        Args:
+            pipeline:
+
+        Returns:
+
+        """
+        try:
+            requests.delete(
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/pipelines/%s/%s" % (pipeline.project_uuid, pipeline.uuid)
+            )
+        except Exception as e:
+            logging.warning("Failed to orchest-api delete pipeline: %s" % e)
+
+        # will delete cascade
+        # experiment -> pipeline run
+        db.session.delete(pipeline)
+        db.session.commit()
+
     def init_project(project_path: str):
         """Inits an orchest project.
 
-        Given a directory it will detect what parts are missing from the .orchest directory for the project to
-        be considered initialized, e.g. the actual .orchest directory, .gitignore file, environments directory, etc.
-        As part of process initialization environments are built and kernels refreshed.
+        Given a directory it will detect what parts are missing from
+        the .orchest directory for the project to be considered
+        initialized, e.g. the actual .orchest directory, .gitignore
+        file, environments directory, etc.
+        As part of process initialization environments are
+        built and kernels refreshed.
 
         Args:
             project_path: Directory of the project
@@ -712,23 +759,15 @@ def register_views(app, db):
     )
     def pipelines_delete(project_uuid, pipeline_uuid):
 
-        if (
+        pipeline = (
             Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
             .filter(Pipeline.project_uuid == project_uuid)
-            .count()
-            > 0
-        ):
-
-            pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
+            .one_or_none()
+        )
+        if pipeline is not None:
+            pipeline_json_path = get_pipeline_path(pipeline.uuid, project_uuid)
             os.remove(pipeline_json_path)
-
-            pipeline = (
-                Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
-                .filter(Pipeline.project_uuid == project_uuid)
-                .first()
-            )
-            db.session.delete(pipeline)
-            db.session.commit()
+            cleanup_pipeline_from_orchest(pipeline)
 
             return jsonify({"success": True})
         else:
@@ -876,7 +915,8 @@ def register_views(app, db):
         fs_removed_projects = Project.query.filter(
             Project.path.notin_(project_paths)
         ).all()
-        cleanup_fs_removed_projects(fs_removed_projects)
+        for fs_removed_project in fs_removed_projects:
+            cleanup_project_from_orchest(fs_removed_project)
 
         # detect new projects by detecting directories that were not registered in the db as projects
         existing_project_paths = [
@@ -918,19 +958,8 @@ def register_views(app, db):
 
                 project_path = project_uuid_to_path(project_uuid)
                 full_project_path = os.path.join(projects_dir, project_path)
-
-                # go through each environment and delete it
-                proj_envs = get_environments(project_uuid)
-                for env in proj_envs:
-                    delete_environment(project_uuid, env.uuid)
-
                 shutil.rmtree(full_project_path)
-
-                db.session.delete(project)
-                db.session.commit()
-
-                # refresh kernels after change in environments
-                populate_kernels(app, db)
+                cleanup_project_from_orchest(project)
 
                 return jsonify({"message": "Project deleted."})
             else:
@@ -1002,6 +1031,16 @@ def register_views(app, db):
 
         # find all pipelines in project dir
         pipeline_paths = find_pipelines_in_dir(project_dir, project_dir)
+
+        # cleanup pipelines that have been manually removed
+        fs_removed_pipelines = [
+            pipeline
+            for pipeline in Pipeline.query.filter(Pipeline.path.notin_(pipeline_paths))
+            .filter(Pipeline.project_uuid == project_uuid)
+            .all()
+        ]
+        for fs_removed_pipeline in fs_removed_pipelines:
+            cleanup_pipeline_from_orchest(fs_removed_pipeline)
 
         # identify all pipeline paths that are not yet a pipeline
         existing_pipeline_paths = [

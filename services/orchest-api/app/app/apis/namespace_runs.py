@@ -158,22 +158,27 @@ class Run(Resource):
 
         return {"message": "Status was updated successfully"}, 200
 
-    @api.doc("delete_run")
-    @api.response(200, "Run terminated")
-    def delete(self, run_uuid):
-        """Stops a pipeline run given its UUID."""
-
+    @staticmethod
+    def stop(run_uuid):
         celery_app = make_celery(current_app)
         res = AbortableAsyncResult(run_uuid, app=celery_app)
 
-        # it is responsibility of the task to terminate by reading it's aborted status
+        # it is responsibility of the task to terminate by reading
+        # it's aborted status
         res.abort()
 
         celery_app.control.revoke(run_uuid)
         # TODO: possibly set status of steps and Run to "ABORTED"
-        #  note that a race condition would be present since the task will try to set the status as well
+        #  note that a race condition would be present since the
+        # task will try to set the status as well
 
         return {"message": "Run termination was successful"}, 200
+
+    @api.doc("delete_run")
+    @api.response(200, "Run terminated")
+    def delete(self, run_uuid):
+        """Stops a pipeline run given its UUID."""
+        return Run.stop(run_uuid)
 
 
 @api.route("/<string:run_uuid>/<string:step_uuid>")

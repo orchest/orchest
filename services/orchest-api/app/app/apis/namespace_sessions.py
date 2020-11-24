@@ -113,14 +113,8 @@ class Session(Resource):
         )
         return session.as_dict()
 
-    @api.doc("shutdown_session")
-    @api.response(200, "Session stopped")
-    @api.response(404, "Session not found")
-    def delete(self, project_uuid, pipeline_uuid):
-        """Shutdowns session."""
-        session = models.InteractiveSession.query.get_or_404(
-            ident=(project_uuid, pipeline_uuid), description="Session not found"
-        )
+    @staticmethod
+    def stop(session):
         session.status = "STOPPING"
         db.session.commit()
 
@@ -137,6 +131,15 @@ class Session(Resource):
         db.session.delete(session)
         db.session.commit()
 
+    @api.doc("shutdown_session")
+    @api.response(200, "Session stopped")
+    @api.response(404, "Session not found")
+    def delete(self, project_uuid, pipeline_uuid):
+        """Shutdowns session."""
+        session = models.InteractiveSession.query.get_or_404(
+            ident=(project_uuid, pipeline_uuid), description="Session not found"
+        )
+        Session.stop(session)
         return {"message": "Session shutdown was successful"}, 200
 
     @api.doc("restart_memory_server_of_session")

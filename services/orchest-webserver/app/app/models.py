@@ -15,6 +15,9 @@ class Project(db.Model):
     path = db.Column(db.String(255), nullable=False)
 
     __table_args__ = (UniqueConstraint("uuid", "path"),)
+    experiments = db.relationship(
+        "Experiment", lazy="joined", passive_deletes=False, cascade="all, delete"
+    )
 
 
 class Pipeline(db.Model):
@@ -69,11 +72,17 @@ class Experiment(db.Model):
     name = db.Column(db.String(255), unique=False, nullable=False)
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     pipeline_uuid = db.Column(db.String(255), unique=False, nullable=False)
-    project_uuid = db.Column(db.String(255), unique=False, nullable=False)
+    project_uuid = db.Column(
+        db.ForeignKey("project.uuid", ondelete="CASCADE"), unique=False, nullable=False
+    )
     pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     strategy_json = db.Column(db.Text, nullable=False)
     draft = db.Column(db.Boolean())
+
+    pipeline_runs = db.relationship(
+        "PipelineRun", lazy="joined", passive_deletes=False, cascade="all, delete"
+    )
 
 
 class PipelineRun(db.Model):

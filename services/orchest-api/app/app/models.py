@@ -7,10 +7,8 @@ TODO:
     * Possibly add `pipeline_uuid` to the primary key.
 
 """
-# from sqlalchemy.ext.declarative import declared_attr
-
 from app.connections import db
-from sqlalchemy import Index, UniqueConstraint
+from sqlalchemy import Index, UniqueConstraint, ForeignKeyConstraint
 
 
 class BaseModel(db.Model):
@@ -94,7 +92,9 @@ class InteractiveRunPipelineStep(PipelineRunPipelineStep):
     __tablename__ = "interactive_run_pipeline_steps"
 
     run_uuid = db.Column(
-        db.String(36), db.ForeignKey("interactive_runs.run_uuid"), primary_key=True
+        db.String(36),
+        db.ForeignKey("interactive_runs.run_uuid", ondelete="CASCADE"),
+        primary_key=True,
     )
 
 
@@ -103,18 +103,34 @@ class InteractiveRun(PipelineRun):
 
     run_uuid = db.Column(db.String(36), primary_key=True)
 
-    pipeline_steps = db.relationship("InteractiveRunPipelineStep", lazy="joined")
-    image_mappings = db.relationship("InteractiveRunImageMapping", lazy="joined")
+    pipeline_steps = db.relationship(
+        "InteractiveRunPipelineStep",
+        lazy="joined",
+        passive_deletes=False,
+        cascade="all, delete",
+    )
+    image_mappings = db.relationship(
+        "InteractiveRunImageMapping",
+        lazy="joined",
+        passive_deletes=False,
+        cascade="all, delete",
+    )
 
 
 class NonInteractiveRun(PipelineRun):
     __tablename__ = "non_interactive_runs"
     __bind_key__ = "persistent_db"
 
+    # TODO: verify why the experiment_uuid should be part of the
+    # primary key
     experiment_uuid = db.Column(
-        db.String(36), db.ForeignKey("experiments.experiment_uuid"), primary_key=True
+        db.String(36),
+        db.ForeignKey("experiments.experiment_uuid", ondelete="CASCADE"),
+        primary_key=True,
     )
-    run_uuid = db.Column(db.String(36), primary_key=True)
+    # needs to be unique to be a FK constraint for images mappings
+    # that can delete on cascade
+    run_uuid = db.Column(db.String(36), primary_key=True, unique=True)
     # This run_id is used to identify the pipeline run within the
     # experiment and maintain a consistent ordering.
     pipeline_run_id = db.Column(
@@ -125,19 +141,42 @@ class NonInteractiveRun(PipelineRun):
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
 
-    pipeline_steps = db.relationship("NonInteractiveRunPipelineStep", lazy="joined")
-    image_mappings = db.relationship("NonInteractiveRunImageMapping", lazy="joined")
+    # https://docs.sqlalchemy.org/en/14/orm/cascades.html#using-foreign-key-on-delete-cascade-with-orm-relationships
+    pipeline_steps = db.relationship(
+        "NonInteractiveRunPipelineStep",
+        lazy="joined",
+        passive_deletes=False,
+        cascade="all, delete",
+    )
+    image_mappings = db.relationship(
+        "NonInteractiveRunImageMapping",
+        lazy="joined",
+        passive_deletes=False,
+        cascade="all, delete",
+    )
 
 
 class NonInteractiveRunPipelineStep(PipelineRunPipelineStep):
     __tablename__ = "non_interactive_run_pipeline_steps"
     __bind_key__ = "persistent_db"
 
+    # TODO: verify why we have the exp uuid as a column, seems to be
+    # redundant info since we already have the run_uuid
     experiment_uuid = db.Column(
-        db.String(36), db.ForeignKey("experiments.experiment_uuid"), primary_key=True
+        db.String(36),
+        primary_key=True,
     )
     run_uuid = db.Column(
-        db.String(36), db.ForeignKey("non_interactive_runs.run_uuid"), primary_key=True
+        db.String(36),
+        primary_key=True,
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            [experiment_uuid, run_uuid],
+            [NonInteractiveRun.experiment_uuid, NonInteractiveRun.run_uuid],
+            ondelete="CASCADE",
+        ),
     )
 
 
@@ -162,7 +201,9 @@ class Experiment(BaseModel):
         default=0,
     )
 
-    pipeline_runs = db.relationship("NonInteractiveRun", lazy="joined")
+    pipeline_runs = db.relationship(
+        "NonInteractiveRun", lazy="joined", passive_deletes=False, cascade="all, delete"
+    )
 
     def __repr__(self):
         return f"<Experiment: {self.experiment_uuid}>"

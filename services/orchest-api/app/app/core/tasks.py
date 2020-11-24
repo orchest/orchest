@@ -97,7 +97,12 @@ async def check_pipeline_run_task_status(run_config, pipeline, task_id):
         run_status = await get_run_status(
             task_id, "pipeline", run_config["run_endpoint"]
         )
-        ready = run_status["status"] in ["SUCCESS", "FAILURE"]
+
+        # might be missing if the record has been removed, i.e.
+        # due to a cleanup that might happen if the project has been
+        # removed
+        aborted = aborted or "status" not in run_status
+        ready = run_status.get("status", "FAILURE") in ["SUCCESS", "FAILURE"]
 
         if aborted:
             pipeline.kill_all_running_steps(

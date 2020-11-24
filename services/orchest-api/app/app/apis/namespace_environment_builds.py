@@ -290,3 +290,84 @@ class ProjectEnvironmentMostRecentBuild(Resource):
         if recent:
             return recent.as_dict()
         abort(404, "EnvironmentBuild not found")
+
+
+@api.route("/cleanup/<string:project_uuid>/<string:environment_uuid>")
+@api.param("project_uuid", "UUID of the project.")
+@api.param("environment_uuid", "UUID of the environment.")
+class ProjectEnvironmentBuildsCleanup(Resource):
+    """Used when an environment is cleaned up"""
+
+    @staticmethod
+    def cleanup(project_uuid, environment_uuid):
+        # order by request time so that the first build might
+        # be related to a PENDING or STARTED build, all others
+        # are surely not PENDING or STARTED
+        env_builds = (
+            models.EnvironmentBuild.query.filter_by(
+                project_uuid=project_uuid, environment_uuid=environment_uuid
+            )
+            .order_by(desc(models.EnvironmentBuild.requested_time))
+            .all()
+        )
+
+        if len(env_builds) > 0 and env_builds[0] in ["PENDING", "STARTED"]:
+            abort_environment_build(env_builds[0].build_uuid)
+
+        for build in env_builds:
+            db.session.delete(build)
+        db.session.commit()
+
+    @api.doc("cleanup_environment_builds")
+    @api.response(200, "Environment builds cleaned up")
+    def delete(self, project_uuid, environment_uuid):
+        """Cleanup environment builds of an environment.
+
+        Any running build for the given environment is stopped.
+        Records of builds related to this environment are deleted.
+        """
+        ProjectEnvironmentBuildCleanup.cleanup(project_uuid, environment_uuid)
+
+        return {"message": "Environment builds cleanup was successful"}, 200
+
+
+@api.route("/cleanup/<string:project_uuid>")
+@api.param("project_uuid", "UUID of the project.")
+class ProjectBuildsCleanup(Resource):
+    """Used when a project is cleaned up
+
+    This is necessary because a project might have been removed through
+    the file system by the user, so we have lost any reference to the
+    environment uuids.
+    """
+
+    @staticmethod
+    def cleanup(project_uuid):
+        # get all project_uuid-env_uuid pairs for this project
+        # cleanup those builds, will also take care of stopping
+        # currently running builds
+        builds = (
+            models.EnvironmentBuild.query.filter_by(project_uuid=project_uuid)
+            .with_entities(
+                models.EnvironmentBuild.project_uuid,
+                models.EnvironmentBuild.environment_uuid,
+            )
+            .distinct()
+            .all()
+        )
+        for build in builds:
+            ProjectEnvironmentBuildsCleanup.cleanup(
+                build.project_uuid, build.environment_uuid
+            )
+
+    @api.doc("cleanup_environment_builds")
+    @api.response(200, "Environment builds cleaned up")
+    def delete(self, project_uuid):
+        """Cleanup environment builds of a project"
+
+        Any running build for the given project is stopped.
+        Records of builds related to this project are deleted.
+        """
+
+        ProjecttBuildsCleanup.cleanup(project_uuid)
+        return {"message": "Environment builds cleanup was successful"}, 200

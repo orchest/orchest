@@ -191,6 +191,32 @@ class Experiment(Resource):
         )
         return experiment.__dict__
 
+    @staticmethod
+    def stop(experiment):
+        run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
+
+        # Aborts and revokes all pipeline runs and waits for a reply for 1.0s.
+        celery = make_celery(current_app)
+        celery.control.revoke(run_uuids, timeout=1.0)
+
+        # TODO: possibly set status of steps and Run to "ABORTED"
+        #  note that a race condition would be present since the task
+        # will try to set the status as well
+        for run_uuid in run_uuids:
+            res = AbortableAsyncResult(run_uuid, app=celery)
+            # it is responsibility of the task to terminate by reading \
+            # it's aborted status
+            res.abort()
+
+        # Update the status of the run and step entries to "REVOKED".
+        models.NonInteractiveRun.query.filter_by(
+            experiment_uuid=experiment.experiment_uuid
+        ).update({"status": "REVOKED"})
+        models.NonInteractiveRunPipelineStep.query.filter_by(
+            experiment_uuid=experiment.experiment_uuid
+        ).update({"status": "REVOKED"})
+        db.session.commit()
+
     # TODO: We should also make it possible to stop a particular pipeline
     #       run of an experiment. It should state "cancel" the execution
     #       of a pipeline run, since we do not do termination of running
@@ -207,28 +233,7 @@ class Experiment(Resource):
             experiment_uuid,
             description="Experiment not found",
         )
-
-        run_uuids = [run.run_uuid for run in experiment.pipeline_runs]
-
-        # Aborts and revokes all pipeline runs and waits for a reply for 1.0s.
-        celery = make_celery(current_app)
-        celery.control.revoke(run_uuids, timeout=1.0)
-
-        # TODO: possibly set status of steps and Run to "ABORTED"
-        #  note that a race condition would be present since the task will try to set the status as well
-        for run_uuid in run_uuids:
-            res = AbortableAsyncResult(run_uuid, app=celery)
-            # it is responsibility of the task to terminate by reading it's aborted status
-            res.abort()
-
-        # Update the status of the run and step entries to "REVOKED".
-        models.NonInteractiveRun.query.filter_by(
-            experiment_uuid=experiment_uuid
-        ).update({"status": "REVOKED"})
-        models.NonInteractiveRunPipelineStep.query.filter_by(
-            experiment_uuid=experiment_uuid
-        ).update({"status": "REVOKED"})
-        db.session.commit()
+        Experiment.stop(experiment)
 
         return {"message": "Experiment termination was successful"}, 200
 
@@ -324,3 +329,39 @@ class PipelineStepStatus(Resource):
         )
 
         return {"message": "Status was updated successfully"}, 200
+
+
+@api.route("/cleanup/<string:experiment_uuid>")
+@api.param("experiment_uuid", "UUID of experiment")
+@api.response(404, "Experiment not found")
+class ExperimentCleanup(Resource):
+    @staticmethod
+    def cleanup(experiment):
+        # issue stop only if any experiment run is PENDING/STARTED
+        any_running = models.NonInteractiveRun.query.with_parent(experiment).filter(
+            models.NonInteractiveRun.status.in_(["PENDING", "STARTED"])
+        )
+        any_running = any_running.first()
+        if any_running is not None:
+            Experiment.stop(experiment)
+
+        # non interactive runs -> non interactive run image mapping
+        # non interactive runs step
+        db.session.delete(experiment)
+        db.session.commit()
+
+    @api.doc("cleanup_experiment")
+    @api.response(200, "Experiment cleaned up")
+    def delete(self, experiment_uuid):
+        """Cleanup an experiment.
+
+        The experiment is stopped if its running, related entities
+        are then removed from the db.
+        """
+        experiment = models.Experiment.query.get_or_404(
+            experiment_uuid,
+            description="Experiment not found",
+        )
+        ExperimentCleanup.cleanup(experiment)
+
+        return {"message": "Experiment cleanup was successful"}, 200
