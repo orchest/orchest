@@ -25,6 +25,7 @@ class PipelineList extends React.Component {
     this.state = {
       loading: true,
       createModal: false,
+      pipelinePath: "pipeline",
     };
 
     this.promiseManager = new PromiseManager();
@@ -241,7 +242,13 @@ class PipelineList extends React.Component {
   onCloseCreatePipelineModal() {
     this.setState({
       createModal: false,
+      pipelinePath: "pipeline",
     });
+  }
+
+  handleInputChange(value) {
+    // Create slug.
+    this.setState({ pipelinePath: value.toLowerCase().replace(/[\W]/g, "_") });
   }
 
   render() {
@@ -261,12 +268,13 @@ class PipelineList extends React.Component {
                         ref={this.refManager.nrefs.createPipelineNameTextField}
                         classNames={["fullwidth push-down"]}
                         label="Pipeline name"
+                        onChange={this.handleInputChange.bind(this)}
                       />
                       <MDCTextFieldReact
                         ref={this.refManager.nrefs.createPipelinePathField}
                         classNames={["fullwidth"]}
                         label="Pipeline path"
-                        value="pipeline.orchest"
+                        value={this.state.pipelinePath + ".orchest"}
                       />
                     </Fragment>
                   }

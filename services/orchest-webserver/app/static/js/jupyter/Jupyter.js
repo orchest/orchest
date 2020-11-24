@@ -26,6 +26,11 @@ class Jupyter {
       this.reloadOnShow = false;
       this._reloadFilesFromDisk();
     }
+
+    // make sure the baseAddress has loaded
+    if (this.iframe.src.indexOf(this.baseAddress) === -1) {
+      this.setJupyterAddress(this.baseAddress);
+    }
   }
   hide() {
     this.jupyterHolder.addClass("hidden");

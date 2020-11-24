@@ -62,6 +62,11 @@ class ExperimentList extends React.Component {
   componentDidUpdate(prevProps, prevState, snapshot) {}
 
   fetchList() {
+    // in case experimentTable exists, clear checks
+    if (this.refManager.refs.experimentTable) {
+      this.refManager.refs.experimentTable.setSelectedRowIds([]);
+    }
+
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/store/experiments"),
       this.promiseManager

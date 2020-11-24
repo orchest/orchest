@@ -1,6 +1,5 @@
 import React from "react";
-import PipelineView from "./PipelineView";
-import { MDCRipple } from "@material/ripple";
+import PipelineView from "../views/PipelineView";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import { makeRequest } from "../lib/utils/all";
 
@@ -12,30 +11,33 @@ class HeaderButtons extends React.Component {
       pipeline_uuid: undefined,
       project_uuid: undefined,
       pipeline_path: "",
-      showBack: false,
+      sessionActive: false,
+      viewShowing: "pipeline",
     };
   }
 
-  componentWillUnmount() {}
-
-  componentDidMount() {}
-
-  componentDidUpdate(prevProps, prevState, snapshot) {}
-
-  openView() {
+  showPipeline() {
+    this.updateCurrentView("pipeline");
     orchest.loadView(PipelineView, {
       pipeline_uuid: this.state.pipeline.uuid,
       project_uuid: this.state.project_uuid,
     });
+  }
 
+  showJupyter() {
+    this.updateCurrentView("jupyter");
+    orchest.showJupyter();
+  }
+
+  updateCurrentView(view) {
     this.setState({
-      showBack: false,
+      viewShowing: view,
     });
   }
 
-  showBack() {
+  updateSessionState(active) {
     this.setState({
-      showBack: true,
+      sessionActive: active,
     });
   }
 
@@ -47,7 +49,9 @@ class HeaderButtons extends React.Component {
 
   setPipeline(pipelineJson, project_uuid) {
     this.setState({
-      pipeline_path: "...",
+      pipeline_path: "",
+      pipeline: pipelineJson,
+      project_uuid: project_uuid,
     });
 
     // fetch pipeline path
@@ -58,13 +62,8 @@ class HeaderButtons extends React.Component {
       let pipeline = JSON.parse(response);
 
       this.setState({
-        pipeline_path: pipeline.path,
+        pipeline_path: `[${pipeline.path}]`,
       });
-    });
-
-    this.setState({
-      pipeline: pipelineJson,
-      project_uuid: project_uuid,
     });
   }
 
@@ -73,17 +72,24 @@ class HeaderButtons extends React.Component {
       return (
         <div>
           <span className="pipeline-name">
-            {this.state.pipeline.name} [{this.state.pipeline_path}]
+            {this.state.pipeline.name} {this.state.pipeline_path}
           </span>
-          {this.state.showBack ? (
+          {this.state.viewShowing == "jupyter" && (
             <MDCButtonReact
               classNames={["mdc-button--raised"]}
-              onClick={this.openView.bind(this)}
-              icon="arrow_back"
-              label="Back to Pipeline"
+              onClick={this.showPipeline.bind(this)}
+              icon="device_hub"
+              label="Switch to Pipeline"
             />
-          ) : (
-            <span></span>
+          )}
+
+          {this.state.viewShowing == "pipeline" && this.state.sessionActive && (
+            <MDCButtonReact
+              classNames={["mdc-button--raised"]}
+              onClick={this.showJupyter.bind(this)}
+              icon="science"
+              label="Switch to JupyterLab"
+            />
           )}
         </div>
       );

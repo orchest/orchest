@@ -3,6 +3,7 @@ import { MDCDrawer } from "@material/drawer";
 
 import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
+import HelpView from "./views/HelpView";
 import ManageUsersView from "./views/ManageUsersView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
@@ -10,7 +11,7 @@ import DataSourceEditView from "./views/DataSourceEditView";
 import ExperimentsView from "./views/ExperimentsView";
 import PipelinesView from "./views/PipelinesView";
 import CreateExperimentView from "./views/CreateExperimentView";
-import HeaderButtons from "./views/HeaderButtons";
+import HeaderButtons from "./components/HeaderButtons";
 import React from "react";
 import ReactDOM from "react-dom";
 import PipelineView from "./views/PipelineView";
@@ -22,7 +23,7 @@ import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
 import EnvironmentsView from "./views/EnvironmentsView";
 import UpdateView from "./views/UpdateView";
-import { PersistentLocalConfig } from "./lib/utils/all";
+import { PersistentLocalConfig, makeRequest } from "./lib/utils/all";
 
 function Orchest() {
   // load server side config populated by flask template
@@ -40,7 +41,7 @@ function Orchest() {
 
   this.browserConfig = new PersistentLocalConfig("orchest");
 
-  this.Components = {
+  this.viewComponents = {
     ProjectsView,
     DataSourcesView,
     FileManagerView,
@@ -48,12 +49,21 @@ function Orchest() {
     DataSourceEditView,
     PipelineView,
     SettingsView,
+    HelpView,
     UpdateView,
     PipelinesView,
     ExperimentsView,
     ExperimentView,
     CreateExperimentView,
     ManageUsersView,
+  };
+
+  this.componentName = function (TagName) {
+    for (let viewName of Object.keys(orchest.viewComponents)) {
+      if (orchest.viewComponents[viewName] === TagName) {
+        return viewName;
+      }
+    }
   };
 
   const drawer = MDCDrawer.attachTo(document.getElementById("main-drawer"));
@@ -75,11 +85,28 @@ function Orchest() {
       let viewName = listElement.attributes.getNamedItem("data-react-view")
         .value;
 
-      this.loadView(this.Components[viewName]);
+      this.loadView(this.viewComponents[viewName]);
     }
   });
 
+  this.sendEvent = function (event, properties) {
+    if (!orchest.config["TELEMETRY_DISABLED"]) {
+      makeRequest("POST", "/analytics", {
+        type: "json",
+        content: {
+          event: event,
+          properties: properties,
+        },
+      });
+    }
+  };
+
   this.loadView = function (TagName, dynamicProps) {
+    let viewName = this.componentName(TagName);
+
+    // Analytics call
+    this.sendEvent("view load", { name: viewName });
+
     // make sure reactRoot is not hidden
     $(this.reactRoot).removeClass("hidden");
 
@@ -95,7 +122,7 @@ function Orchest() {
     for (let listIndex in drawer.list.listElements) {
       let listElement = drawer.list.listElements[listIndex];
 
-      if (listElement.getAttribute("data-react-view") === TagName.name) {
+      if (listElement.getAttribute("data-react-view") === viewName) {
         drawer.list.selectedIndex = parseInt(listIndex);
       }
     }
@@ -150,9 +177,15 @@ function Orchest() {
   let dialogs = ReactDOM.render(<Dialogs />, this.dialogHolder);
 
   this.alert = function (title, content) {
+    // Analytics call
+    this.sendEvent("alert show", { title: title, content: content });
+
     dialogs.alert(title, content);
   };
   this.confirm = function (title, content, cb) {
+    // Analytics call
+    this.sendEvent("confirm show", { title: title, content: content });
+
     dialogs.confirm(title, content, cb);
   };
 }
