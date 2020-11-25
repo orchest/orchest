@@ -1048,6 +1048,8 @@ class PipelineView extends React.Component {
           this.props.project_uuid
         );
 
+        orchest.headerBarComponent.updateCurrentView("pipeline");
+
         this.initializePipeline();
       } else {
         console.warn("Could not load pipeline.json");
