@@ -78,6 +78,9 @@ cd orchest
 ./orchest start
 ```
 
+Get started with our
+[quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html) tutorial.
+
 ## License
 
 The software in this repository is licensed as follows:
