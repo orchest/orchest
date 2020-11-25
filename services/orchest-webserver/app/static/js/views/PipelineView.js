@@ -1198,6 +1198,19 @@ class PipelineView extends React.Component {
     });
   }
 
+  deleteSelectedSteps() {
+    this.closeMultistepView();
+    this.closeDetailsView();
+
+    for (let x = 0; x < this.state.selectedSteps.length; x++) {
+      this.deleteStep(this.state.selectedSteps[x]);
+    }
+
+    this.setState({
+      selectedSteps: [],
+    });
+  }
+
   deleteStep(uuid) {
     // also delete incoming connections that contain this uuid
     for (let key in this.state.steps) {
@@ -1230,20 +1243,18 @@ class PipelineView extends React.Component {
     delete this.state.steps[uuid];
     this.setState({
       steps: this.state.steps,
-      selectedSteps: this.getSelectedSteps(),
       unsavedChanges: true,
     });
-
-    // make sure step is closed if it is open
-    if (this.state.openedStep == uuid) {
-      this.setState({
-        openedStep: undefined,
-      });
-    }
   }
 
   onDetailsDelete() {
     let uuid = this.state.openedStep;
+
+    this.setState({
+      openedStep: undefined,
+      selectedSteps: [],
+    });
+
     this.deleteStep(uuid);
   }
 
@@ -1583,15 +1594,6 @@ class PipelineView extends React.Component {
   onDeleteMultistep() {
     this.deleteSelectedSteps();
     this.closeMultistepView();
-  }
-
-  deleteSelectedSteps() {
-    this.closeMultistepView();
-    this.closeDetailsView();
-
-    for (let x = 0; x < this.state.selectedSteps.length; x++) {
-      this.deleteStep(this.state.selectedSteps[x]);
-    }
   }
 
   onDetailsChangeView(newIndex) {
