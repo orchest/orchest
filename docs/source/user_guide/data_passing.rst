@@ -50,18 +50,3 @@ When it comes to clearing the memory store there are two options:
 1. Clearing all objects from memory through the pipeline settings.
 2. Enabling auto eviction also through the pipeline settings, additional information about this
    setting can be found in :ref:`pipeline level configurations <pipeline configuration>`.
-
-.. TODO(yannick)
-
-.. Notion of memory-server per pipeline.
-
-.. Passing data from one step to another (using :meth:`orchest.transfer.output`) passes data through
-.. memory by default. When passing data from some step "A" to some step "B", then the object passed at
-.. A would be stored in memory so B can retrieve it. The object will be copied to the memory of step B,
-.. leaving a copy in the memory-server. This is useful in interactive runs as it allows you to rerun
-.. certain step without having to run the steps it depends on (if they have run before).
-
-.. To clear memory use auto eviction.
-
-   Also refer to pipeline level configurations after talking about how the memory server works!
-   The user needs to understand when objects are evicted (and the special kernel case).

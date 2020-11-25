@@ -77,6 +77,11 @@ under *Manage users*.
 To enable user authentication in Orchest the ``AUTH_ENABLED`` config option has to be set to
 ``true``. Please refer to the :ref:`configuration <configuration>` section above to read how.
 
+.. note::
+   Orchest does not yet support user sessions, meaning that there is no granularity or security
+   between users. All you can do is have the same installation of Orchest be accessible by a
+   configured set of users (with passwords of course).
+
 Skipping notebook cells
 -----------------------
 Notebooks facilitate an experimental workflow, meaning that there will be cells that should not be

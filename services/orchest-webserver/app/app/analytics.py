@@ -81,24 +81,26 @@ def get_telemetry_uuid(app):
 
 
 def send_event(app, event, properties):
-    if not app.config["TELEMETRY_DISABLED"]:
-        try:
-            telemetry_uuid = get_telemetry_uuid(app)
+    if app.config["TELEMETRY_DISABLED"]:
+        return False
 
-            if "mode" not in properties:
-                properties["mode"] = os.environ.get("FLASK_ENV", "production")
+    try:
+        telemetry_uuid = get_telemetry_uuid(app)
 
-            properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
+        if "mode" not in properties:
+            properties["mode"] = os.environ.get("FLASK_ENV", "production")
 
-            posthog.capture(telemetry_uuid, event, properties)
-            logging.debug(
-                "Sending event[%s] to Posthog for anonymized user [%s] with properties: %s"
-                % (event, telemetry_uuid, properties)
-            )
-            return True
-        except (Exception, APIError) as e:
-            logging.error("Could not send event through posthog %s" % e)
-            return False
+        properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
+
+        posthog.capture(telemetry_uuid, event, properties)
+        logging.debug(
+            "Sending event[%s] to Posthog for anonymized user [%s] with properties: %s"
+            % (event, telemetry_uuid, properties)
+        )
+        return True
+    except (Exception, APIError) as e:
+        logging.error("Could not send event through posthog %s" % e)
+        return False
 
 
 def analytics_ping(app):
