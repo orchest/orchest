@@ -700,8 +700,12 @@ class PipelineView extends React.Component {
       // Ctrl / Meta + S for saving pipeline
       if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-
+        // saveButton.click is used instead of savePipeline() to trigger visual
+        // button press
         this.refManager.refs.saveButton.click();
+      }
+      if (e.keyCode == 46) {
+        this.deleteSelectedSteps();
       }
     });
 
@@ -1577,10 +1581,14 @@ class PipelineView extends React.Component {
   }
 
   onDeleteMultistep() {
+    this.deleteSelectedSteps();
+    this.closeMultistepView();
+  }
+
+  deleteSelectedSteps() {
     for (let x = 0; x < this.state.selectedSteps.length; x++) {
       this.deleteStep(this.state.selectedSteps[x]);
     }
-    this.closeMultistepView();
   }
 
   onDetailsChangeView(newIndex) {
