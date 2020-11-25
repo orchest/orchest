@@ -311,7 +311,7 @@ class ProjectEnvironmentBuildsCleanup(Resource):
             .all()
         )
 
-        if len(env_builds) > 0 and env_builds[0] in ["PENDING", "STARTED"]:
+        if len(env_builds) > 0 and env_builds[0].status in ["PENDING", "STARTED"]:
             abort_environment_build(env_builds[0].build_uuid)
 
         for build in env_builds:
