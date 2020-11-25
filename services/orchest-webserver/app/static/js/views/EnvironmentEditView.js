@@ -549,37 +549,35 @@ class EnvironmentEditView extends React.Component {
           </div>
         </div>
 
-        <div>
-          {(() => {
-            if (this.state.environmentBuild) {
-              return (
-                <div className="build-status push-up">
-                  <div>Build status: {this.state.environmentBuild.status}</div>
-                  <div>
-                    Build started:{" "}
-                    {this.state.environmentBuild.started_time ? (
-                      new Date(
-                        this.state.environmentBuild.started_time + " GMT"
-                      ).toLocaleString()
-                    ) : (
-                      <i>not yet started</i>
-                    )}
-                  </div>
-                  <div>
-                    Build finished:{" "}
-                    {this.state.environmentBuild.finished_time ? (
-                      new Date(
-                        this.state.environmentBuild.finished_time + " GMT"
-                      ).toLocaleString()
-                    ) : (
-                      <i>not yet finished</i>
-                    )}
-                  </div>
+        {(() => {
+          if (this.state.environmentBuild) {
+            return (
+              <div className="build-status push-up">
+                <div>Build status: {this.state.environmentBuild.status}</div>
+                <div>
+                  Build started:{" "}
+                  {this.state.environmentBuild.started_time ? (
+                    new Date(
+                      this.state.environmentBuild.started_time + " GMT"
+                    ).toLocaleString()
+                  ) : (
+                    <i>not yet started</i>
+                  )}
                 </div>
-              );
-            }
-          })()}
-        </div>
+                <div>
+                  Build finished:{" "}
+                  {this.state.environmentBuild.finished_time ? (
+                    new Date(
+                      this.state.environmentBuild.finished_time + " GMT"
+                    ).toLocaleString()
+                  ) : (
+                    <i>not yet finished</i>
+                  )}
+                </div>
+              </div>
+            );
+          }
+        })()}
 
         <div className="multi-button push-up push-down">
           <MDCButtonReact
