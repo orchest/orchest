@@ -104,16 +104,11 @@ class PipelineList extends React.Component {
 
   onClickListItem(row, idx, e) {
     let pipeline = this.state.pipelines[idx];
-    let readOnly = false;
-
-    if (e.ctrlKey || e.metaKey) {
-      readOnly = true;
-    }
 
     let checkGatePromise = checkGate(this.props.project_uuid);
     checkGatePromise
       .then(() => {
-        this.openPipeline(pipeline, readOnly);
+        this.openPipeline(pipeline, false);
       })
       .catch((result) => {
         this.openPipeline(pipeline, true);

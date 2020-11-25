@@ -197,7 +197,11 @@ class CreateExperimentView extends React.Component {
           this.runExperiment();
         })
         .catch((result) => {
-          requestBuild(this.props.experiment.project_uuid, result.data);
+          requestBuild(
+            this.props.experiment.project_uuid,
+            result.data,
+            "CreateExperiment"
+          );
         });
     } else {
       orchest.alert("Error", validation.reason);

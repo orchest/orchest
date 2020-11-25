@@ -284,16 +284,26 @@ class PipelineView extends React.Component {
         console.log("could not start pipeline status updates: " + e);
       }
     } else {
+      if (this.props.readOnly) {
+        // for non pipelineRun - read only check gate
+        let checkGatePromise = checkGate(this.props.project_uuid);
+        checkGatePromise
+          .then(() => {
+            let newProps = {};
+            Object.assign(newProps, this.props);
+            newProps.readOnly = false;
+            // open in non-read only
+            orchest.loadView(PipelineView, newProps);
+          })
+          .catch((result) => {
+            if (result.reason === "gate-failed") {
+              requestBuild(props.project_uuid, result.data, "Pipeline");
+            }
+          });
+      }
+
       // retrieve interactive run runUUID to show pipeline exeuction state
       this.fetchActivePipelineRuns();
-
-      // for non pipelineRun - read only check gate
-      let checkGatePromise = checkGate(this.props.project_uuid);
-      checkGatePromise.catch((result) => {
-        if (result.reason === "gate-failed") {
-          requestBuild(props.project_uuid, result.data);
-        }
-      });
     }
   }
 
