@@ -13,7 +13,7 @@ import shutil
 import requests
 import subprocess
 
-from app.models import Pipeline, Project, Environment
+from app.models import Pipeline, Project, Environment, Experiment
 from app.config import CONFIG_CLASS as StaticConfig
 from app.schemas import EnvironmentSchema
 from _orchest.internals import config as _config
@@ -34,7 +34,9 @@ def get_pipeline_path(
         USER_DIR = StaticConfig.HOST_USER_DIR
 
     if pipeline_path is None:
-        pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
+        pipeline_path = pipeline_uuid_to_path(
+            pipeline_uuid, project_uuid, experiment_uuid
+        )
 
     project_path = project_uuid_to_path(project_uuid)
 
@@ -323,16 +325,24 @@ def remove_dir_if_empty(path):
         shutil.rmtree(path)
 
 
-def pipeline_uuid_to_path(pipeline_uuid, project_uuid):
-    pipeline = (
-        Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
-        .filter(Pipeline.project_uuid == project_uuid)
-        .first()
-    )
-    if pipeline is not None:
-        return pipeline.path
+def pipeline_uuid_to_path(pipeline_uuid, project_uuid, experiment_uuid=None):
+    if experiment_uuid is None:
+        pipeline = (
+            Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
+            .filter(Pipeline.project_uuid == project_uuid)
+            .first()
+        )
+        if pipeline is not None:
+            return pipeline.path
+        else:
+            return None
     else:
-        return None
+        experiment = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
+
+        if experiment is not None:
+            return experiment.pipeline_path
+        else:
+            return None
 
 
 def project_uuid_to_path(project_uuid):

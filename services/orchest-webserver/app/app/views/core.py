@@ -279,17 +279,31 @@ def register_views(app, db):
 
             def post(self, experiment_uuid):
 
+                experiment_uuid = str(uuid.uuid4())
+
+                pipeline_path = get_pipeline_path(
+                    request.json["pipeline_uuid"], request.json["project_uuid"]
+                )
+
                 new_ex = Experiment(
                     uuid=experiment_uuid,
                     name=request.json["name"],
                     pipeline_uuid=request.json["pipeline_uuid"],
+                    project_uuid=request.json["project_uuid"],
                     pipeline_name=request.json["pipeline_name"],
-                    strategy_json=request.json["strategy_json"],
+                    pipeline_path=pipeline_path,
+                    strategy_json="{}",
                     draft=request.json["draft"],
                 )
 
                 db.session.add(new_ex)
                 db.session.commit()
+
+                create_experiment_directory(
+                    experiment_uuid,
+                    request.json["pipeline_uuid"],
+                    request.json["project_uuid"],
+                )
 
                 return experiment_schema.dump(new_ex)
 
@@ -724,30 +738,6 @@ def register_views(app, db):
             return jsonify({"success": True})
         else:
             return jsonify({"message": "Pipeline could not be found."}), 404
-
-    @app.route("/async/experiments/create", methods=["POST"])
-    def experiments_create():
-
-        experiment_uuid = str(uuid.uuid4())
-
-        new_ex = Experiment(
-            uuid=experiment_uuid,
-            name=request.json["name"],
-            pipeline_uuid=request.json["pipeline_uuid"],
-            project_uuid=request.json["project_uuid"],
-            pipeline_name=request.json["pipeline_name"],
-            strategy_json="",
-            draft=True,
-        )
-
-        db.session.add(new_ex)
-        db.session.commit()
-
-        create_experiment_directory(
-            experiment_uuid, request.json["pipeline_uuid"], request.json["project_uuid"]
-        )
-
-        return jsonify(experiment_schema.dump(new_ex))
 
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():

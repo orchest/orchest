@@ -476,7 +476,11 @@ class Pipeline:
                 step.parents.append(steps[uuid])
                 steps[uuid]._children.append(step)
 
-        properties = {"name": description["name"], "uuid": description["uuid"]}
+        properties = {
+            "name": description["name"],
+            "uuid": description["uuid"],
+            "settings": description["settings"],
+        }
         return cls(list(steps.values()), properties)
 
     def to_dict(self) -> PipelineDefinition:

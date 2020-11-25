@@ -162,13 +162,14 @@ class ExperimentList extends React.Component {
       createModelLoading: true,
     });
 
-    makeRequest("POST", "/async/experiments/create", {
+    makeRequest("POST", "/store/experiments/new", {
       type: "json",
       content: {
         pipeline_uuid: pipeline_uuid,
         pipeline_name: pipelineName,
         project_uuid: this.props.project_uuid,
         name: this.refManager.refs.formExperimentName.mdc.value,
+        draft: true,
       },
     }).then((response) => {
       let experiment = JSON.parse(response);
