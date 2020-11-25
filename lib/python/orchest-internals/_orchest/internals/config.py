@@ -32,7 +32,6 @@ TRUNCATED_UUID_LENGTH = 18
 LOGS_PATH = ".orchest/pipelines/{pipeline_uuid}/logs"
 
 WEBSERVER_LOGS = "/orchest/services/orchest-webserver/app/orchest-webserver.log"
-ORCHEST_API_WEBSERVER_LOGS = "/orchest/services/orchest-api/app/orchest-api.log"
 
 # Networking
 ORCHEST_API_ADDRESS = "orchest-api"
