@@ -17,6 +17,7 @@ class PipelineSettingsView extends React.Component {
 
     this.state = {
       restartingMemoryServer: false,
+      unsavedChanges: false,
     };
 
     this.promiseManager = new PromiseManager();
@@ -72,10 +73,16 @@ class PipelineSettingsView extends React.Component {
 
   onChangeName(value) {
     this.state.pipelineJson.name = value;
+    this.setState({
+      unsavedChanges: true,
+    });
   }
 
   onChangeDataPassingMemorySize(value) {
     this.state.pipelineJson.settings.data_passing_memory_size = value;
+    this.setState({
+      unsavedChanges: true,
+    });
   }
 
   onChangeEviction(value) {
@@ -85,6 +92,9 @@ class PipelineSettingsView extends React.Component {
     }
 
     this.state.pipelineJson.settings.auto_eviction = value;
+    this.setState({
+      unsavedChanges: true,
+    });
   }
 
   saveGeneralForm(e) {
@@ -100,9 +110,8 @@ class PipelineSettingsView extends React.Component {
       { type: "FormData", content: formData }
     )
       .then(() => {
-        orchest.loadView(PipelineView, {
-          pipeline_uuid: this.props.pipeline_uuid,
-          project_uuid: this.props.project_uuid,
+        this.setState({
+          unsavedChanges: false,
         });
       })
       .catch((response) => {
@@ -204,7 +213,7 @@ class PipelineSettingsView extends React.Component {
                   </div>
 
                   <MDCButtonReact
-                    label="save"
+                    label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                     classNames={["mdc-button--raised"]}
                     onClick={this.saveGeneralForm.bind(this)}
                   />
