@@ -107,7 +107,7 @@ class FilePreviewView extends React.Component {
                   value={this.state.textFile.content}
                   options={{
                     mode: fileMode,
-                    theme: "default",
+                    theme: "jupyter",
                     lineNumbers: true,
                     readOnly: true,
                   }}

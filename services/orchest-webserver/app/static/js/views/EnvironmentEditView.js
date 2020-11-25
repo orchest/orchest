@@ -518,7 +518,7 @@ class EnvironmentEditView extends React.Component {
           value={this.state.environment.setup_script}
           options={{
             mode: "application/x-sh",
-            theme: "default",
+            theme: "jupyter",
             lineNumbers: true,
             viewportMargin: Infinity,
           }}

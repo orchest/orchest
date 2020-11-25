@@ -402,12 +402,11 @@ class PipelineView extends React.Component {
   }
 
   encodeJSON() {
-    // generate JSON representation using the internal state of React components describing the pipeline
-    let pipelineJSON = {
-      name: this.state.pipelineJson.name,
-      uuid: this.state.pipelineJson.uuid,
-      steps: {},
-    };
+    // generate JSON representation using the internal state of React components
+    // describing the pipeline
+
+    let pipelineJSON = JSON.parse(JSON.stringify(this.state.pipelineJson));
+    pipelineJSON["steps"] = {};
 
     for (let key in this.state.steps) {
       if (this.state.steps.hasOwnProperty(key)) {
