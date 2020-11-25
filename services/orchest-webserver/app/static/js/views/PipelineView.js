@@ -15,6 +15,7 @@ import {
   checkGate,
   requestBuild,
   getScrollLineHeight,
+  getPipelineJSONEndpoint,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -1022,18 +1023,15 @@ class PipelineView extends React.Component {
   }
 
   fetchPipelineAndInitialize() {
-    let pipelineURL = `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`;
-
-    if (this.props.pipelineRun) {
-      pipelineURL +=
-        "?pipeline_run_uuid=" +
-        this.props.pipelineRun.run_uuid +
-        "&experiment_uuid=" +
-        this.props.pipelineRun.experiment_uuid;
-    }
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+      this.props.pipeline_uuid,
+      this.props.project_uuid,
+      this.props.pipelineRun && this.props.pipelineRun.experiment_uuid,
+      this.props.pipelineRun && this.props.pipelineRun.run_uuid
+    );
 
     let fetchPipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineURL),
+      makeRequest("GET", pipelineJSONEndpoint),
       this.promiseManager
     );
 
@@ -1044,7 +1042,8 @@ class PipelineView extends React.Component {
 
         orchest.headerBarComponent.setPipeline(
           this.state.pipelineJson,
-          this.props.project_uuid
+          this.props.project_uuid,
+          this.props.pipelineRun && this.props.pipelineRun.experiment_uuid
         );
 
         this.initializePipeline();
@@ -1994,6 +1993,7 @@ class PipelineView extends React.Component {
                   <MDCButtonReact
                     classNames={"mdc-button--outlined"}
                     label={"Read only"}
+                    disabled={true}
                     icon={"visibility"}
                   />
                 </div>

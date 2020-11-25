@@ -12,6 +12,7 @@ import {
   makeCancelable,
   RefManager,
 } from "../lib/utils/all";
+import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import ExperimentView from "../views/ExperimentView";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
@@ -207,13 +208,13 @@ class ExperimentList extends React.Component {
         },
       });
     } else {
-      makeRequest(
-        "GET",
-        `/async/pipelines/json/${experiment.project_uuid}/${experiment.pipeline_uuid}` +
-          "?experiment_uuid=" +
-          experiment.uuid,
-        {}
-      ).then((response) => {
+      let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+        experiment.pipeline_uuid,
+        experiment.project_uuid,
+        experiment.uuid
+      );
+
+      makeRequest("GET", pipelineJSONEndpoint).then((response) => {
         let result = JSON.parse(response);
         if (result.success) {
           let pipeline = JSON.parse(result["pipeline_json"]);

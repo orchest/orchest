@@ -142,3 +142,21 @@ export function getScrollLineHeight() {
   document.body.removeChild(el);
   return fontSize ? window.parseInt(fontSize) : undefined;
 }
+
+export function getPipelineJSONEndpoint(
+  pipeline_uuid,
+  project_uuid,
+  experiment_uuid,
+  run_uuid
+) {
+  let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
+
+  if (experiment_uuid !== undefined) {
+    pipelineURL += `?experiment_uuid=${experiment_uuid}`;
+  }
+
+  if (run_uuid !== undefined) {
+    pipelineURL += `&pipeline_run_uuid=${run_uuid}`;
+  }
+  return pipelineURL;
+}

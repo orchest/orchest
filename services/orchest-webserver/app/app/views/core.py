@@ -281,7 +281,7 @@ def register_views(app, db):
 
                 experiment_uuid = str(uuid.uuid4())
 
-                pipeline_path = get_pipeline_path(
+                pipeline_path = pipeline_uuid_to_path(
                     request.json["pipeline_uuid"], request.json["project_uuid"]
                 )
 

@@ -40,7 +40,7 @@ def get_pipeline_path(
 
     project_path = project_uuid_to_path(project_uuid)
 
-    if pipeline_run_uuid is None:
+    if pipeline_run_uuid is None and experiment_uuid is None:
         return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and experiment_uuid is not None:
         return os.path.join(

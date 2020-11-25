@@ -38,6 +38,7 @@ class ExperimentSchema(ma.Schema):
             "pipeline_uuid",
             "project_uuid",
             "pipeline_name",
+            "pipeline_path",
             "created",
             "strategy_json",
             "draft",

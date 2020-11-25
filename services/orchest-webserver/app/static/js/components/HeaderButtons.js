@@ -47,24 +47,36 @@ class HeaderButtons extends React.Component {
     });
   }
 
-  setPipeline(pipelineJson, project_uuid) {
+  setPipeline(pipelineJson, project_uuid, experiment_uuid) {
     this.setState({
       pipeline_path: "",
       pipeline: pipelineJson,
       project_uuid: project_uuid,
     });
 
-    // fetch pipeline path
-    makeRequest(
-      "GET",
-      `/async/pipelines/${project_uuid}/${pipelineJson.uuid}`
-    ).then((response) => {
-      let pipeline = JSON.parse(response);
-
-      this.setState({
-        pipeline_path: `[${pipeline.path}]`,
+    // get pipeline path
+    if (experiment_uuid !== undefined) {
+      // For experiments the pipeline path is cached and stored on the
+      // experiment entity
+      makeRequest("GET", `/store/experiments/${experiment_uuid}`).then(
+        (response) => {
+          let experiment = JSON.parse(response);
+          this.setState({
+            pipeline_path: `[${experiment.pipeline_path}]`,
+          });
+        }
+      );
+    } else {
+      makeRequest(
+        "GET",
+        `/async/pipelines/${project_uuid}/${pipelineJson.uuid}`
+      ).then((response) => {
+        let pipeline = JSON.parse(response);
+        this.setState({
+          pipeline_path: `[${pipeline.path}]`,
+        });
       });
-    });
+    }
   }
 
   render() {

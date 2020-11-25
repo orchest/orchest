@@ -338,10 +338,9 @@ class PipelineDetailsProperties extends React.Component {
   }
 
   componentDidMount() {
-    // set focus on first field
-    this.refManager.refs.titleTextField.focus();
-
     if (!this.props.readOnly) {
+      // set focus on first field
+      this.refManager.refs.titleTextField.focus();
       this.setupConnectionListener();
     }
 
@@ -372,13 +371,28 @@ class PipelineDetailsProperties extends React.Component {
           />
 
           <div className="push-down">
-            <ProjectFilePicker
-              cwd="/"
-              value={this.state.step.file_path}
-              project_uuid={this.props.project_uuid}
-              pipeline_uuid={this.props.pipeline_uuid}
-              onChange={this.onChangeFileName.bind(this)}
-            />
+            {(() => {
+              if (this.props.readOnly) {
+                return (
+                  <MDCTextFieldReact
+                    value={this.state.step.file_path}
+                    label="File name"
+                    disabled={this.props.readOnly}
+                    classNames={["fullwidth", "push-down"]}
+                  />
+                );
+              } else {
+                return (
+                  <ProjectFilePicker
+                    cwd="/"
+                    value={this.state.step.file_path}
+                    project_uuid={this.props.project_uuid}
+                    pipeline_uuid={this.props.pipeline_uuid}
+                    onChange={this.onChangeFileName.bind(this)}
+                  />
+                );
+              }
+            })()}
           </div>
 
           <MDCSelectReact
