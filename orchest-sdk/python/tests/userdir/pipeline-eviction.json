@@ -1,6 +1,7 @@
 {
     "name": "my-pipeline",
     "uuid": "pipeline-uuid",
+    "settings": {},
     "steps": {
         "uuid-1______________": {
             "title": "step-1",

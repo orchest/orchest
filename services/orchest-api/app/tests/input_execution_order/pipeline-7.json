@@ -9,6 +9,7 @@
         "uuid-6",
         "uuid-4"
     ],
+    "settings": {},
     "steps": {
         "uuid-1": {
             "incoming_connections": [],

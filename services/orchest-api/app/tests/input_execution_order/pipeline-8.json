@@ -12,6 +12,7 @@
         "uuid-7",
         "uuid-9"
     ],
+    "settings": {},
     "steps": {
         "uuid-1": {
             "incoming_connections": [],
