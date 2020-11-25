@@ -11,4 +11,5 @@ requests==2.22.0
 Werkzeug==0.16.0
 python-engineio==3.13.2
 python-socketio[client]==4.6.0
+eventlet==0.29.1
 -e ../../../lib/python/orchest-internals
