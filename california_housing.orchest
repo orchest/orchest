@@ -1,0 +1,136 @@
+{
+  "name": "california-housing",
+  "version": "1.0.0",
+  "uuid": "0915b350-b929-4cbd-b0d4-763cac0bb69f",
+  "settings": {
+    "auto_eviction": false,
+    "data_passing_memory_size": "1GB"
+  },
+  "steps": {
+    "106bb318-252d-4f94-ba86-c36722dddf41": {
+      "title": "get-data",
+      "uuid": "106bb318-252d-4f94-ba86-c36722dddf41",
+      "incoming_connections": [],
+      "file_path": "get-data.ipynb",
+      "kernel": {
+        "name": "python",
+        "display_name": "Python 3"
+      },
+      "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+      "parameters": {},
+      "meta_data": {
+        "position": [
+          43.79004357272606,
+          139.97721633205498
+        ],
+        "hidden": false
+      }
+    },
+    "ac578410-0cab-4c58-a968-19ee7386203a": {
+      "title": "data-exploration",
+      "uuid": "ac578410-0cab-4c58-a968-19ee7386203a",
+      "incoming_connections": [
+        "106bb318-252d-4f94-ba86-c36722dddf41"
+      ],
+      "file_path": "explore-data.ipynb",
+      "kernel": {
+        "name": "python",
+        "display_name": "Python 3"
+      },
+      "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+      "parameters": {},
+      "meta_data": {
+        "position": [
+          853.877390860413,
+          13.070072542059137
+        ],
+        "hidden": false
+      }
+    },
+    "c9484b08-9d23-4f1a-96da-c41711d77c09": {
+      "title": "pre-processing",
+      "uuid": "c9484b08-9d23-4f1a-96da-c41711d77c09",
+      "incoming_connections": [
+        "106bb318-252d-4f94-ba86-c36722dddf41"
+      ],
+      "file_path": "pre-processing.ipynb",
+      "kernel": {
+        "name": "python",
+        "display_name": "Python 3"
+      },
+      "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+      "parameters": {},
+      "meta_data": {
+        "position": [
+          399.23684210526324,
+          354.16801619433204
+        ],
+        "hidden": false
+      }
+    },
+    "f9a4e19a-b70e-451d-8bf4-db635ce860c6": {
+      "title": "linear-regression",
+      "uuid": "f9a4e19a-b70e-451d-8bf4-db635ce860c6",
+      "incoming_connections": [
+        "c9484b08-9d23-4f1a-96da-c41711d77c09"
+      ],
+      "file_path": "linear-regression.ipynb",
+      "kernel": {
+        "name": "python",
+        "display_name": "Python 3"
+      },
+      "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+      "parameters": {},
+      "meta_data": {
+        "position": [
+          863.4319081206595,
+          221.34575761209652
+        ],
+        "hidden": false
+      }
+    },
+    "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d": {
+      "title": "decision-tree",
+      "uuid": "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d",
+      "incoming_connections": [
+        "c9484b08-9d23-4f1a-96da-c41711d77c09"
+      ],
+      "file_path": "decision-tree.ipynb",
+      "kernel": {
+        "name": "python",
+        "display_name": "Python 3"
+      },
+      "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+      "parameters": {},
+      "meta_data": {
+        "position": [
+          850.5718475073315,
+          494.5835777126101
+        ],
+        "hidden": false
+      }
+    },
+    "0ecdafa6-317b-4acd-be73-b69983053501": {
+      "title": "collect-results ",
+      "uuid": "0ecdafa6-317b-4acd-be73-b69983053501",
+      "incoming_connections": [
+        "f9a4e19a-b70e-451d-8bf4-db635ce860c6",
+        "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d"
+      ],
+      "file_path": "collect-results.ipynb",
+      "kernel": {
+        "name": "python",
+        "display_name": "Python 3"
+      },
+      "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+      "parameters": {},
+      "meta_data": {
+        "position": [
+          1380.2551319648094,
+          312.2697947214076
+        ],
+        "hidden": false
+      }
+    }
+  }
+}
