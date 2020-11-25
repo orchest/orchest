@@ -219,7 +219,7 @@ def start_non_interactive_pipeline_run(
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir` (that will then be created by `copytree`).
     # copytree(snapshot_dir, run_dir)
-    os.system("cp -R %s %s" % (snapshot_dir, run_dir))
+    os.system('cp -R "%s" "%s"' % (snapshot_dir, run_dir))
 
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its

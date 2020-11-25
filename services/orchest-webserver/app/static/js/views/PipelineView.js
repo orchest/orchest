@@ -2070,6 +2070,7 @@ class PipelineView extends React.Component {
               <MultiPipelinestepDetails
                 onDelete={this.onDeleteMultistep.bind(this)}
                 onClose={this.onCloseMultistep.bind(this)}
+                readOnly={this.props.readOnly}
               />
             );
           }

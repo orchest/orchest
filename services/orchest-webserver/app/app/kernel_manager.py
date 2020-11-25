@@ -100,4 +100,4 @@ def populate_kernels(app, db):
         )
         launch_docker_dest_path = os.path.join(kernels_dir_path, "launch_docker.py")
 
-        os.system("cp %s %s" % (launch_docker_path, launch_docker_dest_path))
+        os.system('cp "%s" "%s"' % (launch_docker_path, launch_docker_dest_path))

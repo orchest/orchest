@@ -26,7 +26,7 @@ def git_clone_project(args):
         if not project_name:
             project_name = ""
 
-        exit_code = os.system(f"git clone {args.url} {project_name}")
+        exit_code = os.system(f'git clone {args.url} "{project_name}"')
         if exit_code != 0:
             msg = "git clone failed"
         else:
@@ -40,7 +40,7 @@ def git_clone_project(args):
                 msg = "project move failed"
     # cleanup the tmp directory in any case
     finally:
-        os.system(f"rm -rf {tmp_path}")
+        os.system(f'rm -rf "{tmp_path}"')
 
     return exit_code, msg
 

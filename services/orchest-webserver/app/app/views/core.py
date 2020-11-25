@@ -493,21 +493,16 @@ def register_views(app, db):
                     file.write(file_content)
 
     def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
-
-        experiment_path = os.path.join(
-            app.config["USER_DIR"],
-            "experiments",
-            project_uuid,
-            pipeline_uuid,
-            experiment_uuid,
+        snapshot_path = get_pipeline_directory(
+            pipeline_uuid, project_uuid, experiment_uuid
         )
 
-        os.makedirs(experiment_path)
-        snapshot_path = os.path.join(experiment_path, "snapshot")
+        os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
+
         project_dir = os.path.join(
             app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
         )
-        os.system("cp -R %s %s" % (project_dir, snapshot_path))
+        shutil.copytree(project_dir, snapshot_path)
 
     def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
