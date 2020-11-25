@@ -1,8 +1,9 @@
 Quickstart
 ==========
 
-.. TODO(rick)
-   Needs to be updated
+.. TODO
+   We have decided to make this into a tutorial with pictures instead of gifs. It should follow an
+   example (that the user can import from GitHub) and explain some of the core concepts of Orchest.
 
 General workflow in Orchest
 ---------------------------

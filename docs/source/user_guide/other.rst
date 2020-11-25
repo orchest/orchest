@@ -39,6 +39,8 @@ Explanation of possible configuration settings:
    All telemetry is completely anonymized through your ``TELEMETRY_UUID``, and we do not store any
    IP information either on our servers.
 
+.. _pipeline configuration:
+
 Pipeline level configurations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 There are also configuration options per pipeline that can be set through the UI by opening a

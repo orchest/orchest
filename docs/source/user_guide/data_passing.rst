@@ -33,7 +33,23 @@ image above the receiving step would get a list with the data from steps A, C an
 
 Memory data passing
 -------------------
-Coming soon!
+To pass data through memory between steps (which is enabled by default) we make use of `the Plasma
+in-memory object store <https://arrow.apache.org/docs/python/plasma.html>`_ from the Apache Arrow
+project. Within Orchest it is wrapped with additional code for object eviction, which we will cover
+later in this section. Every interactive session gets its own memory store, which is shared between
+the kernels and interactive runs, for pipeline runs as part of experiments each gets an insolated
+memory store.
+
+When an object is sent from one step to another (using :meth:`orchest.transfer.output`) it is
+actually stored inside the Plasma store and copied into the memory of the receiving step. This is
+useful in interactive runs as it allows you to rerun a certain step without having to run the steps it
+depends on (if they have run before) enabling faster iteration on your ideas.
+
+When it comes to clearing the memory store there are two options:
+
+1. Clearing all objects from memory through the pipeline settings.
+2. Enabling auto eviction also through the pipeline settings, additional information about this
+   setting can be found in :ref:`pipeline level configurations <pipeline configuration>`.
 
 .. TODO(yannick)
 
