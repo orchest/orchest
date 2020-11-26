@@ -104,6 +104,11 @@ def get_environment_directory(environment_uuid, project_uuid, host_path=False):
 # End of directory resolves
 
 # Environments
+def get_environment(environment_uuid, project_uuid):
+    environment_dir = get_environment_directory(environment_uuid, project_uuid)
+    return read_environment_from_disk(environment_dir, project_uuid)
+
+
 def get_environments(project_uuid, language=None):
 
     environments = []

@@ -25,4 +25,7 @@ RUN git clone --single-branch --branch jupyterlab3 https://github.com/orchest/vi
 
 COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 
+# Hardcoded /project-dir because Python config can't be injected into Dockerfile
+WORKDIR /project-dir
+
 ENTRYPOINT [ "jupyter", "lab" ]

@@ -32,6 +32,7 @@ from app.utils import (
     get_project_directory,
     get_environment_directory,
     get_environments,
+    get_environment,
     serialize_environment_to_disk,
     read_environment_from_disk,
     delete_environment,
@@ -109,11 +110,8 @@ def register_views(app, db):
                 return self.post(project_uuid, environment_uuid)
 
             def get(self, project_uuid, environment_uuid):
-                environment_dir = get_environment_directory(
-                    environment_uuid, project_uuid
-                )
                 return environment_schema.dump(
-                    read_environment_from_disk(environment_dir, project_uuid)
+                    get_environment(environment_uuid, project_uuid)
                 )
 
             def delete(self, project_uuid, environment_uuid):
@@ -393,13 +391,7 @@ def register_views(app, db):
                         notebook_changed = True
                         notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
 
-                    environment = (
-                        Environment.query.filter(
-                            Environment.uuid == step["environment"]
-                        )
-                        .filter(Environment.project_uuid == project_uuid)
-                        .first()
-                    )
+                    environment = get_environment(step["environment"], project_uuid)
 
                     if environment is not None:
                         if (
