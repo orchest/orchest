@@ -23,7 +23,6 @@ from app.utils import (
     get_user_conf,
     get_user_conf_raw,
     save_user_conf_raw,
-    name_to_tag,
     find_pipelines_in_dir,
     pipeline_uuid_to_path,
     project_uuid_to_path,

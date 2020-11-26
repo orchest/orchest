@@ -283,31 +283,6 @@ def save_user_conf_raw(config):
         logging.debug(e)
 
 
-def tar_from_path(path, filename):
-
-    tmp_file_path = os.path.join("/tmp", str(uuid.uuid4()))
-    tar = tarfile.open(tmp_file_path, "x")
-
-    with open(path, "rb") as f:
-
-        info = tarfile.TarInfo(filename)
-
-        f.seek(0, io.SEEK_END)
-        info.size = f.tell()
-        f.seek(0, io.SEEK_SET)
-
-        tar.addfile(info, f)
-        tar.close()
-
-    with open(tmp_file_path, "rb") as in_file:
-        data = in_file.read()
-
-    # remove tmp file
-    os.remove(tmp_file_path)
-
-    return data
-
-
 def clear_folder(folder):
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
@@ -351,35 +326,6 @@ def project_uuid_to_path(project_uuid):
         return project.path
     else:
         return None
-
-
-def name_to_tag(name):
-
-    name = str(name).lower()
-
-    # lowercase is enforced because of Jupyter kernel names automatically
-    # becoming lowercase
-
-    # According to Docker's website:
-    # A tag name must be valid ASCII and
-    # may contain lowercase and
-    # uppercase letters, digits, underscores, periods and dashes.
-    # A tag name may not start with a period or a dash and
-    # may contain a maximum of 128 characters.
-
-    # replace all spaces by dashes
-    name = name.replace(" ", "-")
-
-    allowed_symbols = set(
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
-    )
-
-    name = "".join([char if char in allowed_symbols else "-" for char in list(name)])
-
-    while len(name) > 0 and name[0] in set(".-"):
-        name = name[1:]
-
-    return name[0:128]
 
 
 def find_pipelines_in_dir(path, relative_to=None):
