@@ -588,7 +588,7 @@ def register_views(app, db):
         db.session.delete(pipeline)
         db.session.commit()
 
-    def init_project(project_path: str):
+    def init_project(project_path: str) -> str:
         """Inits an orchest project.
 
         Given a directory it will detect what parts are missing from
@@ -602,6 +602,7 @@ def register_views(app, db):
             project_path: Directory of the project
 
         Returns:
+            UUID of the newly initialized project.
 
         """
         projects_dir = os.path.join(app.config["USER_DIR"], "projects")
@@ -663,6 +664,94 @@ def register_views(app, db):
             db.session.commit()
             populate_kernels(app, db)
             raise e
+
+        return new_project.uuid
+
+    def sync_project_pipelines_db_state(project_uuid):
+        """Synchronizes the state of the pipelines of a project (fs/db).
+
+        Synchronizes the state of the filesystem with the db
+        when it comes to the pipelines of a project. Pipelines removed
+        from the file system are removed, new pipelines (or pipelines
+        that were there after, for example, a project import) are
+        registered in the db.
+
+        Args:
+            project_uuid:
+
+        Raises:
+            FileNotFoundError: If the project directory is not found.
+        """
+        project_path = project_uuid_to_path(project_uuid)
+        project_dir = os.path.join(app.config["USER_DIR"], "projects", project_path)
+
+        if not os.path.isdir(project_dir):
+            raise FileNotFoundError("Project directory not found")
+
+        # find all pipelines in project dir
+        pipeline_paths = find_pipelines_in_dir(project_dir, project_dir)
+
+        # cleanup pipelines that have been manually removed
+        fs_removed_pipelines = [
+            pipeline
+            for pipeline in Pipeline.query.filter(Pipeline.path.notin_(pipeline_paths))
+            .filter(Pipeline.project_uuid == project_uuid)
+            .all()
+        ]
+        for fs_removed_pipeline in fs_removed_pipelines:
+            cleanup_pipeline_from_orchest(fs_removed_pipeline)
+
+        # identify all pipeline paths that are not yet a pipeline
+        existing_pipeline_paths = [
+            pipeline.path
+            for pipeline in Pipeline.query.filter(Pipeline.path.in_(pipeline_paths))
+            .filter(Pipeline.project_uuid == project_uuid)
+            .all()
+        ]
+
+        # TODO: handle existing pipeline assignments
+        new_pipeline_paths = set(pipeline_paths) - set(existing_pipeline_paths)
+
+        for new_pipeline_path in new_pipeline_paths:
+
+            # write pipeline uuid to file
+            pipeline_json_path = get_pipeline_path(
+                None, project_uuid, pipeline_path=new_pipeline_path
+            )
+
+            try:
+                with open(pipeline_json_path, "r") as json_file:
+                    pipeline_json = json.load(json_file)
+
+                file_pipeline_uuid = pipeline_json.get("uuid")
+
+                new_pipeline_uuid = file_pipeline_uuid
+
+                # see if pipeline_uuid is taken
+                if (
+                    Pipeline.query.filter(Pipeline.uuid == file_pipeline_uuid)
+                    .filter(Pipeline.project_uuid == project_uuid)
+                    .count()
+                    > 0
+                    or len(file_pipeline_uuid) == 0
+                ):
+                    new_pipeline_uuid = str(uuid.uuid4())
+
+                with open(pipeline_json_path, "w") as json_file:
+                    pipeline_json["uuid"] = new_pipeline_uuid
+                    json_file.write(json.dumps(pipeline_json, indent=4))
+
+                # only commit if writing succeeds
+                new_pipeline = Pipeline(
+                    uuid=new_pipeline_uuid,
+                    path=new_pipeline_path,
+                    project_uuid=project_uuid,
+                )
+                db.session.add(new_pipeline)
+                db.session.commit()
+
+            except Exception as e:
+                logging.info(e)
 
     @app.route("/", methods=["GET"])
     def index():
@@ -908,6 +997,10 @@ def register_views(app, db):
 
             # Get counts for: pipelines, experiments and environments
             for project in projects:
+                # catch both pipelines of newly initialized projects
+                # and manually initialized pipelines of existing
+                # projects
+                sync_project_pipelines_db_state(project["uuid"])
                 project["pipeline_count"] = Pipeline.query.filter(
                     Pipeline.project_uuid == project["uuid"]
                 ).count()
@@ -949,12 +1042,16 @@ def register_views(app, db):
                 full_project_path = os.path.join(projects_dir, project_path)
                 if not os.path.isdir(full_project_path):
                     os.makedirs(full_project_path)
-                    # note that given the current pattern we have in the GUI, where we POST and then GET projects,
-                    # this line does not strictly need to be there, since the new directory will be picked up
-                    # on the GET request and initialized, placing it here is more explicit and less relying
+                    # note that given the current pattern we have in the
+                    # GUI, where we POST and then GET projects,
+                    # this line does not strictly need to be there,
+                    # since the new directory will be picked up
+                    # on the GET request and initialized, placing it
+                    # here is more explicit and less relying
                     # on the POST->GET pattern from the GUI
                     try:
-                        init_project(project_path)
+                        project_uuid = init_project(project_path)
+                        sync_project_pipelines_db_state(project_uuid)
                     except Exception as e:
                         return (
                             jsonify(
@@ -995,76 +1092,10 @@ def register_views(app, db):
     @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
     def pipelines_get(project_uuid):
 
-        project_path = project_uuid_to_path(project_uuid)
-        project_dir = os.path.join(app.config["USER_DIR"], "projects", project_path)
-
-        if not os.path.isdir(project_dir):
-            return jsonify({"message": "Project directory not found."}), 404
-
-        # find all pipelines in project dir
-        pipeline_paths = find_pipelines_in_dir(project_dir, project_dir)
-
-        # cleanup pipelines that have been manually removed
-        fs_removed_pipelines = [
-            pipeline
-            for pipeline in Pipeline.query.filter(Pipeline.path.notin_(pipeline_paths))
-            .filter(Pipeline.project_uuid == project_uuid)
-            .all()
-        ]
-        for fs_removed_pipeline in fs_removed_pipelines:
-            cleanup_pipeline_from_orchest(fs_removed_pipeline)
-
-        # identify all pipeline paths that are not yet a pipeline
-        existing_pipeline_paths = [
-            pipeline.path
-            for pipeline in Pipeline.query.filter(Pipeline.path.in_(pipeline_paths))
-            .filter(Pipeline.project_uuid == project_uuid)
-            .all()
-        ]
-
-        # TODO: handle existing pipeline assignments
-        new_pipeline_paths = set(pipeline_paths) - set(existing_pipeline_paths)
-
-        for new_pipeline_path in new_pipeline_paths:
-
-            # write pipeline uuid to file
-            pipeline_json_path = get_pipeline_path(
-                None, project_uuid, pipeline_path=new_pipeline_path
-            )
-
-            try:
-                with open(pipeline_json_path, "r") as json_file:
-                    pipeline_json = json.load(json_file)
-
-                file_pipeline_uuid = pipeline_json.get("uuid")
-
-                new_pipeline_uuid = file_pipeline_uuid
-
-                # see if pipeline_uuid is taken
-                if (
-                    Pipeline.query.filter(Pipeline.uuid == file_pipeline_uuid)
-                    .filter(Pipeline.project_uuid == project_uuid)
-                    .count()
-                    > 0
-                    or len(file_pipeline_uuid) == 0
-                ):
-                    new_pipeline_uuid = str(uuid.uuid4())
-
-                with open(pipeline_json_path, "w") as json_file:
-                    pipeline_json["uuid"] = new_pipeline_uuid
-                    json_file.write(json.dumps(pipeline_json, indent=4))
-
-                # only commit if writing succeeds
-                new_pipeline = Pipeline(
-                    uuid=new_pipeline_uuid,
-                    path=new_pipeline_path,
-                    project_uuid=project_uuid,
-                )
-                db.session.add(new_pipeline)
-                db.session.commit()
-
-            except Exception as e:
-                logging.info(e)
+        try:
+            sync_project_pipelines_db_state(project_uuid)
+        except Exception as e:
+            return jsonify({"message": str(e)}), 500
 
         pipelines = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).all()
         pipelines_augmented = []
