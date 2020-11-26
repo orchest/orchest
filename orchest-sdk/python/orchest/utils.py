@@ -35,7 +35,10 @@ def get_step_uuid(pipeline: Pipeline) -> str:
     # Get JupyterLab sessions to resolve the step's UUID via the id of
     # the running kernel and the step's associated file path.
     # Orchest API --jupyter_server_ip/port--> Jupyter sessions --notebook path--> UUID.
-    launches_url = f'http://orchest-api/api/sessions/{Config.PROJECT_UUID}/{pipeline.properties["uuid"]}'
+    launches_url = (
+        f"http://orchest-api/api/sessions/"
+        f'{Config.PROJECT_UUID}/{pipeline.properties["uuid"]}'
+    )
     launch_data = _request_json(launches_url)
 
     # NOTE: the `proxy_prefix` already includes the "/" at the start

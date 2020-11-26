@@ -1,8 +1,10 @@
 from typing import Any, Dict, List, Optional
 
+from orchest import errors
+
 
 # NOTE: the TypedDict from the typing module is support only >=3.8
-class TypedDict:
+class TypedDict(dict):
     pass
 
 
@@ -47,8 +49,16 @@ class PipelineStep:
         self.parents = parents if parents is not None else []
         self.children: List["PipelineStep"] = []
 
-    def get_params(self) -> Optional[Dict[str, Any]]:
-        return self.properties.get("parameters")
+    def get_params(self) -> Dict[str, Any]:
+        return self.properties.get("parameters", {})
+
+    def update_params(self, params) -> None:
+        try:
+            self.properties["parameters"].update(params)
+        except KeyError:
+            self.properties["parameters"] = params
+
+        return
 
     def __str__(self) -> str:
         if self.properties:
@@ -110,15 +120,21 @@ class Pipeline:
         description.update(self.properties)
         return description
 
-    def get_step_by_uuid(
-        self, uuid: str, default: Any = None
-    ) -> Optional[PipelineStep]:
-        """Get pipeline step object by its UUID."""
+    def get_step_by_uuid(self, uuid: str) -> PipelineStep:
+        """Get pipeline step object by its UUID.
+
+        Raises:
+            StepUUIDResolveError: The step's UUID cannot be resolved and
+                thus it cannot determine where to output data to.
+
+        """
         for step in self.steps:
             if step.properties["uuid"] == uuid:
                 return step
 
-        return default
+        raise errors.StepUUIDResolveError(
+            "Step does not exist in the pipeline with UUID: {uuid}."
+        )
 
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"

@@ -72,7 +72,7 @@ Parameters
    import orchest
 
    # Get the parameters of the current step.
-   params = orchest.get_params()  # params = {'vegetable': 'carrot'}
+   params = orchest.get_params()  # e.g. params = {'vegetable': 'carrot'}
 
    # Add a new parameter and update the step's parameters. The 
    # parameters now also become visible through the properties pane in
