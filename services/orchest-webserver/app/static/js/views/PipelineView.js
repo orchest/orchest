@@ -1955,19 +1955,20 @@ class PipelineView extends React.Component {
                       />
                     </div>
                   );
-                } else {
-                  return (
-                    <div className="selection-buttons">
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised"]}
-                        onClick={this.cancelRun.bind(this)}
-                        icon="close"
-                        disabled={this.state.waitingOnCancel}
-                        label="Cancel run"
-                      />
-                    </div>
-                  );
                 }
+              }
+              if (this.state.pipelineRunning && !this.props.readOnly) {
+                return (
+                  <div className="selection-buttons">
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised"]}
+                      onClick={this.cancelRun.bind(this)}
+                      icon="close"
+                      disabled={this.state.waitingOnCancel}
+                      label="Cancel run"
+                    />
+                  </div>
+                );
               }
             })()}
           </div>
