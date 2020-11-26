@@ -116,6 +116,21 @@ def register_orchest_api_views(app, db):
 
         return resp.raw.read(), resp.status_code, resp.headers.items()
 
+    @app.route(
+        "/catch/api-proxy/api/environment-images/in-use/<project_uuid>/<environment_uuid>",
+        methods=["GET"],
+    )
+    def catch_api_environment_images_in_use(project_uuid, environment_uuid):
+
+        resp = requests.get(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/environment-images/in-use/%s/%s" % (project_uuid, environment_uuid),
+            stream=True,
+        )
+
+        return resp.raw.read(), resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/runs/", methods=["GET", "POST"])
     def catch_api_proxy_runs():
 

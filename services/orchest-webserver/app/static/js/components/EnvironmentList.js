@@ -127,7 +127,7 @@ class EnvironmentList extends React.Component {
     });
   }
 
-  removeEnvironment(project_uuid, environment_uuid, environmentName) {
+  _removeEnvironment(project_uuid, environment_uuid, environmentName) {
     // ultimately remove Image
     makeRequest(
       "DELETE",
@@ -152,6 +152,40 @@ class EnvironmentList extends React.Component {
             errorMessage
         );
       });
+  }
+
+  removeEnvironment(project_uuid, environment_uuid, environmentName) {
+    // validate if environment is in use, if it is, prompt user
+    // specifically on remove
+
+    makeRequest(
+      "GET",
+      `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
+    ).then((response) => {
+      let data = JSON.parse(response);
+      if (data.in_use) {
+        orchest.confirm(
+          "Warning",
+          "The environment you're trying to delete (" +
+            environmentName +
+            ") is in use. " +
+            "Are you sure you want to delete it? This will abort all experiments/interactive runs that are using it.",
+          () => {
+            this._removeEnvironment(
+              project_uuid,
+              environment_uuid,
+              environmentName
+            );
+          }
+        );
+      } else {
+        this._removeEnvironment(
+          project_uuid,
+          environment_uuid,
+          environmentName
+        );
+      }
+    });
   }
 
   onDeleteClick() {

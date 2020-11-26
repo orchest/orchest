@@ -69,7 +69,7 @@ class EnvironmentImage(Resource):
 
 
 @api.route(
-    "/in_use/<string:project_uuid>/<string:environment_uuid>",
+    "/in-use/<string:project_uuid>/<string:environment_uuid>",
 )
 @api.param("project_uuid", "UUID of the project")
 @api.param("environment_uuid", "UUID of the environment")
