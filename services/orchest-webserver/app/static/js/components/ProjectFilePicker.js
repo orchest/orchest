@@ -63,17 +63,18 @@ class ProjectFilePicker extends React.Component {
         console.log(error);
       });
 
-    let cwdFetchPromisee = makeCancelable(
+    let cwdFetchPromise = makeCancelable(
       makeRequest(
         "GET",
         `/async/file-picker-tree/pipeline-cwd/${this.props.project_uuid}/${this.props.pipeline_uuid}`
       ),
       this.promiseManager
     );
-    promises.push(cwdFetchPromisee.promise);
-    cwdFetchPromisee.promise
+    promises.push(cwdFetchPromise.promise);
+
+    cwdFetchPromise.promise
       .then((response) => {
-        // FilePicker cwd expects trailing / for file
+        // FilePicker cwd expects trailing / for cwd paths
         cwd = JSON.parse(response)["cwd"] + "/";
       })
       .catch((error) => {

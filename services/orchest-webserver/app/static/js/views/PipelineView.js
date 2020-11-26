@@ -5,6 +5,7 @@ import {
   intersectRect,
   globalMDCVars,
   extensionFromFilename,
+  relativeToAbsolutePath,
   makeRequest,
   makeCancelable,
   PromiseManager,
@@ -1274,11 +1275,32 @@ class PipelineView extends React.Component {
   }
 
   openNotebook() {
-    orchest.jupyter.navigateTo(
-      this.state.steps[this.state.openedStep].file_path
+    let cwdFetchPromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/async/file-picker-tree/pipeline-cwd/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+      ),
+      this.promiseManager
     );
-    orchest.showJupyter();
-    orchest.headerBarComponent.updateCurrentView("jupyter");
+
+    cwdFetchPromise.promise
+      .then((response) => {
+        // relativeToAbsolutePath expects trailing / for directories
+        let cwd = JSON.parse(response)["cwd"] + "/";
+
+        orchest.jupyter.navigateTo(
+          relativeToAbsolutePath(
+            this.state.steps[this.state.openedStep].file_path,
+            cwd
+          )
+        );
+
+        orchest.showJupyter();
+        orchest.headerBarComponent.updateCurrentView("jupyter");
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   }
 
   saveBeforeAction(actionCallback) {
