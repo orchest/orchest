@@ -215,7 +215,7 @@ class ProjectFilePicker extends React.Component {
         this.onChangeFileValue(
           absoluteToRelativePath(
             this.state.createFileFullProjectPath,
-            this.props.cwd
+            this.state.cwd
           ).slice(1)
         );
 
@@ -227,6 +227,9 @@ class ProjectFilePicker extends React.Component {
         this.fetchDirectoryDetails();
       })
       .catch((error) => {
+        if (error.status == 409) {
+          orchest.alert("Error", "A file with this name already exists.");
+        }
         console.log(error);
       });
   }
