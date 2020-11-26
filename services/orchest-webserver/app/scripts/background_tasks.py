@@ -26,10 +26,11 @@ def git_clone_project(args):
 
         # args.path contains the desired project name, if the user specified it
         project_name = args.path
-        if "/" in project_name:
-            msg = "project name contains illegal character"
-            raise Exception(msg)
         if project_name:
+            if "/" in project_name:
+                msg = "project name contains illegal character"
+                raise Exception(msg)
+
             git_command += f' "{project_name}"'
 
         exit_code = os.system(git_command)
