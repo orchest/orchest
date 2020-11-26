@@ -55,11 +55,7 @@ class ProjectsView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchList(() => {
-      this.setState({
-        loading: false,
-      });
-    });
+    this.fetchList();
   }
 
   onClickProjectEntity(view, project, e) {
@@ -100,7 +96,7 @@ class ProjectsView extends React.Component {
     return listData;
   }
 
-  fetchList(onComplete) {
+  fetchList() {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/async/projects"),
@@ -112,12 +108,11 @@ class ProjectsView extends React.Component {
       this.setState({
         listData: this.processListData(projects),
         projects: projects,
+        loading: false,
       });
       if (this.refManager.refs.projectListView) {
         this.refManager.refs.projectListView.setSelectedRowIds([]);
       }
-
-      onComplete();
     });
   }
 
@@ -178,11 +173,7 @@ class ProjectsView extends React.Component {
           Promise.all(sessionDeletePromises).then(() => {
             Promise.all(deletePromises).then(() => {
               // reload list once creation succeeds
-              this.fetchList(() => {
-                this.setState({
-                  loading: false,
-                });
-              });
+              this.fetchList();
             });
           });
         });
@@ -237,11 +228,7 @@ class ProjectsView extends React.Component {
     })
       .then((_) => {
         // reload list once creation succeeds
-        this.fetchList(() => {
-          this.setState({
-            loading: false,
-          });
-        });
+        this.fetchList();
       })
       .catch((response) => {
         try {
