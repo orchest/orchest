@@ -33,6 +33,8 @@ class ProjectsView extends React.Component {
     this.ERROR_MAPPING = {
       "project move failed":
         "failed to move project because the directory exists.",
+      "project name contains illegal character":
+        "project name contains illegal character(s).",
     };
 
     this.promiseManager = new PromiseManager();
@@ -215,8 +217,13 @@ class ProjectsView extends React.Component {
   onSubmitModal() {
     let projectName = this.refManager.refs.createProjectNameTextField.mdc.value;
 
-    if (!projectName) {
-      orchest.alert("Error", "Please enter a name.");
+    let projectNameValidation = this.validProjectName(projectName);
+    if (!projectNameValidation.valid) {
+      orchest.alert(
+        "Error",
+        "Please make sure you enter a valid project name. " +
+          projectNameValidation.reason
+      );
       return;
     }
 
@@ -248,6 +255,19 @@ class ProjectsView extends React.Component {
     });
   }
 
+  validProjectName(projectName) {
+    if (projectName.length == 0) {
+      return { valid: false, reason: "Project name cannot be empty." };
+    }
+    if (projectName.indexOf("/") !== -1) {
+      return {
+        valid: false,
+        reason: "Project name cannot contain '/' character.",
+      };
+    }
+    return { valid: true };
+  }
+
   onSubmitImport() {
     let gitURL = this.refManager.refs.gitURLTextField.mdc.value;
     let gitProjectName = this.refManager.refs.gitProjectNameTextField.mdc.value;
@@ -256,6 +276,16 @@ class ProjectsView extends React.Component {
       orchest.alert(
         "Error",
         "Please make sure you enter a valid HTTPS git-repo URL."
+      );
+      return;
+    }
+
+    let projectNameValidation = this.validProjectName(gitProjectName);
+    if (!projectNameValidation.valid) {
+      orchest.alert(
+        "Error",
+        "Please make sure you enter a valid project name. " +
+          projectNameValidation.reason
       );
       return;
     }
