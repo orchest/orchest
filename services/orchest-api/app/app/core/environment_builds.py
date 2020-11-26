@@ -10,6 +10,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 
 from config import CONFIG_CLASS
 from _orchest.internals import config as _config
+from _orchest.internals.utils import docker_images_list_safe
 from app.connections import docker_client
 from app.core.sio_streamed_task import SioStreamedTask
 
@@ -49,11 +50,11 @@ def cleanup_env_build_docker_artifacts(filters):
     # image is deleted. What we are actually doing here is getting the last image created by the build process
     # by getting all the images created by the build process. Removing n-1 of them will result in a no op,
     # but 1 of them will cause the "ancestor" images to be removed as well.
-    images_to_prune = docker_client.images.list(filters=filters)
+    images_to_prune = docker_images_list_safe(docker_client, filters=filters)
     tries = 0
     while images_to_prune:
         docker_client.images.prune(filters=filters)
-        images_to_prune = docker_client.images.list(filters=filters)
+        images_to_prune = docker_images_list_safe(docker_client, filters=filters)
         # be as responsive as possible, only sleep at the first iteration if necessary
         if images_to_prune:
             tries += 1
