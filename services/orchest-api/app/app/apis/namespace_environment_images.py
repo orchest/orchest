@@ -6,6 +6,7 @@ from app.connections import docker_client
 import app.models as models
 from app.utils import register_schema, remove_if_dangling
 from _orchest.internals import config as _config
+from _orchest.utils import docker_images_list_safe
 
 api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)
@@ -58,7 +59,7 @@ class ProjectEnvironmentImages(Resource):
 
         image_names_to_remove = [
             img.attrs["RepoTags"][0]
-            for img in docker_client.images.list()
+            for img in docker_images_list_safe(docker_client)
             if img.attrs["RepoTags"]
             and isinstance(img.attrs["RepoTags"][0], str)
             and img.attrs["RepoTags"][0].startswith(image_name)
@@ -114,7 +115,7 @@ class ProjectEnvironmentDanglingImages(Resource):
             ]
         }
 
-        project_env_images = docker_client.images.list(filters=filters)
+        project_env_images = docker_images_list_safe(docker_client, filters=filters)
 
         for docker_img in project_env_images:
             remove_if_dangling(docker_img)

@@ -139,3 +139,14 @@ def get_orchest_mounts(project_dir, host_project_dir, mount_form="docker-sdk"):
                 mounts.append(mount)
 
     return mounts
+
+
+def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
+    while True:
+        attempt_count -= 1
+        try:
+            return docker_client.images.list(*args, **kwargs)
+        except Exception as e:
+            logging.debug("Failed to call docker_client.images.list(): %s" % e)
+        if attempt_count == 0:
+            break
