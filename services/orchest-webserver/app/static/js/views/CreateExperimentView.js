@@ -10,7 +10,11 @@ import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact
 import ParamTree from "../components/ParamTree";
 import MDCRadioReact from "../lib/mdc-components/MDCRadioReact";
 import { makeCancelable } from "../lib/utils/all";
-import { checkGate, requestBuild } from "../utils/webserver-utils";
+import {
+  checkGate,
+  getPipelineJSONEndpoint,
+  requestBuild,
+} from "../utils/webserver-utils";
 
 class CreateExperimentView extends React.Component {
   constructor(props) {
@@ -39,7 +43,11 @@ class CreateExperimentView extends React.Component {
     let fetchPipelinePromise = makeCancelable(
       makeRequest(
         "GET",
-        `/async/pipelines/json/${this.props.experiment.project_uuid}/${this.props.experiment.pipeline_uuid}`
+        getPipelineJSONEndpoint(
+          this.props.experiment.pipeline_uuid,
+          this.props.experiment.project_uuid,
+          this.props.experiment.uuid
+        )
       ),
       this.promiseManager
     );
@@ -163,8 +171,11 @@ class CreateExperimentView extends React.Component {
         let paramName = fullParam.split("#").slice(1).join("");
         pipelineRunRow.push(paramName + ": " + params[fullParam]);
       }
-
-      generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
+      if (pipelineRunRow.length > 0) {
+        generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
+      } else {
+        generatedPipelineRuns.push(["-"]);
+      }
     }
 
     let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
