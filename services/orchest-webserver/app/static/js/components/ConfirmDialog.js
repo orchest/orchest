@@ -36,7 +36,11 @@ class ConfirmDialog extends React.Component {
         actions={
           <Fragment>
             <MDCButtonReact label="Ok" onClick={this.confirm.bind(this)} />
-            <MDCButtonReact label="Cancel" onClick={this.cancel.bind(this)} />
+            <MDCButtonReact
+              label="Cancel"
+              classNames={["push-left"]}
+              onClick={this.cancel.bind(this)}
+            />
           </Fragment>
         }
       />

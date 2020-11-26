@@ -1,5 +1,5 @@
 from datetime import datetime, time
-from typing import Dict, Set
+from typing import Dict, Set, Union
 import requests
 import logging
 
@@ -323,7 +323,7 @@ def is_docker_image_in_use(img_id: str) -> bool:
     return len(int_runs) > 0 or len(non_int_runs) > 0
 
 
-def remove_if_dangling(img):
+def remove_if_dangling(img) -> bool:
     """Remove an image if its dangling.
 
     A dangling image is an image that is nameless and tag-less,
@@ -359,3 +359,30 @@ def remove_if_dangling(img):
             time.sleep(1)
             tries -= 1
     return False
+
+
+def calculate_shm_size(data_passing_memory_size: Union[str, int]) -> int:
+    """Calculates the shm-size for the Docker container.
+
+    Given a size for the memory-server we need to do a certain
+    allocation to get to that size. In other words, the `shm-size` for
+    the Docker container is not equal to the request size for the
+    memory-server.
+
+    Args:
+        data_passing_memory_size: Requested size for the memory-server.
+
+    Returns:
+        The shm-size for the Docker container.
+
+    """
+    # The default `shm_size` of a container is 67108864. So we round
+    # it up, just to be safe.
+    allocation = 80000000
+    if isinstance(data_passing_memory_size, int):
+        return data_passing_memory_size + allocation
+
+    conversion = {"KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
+    size, unit = data_passing_memory_size[:-2], data_passing_memory_size[-2:]
+    size = int(float(size) * conversion[unit])
+    return size + allocation

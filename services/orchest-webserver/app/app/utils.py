@@ -11,8 +11,9 @@ import io
 import docker
 import shutil
 import requests
+import subprocess
 
-from app.models import Pipeline, Project, Environment
+from app.models import Pipeline, Project, Environment, Experiment
 from app.config import CONFIG_CLASS as StaticConfig
 from app.schemas import EnvironmentSchema
 from _orchest.internals import config as _config
@@ -33,11 +34,13 @@ def get_pipeline_path(
         USER_DIR = StaticConfig.HOST_USER_DIR
 
     if pipeline_path is None:
-        pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
+        pipeline_path = pipeline_uuid_to_path(
+            pipeline_uuid, project_uuid, experiment_uuid
+        )
 
     project_path = project_uuid_to_path(project_uuid)
 
-    if pipeline_run_uuid is None:
+    if pipeline_run_uuid is None and experiment_uuid is None:
         return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and experiment_uuid is not None:
         return os.path.join(
@@ -101,6 +104,11 @@ def get_environment_directory(environment_uuid, project_uuid, host_path=False):
 # End of directory resolves
 
 # Environments
+def get_environment(environment_uuid, project_uuid):
+    environment_dir = get_environment_directory(environment_uuid, project_uuid)
+    return read_environment_from_disk(environment_dir, project_uuid)
+
+
 def get_environments(project_uuid, language=None):
 
     environments = []
@@ -211,6 +219,16 @@ def delete_environment(project_uuid, environment_uuid):
 # End of environments
 
 
+def get_pipeline_json(pipeline_uuid, project_uuid):
+    pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
+
+    try:
+        with open(pipeline_path, "r") as json_file:
+            return json.load(json_file)
+    except Exception as e:
+        logging.error("Could not read pipeline JSON from %s" % e)
+
+
 def get_hash(path):
     BLOCKSIZE = 8192 * 8
     hasher = hashlib.md5()
@@ -221,6 +239,22 @@ def get_hash(path):
             buf = afile.read(BLOCKSIZE)
 
     return hasher.hexdigest()
+
+
+def get_repo_tag():
+
+    git_proc = subprocess.Popen(
+        'echo "$(git describe --abbrev=0 --tags) "',
+        cwd="/orchest-host",
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    outs, _ = git_proc.communicate()
+
+    return outs
 
 
 def get_user_conf():
@@ -254,31 +288,6 @@ def save_user_conf_raw(config):
         logging.debug(e)
 
 
-def tar_from_path(path, filename):
-
-    tmp_file_path = os.path.join("/tmp", str(uuid.uuid4()))
-    tar = tarfile.open(tmp_file_path, "x")
-
-    with open(path, "rb") as f:
-
-        info = tarfile.TarInfo(filename)
-
-        f.seek(0, io.SEEK_END)
-        info.size = f.tell()
-        f.seek(0, io.SEEK_SET)
-
-        tar.addfile(info, f)
-        tar.close()
-
-    with open(tmp_file_path, "rb") as in_file:
-        data = in_file.read()
-
-    # remove tmp file
-    os.remove(tmp_file_path)
-
-    return data
-
-
 def clear_folder(folder):
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
@@ -296,16 +305,24 @@ def remove_dir_if_empty(path):
         shutil.rmtree(path)
 
 
-def pipeline_uuid_to_path(pipeline_uuid, project_uuid):
-    pipeline = (
-        Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
-        .filter(Pipeline.project_uuid == project_uuid)
-        .first()
-    )
-    if pipeline is not None:
-        return pipeline.path
+def pipeline_uuid_to_path(pipeline_uuid, project_uuid, experiment_uuid=None):
+    if experiment_uuid is None:
+        pipeline = (
+            Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
+            .filter(Pipeline.project_uuid == project_uuid)
+            .first()
+        )
+        if pipeline is not None:
+            return pipeline.path
+        else:
+            return None
     else:
-        return None
+        experiment = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
+
+        if experiment is not None:
+            return experiment.pipeline_path
+        else:
+            return None
 
 
 def project_uuid_to_path(project_uuid):
@@ -314,35 +331,6 @@ def project_uuid_to_path(project_uuid):
         return project.path
     else:
         return None
-
-
-def name_to_tag(name):
-
-    name = str(name).lower()
-
-    # lowercase is enforced because of Jupyter kernel names automatically
-    # becoming lowercase
-
-    # According to Docker's website:
-    # A tag name must be valid ASCII and
-    # may contain lowercase and
-    # uppercase letters, digits, underscores, periods and dashes.
-    # A tag name may not start with a period or a dash and
-    # may contain a maximum of 128 characters.
-
-    # replace all spaces by dashes
-    name = name.replace(" ", "-")
-
-    allowed_symbols = set(
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
-    )
-
-    name = "".join([char if char in allowed_symbols else "-" for char in list(name)])
-
-    while len(name) > 0 and name[0] in set(".-"):
-        name = name[1:]
-
-    return name[0:128]
 
 
 def find_pipelines_in_dir(path, relative_to=None):

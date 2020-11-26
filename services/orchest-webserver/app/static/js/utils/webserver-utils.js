@@ -28,7 +28,11 @@ export function checkGate(project_uuid) {
   });
 }
 
-export function requestBuild(project_uuid, environmentValidationData) {
+export function requestBuild(
+  project_uuid,
+  environmentValidationData,
+  requestedFromView
+) {
   return new Promise((resolve, reject) => {
     let environmentsToBeBuilt = [];
 
@@ -41,7 +45,10 @@ export function requestBuild(project_uuid, environmentValidationData) {
     if (environmentsToBeBuilt.length > 0) {
       orchest.confirm(
         "Build",
-        `The following environment UUIDs haven't been built: [${environmentsToBeBuilt}]. Would you like to build them?`,
+        `The following environment UUIDs haven't been built: [${environmentsToBeBuilt}]. Would you like to build them?` +
+          (requestedFromView == "Pipeline"
+            ? " You can cancel to open the pipeline in read-only mode."
+            : ""),
         () => {
           let environment_build_requests = [];
 
@@ -141,4 +148,22 @@ export function getScrollLineHeight() {
   const fontSize = window.getComputedStyle(el).fontSize;
   document.body.removeChild(el);
   return fontSize ? window.parseInt(fontSize) : undefined;
+}
+
+export function getPipelineJSONEndpoint(
+  pipeline_uuid,
+  project_uuid,
+  experiment_uuid,
+  run_uuid
+) {
+  let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
+
+  if (experiment_uuid !== undefined) {
+    pipelineURL += `?experiment_uuid=${experiment_uuid}`;
+  }
+
+  if (run_uuid !== undefined) {
+    pipelineURL += `&pipeline_run_uuid=${run_uuid}`;
+  }
+  return pipelineURL;
 }

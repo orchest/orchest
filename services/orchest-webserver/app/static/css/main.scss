@@ -5,10 +5,12 @@
 
 @import "scrollbar";
 @import "ansi";
+@import "themes/jupyter";
 
 $generalPadding: 20px;
 $mdcComponentPadding: 16px;
 $codeSize: 14px;
+$defaultFontSize: 15px;
 $borderColor: rgba(0, 0, 0, 0.15);
 $stepBorderRadius: 6px;
 
@@ -35,7 +37,7 @@ body {
 }
 
 p {
-  font-size: 15px;
+  font-size: $defaultFontSize;
 
   &.padding-top {
     padding-top: $generalPadding;
@@ -85,6 +87,12 @@ h3 {
   }
 }
 
+.help-list {
+  .mdc-list {
+    font-size: $defaultFontSize;
+  }
+}
+
 a.button {
   text-decoration: none;
   color: #000;
@@ -121,6 +129,27 @@ a.button {
 
     .experiment-actions {
       margin-bottom: $generalPadding;
+    }
+  }
+}
+
+.projects-view {
+  .mdc-data-table {
+    .mdc-button {
+      color: $mdc-theme-secondary;
+      font-weight: 500;
+    }
+
+    .mdc-data-table__header-cell:nth-child(1),
+    .mdc-data-table__header-cell:nth-child(2),
+    .mdc-data-table__cell:nth-child(1),
+    .mdc-data-table__cell:nth-child(2) {
+      text-align: left;
+    }
+
+    .mdc-data-table__header-cell,
+    .mdc-data-table__cell {
+      text-align: center;
     }
   }
 }
@@ -466,8 +495,6 @@ h2.header {
       }
 
       .pipeline-run-detail {
-        overflow: hidden;
-
         button {
           margin-top: $generalPadding;
         }
@@ -635,7 +662,7 @@ button.themed-secondary {
   background: #eee;
   border-radius: 3px;
   padding: 6px;
-  font-size: 15px;
+  font-size: $defaultFontSize;
 
   a {
     color: $mdc-theme-secondary;
@@ -870,7 +897,7 @@ span.code {
         display: table-cell;
         vertical-align: middle;
         overflow: hidden;
-        font-size: 15px;
+        font-size: $defaultFontSize;
       }
       span.filename {
         display: block;
@@ -992,7 +1019,7 @@ span.code {
       textarea {
         font: inherit;
         font-family: monospace;
-        font-size: 15px;
+        font-size: $defaultFontSize;
       }
       width: 100%;
     }

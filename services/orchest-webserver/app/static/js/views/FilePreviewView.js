@@ -107,7 +107,7 @@ class FilePreviewView extends React.Component {
                   value={this.state.textFile.content}
                   options={{
                     mode: fileMode,
-                    theme: "default",
+                    theme: "jupyter",
                     lineNumbers: true,
                     readOnly: true,
                   }}
@@ -117,10 +117,7 @@ class FilePreviewView extends React.Component {
               fileComponent = (
                 <iframe
                   className={"notebook-iframe borderless fullsize"}
-                  src={
-                    "data:text/html;charset=utf-8," +
-                    encodeURIComponent(this.state.textFile.content)
-                  }
+                  srcdoc={this.state.textFile.content}
                 ></iframe>
               );
             } else {

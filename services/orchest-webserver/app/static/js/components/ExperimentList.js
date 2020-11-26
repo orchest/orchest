@@ -12,6 +12,7 @@ import {
   makeCancelable,
   RefManager,
 } from "../lib/utils/all";
+import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import ExperimentView from "../views/ExperimentView";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
@@ -62,6 +63,11 @@ class ExperimentList extends React.Component {
   componentDidUpdate(prevProps, prevState, snapshot) {}
 
   fetchList() {
+    // in case experimentTable exists, clear checks
+    if (this.refManager.refs.experimentTable) {
+      this.refManager.refs.experimentTable.setSelectedRowIds([]);
+    }
+
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/store/experiments"),
       this.promiseManager
@@ -90,17 +96,18 @@ class ExperimentList extends React.Component {
   }
 
   onDeleteClick() {
+    // get experiment selection
+    let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
+
+    if (selectedRows.length == 0) {
+      orchest.alert("Error", "You haven't selected any experiments.");
+      return;
+    }
+
     orchest.confirm(
       "Warning",
       "Are you sure you want to delete these experiments? (This cannot be undone.)",
       () => {
-        // get experiment selection
-        let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
-
-        if (selectedRows.length == 0) {
-          return;
-        }
-
         // delete indices
         let promises = [];
 
@@ -151,13 +158,14 @@ class ExperimentList extends React.Component {
       createModelLoading: true,
     });
 
-    makeRequest("POST", "/async/experiments/create", {
+    makeRequest("POST", "/store/experiments/new", {
       type: "json",
       content: {
         pipeline_uuid: pipeline_uuid,
         pipeline_name: pipelineName,
         project_uuid: this.props.project_uuid,
         name: this.refManager.refs.formExperimentName.mdc.value,
+        draft: true,
       },
     }).then((response) => {
       let experiment = JSON.parse(response);
@@ -195,13 +203,13 @@ class ExperimentList extends React.Component {
         },
       });
     } else {
-      makeRequest(
-        "GET",
-        `/async/pipelines/json/${experiment.project_uuid}/${experiment.pipeline_uuid}` +
-          "?experiment_uuid=" +
-          experiment.uuid,
-        {}
-      ).then((response) => {
+      let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+        experiment.pipeline_uuid,
+        experiment.project_uuid,
+        experiment.uuid
+      );
+
+      makeRequest("GET", pipelineJSONEndpoint).then((response) => {
         let result = JSON.parse(response);
         if (result.success) {
           let pipeline = JSON.parse(result["pipeline_json"]);

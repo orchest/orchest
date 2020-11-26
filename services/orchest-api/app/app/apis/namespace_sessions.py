@@ -71,6 +71,7 @@ class SessionList(Resource):
             project_uuid,
             pipeline_path,
             post_data["project_dir"],
+            post_data["settings"]["data_passing_memory_size"],
             post_data["host_userdir"],
         )
 

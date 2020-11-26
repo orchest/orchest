@@ -76,6 +76,7 @@ class Experiment(db.Model):
         db.ForeignKey("project.uuid", ondelete="CASCADE"), unique=False, nullable=False
     )
     pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
+    pipeline_path = db.Column(db.String(255), unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     strategy_json = db.Column(db.Text, nullable=False)
     draft = db.Column(db.Boolean())

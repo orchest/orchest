@@ -5,6 +5,7 @@ import {
   intersectRect,
   globalMDCVars,
   extensionFromFilename,
+  relativeToAbsolutePath,
   makeRequest,
   makeCancelable,
   PromiseManager,
@@ -15,6 +16,7 @@ import {
   checkGate,
   requestBuild,
   getScrollLineHeight,
+  getPipelineJSONEndpoint,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -283,16 +285,26 @@ class PipelineView extends React.Component {
         console.log("could not start pipeline status updates: " + e);
       }
     } else {
+      if (this.props.readOnly) {
+        // for non pipelineRun - read only check gate
+        let checkGatePromise = checkGate(this.props.project_uuid);
+        checkGatePromise
+          .then(() => {
+            let newProps = {};
+            Object.assign(newProps, this.props);
+            newProps.readOnly = false;
+            // open in non-read only
+            orchest.loadView(PipelineView, newProps);
+          })
+          .catch((result) => {
+            if (result.reason === "gate-failed") {
+              requestBuild(props.project_uuid, result.data, "Pipeline");
+            }
+          });
+      }
+
       // retrieve interactive run runUUID to show pipeline exeuction state
       this.fetchActivePipelineRuns();
-
-      // for non pipelineRun - read only check gate
-      let checkGatePromise = checkGate(this.props.project_uuid);
-      checkGatePromise.catch((result) => {
-        if (result.reason === "gate-failed") {
-          requestBuild(props.project_uuid, result.data);
-        }
-      });
     }
   }
 
@@ -402,12 +414,11 @@ class PipelineView extends React.Component {
   }
 
   encodeJSON() {
-    // generate JSON representation using the internal state of React components describing the pipeline
-    let pipelineJSON = {
-      name: this.state.pipelineJson.name,
-      uuid: this.state.pipelineJson.uuid,
-      steps: {},
-    };
+    // generate JSON representation using the internal state of React components
+    // describing the pipeline
+
+    let pipelineJSON = JSON.parse(JSON.stringify(this.state.pipelineJson));
+    pipelineJSON["steps"] = {};
 
     for (let key in this.state.steps) {
       if (this.state.steps.hasOwnProperty(key)) {
@@ -700,8 +711,12 @@ class PipelineView extends React.Component {
       // Ctrl / Meta + S for saving pipeline
       if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-
+        // saveButton.click is used instead of savePipeline() to trigger visual
+        // button press
         this.refManager.refs.saveButton.click();
+      }
+      if (e.keyCode == 46) {
+        this.deleteSelectedSteps();
       }
     });
 
@@ -1023,18 +1038,15 @@ class PipelineView extends React.Component {
   }
 
   fetchPipelineAndInitialize() {
-    let pipelineURL = `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`;
-
-    if (this.props.pipelineRun) {
-      pipelineURL +=
-        "?pipeline_run_uuid=" +
-        this.props.pipelineRun.run_uuid +
-        "&experiment_uuid=" +
-        this.props.pipelineRun.experiment_uuid;
-    }
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+      this.props.pipeline_uuid,
+      this.props.project_uuid,
+      this.props.pipelineRun && this.props.pipelineRun.experiment_uuid,
+      this.props.pipelineRun && this.props.pipelineRun.run_uuid
+    );
 
     let fetchPipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineURL),
+      makeRequest("GET", pipelineJSONEndpoint),
       this.promiseManager
     );
 
@@ -1045,8 +1057,11 @@ class PipelineView extends React.Component {
 
         orchest.headerBarComponent.setPipeline(
           this.state.pipelineJson,
-          this.props.project_uuid
+          this.props.project_uuid,
+          this.props.pipelineRun && this.props.pipelineRun.experiment_uuid
         );
+
+        orchest.headerBarComponent.updateCurrentView("pipeline");
 
         this.initializePipeline();
       } else {
@@ -1077,8 +1092,11 @@ class PipelineView extends React.Component {
       let result = JSON.parse(response);
 
       let environmentUUID = "";
+      let environmentName = "";
+
       if (result.length > 0) {
         environmentUUID = result[0].uuid;
+        environmentName = result[0].name;
       }
 
       let step = {
@@ -1088,7 +1106,7 @@ class PipelineView extends React.Component {
         file_path: "",
         kernel: {
           name: "python",
-          display_name: "Python 3",
+          display_name: environmentName,
         },
         environment: environmentUUID,
         parameters: {},
@@ -1196,6 +1214,19 @@ class PipelineView extends React.Component {
     });
   }
 
+  deleteSelectedSteps() {
+    this.closeMultistepView();
+    this.closeDetailsView();
+
+    for (let x = 0; x < this.state.selectedSteps.length; x++) {
+      this.deleteStep(this.state.selectedSteps[x]);
+    }
+
+    this.setState({
+      selectedSteps: [],
+    });
+  }
+
   deleteStep(uuid) {
     // also delete incoming connections that contain this uuid
     for (let key in this.state.steps) {
@@ -1228,29 +1259,48 @@ class PipelineView extends React.Component {
     delete this.state.steps[uuid];
     this.setState({
       steps: this.state.steps,
-      selectedSteps: this.getSelectedSteps(),
       unsavedChanges: true,
     });
-
-    // make sure step is closed if it is open
-    if (this.state.openedStep == uuid) {
-      this.setState({
-        openedStep: undefined,
-      });
-    }
   }
 
   onDetailsDelete() {
     let uuid = this.state.openedStep;
+
+    this.setState({
+      openedStep: undefined,
+      selectedSteps: [],
+    });
+
     this.deleteStep(uuid);
   }
 
   openNotebook() {
-    orchest.jupyter.navigateTo(
-      this.state.steps[this.state.openedStep].file_path
+    let cwdFetchPromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/async/file-picker-tree/pipeline-cwd/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+      ),
+      this.promiseManager
     );
-    orchest.showJupyter();
-    orchest.headerBarComponent.showBack();
+
+    cwdFetchPromise.promise
+      .then((response) => {
+        // relativeToAbsolutePath expects trailing / for directories
+        let cwd = JSON.parse(response)["cwd"] + "/";
+
+        orchest.jupyter.navigateTo(
+          relativeToAbsolutePath(
+            this.state.steps[this.state.openedStep].file_path,
+            cwd
+          )
+        );
+
+        orchest.showJupyter();
+        orchest.headerBarComponent.updateCurrentView("jupyter");
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   }
 
   saveBeforeAction(actionCallback) {
@@ -1579,9 +1629,7 @@ class PipelineView extends React.Component {
   }
 
   onDeleteMultistep() {
-    for (let x = 0; x < this.state.selectedSteps.length; x++) {
-      this.deleteStep(this.state.selectedSteps[x]);
-    }
+    this.deleteSelectedSteps();
     this.closeMultistepView();
   }
 
@@ -1692,6 +1740,8 @@ class PipelineView extends React.Component {
     if (session_details) {
       this.updateJupyterInstance();
     }
+
+    orchest.headerBarComponent.updateSessionState(running);
   }
 
   onSessionShutdown() {
@@ -1709,14 +1759,14 @@ class PipelineView extends React.Component {
 
   setPipelineHolderSize() {
     // TODO: resize canvas based on pipeline size
-    $(this.refManager.refs.pipelineStepsHolder).css({
-      width:
-        $(this.refManager.refs.pipelineStepsOuterHolder).width() *
-        this.CANVAS_VIEW_MULTIPLE,
-      height:
-        $(this.refManager.refs.pipelineStepsOuterHolder).height() *
-        this.CANVAS_VIEW_MULTIPLE,
-    });
+    let jElStepOuterHolder = $(this.refManager.refs.pipelineStepsOuterHolder);
+
+    if (jElStepOuterHolder.filter(":visible").length > 0) {
+      $(this.refManager.refs.pipelineStepsHolder).css({
+        width: jElStepOuterHolder.width() * this.CANVAS_VIEW_MULTIPLE,
+        height: jElStepOuterHolder.height() * this.CANVAS_VIEW_MULTIPLE,
+      });
+    }
   }
 
   getMousePositionRelativeToPipelineStepHolder() {
@@ -1930,19 +1980,20 @@ class PipelineView extends React.Component {
                       />
                     </div>
                   );
-                } else {
-                  return (
-                    <div className="selection-buttons">
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised"]}
-                        onClick={this.cancelRun.bind(this)}
-                        icon="close"
-                        disabled={this.state.waitingOnCancel}
-                        label="Cancel run"
-                      />
-                    </div>
-                  );
                 }
+              }
+              if (this.state.pipelineRunning && !this.props.readOnly) {
+                return (
+                  <div className="selection-buttons">
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised"]}
+                      onClick={this.cancelRun.bind(this)}
+                      icon="close"
+                      disabled={this.state.waitingOnCancel}
+                      label="Cancel run"
+                    />
+                  </div>
+                );
               }
             })()}
           </div>
@@ -1993,6 +2044,7 @@ class PipelineView extends React.Component {
                   <MDCButtonReact
                     classNames={"mdc-button--outlined"}
                     label={"Read only"}
+                    disabled={true}
                     icon={"visibility"}
                   />
                 </div>
@@ -2046,6 +2098,7 @@ class PipelineView extends React.Component {
               <MultiPipelinestepDetails
                 onDelete={this.onDeleteMultistep.bind(this)}
                 onClose={this.onCloseMultistep.bind(this)}
+                readOnly={this.props.readOnly}
               />
             );
           }

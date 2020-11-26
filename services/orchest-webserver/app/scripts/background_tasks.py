@@ -22,11 +22,18 @@ def git_clone_project(args):
 
         # this way we clone in a directory with the name of the repo
         # if the project_name is not provided
-        project_name = args.path
-        if not project_name:
-            project_name = ""
+        git_command = f"git clone {args.url}"
 
-        exit_code = os.system(f"git clone {args.url} {project_name}")
+        # args.path contains the desired project name, if the user specified it
+        project_name = args.path
+        if project_name:
+            if "/" in project_name:
+                msg = "project name contains illegal character"
+                raise Exception(msg)
+
+            git_command += f' "{project_name}"'
+
+        exit_code = os.system(git_command)
         if exit_code != 0:
             msg = "git clone failed"
         else:
@@ -38,9 +45,12 @@ def git_clone_project(args):
             exit_code = os.system(f'mv "{from_path}" /userdir/projects/')
             if exit_code != 0:
                 msg = "project move failed"
+    except Exception as e:
+        msg = str(e)
+        exit_code = 1
     # cleanup the tmp directory in any case
     finally:
-        os.system(f"rm -rf {tmp_path}")
+        os.system(f'rm -rf "{tmp_path}"')
 
     return exit_code, msg
 

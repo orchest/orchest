@@ -146,7 +146,7 @@ class SettingsView extends React.Component {
                       value={this.state.config}
                       options={{
                         mode: "application/json",
-                        theme: "default",
+                        theme: "jupyter",
                         lineNumbers: true,
                       }}
                       onBeforeChange={(editor, data, value) => {

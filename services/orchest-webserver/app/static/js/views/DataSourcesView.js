@@ -66,8 +66,12 @@ class DataSourcesView extends React.Component {
 
   onDeleteClick() {
     // select indices
-
     let selectedIndices = this.refManager.refs.checkItemList.customSelectedIndex();
+
+    if (selectedIndices.length == 0) {
+      orchest.alert("Error", "You haven't selected any data sources.");
+      return;
+    }
 
     orchest.confirm(
       "Warning",

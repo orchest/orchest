@@ -33,6 +33,8 @@ class ProjectsView extends React.Component {
     this.ERROR_MAPPING = {
       "project move failed":
         "failed to move project because the directory exists.",
+      "project name contains illegal character":
+        "project name contains illegal character(s).",
     };
 
     this.promiseManager = new PromiseManager();
@@ -55,11 +57,7 @@ class ProjectsView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchList(() => {
-      this.setState({
-        loading: false,
-      });
-    });
+    this.fetchList();
   }
 
   onClickProjectEntity(view, project, e) {
@@ -74,36 +72,33 @@ class ProjectsView extends React.Component {
     for (let project of projects) {
       listData.push([
         <span>{project.path}</span>,
-        <a
+        <MDCButtonReact
           onClick={this.onClickProjectEntity.bind(this, PipelinesView, project)}
-        >
-          {project.pipeline_count}
-        </a>,
-        <a
+          label={project.pipeline_count}
+        />,
+        <MDCButtonReact
           onClick={this.onClickProjectEntity.bind(
             this,
             ExperimentsView,
             project
           )}
-        >
-          {project.experiment_count}
-        </a>,
-        <a
+          label={project.experiment_count}
+        />,
+        <MDCButtonReact
           onClick={this.onClickProjectEntity.bind(
             this,
             EnvironmentsView,
             project
           )}
-        >
-          {project.environment_count}
-        </a>,
+          label={project.environment_count}
+        />,
       ]);
     }
 
     return listData;
   }
 
-  fetchList(onComplete) {
+  fetchList() {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/async/projects"),
@@ -115,12 +110,11 @@ class ProjectsView extends React.Component {
       this.setState({
         listData: this.processListData(projects),
         projects: projects,
+        loading: false,
       });
       if (this.refManager.refs.projectListView) {
         this.refManager.refs.projectListView.setSelectedRowIds([]);
       }
-
-      onComplete();
     });
   }
 
@@ -150,12 +144,7 @@ class ProjectsView extends React.Component {
         });
 
         Promise.all(deletePromises).then(() => {
-          // reload list once creation succeeds
-          this.fetchList(() => {
-            this.setState({
-              loading: false,
-            });
-          });
+          this.fetchList();
         });
       }
     );
@@ -195,8 +184,13 @@ class ProjectsView extends React.Component {
   onSubmitModal() {
     let projectName = this.refManager.refs.createProjectNameTextField.mdc.value;
 
-    if (!projectName) {
-      orchest.alert("Error", "Please enter a name.");
+    let projectNameValidation = this.validProjectName(projectName);
+    if (!projectNameValidation.valid) {
+      orchest.alert(
+        "Error",
+        "Please make sure you enter a valid project name. " +
+          projectNameValidation.reason
+      );
       return;
     }
 
@@ -208,11 +202,7 @@ class ProjectsView extends React.Component {
     })
       .then((_) => {
         // reload list once creation succeeds
-        this.fetchList(() => {
-          this.setState({
-            loading: false,
-          });
-        });
+        this.fetchList();
       })
       .catch((response) => {
         try {
@@ -232,6 +222,19 @@ class ProjectsView extends React.Component {
     });
   }
 
+  validProjectName(projectName) {
+    if (projectName.length == 0) {
+      return { valid: false, reason: "Project name cannot be empty." };
+    }
+    if (projectName.indexOf("/") !== -1) {
+      return {
+        valid: false,
+        reason: "Project name cannot contain '/' character.",
+      };
+    }
+    return { valid: true };
+  }
+
   onSubmitImport() {
     let gitURL = this.refManager.refs.gitURLTextField.mdc.value;
     let gitProjectName = this.refManager.refs.gitProjectNameTextField.mdc.value;
@@ -244,15 +247,32 @@ class ProjectsView extends React.Component {
       return;
     }
 
+    let projectNameValidation = this.validProjectName(gitProjectName);
+    if (!projectNameValidation.valid) {
+      orchest.alert(
+        "Error",
+        "Please make sure you enter a valid project name. " +
+          projectNameValidation.reason
+      );
+      return;
+    }
+
     this.setState({
       importResult: {
         status: "PENDING",
       },
     });
 
+    let jsonData = { url: gitURL };
+
+    // only add project_name if use entered a value in the form
+    if (gitProjectName.length > 0) {
+      jsonData.project_name = gitProjectName;
+    }
+
     makeRequest("POST", `/async/projects/import-git`, {
       type: "json",
-      content: { url: gitURL, project_name: gitProjectName },
+      content: jsonData,
     }).then((response) => {
       let data = JSON.parse(response);
 

@@ -6,11 +6,6 @@ Installing additional packages
    Jupyter Notebook. This causes the package to be installed every time you run the pipeline
    step. It is not saved in the environment as containers are stateless!
 
-.. _environments:
-
-Environments
-------------
-
 Orchest runs all your individual pipeline steps (e.g. ``.ipynb`` or ``.R`` scripts) in
 containers. The default images are based on the |jupyter_stack_link| and come with a number of
 |pre_installed_link|.
@@ -18,6 +13,11 @@ containers. The default images are based on the |jupyter_stack_link| and come wi
 To install additional packages or to run other terminal commands inside the base image, we support
 custom *Environments*. We essentially create a new image by running your script inside the selected base
 image.
+
+.. _environments:
+
+Build an environment
+--------------------
 
 1. Simply go to *Environments* in the left menu pane.
 2. Create a new *Environment*. *Environments* are part of a single project.

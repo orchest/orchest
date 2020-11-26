@@ -23,7 +23,6 @@ from app.utils import (
     get_user_conf,
     get_user_conf_raw,
     save_user_conf_raw,
-    name_to_tag,
     find_pipelines_in_dir,
     pipeline_uuid_to_path,
     project_uuid_to_path,
@@ -33,9 +32,11 @@ from app.utils import (
     get_project_directory,
     get_environment_directory,
     get_environments,
+    get_environment,
     serialize_environment_to_disk,
     read_environment_from_disk,
     delete_environment,
+    get_repo_tag,
 )
 
 from app.models import (
@@ -57,6 +58,7 @@ from app.schemas import (
     BackgroundTaskSchema,
 )
 from app.kernel_manager import populate_kernels
+from app.analytics import send_anonymized_pipeline_definition
 from app.views.orchest_api import api_proxy_environment_builds
 from _orchest.internals.utils import run_orchest_ctl
 from _orchest.internals import config as _config
@@ -108,11 +110,8 @@ def register_views(app, db):
                 return self.post(project_uuid, environment_uuid)
 
             def get(self, project_uuid, environment_uuid):
-                environment_dir = get_environment_directory(
-                    environment_uuid, project_uuid
-                )
                 return environment_schema.dump(
-                    read_environment_from_disk(environment_dir, project_uuid)
+                    get_environment(environment_uuid, project_uuid)
                 )
 
             def delete(self, project_uuid, environment_uuid):
@@ -293,17 +292,31 @@ def register_views(app, db):
 
             def post(self, experiment_uuid):
 
+                experiment_uuid = str(uuid.uuid4())
+
+                pipeline_path = pipeline_uuid_to_path(
+                    request.json["pipeline_uuid"], request.json["project_uuid"]
+                )
+
                 new_ex = Experiment(
                     uuid=experiment_uuid,
                     name=request.json["name"],
                     pipeline_uuid=request.json["pipeline_uuid"],
+                    project_uuid=request.json["project_uuid"],
                     pipeline_name=request.json["pipeline_name"],
-                    strategy_json=request.json["strategy_json"],
+                    pipeline_path=pipeline_path,
+                    strategy_json="{}",
                     draft=request.json["draft"],
                 )
 
                 db.session.add(new_ex)
                 db.session.commit()
+
+                create_experiment_directory(
+                    experiment_uuid,
+                    request.json["pipeline_uuid"],
+                    request.json["project_uuid"],
+                )
 
                 return experiment_schema.dump(new_ex)
 
@@ -394,13 +407,7 @@ def register_views(app, db):
                         notebook_changed = True
                         notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
 
-                    environment = (
-                        Environment.query.filter(
-                            Environment.uuid == step["environment"]
-                        )
-                        .filter(Environment.project_uuid == project_uuid)
-                        .first()
-                    )
+                    environment = get_environment(step["environment"], project_uuid)
 
                     if environment is not None:
                         if (
@@ -419,7 +426,7 @@ def register_views(app, db):
 
                     if notebook_changed:
                         with open(notebook_path, "w") as file:
-                            file.write(json.dumps(notebook_json, indent=2))
+                            file.write(json.dumps(notebook_json, indent=4))
 
                 else:
                     logging.info(
@@ -451,7 +458,7 @@ def register_views(app, db):
             project_uuid, step["environment"]
         )
 
-        return json.dumps(template_json, indent=2)
+        return json.dumps(template_json, indent=4)
 
     def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
 
@@ -493,21 +500,16 @@ def register_views(app, db):
                     file.write(file_content)
 
     def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
-
-        experiment_path = os.path.join(
-            app.config["USER_DIR"],
-            "experiments",
-            project_uuid,
-            pipeline_uuid,
-            experiment_uuid,
+        snapshot_path = get_pipeline_directory(
+            pipeline_uuid, project_uuid, experiment_uuid
         )
 
-        os.makedirs(experiment_path)
-        snapshot_path = os.path.join(experiment_path, "snapshot")
+        os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
+
         project_dir = os.path.join(
             app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
         )
-        os.system("cp -R %s %s" % (project_dir, snapshot_path))
+        shutil.copytree(project_dir, snapshot_path)
 
     def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
@@ -671,8 +673,9 @@ def register_views(app, db):
         css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
 
         front_end_config = [
-            "ENVIRONMENT_DEFAULTS",
             "FLASK_ENV",
+            "TELEMETRY_DISABLED",
+            "ENVIRONMENT_DEFAULTS",
             "ORCHEST_WEB_URLS",
         ]
 
@@ -718,19 +721,7 @@ def register_views(app, db):
 
     @app.route("/async/version", methods=["GET"])
     def version():
-
-        git_proc = subprocess.Popen(
-            'echo "$(git describe --abbrev=0 --tags) "',
-            cwd="/orchest-host",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-
-        outs, _ = git_proc.communicate()
-
-        return outs
+        return get_repo_tag()
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
@@ -769,30 +760,6 @@ def register_views(app, db):
             return jsonify({"success": True})
         else:
             return jsonify({"message": "Pipeline could not be found."}), 404
-
-    @app.route("/async/experiments/create", methods=["POST"])
-    def experiments_create():
-
-        experiment_uuid = str(uuid.uuid4())
-
-        new_ex = Experiment(
-            uuid=experiment_uuid,
-            name=request.json["name"],
-            pipeline_uuid=request.json["pipeline_uuid"],
-            project_uuid=request.json["project_uuid"],
-            pipeline_name=request.json["pipeline_name"],
-            strategy_json="",
-            draft=True,
-        )
-
-        db.session.add(new_ex)
-        db.session.commit()
-
-        create_experiment_directory(
-            experiment_uuid, request.json["pipeline_uuid"], request.json["project_uuid"]
-        )
-
-        return jsonify(experiment_schema.dump(new_ex))
 
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():
@@ -843,12 +810,15 @@ def register_views(app, db):
                 "name": request.json["name"],
                 "version": "1.0.0",
                 "uuid": pipeline_uuid,
-                "settings": {"auto_eviction": False},
+                "settings": {
+                    "auto_eviction": False,
+                    "data_passing_memory_size": "1GB",
+                },
                 "steps": {},
             }
 
             with open(pipeline_json_path, "w") as pipeline_json_file:
-                pipeline_json_file.write(json.dumps(pipeline_json, indent=2))
+                pipeline_json_file.write(json.dumps(pipeline_json, indent=4))
 
             return jsonify({"success": True})
         else:
@@ -1082,7 +1052,7 @@ def register_views(app, db):
 
                 with open(pipeline_json_path, "w") as json_file:
                     pipeline_json["uuid"] = new_pipeline_uuid
-                    json_file.write(json.dumps(pipeline_json, indent=2))
+                    json_file.write(json.dumps(pipeline_json, indent=4))
 
                 # only commit if writing succeeds
                 new_pipeline = Pipeline(
@@ -1222,7 +1192,10 @@ def register_views(app, db):
             )
 
             with open(pipeline_json_path, "w") as json_file:
-                json_file.write(json.dumps(pipeline_json, indent=2))
+                json_file.write(json.dumps(pipeline_json, indent=4))
+
+            # Analytics call
+            send_anonymized_pipeline_definition(app, pipeline_json)
 
             return jsonify({"message": "Successfully saved pipeline."})
 

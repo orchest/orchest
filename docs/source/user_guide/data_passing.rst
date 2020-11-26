@@ -33,19 +33,20 @@ image above the receiving step would get a list with the data from steps A, C an
 
 Memory data passing
 -------------------
-Coming soon!
+To pass data through memory between steps (which is enabled by default) we make use of `the Plasma
+in-memory object store <https://arrow.apache.org/docs/python/plasma.html>`_ from the Apache Arrow
+project. Within Orchest it is wrapped with additional code for object eviction, which we will cover
+later in this section. Every interactive session gets its own memory store, which is shared between
+the kernels and interactive runs, for pipeline runs as part of experiments each gets an insolated
+memory store.
 
-.. TODO(yannick)
+When an object is sent from one step to another (using :meth:`orchest.transfer.output`) it is
+actually stored inside the Plasma store and copied into the memory of the receiving step. This is
+useful in interactive runs as it allows you to rerun a certain step without having to run the steps it
+depends on (if they have run before) enabling faster iteration on your ideas.
 
-.. Notion of memory-server per pipeline.
+When it comes to clearing the memory store there are two options:
 
-.. Passing data from one step to another (using :meth:`orchest.transfer.output`) passes data through
-.. memory by default. When passing data from some step "A" to some step "B", then the object passed at
-.. A would be stored in memory so B can retrieve it. The object will be copied to the memory of step B,
-.. leaving a copy in the memory-server. This is useful in interactive runs as it allows you to rerun
-.. certain step without having to run the steps it depends on (if they have run before).
-
-.. To clear memory use auto eviction.
-
-   Also refer to pipeline level configurations after talking about how the memory server works!
-   The user needs to understand when objects are evicted (and the special kernel case).
+1. Clearing all objects from memory through the pipeline settings.
+2. Enabling auto eviction also through the pipeline settings, additional information about this
+   setting can be found in :ref:`pipeline level configurations <pipeline configuration>`.

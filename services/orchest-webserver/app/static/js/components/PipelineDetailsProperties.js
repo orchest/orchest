@@ -155,8 +155,9 @@ class PipelineDetailsProperties extends React.Component {
     this.props.onSave(this);
   }
 
-  onChangeEnvironment(updatedEnvironment) {
-    this.state.step.environment = updatedEnvironment;
+  onChangeEnvironment(updatedEnvironmentUUID, updatedEnvironmentName) {
+    this.state.step.environment = updatedEnvironmentUUID;
+    this.state.step.kernel.display_name = updatedEnvironmentName;
 
     this.setState({
       step: this.state.step,
@@ -167,16 +168,6 @@ class PipelineDetailsProperties extends React.Component {
 
   onChangeKernel(updatedKernel) {
     this.state.step.kernel.name = updatedKernel;
-
-    let kernelDisplayName = "";
-    for (let x = 0; x < this.state.kernelOptions.length; x++) {
-      if (this.state.kernelOptions[x][0] === updatedKernel) {
-        kernelDisplayName = this.state.kernelOptions[x][1];
-        break;
-      }
-    }
-
-    this.state.step.kernel.display_name = kernelDisplayName;
 
     this.setState({
       step: this.state.step,
@@ -338,10 +329,9 @@ class PipelineDetailsProperties extends React.Component {
   }
 
   componentDidMount() {
-    // set focus on first field
-    this.refManager.refs.titleTextField.focus();
-
     if (!this.props.readOnly) {
+      // set focus on first field
+      this.refManager.refs.titleTextField.focus();
       this.setupConnectionListener();
     }
 
@@ -372,13 +362,28 @@ class PipelineDetailsProperties extends React.Component {
           />
 
           <div className="push-down">
-            <ProjectFilePicker
-              cwd="/"
-              value={this.state.step.file_path}
-              project_uuid={this.props.project_uuid}
-              pipeline_uuid={this.props.pipeline_uuid}
-              onChange={this.onChangeFileName.bind(this)}
-            />
+            {(() => {
+              if (this.props.readOnly) {
+                return (
+                  <MDCTextFieldReact
+                    value={this.state.step.file_path}
+                    label="File name"
+                    disabled={this.props.readOnly}
+                    classNames={["fullwidth", "push-down"]}
+                  />
+                );
+              } else {
+                return (
+                  <ProjectFilePicker
+                    cwd="/"
+                    value={this.state.step.file_path}
+                    project_uuid={this.props.project_uuid}
+                    pipeline_uuid={this.props.pipeline_uuid}
+                    onChange={this.onChangeFileName.bind(this)}
+                  />
+                );
+              }
+            })()}
           </div>
 
           <MDCSelectReact
@@ -412,7 +417,7 @@ class PipelineDetailsProperties extends React.Component {
             value={this.state.editableParameters}
             options={{
               mode: "application/json",
-              theme: "default",
+              theme: "jupyter",
               lineNumbers: true,
               readOnly: this.props.readOnly === true, // not sure whether CodeMirror accepts 'falsy' values
             }}

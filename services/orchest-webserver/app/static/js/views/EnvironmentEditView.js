@@ -518,7 +518,7 @@ class EnvironmentEditView extends React.Component {
           value={this.state.environment.setup_script}
           options={{
             mode: "application/x-sh",
-            theme: "default",
+            theme: "jupyter",
             lineNumbers: true,
             viewportMargin: Infinity,
           }}
@@ -546,40 +546,38 @@ class EnvironmentEditView extends React.Component {
             }
           >
             <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
-
-            {(() => {
-              if (this.state.environmentBuild) {
-                return (
-                  <div className="build-status push-up">
-                    <div>
-                      Build status: {this.state.environmentBuild.status}
-                    </div>
-                    <div>
-                      Build started:{" "}
-                      {this.state.environmentBuild.started_time ? (
-                        new Date(
-                          this.state.environmentBuild.started_time + " GMT"
-                        ).toLocaleString()
-                      ) : (
-                        <i>not yet started</i>
-                      )}
-                    </div>
-                    <div>
-                      Build finished:{" "}
-                      {this.state.environmentBuild.finished_time ? (
-                        new Date(
-                          this.state.environmentBuild.finished_time + " GMT"
-                        ).toLocaleString()
-                      ) : (
-                        <i>not yet finished</i>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-            })()}
           </div>
         </div>
+
+        {(() => {
+          if (this.state.environmentBuild) {
+            return (
+              <div className="build-status push-up">
+                <div>Build status: {this.state.environmentBuild.status}</div>
+                <div>
+                  Build started:{" "}
+                  {this.state.environmentBuild.started_time ? (
+                    new Date(
+                      this.state.environmentBuild.started_time + " GMT"
+                    ).toLocaleString()
+                  ) : (
+                    <i>not yet started</i>
+                  )}
+                </div>
+                <div>
+                  Build finished:{" "}
+                  {this.state.environmentBuild.finished_time ? (
+                    new Date(
+                      this.state.environmentBuild.finished_time + " GMT"
+                    ).toLocaleString()
+                  ) : (
+                    <i>not yet finished</i>
+                  )}
+                </div>
+              </div>
+            );
+          }
+        })()}
 
         <div className="multi-button push-up push-down">
           <MDCButtonReact

@@ -329,7 +329,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
         # move the startup script to the context
         os.system(
-            "cp %s %s"
+            'cp "%s" "%s"'
             % (
                 os.path.join(environment_path, _config.ENV_SETUP_SCRIPT_FILE_NAME),
                 os.path.join(snapshot_path, bash_script_name),
@@ -403,7 +403,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             )
 
             # cleanup
-            os.system("rm -rf %s" % build_context)
+            os.system('rm -rf "%s"' % build_context)
 
             update_environment_build_status(status, session, task_uuid)
 
