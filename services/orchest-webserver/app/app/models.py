@@ -44,6 +44,9 @@ class DataSource(db.Model):
 # This class is only serialized on disk, it's never stored in the database
 # The properties are stored in properties.json in the
 # <project>/.orchest/environments/<environment_uuid>/. directory.
+# to avoid unknowingly querying a table that will always be empty, the
+# table is deleted
+# see __init__ at around line 120, after the db is initialized
 class Environment(db.Model):
     __tablename__ = "environments"
 

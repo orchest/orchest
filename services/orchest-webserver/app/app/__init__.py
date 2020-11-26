@@ -30,7 +30,7 @@ from app.views.orchest_api import register_orchest_api_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.analytics import register_analytics_views
 from app.socketio_server import register_socketio_broadcast
-from app.models import DataSource
+from app.models import DataSource, Environment
 from app.connections import db, ma
 from app.utils import get_user_conf, get_repo_tag
 
@@ -117,6 +117,13 @@ def create_app():
     # according to SQLAlchemy will only create tables if they do not exist
     with app.app_context():
         db.create_all()
+        # this class is only serialized on disk
+        # see the Environment model
+        # to avoid errors like querying the Environments table
+        # to see if there is any environemnt (and getting
+        # no environments while they might actually be there), the
+        # table is deleted, so that it will produce a ~loud~ error
+        Environment.__table__.drop(db.engine)
         initialize_default_datasources(db, app)
 
     # Telemetry
