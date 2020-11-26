@@ -184,6 +184,11 @@ class ProjectsView extends React.Component {
   onSubmitModal() {
     let projectName = this.refManager.refs.createProjectNameTextField.mdc.value;
 
+    if (projectName.length == 0) {
+      orchest.alert("Error", "Project name cannot be empty.");
+      return;
+    }
+
     let projectNameValidation = this.validProjectName(projectName);
     if (!projectNameValidation.valid) {
       orchest.alert(
@@ -223,9 +228,6 @@ class ProjectsView extends React.Component {
   }
 
   validProjectName(projectName) {
-    if (projectName.length == 0) {
-      return { valid: false, reason: "Project name cannot be empty." };
-    }
     if (projectName.indexOf("/") !== -1) {
       return {
         valid: false,
