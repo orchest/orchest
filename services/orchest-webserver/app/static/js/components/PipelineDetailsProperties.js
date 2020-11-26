@@ -155,8 +155,9 @@ class PipelineDetailsProperties extends React.Component {
     this.props.onSave(this);
   }
 
-  onChangeEnvironment(updatedEnvironment) {
-    this.state.step.environment = updatedEnvironment;
+  onChangeEnvironment(updatedEnvironmentUUID, updatedEnvironmentName) {
+    this.state.step.environment = updatedEnvironmentUUID;
+    this.state.step.kernel.display_name = updatedEnvironmentName;
 
     this.setState({
       step: this.state.step,
@@ -167,16 +168,6 @@ class PipelineDetailsProperties extends React.Component {
 
   onChangeKernel(updatedKernel) {
     this.state.step.kernel.name = updatedKernel;
-
-    let kernelDisplayName = "";
-    for (let x = 0; x < this.state.kernelOptions.length; x++) {
-      if (this.state.kernelOptions[x][0] === updatedKernel) {
-        kernelDisplayName = this.state.kernelOptions[x][1];
-        break;
-      }
-    }
-
-    this.state.step.kernel.display_name = kernelDisplayName;
 
     this.setState({
       step: this.state.step,

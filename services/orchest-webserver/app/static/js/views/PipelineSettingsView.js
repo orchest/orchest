@@ -18,6 +18,7 @@ class PipelineSettingsView extends React.Component {
     this.state = {
       restartingMemoryServer: false,
       unsavedChanges: false,
+      pipeline_path: undefined,
     };
 
     this.promiseManager = new PromiseManager();
@@ -29,6 +30,11 @@ class PipelineSettingsView extends React.Component {
   }
 
   componentDidMount() {
+    this.fetchPipeline();
+    this.fetchPipelinePath();
+  }
+
+  fetchPipeline() {
     let pipelinePromise = makeCancelable(
       makeRequest(
         "GET",
@@ -62,7 +68,23 @@ class PipelineSettingsView extends React.Component {
     });
   }
 
-  componentDidUpdate(prevProps, prevState, snapshot) {}
+  fetchPipelinePath() {
+    // get pipeline path
+    let fetchPipelinePathPromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+      ),
+      this.promiseManager
+    );
+
+    fetchPipelinePathPromise.promise.then((response) => {
+      let pipeline = JSON.parse(response);
+      this.setState({
+        pipeline_path: pipeline.path,
+      });
+    });
+  }
 
   closeSettings() {
     orchest.loadView(PipelineView, {
@@ -179,6 +201,13 @@ class PipelineSettingsView extends React.Component {
                       label="Pipeline name"
                       classNames={["push-down"]}
                     />
+
+                    {this.state.pipeline_path && (
+                      <p className="push-down">
+                        Pipeline path:{" "}
+                        <span className="code">{this.state.pipeline_path}</span>
+                      </p>
+                    )}
 
                     <h3>Data passing</h3>
 

@@ -418,7 +418,7 @@ def register_views(app, db):
 
                     if notebook_changed:
                         with open(notebook_path, "w") as file:
-                            file.write(json.dumps(notebook_json, indent=2))
+                            file.write(json.dumps(notebook_json, indent=4))
 
                 else:
                     logging.info(
@@ -450,7 +450,7 @@ def register_views(app, db):
             project_uuid, step["environment"]
         )
 
-        return json.dumps(template_json, indent=2)
+        return json.dumps(template_json, indent=4)
 
     def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
 
@@ -790,7 +790,7 @@ def register_views(app, db):
             }
 
             with open(pipeline_json_path, "w") as pipeline_json_file:
-                pipeline_json_file.write(json.dumps(pipeline_json, indent=2))
+                pipeline_json_file.write(json.dumps(pipeline_json, indent=4))
 
             return jsonify({"success": True})
         else:
@@ -1019,7 +1019,7 @@ def register_views(app, db):
 
                 with open(pipeline_json_path, "w") as json_file:
                     pipeline_json["uuid"] = new_pipeline_uuid
-                    json_file.write(json.dumps(pipeline_json, indent=2))
+                    json_file.write(json.dumps(pipeline_json, indent=4))
 
                 # only commit if writing succeeds
                 new_pipeline = Pipeline(
@@ -1159,7 +1159,7 @@ def register_views(app, db):
             )
 
             with open(pipeline_json_path, "w") as json_file:
-                json_file.write(json.dumps(pipeline_json, indent=2))
+                json_file.write(json.dumps(pipeline_json, indent=4))
 
             # Analytics call
             send_anonymized_pipeline_definition(app, pipeline_json)

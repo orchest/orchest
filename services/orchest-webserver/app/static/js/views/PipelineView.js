@@ -1091,8 +1091,11 @@ class PipelineView extends React.Component {
       let result = JSON.parse(response);
 
       let environmentUUID = "";
+      let environmentName = "";
+
       if (result.length > 0) {
         environmentUUID = result[0].uuid;
+        environmentName = result[0].name;
       }
 
       let step = {
@@ -1102,7 +1105,7 @@ class PipelineView extends React.Component {
         file_path: "",
         kernel: {
           name: "python",
-          display_name: "Python 3",
+          display_name: environmentName,
         },
         environment: environmentUUID,
         parameters: {},
