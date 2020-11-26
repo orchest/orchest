@@ -14,6 +14,8 @@ from app.apis.namespace_environment_builds import delete_project_environment_bui
 from app.apis.namespace_environment_builds import delete_project_builds
 from app.apis.namespace_runs import stop_pipeline_run
 from _orchest.internals import config as _config
+from _orchest.internals.utils import docker_images_list_safe
+from _orchest.internals.utils import docker_images_rm_safe
 
 api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)
@@ -50,17 +52,9 @@ class EnvironmentImage(Resource):
         delete_project_environment_builds(project_uuid, environment_uuid)
         delete_project_environment_dangling_images(project_uuid, environment_uuid)
 
-        try:
-            docker_client.images.remove(image_name)
-        except errors.ImageNotFound:
-            return {"message": f"Environment image {image_name} not found"}, 404
-        except Exception as e:
-            return (
-                {
-                    "message": f"There was an error deleting the image {image_name}.\n{e}"
-                },
-                500,
-            )
+        # try with repeat because there might be a race condition
+        # where the aborted runs are still using the image
+        docker_images_rm_safe(docker_client, image_name)
 
         return (
             {"message": f"Environment image {image_name} was successfully deleted"},
@@ -108,36 +102,24 @@ def delete_project_environment_images(project_uuid):
         project_uuid:
     """
 
-    # use environment_uuid="" because we are looking for all of them
-    image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-        project_uuid=project_uuid, environment_uuid=""
-    )
-
-    image_names_to_remove = [
-        img.attrs["RepoTags"][0]
-        for img in docker_client.images.list()
-        if img.attrs["RepoTags"]
-        and isinstance(img.attrs["RepoTags"][0], str)
-        and img.attrs["RepoTags"][0].startswith(image_name)
-    ]
-
     # cleanup references to the builds and dangling images
     # of all environments of this project
     delete_project_builds(project_uuid)
     delete_project_dangling_images(project_uuid)
 
-    image_remove_exceptions = []
-    for image_name in image_names_to_remove:
-        try:
-            docker_client.images.remove(image_name)
-        except Exception as e:
-            image_remove_exceptions.append(
-                f"There was an error deleting the image {image_name}:\n{e}"
-            )
+    filters = {
+        "label": [
+            f"_orchest_env_build_is_intermediate=0",
+            f"_orchest_project_uuid={project_uuid}",
+        ]
+    }
+    images_to_remove = docker_images_list_safe(docker_client, filters=filters)
 
-    if len(image_remove_exceptions) > 0:
-        image_remove_exceptions = "\n".join(image_remove_exceptions)
-        logging.warning(image_remove_exceptions)
+    image_remove_exceptions = []
+    # try with repeat because there might be a race condition
+    # where the aborted runs are still using the image
+    for img in images_to_remove:
+        docker_images_rm_safe(docker_client, img.id)
 
 
 def delete_project_dangling_images(project_uuid):
@@ -158,7 +140,7 @@ def delete_project_dangling_images(project_uuid):
         ]
     }
 
-    project_images = docker_client.images.list(filters=filters)
+    project_images = docker_images_list_safe(docker_client, filters=filters)
 
     for docker_img in project_images:
         remove_if_dangling(docker_img)
@@ -185,7 +167,7 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
         ]
     }
 
-    project_env_images = docker_client.images.list(filters=filters)
+    project_env_images = docker_images_list_safe(docker_client, filters=filters)
 
     for docker_img in project_env_images:
         remove_if_dangling(docker_img)

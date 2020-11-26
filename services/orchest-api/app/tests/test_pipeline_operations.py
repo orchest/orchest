@@ -26,6 +26,14 @@ def pipeline():
     return pipeline
 
 
+def test_serialization():
+    with open("tests/input_operations/pipeline.json", "r") as f:
+        description = json.load(f)
+
+    pipeline = Pipeline.from_json(description)
+    assert pipeline.to_dict() == description
+
+
 def test_pipeline_from_json(pipeline):
     steps = {step.properties["name"]: step for step in pipeline.steps}
 
