@@ -52,6 +52,7 @@ class EnvironmentEditView extends React.Component {
           : [...DEFAULT_BASE_IMAGES],
       newEnvironment: props.environment === undefined,
       showingBuildLogs: true,
+      buildLogInitializing: true,
       ignoreIncomingLogs: false,
       unsavedChanges: false,
       building: false,
@@ -82,6 +83,11 @@ class EnvironmentEditView extends React.Component {
     this.connectSocketIO();
     this.fitTerminal();
     this.environmentBuildPolling();
+
+    this.setState({
+      showingBuildLogs: false,
+      buildLogInitializing: false,
+    });
   }
 
   componentDidUpdate() {
@@ -192,6 +198,7 @@ class EnvironmentEditView extends React.Component {
 
     this.setState({
       building: true,
+      showingBuildLogs: true,
     });
 
     if (this.refManager.refs.term) {
@@ -436,13 +443,21 @@ class EnvironmentEditView extends React.Component {
           }
         })()}
 
+        <div className="push-down">
+          <MDCButtonReact
+            label="Back to environments"
+            icon="arrow_back"
+            onClick={this.returnToEnvironments.bind(this)}
+          />
+        </div>
+
         <h2>Edit environment</h2>
 
         {(() => {
           if (this.state.environment.uuid !== "new") {
             return (
               <span className="environment-uuid">
-                {this.state.environment.uuid}
+                Environment UUID: {this.state.environment.uuid}
               </span>
             );
           }
@@ -532,27 +547,11 @@ class EnvironmentEditView extends React.Component {
           }}
         />
 
-        <div>
-          <MDCButtonReact
-            classNames={["mdc-button--raised", "push-up"]}
-            onClick={this.toggleBuildLog.bind(this)}
-            label="Toggle build log"
-            icon="subject"
-          />
-
-          <div
-            className={
-              "push-up " + (this.state.showingBuildLogs ? "" : "hidden")
-            }
-          >
-            <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
-          </div>
-        </div>
-
+        <h2 className="push-up">Build environment</h2>
         {(() => {
           if (this.state.environmentBuild) {
             return (
-              <div className="build-status push-up">
+              <div className="build-status">
                 <div>Build status: {this.state.environmentBuild.status}</div>
                 <div>
                   Build started:{" "}
@@ -578,6 +577,26 @@ class EnvironmentEditView extends React.Component {
             );
           }
         })()}
+
+        <div>
+          <MDCButtonReact
+            classNames={["mdc-button--raised", "push-up"]}
+            onClick={this.toggleBuildLog.bind(this)}
+            label="Toggle build log"
+            icon="subject"
+          />
+
+          <div
+            className={
+              "xterm-holder push-up " +
+              (this.state.showingBuildLogs ? "" : "hidden") +
+              " " +
+              (this.state.buildLogInitializing ? "initializing" : "")
+            }
+          >
+            <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
+          </div>
+        </div>
 
         <div className="multi-button push-up push-down">
           <MDCButtonReact
@@ -608,11 +627,6 @@ class EnvironmentEditView extends React.Component {
             }
           })()}
         </div>
-        <MDCButtonReact
-          label="Back to environments"
-          icon="arrow_back"
-          onClick={this.returnToEnvironments.bind(this)}
-        />
       </div>
     );
   }

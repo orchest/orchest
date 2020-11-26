@@ -250,7 +250,14 @@ p > i.material-icons.float-left {
 
 .edit-environment {
   .build-status {
-    font-size: $codeSize;
+    font-size: $defaultFontSize;
+  }
+
+  .xterm-holder {
+    &.initializing {
+      position: absolute;
+      opacity: 0.01;
+    }
   }
 
   .environment-uuid {
