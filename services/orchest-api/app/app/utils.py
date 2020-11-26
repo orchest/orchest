@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, time
 from typing import Dict, Set, Union
 import requests
 import logging
 
 from docker import errors
 from flask_restplus import Model, Namespace
+from sqlalchemy import and_
 
 from app import schema
 from app.connections import db, docker_client
@@ -245,7 +246,84 @@ def lock_environment_images_for_run(
     return env_uuid_docker_id_mappings
 
 
-def remove_if_dangling(img):
+def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
+    """Get the list of interactive runs using a given environment.
+
+    Args:
+        project_uuid:
+        env_uuid:
+
+    Returns:
+    """
+    return models.InteractiveRun.query.filter(
+        models.InteractiveRun.project_uuid == project_uuid,
+        models.InteractiveRun.image_mappings.any(orchest_environment_uuid=env_uuid),
+        models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
+    ).all()
+
+
+def experiments_using_environment(project_uuid: str, env_uuid: str):
+    """Get the list of experiments using a given environment.
+
+    Args:
+        project_uuid:
+        env_uuid:
+
+    Returns:
+    """
+    return models.Experiment.query.filter(
+        # exp related to this project
+        models.Experiment.project_uuid == project_uuid,
+        # keep project for which at least a run uses the environment
+        # and is or will make use of the environment (PENDING/STARTED)
+        models.Experiment.pipeline_runs.any(
+            and_(
+                models.NonInteractiveRun.image_mappings.any(
+                    orchest_environment_uuid=env_uuid
+                ),
+                models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
+            )
+        ),
+    ).all()
+
+
+def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
+    """True if the environment is or will be in use by a run/experiment
+
+    Args:
+        env_uuid:
+
+    Returns:
+        bool:
+    """
+
+    int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
+    exps = experiments_using_environment(project_uuid, env_uuid)
+    return len(int_runs) > 0 or len(exps) > 0
+
+
+def is_docker_image_in_use(img_id: str) -> bool:
+    """True if the image is or will be in use by a run/experiment
+
+    Args:
+        img_id:
+
+    Returns:
+        bool:
+    """
+
+    int_runs = models.InteractiveRun.query.filter(
+        models.InteractiveRun.image_mappings.any(docker_img_id=img_id),
+        models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
+    ).all()
+    non_int_runs = models.NonInteractiveRun.query.filter(
+        models.NonInteractiveRun.image_mappings.any(docker_img_id=img_id),
+        models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
+    ).all()
+    return len(int_runs) > 0 or len(non_int_runs) > 0
+
+
+def remove_if_dangling(img) -> bool:
     """Remove an image if its dangling.
 
     A dangling image is an image that is nameless and tag-less,
@@ -262,28 +340,24 @@ def remove_if_dangling(img):
 
     """
     # nameless image
-    if len(img.attrs["RepoTags"]) == 0:
-        int_runs = models.InteractiveRun.query.filter(
-            models.InteractiveRun.image_mappings.any(docker_img_id=img.id),
-            models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
-        ).all()
-        non_int_runs = models.NonInteractiveRun.query.filter(
-            models.NonInteractiveRun.image_mappings.any(docker_img_id=img.id),
-            models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
-        ).all()
-
-        # the image will not be used anymore, since no run that is
-        # PENDING or STARTED is pointing to it and the image is nameless
-        # meaning that all future runs using the same environment will
-        # use another image
-        if len(int_runs) == 0 and len(non_int_runs) == 0:
-            # use try-catch block because the image might have been
-            # cleaned up by a concurrent request
+    if len(img.attrs["RepoTags"]) == 0 and not is_docker_image_in_use(img.id):
+        # need to check multiple times because of a race condition
+        # given by the fact that cleaning up a project will
+        # stop runs and experiments, then cleanup images and dangling
+        # images, it might be that the celery worker running the task
+        # still has to shut down the containers
+        tries = 10
+        while tries > 0:
             try:
                 docker_client.images.remove(img.id)
+                return True
             except errors.ImageNotFound:
                 return False
-            return True
+            except Exception as e:
+                logging.warning(f"exception during removal of image {img.id}:\n{e}")
+                pass
+            time.sleep(1)
+            tries -= 1
     return False
 
 

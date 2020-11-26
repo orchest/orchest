@@ -290,3 +290,53 @@ class ProjectEnvironmentMostRecentBuild(Resource):
         if recent:
             return recent.as_dict()
         abort(404, "EnvironmentBuild not found")
+
+
+def delete_project_environment_builds(project_uuid, environment_uuid):
+    """Delete environment builds for an environment.
+
+    Environment builds that are in progress are stopped.
+
+    Args:
+        project_uuid:
+        environment_uuid:
+    """
+    # order by request time so that the first build might
+    # be related to a PENDING or STARTED build, all others
+    # are surely not PENDING or STARTED
+    env_builds = (
+        models.EnvironmentBuild.query.filter_by(
+            project_uuid=project_uuid, environment_uuid=environment_uuid
+        )
+        .order_by(desc(models.EnvironmentBuild.requested_time))
+        .all()
+    )
+
+    if len(env_builds) > 0 and env_builds[0].status in ["PENDING", "STARTED"]:
+        abort_environment_build(env_builds[0].build_uuid, True)
+
+    for build in env_builds:
+        db.session.delete(build)
+    db.session.commit()
+
+
+def delete_project_builds(project_uuid):
+    """Delete up all environment builds for a project.
+
+    Environment builds that are in progress are stopped.
+
+    Args:
+        project_uuid:
+    """
+    builds = (
+        models.EnvironmentBuild.query.filter_by(project_uuid=project_uuid)
+        .with_entities(
+            models.EnvironmentBuild.project_uuid,
+            models.EnvironmentBuild.environment_uuid,
+        )
+        .distinct()
+        .all()
+    )
+
+    for build in builds:
+        delete_project_environment_builds(build.project_uuid, build.environment_uuid)

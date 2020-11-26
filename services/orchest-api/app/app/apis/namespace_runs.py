@@ -162,18 +162,10 @@ class Run(Resource):
     @api.response(200, "Run terminated")
     def delete(self, run_uuid):
         """Stops a pipeline run given its UUID."""
-
-        celery_app = make_celery(current_app)
-        res = AbortableAsyncResult(run_uuid, app=celery_app)
-
-        # it is responsibility of the task to terminate by reading it's aborted status
-        res.abort()
-
-        celery_app.control.revoke(run_uuid)
-        # TODO: possibly set status of steps and Run to "ABORTED"
-        #  note that a race condition would be present since the task will try to set the status as well
-
-        return {"message": "Run termination was successful"}, 200
+        if stop_pipeline_run(run_uuid):
+            return {"message": "Run termination was successful"}, 200
+        else:
+            return {"message": "Run does not exist or is not running"}, 400
 
 
 @api.route("/<string:run_uuid>/<string:step_uuid>")
@@ -212,3 +204,42 @@ class StepStatus(Resource):
         )
 
         return {"message": "Status was updated successfully"}, 200
+
+
+def stop_pipeline_run(run_uuid) -> bool:
+    """Stop a pipeline run.
+
+    The run will cancelled if not running yet, otherwise
+    it will be aborted.
+
+    Args:
+        run_uuid:
+
+    Returns:
+        True if a cancellation was issued to the run, false if the
+        run did not exist or was not PENDING/STARTED.
+    """
+    interactive_run = models.InteractiveRun.query.filter(
+        models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
+        models.InteractiveRun.run_uuid == run_uuid,
+    ).one_or_none()
+    non_interactive_run = models.NonInteractiveRun.query.filter(
+        models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
+        models.NonInteractiveRun.run_uuid == run_uuid,
+    ).one_or_none()
+    if interactive_run is None and non_interactive_run is None:
+        return False
+
+    celery_app = make_celery(current_app)
+    res = AbortableAsyncResult(run_uuid, app=celery_app)
+
+    # it is responsibility of the task to terminate by reading
+    # it's aborted status
+    res.abort()
+
+    celery_app.control.revoke(run_uuid)
+    # TODO: possibly set status of steps and Run to "ABORTED"
+    #  note that a race condition would be present since the
+    # task will try to set the status as well
+
+    return True

@@ -113,18 +113,13 @@ class ExperimentList extends React.Component {
 
         for (let x = 0; x < selectedRows.length; x++) {
           promises.push(
+            // deleting the experiment will also
+            // take care of aborting it if necessary
             makeRequest(
               "DELETE",
               "/store/experiments/" +
                 this.state.experiments[selectedRows[x]].uuid
             )
-          );
-
-          // don't wait for finish on orchest-api DELETE
-          makeRequest(
-            "DELETE",
-            "/api-proxy/api/experiments/" +
-              this.state.experiments[selectedRows[x]].uuid
           );
         }
 

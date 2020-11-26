@@ -119,26 +119,10 @@ class Session(Resource):
     @api.response(404, "Session not found")
     def delete(self, project_uuid, pipeline_uuid):
         """Shutdowns session."""
-        session = models.InteractiveSession.query.get_or_404(
-            ident=(project_uuid, pipeline_uuid), description="Session not found"
-        )
-        session.status = "STOPPING"
-        db.session.commit()
-
-        session_obj = InteractiveSession.from_container_IDs(
-            docker_client,
-            container_IDs=session.container_ids,
-            network="orchest",
-            notebook_server_info=session.notebook_server_info,
-        )
-
-        # TODO: error handling?
-        session_obj.shutdown()
-
-        db.session.delete(session)
-        db.session.commit()
-
-        return {"message": "Session shutdown was successful"}, 200
+        if stop_interactive_session(project_uuid, pipeline_uuid):
+            return {"message": "Session shutdown was successful"}, 200
+        else:
+            return {"message": "Session not found"}, 400
 
     @api.doc("restart_memory_server_of_session")
     @api.response(200, "Session resource memory-server restarted")
@@ -161,3 +145,37 @@ class Session(Resource):
         session_obj.restart_resource(resource_name="memory-server")
 
         return {"message": "Session restart was successful"}, 200
+
+
+def stop_interactive_session(project_uuid, pipeline_uuid) -> bool:
+    """Stops an interactive session.
+
+    Args:
+        project_uuid:
+        pipeline_uuid:
+
+    Returns:
+        True if the session was stopped, false if no session was found.
+    """
+    session = models.InteractiveSession.query.filter_by(
+        project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+    ).one_or_none()
+    if session is None:
+        return False
+
+    session.status = "STOPPING"
+    db.session.commit()
+
+    session_obj = InteractiveSession.from_container_IDs(
+        docker_client,
+        container_IDs=session.container_ids,
+        network="orchest",
+        notebook_server_info=session.notebook_server_info,
+    )
+
+    # TODO: error handling?
+    session_obj.shutdown()
+
+    db.session.delete(session)
+    db.session.commit()
+    return True

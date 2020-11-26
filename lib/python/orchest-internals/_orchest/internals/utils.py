@@ -1,6 +1,7 @@
 import logging
 import os
 import requests
+import time
 import uuid
 
 import docker
@@ -154,3 +155,16 @@ def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
         except Exception as e:
             logging.debug("Failed to call docker_client.images.list(): %s" % e)
             return None
+
+
+def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
+
+    for _ in range(attempt_count):
+        try:
+            return docker_client.images.remove(*args, **kwargs)
+        except docker.errors.ImageNotFound as e:
+            logging.debug("Failed to remove image: %s" % e)
+            return
+        except Exception as e:
+            logging.debug("Failed to remove image: %s" % e)
+        time.sleep(1)

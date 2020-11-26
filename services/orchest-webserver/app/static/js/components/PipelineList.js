@@ -134,19 +134,8 @@ class PipelineList extends React.Component {
         selectedIndices.forEach((index) => {
           let pipeline_uuid = this.state.pipelines[index].uuid;
 
-          makeRequest(
-            "GET",
-            `/api-proxy/api/sessions/?project_uuid=${this.props.project_uuid}&pipeline_uuid=${pipeline_uuid}`
-          ).then((response) => {
-            let data = JSON.parse(response);
-            if (data["sessions"].length > 0) {
-              makeRequest(
-                "DELETE",
-                `/api-proxy/api/sessions/${this.props.project_uuid}/${pipeline_uuid}`
-              );
-            }
-          });
-
+          // deleting the pipeline will also take care of running
+          // sessions, runs, experiments
           makeRequest(
             "DELETE",
             `/async/pipelines/delete/${this.props.project_uuid}/${pipeline_uuid}`

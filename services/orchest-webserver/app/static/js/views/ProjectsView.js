@@ -136,48 +136,15 @@ class ProjectsView extends React.Component {
           loading: true,
         });
 
-        let sessionPromises = [];
-        let sessionDeletePromises = [];
         let deletePromises = [];
 
         selectedIndices.forEach((index) => {
           let project_uuid = this.state.projects[index].uuid;
-
-          // TODO:
-          // - shut down all sessions that are part of this project
-          sessionPromises.push(
-            makeRequest(
-              "GET",
-              `/api-proxy/api/sessions/?project_uuid=${project_uuid}`
-            ).then((response) => {
-              let data = JSON.parse(response);
-              if (data["sessions"].length > 0) {
-                for (let session of data["sessions"]) {
-                  sessionDeletePromises.push(
-                    makeRequest(
-                      "DELETE",
-                      `/api-proxy/api/sessions/${session.project_uuid}/${session.pipeline_uuid}`
-                    )
-                  );
-                }
-
-                Promise.all(sessionDeletePromises).then(() => {
-                  deletePromises.push(this.deleteProjectRequest(project_uuid));
-                });
-              } else {
-                deletePromises.push(this.deleteProjectRequest(project_uuid));
-              }
-            })
-          );
+          deletePromises.push(this.deleteProjectRequest(project_uuid));
         });
 
-        Promise.all(sessionPromises).then(() => {
-          Promise.all(sessionDeletePromises).then(() => {
-            Promise.all(deletePromises).then(() => {
-              // reload list once creation succeeds
-              this.fetchList();
-            });
-          });
+        Promise.all(deletePromises).then(() => {
+          this.fetchList();
         });
       }
     );
