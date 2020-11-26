@@ -292,8 +292,8 @@ class ProjectEnvironmentMostRecentBuild(Resource):
         abort(404, "EnvironmentBuild not found")
 
 
-def cleanup_project_environment_builds(project_uuid, environment_uuid):
-    """Cleans up environment builds for an environment.
+def delete_project_environment_builds(project_uuid, environment_uuid):
+    """Delete environment builds for an environment.
 
     Environment builds that are in progress are stopped.
 
@@ -320,8 +320,8 @@ def cleanup_project_environment_builds(project_uuid, environment_uuid):
     db.session.commit()
 
 
-def cleanup_project_builds(project_uuid):
-    """Cleans up all environment builds for a project.
+def delete_project_builds(project_uuid):
+    """Delete up all environment builds for a project.
 
     Environment builds that are in progress are stopped.
 
@@ -339,4 +339,4 @@ def cleanup_project_builds(project_uuid):
     )
 
     for build in builds:
-        cleanup_project_environment_builds(build.project_uuid, build.environment_uuid)
+        delete_project_environment_builds(build.project_uuid, build.environment_uuid)

@@ -19,20 +19,20 @@ api = register_schema(api)
 @api.param("project_uuid", "UUID of the project")
 @api.param("pipeline_uuid", "UUID of the pipeline")
 class Pipeline(Resource):
-    @api.doc("cleanup_pipeline")
+    @api.doc("delete_pipeline")
     @api.response(200, "Pipeline cleaned up")
     def delete(self, project_uuid, pipeline_uuid):
-        """Cleanup a pipeline.
+        """Delete a pipeline.
 
         Any session, run, experiment related to the pipeline is stopped
         and removed from the db.
         """
-        cleanup_pipeline(project_uuid, pipeline_uuid)
-        return {"message": "Pipeline cleanup was successful"}, 200
+        delete_pipeline(project_uuid, pipeline_uuid)
+        return {"message": "Pipeline deletion was successful"}, 200
 
 
-def cleanup_pipeline(project_uuid, pipeline_uuid):
-    """Cleanup a pipeline and all related entities.
+def delete_pipeline(project_uuid, pipeline_uuid):
+    """Delete a pipeline and all related entities.
 
 
     Any session or run related to the pipeline is stopped

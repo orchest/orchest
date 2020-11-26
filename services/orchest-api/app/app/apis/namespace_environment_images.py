@@ -10,8 +10,8 @@ from app.utils import experiments_using_environment
 from app.utils import interactive_runs_using_environment
 from app.utils import is_environment_in_use
 from app.apis.namespace_experiments import stop_experiment
-from app.apis.namespace_environment_builds import cleanup_project_environment_builds
-from app.apis.namespace_environment_builds import cleanup_project_builds
+from app.apis.namespace_environment_builds import delete_project_environment_builds
+from app.apis.namespace_environment_builds import delete_project_builds
 from app.apis.namespace_runs import stop_pipeline_run
 from _orchest.internals import config as _config
 
@@ -47,8 +47,8 @@ class EnvironmentImage(Resource):
 
         # cleanup references to the builds and dangling images
         # of this environment
-        cleanup_project_environment_builds(project_uuid, environment_uuid)
-        cleanup_project_environment_dangling_images(project_uuid, environment_uuid)
+        delete_project_environment_builds(project_uuid, environment_uuid)
+        delete_project_environment_dangling_images(project_uuid, environment_uuid)
 
         try:
             docker_client.images.remove(image_name)
@@ -93,12 +93,12 @@ class ProjectEnvironmentDanglingImages(Resource):
         tag-less and which are not referenced by any run
         or experiment which are pending or running."""
 
-        cleanup_project_environment_dangling_images(project_uuid, environment_uuid)
+        delete_project_environment_dangling_images(project_uuid, environment_uuid)
         return {"message": "Successfully removed dangling images"}, 200
 
 
-def cleanup_project_environment_images(project_uuid):
-    """Cleanup environment images of a project.
+def delete_project_environment_images(project_uuid):
+    """Delete environment images of a project.
 
     All environment images related to the project are removed
     from the environment, running environment builds are stopped
@@ -123,8 +123,8 @@ def cleanup_project_environment_images(project_uuid):
 
     # cleanup references to the builds and dangling images
     # of all environments of this project
-    cleanup_project_builds(project_uuid)
-    cleanup_project_dangling_images(project_uuid)
+    delete_project_builds(project_uuid)
+    delete_project_dangling_images(project_uuid)
 
     image_remove_exceptions = []
     for image_name in image_names_to_remove:
@@ -140,7 +140,7 @@ def cleanup_project_environment_images(project_uuid):
         logging.warning(image_remove_exceptions)
 
 
-def cleanup_project_dangling_images(project_uuid):
+def delete_project_dangling_images(project_uuid):
     """Removes dangling images related to a project.
 
     Dangling images are images that have been left nameless and
@@ -164,7 +164,7 @@ def cleanup_project_dangling_images(project_uuid):
         remove_if_dangling(docker_img)
 
 
-def cleanup_project_environment_dangling_images(project_uuid, environment_uuid):
+def delete_project_environment_dangling_images(project_uuid, environment_uuid):
     """Removes dangling images related to an environment.
 
     Dangling images are images that have been left nameless and

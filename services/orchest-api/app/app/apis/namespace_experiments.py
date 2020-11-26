@@ -311,17 +311,17 @@ class PipelineStepStatus(Resource):
 @api.route("/cleanup/<string:experiment_uuid>")
 @api.param("experiment_uuid", "UUID of experiment")
 @api.response(404, "Experiment not found")
-class ExperimentCleanup(Resource):
-    @api.doc("cleanup_experiment")
-    @api.response(200, "Experiment cleaned up")
+class ExperimentDeletion(Resource):
+    @api.doc("delete_experiment")
+    @api.response(200, "Experiment deleted")
     def delete(self, experiment_uuid):
-        """Cleanup an experiment.
+        """Delete an experiment.
 
         The experiment is stopped if its running, related entities
         are then removed from the db.
         """
-        if cleanup_experiment(experiment_uuid):
-            return {"message": "Experiment cleanup was successful"}, 200
+        if delete_experiment(experiment_uuid):
+            return {"message": "Experiment deletion was successful"}, 200
         else:
             return {"message": "Experiment does not exist"}, 404
 
@@ -375,8 +375,8 @@ def stop_experiment(experiment_uuid) -> bool:
     return True
 
 
-def cleanup_experiment(experiment_uuid) -> bool:
-    """Cleanup an experiment.
+def delete_experiment(experiment_uuid) -> bool:
+    """Delete an experiment.
 
     If running, the experiment is aborted. All data related
     to the experiment is removed.

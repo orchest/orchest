@@ -6,8 +6,8 @@ project, a good amount of other models depend on such a concept.
 from flask_restplus import Namespace, Resource
 
 from app.connections import db
-from app.apis.namespace_experiments import cleanup_experiment
-from app.apis.namespace_environment_images import cleanup_project_environment_images
+from app.apis.namespace_experiments import delete_experiment
+from app.apis.namespace_environment_images import delete_project_environment_images
 from app.apis.namespace_runs import stop_pipeline_run
 from app.apis.namespace_sessions import stop_interactive_session
 from app.utils import register_schema
@@ -20,24 +20,24 @@ api = register_schema(api)
 @api.route("/<string:project_uuid>")
 @api.param("project_uuid", "UUID of the project")
 class Project(Resource):
-    @api.doc("cleanup_project")
-    @api.response(200, "Project cleaned up")
+    @api.doc("delete_project")
+    @api.response(200, "Project deleted")
     def delete(self, project_uuid):
-        """Cleanup a project.
+        """Delete a project.
 
         Any session, run, experiment related to the project is stopped
         and removed from the db. Environment images are removed.
         """
-        cleanup_project(project_uuid)
-        return {"message": "Project cleanup was successful"}, 200
+        delete_project(project_uuid)
+        return {"message": "Project deletion was successful"}, 200
 
 
-def cleanup_project(project_uuid):
-    """Cleanup a project and all related entities.
+def delete_project(project_uuid):
+    """Delee a project and all related entities.
 
     Project sessions, runs and experiments are stopped. Every
     related entity in the db is removed. Environment images are
-    cleaned up.
+    deleted up.
 
     Args:
         project_uuid:
@@ -82,8 +82,8 @@ def cleanup_project(project_uuid):
         .all()
     )
     for experiment in experiments:
-        cleanup_experiment(experiment.experiment_uuid)
+        delete_experiment(experiment.experiment_uuid)
 
-    # cleanup images (will also take care of builds and dangling images)
-    cleanup_project_environment_images(project_uuid)
+    # delete images (will also take care of builds and dangling images)
+    delete_project_environment_images(project_uuid)
     db.session.commit()
