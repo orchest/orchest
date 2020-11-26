@@ -560,9 +560,6 @@ def register_views(app, db):
         db.session.delete(project)
         db.session.commit()
 
-        # refresh kernels after change in environments
-        populate_kernels(app, db)
-
     def cleanup_pipeline_from_orchest(pipeline):
         """Cleanup a pipeline at the orchest level.
 
@@ -917,6 +914,9 @@ def register_views(app, db):
         ).all()
         for fs_removed_project in fs_removed_projects:
             cleanup_project_from_orchest(fs_removed_project)
+        if len(fs_removed_projects) > 0:
+            # refresh kernels after change in environments
+            populate_kernels(app, db)
 
         # detect new projects by detecting directories that were not registered in the db as projects
         existing_project_paths = [
@@ -960,6 +960,8 @@ def register_views(app, db):
                 full_project_path = os.path.join(projects_dir, project_path)
                 shutil.rmtree(full_project_path)
                 cleanup_project_from_orchest(project)
+                # refresh kernels after change in environments
+                populate_kernels(app, db)
 
                 return jsonify({"message": "Project deleted."})
             else:
