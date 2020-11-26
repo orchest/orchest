@@ -1759,14 +1759,14 @@ class PipelineView extends React.Component {
 
   setPipelineHolderSize() {
     // TODO: resize canvas based on pipeline size
-    $(this.refManager.refs.pipelineStepsHolder).css({
-      width:
-        $(this.refManager.refs.pipelineStepsOuterHolder).width() *
-        this.CANVAS_VIEW_MULTIPLE,
-      height:
-        $(this.refManager.refs.pipelineStepsOuterHolder).height() *
-        this.CANVAS_VIEW_MULTIPLE,
-    });
+    let jElStepOuterHolder = $(this.refManager.refs.pipelineStepsOuterHolder);
+
+    if (jElStepOuterHolder.filter(":visible").length > 0) {
+      $(this.refManager.refs.pipelineStepsHolder).css({
+        width: jElStepOuterHolder.width() * this.CANVAS_VIEW_MULTIPLE,
+        height: jElStepOuterHolder.height() * this.CANVAS_VIEW_MULTIPLE,
+      });
+    }
   }
 
   getMousePositionRelativeToPipelineStepHolder() {
