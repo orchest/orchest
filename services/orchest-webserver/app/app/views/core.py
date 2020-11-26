@@ -1050,8 +1050,7 @@ def register_views(app, db):
                     # here is more explicit and less relying
                     # on the POST->GET pattern from the GUI
                     try:
-                        project_uuid = init_project(project_path)
-                        sync_project_pipelines_db_state(project_uuid)
+                        init_project(project_path)
                     except Exception as e:
                         return (
                             jsonify(
