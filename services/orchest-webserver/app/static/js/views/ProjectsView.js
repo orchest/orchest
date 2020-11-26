@@ -266,9 +266,16 @@ class ProjectsView extends React.Component {
       },
     });
 
+    let jsonData = { url: gitURL };
+
+    // only add project_name if use entered a value in the form
+    if (gitProjectName.length > 0) {
+      jsonData.project_name = gitProjectName;
+    }
+
     makeRequest("POST", `/async/projects/import-git`, {
       type: "json",
-      content: { url: gitURL, project_name: gitProjectName },
+      content: jsonData,
     }).then((response) => {
       let data = JSON.parse(response);
 

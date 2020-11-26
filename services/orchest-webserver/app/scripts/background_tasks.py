@@ -22,11 +22,11 @@ def git_clone_project(args):
 
         # this way we clone in a directory with the name of the repo
         # if the project_name is not provided
-        project_name = args.path
-        if not project_name:
-            project_name = ""
+        git_command = f"git clone {args.url}"
+        if args.path:
+            git_command += f' "{args.path}"'
 
-        exit_code = os.system(f'git clone {args.url} "{project_name}"')
+        exit_code = os.system(git_command)
         if exit_code != 0:
             msg = "git clone failed"
         else:
