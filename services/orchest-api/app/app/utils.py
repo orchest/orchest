@@ -250,8 +250,8 @@ def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
     """Get the list of interactive runs using a given environment.
 
     Args:
-        project_uuid (str):
-        env_uuid (str):
+        project_uuid:
+        env_uuid:
 
     Returns:
     """
@@ -266,8 +266,8 @@ def experiments_using_environment(project_uuid: str, env_uuid: str):
     """Get the list of experiments using a given environment.
 
     Args:
-        project_uuid (str):
-        env_uuid (str):
+        project_uuid:
+        env_uuid:
 
     Returns:
     """
@@ -291,7 +291,7 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
     """True if the environment is or will be in use by a run/experiment
 
     Args:
-        env_uuid (str):
+        env_uuid:
 
     Returns:
         bool:
@@ -306,7 +306,7 @@ def is_docker_image_in_use(img_id: str) -> bool:
     """True if the image is or will be in use by a run/experiment
 
     Args:
-        img_id (str):
+        img_id:
 
     Returns:
         bool:
