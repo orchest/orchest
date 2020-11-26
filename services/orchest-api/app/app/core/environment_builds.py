@@ -10,7 +10,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 
 from config import CONFIG_CLASS
 from _orchest.internals import config as _config
-from _orchest.utils import docker_images_list_safe
+from _orchest.internals.utils import docker_images_list_safe
 from app.connections import docker_client
 from app.core.sio_streamed_task import SioStreamedTask
 
