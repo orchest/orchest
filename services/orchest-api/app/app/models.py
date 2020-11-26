@@ -103,9 +103,18 @@ class InteractiveRun(PipelineRun):
 
     run_uuid = db.Column(db.String(36), primary_key=True)
 
+    # https://docs.sqlalchemy.org/en/14/orm/cascades.html#using-foreign-key-on-delete-cascade-with-orm-relationships
+    # In order to use ON DELETE foreign key cascades in conjunction
+    # with relationship(), it’s important to note first and foremost
+    # that the relationship.cascade setting must still be configured
+    # to match the desired “delete” or “set null” behavior
+    # Essentially, the specifed behaviour in the FK column
+    # and the one specified in the relationship must match.
     pipeline_steps = db.relationship(
         "InteractiveRunPipelineStep",
         lazy="joined",
+        # do not rely on the db to delete
+        # TODO: can be set to true after we move away from sqllite
         passive_deletes=False,
         cascade="all, delete",
     )
@@ -141,7 +150,6 @@ class NonInteractiveRun(PipelineRun):
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
 
-    # https://docs.sqlalchemy.org/en/14/orm/cascades.html#using-foreign-key-on-delete-cascade-with-orm-relationships
     pipeline_steps = db.relationship(
         "NonInteractiveRunPipelineStep",
         lazy="joined",
