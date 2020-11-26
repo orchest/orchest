@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 import os
 import pickle
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import pyarrow as pa
 import pyarrow.plasma as plasma
@@ -87,7 +87,8 @@ def serialize(
     Note:
         ``pickle`` does not include the code of custom functions or
         classes, it only pickles their names. Following to the official
-        `Python Docs <https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_:
+        `Python Docs
+        <https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_:
         "Thus the defining module must be importable in the unpickling
         environment, and the module must contain the named object,
         otherwise an exception will be raised."
@@ -324,7 +325,9 @@ def _output_to_memory(
     # because inserting an already full Plasma store will start evicting
     # objects to free up space. However, we want to maintain control
     # over what objects get evicted.
-    total_size = obj.total_bytes + len(metadata)
+    total_size = obj.total_bytes
+    if metadata is not None:
+        total_size += len(metadata)
 
     occupied_size = sum(
         obj["data_size"] + obj["metadata_size"] for obj in client.list().values()
@@ -590,7 +593,9 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     return res
 
 
-def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
+def resolve(
+    step_uuid: str, consumer: str = None
+) -> Tuple[Callable, Sequence[Any], Dict[str, Any]]:
     """Resolves the most recently used tranfer method of the given step.
 
     Additionally, resolves all the ``*args`` and ``**kwargs`` the
@@ -613,14 +618,13 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
             `step_uuid`. Either no output was generated or the in-memory
             object store died (and therefore lost all its data).
     """
-    # TODO: not completely sure whether this global approach is prefered
-    #       over difining that same list inside this function. Arguably
-    #       defining it outside the function allows for easier
-    #       extendability.
-    global _resolve_methods
+    # NOTE: All "resolve_{method}" functions have to be included in this
+    # list. It is used to resolve what what "get_output_..." method to
+    # invoke.
+    resolve_methods: List[Callable] = [resolve_memory, resolve_disk]
 
     method_infos = []
-    for method in _resolve_methods:
+    for method in resolve_methods:
         try:
             if method.__name__ == "resolve_memory":
                 method_info = method(step_uuid, consumer=consumer)
@@ -649,7 +653,7 @@ def resolve(step_uuid: str, consumer: str = None) -> Tuple[Any]:
     # Get the method that was most recently used based on its logged
     # timestamp.
     # NOTE: if multiple methods have the same timestamp then the method
-    # that is highest in the `_resolve_methods` list will be returned.
+    # that is highest in the `resolve_methods` list will be returned.
     # Since `max` returns the first occurrence of the maximum value.
     most_recent = max(method_infos, key=lambda x: x["timestamp"])
     return (
@@ -780,10 +784,6 @@ def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
     binary_uuid = str.encode(step_uuid)
     return plasma.ObjectID(binary_uuid[:20])
 
-
-# NOTE: All "resolve_{method}" functions have to be included in this
-# list. It is used to resolve what what "get_output_..." method to invoke.
-_resolve_methods = [resolve_memory, resolve_disk]
 
 # TODO: Once we are set on the API we could specify __all__. For now we
 #       will stick with the leading _underscore convenction to keep

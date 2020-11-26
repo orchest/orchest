@@ -26,7 +26,7 @@ def get_params() -> Dict[str, Any]:
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError("Failed to determine from where to get data.")
+        raise StepUUIDResolveError("Parameters could not be identified.")
 
     step = pipeline.get_step_by_uuid(step_uuid)
     params = step.get_params()
@@ -34,7 +34,7 @@ def get_params() -> Dict[str, Any]:
     return params
 
 
-def update_params(params: Dict[str, Any]) -> Dict[str, Any]:
+def update_params(params: Dict[str, Any]) -> None:
     """Updates the parameters of the current step.
 
     Additionally, you can set new parameters by giving parameters that
@@ -47,9 +47,6 @@ def update_params(params: Dict[str, Any]) -> Dict[str, Any]:
         params: The parameters to update. Either updating their values
             or adding new parameter keys.
 
-    Returns:
-        The updated parameters mapping.
-
     """
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
@@ -58,17 +55,10 @@ def update_params(params: Dict[str, Any]) -> Dict[str, Any]:
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
-        raise StepUUIDResolveError("Failed to determine from where to get data.")
+        raise StepUUIDResolveError("Parameters could not be identified.")
 
-    # TODO: This is inefficient, we could just use the `step_uuid` and
-    #       update the params of the `pipeline_definition` and write it
-    #       back to the `pipeline.json`. However, I think it is good
-    #       practice to use our own defined classes to do so.
     step = pipeline.get_step_by_uuid(step_uuid)
-    curr_params = step.get_params()
-    curr_params.update(params)
+    step.update_params(params)
 
     with open(Config.PIPELINE_DEFINITION_PATH, "w") as f:
         json.dump(pipeline.to_dict(), f)
-
-    return curr_params
