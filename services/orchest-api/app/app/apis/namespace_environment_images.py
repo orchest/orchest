@@ -6,7 +6,7 @@ from app.connections import docker_client
 import app.models as models
 from app.utils import register_schema, remove_if_dangling
 from _orchest.internals import config as _config
-from _orchest.utils import docker_images_list_safe
+from _orchest.internals.utils import docker_images_list_safe
 
 api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)
