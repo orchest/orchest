@@ -64,7 +64,7 @@ class ExperimentList(Resource):
         env_uuid_docker_id_mappings = None
         # this way we write the entire exp to db, but avoid
         # launching any run (celery task) if we detected a problem
-        startup_error_messages = []
+        experiment_creation_error_messages = []
         tasks_to_launch = []
 
         # TODO: This can be made more efficient, since the pipeline
@@ -130,7 +130,7 @@ class ExperimentList(Resource):
                         is_interactive=False,
                     )
                 except errors.ImageNotFound as e:
-                    startup_error_messages.append(
+                    experiment_creation_error_messages.append(
                         f"Pipeline was referencing environments for "
                         f"which an image does not exist, {e}"
                     )
@@ -148,7 +148,7 @@ class ExperimentList(Resource):
                 db.session.bulk_save_objects(image_mappings)
                 db.session.commit()
 
-            if len(startup_error_messages) == 0:
+            if len(experiment_creation_error_messages) == 0:
                 # prepare the args for the task
                 run_config = pipeline_run_spec["run_config"]
                 run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
@@ -172,7 +172,7 @@ class ExperimentList(Resource):
 
         experiment["pipeline_runs"] = pipeline_runs
 
-        if len(startup_error_messages) == 0:
+        if len(experiment_creation_error_messages) == 0:
             # Create Celery object with the Flask context
             celery = make_celery(current_app)
             for task in tasks_to_launch:
@@ -184,7 +184,7 @@ class ExperimentList(Resource):
                 # Uncomment the line below if applicable.
                 res.forget()
         else:
-            logging.error("\n".join(startup_error_messages))
+            logging.error("\n".join(experiment_creation_error_messages))
 
             # simple way to update both in memory objects
             # and the db while avoiding multiple update statements
