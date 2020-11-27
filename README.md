@@ -55,12 +55,8 @@ If you do not yet have Docker installed, please visit https://docs.docker.com/ge
 Simply follow the steps below to install Orchest. For Windows, please read the note at the bottom first.
 
 ```bash
-git clone https://github.com/orchest/orchest.git
-cd orchest
-
-# The update command is used both for installation and updating to
-# the newest release.
-./orchest update
+git clone https://github.com/orchest/orchest.git && cd orchest
+./orchest install
 
 # Verify the installation. This should print the help message.
 ./orchest

@@ -2,7 +2,6 @@
 
 import logging
 import os
-import pathlib
 import subprocess
 
 import typer
@@ -31,14 +30,27 @@ def proxy_certs_exist_on_host():
         return False
 
 
+def install():
+    # Make sure the installation is complete before starting Orchest.
+    if utils.is_install_complete():
+        typer.echo("Installation is already complete.")
+        return
+
+    typer.echo(
+        "Installation might take some time depending on your network"
+        " bandwidth. Starting installation..."
+    )
+    utils.install_images()
+    utils.install_network()
+    typer.echo("Installation was successful.")
+
+
 def start():
     # Make sure the installation is complete before starting Orchest.
     if not utils.is_install_complete():
-        typer.echo("Installation required. Pulling images in parallel.")
-        utils.install_images()
-        utils.install_network()
-        typer.echo("Installation finished. Attempting to start...")
-        return start()
+        typer.echo("Installation required. To install Orchest run:")
+        typer.echo("\torchest install")
+        return
 
     # Dynamically mount certs directory based on whether it exists in
     # nginx-proxy directory on host
@@ -178,11 +190,11 @@ def _updateserver():
 def update():
     typer.echo("[Update]: ...")
 
-    # stopping Orchest
-    logging.info("[Shutdown]: ...")
-
     # only start if it was running
     should_restart = utils.is_orchest_running()
+
+    if should_restart:
+        logging.info("[Shutdown]: ...")
 
     if config.UPDATE_MODE != "web":
         stop(trace="update")
@@ -201,7 +213,7 @@ def update():
     return_code = script_process.wait()
 
     if return_code != 0:
-        logging.info(
+        logging.error(
             "'git' repo update failed. Please make sure you don't have "
             "any commits that conflict with the main branch in the "
             "'orchest' repository. Cancelling update."

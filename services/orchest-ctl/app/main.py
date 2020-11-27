@@ -68,6 +68,16 @@ def status():
 
 
 @app.command()
+def install():
+    """Install Orchest.
+
+    Installation might take some time depending on your network
+    bandwidth.
+    """
+    cmdline.install()
+
+
+@app.command()
 def update(mode: Optional[str] = typer.Option(None, hidden=True)):
     """
     Update Orchest.

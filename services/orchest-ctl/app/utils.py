@@ -6,6 +6,7 @@ import aiodocker
 import asyncio
 import docker
 from docker.types import Mount
+from tqdm.asyncio import tqdm
 import typer
 
 from app import config
@@ -113,15 +114,32 @@ async def pull_image(image, async_docker, force_pull):
             pull = True
 
     if pull:
-        typer.echo("Pulling image %s" % image)
+        logging.info("Pulling image %s" % image)
         await async_docker.images.pull(image)
-        typer.echo("Pulled image %s" % image)
+        logging.info("Pulled image %s" % image)
 
 
 async def pull_images(images, force_pull):
     async_docker = aiodocker.Docker()
+
+    # Show an ascii status bar.
     tasks = [pull_image(image, async_docker, force_pull) for image in images]
-    await asyncio.wait(tasks)
+    pbar = tqdm.as_completed(
+        tasks,
+        total=len(tasks),
+        ncols=100,
+        desc="Pulling images",
+        ascii=True,
+        bar_format="{desc}: {n}/{total}|{bar}|",
+    )
+    for task in pbar:
+        await task
+    pbar.close()
+
+    # Makes the next echo start on the line underneath the status bar
+    # instead of after.
+    typer.echo()
+
     await async_docker.close()
 
 
@@ -134,12 +152,10 @@ def install_network():
     try:
         docker_client.networks.get(config.DOCKER_NETWORK)
     except docker.errors.NotFound as e:
-
         typer.echo(
-            "Orchest sends an anonymized ping to analytics.orchest.io. "
-            "You can disable this by adding "
-            '{ "TELEMETRY_DISABLED": true }'
-            "to config.json in %s" % config.ENVS["HOST_CONFIG_DIR"]
+            "Orchest sends anonymized telemetry to analytics.orchest.io."
+            " To disable it, please refer to:\n"
+            "\thttps://orchest.readthedocs.io/en/latest/user_guide/other.html#configuration"
         )
 
         logging.info(

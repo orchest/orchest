@@ -8,6 +8,7 @@ setuptools.setup(
         "typer",
         "docker",
         "aiodocker",
+        "tqdm==4.53.0",
     ],
     entry_points="""
         [console_scripts]

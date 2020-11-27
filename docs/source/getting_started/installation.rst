@@ -18,13 +18,8 @@ first.
 
 .. code-block:: bash
 
-   # Clone the repository and change directory.
-   git clone https://github.com/orchest/orchest.git
-   cd orchest
-
-   # The update command is used both for installation and updating to
-   # the newest release.
-   ./orchest update
+   git clone https://github.com/orchest/orchest.git && cd orchest
+   ./orchest install
 
    # Verify the installation. This should print the help message.
    ./orchest
@@ -41,9 +36,7 @@ You should expect the build to finish in roughly 15 minutes.
 
 .. code-block:: bash
 
-   # Clone the repository and change directory.
-   git clone https://github.com/orchest/orchest.git
-   cd orchest
+   git clone https://github.com/orchest/orchest.git && cd orchest
 
    # Check out the version you would like to build.
    git checkout v0.2.1
