@@ -84,13 +84,19 @@ class ProjectSelector extends React.Component {
     fetchProjectsPromise.promise.then((response) => {
       let projects = JSON.parse(response);
 
-      // select first project if no project_uuid is currently selected
+      // validate the currently selected project, if its invalid
+      // it will be set to undefined
       let project_uuid = this.state.project_uuid;
+      if (project_uuid !== undefined) {
+        this.validatePreSelectedProject(project_uuid, projects);
+      }
+
+      // either there was no selected project or the selection
+      // was invalid, set the selection to the first project if possible
+      project_uuid = this.state.project_uuid;
       if (project_uuid === undefined && projects.length > 0) {
         project_uuid = projects[0].uuid;
         this.onChangeProject(project_uuid);
-      } else {
-        this.validatePreSelectedProject(this.state.project_uuid, projects);
       }
 
       this.setState({
