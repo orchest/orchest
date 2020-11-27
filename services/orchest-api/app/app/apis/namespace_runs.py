@@ -106,11 +106,13 @@ class RunList(Resource):
             # simple way to update both in memory objects
             # and the db while avoiding multiple update statements
             # (1 for each object)
-            run["status"] = "FAILURE"
+            # TODO: make it so that the client does not rely
+            # on SUCCESS as a status
+            run["status"] = "SUCCESS"
             for step in run["pipeline_steps"]:
                 step.status = "FAILURE"
             models.InteractiveRun.query.filter_by(run_uuid=task_id).update(
-                {"status": "FAILURE"}
+                {"status": "SUCCESS"}
             )
             models.InteractiveRunPipelineStep.query.filter_by(run_uuid=task_id).update(
                 {"status": "FAILURE"}

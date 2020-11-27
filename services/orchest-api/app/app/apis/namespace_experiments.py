@@ -190,12 +190,12 @@ class ExperimentList(Resource):
             # and the db while avoiding multiple update statements
             # (1 for each object)
             for pipeline_run in experiment["pipeline_runs"]:
-                pipeline_run.status = "FAILURE"
+                pipeline_run.status = "SUCCESS"
                 for step in pipeline_run["pipeline_steps"]:
                     step.status = "FAILURE"
             models.NonInteractiveRun.query.filter_by(
                 experiment_uuid=post_data["experiment_uuid"]
-            ).update({"status": "FAILURE"})
+            ).update({"status": "SUCCESS"})
             models.NonInteractiveRunPipelineStep.query.filter_by(
                 experiment_uuid=post_data["experiment_uuid"]
             ).update({"status": "FAILURE"})
