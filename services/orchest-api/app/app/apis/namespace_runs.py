@@ -7,6 +7,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
 from flask import current_app, request
 from flask_restplus import Namespace, Resource
+import logging
 
 from app import schema
 from app.celery_app import make_celery
@@ -84,6 +85,7 @@ class RunList(Resource):
             )
         db.session.bulk_save_objects(pipeline_steps)
         db.session.commit()
+        run["pipeline_steps"] = pipeline_steps
 
         # get docker ids of images to use and make it so that the images
         # will not be deleted in case they become outdated by an
@@ -96,11 +98,28 @@ class RunList(Resource):
                 is_interactive=True,
             )
         except errors.ImageNotFound as e:
-            return (
+            logging.error(
                 f"Pipeline was referencing environments for "
-                f"which an image does not exist, {e}",
-                500,
+                f"which an image does not exist, {e}"
             )
+
+            # simple way to update both in memory objects
+            # and the db while avoiding multiple update statements
+            # (1 for each object)
+            run["status"] = "FAILURE"
+            for step in run["pipeline_steps"]:
+                step.status = "FAILURE"
+            models.InteractiveRun.query.filter_by(run_uuid=task_id).update(
+                {"status": "FAILURE"}
+            )
+            models.InteractiveRunPipelineStep.query.filter_by(run_uuid=task_id).update(
+                {"status": "FAILURE"}
+            )
+            db.session.commit()
+
+            # 500 codes et similia will produce errors in the
+            # webserver
+            return run, 201
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
@@ -126,7 +145,6 @@ class RunList(Resource):
         # storing and transmitting results) associated to the task.
         # Uncomment the line below if applicable.
         res.forget()
-        run["pipeline_steps"] = pipeline_steps
         return run, 201
 
 
