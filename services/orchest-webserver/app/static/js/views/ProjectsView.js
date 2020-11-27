@@ -130,7 +130,7 @@ class ProjectsView extends React.Component {
 
     orchest.confirm(
       "Warning",
-      "Are you certain that you want to delete this project? (This cannot be undone.)",
+      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding experiments. (This cannot be undone.)",
       () => {
         this.setState({
           loading: true,
