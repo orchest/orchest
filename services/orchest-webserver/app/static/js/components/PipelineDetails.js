@@ -112,16 +112,18 @@ class PipelineDetails extends React.Component {
           {(() => {
             return (
               <div className={"file-actions"}>
-                <MDCButtonReact
-                  icon="launch"
-                  classNames={[
-                    "mdc-button--raised",
-                    "themed-secondary",
-                    "push-right",
-                  ]}
-                  label="Edit in JupyterLab"
-                  onClick={this.onOpenNotebook.bind(this)}
-                />
+                {!this.props.readOnly && (
+                  <MDCButtonReact
+                    icon="launch"
+                    classNames={[
+                      "mdc-button--raised",
+                      "themed-secondary",
+                      "push-right",
+                    ]}
+                    label="Edit in JupyterLab"
+                    onClick={this.onOpenNotebook.bind(this)}
+                  />
+                )}
                 <MDCButtonReact
                   icon="visibility"
                   classNames={["mdc-button--raised"]}
