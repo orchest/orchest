@@ -1,4 +1,4 @@
-FROM tiangolo/uwsgi-nginx-flask:python3.7
+FROM tiangolo/meinheld-gunicorn-flask:python3.7
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Refresh SSL certificates
@@ -24,6 +24,7 @@ RUN npm install
 RUN ./compile-js.sh
 RUN ./compile-sass.sh
 
+ENV GUNICORN_CONF /orchest/services/auth-server/app/gunicorn_conf.py
 # Setting this WORKDIR is required by the base image: "otherwhise uWSGI
 # will try to run the app in /app".
 WORKDIR /orchest/services/auth-server/app
