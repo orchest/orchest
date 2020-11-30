@@ -49,6 +49,7 @@ class Language(str, Enum):
     python = "python"
     r = "r"
     all = "all"
+    none = "none"
 
 
 def __entrypoint():
@@ -123,7 +124,9 @@ def update(
     Update Orchest.
 
     Will always update the core dependencies of Orchest. Using the
-    '--lang' flag you can specify the language dependencies to update.
+    '--lang' flag you can specify the language dependencies to update,
+    where '--lang=none' will only get you the services that Orchest
+    uses.
     """
     if mode is not None:
         # Only mode that is given is "web", used for the update-server.

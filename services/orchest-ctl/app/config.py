@@ -29,7 +29,7 @@ _orchest_images = [
     "rabbitmq:3",
 ]
 LANGUAGE_IMAGES = {
-    "minimal": _orchest_images,
+    "none": _orchest_images,
     "python": _orchest_images + ["orchest/custom-base-kernel-py:latest"],
     "python-gpu": _orchest_images
     + [

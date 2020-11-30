@@ -131,7 +131,7 @@ class UpdateView extends React.Component {
                 <MDCSelectReact
                   label="Language images"
                   options={[
-                    ["minimal", "Minimal"],
+                    ["none", "None"],
                     ["python", "Python"],
                     ["r", "R"],
                     ["all", "All"],

@@ -47,7 +47,7 @@ def install(language):
 
 def start():
     # Make sure the installation is complete before starting Orchest.
-    if not utils.is_install_complete(language="minimal"):
+    if not utils.is_install_complete(language="none"):
         typer.echo("Installation required. To install Orchest run:")
         typer.echo("\torchest install")
         return
