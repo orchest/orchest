@@ -234,7 +234,7 @@ class ExperimentList extends React.Component {
         experiments[x].name,
         experiments[x].pipeline_name,
         experiments[x].created.replace(/T/, " ").replace(/\..+/, ""),
-        experiments[x].draft ? "Draft" : "",
+        experiments[x].draft ? "Draft" : "Submitted",
       ]);
     }
     return rows;

@@ -364,4 +364,4 @@ def register_orchest_api_views(app, db):
                 return str(e), 500
 
         else:
-            return resp.raw.read(), resp.status_code
+            return resp.raw.read(), resp.status_code, resp.headers.items()

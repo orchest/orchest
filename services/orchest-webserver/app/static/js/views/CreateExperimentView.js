@@ -307,7 +307,7 @@ class CreateExperimentView extends React.Component {
           {
             type: "json",
             content: {
-              experiment_uuid: experimentUUID,
+              experiment_uuid: this.props.experiment.uuid,
               generated_pipeline_runs: this.state.generatedPipelineRuns,
               experiment_json: apiResult,
               pipeline_run_ids: pipelineRunIds,
