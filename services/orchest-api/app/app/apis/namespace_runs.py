@@ -6,7 +6,7 @@ import uuid
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
 from flask import current_app, request
-from flask_restplus import Namespace, Resource
+from flask_restplus import Namespace, Resource, marshal
 import logging
 
 from app import schema
@@ -48,7 +48,6 @@ class RunList(Resource):
 
     @api.doc("start_run")
     @api.expect(schema.interactive_run_spec)
-    @api.marshal_with(schema.interactive_run, code=201, description="Run started")
     def post(self):
         """Starts a new (interactive) pipeline run."""
         post_data = request.get_json()
@@ -119,9 +118,9 @@ class RunList(Resource):
             )
             db.session.commit()
 
-            # 500 codes et similia will produce errors in the
-            # webserver
-            return run, 201
+            return {
+                "message": "Failed to start interactive run because not all referenced environments are available."
+            }, 500
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
@@ -147,7 +146,7 @@ class RunList(Resource):
         # storing and transmitting results) associated to the task.
         # Uncomment the line below if applicable.
         res.forget()
-        return run, 201
+        return marshal(run, schema.interactive_run), 201
 
 
 @api.route("/<string:run_uuid>")

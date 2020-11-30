@@ -33,6 +33,9 @@ export function requestBuild(
   environmentValidationData,
   requestedFromView
 ) {
+  // NOTE: It is assumed requestBuild is only called after a pipeline gate check
+  // fails
+
   return new Promise((resolve, reject) => {
     let environmentsToBeBuilt = [];
 
@@ -45,7 +48,7 @@ export function requestBuild(
     if (environmentsToBeBuilt.length > 0) {
       orchest.confirm(
         "Build",
-        `The following environment UUIDs haven't been built: [${environmentsToBeBuilt}]. Would you like to build them?` +
+        `Not all environments of this project have been built. Would you like to build them?` +
           (requestedFromView == "Pipeline"
             ? " You can cancel to open the pipeline in read-only mode."
             : ""),
@@ -72,15 +75,28 @@ export function requestBuild(
 
           // show environments view
           orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
-
-          resolve();
+          reject();
         },
         () => {
           reject();
         }
       );
     } else {
-      resolve();
+      orchest.confirm(
+        "Build",
+        `Some environments of this project are still building. Would you like to check their status?` +
+          (requestedFromView == "Pipeline"
+            ? " You can cancel to open the pipeline in read-only mode."
+            : ""),
+        () => {
+          // show environments view
+          orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
+          reject();
+        },
+        () => {
+          reject();
+        }
+      );
     }
   });
 }

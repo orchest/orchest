@@ -290,15 +290,15 @@ class PipelineView extends React.Component {
         let checkGatePromise = checkGate(this.props.project_uuid);
         checkGatePromise
           .then(() => {
-            let newProps = {};
-            Object.assign(newProps, this.props);
-            newProps.readOnly = false;
-            // open in non-read only
-            orchest.loadView(PipelineView, newProps);
+            this.loadViewInEdit();
           })
           .catch((result) => {
             if (result.reason === "gate-failed") {
-              requestBuild(props.project_uuid, result.data, "Pipeline");
+              requestBuild(
+                props.project_uuid,
+                result.data,
+                "Pipeline"
+              ).catch((e) => {});
             }
           });
       }
@@ -306,6 +306,14 @@ class PipelineView extends React.Component {
       // retrieve interactive run runUUID to show pipeline exeuction state
       this.fetchActivePipelineRuns();
     }
+  }
+
+  loadViewInEdit() {
+    let newProps = {};
+    Object.assign(newProps, this.props);
+    newProps.readOnly = false;
+    // open in non-read only
+    orchest.loadView(PipelineView, newProps);
   }
 
   fetchActivePipelineRuns() {
@@ -1587,17 +1595,36 @@ class PipelineView extends React.Component {
       this.promiseManager
     );
 
-    runStepUUIDsPromise.promise.then((response) => {
-      let result = JSON.parse(response);
+    runStepUUIDsPromise.promise
+      .then((response) => {
+        let result = JSON.parse(response);
 
-      this.parseRunStatuses(result);
+        this.parseRunStatuses(result);
 
-      this.setState({
-        runUUID: result.run_uuid,
+        this.setState({
+          runUUID: result.run_uuid,
+        });
+
+        this.startStatusInterval();
+      })
+      .catch((response) => {
+        this.setState({
+          pipelineRunning: false,
+        });
+
+        try {
+          let data = JSON.parse(response.body);
+          orchest.alert(
+            "Error",
+            "Failed to start interactive run. " + data["message"]
+          );
+        } catch {
+          orchest.alert(
+            "Error",
+            "Failed to start interactive run. Unknown error."
+          );
+        }
       });
-
-      this.startStatusInterval();
-    });
   }
 
   startStatusInterval() {

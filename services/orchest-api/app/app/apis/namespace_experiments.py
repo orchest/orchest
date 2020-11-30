@@ -183,6 +183,8 @@ class ExperimentList(Resource):
                 # storing and transmitting results) associated to the task.
                 # Uncomment the line below if applicable.
                 res.forget()
+
+            return experiment, 201
         else:
             logging.error("\n".join(experiment_creation_error_messages))
 
@@ -201,7 +203,9 @@ class ExperimentList(Resource):
             ).update({"status": "FAILURE"})
             db.session.commit()
 
-        return experiment, 201
+            return {
+                "message": "Failed to create experiment because not all referenced environments are available."
+            }, 500
 
 
 @api.route("/<string:experiment_uuid>")
