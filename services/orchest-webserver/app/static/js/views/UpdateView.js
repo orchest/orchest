@@ -1,11 +1,14 @@
 import React, { Fragment } from "react";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
+import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import {
   checkHeartbeat,
   makeCancelable,
   makeRequest,
   PromiseManager,
+  RefManager,
 } from "../lib/utils/all";
 
 class UpdateView extends React.Component {
@@ -18,6 +21,7 @@ class UpdateView extends React.Component {
     };
 
     this.promiseManager = new PromiseManager();
+    this.refManager = new RefManager();
   }
 
   componentWillUnmount() {
@@ -66,12 +70,20 @@ class UpdateView extends React.Component {
     if (orchest.environment === "development") {
       updateUrl += "?mode=dev";
     }
+    let data = {
+      mode: orchest.environment ? "dev" : "reg",
+      gpu: this.refManager.refs.formGPU.mdc.checked ? "gpu" : "no-gpu",
+      language: this.refManager.refs.formLanguage.mdc.value,
+    };
 
     let updatePromise = makeCancelable(
       makeRequest(
-        "GET",
+        "POST",
         updateUrl,
-        {},
+        {
+          type: "json",
+          content: data,
+        },
         function () {
           _this.setState({
             updateOutput: this.responseText,
@@ -114,6 +126,27 @@ class UpdateView extends React.Component {
 
           return (
             <Fragment>
+              <div>
+                <h3 className="push-down">Update options</h3>
+                <MDCSelectReact
+                  label="Language images"
+                  options={[
+                    ["none", "None"],
+                    ["python", "Python"],
+                    ["r", "R"],
+                    ["all", "All"],
+                  ]}
+                  classNames={["push-down"]}
+                  value="python"
+                  ref={this.refManager.nrefs.formLanguage}
+                />
+                <MDCCheckboxReact
+                  label="GPU support"
+                  ref={this.refManager.nrefs.formGPU}
+                  classNames={["push-down"]}
+                />
+              </div>
+
               <MDCButtonReact
                 classNames={["push-down"]}
                 label="Start update"

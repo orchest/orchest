@@ -30,9 +30,9 @@ def proxy_certs_exist_on_host():
         return False
 
 
-def install():
-    # Make sure the installation is complete before starting Orchest.
-    if utils.is_install_complete():
+def install(language):
+    # We do not have to install if it is already complete.
+    if utils.is_install_complete(language):
         typer.echo("Installation is already complete.")
         return
 
@@ -40,14 +40,14 @@ def install():
         "Installation might take some time depending on your network"
         " bandwidth. Starting installation..."
     )
-    utils.install_images()
+    utils.install_images(language)
     utils.install_network()
     typer.echo("Installation was successful.")
 
 
 def start():
     # Make sure the installation is complete before starting Orchest.
-    if not utils.is_install_complete():
+    if not utils.is_install_complete(language="none"):
         typer.echo("Installation required. To install Orchest run:")
         typer.echo("\torchest install")
         return
@@ -187,7 +187,7 @@ def _updateserver():
     docker_client.containers.run(**run_config)
 
 
-def update():
+def update(language):
     typer.echo("[Update]: ...")
 
     # only start if it was running
@@ -220,7 +220,7 @@ def update():
         )
     else:
         logging.info("Pulling latest images ...")
-        utils.install_images(force_pull=True)
+        utils.install_images(language, force_pull=True)
 
     typer.echo("[Update]: success")
 

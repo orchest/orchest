@@ -21,8 +21,12 @@ first.
    git clone https://github.com/orchest/orchest.git && cd orchest
    ./orchest install
 
-   # Verify the installation. This should print the help message.
-   ./orchest
+   # The previous command will only install language dependencies for
+   # Python. To specify other dependencies you can, for example, use:
+   # ./orchest install --lang=all
+
+   # Verify the installation.
+   ./orchest --help
 
 .. note::
 
@@ -44,8 +48,8 @@ You should expect the build to finish in roughly 15 minutes.
    # Build all Docker containers from source (in parallel).
    scripts/build_container.sh
 
-   # Verify the installation. This should print the help message.
-   ./orchest
+   # Verify the installation.
+   ./orchest --help
 
 .. tip::
 
@@ -94,6 +98,14 @@ support CUDA yet.
 Unfortunately, ``nvidia-docker`` does not support GPU enabled images on macOS (see `FAQ
 <https://github.com/NVIDIA/nvidia-docker/wiki/Frequently-Asked-Questions#is-macos-supported>`_ on
 ``nvidia-docker``).
+
+.. note::
+   Make sure you have installed our GPU images for the programming language you want to use. This
+   can be done using the ``--gpu`` flag on installation and update.
+
+   .. code-block:: bash
+
+      ./orchest update --lang=python --gpu
 
 Run Orchest on the cloud
 ------------------------
