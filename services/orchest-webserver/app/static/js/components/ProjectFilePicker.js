@@ -303,6 +303,7 @@ class ProjectFilePicker extends React.Component {
                         icon="add"
                         classNames={["mdc-button--raised", "themed-secondary"]}
                         label="Create file"
+                        submitButton
                         onClick={this.onSubmitModal.bind(this)}
                       />
                       <MDCButtonReact

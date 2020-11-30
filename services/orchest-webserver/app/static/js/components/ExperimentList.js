@@ -307,6 +307,7 @@ class ExperimentList extends React.Component {
                                 "themed-secondary",
                               ]}
                               label="Create experiment"
+                              submitButton
                               onClick={this.onSubmitModal.bind(this)}
                             />
                             <MDCButtonReact

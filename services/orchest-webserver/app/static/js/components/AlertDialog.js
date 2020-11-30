@@ -21,7 +21,13 @@ class AlertDialog extends React.Component {
         title={this.props.title}
         onClose={this.props.onClose}
         content={this.props.content}
-        actions={<MDCButtonReact label="Ok" onClick={this.close.bind(this)} />}
+        actions={
+          <MDCButtonReact
+            submitButton
+            label="Ok"
+            onClick={this.close.bind(this)}
+          />
+        }
       />
     );
   }

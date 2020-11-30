@@ -342,7 +342,12 @@ class DataSourceEditView extends React.Component {
       <div className={"view-page"}>
         <h2>Edit data source</h2>
 
-        <form className="connection-form">
+        <form
+          className="connection-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+        >
           <MDCTextFieldReact
             classNames={["push-down"]}
             label="Name"

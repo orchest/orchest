@@ -386,6 +386,7 @@ class ProjectsView extends React.Component {
                       disabled={this.state.importResult !== undefined}
                       classNames={["mdc-button--raised", "themed-secondary"]}
                       label="Import"
+                      submitButton
                       onClick={this.onSubmitImport.bind(this)}
                     />
                     <MDCButtonReact
@@ -421,6 +422,7 @@ class ProjectsView extends React.Component {
                       icon="format_list_bulleted"
                       classNames={["mdc-button--raised", "themed-secondary"]}
                       label="Create project"
+                      submitButton
                       onClick={this.onSubmitModal.bind(this)}
                     />
                     <MDCButtonReact

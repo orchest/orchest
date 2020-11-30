@@ -268,6 +268,7 @@ class PipelineList extends React.Component {
                         icon="device_hub"
                         classNames={["mdc-button--raised", "themed-secondary"]}
                         label="Create pipeline"
+                        submitButton
                         onClick={this.onSubmitModal.bind(this)}
                       />
                       <MDCButtonReact

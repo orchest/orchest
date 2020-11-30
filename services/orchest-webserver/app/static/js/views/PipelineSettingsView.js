@@ -192,7 +192,11 @@ class PipelineSettingsView extends React.Component {
           if (this.state.pipelineJson) {
             return (
               <div>
-                <form>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                  }}
+                >
                   <div>
                     <MDCTextFieldReact
                       ref={this.refManager.nrefs.pipelineNameTextField}

@@ -389,6 +389,7 @@ class EnvironmentEditView extends React.Component {
                 label="Add"
                 icon="check"
                 classNames={["mdc-button--raised"]}
+                submitButton
                 onClick={this.submitAddCustomBaseImage.bind(this)}
               />
               <MDCButtonReact
