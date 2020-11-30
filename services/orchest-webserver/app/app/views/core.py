@@ -500,6 +500,20 @@ def register_views(app, db):
                     file.write(file_content)
 
     def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+        def ignore_patterns(path, fnames):
+            """
+            Example:
+                path, fnames = \
+                'docker/catching-error/testing', ['hello.txt', 'some-dir']
+            """
+            # Ignore the ".orchest/pipelines" directory containing the
+            # logs and data directories.
+            if path.endswith(".orchest"):
+                return ["pipelines"]
+
+            # Ignore nothing.
+            return []
+
         snapshot_path = get_pipeline_directory(
             pipeline_uuid, project_uuid, experiment_uuid
         )
@@ -509,7 +523,7 @@ def register_views(app, db):
         project_dir = os.path.join(
             app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
         )
-        shutil.copytree(project_dir, snapshot_path)
+        shutil.copytree(project_dir, snapshot_path, ignore=ignore_patterns)
 
     def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
 
