@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 import uuid
 
 from celery.contrib.abortable import AbortableAsyncResult
@@ -48,9 +49,23 @@ class ExperimentList(Resource):
         scheduled_start = post_data["scheduled_start"]
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
+        experiment = {
+            "experiment_uuid": post_data["experiment_uuid"],
+            "project_uuid": post_data["project_uuid"],
+            "pipeline_uuid": post_data["pipeline_uuid"],
+            "scheduled_start": scheduled_start,
+            "total_number_of_pipeline_runs": len(post_data["pipeline_definitions"]),
+        }
+        db.session.add(models.Experiment(**experiment))
+        db.session.commit()
+
         pipeline_runs = []
         pipeline_run_spec = post_data["pipeline_run_spec"]
         env_uuid_docker_id_mappings = None
+        # this way we write the entire exp to db, but avoid
+        # launching any run (celery task) if we detected a problem
+        experiment_creation_error_messages = []
+        tasks_to_launch = []
 
         # TODO: This can be made more efficient, since the pipeline
         #       is the same for all pipeline runs. The only
@@ -96,6 +111,9 @@ class ExperimentList(Resource):
             db.session.bulk_save_objects(pipeline_steps)
             db.session.commit()
 
+            non_interactive_run["pipeline_steps"] = pipeline_steps
+            pipeline_runs.append(non_interactive_run)
+
             # get docker ids of images to use and make it so that the
             # images will not be deleted in case they become
             # outdated by an environment rebuild
@@ -112,10 +130,9 @@ class ExperimentList(Resource):
                         is_interactive=False,
                     )
                 except errors.ImageNotFound as e:
-                    return (
+                    experiment_creation_error_messages.append(
                         f"Pipeline was referencing environments for "
-                        f"which an image does not exist, {e}",
-                        500,
+                        f"which an image does not exist, {e}"
                     )
             else:
                 image_mappings = [
@@ -131,50 +148,64 @@ class ExperimentList(Resource):
                 db.session.bulk_save_objects(image_mappings)
                 db.session.commit()
 
-            # Create Celery object with the Flask context and construct the
-            # kwargs for the job.
-            celery = make_celery(current_app)
-            run_config = pipeline_run_spec["run_config"]
-            run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
-            celery_job_kwargs = {
-                "experiment_uuid": post_data["experiment_uuid"],
-                "project_uuid": post_data["project_uuid"],
-                "pipeline_definition": pipeline.to_dict(),
-                "run_config": run_config,
-            }
+            if len(experiment_creation_error_messages) == 0:
+                # prepare the args for the task
+                run_config = pipeline_run_spec["run_config"]
+                run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
+                celery_job_kwargs = {
+                    "experiment_uuid": post_data["experiment_uuid"],
+                    "project_uuid": post_data["project_uuid"],
+                    "pipeline_definition": pipeline.to_dict(),
+                    "run_config": run_config,
+                }
 
-            # Start the run as a background task on Celery. Due to circular
-            # imports we send the task by name instead of importing the
-            # function directly.
-            res = celery.send_task(
-                "app.core.tasks.start_non_interactive_pipeline_run",
-                eta=scheduled_start,
-                kwargs=celery_job_kwargs,
-                task_id=task_id,
-            )
-
-            # NOTE: this is only if a backend is configured.  The task does
-            # not return anything. Therefore we can forget its result and
-            # make sure that the Celery backend releases recourses (for
-            # storing and transmitting results) associated to the task.
-            # Uncomment the line below if applicable.
-            res.forget()
-
-            non_interactive_run["pipeline_steps"] = pipeline_steps
-            pipeline_runs.append(non_interactive_run)
-
-        experiment = {
-            "experiment_uuid": post_data["experiment_uuid"],
-            "project_uuid": post_data["project_uuid"],
-            "pipeline_uuid": post_data["pipeline_uuid"],
-            "scheduled_start": scheduled_start,
-            "total_number_of_pipeline_runs": len(pipeline_runs),
-        }
-        db.session.add(models.Experiment(**experiment))
-        db.session.commit()
+                # Due to circular imports we use the task name instead of
+                # importing the function directly.
+                tasks_to_launch.append(
+                    {
+                        "name": "app.core.tasks.start_non_interactive_pipeline_run",
+                        "eta": scheduled_start,
+                        "kwargs": celery_job_kwargs,
+                        "task_id": task_id,
+                    }
+                )
 
         experiment["pipeline_runs"] = pipeline_runs
-        return experiment, 201
+
+        if len(experiment_creation_error_messages) == 0:
+            # Create Celery object with the Flask context
+            celery = make_celery(current_app)
+            for task in tasks_to_launch:
+                res = celery.send_task(**task)
+                # NOTE: this is only if a backend is configured.  The task does
+                # not return anything. Therefore we can forget its result and
+                # make sure that the Celery backend releases recourses (for
+                # storing and transmitting results) associated to the task.
+                # Uncomment the line below if applicable.
+                res.forget()
+
+            return experiment, 201
+        else:
+            logging.error("\n".join(experiment_creation_error_messages))
+
+            # simple way to update both in memory objects
+            # and the db while avoiding multiple update statements
+            # (1 for each object)
+            for pipeline_run in experiment["pipeline_runs"]:
+                pipeline_run.status = "SUCCESS"
+                for step in pipeline_run["pipeline_steps"]:
+                    step.status = "FAILURE"
+            models.NonInteractiveRun.query.filter_by(
+                experiment_uuid=post_data["experiment_uuid"]
+            ).update({"status": "SUCCESS"})
+            models.NonInteractiveRunPipelineStep.query.filter_by(
+                experiment_uuid=post_data["experiment_uuid"]
+            ).update({"status": "FAILURE"})
+            db.session.commit()
+
+            return {
+                "message": "Failed to create experiment because not all referenced environments are available."
+            }, 500
 
 
 @api.route("/<string:experiment_uuid>")

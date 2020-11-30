@@ -5,6 +5,7 @@ import logging
 import os
 import requests
 import time
+import docker
 
 from celery.contrib.abortable import AbortableAsyncResult
 
@@ -86,13 +87,17 @@ def update_environment_build_status(
 
 
 def build_docker_image(
-    image_name, context_path, dockerfile_path, user_logs_file_object, complete_logs_path
+    image_name,
+    build_context,
+    dockerfile_path,
+    user_logs_file_object,
+    complete_logs_path,
 ):
     """Build a docker image with the given tag, context_path and docker file.
 
     Args:
         image_name:
-        context_path:
+        build_context:
         dockerfile_path:
         user_logs_file_object: file object to which logs from the user script are written.
         complete_logs_path: path to where to store the full logs are written
@@ -102,9 +107,24 @@ def build_docker_image(
     """
     with open(complete_logs_path, "w") as complete_logs_file_object:
 
+        try:
+            docker_client.images.get(build_context["base_image"])
+        except docker.errors.ImageNotFound as e:
+            complete_logs_file_object.write(
+                "Docker error ImageNotFound: need to pull image as part of the build. Error: %s"
+                % e
+            )
+            user_logs_file_object.write(
+                f'Base image `{build_context["base_image"]}` not found. Pulling image...\n'
+            )
+        except Exception as e:
+            complete_logs_file_object.write(
+                "docker_client.images.get() call to Docker API failed."
+            )
+
         # connect to docker and issue the build
         generator = docker_client.api.build(
-            path=context_path,
+            path=build_context["snapshot_path"],
             dockerfile=dockerfile_path,
             tag=image_name,
             rm=True,
@@ -343,7 +363,10 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         docker_ignore.write(".orchest\n")
         docker_ignore.write("%s\n" % docker_file_name)
 
-    return snapshot_path
+    return {
+        "snapshot_path": snapshot_path,
+        "base_image": environment_properties["base_image"],
+    }
 
 
 def build_environment_task(task_uuid, project_uuid, environment_uuid, project_path):
