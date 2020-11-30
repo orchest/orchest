@@ -45,6 +45,12 @@ class Mode(str, Enum):
     dev = "dev"
 
 
+class Language(str, Enum):
+    python = "python"
+    r = "r"
+    all = "all"
+
+
 def __entrypoint():
     loop = asyncio.get_event_loop()
     app()
@@ -68,26 +74,66 @@ def status():
 
 
 @app.command()
-def install():
+def install(
+    language: Language = typer.Option(
+        Language.python,
+        "--lang",
+        show_default=True,
+        help="Language dependencies to install.",
+    ),
+    gpu: Optional[bool] = typer.Option(
+        False,
+        show_default="--no-gpu",
+        help=(
+            "Whether to install GPU supported images corresponding"
+            " to the given language dependencies."
+        ),
+    ),
+):
     """Install Orchest.
 
     Installation might take some time depending on your network
     bandwidth.
     """
-    cmdline.install()
+    lang = language.value
+    if gpu:
+        lang += "-gpu"
+    cmdline.install(lang)
 
 
 @app.command()
-def update(mode: Optional[str] = typer.Option(None, hidden=True)):
+def update(
+    mode: Optional[str] = typer.Option(None, hidden=True),
+    language: Language = typer.Option(
+        Language.python,
+        "--lang",
+        show_default=True,
+        help="Language dependencies to update.",
+    ),
+    gpu: Optional[bool] = typer.Option(
+        False,
+        show_default="--no-gpu",
+        help=(
+            "Whether to update GPU supported images corresponding"
+            " to the given language dependencies."
+        ),
+    ),
+):
     """
     Update Orchest.
 
-    Pulls all images in parallel.
+    Will always update the core dependencies of Orchest. Using the
+    '--lang' flag you can specify the language dependencies to update.
     """
     if mode is not None:
         # Only mode that is given is "web", used for the update-server.
         config.UPDATE_MODE = mode
-    cmdline.update()
+
+    lang = language.value
+    if gpu:
+        lang += "-gpu"
+
+    cmdline.update(language)
 
 
 @app.command()

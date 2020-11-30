@@ -58,8 +58,8 @@ def is_orchest_running():
     return running
 
 
-def is_install_complete():
-    missing_images = check_images()
+def is_install_complete(language):
+    missing_images = check_images(language)
 
     if len(missing_images) > 0:
         logging.warning("Missing images: %s" % missing_images)
@@ -98,9 +98,11 @@ async def async_check_images(images):
     return missing_images
 
 
-def check_images():
+def check_images(language):
     loop = asyncio.get_event_loop()
-    missing_images = loop.run_until_complete(async_check_images(config.ALL_IMAGES))
+    missing_images = loop.run_until_complete(
+        async_check_images(config.LANGUAGE_IMAGES[language])
+    )
     return missing_images
 
 
@@ -138,14 +140,15 @@ async def pull_images(images, force_pull):
 
     # Makes the next echo start on the line underneath the status bar
     # instead of after.
+    await asyncio.sleep(0.05)
     typer.echo()
 
     await async_docker.close()
 
 
-def install_images(force_pull=False):
+def install_images(language, force_pull=False):
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(pull_images(config.ALL_IMAGES, force_pull))
+    loop.run_until_complete(pull_images(config.LANGUAGE_IMAGES[language], force_pull))
 
 
 def install_network():
