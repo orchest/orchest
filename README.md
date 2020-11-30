@@ -41,8 +41,9 @@ _A preview of running pipelines in the pipeline editor of Orchest._
 
 > **NOTE:** Orchest is in alpha.
 
-For GPU support and other installation methods, such as building from source, refer to our
-[installation docs](https://orchest.readthedocs.io/en/latest/getting_started/installation.html).
+For GPU support, language dependencies other than Python, and other installation methods, such as
+building from source, refer to our [installation
+docs](https://orchest.readthedocs.io/en/latest/getting_started/installation.html).
 
 #### Requirements
 
@@ -58,8 +59,8 @@ Simply follow the steps below to install Orchest. For Windows, please read the n
 git clone https://github.com/orchest/orchest.git && cd orchest
 ./orchest install
 
-# Verify the installation. This should print the help message.
-./orchest
+# Verify the installation.
+./orchest --help
 
 ```
 
