@@ -41,38 +41,44 @@ def register_views(app):
     def heartbeat():
         return "", 200
 
-    @app.route("/update-server/update", methods=["GET"])
+    @app.route("/update-server/update", methods=["POST"])
     def update():
-
-        dev_mode = False
-        if request.args.get("mode") == "dev":
-            dev_mode = True
-
-        def streaming_update(dev_mode):
-
-            client = docker.from_env()
-
-            yield "Starting update ...\n"
-
-            # get latest orchest-ctl
-            yield "Pulling orchest-ctl ...\n"
+        def streaming_update(json_obj):
             try:
-                client.images.pull("orchest/orchest-ctl:latest")
-            except docker.errors.APIError as e:
-                logging.error(e)
-            yield "Pulled orchest-ctl. Starting update ...\n"
+                dev_mode = json_obj.get("mode") == "dev"
+                client = docker.from_env()
 
-            container = run_orchest_ctl(client, ["update", "--mode=web"])
+                yield "Starting update ...\n"
 
-            for line in container.logs(stream=True):
-                yield line.decode()
+                # get latest orchest-ctl
+                yield "Pulling orchest-ctl ...\n"
+                try:
+                    client.images.pull("orchest/orchest-ctl:latest")
+                except docker.errors.APIError as e:
+                    logging.error(e)
+                yield "Pulled orchest-ctl. Starting update ...\n"
 
-            yield "Update complete! Restarting Orchest ... (this can take up to 15 seconds)\n"
+                gpu_flag = f"--{json_obj.get('gpu')}"
+                language_flag = f"--lang={json_obj.get('language')}"
 
-            executor.submit(background_task, dev_mode)
+                try:
+                    container = run_orchest_ctl(
+                        client, ["update", "--mode=web", gpu_flag, language_flag]
+                    )
+
+                    for line in container.logs(stream=True):
+                        yield line.decode()
+                except Exception as e:
+                    yield "Error run_orchest_ctl: %s" % e
+
+                yield "Update complete! Restarting Orchest ... (this can take up to 15 seconds)\n"
+
+                executor.submit(background_task, dev_mode)
+            except Exception as e:
+                yield "Error during updating: %s" % e
 
         return Response(
-            streaming_update(dev_mode),
+            streaming_update(request.json),
             mimetype="text/html",
             headers={"X-Accel-Buffering": "No"},
         )

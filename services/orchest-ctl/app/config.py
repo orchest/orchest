@@ -14,11 +14,9 @@ DOCKER_NETWORK = "orchest"
 DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 
 # All the images that are used by Orchest.
-ALL_IMAGES = [
+_orchest_images = [
     "orchest/jupyter-enterprise-gateway:latest",
     "orchest/jupyter-server:latest",
-    "orchest/custom-base-kernel-py:latest",
-    "orchest/custom-base-kernel-r:latest",
     "orchest/memory-server:latest",
     "orchest/orchest-ctl:latest",
     "orchest/update-server:latest",
@@ -30,6 +28,27 @@ ALL_IMAGES = [
     "orchest/nginx-proxy:latest",
     "rabbitmq:3",
 ]
+LANGUAGE_IMAGES = {
+    "none": _orchest_images,
+    "python": _orchest_images + ["orchest/custom-base-kernel-py:latest"],
+    "python-gpu": _orchest_images
+    + [
+        "orchest/custom-base-kernel-py:latest"
+        "orchest/custom-base-kernel-py-gpu:latest"
+    ],
+    "r": _orchest_images + ["orchest/custom-base-kernel-r:latest"],
+    "all": _orchest_images
+    + [
+        "orchest/custom-base-kernel-py:latest",
+        "orchest/custom-base-kernel-r:latest",
+    ],
+    "all-gpu": _orchest_images
+    + [
+        "orchest/custom-base-kernel-py:latest",
+        "orchest/custom-base-kernel-py-gpu:latest"
+        "orchest/custom-base-kernel-r:latest",
+    ],
+}
 
 # Images to be run on start of Orchest.
 ON_START_IMAGES = [
