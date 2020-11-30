@@ -115,7 +115,7 @@ def build_docker_image(
                 % e
             )
             user_logs_file_object.write(
-                f'Base image `{build_context["base_image"]}` not found. Pulling image...'
+                f'Base image `{build_context["base_image"]}` not found. Pulling image...\n'
             )
         except Exception as e:
             complete_logs_file_object.write(
