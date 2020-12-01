@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import time
+from docker.errors import APIError, NotFound, ContainerError
 
 from docker.types import Mount
 import requests
@@ -192,8 +193,15 @@ class Session:
             if project_uuid is not None:
                 project_uuid = container.labels.get("project_uuid")
 
-            container.stop()
-            container.remove()
+            # catch to take care of the race condition where a session
+            # is already shutting down on its own but a shutdown
+            # command is issued by a project/pipeline/exp deletion
+            # at the same time
+            try:
+                container.stop()
+                container.remove()
+            except (requests.exceptions.HTTPError, NotFound, APIError, ContainerError):
+                pass
 
         # the reasons such removal needs to be done in sessions.py
         # instead of pipelines.py are: 1) in an experiment run, the
@@ -208,7 +216,14 @@ class Session:
                     uuid=session_identity_uuid, project_uuid=project_uuid
                 )
             )
-            volume.remove()
+            # catch to take care of the race condition where a session
+            # is already shutting down on its own but a shutdown
+            # command is issued by a project/pipeline/exp deletion
+            # at the same time
+            try:
+                volume.remove()
+            except (requests.exceptions.HTTPError, NotFound, APIError):
+                pass
 
         return
 
