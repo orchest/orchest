@@ -6,6 +6,9 @@ COPY ./lib /orchest/lib
 COPY ./app /orchest/services/jupyter-enterprise-gateway/app
 WORKDIR /orchest/services/jupyter-enterprise-gateway/app
 
+# Disable local (non container based) kernel to avoid confusion
+RUN jupyter kernelspec remove -f python3
+
 USER root
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
