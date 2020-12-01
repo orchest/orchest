@@ -53,14 +53,14 @@ DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 # These environments are added when you create a new project
 DEFAULT_ENVIRONMENTS = [
     {
-        "name": "base-kernel-py",
+        "name": "Python",
         "base_image": "orchest/base-kernel-py",
         "language": "python",
         "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
     },
     {
-        "name": "base-kernel-r",
+        "name": "R",
         "base_image": "orchest/base-kernel-r",
         "language": "r",
         "setup_script": DEFAULT_SETUP_SCRIPT,
