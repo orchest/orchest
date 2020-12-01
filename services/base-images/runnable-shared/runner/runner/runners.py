@@ -5,7 +5,6 @@ import uuid
 
 from runner.preprocessors import PartialExecutePreprocessor
 from runner.config import Config
-from runner.utils import inverted
 
 
 class Runner:
@@ -98,6 +97,8 @@ class NotebookRunner(Runner):
         with open(file_path) as f:
             nb = nbformat.read(f, as_version=4)
 
+            original_nb_kernelspec_name = nb.metadata.kernelspec.name
+
             # set kernel based on language
             nb.metadata.kernelspec.name = kernel_mapping[
                 nb.metadata.kernelspec.language
@@ -111,7 +112,5 @@ class NotebookRunner(Runner):
 
         if self.write_after_run:
             with open(file_path, "w", encoding="utf-8") as f:
-                nb.metadata.kernelspec.name = inverted(kernel_mapping)[
-                    nb.metadata.kernelspec.name
-                ]
+                nb.metadata.kernelspec.name = original_nb_kernelspec_name
                 nbformat.write(nb, f)

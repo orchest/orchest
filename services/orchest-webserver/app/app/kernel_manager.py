@@ -71,9 +71,12 @@ def populate_kernels(app, db):
         # create kernel_dirs
         for environment in environments:
 
-            kernel_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+            kernel_name = _config.KERNEL_NAME.format(environment_uuid=environment.uuid)
+
+            image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
                 project_uuid=project.uuid, environment_uuid=environment.uuid
             )
+
             kernel_dir_path = os.path.join(kernels_dir_path, kernel_name)
 
             os.makedirs(kernel_dir_path)
@@ -83,7 +86,7 @@ def populate_kernels(app, db):
 
             # write filled template kernel.json
             filled_kernel_json = (
-                kernel_json_template.replace("{image_name}", kernel_name)
+                kernel_json_template.replace("{image_name}", image_name)
                 .replace("{language}", environment.language)
                 .replace("{display_name}", environment.name)
             )

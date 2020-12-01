@@ -324,11 +324,9 @@ def register_views(app, db):
 
         return json_string, 404, {"content-type": "application/json"}
 
-    def generate_gateway_kernel_name(project_uuid, environment_uuid):
+    def generate_gateway_kernel_name(environment_uuid):
 
-        return _config.ENVIRONMENT_IMAGE_NAME.format(
-            project_uuid=project_uuid, environment_uuid=environment_uuid
-        )
+        return _config.KERNEL_NAME.format(environment_uuid=environment_uuid)
 
     def build_environments(environment_uuids, project_uuid):
         project_path = project_uuid_to_path(project_uuid)
@@ -381,9 +379,7 @@ def register_views(app, db):
 
                 if os.path.isfile(notebook_path):
 
-                    gateway_kernel = generate_gateway_kernel_name(
-                        project_uuid, step["environment"]
-                    )
+                    gateway_kernel = generate_gateway_kernel_name(step["environment"])
 
                     with open(notebook_path, "r") as file:
                         notebook_json = json.load(file)
@@ -445,7 +441,7 @@ def register_views(app, db):
             "display_name"
         ]
         template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-            project_uuid, step["environment"]
+            step["environment"]
         )
 
         return json.dumps(template_json, indent=4)
