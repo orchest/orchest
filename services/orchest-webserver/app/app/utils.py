@@ -193,7 +193,7 @@ def read_environment_from_disk(env_directory, project_uuid):
         )
 
 
-def delete_environment(project_uuid, environment_uuid):
+def delete_environment(app, project_uuid, environment_uuid):
     """Delete an environment from disk and from the runtime environment (docker).
 
     Args:
@@ -203,17 +203,11 @@ def delete_environment(project_uuid, environment_uuid):
     Returns:
 
     """
+    url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/environment-images/{project_uuid}/{environment_uuid}"
+    app.config["SCHEDULER"].add_job(requests.delete, args=[url])
+
     environment_dir = get_environment_directory(environment_uuid, project_uuid)
     shutil.rmtree(environment_dir)
-
-    try:
-        requests.delete(
-            "http://"
-            + StaticConfig.ORCHEST_API_ADDRESS
-            + "/api/environment-images/%s/%s" % (project_uuid, environment_uuid)
-        )
-    except Exception as e:
-        logging.warning("Failed to delete EnvironmentImage: %s" % e)
 
 
 # End of environments

@@ -116,7 +116,7 @@ def register_views(app, db):
 
             def delete(self, project_uuid, environment_uuid):
 
-                delete_environment(project_uuid, environment_uuid)
+                delete_environment(app, project_uuid, environment_uuid)
                 # refresh kernels after change in environments
                 populate_kernels(app, db)
 
@@ -270,18 +270,8 @@ def register_views(app, db):
                 # tell the orchest-api that the experiment does
                 # not exist anymore, will be stopped if necessary,
                 # then cleaned up from the orchest-api db
-                try:
-                    requests.delete(
-                        "http://"
-                        + app.config["ORCHEST_API_ADDRESS"]
-                        + "/api/experiments/cleanup/%s" % (ex.uuid)
-                    )
-                except Exception as e:
-                    logging.warning(
-                        "Failed to orchest-api \
-                    delete experiment %s:\n %s"
-                        % (ex.uuid, e)
-                    )
+                url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/experiments/cleanup/{ex.uuid}"
+                app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
                 remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
@@ -554,14 +544,8 @@ def register_views(app, db):
         Returns:
 
         """
-        try:
-            requests.delete(
-                "http://"
-                + app.config["ORCHEST_API_ADDRESS"]
-                + "/api/projects/%s" % project.uuid
-            )
-        except Exception as e:
-            logging.warning("Failed to orchest-api delete project: %s" % e)
+        url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/projects/{project.uuid}"
+        app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         experiments = Experiment.query.filter(
             Experiment.project_uuid == project.uuid
@@ -588,14 +572,8 @@ def register_views(app, db):
         Returns:
 
         """
-        try:
-            requests.delete(
-                "http://"
-                + app.config["ORCHEST_API_ADDRESS"]
-                + "/api/pipelines/%s/%s" % (pipeline.project_uuid, pipeline.uuid)
-            )
-        except Exception as e:
-            logging.warning("Failed to orchest-api delete pipeline: %s" % e)
+        url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/pipelines/{pipeline.project_uuid}/{pipeline.uuid}"
+        app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         # will delete cascade
         # experiment -> pipeline run

@@ -109,6 +109,11 @@ def create_app():
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
+    # create thread for non-cpu bound background tasks, e.g.
+    # requests
+    scheduler = BackgroundScheduler()
+    app.config["SCHEDULER"] = scheduler
+
     logging.info("Flask CONFIG: %s" % app.config)
 
     db.init_app(app)
@@ -131,9 +136,6 @@ def create_app():
         # initialize posthog
         posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
         posthog.host = app.config["POSTHOG_HOST"]
-
-        # create thread for analytics
-        scheduler = BackgroundScheduler()
 
         # send a ping now
         analytics_ping(app)
