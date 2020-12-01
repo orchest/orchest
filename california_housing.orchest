@@ -8,10 +8,10 @@
     },
     "steps": {
         "106bb318-252d-4f94-ba86-c36722dddf41": {
-            "title": "get-data",
+            "title": "Get data",
             "uuid": "106bb318-252d-4f94-ba86-c36722dddf41",
             "incoming_connections": [],
-            "file_path": "get-data.ipynb",
+            "file_path": "get-data.py",
             "kernel": {
                 "name": "python",
                 "display_name": "Python 3"
@@ -20,14 +20,14 @@
             "parameters": {},
             "meta_data": {
                 "position": [
-                    43.79004357272606,
-                    137.18911224283568
+                    184.79004357272606,
+                    395.1891122428357
                 ],
                 "hidden": false
             }
         },
         "ac578410-0cab-4c58-a968-19ee7386203a": {
-            "title": "data-exploration",
+            "title": "Data exploration",
             "uuid": "ac578410-0cab-4c58-a968-19ee7386203a",
             "incoming_connections": [
                 "106bb318-252d-4f94-ba86-c36722dddf41"
@@ -41,14 +41,14 @@
             "parameters": {},
             "meta_data": {
                 "position": [
-                    853.877390860413,
-                    13.070072542059137
+                    479.877390860413,
+                    310.07007254205917
                 ],
                 "hidden": false
             }
         },
         "c9484b08-9d23-4f1a-96da-c41711d77c09": {
-            "title": "pre-processing",
+            "title": "Preprocessing",
             "uuid": "c9484b08-9d23-4f1a-96da-c41711d77c09",
             "incoming_connections": [
                 "106bb318-252d-4f94-ba86-c36722dddf41"
@@ -62,8 +62,8 @@
             "parameters": {},
             "meta_data": {
                 "position": [
-                    415.81305028370195,
-                    355.16801619433204
+                    479.81305028370195,
+                    499.16801619433204
                 ],
                 "hidden": false
             }
@@ -83,8 +83,8 @@
             "parameters": {},
             "meta_data": {
                 "position": [
-                    863.4319081206595,
-                    221.34575761209652
+                    809.4319081206595,
+                    387.3457576120965
                 ],
                 "hidden": false
             }
@@ -104,14 +104,14 @@
             "parameters": {},
             "meta_data": {
                 "position": [
-                    850.5718475073315,
-                    494.5835777126101
+                    808.5718475073315,
+                    499.5835777126101
                 ],
                 "hidden": false
             }
         },
         "0ecdafa6-317b-4acd-be73-b69983053501": {
-            "title": "collect-results ",
+            "title": "Collect results",
             "uuid": "0ecdafa6-317b-4acd-be73-b69983053501",
             "incoming_connections": [
                 "f9a4e19a-b70e-451d-8bf4-db635ce860c6",
@@ -127,8 +127,8 @@
             "parameters": {},
             "meta_data": {
                 "position": [
-                    1382.1192762261953,
-                    311.875742676798
+                    1126.1192762261953,
+                    498.8757426767979
                 ],
                 "hidden": false
             }
@@ -148,8 +148,8 @@
             "parameters": {},
             "meta_data": {
                 "position": [
-                    846.2843866171004,
-                    709.4702602230483
+                    806.2843866171004,
+                    611.4702602230483
                 ],
                 "hidden": false
             }
