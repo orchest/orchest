@@ -1,1 +1,0 @@
-{"name": "custom-base-kernel-r", "language": "r", "uuid": "63b06a43-d72a-4447-aed5-d7e848678e39", "gpu_support": false, "base_image": "orchest/custom-base-kernel-r"}
