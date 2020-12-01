@@ -122,9 +122,6 @@ retrieve and explore that data!
 
 Data exploration
 ~~~~~~~~~~~~~~~~
-.. TODO
-.. note the environment for data exploration. We need to install an additional package
-
 Now that we have downloaded the data, the next pipeline step can explore it. Create another pipeline
 step with *Title* ``Data exploration`` and *File path* ``explore-data.ipynb``, and connect the two
 pipeline steps.
@@ -143,25 +140,26 @@ noticed the imports in the previous step:
    import pandas as pd
    from sklearn import datasets
 
-These dependencies are already satisfied, because the environment is based on the `Jupyter Docker
+These dependencies are already satisfied, because the environments are based on the `Jupyter Docker
 Stacks <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_ which already contains a number
 of common data science packages. In this step however, we make use of `Vaex
 <https://github.com/vaexio/vaex>`_ to showcase :ref:`environments <environment glossary>` to
 :ref:`install additional packages <install packages>`.
 
-.. TODO
-   Environments
-
+Go to *Environments* in the left pane menu and inspect the *Python 3* environment. Here you can see
+that ``pip install vaex`` is added to the *Environment set-up script*.
 
 Finalizing the pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~
-To end up with the final pipeline, please refer to the :ref:`for the impatient <impatient>` section
+To end up with the final pipeline, please refer to the :ref:`For the impatient <impatient>` section
 to import the pipeline. You can also build the pipeline from scratch yourself!
 
 .. figure:: ../img/quickstart/final-pipeline-completed.png
 
+   A successful pipeline run of the final pipeline.
+
 .. note::
-   The interactive session is not shut down automatically and thus the resources will keep running
+   The interactive session does not shut down automatically and thus the resources will keep running
    when editing another pipeline. Of course all resources are shut down when you shut down Orchest
    with ``./orchest stop``.
 
