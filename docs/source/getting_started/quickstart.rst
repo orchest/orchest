@@ -1,10 +1,9 @@
 Quickstart
 ==========
 
-.. TODO ADD YOUTUBE LINK
-
 .. tip::
-   You can also follow the quickstart by watching our YouTube video! 💪
+   You can also follow the quickstart by watching our `YouTube video
+   <https://www.youtube.com/watch?v=j0nySMu1-DQ>`_! 💪
 
 This quickstart will follow an example explaining how to build data science pipelines in Orchest and
 touching upon some core principles that will be helpful when you get to building your own pipelines.
