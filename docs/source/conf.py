@@ -23,8 +23,11 @@ copyright = "2020, Orchest Software B.V."
 author = "Rick Lamers, Yannick Perrenet"
 
 # The full version, including alpha/beta/rc tags
-release = "0.2.1"
+# We exclude the exact release because that is error prone when having to
+# update it on every release.
+# release = "0.3.0"
 version = "alpha"
+html_title = "Orchest documentation"
 
 
 # -- General configuration ---------------------------------------------------
