@@ -175,6 +175,7 @@ class FilePicker extends React.Component {
           value={this.props.value}
           label="File path"
           icon={this.props.icon}
+          iconTitle={this.props.iconTitle}
           ref={this.refManager.nrefs.filePathTextField}
           classNames={["fullwidth"]}
         />
