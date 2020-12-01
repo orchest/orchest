@@ -1,4 +1,4 @@
-# custom-base-kernel-r
+# base-kernel-r
 
 This is the base image provided by default with the Orchest installation that provides a R
 focused Linux environment based off

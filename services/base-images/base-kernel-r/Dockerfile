@@ -7,7 +7,7 @@ USER root
 WORKDIR /
 
 # mysql_config is required for orchest-sdk
-COPY ./custom-base-kernel-r/*.sh /
+COPY ./base-kernel-r/*.sh /
 
 # Run augment script
 RUN ./augment-root.sh
@@ -16,8 +16,8 @@ RUN ./augment-root.sh
 COPY ./lib /orchest/lib
 COPY ./orchest-sdk /orchest/orchest-sdk
 
-COPY ./runnable-shared/runner /orchest/services/custom-images/runnable-shared/runner
-WORKDIR /orchest/services/custom-images/runnable-shared/runner
+COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
+WORKDIR /orchest/services/base-images/runnable-shared/runner
 
 RUN pip install -r requirements.txt
 

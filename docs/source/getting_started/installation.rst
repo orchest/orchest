@@ -66,7 +66,7 @@ compatible with the CUDA version installed in the image.  Compatible version pai
 `here
 <https://docs.nvidia.com/deploy/cuda-compatibility/index.html#binary-compatibility__table-toolkit-driver>`_.
 
-The GPU supported image ``orchest/custom-base-kernel-py-gpu`` includes CUDA Toolkit 10.1. Which
+The GPU supported image ``orchest/base-kernel-py-gpu`` includes CUDA Toolkit 10.1. Which
 requires the NVIDIA driver on the host to be ``>= 418.39``.
 
 To find out which version of the NVIDIA driver you have installed on your host run ``nvidia-smi``.

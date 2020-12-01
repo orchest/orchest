@@ -5,7 +5,7 @@ USER root
 
 WORKDIR /
 
-COPY ./custom-base-kernel-py-gpu/*.sh /
+COPY ./base-kernel-py-gpu/*.sh /
 
 # Run augment script
 RUN ./augment-root.sh
@@ -14,8 +14,8 @@ RUN ./augment-root.sh
 COPY ./lib /orchest/lib
 COPY ./orchest-sdk /orchest/orchest-sdk
 
-COPY ./runnable-shared/runner /orchest/services/custom-images/runnable-shared/runner
-WORKDIR /orchest/services/custom-images/runnable-shared/runner
+COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
+WORKDIR /orchest/services/base-images/runnable-shared/runner
 
 RUN pip install -r requirements.txt
 

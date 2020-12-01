@@ -30,23 +30,19 @@ _orchest_images = [
 ]
 LANGUAGE_IMAGES = {
     "none": _orchest_images,
-    "python": _orchest_images + ["orchest/custom-base-kernel-py:latest"],
+    "python": _orchest_images + ["orchest/base-kernel-py:latest"],
     "python-gpu": _orchest_images
-    + [
-        "orchest/custom-base-kernel-py:latest"
-        "orchest/custom-base-kernel-py-gpu:latest"
-    ],
-    "r": _orchest_images + ["orchest/custom-base-kernel-r:latest"],
+    + ["orchest/base-kernel-py:latest" "orchest/base-kernel-py-gpu:latest"],
+    "r": _orchest_images + ["orchest/base-kernel-r:latest"],
     "all": _orchest_images
     + [
-        "orchest/custom-base-kernel-py:latest",
-        "orchest/custom-base-kernel-r:latest",
+        "orchest/base-kernel-py:latest",
+        "orchest/base-kernel-r:latest",
     ],
     "all-gpu": _orchest_images
     + [
-        "orchest/custom-base-kernel-py:latest",
-        "orchest/custom-base-kernel-py-gpu:latest"
-        "orchest/custom-base-kernel-r:latest",
+        "orchest/base-kernel-py:latest",
+        "orchest/base-kernel-py-gpu:latest" "orchest/base-kernel-r:latest",
     ],
 }
 

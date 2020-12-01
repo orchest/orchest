@@ -27,7 +27,7 @@ jobs:
             -i orchest-api -i orchest-webserver -i auth-server,
             -i jupyter-server,
             -i jupyter-enterprise-gateway,
-            -i orchest-ctl -i custom-base-kernel-py -i custom-base-kernel-r,
+            -i orchest-ctl -i base-kernel-py -i base-kernel-r,
             -i nginx-proxy,
             -i update-server,
             -i file-manager,
@@ -69,17 +69,17 @@ jobs:
           DOCKERHUB_REPOSITORY: orchest/orchest-ctl
           README_FILEPATH: services/orchest-ctl/README.md
 
-      - name: Push README files to DockerHub custom-base-kernel-r
+      - name: Push README files to DockerHub base-kernel-r
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchest/custom-base-kernel-r
-          README_FILEPATH: services/custom-images/custom-base-kernel-r/README.md
+          DOCKERHUB_REPOSITORY: orchest/base-kernel-r
+          README_FILEPATH: services/base-images/base-kernel-r/README.md
 
-      - name: Push README files to DockerHub custom-base-kernel-py
+      - name: Push README files to DockerHub base-kernel-py
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchest/custom-base-kernel-py
-          README_FILEPATH: services/custom-images/custom-base-kernel-py/README.md
+          DOCKERHUB_REPOSITORY: orchest/base-kernel-py
+          README_FILEPATH: services/base-images/base-kernel-py/README.md
 
       - name: Push README files to DockerHub orchest-api
         uses: peter-evans/dockerhub-description@v2

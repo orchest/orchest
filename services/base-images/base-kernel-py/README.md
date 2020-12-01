@@ -1,4 +1,4 @@
-# custom-base-kernel-py
+# base-kernel-py
 
 This is the base image provided by default with the Orchest installation that provides a Python
 focused Linux environment based off
