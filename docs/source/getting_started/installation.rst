@@ -43,7 +43,7 @@ You should expect the build to finish in roughly 15 minutes.
    git clone https://github.com/orchest/orchest.git && cd orchest
 
    # Check out the version you would like to build.
-   git checkout v0.2.1
+   git checkout v0.3.0
 
    # Build all Docker containers from source (in parallel).
    scripts/build_container.sh

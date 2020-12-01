@@ -1,138 +1,186 @@
 Quickstart
 ==========
 
+.. TODO ADD YOUTUBE LINK
 
-General workflow in Orchest
----------------------------
+.. tip::
+   You can also follow the quickstart by watching our YouTube video! 💪
 
-1. *Build your pipeline*. Visually build your pipeline: create, drag and connect steps.
+This quickstart will follow an example explaining how to build data science pipelines in Orchest and
+touching upon some core principles that will be helpful when you get to building your own pipelines.
+The example pipeline will download the `sklearn California housing dataset
+<https://scikit-learn.org/stable/datasets/index.html#california-housing-dataset>`_, explore the
+data, train some classifiers, and in the final step collect the results from those classifiers.
 
-2. *Write your code*. Use your editor of choice or use the integrated JupyterLab environment in
-   Orchest.
+.. figure:: ../img/quickstart/final-pipeline.png
 
-3. *Run your pipeline*. Happy with your implementation? Go back to the pipeline view and run your
-   pipeline.
+   The resulting pipeline from this quickstart.
 
-4. *Check your output*. This can be done either through the "logs" view or directly inside your
-   notebook.
+Please refer to :ref:`How Orchest works <how orchest works>` to get a more in-depth explanation of
+concepts within Orchest.
 
+.. _impatient:
+
+For the impatient
+-----------------
+As `Miguel Grinberg <https://blog.miguelgrinberg.com/index>`_ would say: "If you are the instant
+gratification type, and the screenshot at the top of this article intrigued you, then head over to
+the `Github repository <https://github.com/orchest/quickstart>`_ for the code used in this article.
+Then come back to learn how everything works!"
+
+To get started with the pipeline in Orchest you can import the GitHub repositories URL
+``https://github.com/orchest/quickstart`` through the UI:
+
+.. figure:: ../img/quickstart/import-project.png
 
 Your first project
 ------------------
-We will go through an example project showing you how to build a pipeline in Orchest.  
-
-
-Launch Orchest:
+To start, make sure you have :ref:`installed Orchest <regular installation>` and started it:
 
 .. code-block:: bash
 
+   # Make sure to be in the root-level orchest directly.
    ./orchest start
 
-To follow along, you can import the `complete example project <https://github.com/orchest/quickstart>`_ 
-by going to *Projects* and using the *Import project* button.  
-Otherwise, create a new project. Go to the *Projects* view and press on the *Add project* button.
+For the quickstart we will create a new project named ``quickstart``. After creating the project, you
+will see that it does not yet have any :ref:`pipelines <pipeline>`.
 
-If you decided to go for a new project, note that it has no pipelines. Go to the *Pipelines* view and create a pipeline.
+.. figure:: ../img/quickstart/project-creation.png
 
-.. image:: ../img/quickstart/pipelines-view.png
-
-Click on the pipeline and get to the pipeline view. As you enter
-the view, a dedicated session for your pipeline will boot up, allowing
-you to edit and run your notebooks in real time.
-
-.. image:: ../img/quickstart/pipeline-editor-empty.png
-
-Let's create a simple pipeline in charge of downloading some data,
-processing it and training some classifiers.
-Begin by clicking on the *NEW STEP* button.
-Choose a name for the step, along with a file. Since you are working
-in a newly created project, you will have to create a new file, for example, 
-a notebook.
-
-.. image:: ../img/quickstart/get-data.png
-
-Edit the step by clicking on *EDIT IN JUPYTERLAB*, let's get
-a toy dataset to play with.
-
-  .. code-block:: python
-
-    import orchest
-    import pandas as pd
-    import sklearn
-    from sklearn import datasets
-
-    data = datasets.fetch_california_housing()
-
-    # make it into a pandas df
-    data_df = pd.DataFrame(data["data"], columns=data["feature_names"])
-    target_df = pd.DataFrame(data["target"], columns=["MedHouseVal"])
-    data_df = pd.concat([data_df, target_df], axis=1)
-
-    data_df.head()
-
-    # now that we have retrieved the data we need, pass it to the next steps
-    orchest.output(data_df)
-
-Your notebook should look similar to this
-
-.. image:: ../img/quickstart/get-data-notebook.png
-
-Now that we have a step which takes care of pulling in data, let's create
-new steps to make use of it.
-Connect the data import step to the new ones using your mouse.
-
-.. image:: ../img/quickstart/use-data.png
-
-As before, get into JupyterLab. Make use of your data through the orchest SDK.
-As long as you have run the first step at least once, its data will be available
-to the steps making use of it, so that you can easily iterate on the steps
-of your pipeline.
+.. note::
+   All code in this quickstart is written in Python, nevertheless, we do also support other
+   languages such as R.
 
 
+Get California housing data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The logical next step is to create the first pipeline called ``California housing`` and open the
+pipeline editor. This will automatically boot an :ref:`interactive session <interactive session>` so
+you can interactively edit the Python script we create (the other steps will be notebooks!):
 
-  .. code-block:: python
+1. Create a new step by clicking: *+ new step*.
+2. Enter a *Title* and *File path*, respectively ``Get housing data`` and ``get-data.py``.
+3. Make sure to save your progress with *save\**.
 
-    import orchest
-    # get data from all previous steps, in our case, a single one
-    data = orchest.get_inputs()
-    data = data[0]
+.. figure:: ../img/quickstart/step-properties.png
+   :width: 300
+   :align: center
 
-A data exploration step could make use of libraries such as 
-`matplotlib <https://matplotlib.org/>`_ to gain insights.
+Now we can start writing our code through the familiar JupyterLab interface, simply press *edit in
+JupyterLab* (making sure you have the step selected) and paste in the following code:
 
-.. image:: ../img/quickstart/3d-plot.png
-
-While a processing step might prepare the data for further use.
-
-  .. code-block:: python
+.. code-block:: python
+   :linenos:
+   :emphasize-lines: 11, 19
 
    import orchest
-   from sklearn.pipeline import Pipeline
-   from sklearn.preprocessing import MinMaxScaler
-   from sklearn.model_selection import train_test_split
+   import pandas as pd
+   from sklearn import datasets
+   
+   # Explicitly cache the data in the "/data" directory since the
+   # kernel is running in a Docker container, which are stateless.
+   # The "/data" directory is a special directory managed by Orchest
+   # to allow data to be persisted and shared across pipelines and
+   # even projects.
+   print("Dowloading California housing data...")
+   data = datasets.fetch_california_housing(data_home="/data")
+   
+   # Convert the data into a DataFrame.
+   df_data = pd.DataFrame(data["data"], columns=data["feature_names"])
+   df_target = pd.DataFrame(data["target"], columns=["MedHouseVal"])
+   
+   # Output the housing data so the next steps can retrieve it.
+   print("Outputting converted housing data...")
+   orchest.output((df_data, df_target))
+   print("Success!")
 
-   # get the data from the previous step
-   data = orchest.get_inputs()
-   data = data[0]
+As you can see, we have highlighted a few lines in the code to emphasize important nuts and bolts to
+get a better understanding of building pipelines in Orchest. These nuts and bolts are explained
+below.
 
-   sklearn_pipeline = Pipeline([
-        ('min_max_scaler', MinMaxScaler()),
-    ])
+    First we start with explaining line ``11`` in which we cache the data in the ``/data``
+    directory.  This is actually the ``userdir/data`` directory (from the Orchest GitHub repository)
+    that gets bind mounted in the respective Docker container running your code.  This allows you to
+    access the data from any pipeline, even from pipelines in different projects. Data should be
+    stored in ``/data`` not only for sharing purposes, but also to make sure that :ref:`experiments
+    <experiments>` do not unnecessarily copy the data when creating the snapshot for reprodicibility
+    reasons.
 
-   #### Process the data and make it available to the next steps
-   X = data[data.columns[:-1]].values
-   y = data[[data.columns[-1]]].values
-   X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, 
-      random_state=42)
-   X_train = sklearn_pipeline.fit_transform(X_train)
-   X_test = sklearn_pipeline.transform(X_test)
+    Secondly, line ``19`` showcases the usage of the :ref:`Orchest SDK <orchest sdk>` to :ref:`pass data
+    between pipeline steps <data passing>`. Keep in mind that calling :meth:`orchest.transfer.output`
+    multiple times will result in the data getting overwritten, in other words: only output data once
+    per step.
 
-   orchest.output((X_train, y_train, X_test, y_test))
+To run the code, switch back to the pipeline editor, select the step and press *run selected steps*.
+After just a few seconds you should see that the step completed successfully. Let's check the logs
+to confirm, the logs contain the latest STDOUT of the script.
 
+.. figure:: ../img/quickstart/step-logs.png
+   :width: 300
+   :align: center
 
-The processed data can now be used by different classifiers, which
-result will later be collected by a final step. You can check its
-output through the logs of the step or in JupyterLab.
+Remember that running the code will output the converted housing data, in the next step we can now
+retrieve and explore that data!
 
-.. image:: ../img/quickstart/complete-pipeline.png
+Data exploration
+~~~~~~~~~~~~~~~~
+Now that we have downloaded the data, the next pipeline step can explore it. Create another pipeline
+step with *Title* ``Data exploration`` and *File path* ``explore-data.ipynb``, and connect the two
+pipeline steps.
 
+.. figure:: ../img/quickstart/pipeline-two-steps.png
+   :width: 400
+   :align: center
+
+You can get the code for this pipeline step from the ``explore-data.ipynb`` `file in the GitHub
+repository <https://github.com/orchest/quickstart/blob/main/explore-data.ipynb>`_. 
+
+Maybe you already noticed the imports in the previous step:
+
+.. code-block:: python
+
+   import orchest
+   import pandas as pd
+   from sklearn import datasets
+
+These dependencies are satisfied by default, because the :ref:`environments <environment glossary>`
+are based on the `Jupyter Docker Stacks <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_
+which already contains a number of common data science packages. In this data exploration step
+however, we make use of `Vaex <https://github.com/vaexio/vaex>`_ to showcase how environments let
+you :ref:`install additional packages <install packages>`.
+
+Go to *Environments* in the left pane menu and inspect the *Python 3* environment. Here you can see
+that ``pip install vaex`` is added to the *Environment set-up script*.
+
+Finalizing the pipeline
+~~~~~~~~~~~~~~~~~~~~~~~
+To end up with the final pipeline, please refer to the :ref:`For the impatient <impatient>` section
+to import the pipeline. You can also build the pipeline from scratch yourself!
+
+.. figure:: ../img/quickstart/final-pipeline-completed.png
+
+   A successful pipeline run of the final pipeline.
+
+.. note::
+   The interactive session does not shut down automatically and thus the resources will keep running
+   when editing another pipeline, you can shut down the session manually by clicking on the shut
+   down button. Of course all resources are shut down when you shut down Orchest
+   with ``./orchest stop``.
+
+.. Closing notes
+.. ~~~~~~~~~~~~~
+.. TODO(yannick)
+.. looking at the project directory on the filesystem, we can see it is nothing more than a
+   directory containing a .orchest file. This is the pipeline definition.
+   So you could actually use your editor to edit the files. Additionally, ipynb can also be py
+
+.. note that running a pipeline does not require a session to be booted, this can be useful when you
+   use your own editor to edit the files.
+
+.. .. code-block:: text
+
+..    quickstart
+..     ├── california_housing.orchest
+..     ├── explore-data.ipynb
+..     ├── get-data.py
+..     └── .orchest/
