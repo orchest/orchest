@@ -324,6 +324,11 @@ class ProjectFilePicker extends React.Component {
             cwd={this.state.cwd}
             value={this.props.value}
             icon={this.state.selectedFileExists ? "check" : "warning"}
+            iconTitle={
+              this.state.selectedFileExists
+                ? "File exists in the project directory."
+                : "Warning: this file wasn't found in the project directory."
+            }
             onCreateFile={this.onCreateFile.bind(this)}
             onChangeValue={this.onChangeFileValue.bind(this)}
           />

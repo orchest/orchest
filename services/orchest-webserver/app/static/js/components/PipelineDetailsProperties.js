@@ -33,7 +33,7 @@ class PipelineDetailsProperties extends React.Component {
 
     this.state = {
       kernelOptions: [
-        ["python", "Python 3"],
+        ["python", "Python"],
         ["ir", "R"],
       ],
       environmentOptions: [],

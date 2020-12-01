@@ -231,9 +231,9 @@ class EnvironmentList extends React.Component {
         <span>{LANGUAGE_MAP[environment.language]}</span>,
         <span>
           {environment.gpu_support ? (
-            <i className="material-icons">done</i>
+            <i className="material-icons lens-button">lens</i>
           ) : (
-            <i className="material-icons mdc-button__icon">clear</i>
+            <i className="material-icons disabled lens-button">lens</i>
           )}
         </span>,
         <span>{environmentBuild ? environmentBuild.status : ""}</span>,

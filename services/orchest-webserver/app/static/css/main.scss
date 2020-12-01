@@ -254,6 +254,25 @@ p > i.material-icons.float-left {
   font-size: $codeSize;
 }
 
+.environments-page {
+  .mdc-data-table {
+    span {
+      i.material-icons {
+        float: left;
+
+        &.lens-button {
+          color: #7dd467;
+          font-size: 15px;
+        }
+
+        &.disabled {
+          color: #cd6756;
+        }
+      }
+    }
+  }
+}
+
 .edit-environment {
   .build-status {
     font-size: $defaultFontSize;
