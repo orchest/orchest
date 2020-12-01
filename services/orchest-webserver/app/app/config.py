@@ -28,7 +28,7 @@ class Config:
     # TODO: point readthedocs to stable instead of latest once stable
     #  is up
     ORCHEST_WEB_URLS = {
-        "readthedocs": "https://orchest.readthedocs.io/en/latest",
+        "readthedocs": "https://orchest.readthedocs.io/en/stable",
         "slack": "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
         "github": "https://github.com/orchest/orchest",
         "website": "https://www.orchest.io",
