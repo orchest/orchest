@@ -471,48 +471,6 @@ class EnvironmentEditView extends React.Component {
           value={this.state.environment.name}
         />
 
-        <MDCSelectReact
-          value="python"
-          label="Language"
-          classNames={["fullwidth", "push-down"]}
-          ref={this.refManager.nrefs.environmentLanguage}
-          onChange={this.onChangeLanguage.bind(this)}
-          options={[
-            ["python", LANGUAGE_MAP["python"]],
-            ["r", LANGUAGE_MAP["r"]],
-          ]}
-          value={this.state.environment.language}
-        />
-
-        <MDCCheckboxReact
-          onChange={this.onGPUChange.bind(this)}
-          label="GPU support"
-          classNames={["push-down"]}
-          value={this.state.environment.gpu_support}
-          ref={this.refManager.nrefs.environmentGPUSupport}
-        />
-
-        {(() => {
-          if (this.state.gpuDocsNotice === true) {
-            return (
-              <div className="docs-notice push-down">
-                Check out{" "}
-                <a
-                  target="_blank"
-                  href={
-                    orchest.config.ORCHEST_WEB_URLS.readthedocs +
-                    "/getting_started/installation.html"
-                  }
-                >
-                  the documentation
-                </a>{" "}
-                to make sure Orchest is properly configured for images with GPU
-                support.
-              </div>
-            );
-          }
-        })()}
-
         <div className="select-button-columns">
           <MDCSelectReact
             ref={this.refManager.nrefs.environmentName}
@@ -529,6 +487,59 @@ class EnvironmentEditView extends React.Component {
           />
           <div className="clear"></div>
         </div>
+
+        <MDCSelectReact
+          value="python"
+          label="Language"
+          classNames={["fullwidth", "push-down"]}
+          ref={this.refManager.nrefs.environmentLanguage}
+          onChange={this.onChangeLanguage.bind(this)}
+          options={[
+            ["python", LANGUAGE_MAP["python"]],
+            ["r", LANGUAGE_MAP["r"]],
+          ]}
+          value={this.state.environment.language}
+        />
+
+        {(() => {
+          if (this.state.languageDocsNotice === true) {
+            return (
+              <div className="docs-notice push-down">Language explanation</div>
+            );
+          }
+        })()}
+
+        <MDCCheckboxReact
+          onChange={this.onGPUChange.bind(this)}
+          label="GPU support"
+          classNames={["push-down"]}
+          value={this.state.environment.gpu_support}
+          ref={this.refManager.nrefs.environmentGPUSupport}
+        />
+
+        {(() => {
+          if (this.state.gpuDocsNotice === true) {
+            return (
+              <div className="docs-notice push-down">
+                If enabled, the environment will request GPU capabilities when
+                in use.
+                <br></br>
+                Check out{" "}
+                <a
+                  target="_blank"
+                  href={
+                    orchest.config.ORCHEST_WEB_URLS.readthedocs +
+                    "/getting_started/installation.html#gpu-support"
+                  }
+                >
+                  the documentation
+                </a>{" "}
+                to make sure Orchest is properly configured for environments
+                with GPU support.
+              </div>
+            );
+          }
+        })()}
 
         <CodeMirror
           value={this.state.environment.setup_script}
@@ -634,3 +645,4 @@ class EnvironmentEditView extends React.Component {
 }
 
 export default EnvironmentEditView;
+//
