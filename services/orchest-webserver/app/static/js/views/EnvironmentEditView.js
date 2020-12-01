@@ -521,21 +521,25 @@ class EnvironmentEditView extends React.Component {
           if (this.state.gpuDocsNotice === true) {
             return (
               <div className="docs-notice push-down">
-                If enabled, the environment will request GPU capabilities when
-                in use.
-                <br></br>
-                Check out{" "}
-                <a
-                  target="_blank"
-                  href={
-                    orchest.config.ORCHEST_WEB_URLS.readthedocs +
-                    "/getting_started/installation.html#gpu-support"
-                  }
-                >
-                  the documentation
-                </a>{" "}
-                to make sure Orchest is properly configured for environments
-                with GPU support.
+                <p className="push-down">
+                  If enabled, the environment will request GPU capabilities when
+                  in use.
+                </p>
+                <p>
+                  Check out{" "}
+                  <a
+                    target="_blank"
+                    href={
+                      orchest.config.ORCHEST_WEB_URLS.readthedocs +
+                      "/getting_started/installation.html#gpu-support"
+                    }
+                  >
+                    the documentation
+                  </a>{" "}
+                  to make sure Orchest is properly configured for environments
+                  with GPU support. In particular, make sure the selected base
+                  image supports GPU pass through.
+                </p>
               </div>
             );
           }
