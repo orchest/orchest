@@ -158,7 +158,7 @@ def install_network():
         typer.echo(
             "Orchest sends anonymized telemetry to analytics.orchest.io."
             " To disable it, please refer to:\n"
-            "\thttps://orchest.readthedocs.io/en/latest/user_guide/other.html#configuration"
+            "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration"
         )
 
         logging.info(
