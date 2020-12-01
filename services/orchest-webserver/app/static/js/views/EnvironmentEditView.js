@@ -474,7 +474,7 @@ class EnvironmentEditView extends React.Component {
         <div className="select-button-columns">
           <MDCSelectReact
             ref={this.refManager.nrefs.environmentName}
-            classNames={["fullwidth", "push-down"]}
+            classNames={["fullwidth"]}
             label="Base image"
             onChange={this.onChangeBaseImage.bind(this)}
             value={this.state.environment.base_image}
@@ -487,11 +487,15 @@ class EnvironmentEditView extends React.Component {
           />
           <div className="clear"></div>
         </div>
+        <div className="form-helper-text push-down">
+          The base image will be the starting point from which the environment
+          will be built.
+        </div>
 
         <MDCSelectReact
           value="python"
           label="Language"
-          classNames={["fullwidth", "push-down"]}
+          classNames={["fullwidth"]}
           ref={this.refManager.nrefs.environmentLanguage}
           onChange={this.onChangeLanguage.bind(this)}
           options={[
@@ -500,6 +504,10 @@ class EnvironmentEditView extends React.Component {
           ]}
           value={this.state.environment.language}
         />
+        <div className="form-helper-text push-down">
+          The language determines for which kernel language this environment can
+          be used. This only affects pipeline steps that point to a Notebook.
+        </div>
 
         {(() => {
           if (this.state.languageDocsNotice === true) {
@@ -545,6 +553,11 @@ class EnvironmentEditView extends React.Component {
           }
         })()}
 
+        <h3>Environment set-up script</h3>
+        <div className="form-helper-text push-down">
+          This will execute when you build the environment. Use it to include
+          your dependencies.
+        </div>
         <CodeMirror
           value={this.state.environment.setup_script}
           options={{

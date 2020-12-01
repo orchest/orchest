@@ -244,6 +244,12 @@ p > i.material-icons.float-left {
   }
 }
 
+.form-helper-text {
+  font-size: $codeSize;
+  margin-top: 10px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
 .CodeMirror {
   font-size: $codeSize;
 }
