@@ -309,8 +309,8 @@ class CreateExperimentView extends React.Component {
             content: {
               experiment_uuid: this.props.experiment.uuid,
               generated_pipeline_runs: this.state.generatedPipelineRuns,
+              selected_indices: this.state.selectedIndices,
               experiment_json: apiResult,
-              pipeline_run_ids: pipelineRunIds,
             },
           }
         );

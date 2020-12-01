@@ -843,12 +843,24 @@ def register_views(app, db):
 
         experiment_uuid = request.json["experiment_uuid"]
 
-        for idx, pipeline_run in enumerate(request.json["generated_pipeline_runs"]):
+        # Convert a list like [0, 1, 0, 1] to [1, 3].
+        selected_indices = [
+            i for i, val in enumerate(request.json["selected_indices"]) if val == 1
+        ]
+        # A list of all the generated runs (even the ones that are not
+        # selected). The values of the `selected_indices` correspond to
+        # the selected run.
+        generated_runs = request.json["generated_pipeline_runs"]
+
+        for i, idx in enumerate(selected_indices):
+            # NOTE: the order of the `pipeline_runs` property
+            # corresponds to the order of the `selected_indices`.
+            pipeline_run = request.json["experiment_json"]["pipeline_runs"][i]
             pr = PipelineRun(
-                uuid=request.json["experiment_json"]["pipeline_runs"][idx]["run_uuid"],
+                uuid=pipeline_run["run_uuid"],
                 experiment=experiment_uuid,
-                parameter_json=pipeline_run,
-                id=request.json["pipeline_run_ids"][idx],
+                parameter_json=generated_runs[idx],
+                id=pipeline_run["pipeline_run_id"],
             )
 
             db.session.add(pr)
