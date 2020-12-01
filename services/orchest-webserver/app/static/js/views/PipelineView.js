@@ -1167,7 +1167,11 @@ class PipelineView extends React.Component {
   }
 
   onClickStepHandler(stepUUID) {
-    this.selectStep(stepUUID);
+    // as the selectStep is quite expensive (trigger large React render)
+    // we free up the event loop queue by calling it through setTimeout
+    setTimeout(() => {
+      this.selectStep(stepUUID);
+    });
   }
 
   stepNameUpdate(pipelineStepUUID, title, file_path) {
