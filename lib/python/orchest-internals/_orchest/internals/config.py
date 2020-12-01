@@ -62,13 +62,6 @@ DEFAULT_ENVIRONMENTS = [
         "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
     },
-    {
-        "name": "R",
-        "base_image": "orchest/base-kernel-r",
-        "language": "r",
-        "setup_script": DEFAULT_SETUP_SCRIPT,
-        "gpu_support": False,
-    },
 ]
 
 DEFAULT_DATASOURCES = [
