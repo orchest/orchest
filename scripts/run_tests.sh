@@ -52,7 +52,7 @@ if [ ${#SERVICES[@]} -eq 0 ]; then
         "memory-server"
         "orchest-api"
         "orchest-sdk"
-        "custom-images-runnable"
+        "base-images-runnable"
     )
 fi
 
@@ -92,8 +92,8 @@ do
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements.txt
     fi
-    if [ $SERVICE == "custom-images-runnable" ]; then
-        TEST_DIR=$DIR/../services/custom-images/runnable-shared/runner
+    if [ $SERVICE == "base-images-runnable" ]; then
+        TEST_DIR=$DIR/../services/base-images/runnable-shared/runner
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements.txt
     fi

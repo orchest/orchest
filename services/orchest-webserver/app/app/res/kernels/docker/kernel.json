@@ -16,5 +16,9 @@
     "{kernel_id}",
     "--RemoteProcessProxy.response-address",
     "{response_address}"
-  ]
+  ],
+  "resources": {
+    "logo-32x32": "logo-32x32.png",
+    "logo-64x64": "logo-64x64.png"
+  }
 }

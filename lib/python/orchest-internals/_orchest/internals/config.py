@@ -54,14 +54,14 @@ DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 DEFAULT_ENVIRONMENTS = [
     {
         "name": "Python",
-        "base_image": "orchest/custom-base-kernel-py",
+        "base_image": "orchest/base-kernel-py",
         "language": "python",
         "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
     },
     {
         "name": "R",
-        "base_image": "orchest/custom-base-kernel-r",
+        "base_image": "orchest/base-kernel-r",
         "language": "r",
         "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,

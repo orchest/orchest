@@ -45,9 +45,9 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "jupyter-server"
         "jupyter-enterprise-gateway"
         "celery-worker"
-        "custom-base-kernel-py"
-        "custom-base-kernel-py-gpu"
-        "custom-base-kernel-r"
+        "base-kernel-py"
+        "base-kernel-py-gpu"
+        "base-kernel-r"
         "orchest-api"
         "orchest-ctl"
         "update-server"
@@ -60,9 +60,9 @@ if [ ${#IMGS[@]} -eq 0 ]; then
 fi
 
 LIB_IMAGES=(
-    "custom-base-kernel-py"
-    "custom-base-kernel-py-gpu"
-    "custom-base-kernel-r"
+    "base-kernel-py"
+    "base-kernel-py-gpu"
+    "base-kernel-r"
     "orchest-api"
     "orchest-webserver"
     "memory-server"
@@ -72,9 +72,9 @@ LIB_IMAGES=(
     "jupyter-enterprise-gateway"
 )
 SDK_IMAGES=(
-    "custom-base-kernel-py"
-    "custom-base-kernel-py-gpu"
-    "custom-base-kernel-r"
+    "base-kernel-py"
+    "base-kernel-py-gpu"
+    "base-kernel-r"
 )
 
 CLEANUP_BUILD_CTX=()
@@ -199,34 +199,34 @@ do
 
     # custom enterprise gateway kernel images
     # install orchest-sdk
-    if [ $IMG == "custom-base-kernel-py" ]; then
+    if [ $IMG == "base-kernel-py" ]; then
 
-        build_ctx=$DIR/../services/custom-images
+        build_ctx=$DIR/../services/base-images
         build=(docker build \
-            -t "orchest/custom-base-kernel-py:$RELEASE_TAG" \
-            -f $DIR/../services/custom-images/custom-base-kernel-py/Dockerfile \
+            -t "orchest/base-kernel-py:$RELEASE_TAG" \
+            -f $DIR/../services/base-images/base-kernel-py/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
 
     fi
 
-    if [ $IMG == "custom-base-kernel-py-gpu" ]; then
+    if [ $IMG == "base-kernel-py-gpu" ]; then
 
-        build_ctx=$DIR/../services/custom-images
+        build_ctx=$DIR/../services/base-images
         build=(docker build \
-            -t "orchest/custom-base-kernel-py-gpu:$RELEASE_TAG" \
-            -f $DIR/../services/custom-images/custom-base-kernel-py-gpu/Dockerfile \
+            -t "orchest/base-kernel-py-gpu:$RELEASE_TAG" \
+            -f $DIR/../services/base-images/base-kernel-py-gpu/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
 
     fi
 
-    if [ $IMG == "custom-base-kernel-r" ]; then
+    if [ $IMG == "base-kernel-r" ]; then
 
-        build_ctx=$DIR/../services/custom-images
+        build_ctx=$DIR/../services/base-images
         build=(docker build \
-            -t "orchest/custom-base-kernel-r:$RELEASE_TAG" \
-            -f $DIR/../services/custom-images/custom-base-kernel-r/Dockerfile \
+            -t "orchest/base-kernel-r:$RELEASE_TAG" \
+            -f $DIR/../services/base-images/base-kernel-r/Dockerfile \
             --no-cache=$NO_CACHE \
             $build_ctx)
     fi

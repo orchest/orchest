@@ -9,4 +9,7 @@ WORKDIR /orchest/services/jupyter-enterprise-gateway/app
 USER root
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
+
+
 USER $NB_UID
+COPY ./kernel-override/ /opt/conda/share/jupyter/kernels/python3/

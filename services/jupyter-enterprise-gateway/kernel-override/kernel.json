@@ -1,0 +1,15 @@
+{
+    "argv": [
+        "/opt/conda/bin/python",
+        "-m",
+        "ipykernel_launcher",
+        "-f",
+        "{connection_file}"
+    ],
+    "display_name": "Disabled",
+    "language": "python",
+    "resources": {
+        "logo-32x32": "logo-32x32.png",
+        "logo-64x64": "logo-64x64.png"
+    }
+}
