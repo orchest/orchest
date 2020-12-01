@@ -28,7 +28,7 @@ setuptools.setup(
     url="https://github.com/ricklamers/orchest-pypi",
     # py_modules=['orchest'],
     project_urls={
-        "Documentation": "https://orchest.readthedocs.io/en/latest/sdk/index.html",
+        "Documentation": "https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html",
         "Source Code": "https://github.com/orchest/orchest/tree/master/orchest-sdk",
     },
     classifiers=[

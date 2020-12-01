@@ -6,8 +6,8 @@
 <br/>
 
 [Website](https://www.orchest.io) —
-[Docs](https://orchest.readthedocs.io/en/latest/) —
-[Quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html)
+[Docs](https://orchest.readthedocs.io/en/stable/) —
+[Quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html)
 
 ---
 
@@ -32,7 +32,7 @@ Orchest lets you:
 ## Preview
 
 In our docs you can find a comprehensive
-[quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html) tutorial!
+[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial!
 
 ![clip-3-cropped](https://user-images.githubusercontent.com/1309307/82610401-95f25680-9bbe-11ea-9de3-b4dc44a1e01b.gif)
 _A preview of running pipelines in the pipeline editor of Orchest._
@@ -43,7 +43,7 @@ _A preview of running pipelines in the pipeline editor of Orchest._
 
 For GPU support, language dependencies other than Python, and other installation methods, such as
 building from source, refer to our [installation
-docs](https://orchest.readthedocs.io/en/latest/getting_started/installation.html).
+docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html).
 
 #### Requirements
 
@@ -76,7 +76,7 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ```
 
 Get started with our
-[quickstart](https://orchest.readthedocs.io/en/latest/getting_started/quickstart.html) tutorial.
+[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial.
 
 ## License
 
@@ -89,7 +89,7 @@ The software in this repository is licensed as follows:
 ## Contributing
 
 Contributions are more than welcome! Please see our
-[contributer guides](https://orchest.readthedocs.io/en/latest/developer_guide/contributing.html)
+[contributer guides](https://orchest.readthedocs.io/en/stable/developer_guide/contributing.html)
 for more details.
 
 ## We love your feedback

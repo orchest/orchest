@@ -1,6 +1,6 @@
 # Orchest SDK
 
-[Docs](https://orchest.readthedocs.io/en/latest/sdk/index.html)
+[Docs](https://orchest.readthedocs.io/en/stable/user_guide/sdk/index.html)
 
 Orchest SDK for interacting with [Orchest](https://github.com/orchest/orchest). What you can do
 using the SDK:
