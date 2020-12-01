@@ -1,3 +1,5 @@
+.. _how orchest works:
+
 How Orchest works
 =================
 

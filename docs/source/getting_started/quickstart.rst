@@ -1,18 +1,23 @@
 Quickstart
 ==========
 
+.. TODO ADD YOUTUBE LINK
+
+.. tip::
+   You can also follow the quickstart by watching our YouTube video! 💪
+
 This quickstart will follow an example to explain how to build data science pipelines in Orchest and
 to touch upon some core principles that will be helpful when you are building your own pipelines.
 The example pipeline will download the `sklearn California housing dataset
 <https://scikit-learn.org/stable/datasets/index.html#california-housing-dataset>`_, explore the
 data, train some classifiers, and in the final step compare the results from those classifiers.
 
-.. note::
-   The code uses Python only.
-
 .. figure:: ../img/quickstart/final-pipeline.png
 
    The resulting pipeline from this quickstart.
+
+Please refer to :ref:`How Orchest works <how orchest works>` to get a more in-depth explanation of
+how Orchest does things internally.
 
 .. _impatient:
 
@@ -42,11 +47,16 @@ will see that it has no :ref:`pipelines <pipeline>` yet.
 
 .. figure:: ../img/quickstart/project-creation.png
 
+.. note::
+   All code in this quickstart is written in Python, however, we do also support other languages
+   such as R.
+
+
 Get California housing data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The logical next step is to create the first pipeline called ``California housing`` and open the
-pipeline editor. This will automatically boot a :ref:`session <interactive session>` so you can
-interactively edit the Python script we create (the other steps will be notebooks!):
+pipeline editor. This will automatically boot an :ref:`interactive session <interactive session>` so
+you can interactively edit the Python script we create (the other steps will be notebooks!):
 
 1. Create a new step by clicking: *+ new step*.
 2. Enter a *Title* and *File path*, respectively ``Get housing data`` and ``get-data.py``.
@@ -101,20 +111,21 @@ building pipelines in Orchest, which are explained below.
 
 To run the code, switch back to the pipeline editor, select the step and press *run selected steps*.
 After just a few seconds you should see that the step completed successfully. Let's check the logs
-to confirm.
+to confirm, the logs contain the latest STDOUT of the script.
 
 .. figure:: ../img/quickstart/step-logs.png
    :width: 300
    :align: center
 
-Remember that running the code will output the converted housing data for the next step to retrieve.
+Remember that running the code will output the converted housing data, in the next step we can now
+retrieve and explore that data!
 
 Data exploration
 ~~~~~~~~~~~~~~~~
 .. TODO
 .. note the environment for data exploration. We need to install an additional package
 
-Now that we have downloaded the data, the next pipeline step should explore it. Create another pipeline
+Now that we have downloaded the data, the next pipeline step can explore it. Create another pipeline
 step with *Title* ``Data exploration`` and *File path* ``explore-data.ipynb``, and connect the two
 pipeline steps.
 
@@ -122,24 +133,37 @@ pipeline steps.
    :width: 400
    :align: center
 
-.. maybe you noticed already in the previous step, but pandas and sklearn were already installed.
-   environments
-   we will install vex
+You can get the code for this pipeline step from the ``explore-data.ipynb`` `file in the GitHub
+repository <https://github.com/orchest/quickstart/blob/main/explore-data.ipynb>`_. Maybe you already
+noticed the imports in the previous step:
 
-You can get the code for this pipeline step from the GitHub repository:
-https://github.com/orchest/quickstart/blob/main/explore-data.ipynb.
+.. code-block:: python
+
+   import orchest
+   import pandas as pd
+   from sklearn import datasets
+
+These dependencies are already satisfied, because the environment is based on the `Jupyter Docker
+Stacks <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_ which already contains a number
+of common data science packages. In this step however, we make use of `Vaex
+<https://github.com/vaexio/vaex>`_ to showcase :ref:`environments <environment glossary>` to
+:ref:`install additional packages <install packages>`.
+
+.. TODO
+   Environments
+
 
 Finalizing the pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~
 To end up with the final pipeline, please refer to the :ref:`for the impatient <impatient>` section
 to import the pipeline. You can also build the pipeline from scratch yourself!
 
-.. figure:: ../img/quickstart/final-pipeline.png
+.. figure:: ../img/quickstart/final-pipeline-completed.png
 
 .. note::
-   The session is not shut down automatically and thus the resources will keep running when editing
-   another pipeline. Of course all resources are shut down when you shut down Orchest with
-   ``./orchest stop``.
+   The interactive session is not shut down automatically and thus the resources will keep running
+   when editing another pipeline. Of course all resources are shut down when you shut down Orchest
+   with ``./orchest stop``.
 
 Closing notes
 ~~~~~~~~~~~~~

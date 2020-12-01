@@ -1,3 +1,5 @@
+.. _install packages:
+
 Installing additional packages
 ==============================
 
@@ -6,9 +8,10 @@ Installing additional packages
    Jupyter Notebook. This causes the package to be installed every time you run the pipeline
    step. It is not saved in the environment as containers are stateless!
 
-Orchest runs all your individual pipeline steps (e.g. ``.ipynb`` or ``.R`` scripts) in
-containers. The default images are based on the |jupyter_stack_link| and come with a number of
-|pre_installed_link|.
+Orchest runs all your individual pipeline steps (e.g. ``.ipynb`` or ``.R`` scripts) in containers.
+The default images are based on the `Jupyter Docker Stacks
+<https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_ and come with a number of `pre-installed
+packages <https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html>`_.
 
 To install additional packages or to run other terminal commands inside the base image, we support
 custom *Environments*. We essentially create a new image by running your script inside the selected base
@@ -42,14 +45,3 @@ Build an environment
 
        # E.g. pip install tensorflow
        pip install -r requirements.txt
-
-.. |jupyter_stack_link| raw:: html
-
-  <a href="https://jupyter-docker-stacks.readthedocs.io/en/latest/"
-  target="_blank">Jupyter Docker Stacks</a>
-
-.. |pre_installed_link| raw:: html
-
-   <a
-   href="https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html"
-   target="_nlank">pre-installed packages</a>

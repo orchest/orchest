@@ -73,6 +73,12 @@ Experiment
       <https://scikit-learn.org/stable/modules/grid_search.html>`_ are a great resource to read more
       about grid searches.
 
+.. _environment glossary:
+
+Environment
+    The runtime environment of a pipeline step. This way you can install additional packages and
+    make changes to the base image directly.
+
 Edit mode
     Edit, create and run your :ref:`pipelines <pipeline>`.
 
