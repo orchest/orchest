@@ -8,6 +8,7 @@ import html
 
 from threading import Lock
 from datetime import datetime, timedelta
+from pathlib import Path
 from _orchest.internals import config as _config
 
 # timeout after 2 minutes, heartbeat should be sent every minute
@@ -224,6 +225,12 @@ def create_file_handle(log_file):
     log_path = get_log_path(log_file)
 
     try:
+        # this avoids a problem where opening the logs of a step
+        # when the file is not there and then running the step
+        # while keeping the logs open will not show the logs
+        Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(log_path).touch(exist_ok=True)
+
         file = open(log_path, "r")
         file.seek(0)
         file_handles[log_file.session_uuid] = file
