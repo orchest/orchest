@@ -22,8 +22,11 @@ executable files through our visual pipeline editor. After coding your scripts, 
 to select and run any subset of the pipeline whilst keeping in mind the defined execution order.
 
 .. note::
+   Orchest is in alpha.
 
-    Orchest is in alpha.
+.. note::
+   Make sure you are on `latest <https://orchest.readthedocs.io/en/latest/index.html>`_ to see the most
+   up-to-date version of the docs.
 
 .. toctree::
    :maxdepth: 1
