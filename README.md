@@ -34,7 +34,7 @@ Orchest lets you:
 In our docs you can find a comprehensive
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial!
 
-<img src="https://user-images.githubusercontent.com/1309307/100869858-f7fd1400-349d-11eb-9423-52e25349b62e.gif" width="580px" style="width: 100%; max-width: 580px" alt="orchest-0.3.0-demo" />
+<img src="https://user-images.githubusercontent.com/1309307/100869858-f7fd1400-349d-11eb-9423-52e25349b62e.gif" width="100%" alt="orchest-0.3.0-demo" />
 _A preview of running pipelines in the pipeline editor of Orchest._
 
 ## Installation
