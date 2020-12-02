@@ -18,7 +18,7 @@ collection of containers to provide a scalable platform that can run on your lap
 large scale cloud cluster.
 
 <p align="center">
-<a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/100892174-56d08680-34ba-11eb-966e-baafea05a897.gif" width="870px" alt="orchest-0.3.0-demo" /></a></p>
+<a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/100892174-56d08680-34ba-11eb-966e-baafea05a897.gif" width="868px" alt="orchest-0.3.0-demo" /></a></p>
 <p align="center">
   <i>A preview of running pipelines in the pipeline editor of Orchest.</i>
  </p>
