@@ -18,10 +18,13 @@ collection of containers to provide a scalable platform that can run on your lap
 large scale cloud cluster.
 
 <p align="center">
-<a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/100877773-8b881200-34a9-11eb-98a9-4befe64696d1.gif" width="870px" alt="orchest-0.3.0-demo" /></a></p>
+<a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/100892174-56d08680-34ba-11eb-966e-baafea05a897.gif" width="870px" alt="orchest-0.3.0-demo" /></a></p>
 <p align="center">
   <i>A preview of running pipelines in the pipeline editor of Orchest.</i>
  </p>
+
+
+## Features
 
 Orchest lets you:
 
@@ -34,8 +37,6 @@ Orchest lets you:
 - Integrate commonly used data sources.
 - Easily define your custom runtime environment.
 - Version your pipelines through git.
-
-## Preview
 
 In our docs you can find a comprehensive
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial!
