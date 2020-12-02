@@ -17,6 +17,9 @@ Orchest is a web based tool for creating data science pipelines. Under the hood 
 collection of containers to provide a scalable platform that can run on your laptop as well as on a
 large scale cloud cluster.
 
+<a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/100869858-f7fd1400-349d-11eb-9423-52e25349b62e.gif" width="100%" alt="orchest-0.3.0-demo" /></a>
+<center><i>A preview of running pipelines in the pipeline editor of Orchest.</i></center>
+
 Orchest lets you:
 
 - Visually construct pipelines.
@@ -33,9 +36,6 @@ Orchest lets you:
 
 In our docs you can find a comprehensive
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial!
-
-<img src="https://user-images.githubusercontent.com/1309307/100869858-f7fd1400-349d-11eb-9423-52e25349b62e.gif" width="100%" alt="orchest-0.3.0-demo" />
-_A preview of running pipelines in the pipeline editor of Orchest._
 
 ## Installation
 
