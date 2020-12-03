@@ -69,7 +69,10 @@ class ExperimentList extends React.Component {
     }
 
     let fetchListPromise = makeCancelable(
-      makeRequest("GET", "/store/experiments"),
+      makeRequest(
+        "GET",
+        `/store/experiments?project_uuid=${this.props.project_uuid}`
+      ),
       this.promiseManager
     );
 
@@ -227,18 +230,16 @@ class ExperimentList extends React.Component {
     }
   }
 
-  experimentListToTableData(project_uuid, experiments) {
+  experimentListToTableData(experiments) {
     let rows = [];
     for (let x = 0; x < experiments.length; x++) {
       // keep only experiments that are related to a project!
-      if (experiments[x].project_uuid === project_uuid){
-        rows.push([
-          experiments[x].name,
-          experiments[x].pipeline_name,
-          experiments[x].created.replace(/T/, " ").replace(/\..+/, ""),
-          experiments[x].draft ? "Draft" : "Submitted",
-        ]);
-      }
+      rows.push([
+        experiments[x].name,
+        experiments[x].pipeline_name,
+        experiments[x].created.replace(/T/, " ").replace(/\..+/, ""),
+        experiments[x].draft ? "Draft" : "Submitted",
+      ]);
     }
     return rows;
   }
@@ -343,7 +344,7 @@ class ExperimentList extends React.Component {
                   ref={this.refManager.nrefs.experimentTable}
                   selectable={true}
                   onRowClick={this.onRowClick.bind(this)}
-                  rows={this.experimentListToTableData(this.props.project_uuid, this.state.experiments)}
+                  rows={this.experimentListToTableData(this.state.experiments)}
                   headers={["Experiment", "Pipeline", "Date created", "Status"]}
                 />
               </Fragment>

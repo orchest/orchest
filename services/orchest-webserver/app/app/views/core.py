@@ -231,7 +231,16 @@ def register_views(app, db):
     def register_experiments(db, api):
         class ExperimentsResource(Resource):
             def get(self):
-                experiments = Experiment.query.all()
+
+                experiment_query = Experiment.query
+
+                project_uuid = request.args.get("project_uuid")
+                if project_uuid is not None:
+                    experiment_query = experiment_query.filter(
+                        Experiment.project_uuid == project_uuid
+                    )
+
+                experiments = experiment_query.all()
                 return experiments_schema.dump(experiments)
 
         class ExperimentResource(Resource):
