@@ -44,24 +44,37 @@ def get_pipeline_path(
         return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and experiment_uuid is not None:
         return os.path.join(
-            USER_DIR,
-            "experiments",
-            project_uuid,
-            pipeline_uuid,
-            experiment_uuid,
+            get_experiment_directory(
+                pipeline_uuid, project_uuid, experiment_uuid, host_path
+            ),
             pipeline_run_uuid,
             pipeline_path,
         )
     elif experiment_uuid is not None:
         return os.path.join(
-            USER_DIR,
-            "experiments",
-            project_uuid,
-            pipeline_uuid,
-            experiment_uuid,
+            get_experiment_directory(
+                pipeline_uuid, project_uuid, experiment_uuid, host_path
+            ),
             "snapshot",
             pipeline_path,
         )
+
+
+def get_experiment_directory(
+    pipeline_uuid, project_uuid, experiment_uuid, host_path=False
+):
+    """Experiment directory contains:
+    snapshot/
+    <pipeline_run_uuid>/<project copy>
+    """
+
+    USER_DIR = StaticConfig.USER_DIR
+    if host_path == True:
+        USER_DIR = StaticConfig.HOST_USER_DIR
+
+    return os.path.join(
+        USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid
+    )
 
 
 def get_pipeline_directory(

@@ -29,6 +29,7 @@ from app.utils import (
     remove_dir_if_empty,
     get_pipeline_path,
     get_pipeline_directory,
+    get_experiment_directory,
     get_project_directory,
     get_environment_directory,
     get_environments,
@@ -500,8 +501,9 @@ def register_views(app, db):
             # Ignore nothing.
             return []
 
-        snapshot_path = get_pipeline_directory(
-            pipeline_uuid, project_uuid, experiment_uuid
+        snapshot_path = os.path.join(
+            get_experiment_directory(pipeline_uuid, project_uuid, experiment_uuid),
+            "snapshot",
         )
 
         os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
@@ -509,6 +511,7 @@ def register_views(app, db):
         project_dir = os.path.join(
             app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
         )
+
         shutil.copytree(project_dir, snapshot_path, ignore=ignore_patterns)
 
     def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
