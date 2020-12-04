@@ -361,7 +361,21 @@ def remove_if_dangling(img) -> bool:
     return False
 
 
-def calculate_shm_size(data_passing_memory_size: Union[str, int]) -> int:
+def parse_string_memory_size(memory_size: Union[str, int]) -> int:
+    """Returns string value of memory in bytes"""
+
+    # seems like this is already int (assumed to be number of bytes)
+    if isinstance(memory_size, int):
+        return memory_size
+
+    conversion = {"KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
+    size, unit = memory_size[:-2], memory_size[-2:]
+    size = int(float(size) * conversion[unit])
+
+    return size
+
+
+def calculate_shm_size(data_passing_memory_size: int) -> int:
     """Calculates the shm-size for the Docker container.
 
     Given a size for the memory-server we need to do a certain
@@ -379,10 +393,5 @@ def calculate_shm_size(data_passing_memory_size: Union[str, int]) -> int:
     # The default `shm_size` of a container is 67108864. So we round
     # it up, just to be safe.
     allocation = 80000000
-    if isinstance(data_passing_memory_size, int):
-        return data_passing_memory_size + allocation
 
-    conversion = {"KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
-    size, unit = data_passing_memory_size[:-2], data_passing_memory_size[-2:]
-    size = int(float(size) * conversion[unit])
     return size + allocation

@@ -583,7 +583,10 @@ def _get_container_specs(
     # TODO: Fix `shm_size` passing to the memory-server once we know the
     # exact conversion between shm-size of Docker and the size of the
     # store.
-    shm_size = utils.calculate_shm_size(data_passing_memory_size)
+    data_passing_memory_size_int = utils.parse_string_memory_size(
+        data_passing_memory_size
+    )
+    shm_size = utils.calculate_shm_size(data_passing_memory_size_int)
     container_specs["memory-server"] = {
         "image": "orchest/memory-server:latest",
         "detach": True,
@@ -594,7 +597,7 @@ def _get_container_specs(
         "shm_size": shm_size,
         "environment": [
             f"ORCHEST_PIPELINE_PATH={pipeline_path}",
-            f"ORCHEST_MEMORY_SIZE={shm_size}",
+            f"ORCHEST_MEMORY_SIZE={data_passing_memory_size_int}",
         ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
