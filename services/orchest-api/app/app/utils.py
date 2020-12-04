@@ -368,7 +368,7 @@ def parse_string_memory_size(memory_size: Union[str, int]) -> int:
     if isinstance(memory_size, int):
         return memory_size
 
-    conversion = {"KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
+    conversion = {"KB": 1000, "MB": 1000 ** 2, "GB": 1000 ** 3}
     size, unit = memory_size[:-2], memory_size[-2:]
     size = int(float(size) * conversion[unit])
 
