@@ -362,7 +362,10 @@ def remove_if_dangling(img) -> bool:
 
 
 def parse_string_memory_size(memory_size: Union[str, int]) -> int:
-    """Simply converts string memory size to number of bytes"""
+    """Simply converts string description of memory size to number of bytes
+
+    Allowable inputs are: [KB|MB|GB]+\s+[\d]+
+    """
 
     # seems like this is already int (assumed to be number of bytes)
     if isinstance(memory_size, int):
