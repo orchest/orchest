@@ -9,7 +9,7 @@ FILE_GROUP=$(ls -n /orchest-host/orchest | awk '{print $4}')
 # "error: cannot run ssh: No such file or directory"
 # It is caused when the remote "origin" uses SSH.
 git pull https://github.com/orchest/orchest.git --rebase
-# expliclity fetch tags
+# explicitly fetch tags
 git fetch https://github.com/orchest/orchest.git --tags
 
 # Change the user and group of all the files in the repository, except
