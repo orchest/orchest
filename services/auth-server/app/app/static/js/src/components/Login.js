@@ -13,7 +13,11 @@ export default class Login extends React.Component {
             <br />
             <MDCTextFieldReact label="Password" password name="password" />
             <br />
-            <MDCButtonReact classNames={["mdc-button--raised"]} label="Login" />
+            <MDCButtonReact
+              submitButton
+              classNames={["mdc-button--raised"]}
+              label="Login"
+            />
             {(() => {
               if (this.props.loginFailedReason.length > 0) {
                 return (

@@ -18,7 +18,7 @@ export default class Admin extends React.Component {
               value={user.username}
             ></input>
             <span>{user.username}</span>
-            <MDCButtonReact label="Delete" />
+            <MDCButtonReact submitButton label="Delete" />
           </form>
         </div>
       );
@@ -33,7 +33,11 @@ export default class Admin extends React.Component {
             <br />
             <MDCTextFieldReact label="Password" password name="password" />
             <br />
-            <MDCButtonReact classNames={["mdc-button--raised"]} label="Add" />
+            <MDCButtonReact
+              submitButton
+              classNames={["mdc-button--raised"]}
+              label="Add"
+            />
           </form>
         </div>
         <div className="group">
