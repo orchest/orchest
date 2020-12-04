@@ -393,5 +393,4 @@ def calculate_shm_size(data_passing_memory_size: int) -> int:
     # The default `shm_size` of a container is 67108864. So we round
     # it up, just to be safe.
     allocation = 80000000
-
-    return size + allocation
+    return data_passing_memory_size + allocation
