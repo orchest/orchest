@@ -135,12 +135,6 @@ def read_emit_all_lines(file, sio, session_uuid):
         return
     else:
 
-        if log_file_store[session_uuid].log_uuid == "":
-            logging.info(
-                "No new log_uuid found, but current log_uuid is empty. Debug info: read_log_uuid[%s] stored_log_uuid[%s] session_uuid[%s]."
-                % (read_log_uuid, log_file_store[session_uuid].log_uuid, session_uuid)
-            )
-
         try:
             latest_log_file.close()
         except IOError as e:
