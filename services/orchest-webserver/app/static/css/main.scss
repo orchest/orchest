@@ -729,11 +729,6 @@ span.code {
   display: flex;
   flex-direction: row;
 
-  .pane {
-    flex: 1;
-    position: relative;
-  }
-
   .pipeline-actions {
     position: absolute;
     right: 0;
@@ -976,14 +971,31 @@ span.code {
     }
   }
 
+  .col-drag-resize {
+    position: absolute;
+    height: 100%;
+    width: 10px;
+    margin-left: -5px;
+    user-select: none;
+    cursor: col-resize;
+  }
+
+  .pane {
+    position: relative;
+
+    &.pipeline-view-pane {
+      flex-grow: 1;
+      overflow: hidden;
+    }
+  }
+
   .pipeline-details {
     height: 100%;
     padding: $generalPadding 0;
     background: #fff;
     border-left: 1px solid $borderColor;
     z-index: 12;
-    width: 50%;
-    max-width: 450px;
+    width: 0;
 
     .overflowable {
       padding: 0 $generalPadding;

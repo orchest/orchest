@@ -17,16 +17,17 @@ class PipelineDetails extends React.Component {
 
     this.state = {
       subviewIndex: index,
+      draggingPaneColumn: false,
+      paneWidth: this.getPaneWidth(),
     };
 
     this.refManager = new RefManager();
   }
 
   componentWillUnmount() {
-    $(document).off("mouseup.connectionList");
-    $(document).off("mousemove.connectionList");
     $(window).off("resize.pipelineDetails");
-    $(window).off("keyup.pipelineDetails");
+    $(window).off("mousemove.pipelineDetails");
+    $(window).off("mouseup.pipelineDetails");
   }
 
   onOpenNotebook() {
@@ -42,7 +43,35 @@ class PipelineDetails extends React.Component {
   componentDidMount() {
     // overflow checks
     $(window).on("resize.pipelineDetails", this.overflowChecks.bind(this));
+    $(window).on("mousemove.pipelineDetails", this.onMouseMove.bind(this));
+    $(window).on("mouseup.pipelineDetails", this.onMouseUp.bind(this));
     this.overflowChecks();
+  }
+
+  onMouseMove(e) {
+    if (this.state.draggingPaneColumn) {
+      this.setState((state, _) => {
+        return {
+          paneWidth: Math.max(
+            0,
+            Math.max(
+              50,
+              state.paneWidth -
+                e.originalEvent.movementX / window.devicePixelRatio
+            )
+          ),
+        };
+      });
+    }
+  }
+
+  onMouseUp() {
+    if (this.state.draggingPaneColumn) {
+      this.setState({
+        draggingPaneColumn: false,
+      });
+      this.savePaneWidth(this.state.paneWidth);
+    }
   }
 
   overflowChecks() {
@@ -60,6 +89,30 @@ class PipelineDetails extends React.Component {
       subviewIndex: index,
     });
     this.props.onChangeView(index);
+  }
+
+  onColumnResizeMouseDown() {
+    this.setState({
+      draggingPaneColumn: true,
+    });
+  }
+
+  getPaneWidth() {
+    let initialPaneWidth = 450;
+    let paneWidth = initialPaneWidth;
+
+    let storedPaneWidth = window.localStorage.getItem(
+      "orchest.pipelinedetails.paneWidth"
+    );
+    if (storedPaneWidth != null) {
+      paneWidth = parseFloat(storedPaneWidth);
+    }
+
+    return paneWidth;
+  }
+
+  savePaneWidth(width) {
+    window.localStorage.setItem("orchest.pipelinedetails.paneWidth", width);
   }
 
   render() {
@@ -93,7 +146,14 @@ class PipelineDetails extends React.Component {
     }
 
     return (
-      <div className={"pipeline-details pane"}>
+      <div
+        className={"pipeline-details pane"}
+        style={{ width: this.state.paneWidth + "px" }}
+      >
+        <div
+          className="col-drag-resize"
+          onMouseDown={this.onColumnResizeMouseDown.bind(this)}
+        ></div>
         <div className={"overflowable"}>
           <div className="input-group">
             <MDCTabBarReact

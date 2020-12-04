@@ -50,6 +50,8 @@ class PipelineDetailsProperties extends React.Component {
 
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
+    $(document).off("mouseup.connectionList");
+    $(document).off("mousemove.connectionList");
   }
 
   fetchEnvironmentOptions() {

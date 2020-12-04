@@ -1980,7 +1980,7 @@ class PipelineView extends React.Component {
 
     return (
       <div className="pipeline-view">
-        <div className="pane">
+        <div className="pane pipeline-view-pane">
           <div className="pipeline-actions bottom-left">
             <div className="navigation-buttons">
               <MDCButtonReact
