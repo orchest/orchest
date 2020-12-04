@@ -40,6 +40,8 @@ jobs:
 
       - name: Build and push image
         run: |
+          bash ./scripts/pull_container.sh ${{ matrix.image }} -t "$RELEASE_TAG"
+          echo "-----------"
           bash ./scripts/build_container.sh ${{ matrix.image }} -v -t "$RELEASE_TAG"
           echo "-----------"
           bash ./scripts/push_container.sh ${{ matrix.image }} -t "$RELEASE_TAG"
