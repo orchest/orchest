@@ -67,11 +67,8 @@ class UpdateView extends React.Component {
 
     let updateUrl = "/update-server/update";
 
-    if (orchest.environment === "development") {
-      updateUrl += "?mode=dev";
-    }
     let data = {
-      mode: orchest.environment ? "dev" : "reg",
+      mode: orchest.environment === "development" ? "dev" : "reg",
       gpu: this.refManager.refs.formGPU.mdc.checked ? "gpu" : "no-gpu",
       language: this.refManager.refs.formLanguage.mdc.value,
     };
