@@ -9,8 +9,9 @@ RUN mv /orchest/services/orchest-api/lib /orchest/lib
 
 # Setting this WORKDIR is required as the `start_celery_workers.sh` 
 # script otherwise does not have the correct context.
-WORKDIR /orchest/services/orchest-api/app
+WORKDIR /orchest/services/orchest-api/
 RUN pip3 install -r requirements.txt
-RUN ["chmod", "+x", "../start_celery_workers.sh"]
+RUN ["chmod", "+x", "./start_celery_workers.sh"]
 
+WORKDIR /orchest/services/orchest-api/app/
 CMD ["./../start_celery_workers.sh"]

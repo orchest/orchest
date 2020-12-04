@@ -84,7 +84,7 @@ do
     fi
     if [ $SERVICE == "orchest-api" ]; then
         TEST_DIR=$DIR/../services/orchest-api/app
-        REQ_DIR=$TEST_DIR
+        REQ_DIR=$TEST_DIR/../
         REQ_FILE=$REQ_DIR/requirements.txt
     fi
     if [ $SERVICE == "orchest-sdk" ]; then
