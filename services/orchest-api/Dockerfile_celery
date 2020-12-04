@@ -1,17 +1,19 @@
 FROM python:3.7-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
-# We can simply copy the entire build context, because in the 
-# dockerignore we specified precisely what we want to include in the
-# image.
-COPY ./ /orchest/services/orchest-api/
-RUN mv /orchest/services/orchest-api/lib /orchest/lib
+# Get all requirements in place.
+COPY ./requirements.txt ./start_celery_workers.sh /orchest/services/orchest-api/
+COPY ./lib /orchest/lib
 
-# Setting this WORKDIR is required as the `start_celery_workers.sh` 
-# script otherwise does not have the correct context.
+# Set the `WORKDIR` so the editable installs in the `requirements.txt`
+# can use relative paths.
 WORKDIR /orchest/services/orchest-api/
 RUN pip3 install -r requirements.txt
-RUN ["chmod", "+x", "./start_celery_workers.sh"]
 
+# Application files.
+COPY ./app ./app
+
+# This `WORKDIR` is required for the context of the application of the
+# `start_celery_workers.sh` script.
 WORKDIR /orchest/services/orchest-api/app/
 CMD ["./../start_celery_workers.sh"]
