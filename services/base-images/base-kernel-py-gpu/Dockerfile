@@ -1,5 +1,5 @@
 # Base root container on cuda/cudnn enabled image
-FROM orchest/kernel-py:2.2.0-gpu
+FROM orchest/kernel-py:2.3.0-gpu
 
 USER root
 
