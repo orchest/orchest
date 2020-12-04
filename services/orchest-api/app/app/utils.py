@@ -384,8 +384,8 @@ def calculate_shm_size(data_passing_memory_size: int) -> int:
     memory-server.
 
     If the Plasma server tries to allocate more than is available in /dev/shm it
-    will not fail but issue a warning. However, not full amount requested will be
-    available to the user.
+    will not fail but issue a warning. However, the full amount requested will
+    not be available to the user.
 
     Args:
         data_passing_memory_size: Requested size for the memory-server.
