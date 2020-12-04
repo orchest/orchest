@@ -1,6 +1,9 @@
 import { MDCTopAppBar } from "@material/top-app-bar";
 import { MDCDrawer } from "@material/drawer";
 
+import $ from "jquery";
+window.$ = $;
+
 import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import HelpView from "./views/HelpView";
@@ -16,7 +19,6 @@ import React from "react";
 import ReactDOM from "react-dom";
 import PipelineView from "./views/PipelineView";
 import Jupyter from "./jupyter/Jupyter";
-
 import "./utils/overflowing";
 import ExperimentView from "./views/ExperimentView";
 import PipelineSettingsView from "./views/PipelineSettingsView";

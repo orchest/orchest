@@ -10,6 +10,7 @@
   "license": "AGPL-3.0-only",
   "dependencies": {
     "codemirror": "^5.55.0",
+    "jquery": "^3.5.1",
     "material-components-web": "^4.0.0",
     "react": "^16.13.1",
     "react-codemirror2": "^7.2.1",
