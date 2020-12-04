@@ -95,7 +95,7 @@ do
     if [ $SERVICE == "base-images-runnable" ]; then
         TEST_DIR=$DIR/../services/base-images/runnable-shared/runner
         REQ_DIR=$TEST_DIR
-        REQ_FILE=$REQ_DIR/requirements.txt
+        REQ_FILE=$REQ_DIR/requirements-dev.txt
     fi
 
 

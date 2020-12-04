@@ -3,7 +3,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Get all requirements in place.
 COPY ./requirements.txt /orchest/services/memory-server/
-COPY ./lib /orchest/lib
+COPY ./lib/python /orchest/lib/python
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`
 # can use relative paths.

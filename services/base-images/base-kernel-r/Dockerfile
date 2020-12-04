@@ -13,7 +13,7 @@ COPY ./base-kernel-r/*.sh /
 RUN ./augment-root.sh
 
 # Install our internal libraries
-COPY ./lib /orchest/lib
+COPY ./lib/python /orchest/lib/python
 COPY ./orchest-sdk /orchest/orchest-sdk
 
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner

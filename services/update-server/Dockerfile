@@ -3,7 +3,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Get all requirements in place.
 COPY ./requirements.txt /orchest/services/update-server/
-COPY ./lib /orchest/lib
+COPY ./lib/python /orchest/lib/python
 
 WORKDIR /orchest/services/update-server
 RUN pip3 install -r requirements.txt

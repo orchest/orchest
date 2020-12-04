@@ -9,7 +9,6 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -
 
 # Get all Python requirements in place and install them.
 COPY ./requirements.txt /orchest/services/auth-server/
-COPY ./lib /orchest/lib
 WORKDIR /orchest/services/auth-server
 RUN pip3 install -r requirements.txt
 
@@ -17,8 +16,7 @@ RUN pip3 install -r requirements.txt
 COPY ./app ./app
 
 # Get the internal JS library
-RUN mkdir -p app/app/static/js/src/lib/ \
-    && cp -R -T /orchest/lib/javascript/ app/app/static/js/src/lib/
+COPY ./lib/javascript/ app/app/static/js/src/lib/
 
 # Compile front-end code with npx and compile style
 WORKDIR /orchest/services/auth-server/app/app/static
