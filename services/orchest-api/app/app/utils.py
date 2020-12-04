@@ -383,6 +383,10 @@ def calculate_shm_size(data_passing_memory_size: int) -> int:
     the Docker container is not equal to the request size for the
     memory-server.
 
+    If the Plasma server tries to allocate more than is available in /dev/shm it
+    will not fail but issue a warning. However, not full amount requested will be
+    available to the user.
+
     Args:
         data_passing_memory_size: Requested size for the memory-server.
 
@@ -390,6 +394,6 @@ def calculate_shm_size(data_passing_memory_size: int) -> int:
         The shm-size for the Docker container.
 
     """
-    # We need to overallocate by a fraction of 1.2 to make /dev/shm large enough for the
+    # We need to overallocate by a fraction to make /dev/shm large enough for the
     # request amount in `data_passing_memory_size`
     return int(data_passing_memory_size * 1.2)
