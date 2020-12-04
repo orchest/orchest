@@ -51,7 +51,11 @@ def file_reader_loop(sio):
 
         with lock:
 
-            for session_uuid, _ in log_file_store.items():
+            # list() used since entries can be removed during loop
+            for session_uuid in list(log_file_store):
+                check_timeout(session_uuid)
+
+            for session_uuid in log_file_store.keys():
                 try:
                     read_emit_all_lines(file_handles[session_uuid], sio, session_uuid)
                 except Exception as e:
@@ -62,20 +66,34 @@ def file_reader_loop(sio):
         sio.sleep(0.01)
 
 
+def check_timeout(session_uuid):
+    try:
+        # check if heartbeat has timed-out
+        if (
+            log_file_store[session_uuid].last_heartbeat
+            < datetime.now() - HEARTBEAT_TIMEOUT
+        ):
+            logging.info("Clearing %s session due to heartbeat timeout." % session_uuid)
+            clear_log_file(session_uuid)
+            logging.info(
+                "Removed session_uuid (%s). Sessions active: %d"
+                % (session_uuid, len(log_file_store))
+            )
+    except Exception as exception:
+        logging.info(
+            "Failed to check for timeout %s. Error: %s [%s]"
+            % (session_uuid, exception, type(exception))
+        )
+
+
 def read_emit_all_lines(file, sio, session_uuid):
 
     if session_uuid not in log_file_store:
-        logging.warn("session_uuid[%s] not in log_file_store" % session_uuid)
+        logging.info("session_uuid[%s] not in log_file_store" % session_uuid)
         return
 
     if session_uuid not in file_handles:
-        logging.warn("session_uuid[%s] not in file_handles" % session_uuid)
-        return
-
-    # check if heartbeat has timed-out
-    if log_file_store[session_uuid].last_heartbeat < datetime.now() - HEARTBEAT_TIMEOUT:
-        logging.info("Clearing %s session due to heartbeat timeout." % session_uuid)
-        clear_log_file(session_uuid)
+        logging.info("session_uuid[%s] not in file_handles" % session_uuid)
         return
 
     # check if log_uuid is current log_uuid
@@ -84,7 +102,7 @@ def read_emit_all_lines(file, sio, session_uuid):
         latest_log_file.seek(0)
         read_log_uuid = latest_log_file.readline().strip()
     except IOError as e:
-        logging.warn("Could not read latest log file: %s" % e)
+        logging.info("Could not read latest log file: %s" % e)
         return
     except Exception as e:
         logging.error(
@@ -111,24 +129,22 @@ def read_emit_all_lines(file, sio, session_uuid):
         log_file_store[session_uuid].log_uuid = read_log_uuid
 
         # new log file detected - swap file handle
-        try:
-            file_handles[session_uuid].close()
-        except IOError as e:
-            logging.warn(
-                "Failed to close file %s for session_uuid %s" % (e, session_uuid)
-            )
-        except Exception as e:
-            logging.error("File handle close error %s" % e)
-
+        close_file_handle(session_uuid)
         file_handles[session_uuid] = latest_log_file
 
         return
     else:
 
+        if log_file_store[session_uuid].log_uuid == "":
+            logging.info(
+                "No new log_uuid found, but current log_uuid is empty. Debug info: read_log_uuid[%s] stored_log_uuid[%s] session_uuid[%s]."
+                % (read_log_uuid, log_file_store[session_uuid].log_uuid, session_uuid)
+            )
+
         try:
             latest_log_file.close()
         except IOError as e:
-            logging.warn(
+            logging.info(
                 "Failed to close new log file %s for session_uuid %s"
                 % (e, session_uuid)
             )
@@ -143,7 +159,7 @@ def read_emit_all_lines(file, sio, session_uuid):
             try:
                 line = html.unescape(line)
             except Exception as e:
-                logging.warn("Error escaping line %s" % line)
+                logging.info("Error escaping line %s" % line)
 
         except IOError as e:
             raise Exception("IOError reading log file %s" % e)
@@ -212,7 +228,6 @@ def get_log_path(log_file):
 
 
 def clear_log_file(session_uuid):
-
     close_file_handle(session_uuid)
     try:
         del log_file_store[session_uuid]
@@ -309,7 +324,7 @@ def main():
                             "Adding session_uuid (%s) failed." % data["session_uuid"]
                         )
                 else:
-                    logging.warn(
+                    logging.info(
                         "Tried to add %s to log_file_store but it already exists."
                         % data["session_uuid"]
                     )
