@@ -1,4 +1,4 @@
 SQLAlchemy
 boto3
-pyarrow==1.0.1
+pyarrow==2.0.0
 requests

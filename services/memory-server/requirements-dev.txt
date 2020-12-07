@@ -1,6 +1,6 @@
 # Make sure hardcoded version here are equal to the versions in the
 # requirements.txt
 networkx==2.4
-pyarrow==1.0.1
+pyarrow==2.0.0
 -e ../../orchest-sdk/python
 -e ../../lib/python/orchest-internals
