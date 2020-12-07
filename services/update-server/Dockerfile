@@ -13,4 +13,6 @@ COPY ./app ./app
 
 # Needed by the base image.
 WORKDIR /orchest/services/update-server/app
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 ENV GUNICORN_CONF /orchest/services/update-server/app/gunicorn_conf.py

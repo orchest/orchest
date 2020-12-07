@@ -8,26 +8,30 @@ NO_CACHE=false
 VERBOSE=false
 ENABLE_SSL=false
 RELEASE_TAG="latest"
+ORCHEST_VERSION=$(git describe --tags)
 
 # Read flags.
 while getopts "s:i:t:nve" opt; do
   case $opt in
+    e)
+      # 'e' for encryption
+      ENABLE_SSL=true
+      ;;
     i)
       IMGS+=($OPTARG)
+      ;;
+    n)
+      NO_CACHE=true
+      echo "Cache disabled"
+      ;;
+    o)
+      ORCHEST_VERSION="$OPTARG"
       ;;
     s)
       SKIP_IMGS+=($OPTARG)
       ;;
     t)
       RELEASE_TAG="$OPTARG"
-      ;;
-    n)
-      NO_CACHE=true
-      echo "Cache disabled"
-      ;;
-    e)
-      # 'e' for encryption
-      ENABLE_SSL=true
       ;;
     v)
       echo "Verbose mode. Disabling parallel building."
@@ -169,6 +173,7 @@ do
             -t "orchest/jupyter-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-server/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
 
     fi
@@ -182,6 +187,7 @@ do
             -t "orchest/jupyter-enterprise-gateway:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-enterprise-gateway/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
 
     fi
@@ -193,6 +199,7 @@ do
             -t "orchest/celery-worker:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile_celery \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
 
     fi
@@ -206,6 +213,7 @@ do
             -t "orchest/base-kernel-py:$RELEASE_TAG" \
             -f $DIR/../services/base-images/base-kernel-py/Dockerfile \
             --no-cache=$NO_CACHE \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
 
     fi
@@ -217,6 +225,7 @@ do
             -t "orchest/base-kernel-py-gpu:$RELEASE_TAG" \
             -f $DIR/../services/base-images/base-kernel-py-gpu/Dockerfile \
             --no-cache=$NO_CACHE \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
 
     fi
@@ -228,6 +237,7 @@ do
             -t "orchest/base-kernel-r:$RELEASE_TAG" \
             -f $DIR/../services/base-images/base-kernel-r/Dockerfile \
             --no-cache=$NO_CACHE \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -239,6 +249,7 @@ do
             -t "orchest/orchest-api:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -249,6 +260,7 @@ do
             -t "orchest/orchest-ctl:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-ctl/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -259,6 +271,7 @@ do
             -t "orchest/update-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/update-server/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -269,6 +282,7 @@ do
             -t "orchest/file-manager:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/file-manager/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -282,6 +296,7 @@ do
             -t "orchest/orchest-webserver:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-webserver/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -291,6 +306,7 @@ do
             -t "orchest/nginx-proxy:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/nginx-proxy/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -304,6 +320,7 @@ do
             -t "orchest/auth-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/auth-server/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 
@@ -314,6 +331,7 @@ do
             -t "orchest/memory-server:$RELEASE_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/memory-server/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
 

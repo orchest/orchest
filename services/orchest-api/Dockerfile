@@ -16,3 +16,5 @@ COPY ./app ./app
 WORKDIR /orchest/services/orchest-api/app
 
 ENV GUNICORN_CONF /orchest/services/orchest-api/app/gunicorn_conf.py
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
