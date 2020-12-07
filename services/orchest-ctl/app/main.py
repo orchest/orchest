@@ -1,5 +1,6 @@
 import asyncio
 from enum import Enum
+import os
 from typing import Optional
 
 import typer
@@ -19,8 +20,8 @@ def _default(
         show_default=False,
         max=3,
         clamp=True,
-        help="Counter to set verbosity level, e.g. -vvv",
-    )
+        help="Counter to set verbosity level, e.g. 'orchest -vvv start'",
+    ),
 ):
     utils.init_logger(verbosity=verbosity)
 
@@ -56,6 +57,25 @@ def __entrypoint():
     loop = asyncio.get_event_loop()
     app()
     loop.close()
+
+
+@app.command()
+def version(
+    ext: Optional[bool] = typer.Option(
+        None,
+        "--ext",
+        help="Get extensive version information.",
+    ),
+):
+    """
+    Get Orchest version.
+    """
+    if ext:
+        version = cmdline.version()
+        typer.echo(version)
+    else:
+        orchest_version = os.getenv("ORCHEST_VERSION")
+        typer.echo(f"Orchest version {orchest_version}")
 
 
 @app.command()

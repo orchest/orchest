@@ -27,4 +27,6 @@ COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir
 
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 ENTRYPOINT [ "jupyter", "lab" ]

@@ -16,4 +16,6 @@ COPY ./app ./app
 # This `WORKDIR` is required for the context of the application of the
 # `start_celery_workers.sh` script.
 WORKDIR /orchest/services/orchest-api/app/
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 CMD ["./../start_celery_workers.sh"]

@@ -57,6 +57,17 @@ ON_START_IMAGES = [
     "rabbitmq:3",
 ]
 
+VERSION_IMAGES = [
+    "orchest/jupyter-enterprise-gateway:latest",
+    "orchest/memory-server:latest",
+    "orchest/update-server:latest",
+    "orchest/orchest-api:latest",
+    "orchest/orchest-webserver:latest",
+    "orchest/celery-worker:latest",
+    "orchest/auth-server:latest",
+    "orchest/nginx-proxy:latest",
+]
+
 REQUIRED_ENV_VARS = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR"]
 ENVS = {}
 
