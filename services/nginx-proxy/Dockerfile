@@ -14,4 +14,6 @@ COPY ./generate-dummy-certs.sh /etc/ssl/certs/
 RUN cd /etc/ssl/certs/ && \
     ./generate-dummy-certs.sh
 
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 RUN nginx -t

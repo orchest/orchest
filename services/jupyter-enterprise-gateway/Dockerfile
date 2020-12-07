@@ -10,4 +10,6 @@ COPY ./lib/python /orchest/lib/python
 USER root
 RUN pip3 install --upgrade pip && pip3 install -e /orchest/lib/python/orchest-internals
 
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 USER $NB_UID

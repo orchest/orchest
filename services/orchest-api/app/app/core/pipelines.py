@@ -122,8 +122,10 @@ async def update_status(
     elif type == "pipeline":
         url = base_url
 
-    async with session.put(url, json=data) as response:
-        return await response.json()
+    # Just await the response.
+    # The proposed fix on the aiohttp GitHub to do
+    # `response.json(content_type=None)` still results in parsing issues.
+    await session.put(url, json=data)
 
 
 def get_volume_mounts(run_config, task_id):

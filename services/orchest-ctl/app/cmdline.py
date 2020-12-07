@@ -14,6 +14,16 @@ from app.config import CONTAINER_MAPPING
 from app.connections import docker_client
 
 
+def echo_extensive_versions():
+    # TODO: do async
+    for img in config.VERSION_IMAGES:
+        stdout = docker_client.containers.run(
+            img, command=["printenv", "ORCHEST_VERSION"]
+        )
+        stdout = stdout.decode("utf-8").replace("\n", "")
+        typer.echo(f"{img:<44}: {stdout}")
+
+
 def restart():
     stop()
     start()

@@ -44,7 +44,7 @@ class RunList(Resource):
             query = query.filter_by(project_uuid=request.args.get("project_uuid"))
 
         runs = query.all()
-        return {"runs": [run.as_dict() for run in runs]}, 200
+        return {"runs": [run.__dict__ for run in runs]}, 200
 
     @api.doc("start_run")
     @api.expect(schema.interactive_run_spec)

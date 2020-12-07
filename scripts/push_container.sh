@@ -3,7 +3,7 @@
 set -e
 
 IMGS=()
-RELEASE_TAG="latest"
+BUILD_TAG="latest"
 
 while getopts "i:t:" opt; do
   case $opt in
@@ -11,7 +11,7 @@ while getopts "i:t:" opt; do
       IMGS+=($OPTARG)
       ;;
     t)
-      RELEASE_TAG="$OPTARG"
+      BUILD_TAG="$OPTARG"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -24,5 +24,5 @@ echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-
 
 for IMG in ${IMGS[@]}
 do
-    docker push "orchest/$IMG:$RELEASE_TAG"
+    docker push "orchest/$IMG:$BUILD_TAG"
 done

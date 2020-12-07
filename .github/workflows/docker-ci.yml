@@ -17,8 +17,8 @@ jobs:
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      # RELEASE_TAG: ${{ github.event.client_payload.release_tag }}
-      RELEASE_TAG: "latest"
+      # BUILD_TAG: ${{ github.event.client_payload.build_tag }}
+      BUILD_TAG: "latest"
 
     strategy:
       matrix:
@@ -27,12 +27,12 @@ jobs:
             -i orchest-api -i orchest-webserver -i auth-server,
             -i jupyter-server,
             -i jupyter-enterprise-gateway,
-            -i orchest-ctl -i base-kernel-py -i base-kernel-r,
+            -i base-kernel-py -i base-kernel-r,
             -i base-kernel-py-gpu,
             -i nginx-proxy,
             -i update-server,
             -i file-manager,
-            -i celery-worker -i memory-server,
+            -i orchest-ctl -i celery-worker -i memory-server,
           ]
 
     steps:
@@ -40,11 +40,14 @@ jobs:
 
       - name: Build and push image
         run: |
-          bash ./scripts/pull_container.sh ${{ matrix.image }} -t "$RELEASE_TAG"
+          bash ./scripts/pull_container.sh ${{ matrix.image }} -t "$BUILD_TAG"
           echo "-----------"
-          bash ./scripts/build_container.sh ${{ matrix.image }} -v -t "$RELEASE_TAG"
+          bash ./scripts/build_container.sh ${{ matrix.image }} \
+                    -o ${GITHUB_REF#refs/tags/} \
+                    -t "$BUILD_TAG" \
+                    -v
           echo "-----------"
-          bash ./scripts/push_container.sh ${{ matrix.image }} -t "$RELEASE_TAG"
+          bash ./scripts/push_container.sh ${{ matrix.image }} -t "$BUILD_TAG"
 
   push-readme:
     runs-on: ubuntu-latest

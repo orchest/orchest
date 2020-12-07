@@ -22,4 +22,6 @@ WORKDIR /orchest/services/base-images/runnable-shared/runner
 RUN pip install -r requirements.txt
 
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 CMD [ "/orchest/bootscript.sh" ]

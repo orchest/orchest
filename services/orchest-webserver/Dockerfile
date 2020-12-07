@@ -38,4 +38,6 @@ WORKDIR /orchest/services/orchest-webserver/app
 
 ENV GUNICORN_CONF /orchest/services/orchest-webserver/app/gunicorn_conf.py
 ENV APP_MODULE "main:app"
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 COPY ./start.sh /start.sh

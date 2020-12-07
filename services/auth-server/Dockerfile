@@ -26,4 +26,6 @@ RUN ./compile-sass.sh
 
 # Required by base image.
 ENV GUNICORN_CONF /orchest/services/auth-server/app/gunicorn_conf.py
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 WORKDIR /orchest/services/auth-server/app
