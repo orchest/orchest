@@ -1,22 +1,17 @@
 import json
 import os
 import hashlib
-import json
-import random
-import string
 import logging
-import uuid
-import tarfile
-import io
 import docker
 import shutil
 import requests
-import subprocess
 
 from app.models import Pipeline, Project, Environment, Experiment
 from app.config import CONFIG_CLASS as StaticConfig
 from app.schemas import EnvironmentSchema
+
 from _orchest.internals import config as _config
+
 
 # Directory resolves
 def get_pipeline_path(
@@ -149,7 +144,7 @@ def get_environments(project_uuid, language=None):
                         "Could not read environment for env dir %s and project_uuid %s"
                         % (environment_dir, project_uuid)
                     )
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logging.error(
             "Could not find environments directory in project path %s"
             % environments_dir
@@ -249,19 +244,7 @@ def get_hash(path):
 
 
 def get_repo_tag():
-
-    git_proc = subprocess.Popen(
-        'echo "$(git describe --abbrev=0 --tags) "',
-        cwd="/orchest-host",
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-
-    outs, _ = git_proc.communicate()
-
-    return outs
+    return os.getenv("ORCHEST_VERSION")
 
 
 def get_user_conf():
