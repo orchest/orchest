@@ -2,5 +2,5 @@ nbformat
 nbconvert
 IPython
 ipykernel
--e ../../../../orchest-sdk/python/
+pytest
 -e ../../../../lib/python/orchest-internals

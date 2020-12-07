@@ -1,12 +1,16 @@
 FROM tiangolo/meinheld-gunicorn-flask:python3.7
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
-# Get the orchest application, specifically the auth-server
-COPY ./lib /orchest/lib
-COPY ./ /orchest/services/update-server
+# Get all requirements in place.
+COPY ./requirements.txt /orchest/services/update-server/
+COPY ./lib/python /orchest/lib/python
 
-WORKDIR /orchest/services/update-server/app
-
+WORKDIR /orchest/services/update-server
 RUN pip3 install -r requirements.txt
 
+# Get the orchest application.
+COPY ./app ./app
+
+# Needed by the base image.
+WORKDIR /orchest/services/update-server/app
 ENV GUNICORN_CONF /orchest/services/update-server/app/gunicorn_conf.py

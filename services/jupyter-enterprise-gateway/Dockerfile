@@ -1,15 +1,13 @@
 FROM elyra/enterprise-gateway:2.3.0
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
-COPY ./lib /orchest/lib
+# Overwrite the standard Python 3 kernel to indicate it should not
+# be used in Orchest.
+COPY ./kernel-override/ /opt/conda/share/jupyter/kernels/python3/
 
-COPY ./app /orchest/services/jupyter-enterprise-gateway/app
-WORKDIR /orchest/services/jupyter-enterprise-gateway/app
-
+# Running as root is required to install the internal library.
+COPY ./lib/python /orchest/lib/python
 USER root
-RUN pip3 install --upgrade pip
-RUN pip3 install -r requirements.txt
-
+RUN pip3 install --upgrade pip && pip3 install -e /orchest/lib/python/orchest-internals
 
 USER $NB_UID
-COPY ./kernel-override/ /opt/conda/share/jupyter/kernels/python3/

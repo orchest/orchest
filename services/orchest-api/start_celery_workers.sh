@@ -22,8 +22,9 @@ celery worker -A app.core.tasks \
 
 
 # Environment builds. "celery" is the default queue name.
-# max-tasks-per-child is currently needed, because SocketIO is not cleaning up state when using disconnect,
-# which will lead to sockets related failures in a subsequent task
+# max-tasks-per-child is currently needed, because SocketIO is not
+# cleaning up state when using disconnect, which will lead to sockets
+# related failures in a subsequent task
 celery worker -A app.core.tasks \
     -l INFO \
     -Q environment_builds \

@@ -7,19 +7,29 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 # Install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
-COPY ./app /orchest/services/orchest-webserver/app
+# Install the Python requirements before the JS compiling, because
+# changes in the front-end often include JS changes meaning that its
+# cache is more likely to be invalidated.
+COPY ./requirements.txt /orchest/services/orchest-webserver/
 COPY ./lib /orchest/lib
-WORKDIR /orchest/services/orchest-webserver/app
-RUN pip3 install --upgrade pip
-RUN pip3 install -r requirements.txt
 
-COPY ./lib/javascript/. /orchest/services/orchest-webserver/app/static/js/lib/
+# Set the `WORKDIR` so the editable installs in the `requirements.txt`
+# can use relative paths.
+WORKDIR /orchest/services/orchest-webserver
+RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 
-# Compile front-end code with npx and compile style
+# Static application files.
+COPY ./app/static ./app/static
+COPY ./lib/javascript/ /orchest/services/orchest-webserver/app/static/js/lib/
+
+# Compile front-end code with npx and compile style.
 WORKDIR /orchest/services/orchest-webserver/app/static
 RUN npm install
-RUN ./compile-js.sh
-RUN ./compile-sass.sh
+RUN ./compile-js.sh && ./compile-sass.sh
+
+# Application files.
+WORKDIR /orchest/services/orchest-webserver/
+COPY ./app ./app
 
 # Setting this WORKDIR is required by the base image: "otherwhise gunicorn
 # will try to run the app in /app". Additionally, we need to specify a

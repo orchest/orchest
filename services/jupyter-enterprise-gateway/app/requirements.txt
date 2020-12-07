@@ -1,2 +1,0 @@
-docker
--e ../../../lib/python/orchest-internals
