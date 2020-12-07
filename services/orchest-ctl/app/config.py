@@ -57,7 +57,11 @@ ON_START_IMAGES = [
     "rabbitmq:3",
 ]
 
+# TODO: Add ability to run the version info for the commented out
+# containers (probably due to entrypoints).
 VERSION_IMAGES = [
+    # "orchest/file-manager:latest",
+    # "orchest/jupyter-server:latest",
     "orchest/jupyter-enterprise-gateway:latest",
     "orchest/memory-server:latest",
     "orchest/update-server:latest",

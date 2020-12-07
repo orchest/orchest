@@ -27,12 +27,12 @@ jobs:
             -i orchest-api -i orchest-webserver -i auth-server,
             -i jupyter-server,
             -i jupyter-enterprise-gateway,
-            -i orchest-ctl -i base-kernel-py -i base-kernel-r,
+            -i base-kernel-py -i base-kernel-r,
             -i base-kernel-py-gpu,
             -i nginx-proxy,
             -i update-server,
             -i file-manager,
-            -i celery-worker -i memory-server,
+            -i orchest-ctl -i celery-worker -i memory-server,
           ]
 
     steps:

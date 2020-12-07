@@ -14,7 +14,7 @@ from app.config import CONTAINER_MAPPING
 from app.connections import docker_client
 
 
-def version():
+def echo_extensive_versions():
     # TODO: do async
     for img in config.VERSION_IMAGES:
         stdout = docker_client.containers.run(

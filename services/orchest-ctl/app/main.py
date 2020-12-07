@@ -71,7 +71,7 @@ def version(
     Get Orchest version.
     """
     if ext:
-        version = cmdline.version()
+        version = cmdline.echo_extensive_versions()
         typer.echo(version)
     else:
         orchest_version = os.getenv("ORCHEST_VERSION")
