@@ -7,7 +7,7 @@ SKIP_IMGS=()
 NO_CACHE=false
 VERBOSE=false
 ENABLE_SSL=false
-RELEASE_TAG="latest"
+BUILD_TAG="latest"
 ORCHEST_VERSION=$(git describe --tags)
 
 # Read flags.
@@ -31,7 +31,7 @@ while getopts "s:i:t:nve" opt; do
       SKIP_IMGS+=($OPTARG)
       ;;
     t)
-      RELEASE_TAG="$OPTARG"
+      BUILD_TAG="$OPTARG"
       ;;
     v)
       echo "Verbose mode. Disabling parallel building."
@@ -170,7 +170,7 @@ do
 
         build_ctx=$DIR/../services/jupyter-server
         build=(docker build \
-            -t "orchest/jupyter-server:$RELEASE_TAG" \
+            -t "orchest/jupyter-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-server/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -184,7 +184,7 @@ do
 
         build_ctx=$DIR/../services/jupyter-enterprise-gateway
         build=(docker build \
-            -t "orchest/jupyter-enterprise-gateway:$RELEASE_TAG" \
+            -t "orchest/jupyter-enterprise-gateway:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-enterprise-gateway/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -196,7 +196,7 @@ do
 
         build_ctx=$DIR/../services/orchest-api
         build=(docker build \
-            -t "orchest/celery-worker:$RELEASE_TAG" \
+            -t "orchest/celery-worker:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile_celery \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -210,7 +210,7 @@ do
 
         build_ctx=$DIR/../services/base-images
         build=(docker build \
-            -t "orchest/base-kernel-py:$RELEASE_TAG" \
+            -t "orchest/base-kernel-py:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-py/Dockerfile \
             --no-cache=$NO_CACHE \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -222,7 +222,7 @@ do
 
         build_ctx=$DIR/../services/base-images
         build=(docker build \
-            -t "orchest/base-kernel-py-gpu:$RELEASE_TAG" \
+            -t "orchest/base-kernel-py-gpu:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-py-gpu/Dockerfile \
             --no-cache=$NO_CACHE \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -234,7 +234,7 @@ do
 
         build_ctx=$DIR/../services/base-images
         build=(docker build \
-            -t "orchest/base-kernel-r:$RELEASE_TAG" \
+            -t "orchest/base-kernel-r:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-r/Dockerfile \
             --no-cache=$NO_CACHE \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -246,7 +246,7 @@ do
 
         build_ctx=$DIR/../services/orchest-api
         build=(docker build \
-            -t "orchest/orchest-api:$RELEASE_TAG" \
+            -t "orchest/orchest-api:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -257,7 +257,7 @@ do
 
         build_ctx=$DIR/../services/orchest-ctl
         build=(docker build \
-            -t "orchest/orchest-ctl:$RELEASE_TAG" \
+            -t "orchest/orchest-ctl:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-ctl/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -268,7 +268,7 @@ do
 
         build_ctx=$DIR/../services/update-server
         build=(docker build \
-            -t "orchest/update-server:$RELEASE_TAG" \
+            -t "orchest/update-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/update-server/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -279,7 +279,7 @@ do
 
         build_ctx=$DIR/../services/file-manager
         build=(docker build \
-            -t "orchest/file-manager:$RELEASE_TAG" \
+            -t "orchest/file-manager:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/file-manager/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -293,7 +293,7 @@ do
 
         build_ctx=$DIR/../services/orchest-webserver
         build=(docker build \
-            -t "orchest/orchest-webserver:$RELEASE_TAG" \
+            -t "orchest/orchest-webserver:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-webserver/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -303,7 +303,7 @@ do
     if [ $IMG == "nginx-proxy" ]; then
         build_ctx=$DIR/../services/nginx-proxy
         build=(docker build \
-            -t "orchest/nginx-proxy:$RELEASE_TAG" \
+            -t "orchest/nginx-proxy:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/nginx-proxy/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -317,7 +317,7 @@ do
 
         build_ctx=$DIR/../services/auth-server
         build=(docker build \
-            -t "orchest/auth-server:$RELEASE_TAG" \
+            -t "orchest/auth-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/auth-server/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
@@ -328,7 +328,7 @@ do
     if [ $IMG == "memory-server" ]; then
         build_ctx=$DIR/../services/memory-server
         build=(docker build \
-            -t "orchest/memory-server:$RELEASE_TAG" \
+            -t "orchest/memory-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/memory-server/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
