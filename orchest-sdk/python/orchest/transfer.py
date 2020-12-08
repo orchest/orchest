@@ -1,5 +1,6 @@
 """Transfer mechanisms to output data and get data."""
 from datetime import datetime
+from enum import Enum
 import json
 import os
 import pickle
@@ -19,6 +20,21 @@ from orchest.errors import (
 )
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
+
+
+class Serialization(Enum):
+    """Possible types of serialization.
+
+    Types are:
+        * ``ARROW_TABLE``
+        * ``ARROW_BATCH``
+        * ``PICKLE``
+
+    """
+
+    ARROW_TABLE = 0
+    ARROW_BATCH = 1
+    PICKLE = 2
 
 
 class _PlasmaConnector:
@@ -58,31 +74,22 @@ class _PlasmaConnector:
         return self._client
 
 
-# First line of the docstring is for sphinx-autodoc. Otherwise the third
-# party type `pa.SerializedPyObject` has to be mocked and therefore will
-# not show up in the RTD documentation.
 def serialize(
-    data: Any, pickle_fallback: bool = True
-) -> Tuple[pa.SerializedPyObject, str]:
-    """serialize(data: Any, pickle_fallback: bool = True) \
-    -> Tuple[pa.SerializedPyObject, str]
+    data: Any,
+) -> Tuple[bytes, Serialization]:
+    """Serializes an object to a ``pa.Buffer``.
 
-    Serializes an object using ``pyarrow.serialize``.
+    The way the object is serialized depends on the nature of the
+    object: ``pa.RecordBatch`` and ``pa.Table`` are serialized using
+    ``pyarrow`` functions. All other cases are serialized through the
+    ``pickle`` library.
 
     Args:
         data: The object/data to be serialized.
-        pickle_fallback: If True fall back on ``pickle`` for
-            serialization if pyarrow cannot serialize the object. False
-            to not fall back on ``pickle``.
 
     Returns:
-        Tuple of the serialized data and the serialization that was
-        used, where ``'arrowpickle'`` stands for that the data was first
-        pickled and then serialized using ``pyarrow``.
-
-    Raises:
-        pa.SerializationCallbackError: If ``pa.serialize`` cannot
-            serialize the given data.
+        Tuple of the serialized data (in ``pa.Buffer`` format) and the
+        :class:`Serialization` that was used.
 
     Note:
         ``pickle`` does not include the code of custom functions or
@@ -92,62 +99,59 @@ def serialize(
         "Thus the defining module must be importable in the unpickling
         environment, and the module must contain the named object,
         otherwise an exception will be raised."
-    """
-    try:
-        # NOTE: experimental pyarrow function ``serialize``
-        serialized = pa.serialize(data)
 
-    except pa.SerializationCallbackError as e:
-        # TODO: this is very inefficient. We decided to pickle the
-        #       object if pyarrow can not serialize it for us. However,
-        #       there might very well be a better way to write the
-        #       pickled object to the buffer instead of serializing the
-        #       pickled object again so that we get a SerializedPyObject
-        #       (on which we can call certain methods).
-        if pickle_fallback:
-            serialized = pa.serialize(pickle.dumps(data))
-            serialization = "arrowpickle"
+    """
+    if isinstance(data, (pa.RecordBatch, pa.Table)):
+        # Use the intended pyarrow functionalities when possible.
+        if isinstance(data, pa.Table):
+            serialization = Serialization.ARROW_TABLE
         else:
-            raise pa.SerializationCallbackError(e)
+            serialization = Serialization.ARROW_BATCH
+
+        output_buffer = pa.BufferOutputStream()
+        writer = pa.RecordBatchStreamWriter(output_buffer, data.schema)
+        writer.write(data)
+        writer.close()
+        serialized = output_buffer.getvalue()
 
     else:
-        serialization = "arrow"
+        # All other cases use the pickle library.
+        serialization = Serialization.PICKLE
+
+        # Use the best protocol possible, for reference see:
+        # https://docs.python.org/3/library/pickle.html#pickle-protocols
+        serialized = pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
+
+        # NOTE: zero-copy view on the bytes.
+        serialized = pa.py_buffer(serialized)
 
     return serialized, serialization
 
 
 def _output_to_disk(
-    obj: pa.SerializedPyObject, full_path: str, serialization: str = "arrow"
+    obj: pa.Buffer, full_path: str, serialization: Serialization
 ) -> None:
     """Outputs a serialized object to disk to the specified path.
 
     Args:
         obj: Object to output to disk.
         full_path: Full path to save the data to.
-        serialization: Serialization of the `obj`. Currently supported
-            values are: ``['arrow', 'arrowpickle']``.
+        serialization: Serialization of the `obj`. See the Serialization
+        enum.
 
     Raises:
-        ValueError: If the specified `type` is not one of ``['pickle']``
+        ValueError: If the specified serialization is not valid.
     """
-    if serialization in ["arrow", "arrowpickle"]:
-        with open(f"{full_path}.{serialization}", "wb") as f:
-            obj.write_to(f)
-
+    if isinstance(serialization, Serialization):
+        with pa.OSFile(f"{full_path}.{serialization.name}", "wb") as f:
+            f.write(obj)
     else:
         raise ValueError("Function not defined for specified 'serialization'")
 
     return
 
 
-# TODO: serialization is in case the object is already serialized. Should
-#       this option also be given to the output_to_memory? I don't think
-#       so because we only use it internally. Although it is not that nice
-#       that it is exposed to the user. But the user CAN use it if he
-#       serialized it before using the _serialize method.
-def output_to_disk(
-    data: Any, pickle_fallback: bool = True, serialization: Optional[str] = None
-) -> None:
+def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> None:
     """Outputs data to disk.
 
     To manage outputing the data to disk, this function has a side
@@ -159,13 +163,8 @@ def output_to_disk(
 
     Args:
         data: Data to output to disk.
-        pickle_fallback: This option is passed to :meth:`serialize`. If
-            ``pyarrow`` cannot serialize the data, then it will fall
-            back to using ``pickle``. This is helpful for custom data
-            types.
         serialization: Serialization of the `data` in case it is already
-            serialized. Currently supported values are:
-            ``['arrow', 'arrowpickle']``.
+            serialized. For possible values see :class:`Serialization`.
 
     Raises:
         StepUUIDResolveError: The step's UUID cannot be resolved and
@@ -194,7 +193,7 @@ def output_to_disk(
     # In case the data is not already serialized, then we need to
     # serialize it.
     if serialization is None:
-        data, serialization = serialize(data, pickle_fallback=pickle_fallback)
+        data, serialization = serialize(data)
 
     # Recursively create any directories if they do not already exists.
     step_data_dir = Config.get_step_data_dir(step_uuid)
@@ -204,7 +203,7 @@ def output_to_disk(
     head_file = os.path.join(step_data_dir, "HEAD")
     with open(head_file, "w") as f:
         current_time = datetime.utcnow()
-        f.write(f'{current_time.isoformat(timespec="seconds")}, {serialization}')
+        f.write(f'{current_time.isoformat(timespec="seconds")}, {serialization.name}')
 
     # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -212,24 +211,50 @@ def output_to_disk(
     return _output_to_disk(data, full_path, serialization=serialization)
 
 
-def _get_output_disk(full_path: str, serialization: str = "arrow") -> Any:
-    """Gets data from disk."""
-    with open(f"{full_path}.{serialization}", "rb") as f:
-        data = pa.deserialize_from(f, base=None)
+def _get_output_disk(full_path: str, serialization: str) -> Any:
+    """Gets data from disk.
 
-    if serialization == "arrowpickle":
-        return pickle.loads(data)
+    Raises:
+        ValueError: If the serialization argument is unsupported.
+    """
+    file_path = f"{full_path}.{serialization}"
+    if serialization == Serialization.ARROW_TABLE.name:
+        # pa.memory_map is for reading (zero-copy)
+        with pa.memory_map(file_path, "rb") as input_file:
+            # read all batches as a table
+            stream = pa.ipc.open_stream(input_file)
+            return stream.read_all()
+    elif serialization == Serialization.ARROW_BATCH.name:
+        with pa.memory_map(file_path, "rb") as input_file:
+            # return the first batch (the only one)
+            stream = pa.ipc.open_stream(input_file)
+            return [b for b in stream][0]
+    elif serialization == Serialization.PICKLE.name:
+        # https://docs.python.org/3/library/pickle.html
+        # The argument file must have three methods,
+        # a read() method that takes an integer argument,
+        # a readinto() method that takes a buffer argument
+        # and a readline() method that requires no arguments,
+        # as in the io.BufferedIOBase interface.
 
-    return data
+        # while memory_map does not support readline, given the docs,
+        # https://arrow.apache.org/docs/python/generated/pyarrow.MemoryMappedFile.html#pyarrow.MemoryMappedFile
+        # using pickle load on a memory mapped file would work, however,
+        # it was safer to not take the risk and use the normal
+        # python file
+        with open(file_path, "rb") as input_file:
+            return pickle.load(input_file)
+    else:
+        raise ValueError("The specified serialization is unsupported: %s")
 
 
-def get_output_disk(step_uuid: str, serialization: str = "arrow") -> Any:
+def get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
     """Gets data from disk.
 
     Args:
         step_uuid: The UUID of the step to get output data from.
-        serialization: The serialization of the output. Has to be
-            specified in order to deserialize correctly.
+        serialization: The serialization for the output. For possible
+            values see :class:`Serialization`.
 
     Returns:
         Data from the step identified by `step_uuid`.
@@ -295,7 +320,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
 
 
 def _output_to_memory(
-    obj: pa.SerializedPyObject,
+    obj: pa.Buffer,
     client: plasma.PlasmaClient,
     obj_id: Optional[plasma.ObjectID] = None,
     metadata: Optional[bytes] = None,
@@ -325,7 +350,8 @@ def _output_to_memory(
     # because inserting an already full Plasma store will start evicting
     # objects to free up space. However, we want to maintain control
     # over what objects get evicted.
-    total_size = obj.total_bytes
+    # obj.size -> "The buffer size in bytes."
+    total_size = obj.size
     if metadata is not None:
         total_size += len(metadata)
 
@@ -349,23 +375,21 @@ def _output_to_memory(
     # exists, then it first has to be deleted. Essentially we are
     # overwriting the data (just like we do for disk)
     try:
-        buffer = client.create(obj_id, obj.total_bytes, metadata=metadata)
+        buffer = client.create(obj_id, obj.size, metadata=metadata)
     except plasma.PlasmaObjectExists:
         client.delete([obj_id])
-        buffer = client.create(obj_id, obj.total_bytes, metadata=metadata)
+        buffer = client.create(obj_id, obj.size, metadata=metadata)
 
     stream = pa.FixedSizeBufferWriter(buffer)
     stream.set_memcopy_threads(memcopy_threads)
 
-    obj.write_to(stream)
+    stream.write(obj)
     client.seal(obj_id)
 
     return obj_id
 
 
-def output_to_memory(
-    data: Any, pickle_fallback: bool = True, disk_fallback: bool = True
-) -> None:
+def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
     """Outputs data to memory.
 
     To manage outputing the data to memory for the user, this function
@@ -373,10 +397,6 @@ def output_to_memory(
 
     Args:
         data: Data to output.
-        pickle_fallback: This option is passed to :meth:`serialize`. If
-            ``pyarrow`` cannot serialize the data, then it will fall
-            back to using ``pickle``. This is helpful for custom data
-            types.
         disk_fallback: If True, then outputing to disk is used when the
             `data` does not fit in memory. If False, then a
             :exc:`MemoryError` is thrown.
@@ -415,7 +435,7 @@ def output_to_memory(
         raise StepUUIDResolveError("Failed to determine where to output data to.")
 
     # Serialize the object and collect the serialization metadata.
-    obj, serialization = serialize(data, pickle_fallback=pickle_fallback)
+    obj, serialization = serialize(data)
 
     try:
         client = _PlasmaConnector().client
@@ -430,7 +450,7 @@ def output_to_memory(
 
     # Try to output to memory.
     obj_id = _convert_uuid_to_object_id(step_uuid)
-    metadata = bytes(f"{Config.IDENTIFIER_SERIALIZATION};{serialization}", "utf-8")
+    metadata = bytes(f"{Config.IDENTIFIER_SERIALIZATION};{serialization.name}", "utf-8")
 
     try:
         obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
@@ -462,6 +482,8 @@ def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> 
     Raises:
         ObjectNotFoundError: If the specified `obj_id` is not in the
             store.
+        ValueError: If the serialization type in the metadata is not
+            valid.
     """
     obj_ids = [obj_id]
 
@@ -480,15 +502,26 @@ def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> 
             f'Object with ObjectID "{obj_id}" does not exist in store.'
         )
 
-    buffers_bytes = buffer.to_pybytes()
-    obj = pa.deserialize(buffers_bytes)
+    serialization = f"{Config.IDENTIFIER_SERIALIZATION};" + "{}"
+    if metadata == bytes(serialization.format(Serialization.ARROW_TABLE.name), "utf-8"):
+        # Read all batches as a table.
+        stream = pa.ipc.open_stream(buffer)
+        return stream.read_all()
 
-    # If the metadata stated that the object was pickled, then we need
-    # to additionally unpickle the obj.
-    if metadata == bytes(f"{Config.IDENTIFIER_SERIALIZATION};arrowpickle", "utf-8"):
-        obj = pickle.loads(obj)
+    elif metadata == bytes(
+        serialization.format(Serialization.ARROW_BATCH.name), "utf-8"
+    ):
+        # Return the first batch (the only one).
+        stream = pa.ipc.open_stream(buffer)
+        return [b for b in stream][0]
 
-    return obj
+    elif metadata == bytes(serialization.format(Serialization.PICKLE.name), "utf-8"):
+        # Can load the buffer directly because its a bytes-like-object:
+        # https://docs.python.org/3/library/pickle.html#pickle.loads
+        return pickle.loads(buffer)
+
+    else:
+        raise ValueError("Object was serialized with an unsupported serialization")
 
 
 def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
@@ -738,7 +771,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]
     return data
 
 
-def output(data: Any, pickle_fallback: bool = True) -> None:
+def output(data: Any) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
     It first tries to output to memory and if it does not fit in memory,
@@ -746,10 +779,6 @@ def output(data: Any, pickle_fallback: bool = True) -> None:
 
     Args:
         data: Data to output.
-        pickle_fallback: This option is passed to :meth:`serialize`. If
-            ``pyarrow`` cannot serialize the data, then it will fall
-            back to using ``pickle``. This is helpful for custom data
-            types.
 
     Raises:
         OrchestNetworkError: Could not connect to the
@@ -769,7 +798,7 @@ def output(data: Any, pickle_fallback: bool = True) -> None:
         calling the function once.
 
     """
-    return output_to_memory(data, pickle_fallback=pickle_fallback, disk_fallback=True)
+    return output_to_memory(data, disk_fallback=True)
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
@@ -786,5 +815,5 @@ def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
 
 
 # TODO: Once we are set on the API we could specify __all__. For now we
-#       will stick with the leading _underscore convenction to keep
-#       methods private.
+#       will stick with the leading _underscore convention to indicate
+#       private methods.

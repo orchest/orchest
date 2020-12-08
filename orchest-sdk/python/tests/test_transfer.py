@@ -1,11 +1,11 @@
 """
 uuid-1, uuid-3 --> uuid-2
 """
-import os
 import shutil
 import time
 from unittest.mock import patch
 
+import pandas as pd
 import numpy as np
 import pyarrow as pa
 import pyarrow.plasma as plasma
@@ -28,7 +28,44 @@ def generate_data(total_size):
     return np.random.randn(nrows)
 
 
-class UnserializableByPyarrowObject:
+def generate_pandas_df(n_rows):
+    # divide to make it in seconds
+    start = pd.to_datetime("2000-01-01").value // 10 ** 9
+    end = pd.to_datetime("2021-01-01").value // 10 ** 9
+    df = pd.DataFrame(
+        {
+            "C1": np.random.randint(-10000, 100000, size=n_rows),
+            "C2": np.random.randn(n_rows),
+            "C4": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="s"),
+            "C5": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="ms"),
+            "C6": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="us"),
+            "C7": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="ns"),
+            "C8": [str(i) for i in range(n_rows)],
+            "C9": [bytes(i) for i in range(n_rows)],
+            "C10": [{i: i} for i in range(n_rows)],
+            "C11": [None for _ in range(n_rows)],
+        }
+    )
+    # set random values to nan
+    df = df.mask(np.random.random(df.shape) < 0.5)
+    return df
+
+
+def get_test_record_batch():
+    test_record_batch = [
+        pa.array([1, 2, 3, 4]),
+        pa.array(["foo", "bar", "baz", None]),
+        pa.array([True, None, False, True]),
+    ]
+    test_record_batch = pa.record_batch(test_record_batch, names=["f0", "f1", "f2"])
+    return test_record_batch
+
+
+def get_test_table():
+    return pa.Table.from_batches([get_test_record_batch()])
+
+
+class CustomClass:
     def __init__(self, x):
         self.x = x
 
@@ -52,32 +89,22 @@ def plasma_store(monkeypatch):
         shutil.rmtree(f"tests/userdir/.data/{step_uuid}", ignore_errors=True)
 
 
-def test_assert_object_is_unserializable_by_pyarrow():
-    """Tests whether pyarrow is unable to serialize a custom object.
-
-    We have to make sure pyarrow did not add code that it can now
-    serialize custom objects. Since then the fallback code to pickle is
-    never called and therefore not tested.
-    """
-    with pytest.raises(pa.lib.SerializationCallbackError):
-        pa.serialize(UnserializableByPyarrowObject(1))
-
-    with pytest.raises(pa.lib.SerializationCallbackError):
-        pa.serialize(UnserializableByPyarrowObject(np.array([1])))
-
-
 @pytest.mark.parametrize(
     "data_1",
     [
         generate_data(KILOBYTE),
-        np.array([UnserializableByPyarrowObject(1) for _ in range(3)]),
+        np.random.rand(10, 5, 2),
+        np.array([CustomClass(1) for _ in range(3)]),
+        generate_pandas_df(20),
+        get_test_record_batch(),
+        get_test_table(),
     ],
-    ids=["basic", "pickle"],
+    ids=["basic", "ndarray", "ndarray-objects", "pandas", "record_batch", "table"],
 )
 @pytest.mark.parametrize(
     "test_transfer",
     [
-        {"method": transfer.output_to_disk, "kwargs": {"pickle_fallback": True}},
+        {"method": transfer.output_to_disk, "kwargs": {}},
     ],
     ids=["default"],
 )
@@ -96,7 +123,10 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
-    assert (input_data == data_1).all()
+    if isinstance(data_1, (pa.RecordBatch, pa.Table, pd.DataFrame)):
+        assert input_data[0].equals(data_1)
+    else:
+        assert (input_data == data_1).all()
 
 
 # TODO: add tests for other kwargs
@@ -104,9 +134,13 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     "data_1",
     [
         generate_data(KILOBYTE),
-        np.array([UnserializableByPyarrowObject(1) for _ in range(3)]),
+        np.random.rand(10, 5, 2),
+        np.array([CustomClass(1) for _ in range(3)]),
+        generate_pandas_df(20),
+        get_test_record_batch(),
+        get_test_table(),
     ],
-    ids=["basic", "pickle"],
+    ids=["basic", "ndarray", "ndarray-objects", "pandas", "record_batch", "table"],
 )
 @pytest.mark.parametrize(
     "test_transfer",
@@ -134,14 +168,18 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
-    assert (input_data == data_1).all()
+    if isinstance(data_1, (pa.RecordBatch, pa.Table, pd.DataFrame)):
+        assert input_data[0].equals(data_1)
+    else:
+        assert (input_data == data_1).all()
 
 
 @patch("orchest.transfer.get_step_uuid")
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
-    data_size = pa.serialize(data_1).total_bytes
+    ser_data, _ = transfer.serialize(data_1)
+    data_size = ser_data.size
     assert data_size > PLASMA_STORE_CAPACITY
 
     orchest.Config.PIPELINE_DEFINITION_PATH = "tests/userdir/pipeline-basic.json"
@@ -163,7 +201,8 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-1
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
-    data_size = pa.serialize(data_1).total_bytes
+    ser_data, _ = transfer.serialize(data_1)
+    data_size = ser_data.size
     assert data_size > PLASMA_STORE_CAPACITY
 
     mock_get_step_uuid.return_value = "uuid-1______________"
@@ -182,12 +221,9 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 @patch("orchest.transfer.get_step_uuid")
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_store):
-    data_1 = [
-        UnserializableByPyarrowObject(generate_data(KILOBYTE))
-        for _ in range(PLASMA_KILOBYTES + 1)
-    ]
+    data_1 = [CustomClass(generate_data(KILOBYTE)) for _ in range(PLASMA_KILOBYTES + 1)]
     serialized, _ = transfer.serialize(data_1)
-    assert serialized.total_bytes > PLASMA_STORE_CAPACITY
+    assert serialized.size > PLASMA_STORE_CAPACITY
 
     orchest.Config.PIPELINE_DEFINITION_PATH = "tests/userdir/pipeline-basic.json"
 
