@@ -501,6 +501,7 @@ class EnvironmentEditView extends React.Component {
           options={[
             ["python", LANGUAGE_MAP["python"]],
             ["r", LANGUAGE_MAP["r"]],
+            ["julia", LANGUAGE_MAP["julia"]],
           ]}
           value={this.state.environment.language}
         />

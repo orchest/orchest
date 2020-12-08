@@ -789,7 +789,7 @@ span.code {
     height: 100%;
     position: absolute;
     user-select: none;
-    background-image: url("../image/cross-fill.svg");
+    background-image: url("../../image/cross-fill.svg");
     background-repeat: repeat;
     border: 1px solid #e5e5e5;
 
@@ -808,7 +808,7 @@ span.code {
 
       &.selected {
         &:after {
-          background-image: url("../image/arrow-head-blue.svg");
+          background-image: url("../../image/arrow-head-blue.svg");
         }
       }
 
@@ -818,7 +818,7 @@ span.code {
         display: block;
         width: 12px;
         height: 12px;
-        background-image: url("../image/arrow-head.svg");
+        background-image: url("../../image/arrow-head.svg");
         background-size: contain;
         background-repeat: no-repeat;
         right: 7px;

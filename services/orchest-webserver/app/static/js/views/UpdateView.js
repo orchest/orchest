@@ -131,6 +131,7 @@ class UpdateView extends React.Component {
                     ["none", "None"],
                     ["python", "Python"],
                     ["r", "R"],
+                    ["julia", "Julia"],
                     ["all", "All"],
                   ]}
                   classNames={["push-down"]}

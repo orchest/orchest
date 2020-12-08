@@ -48,12 +48,13 @@ def main():
         nr = NotebookRunner(pipeline_uuid, step_uuid, working_dir)
         nr.run(file_path)
 
-    elif file_extension in ["py", "r", "sh", ""]:
+    elif file_extension in ["py", "r", "sh", "jl", ""]:
 
         extension_script_mapping = {
             "py": "python3",
             "r": "Rscript",
             "sh": "sh",
+            "jl": "julia",
             "": "sh",
         }
 

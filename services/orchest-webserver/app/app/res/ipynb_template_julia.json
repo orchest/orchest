@@ -1,0 +1,26 @@
+{
+    "cells": [
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": []
+        }
+    ],
+    "metadata": {
+        "kernelspec": {
+            "display_name": "Julia on Docker",
+            "language": "julia",
+            "name": "{kernel_name}"
+        },
+        "language_info": {
+            "file_extension": ".jl",
+            "mimetype": "application/julia",
+            "name": "julia",
+            "version": "1.5.3"
+        }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 4
+}

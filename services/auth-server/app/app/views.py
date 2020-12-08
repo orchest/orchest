@@ -17,7 +17,9 @@ def register_views(app):
         js_bundle_path = os.path.join(
             app.config["STATIC_DIR"], "js", "dist", "main.bundle.js"
         )
-        css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
+        css_bundle_path = os.path.join(
+            app.config["STATIC_DIR"], "css", "dist", "main.css"
+        )
 
         context = {
             "javascript_bundle_hash": get_hash(js_bundle_path),

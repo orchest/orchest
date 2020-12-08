@@ -49,6 +49,7 @@ class Mode(str, Enum):
 class Language(str, Enum):
     python = "python"
     r = "r"
+    julia = "julia"
     all = "all"
     none = "none"
 
@@ -119,6 +120,7 @@ def install(
     lang = language.value
     if gpu:
         lang += "-gpu"
+
     cmdline.install(lang)
 
 
@@ -156,7 +158,7 @@ def update(
     if gpu:
         lang += "-gpu"
 
-    cmdline.update(language)
+    cmdline.update(lang)
 
 
 @app.command()

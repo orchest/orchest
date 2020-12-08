@@ -34,16 +34,23 @@ LANGUAGE_IMAGES = {
     "python-gpu": _orchest_images
     + ["orchest/base-kernel-py:latest" "orchest/base-kernel-py-gpu:latest"],
     "r": _orchest_images + ["orchest/base-kernel-r:latest"],
+    "r-gpu": _orchest_images
+    + ["orchest/base-kernel-r:latest"],  # no GPU support for R yet
+    "julia": _orchest_images + ["orchest/base-kernel-julia:latest"],
+    "julia-gpu": _orchest_images
+    + ["orchest/base-kernel-julia:latest"],  # no GPU support for Julia yet
     "all": _orchest_images
     + [
         "orchest/base-kernel-py:latest",
         "orchest/base-kernel-r:latest",
+        "orchest/base-kernel-julia:latest",
     ],
     "all-gpu": _orchest_images
     + [
         "orchest/base-kernel-py:latest",
         "orchest/base-kernel-py-gpu:latest",
         "orchest/base-kernel-r:latest",
+        "orchest/base-kernel-julia:latest",
     ],
 }
 

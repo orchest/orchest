@@ -27,7 +27,7 @@ jobs:
             -i orchest-api -i orchest-webserver -i auth-server,
             -i jupyter-server,
             -i jupyter-enterprise-gateway,
-            -i base-kernel-py -i base-kernel-r,
+            -i base-kernel-py -i base-kernel-r -i base-kernel-julia,
             -i base-kernel-py-gpu,
             -i nginx-proxy,
             -i update-server,
@@ -80,6 +80,12 @@ jobs:
         env:
           DOCKERHUB_REPOSITORY: orchest/base-kernel-r
           README_FILEPATH: services/base-images/base-kernel-r/README.md
+
+      - name: Push README files to DockerHub base-kernel-julia
+        uses: peter-evans/dockerhub-description@v2
+        env:
+          DOCKERHUB_REPOSITORY: orchest/base-kernel-julia
+          README_FILEPATH: services/base-images/base-kernel-julia/README.md
 
       - name: Push README files to DockerHub base-kernel-py
         uses: peter-evans/dockerhub-description@v2
