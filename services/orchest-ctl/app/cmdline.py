@@ -15,10 +15,19 @@ from app.connections import docker_client
 
 
 def echo_extensive_versions():
+    not_installed_imgs = utils.check_images("all-gpu")
+
     # TODO: do async
-    for img in config.VERSION_IMAGES:
+    for img in config.LANGUAGE_IMAGES["all-gpu"]:
+        # Images not owned by Orchest will not have the ENV var and we
+        # do not want to install containers just to check their version.
+        if not img.startswith("orchest") or img in not_installed_imgs:
+            continue
+
+        # Use `entrypoint` instead of `command` to overwrite the
+        # `entrypoint` inside the container.
         stdout = docker_client.containers.run(
-            img, command=["printenv", "ORCHEST_VERSION"]
+            img, entrypoint=["printenv", "ORCHEST_VERSION"]
         )
         stdout = stdout.decode("utf-8").replace("\n", "")
         typer.echo(f"{img:<44}: {stdout}")
