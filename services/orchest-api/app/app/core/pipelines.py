@@ -345,7 +345,14 @@ class PipelineStepRunner:
 
             res = await asyncio.gather(*tasks)
 
-        else:
+            # If one of the children turns out to fail, then we say the step
+            # itself has failed. Because we start by calling the sentinel node
+            # which is placed at the start of the pipeline.
+            if "FAILURE" in res:
+                return "FAILURE"
+
+        elif status in ["FAILURE", "ABORTED"]:
+
             # The task did not run successfully, thus all its children
             # will be aborted.
             all_children = set()
@@ -367,11 +374,12 @@ class PipelineStepRunner:
                     uuid=child.properties["uuid"],
                 )
 
-        # If one of the children turns out to fail, then we say the step
-        # itself has failed. Because we start by calling the sentinel node
-        # which is placed at the start of the pipeline.
-        if status != "SUCCESS" or "FAILURE" in res:
             return "FAILURE"
+        else:
+            # The status could be STARTED, which means a parent tried to invoke
+            # run_on_docker for a child that was already running.
+            # We don't have to do anything in that case.
+            pass
 
         return "SUCCESS"
 

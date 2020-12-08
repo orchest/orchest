@@ -21,14 +21,18 @@ TRACEBACK="line"
 # When running this script on GitHub Actions, we do not have to create a
 # virtualenv to install the dependencies in.
 USE_VENV=true
+VERBOSE=false
 
-while getopts "s:t-:" opt; do
+while getopts "vs:t-:" opt; do
   case ${opt} in
     s)
       SERVICES+=($OPTARG)
       ;;
     t)
       TRACEBACK="auto"
+      ;;
+    v)
+      VERBOSE=true
       ;;
     -)
       if [ $OPTARG == "no-venv" ]; then
@@ -39,6 +43,7 @@ while getopts "s:t-:" opt; do
           echo "--help        Display help."
           echo "--no-venv     Run without virtualenv."
           echo "-s            Run test for a specific service."
+          echo "-v            Run in verbose mode, don't capture output with pytest."
           echo "-t            Set --tb=auto for pytest."
           exit 0
       fi
@@ -88,7 +93,7 @@ do
     fi
     if [ $SERVICE == "orchest-api" ]; then
         TEST_DIR=$DIR/../services/orchest-api/app
-        REQ_DIR=$TEST_DIR/../
+        REQ_DIR=$TEST_DIR/..
         REQ_FILE=$REQ_DIR/requirements.txt
     fi
     if [ $SERVICE == "orchest-sdk" ]; then
@@ -113,7 +118,12 @@ do
 
     # Run tests.
     cd $TEST_DIR
-    python -m pytest -v --disable-warnings --tb=$TRACEBACK tests
+
+    if $VERBOSE; then
+        CAPTURE_FLAG="-s"
+    fi
+
+    python -m pytest -v $CAPTURE_FLAG --disable-warnings --tb=$TRACEBACK tests
 
     # Deactivate the virtualenv.
     if $USE_VENV; then
