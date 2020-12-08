@@ -144,7 +144,6 @@ def _output_to_disk(
     if isinstance(serialization, Serialization):
         with pa.OSFile(f"{full_path}.{serialization}", "wb") as f:
             f.write(obj)
-            f.close()
     else:
         raise ValueError("Function not defined for specified 'serialization'")
 
