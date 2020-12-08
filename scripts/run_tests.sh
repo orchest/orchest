@@ -23,7 +23,7 @@ TRACEBACK="line"
 USE_VENV=true
 VERBOSE=false
 
-while getopts "vs:t-:" opt; do
+while getopts "s:tv-:" opt; do
   case ${opt} in
     s)
       SERVICES+=($OPTARG)
