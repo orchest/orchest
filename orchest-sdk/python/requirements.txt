@@ -1,5 +1,5 @@
 SQLAlchemy
 boto3
 pandas 
-pyarrow==2.0.0
+pyarrow>=2.0.0
 requests
