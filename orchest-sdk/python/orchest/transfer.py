@@ -80,8 +80,9 @@ def serialize(
     """Serializes an object to a ``pa.Buffer``.
 
     The way the object is serialized depends on the nature of the
-    object. pa.RecordBatch and pa.Table are serialized using pa
-    functions. All other cases are serialized through the pickle library.
+    object: ``pa.RecordBatch`` and ``pa.Table`` are serialized using
+    ``pyarrow`` functions. All other cases are serialized through the
+    ``pickle`` library.
 
     Args:
         data: The object/data to be serialized.
@@ -100,7 +101,7 @@ def serialize(
         otherwise an exception will be raised."
 
     """
-    if isinstance(data, pa.RecordBatch) or isinstance(data, pa.Table):
+    if isinstance(data, (pa.RecordBatch, pa.Table)):
         # Use the intended pyarrow functionalities when possible.
         if isinstance(data, pa.Table):
             serialization = Serialization.ARROW_TABLE
