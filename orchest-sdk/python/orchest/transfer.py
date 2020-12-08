@@ -215,7 +215,7 @@ def _get_output_disk(full_path: str, serialization: str) -> Any:
     """Gets data from disk.
 
     Raises:
-        ValueError: If the serialization argument is invalid.
+        ValueError: If the serialization argument is unsupported.
     """
     file_path = f"{full_path}.{serialization}"
     if serialization == Serialization.ARROW_TABLE.name:
@@ -245,7 +245,7 @@ def _get_output_disk(full_path: str, serialization: str) -> Any:
         with open(file_path, "rb") as input_file:
             return pickle.load(input_file)
     else:
-        raise ValueError("The specified serialization is invalid: %s")
+        raise ValueError("The specified serialization is unsupported: %s")
 
 
 def get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
@@ -521,7 +521,7 @@ def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> 
         return pickle.loads(buffer)
 
     else:
-        raise ValueError("Object was serialized with an invalid serialization")
+        raise ValueError("Object was serialized with an unsupported serialization")
 
 
 def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
