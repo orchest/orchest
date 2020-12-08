@@ -293,7 +293,7 @@ class PipelineStepRunner:
             self._status = "FAILURE" if data.get("StatusCode") else "SUCCESS"
 
         except Exception as e:
-            print("Exception", e)
+            logging.error("Failed to run Docker container: %s" % e)
             self._status = "FAILURE"
 
         finally:
