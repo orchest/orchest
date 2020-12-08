@@ -35,6 +35,7 @@ class PipelineDetailsProperties extends React.Component {
       kernelOptions: [
         ["python", "Python"],
         ["ir", "R"],
+        ["julia", "Julia"],
       ],
       environmentOptions: [],
       isNotebookStep:

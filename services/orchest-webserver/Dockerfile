@@ -11,7 +11,7 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -
 # changes in the front-end often include JS changes meaning that its
 # cache is more likely to be invalidated.
 COPY ./requirements.txt /orchest/services/orchest-webserver/
-COPY ./lib /orchest/lib
+COPY ./lib/python /orchest/lib/python
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`
 # can use relative paths.
@@ -20,7 +20,7 @@ RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 
 # Static application files.
 COPY ./app/static ./app/static
-COPY ./lib/javascript/ /orchest/services/orchest-webserver/app/static/js/lib/
+COPY ./lib/javascript/ ./app/static/js/lib/
 
 # Compile front-end code with npx and compile style.
 WORKDIR /orchest/services/orchest-webserver/app/static

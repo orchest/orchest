@@ -119,6 +119,7 @@ def install(
     lang = language.value
     if gpu:
         lang += "-gpu"
+
     cmdline.install(lang)
 
 
@@ -156,7 +157,7 @@ def update(
     if gpu:
         lang += "-gpu"
 
-    cmdline.update(language)
+    cmdline.update(lang)
 
 
 @app.command()

@@ -52,6 +52,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "base-kernel-py"
         "base-kernel-py-gpu"
         "base-kernel-r"
+        "base-kernel-julia"
         "orchest-api"
         "orchest-ctl"
         "update-server"
@@ -67,6 +68,7 @@ LIB_IMAGES=(
     "base-kernel-py"
     "base-kernel-py-gpu"
     "base-kernel-r"
+    "base-kernel-julia"
     "orchest-api"
     "orchest-webserver"
     "memory-server"
@@ -79,6 +81,7 @@ SDK_IMAGES=(
     "base-kernel-py"
     "base-kernel-py-gpu"
     "base-kernel-r"
+    "base-kernel-julia"
 )
 
 CLEANUP_BUILD_CTX=()
@@ -212,6 +215,18 @@ do
         build=(docker build \
             -t "orchest/base-kernel-py:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-py/Dockerfile \
+            --no-cache=$NO_CACHE \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+
+    fi
+
+    if [ $IMG == "base-kernel-julia" ]; then
+
+        build_ctx=$DIR/../services/base-images
+        build=(docker build \
+            -t "orchest/base-kernel-julia:$BUILD_TAG" \
+            -f $DIR/../services/base-images/base-kernel-julia/Dockerfile \
             --no-cache=$NO_CACHE \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)

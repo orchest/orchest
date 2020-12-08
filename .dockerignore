@@ -13,5 +13,7 @@
 # Front end
 **/node_modules*
 
+**/dist*
+
 # State
 **/*.db

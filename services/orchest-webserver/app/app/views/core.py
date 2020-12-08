@@ -439,6 +439,15 @@ def register_views(app, db):
                     os.path.join(app.config["RESOURCE_DIR"], "ipynb_template.json"), "r"
                 )
             )
+        elif "julia" in step["kernel"]["name"]:
+            template_json = json.load(
+                open(
+                    os.path.join(
+                        app.config["RESOURCE_DIR"], "ipynb_template_julia.json"
+                    ),
+                    "r",
+                )
+            )
         else:
             template_json = json.load(
                 open(
@@ -759,7 +768,9 @@ def register_views(app, db):
         js_bundle_path = os.path.join(
             app.config["STATIC_DIR"], "js", "dist", "main.bundle.js"
         )
-        css_bundle_path = os.path.join(app.config["STATIC_DIR"], "css", "main.css")
+        css_bundle_path = os.path.join(
+            app.config["STATIC_DIR"], "css", "dist", "main.css"
+        )
 
         front_end_config = [
             "FLASK_ENV",
