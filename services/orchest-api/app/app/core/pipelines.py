@@ -203,6 +203,26 @@ class PipelineStepRunner:
             # The step cannot be run yet.
             return self._status
 
+        if self._status != "PENDING":
+            # The step has already been started.
+
+            # Each parent attempts to start their children when they finish.
+            # When all parents finish simultaneously (with all their _status'es being
+            # "SUCCESS") not checking whether the child has started or not would lead
+            # to multiple start attempts of the child, resulting in errors.
+            return self._status
+
+        # TODO: better error handling?
+        self._status = "STARTED"
+        await update_status(
+            self._status,
+            task_id,
+            session,
+            type="step",
+            run_endpoint=run_config["run_endpoint"],
+            uuid=self.properties["uuid"],
+        )
+
         orchest_mounts = get_orchest_mounts(
             project_dir=_config.PROJECT_DIR,
             host_project_dir=run_config["project_dir"],
@@ -264,40 +284,27 @@ class PipelineStepRunner:
                     run_uuid=task_id, step_uuid=self.properties["uuid"]
                 ),
             )
+
+            data = await container.wait()
+
+            # The status code will be 0 for "SUCCESS" and -N otherwise. A
+            # negative value -N indicates that the child was terminated
+            # by signal N (POSIX only).
+            self._status = "FAILURE" if data.get("StatusCode") else "SUCCESS"
+
         except Exception as e:
             print("Exception", e)
+            self._status = "FAILURE"
 
-        # TODO: error handling?
-        self._status = "STARTED"
-        await update_status(
-            self._status,
-            task_id,
-            session,
-            type="step",
-            run_endpoint=run_config["run_endpoint"],
-            uuid=self.properties["uuid"],
-        )
-
-        data = await container.wait()
-
-        # The status code will be 0 for "SUCCESS" and -N otherwise. A
-        # negative value -N indicates that the child was terminated
-        # by signal N (POSIX only).
-        self._status = "FAILURE" if data.get("StatusCode") else "SUCCESS"
-        await update_status(
-            self._status,
-            task_id,
-            session,
-            type="step",
-            run_endpoint=run_config["run_endpoint"],
-            uuid=self.properties["uuid"],
-        )
-
-        # TODO: get the logs (errors are piped to stdout, thus running
-        #       "docker logs" should get them). Find the appropriate
-        #       way to return them.
-        if self._status == "FAILURE":
-            pass
+        finally:
+            await update_status(
+                self._status,
+                task_id,
+                session,
+                type="step",
+                run_endpoint=run_config["run_endpoint"],
+                uuid=self.properties["uuid"],
+            )
 
         return self._status
 
