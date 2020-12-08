@@ -26,18 +26,20 @@ def generate_data(total_size):
     nrows = int(total_size / np.dtype("float64").itemsize)
     return np.random.randn(nrows)
 
+
 def get_test_record_batch():
     test_record_batch = [
         pa.array([1, 2, 3, 4]),
-        pa.array(['foo', 'bar', 'baz', None]),
-        pa.array([True, None, False, True])
-        ]
-    test_record_batch = pa.record_batch(
-        test_record_batch, names=['f0', 'f1', 'f2'])
+        pa.array(["foo", "bar", "baz", None]),
+        pa.array([True, None, False, True]),
+    ]
+    test_record_batch = pa.record_batch(test_record_batch, names=["f0", "f1", "f2"])
     return test_record_batch
+
 
 def get_test_table():
     return pa.Table.from_batches([get_test_record_batch()])
+
 
 class CustomClass:
     def __init__(self, x):
@@ -70,9 +72,9 @@ def plasma_store(monkeypatch):
         np.random.rand(10, 5, 2),
         np.array([CustomClass(1) for _ in range(3)]),
         get_test_record_batch(),
-        get_test_table()
+        get_test_table(),
     ],
-    ids=["basic", "ndarray", "ndarray-objects", "record_batch", "table"]
+    ids=["basic", "ndarray", "ndarray-objects", "record_batch", "table"],
 )
 @pytest.mark.parametrize(
     "test_transfer",
@@ -96,12 +98,10 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
-    if isinstance(data_1, pa.RecordBatch) or \
-        isinstance(data_1, pa.Table):
+    if isinstance(data_1, (pa.RecordBatch, pa.Table)):
         assert input_data[0].equals(data_1)
     else:
         assert (input_data == data_1).all()
-
 
 
 # TODO: add tests for other kwargs
@@ -112,9 +112,9 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
         np.random.rand(10, 5, 2),
         np.array([CustomClass(1) for _ in range(3)]),
         get_test_record_batch(),
-        get_test_table()
+        get_test_table(),
     ],
-    ids=["basic", "ndarray", "ndarray-objects", "record_batch", "table"]
+    ids=["basic", "ndarray", "ndarray-objects", "record_batch", "table"],
 )
 @pytest.mark.parametrize(
     "test_transfer",
@@ -142,8 +142,7 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
-    if isinstance(data_1, pa.RecordBatch) or \
-        isinstance(data_1, pa.Table):
+    if isinstance(data_1, (pa.RecordBatch, pa.Table)):
         assert input_data[0].equals(data_1)
     else:
         assert (input_data == data_1).all()
@@ -194,10 +193,7 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 @patch("orchest.transfer.get_step_uuid")
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_store):
-    data_1 = [
-        CustomClass(generate_data(KILOBYTE))
-        for _ in range(PLASMA_KILOBYTES + 1)
-    ]
+    data_1 = [CustomClass(generate_data(KILOBYTE)) for _ in range(PLASMA_KILOBYTES + 1)]
     serialized, _ = transfer.serialize(data_1)
     assert serialized.size > PLASMA_STORE_CAPACITY
 
