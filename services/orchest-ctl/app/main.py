@@ -49,6 +49,7 @@ class Mode(str, Enum):
 class Language(str, Enum):
     python = "python"
     r = "r"
+    julia = "julia"
     all = "all"
     none = "none"
 
