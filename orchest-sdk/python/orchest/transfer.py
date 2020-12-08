@@ -142,7 +142,7 @@ def _output_to_disk(
         ValueError: If the specified serialization is not valid.
     """
     if isinstance(serialization, Serialization):
-        with pa.OSFile(f"{full_path}.{serialization}", "wb") as f:
+        with pa.OSFile(f"{full_path}.{serialization.name}", "wb") as f:
             f.write(obj)
     else:
         raise ValueError("Function not defined for specified 'serialization'")
@@ -202,7 +202,7 @@ def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> 
     head_file = os.path.join(step_data_dir, "HEAD")
     with open(head_file, "w") as f:
         current_time = datetime.utcnow()
-        f.write(f'{current_time.isoformat(timespec="seconds")}, {serialization}')
+        f.write(f'{current_time.isoformat(timespec="seconds")}, {serialization.name}')
 
     # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -210,25 +210,25 @@ def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> 
     return _output_to_disk(data, full_path, serialization=serialization)
 
 
-def _get_output_disk(full_path: str, serialization: Serialization) -> Any:
+def _get_output_disk(full_path: str, serialization: str) -> Any:
     """Gets data from disk.
 
     Raises:
         ValueError: If the serialization argument is invalid.
     """
     file_path = f"{full_path}.{serialization}"
-    if serialization == str(Serialization.ARROW_TABLE):
+    if serialization == Serialization.ARROW_TABLE.name:
         # pa.memory_map is for reading (zero-copy)
         with pa.memory_map(file_path, "rb") as input_file:
             # read all batches as a table
             stream = pa.ipc.open_stream(input_file)
             return stream.read_all()
-    elif serialization == str(Serialization.ARROW_BATCH):
+    elif serialization == Serialization.ARROW_BATCH.name:
         with pa.memory_map(file_path, "rb") as input_file:
             # return the first batch (the only one)
             stream = pa.ipc.open_stream(input_file)
             return [b for b in stream][0]
-    elif serialization == str(Serialization.PICKLE):
+    elif serialization == Serialization.PICKLE.name:
         # https://docs.python.org/3/library/pickle.html
         # The argument file must have three methods,
         # a read() method that takes an integer argument,
@@ -449,7 +449,7 @@ def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
 
     # Try to output to memory.
     obj_id = _convert_uuid_to_object_id(step_uuid)
-    metadata = bytes(f"{Config.IDENTIFIER_SERIALIZATION};{serialization}", "utf-8")
+    metadata = bytes(f"{Config.IDENTIFIER_SERIALIZATION};{serialization.name}", "utf-8")
 
     try:
         obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
@@ -502,17 +502,19 @@ def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> 
         )
 
     serialization = f"{Config.IDENTIFIER_SERIALIZATION};" + "{}"
-    if metadata == bytes(serialization.format(Serialization.ARROW_TABLE), "utf-8"):
+    if metadata == bytes(serialization.format(Serialization.ARROW_TABLE.name), "utf-8"):
         # Read all batches as a table.
         stream = pa.ipc.open_stream(buffer)
         return stream.read_all()
 
-    elif metadata == bytes(serialization.format(Serialization.ARROW_BATCH), "utf-8"):
+    elif metadata == bytes(
+        serialization.format(Serialization.ARROW_BATCH.name), "utf-8"
+    ):
         # Return the first batch (the only one).
         stream = pa.ipc.open_stream(buffer)
         return [b for b in stream][0]
 
-    elif metadata == bytes(serialization.format(Serialization.PICKLE), "utf-8"):
+    elif metadata == bytes(serialization.format(Serialization.PICKLE.name), "utf-8"):
         # Can load the buffer directly because its a bytes-like-object:
         # https://docs.python.org/3/library/pickle.html#pickle.loads
         return pickle.loads(buffer)
