@@ -21,8 +21,16 @@ from orchest.errors import (
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
+
 class Serialization(Enum):
-    """Possible types of serialization"""
+    """Possible types of serialization.
+
+    Types are:
+        * ``ARROW_TABLE``
+        * ``ARROW_BATCH``
+        * ``PICKLE``
+
+    """
 
     ARROW_TABLE = 0
     ARROW_BATCH = 1
@@ -67,9 +75,9 @@ class _PlasmaConnector:
 
 
 def serialize(
-    data: Any, 
+    data: Any,
 ) -> Tuple[bytes, Serialization]:
-    """Serializes an object to a pyarrow.Buffer.
+    """Serializes an object to a ``pa.Buffer``.
 
     The way the object is serialized depends on the nature of the
     object. pa.RecordBatch and pa.Table are serialized using pa
@@ -79,9 +87,8 @@ def serialize(
         data: The object/data to be serialized.
 
     Returns:
-        Tuple of the serialized data (pa.Buffer) and the serialization 
-        that was used. See the Serialization enum for the different
-        kinds of serialization.
+        Tuple of the serialized data (in ``pa.Buffer`` format) and the
+        :class:`Serialization` that was used.
 
     Note:
         ``pickle`` does not include the code of custom functions or
@@ -91,11 +98,14 @@ def serialize(
         "Thus the defining module must be importable in the unpickling
         environment, and the module must contain the named object,
         otherwise an exception will be raised."
+
     """
     if isinstance(data, pa.RecordBatch) or isinstance(data, pa.Table):
-        # use the intended pyarrow functionalities when possible
-        serialization = Serialization.ARROW_TABLE if isinstance(
-            data, pa.Table) else Serialization.ARROW_BATCH
+        # Use the intended pyarrow functionalities when possible.
+        if isinstance(data, pa.Table):
+            serialization = Serialization.ARROW_TABLE
+        else:
+            serialization = Serialization.ARROW_BATCH
 
         output_buffer = pa.BufferOutputStream()
         writer = pa.RecordBatchStreamWriter(output_buffer, data.schema)
@@ -104,13 +114,14 @@ def serialize(
         serialized = output_buffer.getvalue()
 
     else:
-        # all other cases use the pickle library
-        serialization = Serialization.PICKLE 
+        # All other cases use the pickle library.
+        serialization = Serialization.PICKLE
 
+        # Use the best protocol possible, for reference see:
         # https://docs.python.org/3/library/pickle.html#pickle-protocols
-        # use the best protocol possible
         serialized = pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
-        # note: zero-copy view on the bytes
+
+        # NOTE: zero-copy view on the bytes.
         serialized = pa.py_buffer(serialized)
 
     return serialized, serialization
@@ -132,22 +143,15 @@ def _output_to_disk(
     """
     if isinstance(serialization, Serialization):
         with pa.OSFile(f"{full_path}.{serialization}", "wb") as f:
-            f.write(obj) 
-            f.close() 
+            f.write(obj)
+            f.close()
     else:
         raise ValueError("Function not defined for specified 'serialization'")
 
     return
 
 
-# TODO: serialization is in case the object is already serialized. Should
-#       this option also be given to the output_to_memory? I don't think
-#       so because we only use it internally. Although it is not that nice
-#       that it is exposed to the user. But the user CAN use it if he
-#       serialized it before using the _serialize method.
-def output_to_disk(
-    data: Any, serialization: Optional[Serialization] = None
-) -> None:
+def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> None:
     """Outputs data to disk.
 
     To manage outputing the data to disk, this function has a side
@@ -160,8 +164,7 @@ def output_to_disk(
     Args:
         data: Data to output to disk.
         serialization: Serialization of the `data` in case it is already
-            serialized. See the Serialization enum for the currently
-            supported values.
+            serialized. For possible values see :class:`Serialization`.
 
     Raises:
         StepUUIDResolveError: The step's UUID cannot be resolved and
@@ -216,7 +219,7 @@ def _get_output_disk(full_path: str, serialization: Serialization) -> Any:
     """
     file_path = f"{full_path}.{serialization}"
     if serialization == str(Serialization.ARROW_TABLE):
-        # pa.memory_map is for reading (zero-copy) 
+        # pa.memory_map is for reading (zero-copy)
         with pa.memory_map(file_path, "rb") as input_file:
             # read all batches as a table
             stream = pa.ipc.open_stream(input_file)
@@ -228,10 +231,10 @@ def _get_output_disk(full_path: str, serialization: Serialization) -> Any:
             return [b for b in stream][0]
     elif serialization == str(Serialization.PICKLE):
         # https://docs.python.org/3/library/pickle.html
-        # The argument file must have three methods, 
-        # a read() method that takes an integer argument, 
-        # a readinto() method that takes a buffer argument 
-        # and a readline() method that requires no arguments, 
+        # The argument file must have three methods,
+        # a read() method that takes an integer argument,
+        # a readinto() method that takes a buffer argument
+        # and a readline() method that requires no arguments,
         # as in the io.BufferedIOBase interface.
 
         # while memory_map does not support readline, given the docs,
@@ -241,7 +244,7 @@ def _get_output_disk(full_path: str, serialization: Serialization) -> Any:
         # python file
         with open(file_path, "rb") as input_file:
             return pickle.load(input_file)
-    else: 
+    else:
         raise ValueError("The specified serialization is invalid: %s")
 
 
@@ -250,8 +253,8 @@ def get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
 
     Args:
         step_uuid: The UUID of the step to get output data from.
-        serialization: The serialization of the output. See the
-        Serialization Enum for the possibile (de)serializations.
+        serialization: The serialization for the output. For possible
+            values see :class:`Serialization`.
 
     Returns:
         Data from the step identified by `step_uuid`.
@@ -386,9 +389,7 @@ def _output_to_memory(
     return obj_id
 
 
-def output_to_memory(
-    data: Any, disk_fallback: bool = True
-) -> None:
+def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
     """Outputs data to memory.
 
     To manage outputing the data to memory for the user, this function
@@ -501,19 +502,23 @@ def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> 
             f'Object with ObjectID "{obj_id}" does not exist in store.'
         )
 
-    if metadata == bytes(f"{Config.IDENTIFIER_SERIALIZATION};{Serialization.ARROW_TABLE}", "utf-8"):
-        # read all batches as a table
+    serialization = f"{Config.IDENTIFIER_SERIALIZATION};" + "{}"
+    if metadata == bytes(serialization.format(Serialization.ARROW_TABLE), "utf-8"):
+        # Read all batches as a table.
         stream = pa.ipc.open_stream(buffer)
         return stream.read_all()
-    elif metadata == bytes(f"{Config.IDENTIFIER_SERIALIZATION};{Serialization.ARROW_BATCH}", "utf-8"):
-        # return the first batch (the only one)
+
+    elif metadata == bytes(serialization.format(Serialization.ARROW_BATCH), "utf-8"):
+        # Return the first batch (the only one).
         stream = pa.ipc.open_stream(buffer)
         return [b for b in stream][0]
-    elif metadata == bytes(f"{Config.IDENTIFIER_SERIALIZATION};{Serialization.PICKLE}", "utf-8"):
-        # can load the buffer directly because its a bytes-like-object
+
+    elif metadata == bytes(serialization.format(Serialization.PICKLE), "utf-8"):
+        # Can load the buffer directly because its a bytes-like-object:
         # https://docs.python.org/3/library/pickle.html#pickle.loads
         return pickle.loads(buffer)
-    else: 
+
+    else:
         raise ValueError("Object was serialized with an invalid serialization")
 
 
@@ -808,5 +813,5 @@ def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
 
 
 # TODO: Once we are set on the API we could specify __all__. For now we
-#       will stick with the leading _underscore convenction to keep
-#       methods private.
+#       will stick with the leading _underscore convention to indicate
+#       private methods.
