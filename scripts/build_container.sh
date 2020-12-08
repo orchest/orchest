@@ -11,7 +11,7 @@ BUILD_TAG="latest"
 ORCHEST_VERSION=$(git describe --tags)
 
 # Read flags.
-while getopts "s:i:t:nve" opt; do
+while getopts "s:i:t:no:ve" opt; do
   case $opt in
     e)
       # 'e' for encryption
