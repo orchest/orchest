@@ -5,6 +5,7 @@ import shutil
 import time
 from unittest.mock import patch
 
+import pandas as pd
 import numpy as np
 import pyarrow as pa
 import pyarrow.plasma as plasma
@@ -25,6 +26,29 @@ PLASMA_STORE_CAPACITY = PLASMA_KILOBYTES * KILOBYTE
 def generate_data(total_size):
     nrows = int(total_size / np.dtype("float64").itemsize)
     return np.random.randn(nrows)
+
+
+def generate_pandas_df(n_rows):
+    # divide to make it in seconds
+    start = pd.to_datetime("2000-01-01").value // 10 ** 9
+    end = pd.to_datetime("2021-01-01").value // 10 ** 9
+    df = pd.DataFrame(
+        {
+            "C1": np.random.randint(-10000, 100000, size=n_rows),
+            "C2": np.random.randn(n_rows),
+            "C4": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="s"),
+            "C5": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="ms"),
+            "C6": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="us"),
+            "C7": pd.to_datetime(np.random.randint(start, end, size=n_rows), unit="ns"),
+            "C8": [str(i) for i in range(n_rows)],
+            "C9": [bytes(i) for i in range(n_rows)],
+            "C10": [{i: i} for i in range(n_rows)],
+            "C11": [None for _ in range(n_rows)],
+        }
+    )
+    # set random values to nan
+    df = df.mask(np.random.random(df.shape) < 0.5)
+    return df
 
 
 def get_test_record_batch():
@@ -71,10 +95,11 @@ def plasma_store(monkeypatch):
         generate_data(KILOBYTE),
         np.random.rand(10, 5, 2),
         np.array([CustomClass(1) for _ in range(3)]),
+        generate_pandas_df(20),
         get_test_record_batch(),
         get_test_table(),
     ],
-    ids=["basic", "ndarray", "ndarray-objects", "record_batch", "table"],
+    ids=["basic", "ndarray", "ndarray-objects", "pandas", "record_batch", "table"],
 )
 @pytest.mark.parametrize(
     "test_transfer",
@@ -98,7 +123,7 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
-    if isinstance(data_1, (pa.RecordBatch, pa.Table)):
+    if isinstance(data_1, (pa.RecordBatch, pa.Table, pd.DataFrame)):
         assert input_data[0].equals(data_1)
     else:
         assert (input_data == data_1).all()
@@ -111,10 +136,11 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
         generate_data(KILOBYTE),
         np.random.rand(10, 5, 2),
         np.array([CustomClass(1) for _ in range(3)]),
+        generate_pandas_df(20),
         get_test_record_batch(),
         get_test_table(),
     ],
-    ids=["basic", "ndarray", "ndarray-objects", "record_batch", "table"],
+    ids=["basic", "ndarray", "ndarray-objects", "pandas", "record_batch", "table"],
 )
 @pytest.mark.parametrize(
     "test_transfer",
@@ -142,7 +168,7 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
-    if isinstance(data_1, (pa.RecordBatch, pa.Table)):
+    if isinstance(data_1, (pa.RecordBatch, pa.Table, pd.DataFrame)):
         assert input_data[0].equals(data_1)
     else:
         assert (input_data == data_1).all()
