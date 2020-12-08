@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# NOTE: if there are problems with installing the dependencies in the
+# virtualenvironment. Then you might need to run:
+#       sudo apt install default-libmysqlclient-dev
+
 set -e
 
 # To display help run this script with the "--help" option.

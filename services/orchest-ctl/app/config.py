@@ -42,7 +42,8 @@ LANGUAGE_IMAGES = {
     "all-gpu": _orchest_images
     + [
         "orchest/base-kernel-py:latest",
-        "orchest/base-kernel-py-gpu:latest" "orchest/base-kernel-r:latest",
+        "orchest/base-kernel-py-gpu:latest",
+        "orchest/base-kernel-r:latest",
     ],
 }
 
@@ -55,21 +56,6 @@ ON_START_IMAGES = [
     "orchest/file-manager:latest",
     "orchest/nginx-proxy:latest",
     "rabbitmq:3",
-]
-
-# TODO: Add ability to run the version info for the commented out
-# containers (probably due to entrypoints).
-VERSION_IMAGES = [
-    # "orchest/file-manager:latest",
-    # "orchest/jupyter-server:latest",
-    "orchest/jupyter-enterprise-gateway:latest",
-    "orchest/memory-server:latest",
-    "orchest/update-server:latest",
-    "orchest/orchest-api:latest",
-    "orchest/orchest-webserver:latest",
-    "orchest/celery-worker:latest",
-    "orchest/auth-server:latest",
-    "orchest/nginx-proxy:latest",
 ]
 
 REQUIRED_ENV_VARS = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR"]
