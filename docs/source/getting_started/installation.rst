@@ -34,6 +34,12 @@ first.
     Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
     visit https://docs.docker.com/docker-for-windows/wsl/.
 
+.. tip::
+   Add Orchest to your ``PATH`` to gain the ability to invoke the ``orchest`` script from anywhere,
+   e.g.  from your home directory: ``orchest status``. Depending on your shell add ``export
+   PATH="$HOME/<orchest-install-directory-path>:$PATH"`` to the corresponding ``.profile`` file. You
+   need to logout and login again for the changes to take effect.
+
 Build from source
 -----------------
 You should expect the build to finish in roughly 15 minutes.
