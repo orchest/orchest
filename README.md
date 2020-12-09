@@ -23,7 +23,6 @@ large scale cloud cluster.
   <i>A preview of running pipelines in the pipeline editor of Orchest. Watch the <a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ">quickstart video</a> to learn more</a></i>.
  </p>
 
-
 ## Features
 
 Orchest lets you:
@@ -80,7 +79,9 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ```
 
 Get started with our
-[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial.
+[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial or
+check out [pipelines](https://github.com/orchest/awesome-orchest-pipelines) made by your fellow
+users.
 
 ## License
 
