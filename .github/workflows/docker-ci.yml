@@ -27,7 +27,8 @@ jobs:
             -i orchest-api -i orchest-webserver -i auth-server,
             -i jupyter-server,
             -i jupyter-enterprise-gateway,
-            -i base-kernel-py -i base-kernel-r -i base-kernel-julia,
+            -i base-kernel-py -i base-kernel-r,
+            -i base-kernel-julia,
             -i base-kernel-py-gpu,
             -i nginx-proxy,
             -i update-server,
@@ -40,8 +41,6 @@ jobs:
 
       - name: Build and push image
         run: |
-          bash ./scripts/pull_container.sh ${{ matrix.image }} -t "$BUILD_TAG"
-          echo "-----------"
           bash ./scripts/build_container.sh ${{ matrix.image }} \
                     -o ${GITHUB_REF#refs/tags/} \
                     -t "$BUILD_TAG" \
@@ -50,6 +49,7 @@ jobs:
           bash ./scripts/push_container.sh ${{ matrix.image }} -t "$BUILD_TAG"
 
   push-readme:
+    needs: buildpush
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
