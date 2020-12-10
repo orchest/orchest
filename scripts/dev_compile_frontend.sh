@@ -8,8 +8,8 @@ echo "[Debug = true] starting webpack & sass watchers..."
 rm $DIR/../services/orchest-webserver/app/static/js/lib 2> /dev/null
 ln -s $DIR/../lib/javascript $DIR/../services/orchest-webserver/app/static/js/lib
 
-rm $DIR/../services/auth-server/app/app/static/js/src/lib 2> /dev/null
-ln -s $DIR/../lib/javascript $DIR/../services/auth-server/app/app/static/js/src/lib
+rm $DIR/../services/auth-server/app/static/js/src/lib 2> /dev/null
+ln -s $DIR/../lib/javascript $DIR/../services/auth-server/app/static/js/src/lib
 
 NPM_INSTALL=true
 
@@ -33,8 +33,8 @@ fi
 
 
 if $NPM_INSTALL; then
-  (cd $DIR/../services/auth-server/app/app/static/; npm install)
+  (cd $DIR/../services/auth-server/app/static/; npm install)
 fi
 
-(cd $DIR/../services/auth-server/app/app/static/; ./watch-compile-js.sh &)
-(cd $DIR/../services/auth-server/app/app/static/; ./watch-compile-sass.sh)
+(cd $DIR/../services/auth-server/app/static/; ./watch-compile-js.sh &)
+(cd $DIR/../services/auth-server/app/static/; ./watch-compile-sass.sh)
