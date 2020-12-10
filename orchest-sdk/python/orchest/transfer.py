@@ -190,7 +190,7 @@ def output_to_disk(
     Args:
         data: Data to output to disk.
         name: Name of the output data. As a string, it becomes
-        the name of the data, when `None`, the data is considered
+        the name of the data, when ``None``, the data is considered
         nameless. This affects the way the data can be later retrieved
         using :func:`get_inputs`.
         serialization: Serialization of the `data` in case it is already
@@ -451,7 +451,7 @@ def output_to_memory(
     Args:
         data: Data to output.
         name: Name of the output data. As a string, it becomes
-        the name of the data, when `None`, the data is considered
+        the name of the data, when ``None``, the data is considered
         nameless. This affects the way the data can be later retrieved
         using :func:`get_inputs`.
         disk_fallback: If True, then outputing to disk is used when the
@@ -923,7 +923,7 @@ def output(data: Any, name: Optional[str]) -> None:
     Args:
         data: Data to output.
         name: Name of the output data. As a string, it becomes
-        the name of the data, when `None`, the data is considered
+        the name of the data, when ``None``, the data is considered
         nameless. This affects the way the data can be later retrieved
         using :func:`get_inputs`.
 
