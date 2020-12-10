@@ -61,14 +61,18 @@ def get_step_uuid(pipeline: Pipeline) -> str:
         )
 
     for step in pipeline.steps:
-        if step.properties["file_path"] == notebook_path:
+        # Compare basenames, one pipeline can not have duplicate notebook names,
+        # so this should work
+        if os.path.basename(step.properties["file_path"]) == os.path.basename(
+            notebook_path
+        ):
             # NOTE: the UUID cannot be cached here. Because if the
             # notebook is assigned to a different step, then the env
             # variable does not change and thus the notebooks wrongly
             # thinks it is a different step.
             return step.properties["uuid"]
 
-    raise StepUUIDResolveError('No step with "notebook_path": {notebook_path}.')
+    raise StepUUIDResolveError(f'No step with "notebook_path": {notebook_path}.')
 
 
 def _request_json(url: str) -> Dict[Any, Any]:
@@ -77,14 +81,14 @@ def _request_json(url: str) -> Dict[Any, Any]:
         with urllib.request.urlopen(url) as r:
             encoding = r.info().get_param("charset")
             data = r.read()
+    except urllib.error.HTTPError:
+        raise OrchestNetworkError(
+            f"Failed to fetch data from {url}. The server could not fulfil the request."
+        )
     except urllib.error.URLError:
         raise OrchestNetworkError(
             f"Failed to fetch data from {url}. Either the specified server "
             "does not exist or the network connection could not be established."
-        )
-    except urllib.error.HTTPError:
-        raise OrchestNetworkError(
-            f"Failed to fetch data from {url}. The server could not fulfil the request."
         )
 
     encoding = encoding or "utf-8"

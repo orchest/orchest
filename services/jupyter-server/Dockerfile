@@ -12,15 +12,16 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 # Install Jupyter Lab
 RUN pip3 install pip --upgrade && \
-    pip3 install jupyterlab==3.0.0rc9
+    pip3 install jupyterlab==3.0.0rc13 ipywidgets
 
 COPY ./patch/handlers.py /usr/local/lib/python3.7/site-packages/jupyter_server/gateway/handlers.py
 
 # Get our custom extensions for jupyterlab.
-RUN git clone --single-branch --branch jupyterlab3 https://github.com/orchest/visual-tags.git /jupyter-extensions/visual-tags && \
-    git clone --single-branch --branch jupyterlab3 https://github.com/orchest/orchest-integration.git /jupyter-extensions/orchest-integration && \
+RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/visual-tags && \
+    git clone https://github.com/orchest/orchest-integration.git /jupyter-extensions/orchest-integration && \
     jupyter labextension install /jupyter-extensions/visual-tags --no-build && \
-    jupyter labextension install /jupyter-extensions/orchest-integration
+    jupyter labextension install /jupyter-extensions/orchest-integration --no-build && \
+    jupyter labextension install @jupyter-widgets/jupyterlab-manager
 
 COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 

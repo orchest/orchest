@@ -61,7 +61,7 @@ As you can see the pipeline steps point to the corresponding files: ``prep.ipynb
 easily change the Docker image, see :ref:`environments <environments>`.
 
 .. note::
-   We currently only support Python and R.
+   We currently support Python, R and Julia.
 
 
 Concepts

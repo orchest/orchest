@@ -114,7 +114,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
 
         # print("container args: {}".format(kwargs))  # useful for debug
         orchest_mounts = get_orchest_mounts(
-            project_dir=param_env.get("KERNEL_WORKING_DIR"),
+            project_dir=_config.PROJECT_DIR,
             host_project_dir=param_env.get("ORCHEST_HOST_PROJECT_DIR"),
         )
         volume_source, volume_spec = get_volume_mount(
