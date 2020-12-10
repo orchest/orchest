@@ -45,7 +45,7 @@ class Config:
     CONN_NUM_RETRIES = 20
     # Separator for the metadata related to stored data, both to disk an
     # d to memory.
-    __METADATA_SEPARATOR__ = "__ORCHEST_METADATA_SEP__"
+    __METADATA_SEPARATOR__ = "; "
     # Reserved key of the aggregated unnamed outputs list in the diction
     # ary returned by get_inputs()
     _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed_inputs"
