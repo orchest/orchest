@@ -45,3 +45,9 @@ class StepUUIDResolveError(Error):
     """Step UUID could not be resolved."""
 
     pass
+
+
+class InputNameCollisionError(Error):
+    """Multiple input data objects have the same name"""
+
+    pass

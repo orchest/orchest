@@ -1,10 +1,11 @@
 """Transfer mechanisms to output data and get data."""
+from collections import defaultdict
 from datetime import datetime
 from enum import Enum
 import json
 import os
 import pickle
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import pyarrow as pa
 import pyarrow.plasma as plasma
@@ -17,9 +18,31 @@ from orchest.errors import (
     ObjectNotFoundError,
     OrchestNetworkError,
     StepUUIDResolveError,
+    InputNameCollisionError,
 )
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
+
+_RESERVED_UNNAMED_OUTPUTS_STR = "unnamed_outputs"
+__METADATA_SEPARATOR__ = "__ORCHEST_METADATA_SEP__"
+
+
+def _check_data_name_validity(name: Union[str, None]):
+    if not isinstance(name, (str, type(None))):
+        raise TypeError("Name should be of type string or `None`")
+
+    if name is None:
+        return
+
+    if name == _RESERVED_UNNAMED_OUTPUTS_STR:
+        raise ValueError(
+            "'%s' is a reserved output data name." % _RESERVED_UNNAMED_OUTPUTS_STR
+        )
+
+    if __METADATA_SEPARATOR__ in name:
+        raise ValueError(
+            "'%s' cannot be part of the name of the data" % __METADATA_SEPARATOR__
+        )
 
 
 class Serialization(Enum):
@@ -151,7 +174,9 @@ def _output_to_disk(
     return
 
 
-def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> None:
+def output_to_disk(
+    data: Any, name: Union[str, None], serialization: Optional[Serialization] = None
+) -> None:
     """Outputs data to disk.
 
     To manage outputing the data to disk, this function has a side
@@ -163,6 +188,10 @@ def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> 
 
     Args:
         data: Data to output to disk.
+        name: Name of the output data. As a string, it becomes
+        the name of the data, when `None`, the data is considered
+        nameless. This affects the way the data can be later retrieved
+        using :func:`get_inputs`.
         serialization: Serialization of the `data` in case it is already
             serialized. For possible values see :class:`Serialization`.
 
@@ -180,6 +209,10 @@ def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> 
         to be only calling the function once.
 
     """
+    _check_data_name_validity(name)
+    if name is None:
+        name = _RESERVED_UNNAMED_OUTPUTS_STR
+
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
 
@@ -202,8 +235,13 @@ def output_to_disk(data: Any, serialization: Optional[Serialization] = None) -> 
     # The HEAD file serves to resolve the transfer method.
     head_file = os.path.join(step_data_dir, "HEAD")
     with open(head_file, "w") as f:
-        current_time = datetime.utcnow()
-        f.write(f'{current_time.isoformat(timespec="seconds")}, {serialization.name}')
+        metadata = [
+            datetime.utcnow().isoformat(timespec="seconds"),
+            serialization.name,
+            name,
+        ]
+        metadata = __METADATA_SEPARATOR__.join(metadata)
+        f.write(metadata)
 
     # Full path to write the actual data to.
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -290,7 +328,8 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
     Returns:
         Dictionary containing the information of the function to be
         called to get the most recent data from the step. Additionally,
-        returns fill-in arguments for the function.
+        returns fill-in arguments for the function and metadata
+        related to the data that would be retrieved.
 
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
@@ -300,7 +339,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
 
     try:
         with open(head_file, "r") as f:
-            timestamp, serialization = f.read().split(", ")
+            timestamp, serialization, name = f.read().split(__METADATA_SEPARATOR__)
 
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
@@ -311,10 +350,14 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
         )
 
     res = {
-        "timestamp": timestamp,
         "method_to_call": get_output_disk,
         "method_args": (step_uuid,),
         "method_kwargs": {"serialization": serialization},
+        "metadata": {
+            "timestamp": timestamp,
+            "serialization": serialization,
+            "name": name,
+        },
     }
     return res
 
@@ -389,7 +432,9 @@ def _output_to_memory(
     return obj_id
 
 
-def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
+def output_to_memory(
+    data: Any, name: Union[str, None], disk_fallback: bool = True
+) -> None:
     """Outputs data to memory.
 
     To manage outputing the data to memory for the user, this function
@@ -397,6 +442,10 @@ def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
 
     Args:
         data: Data to output.
+        name: Name of the output data. As a string, it becomes
+        the name of the data, when `None`, the data is considered
+        nameless. This affects the way the data can be later retrieved
+        using :func:`get_inputs`.
         disk_fallback: If True, then outputing to disk is used when the
             `data` does not fit in memory. If False, then a
             :exc:`MemoryError` is thrown.
@@ -422,6 +471,8 @@ def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
         therefore want to be only calling the function once.
 
     """
+    _check_data_name_validity(name)
+
     # TODO: we might want to wrap this so we can throw a custom error,
     #       if the file cannot be found, i.e. FileNotFoundError.
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
@@ -446,11 +497,26 @@ def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        return output_to_disk(obj, serialization=serialization)
+        return output_to_disk(obj, name, serialization=serialization)
 
     # Try to output to memory.
     obj_id = _convert_uuid_to_object_id(step_uuid)
-    metadata = bytes(f"{Config.IDENTIFIER_SERIALIZATION};{serialization.name}", "utf-8")
+    metadata = [
+        str(Config.IDENTIFIER_SERIALIZATION),
+        # the plasma store allows to get the creation timestamp, but
+        # creating it this way makes the process more consistent
+        # with the metadata we are writing when outputting to disk,
+        # moreover, it makes the code less dependent on the
+        # plasma store API
+        datetime.utcnow().isoformat(timespec="seconds"),
+        serialization.name,
+        # can't simply assign to name beforehand because
+        # name might be passed to output_to_disk, which needs
+        # to check for name validity itself since its a public
+        # function
+        name if name is not None else _RESERVED_UNNAMED_OUTPUTS_STR,
+    ]
+    metadata = bytes(__METADATA_SEPARATOR__.join(metadata), "utf-8")
 
     try:
         obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
@@ -462,7 +528,7 @@ def output_to_memory(data: Any, disk_fallback: bool = True) -> None:
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        return output_to_disk(obj, serialization=serialization)
+        return output_to_disk(obj, name, serialization=serialization)
 
     return
 
@@ -502,20 +568,19 @@ def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> 
             f'Object with ObjectID "{obj_id}" does not exist in store.'
         )
 
-    serialization = f"{Config.IDENTIFIER_SERIALIZATION};" + "{}"
-    if metadata == bytes(serialization.format(Serialization.ARROW_TABLE.name), "utf-8"):
+    metadata = metadata.decode("utf-8").split(__METADATA_SEPARATOR__)
+    _, _, serialization, _ = metadata
+    if serialization == Serialization.ARROW_TABLE.name:
         # Read all batches as a table.
         stream = pa.ipc.open_stream(buffer)
         return stream.read_all()
 
-    elif metadata == bytes(
-        serialization.format(Serialization.ARROW_BATCH.name), "utf-8"
-    ):
+    elif serialization == Serialization.ARROW_BATCH.name:
         # Return the first batch (the only one).
         stream = pa.ipc.open_stream(buffer)
         return [b for b in stream][0]
 
-    elif metadata == bytes(serialization.format(Serialization.PICKLE.name), "utf-8"):
+    elif serialization == Serialization.PICKLE.name:
         # Can load the buffer directly because its a bytes-like-object:
         # https://docs.python.org/3/library/pickle.html#pickle.loads
         return pickle.loads(buffer)
@@ -591,7 +656,8 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     Returns:
         Dictionary containing the information of the function to be
         called to get the most recent data from the step. Additionally,
-        returns fill-in arguments for the function.
+        returns fill-in arguments for the function and metadata
+        related to the data that would be retrieved.
 
     Raises:
         MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
@@ -603,32 +669,38 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     client = _PlasmaConnector().client
 
     obj_id = _convert_uuid_to_object_id(step_uuid)
-    try:
-        # Dictionary from ObjectIDs to an "info" dictionary describing
-        # the object.
-        info = client.list()[obj_id]
 
-    except KeyError:
+    # get metadata of the object if it exists
+    metadata = client.get_metadata([obj_id], timeout_ms=0)
+    metadata = metadata[0]
+    if metadata is None:
         raise MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
         )
-
-    ts = info["create_time"]
-    timestamp = datetime.utcfromtimestamp(ts).isoformat()
+    # this is a pyarrow.Buffer, gotta make it into pybytes to decode,
+    # not much overhead given that this is just metadata
+    metadata = metadata.to_pybytes()
+    metadata = metadata.decode("utf-8").split(__METADATA_SEPARATOR__)
+    # the first element is an internal flag, see output_to_memory
+    _, timestamp, serialization, name = metadata
 
     res = {
-        "timestamp": timestamp,
         "method_to_call": get_output_memory,
         "method_args": (step_uuid,),
         "method_kwargs": {"consumer": consumer},
+        "metadata": {
+            "timestamp": timestamp,
+            "serialization": serialization,
+            "name": name,
+        },
     }
     return res
 
 
 def resolve(
     step_uuid: str, consumer: str = None
-) -> Tuple[Callable, Sequence[Any], Dict[str, Any]]:
+) -> Tuple[Callable, Sequence[Any], Dict[str, Any], Dict[str, Any]]:
     """Resolves the most recently used tranfer method of the given step.
 
     Additionally, resolves all the ``*args`` and ``**kwargs`` the
@@ -644,7 +716,8 @@ def resolve(
     Returns:
         Tuple containing the information of the function to be called
         to get the most recent data from the step. Additionally, returns
-        fill-in arguments for the function.
+        fill-in arguments for the function and metadata related to the
+        data that would be retrieved.on.
 
     Raises:
         OutputNotFoundError: If no output can be found of the given
@@ -688,11 +761,12 @@ def resolve(
     # NOTE: if multiple methods have the same timestamp then the method
     # that is highest in the `resolve_methods` list will be returned.
     # Since `max` returns the first occurrence of the maximum value.
-    most_recent = max(method_infos, key=lambda x: x["timestamp"])
+    most_recent = max(method_infos, key=lambda x: x["metadata"]["timestamp"])
     return (
         most_recent["method_to_call"],
         most_recent["method_args"],
         most_recent["method_kwargs"],
+        most_recent["metadata"],
     )
 
 
@@ -737,17 +811,49 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]
     except StepUUIDResolveError:
         raise StepUUIDResolveError("Failed to determine from where to get data.")
 
+    collisions_dict = defaultdict(list)
+    get_output_methods = []
+
+    # check for collisions before retrieving any data
+    for parent in pipeline.get_step_by_uuid(step_uuid).parents:
+
+        # for each parent get what function to use to retrieve its
+        # output data and metadata related to said data
+        parent_uuid = parent.properties["uuid"]
+        get_output_method, args, kwargs, metadata = resolve(
+            parent_uuid, consumer=step_uuid
+        )
+
+        # keep it for later
+        get_output_methods.append((parent, get_output_method, args, kwargs, metadata))
+
+        if metadata["name"] != _RESERVED_UNNAMED_OUTPUTS_STR:
+            collisions_dict[metadata["name"]].append(parent.properties["title"])
+
+    # if there are collisions raise an error
+    collisions_dict = {k: v for k, v in collisions_dict.items() if len(v) > 1}
+    if len(collisions_dict) > 0:
+        msg = [
+            "%s: %s" % (name, sorted(step_names))
+            for name, step_names in collisions_dict.items()
+        ]
+        msg = "\n".join(msg)
+        msg = (
+            "Name collisions between input data coming  \
+            from different steps:\n%s"
+            % msg
+        )
+        raise InputNameCollisionError(msg)
+
     # TODO: maybe instead of for loop we could first get the receive
     #       method and then do batch receive. For example memory allows
     #       to do get_buffers which operates in batch.
     # NOTE: the order in which the `parents` list is traversed is
     # indirectly set in the UI. The order is important since it
-    # determines the order in which the inputs are received in the next
-    # step.
-    data = []
-    for parent in pipeline.get_step_by_uuid(step_uuid).parents:
-        parent_uuid = parent.properties["uuid"]
-        get_output_method, args, kwargs = resolve(parent_uuid, consumer=step_uuid)
+    # determines the order in which unnamed inputs are received in
+    # the next step.
+    data = {_RESERVED_UNNAMED_OUTPUTS_STR: []}
+    for parent, get_output_method, args, kwargs, metadata in get_output_methods:
 
         # Either raise an error on failure of getting output or
         # continue with other steps.
@@ -766,12 +872,18 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]
             else:
                 print(f'Retrieved input from step: "{parent_title}"')
 
-        data.append(incoming_step_data)
+        # nameless data gets appended to a list
+        # named data becomes a name:data pair in the dict
+        name = metadata["name"]
+        if name == _RESERVED_UNNAMED_OUTPUTS_STR:
+            data[_RESERVED_UNNAMED_OUTPUTS_STR].append(incoming_step_data)
+        else:
+            data[name] = incoming_step_data
 
     return data
 
 
-def output(data: Any) -> None:
+def output(data: Any, name: Union[str, None]) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
     It first tries to output to memory and if it does not fit in memory,
@@ -779,6 +891,10 @@ def output(data: Any) -> None:
 
     Args:
         data: Data to output.
+        name: Name of the output data. As a string, it becomes
+        the name of the data, when `None`, the data is considered
+        nameless. This affects the way the data can be later retrieved
+        using :func:`get_inputs`.
 
     Raises:
         OrchestNetworkError: Could not connect to the
@@ -798,7 +914,7 @@ def output(data: Any) -> None:
         calling the function once.
 
     """
-    return output_to_memory(data, disk_fallback=True)
+    return output_to_memory(data, name, disk_fallback=True)
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
