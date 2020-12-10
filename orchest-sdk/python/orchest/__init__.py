@@ -4,4 +4,4 @@ from orchest.parameters import (
     get_params,
     update_params,
 )
-from orchest.transfer import get_inputs, output, output_to_disk, output_to_memory
+from orchest.transfer import get_inputs, output
