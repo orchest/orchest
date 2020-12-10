@@ -36,12 +36,12 @@ def _check_data_name_validity(name: Union[str, None]):
 
     if name == _RESERVED_UNNAMED_OUTPUTS_STR:
         raise ValueError(
-            "'%s' is a reserved output data name." % _RESERVED_UNNAMED_OUTPUTS_STR
+            f"'{_RESERVED_UNNAMED_OUTPUTS_STR}' is a reserved output data name."
         )
 
     if __METADATA_SEPARATOR__ in name:
         raise ValueError(
-            "'%s' cannot be part of the name of the data" % __METADATA_SEPARATOR__
+            f"'{__METADATA_SEPARATOR__}' cannot be part of the name of the data."
         )
 
 
