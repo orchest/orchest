@@ -100,7 +100,15 @@ class EnvironmentEditView extends React.Component {
       this.state.showingBuildLogs &&
       this.refManager.refs.term.terminal.element.offsetParent
     ) {
-      this.fitAddon.fit();
+      setTimeout(() => {
+        try {
+          this.fitAddon.fit();
+        } catch {
+          console.warn(
+            "fitAddon.fit() failed - Xterm only allows fit when element is visible."
+          );
+        }
+      });
     }
   }
 
@@ -178,13 +186,14 @@ class EnvironmentEditView extends React.Component {
             if (x == lines.length - 1) {
               this.refManager.refs.term.terminal.write(lines[x]);
             } else {
-              this.refManager.refs.term.terminal.writeln(lines[x]);
+              this.refManager.refs.term.terminal.write(lines[x] + "\n");
             }
           }
         } else if (data["action"] == "sio_streamed_task_started") {
           // This blocking mechanism makes sure old build logs are
           // not displayed after the user has started a build
           // during an ongoing build.
+          this.refManager.refs.term.terminal.reset();
           this.setState({
             ignoreIncomingLogs: false,
           });
