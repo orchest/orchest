@@ -5,7 +5,7 @@ from enum import Enum
 import json
 import os
 import pickle
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import pyarrow as pa
 import pyarrow.plasma as plasma
@@ -27,7 +27,7 @@ _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed_inputs"
 __METADATA_SEPARATOR__ = "__ORCHEST_METADATA_SEP__"
 
 
-def _check_data_name_validity(name: Union[str, None]):
+def _check_data_name_validity(name: Optional[str]):
     if not isinstance(name, (str, type(None))):
         raise TypeError("Name should be of type string or `None`")
 
@@ -175,7 +175,7 @@ def _output_to_disk(
 
 
 def output_to_disk(
-    data: Any, name: Union[str, None], serialization: Optional[Serialization] = None
+    data: Any, name: Optional[str], serialization: Optional[Serialization] = None
 ) -> None:
     """Outputs data to disk.
 
@@ -433,7 +433,7 @@ def _output_to_memory(
 
 
 def output_to_memory(
-    data: Any, name: Union[str, None], disk_fallback: bool = True
+    data: Any, name: Optional[str], disk_fallback: bool = True
 ) -> None:
     """Outputs data to memory.
 
@@ -900,7 +900,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     return data
 
 
-def output(data: Any, name: Union[str, None]) -> None:
+def output(data: Any, name: Optional[str]) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
     It first tries to output to memory and if it does not fit in memory,
