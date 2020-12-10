@@ -248,7 +248,7 @@ def _get_output_disk(full_path: str, serialization: str) -> Any:
         raise ValueError("The specified serialization is unsupported: %s")
 
 
-def get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
+def get_output_disk(step_uuid: str, serialization: str) -> Any:
     """Gets data from disk.
 
     Args:
