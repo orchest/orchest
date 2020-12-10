@@ -256,7 +256,7 @@ def output_to_disk(
     return _output_to_disk(data, full_path, serialization=serialization)
 
 
-def _get_output_disk_local(full_path: str, serialization: str) -> Any:
+def _deserialize_output_disk(full_path: str, serialization: str) -> Any:
     """Gets data from disk.
 
     Raises:
@@ -311,7 +311,7 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
     full_path = os.path.join(step_data_dir, step_uuid)
 
     try:
-        return _get_output_disk_local(full_path, serialization=serialization)
+        return _deserialize_output_disk(full_path, serialization=serialization)
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
@@ -548,7 +548,7 @@ def output_to_memory(
     return
 
 
-def _get_output_memory_from_plasma(
+def _deserialize_output_memory(
     obj_id: plasma.ObjectID, client: plasma.PlasmaClient
 ) -> Any:
     """Gets data from memory.
@@ -630,7 +630,7 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
 
     obj_id = _convert_uuid_to_object_id(step_uuid)
     try:
-        obj = _get_output_memory_from_plasma(obj_id, client)
+        obj = _deserialize_output_memory(obj_id, client)
 
     except ObjectNotFoundError:
         raise MemoryOutputNotFoundError(
