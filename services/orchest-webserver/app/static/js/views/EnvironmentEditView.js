@@ -186,7 +186,7 @@ class EnvironmentEditView extends React.Component {
             if (x == lines.length - 1) {
               this.refManager.refs.term.terminal.write(lines[x]);
             } else {
-              this.refManager.refs.term.terminal.write(lines[x] + "\n");
+              this.refManager.refs.term.terminal.write(lines[x] + "\n\r");
             }
           }
         } else if (data["action"] == "sio_streamed_task_started") {
