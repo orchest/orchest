@@ -127,7 +127,7 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     assert isinstance(input_data, dict)
     name = test_transfer["kwargs"]["name"]
     if name is None:
-        input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR]
+        input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
         assert len(input_data) == 1
         input_data = input_data[0]
     else:
@@ -189,7 +189,7 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     assert isinstance(input_data, dict)
     name = test_transfer["kwargs"]["name"]
     if name is None:
-        input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR]
+        input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
         assert len(input_data) == 1
         input_data = input_data[0]
     else:
@@ -243,7 +243,7 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-    input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
     assert (input_data == data_1).all()
 
 
@@ -267,7 +267,7 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-    input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
     assert input_data == data_1
 
 
@@ -297,7 +297,7 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-    input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
     assert (input_data == data_1_new).all()
 
 
@@ -327,7 +327,7 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-    input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
     assert (input_data == data_1_new).all()
 
 
@@ -355,7 +355,7 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-    input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR]
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
     assert (input_data[0] == data_1).all()
     assert (input_data[1] == data_3).all()
 
@@ -380,7 +380,7 @@ def test_receive_multiple_named_inputs(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
     assert len(input_data) == 3
-    assert len(input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR]) == 0
+    assert len(input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]) == 0
     assert (input_data["output1"] == data_1).all()
     assert (input_data["output3"] == data_3).all()
 
@@ -406,5 +406,5 @@ def test_output_no_memory_store(mock_get_step_uuid):
     input_data = transfer.get_inputs()
 
     input_data = transfer.get_inputs()
-    input_data = input_data[transfer._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
     assert (input_data == data_1).all()

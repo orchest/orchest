@@ -24,9 +24,6 @@ from orchest.errors import (
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
-_RESERVED_UNNAMED_OUTPUTS_STR = "unnamed_inputs"
-__METADATA_SEPARATOR__ = "__ORCHEST_METADATA_SEP__"
-
 
 def _check_data_name_validity(name: Optional[str]):
     if not isinstance(name, (str, type(None))):
@@ -35,14 +32,16 @@ def _check_data_name_validity(name: Optional[str]):
     if name is None:
         return
 
-    if name == _RESERVED_UNNAMED_OUTPUTS_STR:
+    if name == Config._RESERVED_UNNAMED_OUTPUTS_STR:
         raise ValueError(
-            f"'{_RESERVED_UNNAMED_OUTPUTS_STR}' is a reserved output data name."
+            f"'{Config._RESERVED_UNNAMED_OUTPUTS_STR}' \
+                 is a reserved output data name."
         )
 
-    if __METADATA_SEPARATOR__ in name:
+    if Config.__METADATA_SEPARATOR__ in name:
         raise ValueError(
-            f"'{__METADATA_SEPARATOR__}' cannot be part of the name of the data."
+            f"'{Config.__METADATA_SEPARATOR__}' cannot be \
+                 part of the name of the data."
         )
 
 
@@ -219,7 +218,7 @@ def output_to_disk(
         raise DataInvalidNameError(e)
 
     if name is None:
-        name = _RESERVED_UNNAMED_OUTPUTS_STR
+        name = Config._RESERVED_UNNAMED_OUTPUTS_STR
 
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
@@ -248,7 +247,7 @@ def output_to_disk(
             serialization.name,
             name,
         ]
-        metadata = __METADATA_SEPARATOR__.join(metadata)
+        metadata = Config.__METADATA_SEPARATOR__.join(metadata)
         f.write(metadata)
 
     # Full path to write the actual data to.
@@ -347,7 +346,9 @@ def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
 
     try:
         with open(head_file, "r") as f:
-            timestamp, serialization, name = f.read().split(__METADATA_SEPARATOR__)
+            timestamp, serialization, name = f.read().split(
+                Config.__METADATA_SEPARATOR__
+            )
 
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
@@ -528,9 +529,9 @@ def output_to_memory(
         # name might be passed to output_to_disk, which needs
         # to check for name validity itself since its a public
         # function
-        name if name is not None else _RESERVED_UNNAMED_OUTPUTS_STR,
+        name if name is not None else Config._RESERVED_UNNAMED_OUTPUTS_STR,
     ]
-    metadata = bytes(__METADATA_SEPARATOR__.join(metadata), "utf-8")
+    metadata = bytes(Config.__METADATA_SEPARATOR__.join(metadata), "utf-8")
 
     try:
         obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
@@ -584,7 +585,7 @@ def _get_output_memory_from_plasma(
             f'Object with ObjectID "{obj_id}" does not exist in store.'
         )
 
-    metadata = metadata.decode("utf-8").split(__METADATA_SEPARATOR__)
+    metadata = metadata.decode("utf-8").split(Config.__METADATA_SEPARATOR__)
     _, _, serialization, _ = metadata
     if serialization == Serialization.ARROW_TABLE.name:
         # Read all batches as a table.
@@ -697,7 +698,7 @@ def _resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     # this is a pyarrow.Buffer, gotta make it into pybytes to decode,
     # not much overhead given that this is just metadata
     metadata = metadata.to_pybytes()
-    metadata = metadata.decode("utf-8").split(__METADATA_SEPARATOR__)
+    metadata = metadata.decode("utf-8").split(Config.__METADATA_SEPARATOR__)
     # the first element is an internal flag, see output_to_memory
     _, timestamp, serialization, name = metadata
 
@@ -858,7 +859,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         # keep it for later
         get_output_methods.append((parent, get_output_method, args, kwargs, metadata))
 
-        if metadata["name"] != _RESERVED_UNNAMED_OUTPUTS_STR:
+        if metadata["name"] != Config._RESERVED_UNNAMED_OUTPUTS_STR:
             collisions_dict[metadata["name"]].append(parent.properties["title"])
 
     # if there are collisions raise an error
@@ -883,7 +884,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     # indirectly set in the UI. The order is important since it
     # determines the order in which unnamed inputs are received in
     # the next step.
-    data = {_RESERVED_UNNAMED_OUTPUTS_STR: []}
+    data = {Config._RESERVED_UNNAMED_OUTPUTS_STR: []}
     for parent, get_output_method, args, kwargs, metadata in get_output_methods:
 
         # Either raise an error on failure of getting output or
@@ -906,8 +907,8 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         # nameless data gets appended to a list
         # named data becomes a name:data pair in the dict
         name = metadata["name"]
-        if name == _RESERVED_UNNAMED_OUTPUTS_STR:
-            data[_RESERVED_UNNAMED_OUTPUTS_STR].append(incoming_step_data)
+        if name == Config._RESERVED_UNNAMED_OUTPUTS_STR:
+            data[Config._RESERVED_UNNAMED_OUTPUTS_STR].append(incoming_step_data)
         else:
             data[name] = incoming_step_data
 

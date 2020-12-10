@@ -75,9 +75,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data_2 = orchest.transfer.get_inputs(pipeline_fname)
-    assert (
-        input_data_2[orchest.transfer._RESERVED_UNNAMED_OUTPUTS_STR] == data_1
-    ).all()
+    assert (input_data_2[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
@@ -93,9 +91,7 @@ def test_memory_eviction_fit(mock_get_step_uuid, memory_store, monkeypatch):
     # method here should evict the data from "uuid-1" afterwards.
     mock_get_step_uuid.return_value = "uuid-3______________"
     input_data_3 = orchest.transfer.get_inputs(pipeline_fname)
-    assert (
-        input_data_3[orchest.transfer._RESERVED_UNNAMED_OUTPUTS_STR] == data_1
-    ).all()
+    assert (input_data_3[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
@@ -129,9 +125,7 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data_2 = orchest.transfer.get_inputs(pipeline_fname)
-    assert (
-        input_data_2[orchest.transfer._RESERVED_UNNAMED_OUTPUTS_STR] == data_1
-    ).all()
+    assert (input_data_2[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
@@ -147,9 +141,7 @@ def test_memory_eviction_memoryerror(mock_get_step_uuid, memory_store):
     # method here should evict the data from "uuid-1" afterwards.
     mock_get_step_uuid.return_value = "uuid-3______________"
     input_data_3 = orchest.transfer.get_inputs(pipeline_fname)
-    assert (
-        input_data_3[orchest.transfer._RESERVED_UNNAMED_OUTPUTS_STR] == data_1
-    ).all()
+    assert (input_data_3[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR] == data_1).all()
 
     # Pretend to be executing something.
     time.sleep(1)
