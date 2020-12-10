@@ -47,7 +47,7 @@
             "name": "step-5",
             "uuid": "uuid-5",
             "file_path": "",
-            "environment": 0.5
+            "environment": 0.6
         },
         "uuid-6": {
             "incoming_connections": ["uuid-4"],
