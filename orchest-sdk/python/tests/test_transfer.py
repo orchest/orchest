@@ -205,7 +205,7 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
-    ser_data, _ = transfer.serialize(data_1)
+    ser_data, _ = transfer._serialize(data_1)
     data_size = ser_data.size
     assert data_size > PLASMA_STORE_CAPACITY
 
@@ -229,7 +229,7 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-1
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
-    ser_data, _ = transfer.serialize(data_1)
+    ser_data, _ = transfer._serialize(data_1)
     data_size = ser_data.size
     assert data_size > PLASMA_STORE_CAPACITY
 
@@ -251,7 +251,7 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_store):
     data_1 = [CustomClass(generate_data(KILOBYTE)) for _ in range(PLASMA_KILOBYTES + 1)]
-    serialized, _ = transfer.serialize(data_1)
+    serialized, _ = transfer._serialize(data_1)
     assert serialized.size > PLASMA_STORE_CAPACITY
 
     orchest.Config.PIPELINE_DEFINITION_PATH = "tests/userdir/pipeline-basic.json"

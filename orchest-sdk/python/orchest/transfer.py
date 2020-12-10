@@ -97,7 +97,7 @@ class _PlasmaConnector:
         return self._client
 
 
-def serialize(
+def _serialize(
     data: Any,
 ) -> Tuple[bytes, Serialization]:
     """Serializes an object to a ``pa.Buffer``.
@@ -226,7 +226,7 @@ def output_to_disk(
     # In case the data is not already serialized, then we need to
     # serialize it.
     if serialization is None:
-        data, serialization = serialize(data)
+        data, serialization = _serialize(data)
 
     # Recursively create any directories if they do not already exists.
     step_data_dir = Config.get_step_data_dir(step_uuid)
@@ -249,7 +249,7 @@ def output_to_disk(
     return _output_to_disk(data, full_path, serialization=serialization)
 
 
-def _get_output_disk(full_path: str, serialization: str) -> Any:
+def _get_output_disk_local(full_path: str, serialization: str) -> Any:
     """Gets data from disk.
 
     Raises:
@@ -286,7 +286,7 @@ def _get_output_disk(full_path: str, serialization: str) -> Any:
         raise ValueError("The specified serialization is unsupported: %s")
 
 
-def get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
+def _get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
     """Gets data from disk.
 
     Args:
@@ -304,7 +304,7 @@ def get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
     full_path = os.path.join(step_data_dir, step_uuid)
 
     try:
-        return _get_output_disk(full_path, serialization=serialization)
+        return _get_output_disk_local(full_path, serialization=serialization)
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
@@ -314,7 +314,7 @@ def get_output_disk(step_uuid: str, serialization: Serialization) -> Any:
         )
 
 
-def resolve_disk(step_uuid: str) -> Dict[str, Any]:
+def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
     """Returns information of the most recent write to disk.
 
     Resolves via the HEAD file the timestamp (that is used to determine
@@ -350,7 +350,7 @@ def resolve_disk(step_uuid: str) -> Dict[str, Any]:
         )
 
     res = {
-        "method_to_call": get_output_disk,
+        "method_to_call": _get_output_disk,
         "method_args": (step_uuid,),
         "method_kwargs": {"serialization": serialization},
         "metadata": {
@@ -486,7 +486,7 @@ def output_to_memory(
         raise StepUUIDResolveError("Failed to determine where to output data to.")
 
     # Serialize the object and collect the serialization metadata.
-    obj, serialization = serialize(data)
+    obj, serialization = _serialize(data)
 
     try:
         client = _PlasmaConnector().client
@@ -533,7 +533,9 @@ def output_to_memory(
     return
 
 
-def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> Any:
+def _get_output_memory_from_plasma(
+    obj_id: plasma.ObjectID, client: plasma.PlasmaClient
+) -> Any:
     """Gets data from memory.
 
     Args:
@@ -589,7 +591,7 @@ def _get_output_memory(obj_id: plasma.ObjectID, client: plasma.PlasmaClient) -> 
         raise ValueError("Object was serialized with an unsupported serialization")
 
 
-def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
+def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
     """Gets data from memory.
 
     Args:
@@ -613,7 +615,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
 
     obj_id = _convert_uuid_to_object_id(step_uuid)
     try:
-        obj = _get_output_memory(obj_id, client)
+        obj = _get_output_memory_from_plasma(obj_id, client)
 
     except ObjectNotFoundError:
         raise MemoryOutputNotFoundError(
@@ -630,7 +632,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         # jupyter kernel interactively. And in that case we never want
         # to do eviction.
         if os.getenv("ORCHEST_MEMORY_EVICTION") is not None:
-            empty_obj, _ = serialize("")
+            empty_obj, _ = _serialize("")
             msg = f"{Config.IDENTIFIER_EVICTION};{step_uuid},{consumer}"
             metadata = bytes(msg, "utf-8")
             _output_to_memory(empty_obj, client, metadata=metadata)
@@ -638,7 +640,7 @@ def get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
     return obj
 
 
-def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
+def _resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     """Returns information of the most recent write to memory.
 
     Resolves the timestamp via the `create_time` attribute from the info
@@ -686,7 +688,7 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     _, timestamp, serialization, name = metadata
 
     res = {
-        "method_to_call": get_output_memory,
+        "method_to_call": _get_output_memory,
         "method_args": (step_uuid,),
         "method_kwargs": {"consumer": consumer},
         "metadata": {
@@ -698,7 +700,7 @@ def resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     return res
 
 
-def resolve(
+def _resolve(
     step_uuid: str, consumer: str = None
 ) -> Tuple[Callable, Sequence[Any], Dict[str, Any], Dict[str, Any]]:
     """Resolves the most recently used tranfer method of the given step.
@@ -727,12 +729,12 @@ def resolve(
     # NOTE: All "resolve_{method}" functions have to be included in this
     # list. It is used to resolve what what "get_output_..." method to
     # invoke.
-    resolve_methods: List[Callable] = [resolve_memory, resolve_disk]
+    resolve_methods: List[Callable] = [_resolve_memory, _resolve_disk]
 
     method_infos = []
     for method in resolve_methods:
         try:
-            if method.__name__ == "resolve_memory":
+            if method.__name__ == "_resolve_memory":
                 method_info = method(step_uuid, consumer=consumer)
             else:
                 method_info = method(step_uuid)
@@ -820,7 +822,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]
         # for each parent get what function to use to retrieve its
         # output data and metadata related to said data
         parent_uuid = parent.properties["uuid"]
-        get_output_method, args, kwargs, metadata = resolve(
+        get_output_method, args, kwargs, metadata = _resolve(
             parent_uuid, consumer=step_uuid
         )
 
