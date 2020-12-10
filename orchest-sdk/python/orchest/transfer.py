@@ -290,7 +290,10 @@ def _deserialize_output_disk(full_path: str, serialization: str) -> Any:
         with open(file_path, "rb") as input_file:
             return pickle.load(input_file)
     else:
-        raise ValueError("The specified serialization is unsupported: %s")
+        raise ValueError(
+            f"The specified serialization is \
+            unsupported: {serialization}"
+        )
 
 
 def _get_output_disk(step_uuid: str, serialization: str) -> Any:
@@ -866,15 +869,12 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     collisions_dict = {k: v for k, v in collisions_dict.items() if len(v) > 1}
     if len(collisions_dict) > 0:
         msg = [
-            "%s: %s" % (name, sorted(step_names))
+            f"{name}: {sorted(step_names)}"
             for name, step_names in collisions_dict.items()
         ]
         msg = "\n".join(msg)
-        msg = (
-            "Name collisions between input data coming  \
-            from different steps:\n%s"
-            % msg
-        )
+        msg = f"Name collisions between input data coming  \
+            from different steps:\n{msg}"
         raise InputNameCollisionError(msg)
 
     # TODO: maybe instead of for loop we could first get the receive
