@@ -867,7 +867,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
 
     # if there are collisions raise an error
     collisions_dict = {k: v for k, v in collisions_dict.items() if len(v) > 1}
-    if len(collisions_dict) > 0:
+    if collisions_dict:
         msg = [
             f"{name}: {sorted(step_names)}"
             for name, step_names in collisions_dict.items()

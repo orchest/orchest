@@ -380,7 +380,7 @@ def test_receive_multiple_named_inputs(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
     assert len(input_data) == 3
-    assert len(input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]) == 0
+    assert not input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
     assert (input_data["output1"] == data_1).all()
     assert (input_data["output3"] == data_3).all()
 
