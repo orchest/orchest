@@ -23,7 +23,7 @@ from orchest.errors import (
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
-_RESERVED_UNNAMED_OUTPUTS_STR = "unnamed_outputs"
+_RESERVED_UNNAMED_OUTPUTS_STR = "unnamed_inputs"
 __METADATA_SEPARATOR__ = "__ORCHEST_METADATA_SEP__"
 
 
@@ -772,7 +772,7 @@ def _resolve(
     )
 
 
-def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]:
+def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str, Any]:
     """Gets all data sent from incoming steps.
 
     Args:
@@ -785,9 +785,24 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> List[Any]
             has retrieved data.
 
     Returns:
-        List of all the data in the specified order from the front-end.
+        Dictionary with input data for this step.
+        Named data, which is data which has been outputted with a name
+        by any parent step, can be retrieved through the dictionary
+        by its name, e.g. `data = get_inputs()["my_name"]`. Name
+        collisions will raise an error.
+        Unnamed data, which is data that has been outputted with no
+        name by any parent step, can be retrieved through
+        `unnamed_data = get_inputs()["unnamed_inputs"]`, which returns
+        a list of unnamed data. The order of this list depends on
+        the order of the parent steps of the node, which is visible
+        through the GUI.
 
         Example:
+            {
+                "unnamed_inputs" : [1, {1: 2}],
+                "named_1" : "mystring",
+                "named_2" : [1, 2, 3]
+            }
 
     Raises:
         StepUUIDResolveError: The step's UUID cannot be resolved and
