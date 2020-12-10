@@ -19,6 +19,7 @@ from orchest.errors import (
     OrchestNetworkError,
     StepUUIDResolveError,
     InputNameCollisionError,
+    DataInvalidNameError,
 )
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
@@ -196,6 +197,9 @@ def output_to_disk(
             serialized. For possible values see :class:`Serialization`.
 
     Raises:
+        DataInvalidNameError: The name of the output data is invalid, e.
+            g. because it is a reserved name (`unnamed_inputs`) or becau
+            se it contains a reserved substring.
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine where to output data to.
 
@@ -209,7 +213,11 @@ def output_to_disk(
         to be only calling the function once.
 
     """
-    _check_data_name_validity(name)
+    try:
+        _check_data_name_validity(name)
+    except (ValueError, TypeError) as e:
+        raise DataInvalidNameError(e)
+
     if name is None:
         name = _RESERVED_UNNAMED_OUTPUTS_STR
 
@@ -451,6 +459,9 @@ def output_to_memory(
             :exc:`MemoryError` is thrown.
 
     Raises:
+        DataInvalidNameError: The name of the output data is invalid, e.
+            g. because it is a reserved name (`unnamed_inputs`) or becau
+            se it contains a reserved substring.
         MemoryError: If the `data` does not fit in memory and
             ``disk_fallback=False``.
         OrchestNetworkError: Could not connect to the
@@ -471,7 +482,10 @@ def output_to_memory(
         therefore want to be only calling the function once.
 
     """
-    _check_data_name_validity(name)
+    try:
+        _check_data_name_validity(name)
+    except (ValueError, TypeError) as e:
+        raise DataInvalidNameError(e)
 
     # TODO: we might want to wrap this so we can throw a custom error,
     #       if the file cannot be found, i.e. FileNotFoundError.
@@ -914,6 +928,9 @@ def output(data: Any, name: Optional[str]) -> None:
         using :func:`get_inputs`.
 
     Raises:
+        DataInvalidNameError: The name of the output data is invalid, e.
+            g. because it is a reserved name (`unnamed_inputs`) or becau
+            se it contains a reserved substring.
         OrchestNetworkError: Could not connect to the
             ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
             might be because the specified value was wrong or the store
@@ -931,6 +948,11 @@ def output(data: Any, name: Optional[str]) -> None:
         calling the function once.
 
     """
+    try:
+        _check_data_name_validity(name)
+    except (ValueError, TypeError) as e:
+        raise DataInvalidNameError(e)
+
     return output_to_memory(data, name, disk_fallback=True)
 
 

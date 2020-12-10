@@ -51,3 +51,9 @@ class InputNameCollisionError(Error):
     """Multiple input data objects have the same name"""
 
     pass
+
+
+class DataInvalidNameError(Error):
+    """Data has an invalid name"""
+
+    pass
