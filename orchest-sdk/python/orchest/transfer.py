@@ -884,7 +884,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     # indirectly set in the UI. The order is important since it
     # determines the order in which unnamed inputs are received in
     # the next step.
-    data = {Config._RESERVED_UNNAMED_OUTPUTS_STR: []}
+    data = {Config._RESERVED_UNNAMED_OUTPUTS_STR: []}  # type: Dict[str, Any]
     for parent, get_output_method, args, kwargs, metadata in get_output_methods:
 
         # Either raise an error on failure of getting output or
