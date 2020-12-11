@@ -66,8 +66,7 @@ class FilePreviewView extends React.Component {
   componentDidUpdate(prevProps) {
     if (
       this.props.step_uuid !== prevProps.step_uuid ||
-      this.props.pipeline_uuid !== prevProps.pipeline_uuid ||
-      this.props.pipelineRun !== prevProps.pipelineRun
+      this.props.pipeline_uuid !== prevProps.pipeline_uuid
     ) {
       this.fetchAll();
     }
