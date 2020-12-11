@@ -1,12 +1,3 @@
-"""
-
-The pipeline looks as follows:
-    step 1 --> step 2 --> step 3
-                    |
-                      --> step 4 --> step 5
-
-               step 6
-"""
 import asyncio
 import json
 
@@ -19,9 +10,42 @@ from _orchest.internals import config as _config
 
 
 class IO:
-    def __init__(self, pipeline, correct_execution_order):
+    def __init__(self, pipeline):
         self.pipeline = pipeline
-        self.correct_execution_order = correct_execution_order
+        self.dependencies = dict()
+
+        for step in pipeline.steps:
+            self.dependencies[step.properties["uuid"]] = set(
+                step.properties["incoming_connections"]
+            )
+
+
+def execution_order_correct(execution_order, dependencies):
+    """Test if the execution order respected the DAG dependencies.
+
+    Args:
+        execution_order: execution order as a list of uuids
+        dependencies: dict mapping a uuid to an iterable of parent uuids
+
+    Returns:
+        True if the execution order was correct, False otherwise.
+    """
+    # for each step verify that its dependencies have been run before
+    # the step itself
+    success = True
+    executed_steps = set()
+    for step in execution_order:
+        for parent_step in dependencies[step]:
+            if parent_step not in executed_steps:
+                print(
+                    f"parent step {parent_step} \
+                            was not executed before {step}"
+                )
+                success = False
+
+        executed_steps.add(step)
+
+    return success
 
 
 @pytest.fixture(
@@ -43,8 +67,7 @@ def testio(request):
         description = json.load(f)
 
     pipeline = Pipeline.from_json(description)
-    correct_execution_order = description["correct_execution_order"]
-    return IO(pipeline, correct_execution_order)
+    return IO(pipeline)
 
 
 class MockDockerContainer:
@@ -111,4 +134,4 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
-    assert execution_order == testio.correct_execution_order
+    assert execution_order_correct(execution_order, testio.dependencies)

@@ -81,17 +81,17 @@ JupyterLab* (making sure you have the step selected) and paste in the following 
    # The "/data" directory is a special directory managed by Orchest
    # to allow data to be persisted and shared across pipelines and
    # even projects.
-   print("Dowloading California housing data...")
-   data = datasets.fetch_california_housing(data_home="/data")
+   print('Dowloading California housing data...')
+   data = datasets.fetch_california_housing(data_home='/data')
    
    # Convert the data into a DataFrame.
-   df_data = pd.DataFrame(data["data"], columns=data["feature_names"])
-   df_target = pd.DataFrame(data["target"], columns=["MedHouseVal"])
+   df_data = pd.DataFrame(data['data'], columns=data['feature_names'])
+   df_target = pd.DataFrame(data['target'], columns=['MedHouseVal'])
    
    # Output the housing data so the next steps can retrieve it.
-   print("Outputting converted housing data...")
-   orchest.output((df_data, df_target))
-   print("Success!")
+   print('Outputting converted housing data...')
+   orchest.output((df_data, df_target), name='training_data')
+   print('Success!')
 
 As you can see, we have highlighted a few lines in the code to emphasize important nuts and bolts to
 get a better understanding of building pipelines in Orchest. These nuts and bolts are explained

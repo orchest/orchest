@@ -43,6 +43,12 @@ class Config:
     IDENTIFIER_SERIALIZATION = 1
     IDENTIFIER_EVICTION = 2
     CONN_NUM_RETRIES = 20
+    # Separator for the metadata related to stored data, both to disk
+    # and to memory.
+    __METADATA_SEPARATOR__ = "; "
+    # Reserved key of the aggregated unnamed outputs list in the
+    # dictionary returned by ``get_inputs()``.
+    _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed"
 
     # For datasources.py
     INTERNAL_DATASOURCES = ["_default"]

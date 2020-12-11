@@ -104,9 +104,10 @@ def plasma_store(monkeypatch):
 @pytest.mark.parametrize(
     "test_transfer",
     [
-        {"method": transfer.output_to_disk, "kwargs": {}},
+        {"method": transfer.output_to_disk, "kwargs": {"name": None}},
+        {"method": transfer.output_to_disk, "kwargs": {"name": "myname"}},
     ],
-    ids=["default"],
+    ids=["unnammed", "named"],
 )
 @patch("orchest.transfer.get_step_uuid")
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
@@ -123,8 +124,17 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
+    assert isinstance(input_data, dict)
+    name = test_transfer["kwargs"]["name"]
+    if name is None:
+        input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
+        assert len(input_data) == 1
+        input_data = input_data[0]
+    else:
+        input_data = input_data[name]
+
     if isinstance(data_1, (pa.RecordBatch, pa.Table, pd.DataFrame)):
-        assert input_data[0].equals(data_1)
+        assert input_data.equals(data_1)
     else:
         assert (input_data == data_1).all()
 
@@ -148,11 +158,19 @@ def test_disk(mock_get_step_uuid, data_1, test_transfer, plasma_store):
         {
             "method": transfer.output_to_memory,
             "kwargs": {
+                "name": None,
                 "disk_fallback": False,
             },
-        }
+        },
+        {
+            "method": transfer.output_to_memory,
+            "kwargs": {
+                "name": "myname",
+                "disk_fallback": False,
+            },
+        },
     ],
-    ids=["disk_fallback=False"],
+    ids=["disk_fallback=False;unnamed", "disk_fallback=False;named"],
 )
 @patch("orchest.transfer.get_step_uuid")
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
@@ -168,8 +186,17 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
+    assert isinstance(input_data, dict)
+    name = test_transfer["kwargs"]["name"]
+    if name is None:
+        input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
+        assert len(input_data) == 1
+        input_data = input_data[0]
+    else:
+        input_data = input_data[name]
+
     if isinstance(data_1, (pa.RecordBatch, pa.Table, pd.DataFrame)):
-        assert input_data[0].equals(data_1)
+        assert input_data.equals(data_1)
     else:
         assert (input_data == data_1).all()
 
@@ -178,7 +205,7 @@ def test_memory(mock_get_step_uuid, data_1, test_transfer, plasma_store):
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
-    ser_data, _ = transfer.serialize(data_1)
+    ser_data, _ = transfer._serialize(data_1)
     data_size = ser_data.size
     assert data_size > PLASMA_STORE_CAPACITY
 
@@ -190,6 +217,7 @@ def test_memory_out_of_memory(mock_get_step_uuid, plasma_store):
     with pytest.raises(MemoryError):
         transfer.output_to_memory(
             data_1,
+            name=None,
             disk_fallback=False,
         )
 
@@ -201,28 +229,29 @@ def test_memory_disk_fallback(mock_get_step_uuid, plasma_store):
 
     # Do as if we are uuid-1
     data_1 = generate_data((PLASMA_KILOBYTES + 1) * KILOBYTE)
-    ser_data, _ = transfer.serialize(data_1)
+    ser_data, _ = transfer._serialize(data_1)
     data_size = ser_data.size
     assert data_size > PLASMA_STORE_CAPACITY
 
     mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output_to_memory(
         data_1,
+        name=None,
         disk_fallback=True,
     )
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-
-    assert (input_data[0] == data_1).all()
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    assert (input_data == data_1).all()
 
 
 @patch("orchest.transfer.get_step_uuid")
 @patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
 def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_store):
     data_1 = [CustomClass(generate_data(KILOBYTE)) for _ in range(PLASMA_KILOBYTES + 1)]
-    serialized, _ = transfer.serialize(data_1)
+    serialized, _ = transfer._serialize(data_1)
     assert serialized.size > PLASMA_STORE_CAPACITY
 
     orchest.Config.PIPELINE_DEFINITION_PATH = "tests/userdir/pipeline-basic.json"
@@ -231,14 +260,15 @@ def test_memory_pickle_fallback_and_disk_fallback(mock_get_step_uuid, plasma_sto
     mock_get_step_uuid.return_value = "uuid-1______________"
     transfer.output_to_memory(
         data_1,
+        name=None,
         disk_fallback=True,
     )
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-
-    assert input_data[0] == data_1
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    assert input_data == data_1
 
 
 @patch("orchest.transfer.get_step_uuid")
@@ -250,7 +280,7 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
     mock_get_step_uuid.return_value = "uuid-1______________"
 
     data_1 = generate_data(KILOBYTE)
-    transfer.output_to_disk(data_1)
+    transfer.output_to_disk(data_1, name=None)
 
     # It is very unlikely you will output through memory and disk in quick
     # succession. In addition, the resolve order has a precision of
@@ -260,14 +290,15 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
     data_1_new = generate_data(KILOBYTE)
     transfer.output_to_memory(
         data_1_new,
+        name=None,
         disk_fallback=False,
     )
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-
-    assert (input_data[0] == data_1_new).all()
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    assert (input_data == data_1_new).all()
 
 
 @patch("orchest.transfer.get_step_uuid")
@@ -281,6 +312,7 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
     data_1 = generate_data(KILOBYTE)
     transfer.output_to_memory(
         data_1,
+        name=None,
         disk_fallback=False,
     )
 
@@ -290,13 +322,13 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
     time.sleep(1)
 
     data_1_new = generate_data(KILOBYTE)
-    transfer.output_to_disk(data_1_new)
+    transfer.output_to_disk(data_1_new, name=None)
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-
-    assert (input_data[0] == data_1_new).all()
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    assert (input_data == data_1_new).all()
 
 
 @patch("orchest.transfer.get_step_uuid")
@@ -313,19 +345,44 @@ def test_receive_input_order(mock_get_step_uuid, plasma_store):
     # Do as if we are uuid-3
     data_3 = generate_data(KILOBYTE)
     mock_get_step_uuid.return_value = "uuid-3______________"
-    transfer.output_to_memory(data_3)
+    transfer.output_to_memory(data_3, name=None)
 
     # Do as if we are uuid-1
     data_1 = generate_data(KILOBYTE)
     mock_get_step_uuid.return_value = "uuid-1______________"
-    transfer.output_to_memory(data_1)
+    transfer.output_to_memory(data_1, name=None)
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
-
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
     assert (input_data[0] == data_1).all()
     assert (input_data[1] == data_3).all()
+
+
+@patch("orchest.transfer.get_step_uuid")
+@patch("orchest.Config.STEP_DATA_DIR", "tests/userdir/.data/{step_uuid}")
+def test_receive_multiple_named_inputs(mock_get_step_uuid, plasma_store):
+    """Test receiving multiple named inputs."""
+    orchest.Config.PIPELINE_DEFINITION_PATH = "tests/userdir/pipeline-order.json"
+
+    # Do as if we are uuid-3
+    data_3 = generate_data(KILOBYTE)
+    mock_get_step_uuid.return_value = "uuid-3______________"
+    transfer.output_to_memory(data_3, name="output3")
+
+    # Do as if we are uuid-1
+    data_1 = generate_data(KILOBYTE)
+    mock_get_step_uuid.return_value = "uuid-1______________"
+    transfer.output_to_memory(data_1, name="output1")
+
+    # Do as if we are uuid-2
+    mock_get_step_uuid.return_value = "uuid-2______________"
+    input_data = transfer.get_inputs()
+    assert len(input_data) == 3
+    assert not input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR]
+    assert (input_data["output1"] == data_1).all()
+    assert (input_data["output3"] == data_3).all()
 
 
 @patch("orchest.transfer.get_step_uuid")
@@ -342,10 +399,12 @@ def test_output_no_memory_store(mock_get_step_uuid):
     # Do as if we are uuid-1
     data_1 = generate_data(KILOBYTE)
     mock_get_step_uuid.return_value = "uuid-1______________"
-    transfer.output(data_1)
+    transfer.output(data_1, name=None)
 
     # Do as if we are uuid-2
     mock_get_step_uuid.return_value = "uuid-2______________"
     input_data = transfer.get_inputs()
 
-    assert (input_data[0] == data_1).all()
+    input_data = transfer.get_inputs()
+    input_data = input_data[orchest.Config._RESERVED_UNNAMED_OUTPUTS_STR][0]
+    assert (input_data == data_1).all()

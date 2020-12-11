@@ -1,12 +1,6 @@
 {
     "name": "pipeline-name",
     "uuid": "pipeline-uuid",
-    "correct_execution_order": [
-        "uuid-2",
-        "uuid-1",
-        "uuid-3",
-        "uuid-4"
-    ],
     "settings": {},
     "steps": {
         "uuid-1": {

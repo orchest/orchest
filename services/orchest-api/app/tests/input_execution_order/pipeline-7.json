@@ -1,14 +1,6 @@
 {
     "name": "pipeline-name",
     "uuid": "pipeline-uuid",
-    "correct_execution_order": [
-        "uuid-2",
-        "uuid-3",
-        "uuid-5",
-        "uuid-1",
-        "uuid-6",
-        "uuid-4"
-    ],
     "settings": {},
     "steps": {
         "uuid-1": {
@@ -16,7 +8,7 @@
             "name": "step-1",
             "uuid": "uuid-1",
             "file_path": "",
-            "environment": 0.3
+            "environment": 0.5
         },
         "uuid-2": {
             "incoming_connections": [],
@@ -30,7 +22,7 @@
             "name": "step-3",
             "uuid": "uuid-3",
             "file_path": "",
-            "environment": 0.1
+            "environment": 0.2
         },
         "uuid-4": {
             "incoming_connections": ["uuid-1", "uuid-2", "uuid-3"],

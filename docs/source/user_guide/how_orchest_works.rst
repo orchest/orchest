@@ -77,11 +77,11 @@ the following code:
 
 .. code-block:: python
 
-   print("Hello World!")
+   print('Hello World!')
 
 If you now, without having executed this cell in JupyterLab, go to the pipeline editor, select the
 step and press *Run selected steps* then you will see in JupyterLab that the cell has outputted
-``"Hello World!"`` without having run it in JupyterLab.
+``'Hello World!'`` without having run it in JupyterLab.
 
 .. note::
    Even though both interactive pipeline runs and JupyterLab change your files, they do not share
