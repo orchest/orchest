@@ -48,7 +48,7 @@ class Config:
     __METADATA_SEPARATOR__ = "; "
     # Reserved key of the aggregated unnamed outputs list in the
     # dictionary returned by ``get_inputs()``.
-    _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed_inputs"
+    _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed"
 
     # For datasources.py
     INTERNAL_DATASOURCES = ["_default"]

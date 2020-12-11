@@ -195,8 +195,8 @@ def output_to_disk(
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
-            e.g because it is a reserved name (``"unnamed_inputs"``) or
-            because it contains a reserved substring.
+            e.g because it is a reserved name (``"unnamed"``) or because
+            it contains a reserved substring.
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine where to output data to.
 
@@ -461,8 +461,8 @@ def output_to_memory(
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
-            e.g because it is a reserved name (``"unnamed_inputs"``) or
-            because it contains a reserved substring.
+            e.g because it is a reserved name (``"unnamed"``) or because
+            it contains a reserved substring.
         MemoryError: If the `data` does not fit in memory and
             ``disk_fallback=False``.
         OrchestNetworkError: Could not connect to the
@@ -808,14 +808,14 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         * Unnamed data, which is an ordered list containing all the
           data that was outputted without a name by the parent steps.
           Unnamed data can be retrieved by accessing the reserved
-          ``"unnamed_inputs"`` key. The order of this list depends on the
-          order of the parent steps of the node, which is visible through
-          the GUI.
+          ``"unnamed"`` key. The order of this list depends on the order
+          of the parent steps of the node, which is visible through the
+          GUI.
 
         Example::
 
             {
-                "unnamed_inputs" : ["Hello World!", (3, 4)],
+                "unnamed" : ["Hello World!", (3, 4)],
                 "named_1" : "mystring",
                 "named_2" : [1, 2, 3]
             }
@@ -934,8 +934,8 @@ def output(data: Any, name: Optional[str]) -> None:
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
-            e.g because it is a reserved name (``"unnamed_inputs"``) or
-            because it contains a reserved substring.
+            e.g because it is a reserved name (``"unnamed"``) or because
+            it contains a reserved substring.
         OrchestNetworkError: Could not connect to the
             ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
             might be because the specified value was wrong or the store
