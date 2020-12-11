@@ -8,10 +8,12 @@ The pipeline looks as follows:
                step 6
 """
 import asyncio
+from collections import defaultdict
 import json
 
 from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
+import networkx as nx
 
 from app.core import pipelines
 from app.core.pipelines import Pipeline
@@ -19,9 +21,27 @@ from _orchest.internals import config as _config
 
 
 class IO:
-    def __init__(self, pipeline, correct_execution_order):
+    def __init__(self, pipeline, possible_execution_orders):
         self.pipeline = pipeline
-        self.correct_execution_order = correct_execution_order
+        self.possible_execution_orders = possible_execution_orders
+
+
+def steps_to_networkx_digraph(steps):
+    graph = defaultdict(list)
+    for step_uuid, step_properties in steps.items():
+
+        # needed for steps with no children
+        if step_uuid not in graph:
+            graph[step_uuid] = []
+
+        for parent in step_properties["incoming_connections"]:
+            graph[parent].append(step_uuid)
+    return nx.DiGraph(graph)
+
+
+def all_execution_orders(steps):
+    """All possible execution orders as a generator of lists"""
+    return nx.all_topological_sorts(steps_to_networkx_digraph(steps))
 
 
 @pytest.fixture(
@@ -43,8 +63,8 @@ def testio(request):
         description = json.load(f)
 
     pipeline = Pipeline.from_json(description)
-    correct_execution_order = description["correct_execution_order"]
-    return IO(pipeline, correct_execution_order)
+    possible_execution_orders = all_execution_orders(description["steps"])
+    return IO(pipeline, possible_execution_orders)
 
 
 class MockDockerContainer:
@@ -111,4 +131,11 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
-    assert execution_order == testio.correct_execution_order
+    for order in testio.possible_execution_orders:
+        # avoid comparing all solutions
+        if execution_order == order:
+            return
+
+    # if the execution order is not among the possible orders then the
+    # test failed
+    assert False
