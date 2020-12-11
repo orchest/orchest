@@ -138,4 +138,5 @@ def test_pipeline_run_call_order(testio, monkeypatch):
 
     # if the execution order is not among the possible orders then the
     # test failed
+    print(f"Invalid execution order: {execution_order}")
     assert False
