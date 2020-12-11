@@ -330,8 +330,9 @@ class ProjectsView extends React.Component {
                 content={
                   <div className="project-import-modal">
                     <p className="push-down">
-                      Import a <span className="code">git</span> by specifying
-                      the <span className="code">HTTPS</span> URL below:
+                      Import a <span className="code">git</span> repository by
+                      specifying the <span className="code">HTTPS</span> URL
+                      below:
                     </p>
                     <MDCTextFieldReact
                       classNames={["fullwidth push-down"]}
