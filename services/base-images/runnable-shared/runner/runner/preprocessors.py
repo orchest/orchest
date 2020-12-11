@@ -1,4 +1,5 @@
 import typing as t
+import nbformat
 
 from nbformat.v4 import output_from_msg
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -7,8 +8,13 @@ from nbconvert.filters import ansi2html
 
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
-    def __init__(self, log_file, **kw):
+    def __init__(
+        self, log_file, nb_path, write_after_run, original_kernelspec_name, **kw
+    ):
         self.log_file = log_file
+        self.nb_path = nb_path
+        self.write_after_run = write_after_run
+        self.original_kernelspec_name = original_kernelspec_name
 
         self.printed_indices = set()
 
@@ -73,11 +79,23 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
         return super().output(outs, msg, display_id, cell_index)
 
+    def preprocess(self, nb, resources=None, km=None):
+        self.nb_ref = nb
+        super().preprocess(nb, resources, km)
+
     def preprocess_cell(self, cell, resources, cell_index):
         """
         Executes cells without 'skip' tag only.
         If the tag is not found cell is not executed.
         """
+
+        # write the notebook before each preprocess action
+        if self.write_after_run:
+            with open(self.nb_path, "w", encoding="utf-8") as f:
+                tmp_name = self.nb_ref.metadata.kernelspec.name
+                self.nb_ref.metadata.kernelspec.name = self.original_kernelspec_name
+                nbformat.write(self.nb_ref, f)
+                self.nb_ref.metadata.kernelspec.name = tmp_name
 
         tags = cell.metadata.get("tags")
 

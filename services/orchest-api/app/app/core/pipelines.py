@@ -290,7 +290,17 @@ class PipelineStepRunner:
             # The status code will be 0 for "SUCCESS" and -N otherwise. A
             # negative value -N indicates that the child was terminated
             # by signal N (POSIX only).
-            self._status = "FAILURE" if data.get("StatusCode") else "SUCCESS"
+            if data.get("StatusCode") != 0:
+                self._status = "FAILURE"
+                logging.error(
+                    "Docker container for step %s failed with output:\n%s"
+                    % (
+                        self.properties["uuid"],
+                        "".join(await container.log(stdout=True, stderr=True)),
+                    )
+                )
+            else:
+                self._status = "SUCCESS"
 
         except Exception as e:
             logging.error("Failed to run Docker container: %s" % e)

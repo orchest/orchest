@@ -1304,7 +1304,7 @@ class PipelineView extends React.Component {
           relativeToAbsolutePath(
             this.state.steps[this.state.openedStep].file_path,
             cwd
-          )
+          ).slice(1)
         );
 
         orchest.showJupyter();

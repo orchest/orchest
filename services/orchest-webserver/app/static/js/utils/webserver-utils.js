@@ -183,3 +183,63 @@ export function getPipelineJSONEndpoint(
   }
   return pipelineURL;
 }
+
+export function getPipelineStepParents(stepUUID, pipelineJSON) {
+  let incomingConnections = [];
+  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
+    if (step.uuid == stepUUID) {
+      incomingConnections = step.incoming_connections;
+      break;
+    }
+  }
+
+  let parentSteps = [];
+  for (let parentStepUUID of incomingConnections) {
+    parentSteps.push(pipelineJSON.steps[parentStepUUID]);
+  }
+
+  return parentSteps;
+}
+
+export function getPipelineStepChildren(stepUUID, pipelineJSON) {
+  let childSteps = [];
+
+  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
+    if (step.incoming_connections.indexOf(stepUUID) !== -1) {
+      childSteps.push(step);
+    }
+  }
+
+  return childSteps;
+}
+
+export function setWithRetry(value, setter, getter, retries, delay, interval) {
+  if (retries == 0) {
+    console.warn("Failed to set with retry for setter (timeout):", setter);
+    clearInterval(interval);
+    return;
+  }
+  try {
+    setter(value);
+  } catch (error) {
+    console.warn("Setter produced an error.", setter, error);
+  }
+  try {
+    if (value == getter()) {
+      if (interval) {
+        clearInterval(interval);
+      }
+      return;
+    }
+  } catch (error) {
+    console.warn("Getter produced an error.", getter, error);
+  }
+  if (interval === undefined) {
+    interval = setInterval(() => {
+      retries -= 1;
+      setWithRetry(value, setter, getter, retries, delay, interval);
+    }, delay);
+
+    return interval;
+  }
+}

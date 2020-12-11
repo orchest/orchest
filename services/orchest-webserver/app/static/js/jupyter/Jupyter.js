@@ -1,13 +1,13 @@
+import { setWithRetry } from "../utils/webserver-utils";
+
 class Jupyter {
   constructor(jupyterHolderJEl) {
     this.jupyterHolder = jupyterHolderJEl;
     this.iframe = undefined;
+    this.baseAddress = "";
+    this.reloadOnShow = false;
 
     this.initializeJupyter();
-
-    this.baseAddress = "";
-
-    this.reloadOnShow = false;
   }
 
   updateJupyterInstance(baseAddress) {
@@ -87,7 +87,7 @@ class Jupyter {
       this.iframe.contentWindow._orchest_docmanager.openOrReveal(filePath);
     } else {
       this.setJupyterAddress(
-        this.baseAddress + "/lab/workspaces/main/tree/" + filePath
+        this.baseAddress + "/lab/workspaces/main/tree/" + filePath + "?reset"
       );
     }
   }

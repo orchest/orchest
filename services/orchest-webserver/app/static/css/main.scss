@@ -12,7 +12,7 @@ $generalPadding: 20px;
 $mdcComponentPadding: 16px;
 $codeSize: 14px;
 $defaultFontSize: 15px;
-$borderColor: rgba(0, 0, 0, 0.15);
+$borderColor: rgba(0, 0, 0, 0.12);
 $stepBorderRadius: 6px;
 
 $pipelineStepHeight: 105px;
@@ -344,8 +344,44 @@ aside.mdc-drawer {
   p {
     padding: $generalPadding;
 
-    h4 {
+    h3 {
       font-weight: 500;
+    }
+  }
+
+  .file-description {
+    border-bottom: 1px solid $borderColor;
+    z-index: 9;
+
+    .step-navigation {
+      overflow: auto;
+      padding-top: $generalPadding;
+
+      .parents {
+        float: left;
+        button {
+          margin-right: $mdcComponentPadding;
+          &:last-of-type {
+            margin-right: 0;
+          }
+        }
+      }
+      .children {
+        float: right;
+        text-align: right;
+
+        button {
+          margin-left: $mdcComponentPadding;
+          &:first-of-type {
+            margin-left: 0;
+          }
+        }
+      }
+      span {
+        font-size: $codeSize;
+        display: block;
+        color: #999;
+      }
     }
   }
 
@@ -360,17 +396,13 @@ aside.mdc-drawer {
   .react-codemirror2 {
     padding: $generalPadding;
 
-    .cm-s-default {
+    .CodeMirror {
       width: 100%;
       height: 100%;
     }
 
     width: 100%;
     height: 100%;
-  }
-
-  .close-button {
-    z-index: 99;
   }
 }
 
@@ -416,10 +448,28 @@ iframe.fullsize {
   }
 }
 
-.close-button {
+button.text-button {
+  border: 0;
+  border-bottom: 1px dotted #c6cbd1;
+  background: none;
+  &:hover {
+    border-bottom: 1px solid black;
+  }
+  cursor: pointer;
+}
+
+.top-buttons {
   position: absolute;
   top: $generalPadding;
   right: $generalPadding;
+  z-index: 99;
+
+  button {
+    margin-left: 10px;
+    &:first-of-type {
+      margin-left: 0;
+    }
+  }
 }
 
 .view-pipeline-settings {

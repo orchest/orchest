@@ -278,11 +278,13 @@ class PipelineSettingsView extends React.Component {
           }
         })()}
 
-        <MDCButtonReact
-          classNames={["close-button"]}
-          icon="close"
-          onClick={this.closeSettings.bind(this)}
-        />
+        <div className="top-buttons">
+          <MDCButtonReact
+            classNames={["close-button"]}
+            icon="close"
+            onClick={this.closeSettings.bind(this)}
+          />
+        </div>
       </div>
     );
   }
