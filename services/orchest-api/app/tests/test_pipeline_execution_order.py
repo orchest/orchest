@@ -1,19 +1,8 @@
-"""
-
-The pipeline looks as follows:
-    step 1 --> step 2 --> step 3
-                    |
-                      --> step 4 --> step 5
-
-               step 6
-"""
 import asyncio
-from collections import defaultdict
 import json
 
 from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
-import networkx as nx
 
 from app.core import pipelines
 from app.core.pipelines import Pipeline
@@ -21,27 +10,42 @@ from _orchest.internals import config as _config
 
 
 class IO:
-    def __init__(self, pipeline, possible_execution_orders):
+    def __init__(self, pipeline):
         self.pipeline = pipeline
-        self.possible_execution_orders = possible_execution_orders
+        self.dependencies = dict()
+
+        for step in pipeline.steps:
+            self.dependencies[step.properties["uuid"]] = set(
+                step.properties["incoming_connections"]
+            )
 
 
-def steps_to_networkx_digraph(steps):
-    graph = defaultdict(list)
-    for step_uuid, step_properties in steps.items():
+def execution_order_correct(execution_order, dependencies):
+    """Test if the execution order respected the DAG dependencies.
 
-        # needed for steps with no children
-        if step_uuid not in graph:
-            graph[step_uuid] = []
+    Args:
+        execution_order: execution order as a list of uuids
+        dependencies: dict mapping a uuid to an iterable of parent uuids
 
-        for parent in step_properties["incoming_connections"]:
-            graph[parent].append(step_uuid)
-    return nx.DiGraph(graph)
+    Returns:
+        True if the execution order was correct, False otherwise.
+    """
+    # for each step verify that its dependencies have been run before
+    # the step itself
+    success = True
+    executed_steps = set()
+    for step in execution_order:
+        for parent_step in dependencies[step]:
+            if parent_step not in executed_steps:
+                print(
+                    f"parent step {parent_step} \
+                            was not executed before {step}"
+                )
+                success = False
 
+        executed_steps.add(step)
 
-def all_execution_orders(steps):
-    """All possible execution orders as a generator of lists"""
-    return nx.all_topological_sorts(steps_to_networkx_digraph(steps))
+    return success
 
 
 @pytest.fixture(
@@ -63,8 +67,7 @@ def testio(request):
         description = json.load(f)
 
     pipeline = Pipeline.from_json(description)
-    possible_execution_orders = all_execution_orders(description["steps"])
-    return IO(pipeline, possible_execution_orders)
+    return IO(pipeline)
 
 
 class MockDockerContainer:
@@ -131,12 +134,4 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
-    for order in testio.possible_execution_orders:
-        # avoid comparing all solutions
-        if execution_order == order:
-            return
-
-    # if the execution order is not among the possible orders then the
-    # test failed
-    print(f"Invalid execution order: {execution_order}")
-    assert False
+    assert execution_order_correct(execution_order, testio.dependencies)
