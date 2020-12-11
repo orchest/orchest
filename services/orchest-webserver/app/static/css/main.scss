@@ -395,7 +395,6 @@ aside.mdc-drawer {
 
   .react-codemirror2 {
     padding: $generalPadding;
-    padding-bottom: 0;
 
     .CodeMirror {
       width: 100%;
@@ -464,6 +463,13 @@ button.text-button {
   top: $generalPadding;
   right: $generalPadding;
   z-index: 99;
+
+  button {
+    margin-left: 10px;
+    &:first-of-type {
+      margin-left: 0;
+    }
+  }
 }
 
 .view-pipeline-settings {

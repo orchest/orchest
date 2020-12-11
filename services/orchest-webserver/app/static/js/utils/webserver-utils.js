@@ -212,3 +212,34 @@ export function getPipelineStepChildren(stepUUID, pipelineJSON) {
 
   return childSteps;
 }
+
+export function setWithRetry(value, setter, getter, retries, delay, interval) {
+  if (retries == 0) {
+    console.warn("Failed to set with retry for setter (timeout):", setter);
+    clearInterval(interval);
+    return;
+  }
+  try {
+    setter(value);
+  } catch (error) {
+    console.warn("Setter produced an error.", setter, error);
+  }
+  try {
+    if (value == getter()) {
+      if (interval) {
+        clearInterval(interval);
+      }
+      return;
+    }
+  } catch (error) {
+    console.warn("Getter produced an error.", getter, error);
+  }
+  if (interval === undefined) {
+    interval = setInterval(() => {
+      retries -= 1;
+      setWithRetry(value, setter, getter, retries, delay, interval);
+    }, delay);
+
+    return interval;
+  }
+}
