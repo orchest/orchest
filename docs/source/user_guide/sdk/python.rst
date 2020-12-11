@@ -36,7 +36,7 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    data = 'Hello, World!'
 
    # Output the data so that step-3 can retrieve it.
-   orchest.output(data)
+   orchest.output(data, name='my_string')
 
 
 .. code-block:: python
@@ -47,7 +47,7 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    data = [3, 1, 4]
 
    # Output the data so that step-3 can retrieve it.
-   orchest.output(data)
+   orchest.output(data, name='my_list')
 
 
 .. code-block:: python
@@ -56,7 +56,13 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    import orchest
 
    # Get the input for step-3, i.e. the output of step-1 and step-2.
-   data = orchest.get_inputs()  # data = [[3, 1, 4], 'Hello, World!']
+   data = orchest.get_inputs()  
+   print(data)
+
+   # {
+   #  'my_list': [3, 1, 4],
+   #  'my_string': 'Hello, World!'
+   # }
 
 .. note:: 
    Memory eviction of objects is disabled by default, refer to :ref:`configuration <configuration>`

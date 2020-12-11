@@ -202,12 +202,13 @@ def output_to_disk(
 
     Example:
         >>> data = "Data I would like to use in my next step"
-        >>> output_to_disk(data)
+        >>> output_to_disk(data, name="my_data")
 
     Note:
         Calling :meth:`output_to_disk` multiple times within the same
-        script will overwrite the output. Generally speaking you
-        therefore want to be only calling the function once.
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
 
     """
     try:
@@ -475,12 +476,13 @@ def output_to_memory(
 
     Example:
         >>> data = "Data I would like to use in my next step"
-        >>> output_to_memory(data)
+        >>> output_to_memory(data, name="my_data")
 
     Note:
         Calling :meth:`output_to_memory` multiple times within the same
-        script will overwrite the output. Generally speaking you
-        therefore want to be only calling the function once.
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
 
     """
     try:
@@ -814,6 +816,8 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
 
         Example::
 
+            # It does not matter how the data was output by parent steps.
+            # It is resolved automatically by the get_inputs method.
             {
                 "unnamed" : ["Hello World!", (3, 4)],
                 "named_1" : "mystring",
@@ -828,11 +832,6 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             object store died (and therefore lost all its data).
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine what inputs to get.
-
-    Example:
-        >>> # It does not matter how the data was output in steps 1 and 2.
-        >>> # It is resolved automatically by the get_inputs method.
-        >>> data_step_1, data_step_2 = get_inputs()
 
     Warning:
         Only call :meth:`get_inputs` once! When auto eviction is
@@ -945,12 +944,13 @@ def output(data: Any, name: Optional[str]) -> None:
 
     Example:
         >>> data = "Data I would like to use in my next step"
-        >>> output(data)
+        >>> output(data, name="my_data")
 
     Note:
-        Calling :meth:`output` multiple times within the same script will
-        generally overwrite the output. Therefore want to be only
-        calling the function once.
+        Calling :meth:`output` multiple times within the same script
+        will overwrite the output, even when using a different output
+        ``name``. You therefore want to be only calling the function
+        once.
 
     """
     try:
