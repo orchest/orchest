@@ -372,7 +372,7 @@ aside.mdc-drawer {
 
         button {
           margin-left: $mdcComponentPadding;
-          &:last-of-type {
+          &:first-of-type {
             margin-left: 0;
           }
         }
