@@ -821,10 +821,13 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             }
 
     Raises:
-        StepUUIDResolveError: The step's UUID cannot be resolved and
-            thus it cannot determine what inputs to get.
         InputNameCollisionError: Multiple steps have outputted data with
             the same name.
+        OutputNotFoundError: If no output can be found of the given
+            `step_uuid`. Either no output was generated or the in-memory
+            object store died (and therefore lost all its data).
+        StepUUIDResolveError: The step's UUID cannot be resolved and
+            thus it cannot determine what inputs to get.
 
     Example:
         >>> # It does not matter how the data was output in steps 1 and 2.
@@ -905,8 +908,8 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             else:
                 print(f'Retrieved input from step: "{parent_title}"')
 
-        # nameless data gets appended to a list
-        # named data becomes a name:data pair in the dict
+        # Populate the return dictionary, where nameless data gets
+        # appended to a list and named data becomes a (name, data) pair.
         name = metadata["name"]
         if name == Config._RESERVED_UNNAMED_OUTPUTS_STR:
             data[Config._RESERVED_UNNAMED_OUTPUTS_STR].append(incoming_step_data)
