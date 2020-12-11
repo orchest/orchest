@@ -57,10 +57,10 @@ def file_reader_loop(sio):
 
             for session_uuid in log_file_store.keys():
                 try:
-                    read_emit_all_lines(file_handles[session_uuid], sio, session_uuid)
+                    read_emit_all_content(file_handles[session_uuid], sio, session_uuid)
                 except Exception as e:
                     logging.info(
-                        "call to read_emit_all_lines failed %s (%s)" % (e, type(e))
+                        "call to read_emit_all_content failed %s (%s)" % (e, type(e))
                     )
 
         sio.sleep(0.01)
@@ -86,7 +86,7 @@ def check_timeout(session_uuid):
         )
 
 
-def read_emit_all_lines(file, sio, session_uuid):
+def read_emit_all_content(file, sio, session_uuid):
 
     if session_uuid not in log_file_store:
         logging.info("session_uuid[%s] not in log_file_store" % session_uuid)
@@ -98,9 +98,9 @@ def read_emit_all_lines(file, sio, session_uuid):
 
     # check if log_uuid is current log_uuid
     try:
-        latest_log_file = open(get_log_path(log_file_store[session_uuid]), "r")
+        latest_log_file = open(get_log_path(log_file_store[session_uuid]), "rb")
         latest_log_file.seek(0)
-        read_log_uuid = latest_log_file.readline().strip()
+        read_log_uuid = latest_log_file.readline().decode("utf-8").strip()
     except IOError as e:
         logging.info("Could not read latest log file: %s" % e)
         return
@@ -143,38 +143,23 @@ def read_emit_all_lines(file, sio, session_uuid):
                 % (e, session_uuid)
             )
 
-    line_buffer = []
+    try:
+        content = file.read().decode("utf-8")
 
-    while True:
-
-        try:
-            line = file.readline()
-
-            try:
-                line = html.unescape(line)
-            except Exception as e:
-                logging.info("Error escaping line %s" % line)
-
-        except IOError as e:
-            raise Exception("IOError reading log file %s" % e)
-        except Exception as e:
-            raise e
-
-        # readline returns the empty string if the end of the file has been reached
-        if line != "":
-            line_buffer.append(line)
-        else:
-            if len(line_buffer) > 0:
-                sio.emit(
-                    "pty-log-manager",
-                    {
-                        "output": "".join(line_buffer).rstrip(),
-                        "action": "pty-broadcast",
-                        "session_uuid": session_uuid,
-                    },
-                    namespace="/pty",
-                )
-            break
+        if content != "":
+            sio.emit(
+                "pty-log-manager",
+                {
+                    "output": content,
+                    "action": "pty-broadcast",
+                    "session_uuid": session_uuid,
+                },
+                namespace="/pty",
+            )
+    except IOError as e:
+        raise Exception("IOError reading log file %s" % e)
+    except Exception as e:
+        raise e
 
 
 # TODO: reuse (between Flask app and process scripts) and simplify code to get the correct pipeline path
@@ -240,7 +225,7 @@ def create_file_handle(log_file):
         Path(log_path).parent.mkdir(parents=True, exist_ok=True)
         Path(log_path).touch(exist_ok=True)
 
-        file = open(log_path, "r")
+        file = open(log_path, "rb")
         file.seek(0)
         file_handles[log_file.session_uuid] = file
         return True

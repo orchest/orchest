@@ -29,7 +29,11 @@ class PipelineDetailsLogs extends React.Component {
       if (data.session_uuid == this.session_uuid) {
         let lines = data.output.split("\n");
         for (let x = 0; x < lines.length; x++) {
-          this.refManager.refs.term.terminal.writeln(lines[x]);
+          if (x == lines.length - 1) {
+            this.refManager.refs.term.terminal.write(lines[x]);
+          } else {
+            this.refManager.refs.term.terminal.write(lines[x] + "\n\r");
+          }
         }
       }
     };

@@ -4,7 +4,6 @@ import nbformat
 from nbformat.v4 import output_from_msg
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors.execute import CellExecutionError
-from nbconvert.filters import ansi2html
 
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
@@ -57,10 +56,6 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
         if not output_text.endswith("\n"):
             output_text = "".join([output_text, "\n"])
-
-        # process output text with ansi2html to prep for output
-        # in html log viewer
-        output_text = ansi2html(output_text)
 
         prefix = "[%i] " % self.current_cell["execution_count"]
         if self.current_cell["execution_count"] in self.printed_indices:
