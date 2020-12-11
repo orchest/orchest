@@ -1,3 +1,3 @@
 #!/bin/bash
 
-npx webpack --mode=production
+npx webpack --config webpack.config.js
