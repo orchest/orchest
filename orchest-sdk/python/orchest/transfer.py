@@ -27,21 +27,19 @@ from orchest.utils import get_step_uuid
 
 def _check_data_name_validity(name: Optional[str]):
     if not isinstance(name, (str, type(None))):
-        raise TypeError("Name should be of type string or `None`")
+        raise TypeError("Name should be of type string or `None`.")
 
     if name is None:
         return
 
     if name == Config._RESERVED_UNNAMED_OUTPUTS_STR:
         raise ValueError(
-            f"'{Config._RESERVED_UNNAMED_OUTPUTS_STR}' \
-                 is a reserved output data name."
+            f"'{Config._RESERVED_UNNAMED_OUTPUTS_STR}' is a reserved `name`."
         )
 
     if Config.__METADATA_SEPARATOR__ in name:
         raise ValueError(
-            f"'{Config.__METADATA_SEPARATOR__}' cannot be \
-                 part of the name of the data."
+            f"'{Config.__METADATA_SEPARATOR__}' cannot be part of the `name`."
         )
 
 
@@ -159,8 +157,8 @@ def _output_to_disk(
     Args:
         obj: Object to output to disk.
         full_path: Full path to save the data to.
-        serialization: Serialization of the `obj`. See the Serialization
-        enum.
+        serialization: Serialization of the `obj`. For possible values
+            see :class:`Serialization`.
 
     Raises:
         ValueError: If the specified serialization is not valid.
@@ -188,28 +186,28 @@ def output_to_disk(
 
     Args:
         data: Data to output to disk.
-        name: Name of the output data. As a string, it becomes
-        the name of the data, when ``None``, the data is considered
-        nameless. This affects the way the data can be later retrieved
-        using :func:`get_inputs`.
+        name: Name of the output data. As a string, it becomes the name
+            of the data, when ``None``, the data is considered nameless.
+            This affects the way the data can be later retrieved using
+            :func:`get_inputs`.
         serialization: Serialization of the `data` in case it is already
             serialized. For possible values see :class:`Serialization`.
 
     Raises:
-        DataInvalidNameError: The name of the output data is invalid, e.
-            g. because it is a reserved name (`unnamed_inputs`) or becau
-            se it contains a reserved substring.
+        DataInvalidNameError: The name of the output data is invalid,
+            e.g because it is a reserved name (``"unnamed_inputs"``) or
+            because it contains a reserved substring.
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine where to output data to.
 
     Example:
-        >>> data = 'Data I would like to use in my next step'
+        >>> data = "Data I would like to use in my next step"
         >>> output_to_disk(data)
 
     Note:
-        Calling :meth:`output_to_disk` multiple times within the same script
-        will overwrite the output. Generally speaking you therefore want
-        to be only calling the function once.
+        Calling :meth:`output_to_disk` multiple times within the same
+        script will overwrite the output. Generally speaking you
+        therefore want to be only calling the function once.
 
     """
     try:
@@ -276,23 +274,22 @@ def _deserialize_output_disk(full_path: str, serialization: str) -> Any:
             return [b for b in stream][0]
     elif serialization == Serialization.PICKLE.name:
         # https://docs.python.org/3/library/pickle.html
-        # The argument file must have three methods,
-        # a read() method that takes an integer argument,
-        # a readinto() method that takes a buffer argument
-        # and a readline() method that requires no arguments,
-        # as in the io.BufferedIOBase interface.
+        # The argument file must have three methods:
+        # * ``read()`` that takes an integer argument,
+        # * ``readinto()`` that takes a buffer argument,
+        # * ``readline()`` that requires no arguments, similar to the
+        #   ``io.BufferedIOBase`` interface.
 
-        # while memory_map does not support readline, given the docs,
         # https://arrow.apache.org/docs/python/generated/pyarrow.MemoryMappedFile.html#pyarrow.MemoryMappedFile
-        # using pickle load on a memory mapped file would work, however,
-        # it was safer to not take the risk and use the normal
-        # python file
+        # While ``memory_map`` does not support readline, given the
+        # docs, using ``pickle.load`` on a memory mapped file would
+        # work, however, it was safer to not take the risk and use the
+        # normal python file.
         with open(file_path, "rb") as input_file:
             return pickle.load(input_file)
     else:
         raise ValueError(
-            f"The specified serialization is \
-            unsupported: {serialization}"
+            f"The specified serialization of '{serialization}' is unsupported."
         )
 
 
@@ -338,8 +335,8 @@ def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
     Returns:
         Dictionary containing the information of the function to be
         called to get the most recent data from the step. Additionally,
-        returns fill-in arguments for the function and metadata
-        related to the data that would be retrieved.
+        returns fill-in arguments for the function and metadata related
+        to the data that would be retrieved.
 
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
@@ -454,18 +451,18 @@ def output_to_memory(
 
     Args:
         data: Data to output.
-        name: Name of the output data. As a string, it becomes
-        the name of the data, when ``None``, the data is considered
-        nameless. This affects the way the data can be later retrieved
-        using :func:`get_inputs`.
+        name: Name of the output data. As a string, it becomes the name
+            of the data, when ``None``, the data is considered nameless.
+            This affects the way the data can be later retrieved using
+            :func:`get_inputs`.
         disk_fallback: If True, then outputing to disk is used when the
             `data` does not fit in memory. If False, then a
             :exc:`MemoryError` is thrown.
 
     Raises:
-        DataInvalidNameError: The name of the output data is invalid, e.
-            g. because it is a reserved name (`unnamed_inputs`) or becau
-            se it contains a reserved substring.
+        DataInvalidNameError: The name of the output data is invalid,
+            e.g because it is a reserved name (``"unnamed_inputs"``) or
+            because it contains a reserved substring.
         MemoryError: If the `data` does not fit in memory and
             ``disk_fallback=False``.
         OrchestNetworkError: Could not connect to the
@@ -477,7 +474,7 @@ def output_to_memory(
             the memory store.
 
     Example:
-        >>> data = 'Data I would like to use in my next step'
+        >>> data = "Data I would like to use in my next step"
         >>> output_to_memory(data)
 
     Note:
@@ -521,17 +518,15 @@ def output_to_memory(
     obj_id = _convert_uuid_to_object_id(step_uuid)
     metadata = [
         str(Config.IDENTIFIER_SERIALIZATION),
-        # the plasma store allows to get the creation timestamp, but
-        # creating it this way makes the process more consistent
-        # with the metadata we are writing when outputting to disk,
-        # moreover, it makes the code less dependent on the
-        # plasma store API
+        # The plasma store allows to get the creation timestamp, but
+        # creating it this way makes the process more consistent with
+        # the metadata we are writing when outputting to disk, moreover,
+        # it makes the code less dependent on the plasma store API.
         datetime.utcnow().isoformat(timespec="seconds"),
         serialization.name,
-        # can't simply assign to name beforehand because
-        # name might be passed to output_to_disk, which needs
-        # to check for name validity itself since its a public
-        # function
+        # Can't simply assign to name beforehand because name might be
+        # passed to output_to_disk, which needs to check for name
+        # validity itself since its a public function.
         name if name is not None else Config._RESERVED_UNNAMED_OUTPUTS_STR,
     ]
     metadata = bytes(Config.__METADATA_SEPARATOR__.join(metadata), "utf-8")
@@ -803,26 +798,34 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             has retrieved data.
 
     Returns:
-        Dictionary with input data for this step.
-        Named data, which is data which has been outputted with a name
-        by any parent step, can be retrieved through the dictionary
-        by its name, e.g. `data = get_inputs()["my_name"]`. Name
-        collisions will raise an error.
-        Unnamed data, which is data that has been outputted with no
-        name by any parent step, can be retrieved through
-        `unnamed_data = get_inputs()["unnamed_inputs"]`, which returns
-        a list of unnamed data. The order of this list depends on
-        the order of the parent steps of the node, which is visible
-        through the GUI.
+        Dictionary with input data for this step. We differentiate
+        between two cases:
 
-        Example:
+        * Named data, which is data that was outputted with a `name` by
+          any parent step. Named data can be retrieved through the
+          dictionary by its name, e.g. ``data = get_inputs()["my_name"]``.
+          Name collisions will raise an :exc:`InputNameCollisionError`.
+        * Unnamed data, which is an ordered list containing all the
+          data that was outputted without a name by the parent steps.
+          Unnamed data can be retrieved by accessing the reserved
+          ``"unnamed_inputs"`` key. The order of this list depends on the
+          order of the parent steps of the node, which is visible through
+          the GUI.
+
+        Example::
+
             {
-                "unnamed_inputs" : [1, {1: 2}],
+                "unnamed_inputs" : ["Hello World!", (3, 4)],
                 "named_1" : "mystring",
                 "named_2" : [1, 2, 3]
             }
 
     Raises:
+        InputNameCollisionError: Multiple steps have outputted data with
+            the same name.
+        OutputNotFoundError: If no output can be found of the given
+            `step_uuid`. Either no output was generated or the in-memory
+            object store died (and therefore lost all its data).
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine what inputs to get.
 
@@ -849,33 +852,34 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     collisions_dict = defaultdict(list)
     get_output_methods = []
 
-    # check for collisions before retrieving any data
+    # Check for collisions before retrieving any data.
     for parent in pipeline.get_step_by_uuid(step_uuid).parents:
 
-        # for each parent get what function to use to retrieve its
-        # output data and metadata related to said data
+        # For each parent get what function to use to retrieve its
+        # output data and metadata related to said data.
         parent_uuid = parent.properties["uuid"]
         get_output_method, args, kwargs, metadata = _resolve(
             parent_uuid, consumer=step_uuid
         )
 
-        # keep it for later
+        # Maintain the output methods in order, but wait with calling
+        # them so that we can first check for collisions.
         get_output_methods.append((parent, get_output_method, args, kwargs, metadata))
 
         if metadata["name"] != Config._RESERVED_UNNAMED_OUTPUTS_STR:
             collisions_dict[metadata["name"]].append(parent.properties["title"])
 
-    # if there are collisions raise an error
+    # If there are collisions raise an error.
     collisions_dict = {k: v for k, v in collisions_dict.items() if len(v) > 1}
     if collisions_dict:
         msg = [
-            f"{name}: {sorted(step_names)}"
+            f"\n{name}: {sorted(step_names)}"
             for name, step_names in collisions_dict.items()
         ]
-        msg = "\n".join(msg)
-        msg = f"Name collisions between input data coming  \
-            from different steps:\n{msg}"
-        raise InputNameCollisionError(msg)
+        msg = "".join(msg)
+        raise InputNameCollisionError(
+            f"Name collisions between input data coming from different steps: {msg}"
+        )
 
     # TODO: maybe instead of for loop we could first get the receive
     #       method and then do batch receive. For example memory allows
@@ -904,8 +908,8 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             else:
                 print(f'Retrieved input from step: "{parent_title}"')
 
-        # nameless data gets appended to a list
-        # named data becomes a name:data pair in the dict
+        # Populate the return dictionary, where nameless data gets
+        # appended to a list and named data becomes a (name, data) pair.
         name = metadata["name"]
         if name == Config._RESERVED_UNNAMED_OUTPUTS_STR:
             data[Config._RESERVED_UNNAMED_OUTPUTS_STR].append(incoming_step_data)
@@ -923,15 +927,15 @@ def output(data: Any, name: Optional[str]) -> None:
 
     Args:
         data: Data to output.
-        name: Name of the output data. As a string, it becomes
-        the name of the data, when ``None``, the data is considered
-        nameless. This affects the way the data can be later retrieved
-        using :func:`get_inputs`.
+        name: Name of the output data. As a string, it becomes the name
+            of the data, when ``None``, the data is considered nameless.
+            This affects the way the data can be later retrieved using
+            :func:`get_inputs`.
 
     Raises:
-        DataInvalidNameError: The name of the output data is invalid, e.
-            g. because it is a reserved name (`unnamed_inputs`) or becau
-            se it contains a reserved substring.
+        DataInvalidNameError: The name of the output data is invalid,
+            e.g because it is a reserved name (``"unnamed_inputs"``) or
+            because it contains a reserved substring.
         OrchestNetworkError: Could not connect to the
             ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
             might be because the specified value was wrong or the store
@@ -940,7 +944,7 @@ def output(data: Any, name: Optional[str]) -> None:
             thus data cannot be outputted.
 
     Example:
-        >>> data = 'Data I would like to use in my next step'
+        >>> data = "Data I would like to use in my next step"
         >>> output(data)
 
     Note:
