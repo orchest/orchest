@@ -87,7 +87,10 @@ class Jupyter {
       this.iframe.contentWindow._orchest_docmanager.openOrReveal(filePath);
     } else {
       this.setJupyterAddress(
-        this.baseAddress + "/lab/workspaces/main/tree/" + filePath + "?reset"
+        this.baseAddress +
+          "/lab/workspaces/main/tree/" +
+          encodeURIComponent(filePath) +
+          "?reset"
       );
     }
   }
