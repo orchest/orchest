@@ -8,6 +8,15 @@ from nbconvert.filters import ansi2html
 
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
+    """This class extends the ExecutePreprocesser from nbconvert in order catch
+    the output of cell execution and write it to the appropriate logs
+    consumed by Orchest.
+
+    It's called Partial because it skips over cells in its execution process
+    that have been tagged 'skip'. A useful feature for running Notebooks
+    that contain code left over from interactive sessions/experimentation.
+    """
+
     def __init__(
         self, log_file, nb_path, write_after_run, original_kernelspec_name, **kw
     ):
