@@ -183,3 +183,32 @@ export function getPipelineJSONEndpoint(
   }
   return pipelineURL;
 }
+
+export function getPipelineStepParents(stepUUID, pipelineJSON) {
+  let incomingConnections = [];
+  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
+    if (step.uuid == stepUUID) {
+      incomingConnections = step.incoming_connections;
+      break;
+    }
+  }
+
+  let parentSteps = [];
+  for (let parentStepUUID of incomingConnections) {
+    parentSteps.push(pipelineJSON.steps[parentStepUUID]);
+  }
+
+  return parentSteps;
+}
+
+export function getPipelineStepChildren(stepUUID, pipelineJSON) {
+  let childSteps = [];
+
+  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
+    if (step.incoming_connections.indexOf(stepUUID) !== -1) {
+      childSteps.push(step);
+    }
+  }
+
+  return childSteps;
+}

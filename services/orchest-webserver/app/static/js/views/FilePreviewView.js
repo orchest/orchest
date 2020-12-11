@@ -4,6 +4,11 @@ import PipelineView from "./PipelineView";
 import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import {
+  getPipelineJSONEndpoint,
+  getPipelineStepParents,
+  getPipelineStepChildren,
+} from "../utils/webserver-utils";
 require("codemirror/mode/python/python");
 require("codemirror/mode/shell/shell");
 require("codemirror/mode/r/r");
@@ -23,7 +28,7 @@ class FilePreviewView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchFile();
+    this.fetchAll();
   }
 
   constructor(props) {
@@ -39,6 +44,8 @@ class FilePreviewView extends React.Component {
       notebookHtml: undefined,
       textFile: undefined,
       loadingFile: true,
+      parentSteps: [],
+      childSteps: [],
     };
 
     this.promiseManager = new PromiseManager();
@@ -46,47 +53,147 @@ class FilePreviewView extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (
-      this.props.step_uuid !== prevProps.step_uuid &&
-      this.props.pipeline_uuid !== prevProps.pipeline_uuid
+      this.props.step_uuid !== prevProps.step_uuid ||
+      this.props.pipeline_uuid !== prevProps.pipeline_uuid ||
+      this.props.pipelineRun !== prevProps.pipelineRun
     ) {
-      this.fetchFile();
+      this.fetchAll();
     }
   }
 
-  fetchFile() {
-    let notebookURL = `/async/file-viewer/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`;
+  fetchPipeline() {
+    return new Promise((resolve, reject) => {
+      this.setState({
+        loadingFile: true,
+        textFile: undefined,
+      });
 
-    if (this.props.pipelineRun) {
-      notebookURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
-      notebookURL +=
-        "&experiment_uuid=" + this.props.pipelineRun.experiment_uuid;
-    }
+      let pipelineURL = this.props.pipelineRun
+        ? getPipelineJSONEndpoint(
+            this.props.pipeline_uuid,
+            this.props.project_uuid,
+            this.props.pipelineRun.experiment_uuid,
+            this.props.pipelineRun.run_uuid
+          )
+        : getPipelineJSONEndpoint(
+            this.props.pipeline_uuid,
+            this.props.project_uuid
+          );
 
-    let fetchFilePromise = makeCancelable(
-      makeRequest("GET", notebookURL),
+      let fetchPipelinePromise = makeCancelable(
+        makeRequest("GET", pipelineURL),
+        this.promiseManager
+      );
+
+      fetchPipelinePromise.promise
+        .then((response) => {
+          let pipelineJSON = JSON.parse(JSON.parse(response)["pipeline_json"]);
+
+          this.setState({
+            parentSteps: getPipelineStepParents(
+              this.props.step_uuid,
+              pipelineJSON
+            ),
+            childSteps: getPipelineStepChildren(
+              this.props.step_uuid,
+              pipelineJSON
+            ),
+          });
+
+          resolve();
+        })
+        .catch((err) => {
+          console.log(err);
+          reject();
+        });
+    });
+  }
+
+  fetchAll() {
+    this.setState({
+      loadingFile: true,
+    });
+
+    let fetchAllPromise = makeCancelable(
+      Promise.all([this.fetchFile(), this.fetchPipeline()]),
       this.promiseManager
     );
 
-    fetchFilePromise.promise
-      .then((response) => {
-        this.setState({
-          loadingFile: false,
-          textFile: JSON.parse(response),
-        });
-      })
-      .catch((err) => {
-        console.log(err);
+    fetchAllPromise.promise.then(() => {
+      this.setState({
+        loadingFile: false,
       });
+    });
+  }
+
+  fetchFile() {
+    return new Promise((resolve, reject) => {
+      this.setState({
+        textFile: undefined,
+      });
+
+      let fileURL = `/async/file-viewer/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`;
+      if (this.props.pipelineRun) {
+        fileURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+        fileURL += "&experiment_uuid=" + this.props.pipelineRun.experiment_uuid;
+      }
+
+      let fetchFilePromise = makeCancelable(
+        makeRequest("GET", fileURL),
+        this.promiseManager
+      );
+
+      fetchFilePromise.promise
+        .then((response) => {
+          this.setState({
+            textFile: JSON.parse(response),
+          });
+          resolve();
+        })
+        .catch((err) => {
+          console.log(err);
+          reject();
+        });
+    });
+  }
+
+  stepNavigate(stepUUID) {
+    let propClone = JSON.parse(JSON.stringify(this.props));
+    propClone.step_uuid = stepUUID;
+
+    orchest.loadView(FilePreviewView, propClone);
+  }
+
+  renderNavStep(steps) {
+    return steps.map((step) => (
+      <button
+        key={step.uuid}
+        onClick={this.stepNavigate.bind(this, step.uuid)}
+        className="text-button"
+      >
+        {step.title}
+      </button>
+    ));
   }
 
   render() {
+    let parentStepElements = this.renderNavStep(this.state.parentSteps);
+    let childStepElements = this.renderNavStep(this.state.childSteps);
+
     return (
       <div className={"view-page file-viewer no-padding"}>
-        <MDCButtonReact
-          classNames={["close-button"]}
-          icon="close"
-          onClick={this.loadPipelineView.bind(this)}
-        />
+        <div className="top-buttons">
+          <MDCButtonReact
+            classNames={["refresh-button padding-right"]}
+            icon="refresh"
+            onClick={this.fetchAll.bind(this)}
+          />
+          <MDCButtonReact
+            classNames={["close-button"]}
+            icon="close"
+            onClick={this.loadPipelineView.bind(this)}
+          />
+        </div>
 
         {(() => {
           if (this.state.loadingFile) {
@@ -134,8 +241,20 @@ class FilePreviewView extends React.Component {
             return (
               <Fragment>
                 <div className="file-description">
-                  <h2>Filename: {this.state.textFile.filename}</h2>
-                  <h4>Step: {this.state.textFile.step_title}</h4>
+                  <h3>
+                    Step: {this.state.textFile.step_title} (
+                    {this.state.textFile.filename})
+                  </h3>
+                  <div className="step-navigation">
+                    <div className="parents">
+                      <span>Parent steps</span>
+                      {parentStepElements}
+                    </div>
+                    <div className="children">
+                      <span>Child steps</span>
+                      {childStepElements}
+                    </div>
+                  </div>
                 </div>
                 <div className="file-holder">{fileComponent}</div>
                 <p>

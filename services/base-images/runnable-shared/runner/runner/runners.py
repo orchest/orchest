@@ -92,23 +92,24 @@ class NotebookRunner(Runner):
         # TODO: extend this mapping
         kernel_mapping = {"python": "python3", "r": "ir", "julia": "julia-1.5"}
 
-        nb = None
-
         with open(file_path) as f:
             nb = nbformat.read(f, as_version=4)
 
-            original_nb_kernelspec_name = nb.metadata.kernelspec.name
+        original_nb_kernelspec_name = nb.metadata.kernelspec.name
 
-            # set kernel based on language
-            nb.metadata.kernelspec.name = kernel_mapping[
-                nb.metadata.kernelspec.language
-            ]
+        # set kernel based on language
+        nb.metadata.kernelspec.name = kernel_mapping[nb.metadata.kernelspec.language]
 
-            # log file
-            log_file_path = self.get_log_file_path()
-            with open(log_file_path, "a") as log_file:
-                ep = PartialExecutePreprocessor(log_file=log_file)
-                ep.preprocess(nb, {"metadata": {"path": self.working_dir}})
+        # log file
+        log_file_path = self.get_log_file_path()
+        with open(log_file_path, "a") as log_file:
+            ep = PartialExecutePreprocessor(
+                log_file=log_file,
+                nb_path=file_path,
+                write_after_run=self.write_after_run,
+                original_kernelspec_name=original_nb_kernelspec_name,
+            )
+            ep.preprocess(nb, {"metadata": {"path": self.working_dir}})
 
         if self.write_after_run:
             with open(file_path, "w", encoding="utf-8") as f:
