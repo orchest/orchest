@@ -64,7 +64,7 @@ class _DB:
 
             >>> db = DB(data)
             >>> with db.connect() as conn:
-            ...     result = conn.execute('SELECT * FROM users')
+            ...     result = conn.execute("SELECT * FROM users")
 
             Alternatively.
 
@@ -147,11 +147,11 @@ class HostDirectory:
         data: Connection information to use the data source. Example::
 
             {
-                'name': '<datasource-name>',
-                'connection_details': {
-                    'absolute_host_path': '<path>'
+                "name": "<datasource-name>",
+                "connection_details": {
+                    "absolute_host_path": "<path>"
                 },
-                'source_type': 'host-directory'
+                "source_type": "host-directory"
             }
 
     Attributes:
@@ -163,7 +163,7 @@ class HostDirectory:
 
         >>> datasource = HostDirectory(data)
         >>> os.listdir(datasource.path)
-        ['image-1.png', 'file-1.txt']
+        ["image-1.png", "file-1.txt"]
 
     """
 
@@ -211,7 +211,7 @@ class AWSObjectStorageS3:
         >>> object_storage = AWSObjectStorageS3(data)
         >>> for obj in object_storage.bucket.objects.all():
         ...     print(obj)
-        s3.ObjectSummary(bucket_name='orchest-s3', key='some-key')
+        s3.ObjectSummary(bucket_name="orchest-s3", key="some-key")
 
     """
 

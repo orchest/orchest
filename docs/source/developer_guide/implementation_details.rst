@@ -101,5 +101,5 @@ of an empty message for eviction) the source and target of the output that is st
 
 All metadata has to be in `bytes`, where we use the following encoding:
 
-* ``1;serialization`` where serialization is one of ``['arrow', 'arrowpickle']``.
+* ``1;serialization`` where serialization is one of ``["arrow", "arrowpickle"]``.
 * ``2;source,target`` where source and target are both UUIDs of the respective steps.

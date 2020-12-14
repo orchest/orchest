@@ -195,14 +195,14 @@ def output_to_disk(
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
-            e.g because it is a reserved name (``'unnamed'``) or because
+            e.g because it is a reserved name (``"unnamed"``) or because
             it contains a reserved substring.
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine where to output data to.
 
     Example:
-        >>> data = 'Data I would like to use in my next step'
-        >>> output_to_disk(data, name='my_data')
+        >>> data = "Data I would like to use in my next step"
+        >>> output_to_disk(data, name="my_data")
 
     Note:
         Calling :meth:`output_to_disk` multiple times within the same
@@ -462,7 +462,7 @@ def output_to_memory(
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
-            e.g because it is a reserved name (``'unnamed'``) or because
+            e.g because it is a reserved name (``"unnamed"``) or because
             it contains a reserved substring.
         MemoryError: If the `data` does not fit in memory and
             ``disk_fallback=False``.
@@ -475,8 +475,8 @@ def output_to_memory(
             the memory store.
 
     Example:
-        >>> data = 'Data I would like to use in my next step'
-        >>> output_to_memory(data, name='my_data')
+        >>> data = "Data I would like to use in my next step"
+        >>> output_to_memory(data, name="my_data")
 
     Note:
         Calling :meth:`output_to_memory` multiple times within the same
@@ -795,7 +795,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             ``None`` values if the data of a step could not be
             retrieved. If False, then this function will fail if any of
             the incoming steps's data could not be retrieved. Example:
-            ``[None, 'Hello World!']`` vs :exc:`OutputNotFoundError`
+            ``[None, "Hello World!"]`` vs :exc:`OutputNotFoundError`
         verbose: If True print all the steps from which the current step
             has retrieved data.
 
@@ -805,12 +805,12 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
 
         * Named data, which is data that was outputted with a `name` by
           any parent step. Named data can be retrieved through the
-          dictionary by its name, e.g. ``data = get_inputs()['my_name']``.
+          dictionary by its name, e.g. ``data = get_inputs()["my_name"]``.
           Name collisions will raise an :exc:`InputNameCollisionError`.
         * Unnamed data, which is an ordered list containing all the
           data that was outputted without a name by the parent steps.
           Unnamed data can be retrieved by accessing the reserved
-          ``'unnamed'`` key. The order of this list depends on the order
+          ``"unnamed"`` key. The order of this list depends on the order
           of the parent steps of the node, which is visible through the
           GUI.
 
@@ -819,9 +819,9 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             # It does not matter how the data was output by parent steps.
             # It is resolved automatically by the get_inputs method.
             {
-                'unnamed' : ['Hello World!', (3, 4)],
-                'named_1' : 'mystring',
-                'named_2' : [1, 2, 3]
+                "unnamed" : ["Hello World!", (3, 4)],
+                "named_1" : "mystring",
+                "named_2" : [1, 2, 3]
             }
 
     Raises:
@@ -933,7 +933,7 @@ def output(data: Any, name: Optional[str]) -> None:
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
-            e.g because it is a reserved name (``'unnamed'``) or because
+            e.g because it is a reserved name (``"unnamed"``) or because
             it contains a reserved substring.
         OrchestNetworkError: Could not connect to the
             ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
@@ -943,8 +943,8 @@ def output(data: Any, name: Optional[str]) -> None:
             thus data cannot be outputted.
 
     Example:
-        >>> data = 'Data I would like to use in my next step'
-        >>> output(data, name='my_data')
+        >>> data = "Data I would like to use in my next step"
+        >>> output(data, name="my_data")
 
     Note:
         Calling :meth:`output` multiple times within the same script

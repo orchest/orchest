@@ -33,10 +33,10 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    """step-1"""
    import orchest
 
-   data = 'Hello, World!'
+   data = "Hello, World!"
 
    # Output the data so that step-3 can retrieve it.
-   orchest.output(data, name='my_string')
+   orchest.output(data, name="my_string")
 
 
 .. code-block:: python
@@ -47,7 +47,7 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    data = [3, 1, 4]
 
    # Output the data so that step-3 can retrieve it.
-   orchest.output(data, name='my_list')
+   orchest.output(data, name="my_list")
 
 
 .. code-block:: python
@@ -60,8 +60,8 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    print(data)
 
    # {
-   #  'my_list': [3, 1, 4],
-   #  'my_string': 'Hello, World!'
+   #  "my_list": [3, 1, 4],
+   #  "my_string": "Hello, World!"
    # }
 
 .. note:: 
@@ -78,12 +78,12 @@ Parameters
    import orchest
 
    # Get the parameters of the current step.
-   params = orchest.get_params()  # e.g. params = {'vegetable': 'carrot'}
+   params = orchest.get_params()  # e.g. params = {"vegetable": "carrot"}
 
    # Add a new parameter and update the step's parameters. The 
    # parameters now also become visible through the properties pane in
    # the UI when clicking on a pipeline step.
-   params['fruit'] = 'apple'
+   params["fruit"] = "apple"
    orchest.update_params(params)
 
 .. note::
@@ -106,11 +106,11 @@ through the *Data sources* option in the left menu pane. For more see
 
    # Note that the "example-mysql-db" is created in the UI first under
    # "Data sources" in the left hand panel.
-   mysql = orchest.get_datasource('example-mysql-db')
+   mysql = orchest.get_datasource("example-mysql-db")
 
    # Use a connection object to execute an SQL query.
    with mysql.connect() as conn:
-      df = pd.read_sql('SELECT * FROM users', conn)
+      df = pd.read_sql("SELECT * FROM users", conn)
 
 
 API
