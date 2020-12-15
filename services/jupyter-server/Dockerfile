@@ -2,7 +2,7 @@ FROM python:3.7-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # refresh SSL certificates
-RUN apt-get update && apt-get install -y git curl ca-certificates && update-ca-certificates --fresh
+RUN apt-get update && apt-get install -y git curl sudo ca-certificates && update-ca-certificates --fresh
 
 # install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
@@ -23,11 +23,13 @@ RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/vis
     jupyter labextension install /jupyter-extensions/orchest-integration --no-build && \
     jupyter labextension install @jupyter-widgets/jupyterlab-manager
 
-COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
+COPY ./jupyter_server_config.py /usr/local/etc/jupyter/jupyter_server_config.py
 
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir
 
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
-ENTRYPOINT [ "jupyter", "lab" ]
+
+COPY start.sh /start.sh
+ENTRYPOINT [ "/start.sh" ]

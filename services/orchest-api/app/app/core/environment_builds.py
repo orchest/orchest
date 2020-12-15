@@ -16,7 +16,7 @@ from app.connections import docker_client
 from app.core.sio_streamed_task import SioStreamedTask
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
-__ENV_BUILD_FULL_LOGS_DIRECTORY = "/environment_builds_logs"
+__ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_builds_logs"
 
 
 def cleanup_env_build_docker_artifacts(filters):
@@ -231,7 +231,7 @@ def write_environment_dockerfile(
     # and cause the docker build to fail, as it should.
     # the bash script is removed so that the user won't be able to see it after the build is done
     statements.append(
-        f"RUN cd \"{os.path.join('/', work_dir)}\" && chmod +x {bash_script} && echo \"{flag}\" && bash {bash_script} && echo \"{flag}\" && rm {bash_script}"
+        f"RUN cd \"{os.path.join('/', work_dir)}\" && sudo chown -R $(id -u):$(id -u) . && chmod +x {bash_script} && echo \"{flag}\" && bash {bash_script} && echo \"{flag}\" && rm {bash_script}"
     )
     statements.append("LABEL _orchest_env_build_is_intermediate=0")
 

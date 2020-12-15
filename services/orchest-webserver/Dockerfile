@@ -2,7 +2,7 @@ FROM tiangolo/meinheld-gunicorn-flask:python3.7
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Refresh SSL certificates
-RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
+RUN apt-get update && apt-get install -y sudo ca-certificates && update-ca-certificates --fresh
 
 # Install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
@@ -24,9 +24,10 @@ COPY ./lib/javascript/ ./app/static/js/lib/
 
 # Compile front-end code with npx and compile style.
 WORKDIR /orchest/services/orchest-webserver/app/static
-RUN npm install
-RUN ./compile-js.sh && ./compile-sass.sh
-
+RUN npm install && \
+    ./compile-js.sh && ./compile-sass.sh && \
+    rm -rf node_modules/
+    
 # Application files.
 WORKDIR /orchest/services/orchest-webserver/
 COPY ./app ./app
@@ -40,4 +41,4 @@ ENV GUNICORN_CONF /orchest/services/orchest-webserver/app/gunicorn_conf.py
 ENV APP_MODULE "main:app"
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
-COPY ./start.sh /start.sh
+COPY ./start.sh ./user_permission_setup.sh /

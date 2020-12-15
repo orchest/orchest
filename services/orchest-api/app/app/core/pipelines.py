@@ -253,6 +253,8 @@ class PipelineStepRunner:
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
                 f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
+                f'ORCHEST_HOST_UID={os.environ.get("ORCHEST_HOST_UID")}',
+                f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
                 "ORCHEST_MEMORY_EVICTION=1",
             ],
             "HostConfig": {
@@ -268,6 +270,7 @@ class PipelineStepRunner:
             "NetworkingConfig": {
                 "EndpointsConfig": {"orchest": {}}  # TODO: should not be hardcoded.
             },
+            "User": f'{os.environ.get("ORCHEST_HOST_UID")}:{os.environ.get("ORCHEST_HOST_GID")}',
             # NOTE: the `'tests-uuid'` key is only used for tests and
             # gets ignored by the `docker_client`.
             "tests-uuid": self.properties["uuid"],

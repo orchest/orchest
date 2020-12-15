@@ -13,6 +13,11 @@ DOCKER_NETWORK = "orchest"
 # Configurations directly related to container specifications.
 DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 
+# Get host UID/GID
+orchest_stat = os.stat("/orchest-host/orchest")
+ORCHEST_HOST_UID = orchest_stat.st_uid
+ORCHEST_HOST_GID = orchest_stat.st_gid
+
 # All the images that are used by Orchest.
 _orchest_images = [
     "orchest/jupyter-enterprise-gateway:latest",
@@ -76,7 +81,10 @@ for var_name in REQUIRED_ENV_VARS:
 
 CONTAINER_MAPPING = {
     "orchest/orchest-api:latest": {
-        "environment": {},
+        "environment": {
+            "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
+            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
+        },
         "command": None,
         "name": "orchest-api",
         "mounts": [
@@ -96,6 +104,8 @@ CONTAINER_MAPPING = {
             "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
             "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],
             "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
+            "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
+            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
         },
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
@@ -106,6 +116,10 @@ CONTAINER_MAPPING = {
     },
     "orchest/celery-worker:latest": {
         "name": "celery-worker",
+        "environment": {
+            "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
+            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
+        },
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
             {
@@ -140,6 +154,7 @@ CONTAINER_MAPPING = {
         "mounts": [
             {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
         ],
+        "user": f"{ORCHEST_HOST_UID}:{ORCHEST_HOST_GID}",
     },
     "orchest/nginx-proxy:latest": {
         "name": "nginx-proxy",

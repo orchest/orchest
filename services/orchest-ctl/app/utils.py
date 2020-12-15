@@ -294,4 +294,8 @@ def convert_to_run_config(image_name, container_spec):
         "hostname": container_spec.get("hostname"),
         "auto_remove": container_spec.get("auto_remove", False),
     }
+
+    if "user" in container_spec:
+        run_config["user"] = container_spec.get("user")
+
     return run_config
