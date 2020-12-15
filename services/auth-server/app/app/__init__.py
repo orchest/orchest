@@ -7,6 +7,8 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 from flask import Flask
+from sqlalchemy_utils import create_database, database_exists
+
 from app.views import register_views
 from app.connections import db
 
@@ -16,6 +18,8 @@ def create_app(config_class=None):
     app.config.from_object(config_class)
 
     # Initialize the database and create the database file.
+    if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
+        create_database(app.config["SQLALCHEMY_DATABASE_URI"])
     db.init_app(app)
     with app.app_context():
         db.create_all()

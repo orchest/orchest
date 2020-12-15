@@ -21,6 +21,8 @@ import base64
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
+from sqlalchemy_utils import create_database, database_exists
+
 from app.config import CONFIG_CLASS
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
@@ -116,6 +118,8 @@ def create_app():
 
     logging.info("Flask CONFIG: %s" % app.config)
 
+    if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
+        create_database(app.config["SQLALCHEMY_DATABASE_URI"])
     db.init_app(app)
     ma.init_app(app)
 

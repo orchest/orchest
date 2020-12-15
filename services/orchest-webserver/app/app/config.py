@@ -8,7 +8,7 @@ class Config:
     DEBUG = False
     TESTING = False
 
-    SQLALCHEMY_DATABASE_URI = "sqlite:////userdir/.orchest/orchest-webserver.db"
+    SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/orchest_webserver"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     dir_path = os.path.dirname(os.path.realpath(__file__))

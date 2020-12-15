@@ -70,6 +70,10 @@ class RunList(Resource):
             "status": "PENDING",
         }
         db.session.add(models.InteractiveRun(**run))
+        # need to flush because otherwise the bulk insertion of pipeline
+        # steps will lead to foreign key errors
+        # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
+        db.session.flush()
 
         # Set an initial value for the status of the pipeline steps that
         # will be run.

@@ -90,6 +90,10 @@ class ExperimentList(Resource):
                 "status": "PENDING",
             }
             db.session.add(models.NonInteractiveRun(**non_interactive_run))
+            # need to flush because otherwise the bulk insertion of
+            # pipeline steps will lead to foreign key errors
+            # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
+            db.session.flush()
 
             # TODO: this code is also in `namespace_runs`. Could
             #       potentially be put in a function for modularity.

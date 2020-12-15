@@ -9,6 +9,7 @@ TODO:
 """
 from app.connections import db
 from sqlalchemy import Index, UniqueConstraint, ForeignKeyConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class BaseModel(db.Model):
@@ -43,14 +44,14 @@ class InteractiveSession(BaseModel):
     )  # IPv4
     # Used to connect to Jupyter notebook server.
     notebook_server_info = db.Column(
-        db.JSON,
+        JSONB,
         unique=True,
         nullable=True,
     )
     # Docker container IDs. Used internally to identify the resources of
     # a specific session.
     container_ids = db.Column(
-        db.JSON,
+        JSONB,
         unique=False,
         nullable=True,
     )
@@ -128,7 +129,6 @@ class InteractiveRun(PipelineRun):
 
 class NonInteractiveRun(PipelineRun):
     __tablename__ = "non_interactive_runs"
-    __bind_key__ = "persistent_db"
 
     # TODO: verify why the experiment_uuid should be part of the
     # primary key
@@ -166,7 +166,6 @@ class NonInteractiveRun(PipelineRun):
 
 class NonInteractiveRunPipelineStep(PipelineRunPipelineStep):
     __tablename__ = "non_interactive_run_pipeline_steps"
-    __bind_key__ = "persistent_db"
 
     # TODO: verify why we have the exp uuid as a column, seems to be
     # redundant info since we already have the run_uuid
@@ -190,7 +189,6 @@ class NonInteractiveRunPipelineStep(PipelineRunPipelineStep):
 
 class Experiment(BaseModel):
     __tablename__ = "experiments"
-    __bind_key__ = "persistent_db"
 
     experiment_uuid = db.Column(db.String(36), primary_key=True)
     project_uuid = db.Column(
@@ -229,7 +227,6 @@ class EnvironmentBuild(BaseModel):
     """
 
     __tablename__ = "environment_build"
-    __bind_key__ = "persistent_db"
     __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
@@ -293,7 +290,6 @@ class NonInteractiveRunImageMapping(BaseModel):
     """
 
     __tablename__ = "non_interactive_pipeline_run_image_mapping"
-    __bind_key__ = "persistent_db"
     __table_args__ = (
         UniqueConstraint("run_uuid", "orchest_environment_uuid"),
         UniqueConstraint("run_uuid", "docker_img_id"),
