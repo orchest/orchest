@@ -213,10 +213,12 @@ class NonInteractivePipelineRun(PipelineRun):
     # https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
     #
     # Single table inheritance is the inheritance of choice, mostly
-    # because of the drawbacks of joined table inheritance. Settng the
+    # because of the drawbacks of joined table inheritance. Setting the
     # tablename to None will result in using single table inheritance,
     # setting it to a string will result in using joined table
     # inheritance.
+    # Note that single table inheritance will NOT create a new table for
+    # each "child" of the inheritance.
     __tablename__ = None
 
     # TODO: verify why the experiment_uuid should be part of the

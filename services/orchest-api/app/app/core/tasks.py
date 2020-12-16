@@ -23,7 +23,7 @@ logger = get_task_logger(__name__)
 # databases) is called twice, which means celery-worker needs the
 # /userdir bind to access the DB which is probably not a good idea.
 # create_all should only be called once per app right?
-celery = make_celery(create_app(CONFIG_CLASS, use_db=False), create_backend_db=True)
+celery = make_celery(create_app(CONFIG_CLASS, use_db=False), use_backend_db=True)
 
 
 # This will not work yet, because Celery does not yet support asyncio
