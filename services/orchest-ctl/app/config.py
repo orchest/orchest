@@ -2,6 +2,13 @@ import os
 
 from app.errors import ENVVariableNotFound
 
+REQUIRED_ENV_VARS = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR", "HOST_OS"]
+ENVS = {}
+
+for var_name in REQUIRED_ENV_VARS:
+    ENVS[var_name] = os.environ.get(var_name)
+    if ENVS[var_name] is None:
+        raise ENVVariableNotFound("%s cannot be found in the environment." % var_name)
 
 # Can either be "reg" or "dev"
 RUN_MODE = "reg"
@@ -17,6 +24,13 @@ DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 orchest_stat = os.stat("/orchest-host/orchest")
 ORCHEST_HOST_UID = orchest_stat.st_uid
 ORCHEST_HOST_GID = orchest_stat.st_gid
+
+# on macOS default to UID/GID of 1000/100
+# See macOS bind mounted directory permission behaviour here:
+# https://github.com/docker/for-mac/issues/2657#issuecomment-371210749
+if ENVS["HOST_OS"] == "darwin":
+    ORCHEST_HOST_UID = 1000
+    ORCHEST_HOST_GID = 100
 
 # All the images that are used by Orchest.
 _orchest_images = [
@@ -70,20 +84,12 @@ ON_START_IMAGES = [
     "rabbitmq:3",
 ]
 
-REQUIRED_ENV_VARS = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR"]
-ENVS = {}
-
-for var_name in REQUIRED_ENV_VARS:
-    ENVS[var_name] = os.environ.get(var_name)
-    if ENVS[var_name] is None:
-        raise ENVVariableNotFound("%s cannot be found in the environment." % var_name)
-
-
 CONTAINER_MAPPING = {
     "orchest/orchest-api:latest": {
         "environment": {
             "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
             "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
+            "HOST_OS": ENVS["HOST_OS"],
         },
         "command": None,
         "name": "orchest-api",
@@ -104,6 +110,7 @@ CONTAINER_MAPPING = {
             "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
             "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],
             "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
+            "HOST_OS": ENVS["HOST_OS"],
             "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
             "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
         },
@@ -119,6 +126,7 @@ CONTAINER_MAPPING = {
         "environment": {
             "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
             "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
+            "HOST_OS": ENVS["HOST_OS"],
         },
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
@@ -170,6 +178,7 @@ CONTAINER_MAPPING = {
             "HOST_USER_DIR": ENVS["HOST_USER_DIR"],
             "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],
             "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
+            "HOST_OS": ENVS["HOST_OS"],
         },
         "auto_remove": True,
         "mounts": [

@@ -15,19 +15,25 @@ fi
 # Create home
 mkdir -p /home/$NON_ROOT_USER
 
-# determine Docker group GID
-DOCKER_SOCK_GID=$(stat -c '%g' /var/run/docker.sock)
+# make docker.sock writeable by NON_ROOT_USER
+if [ "$HOST_OS" = "linux" ]; then
 
-DOCKER_GROUP="docker"
-# check if GID exists in this container
-if ! [ $(getent group $DOCKER_SOCK_GID) ]; then
-    groupadd -g $DOCKER_SOCK_GID docker
+    # determine Docker group GID
+    DOCKER_SOCK_GID=$(stat -c '%g' /var/run/docker.sock)
+
+    DOCKER_GROUP="docker"
+    # check if GID exists in this container
+    if ! [ $(getent group $DOCKER_SOCK_GID) ]; then
+        groupadd -g $DOCKER_SOCK_GID docker
+    else
+        DOCKER_GROUP="$(getent group $DOCKER_SOCK_GID | cut -d: -f1)"
+    fi
+
+    # To get Docker permissions add
+    usermod -a -G $DOCKER_GROUP $NON_ROOT_USER
 else
-    DOCKER_GROUP="$(getent group $DOCKER_SOCK_GID | cut -d: -f1)"
+    chown $NON_ROOT_USER:$NON_ROOT_USER /var/run/docker.sock
 fi
-
-# To get Docker permissions add
-usermod -a -G $DOCKER_GROUP $NON_ROOT_USER
 
 # Make sure all files are owned by the new NON_ROOT_USER
 chown -R $NON_ROOT_USER:$NON_ROOT_USER /orchest /home/$NON_ROOT_USER

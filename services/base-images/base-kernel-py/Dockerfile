@@ -23,11 +23,8 @@ COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 
-RUN useradd orchest && passwd -d orchest && echo "orchest   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/sudoers.d/orchest && \
-    mkdir -p /home/orchest && \
-    chown -R orchest:orchest /home/orchest
-    
-USER orchest
-ENV HOME=/home/orchest
+RUN passwd -d $NB_USER && echo "$NB_USER   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/sudoers.d/$NB_USER
+USER $NB_USER
+ENV HOME=/home/$NB_USER
 
 CMD [ "/orchest/bootscript.sh" ]

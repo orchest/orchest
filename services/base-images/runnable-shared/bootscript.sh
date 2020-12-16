@@ -7,15 +7,15 @@
 if [ "$ORCHEST_HOST_UID" != "0" ]; then
     EXISTING_USER=$(id -nu $ORCHEST_HOST_UID)
     if [ $? -eq 0 ]; then
-        if ! [ "$EXISTING_USER" = "orchest" ]; then
+        if ! [ "$EXISTING_USER" = "$NB_USER" ]; then
             sudo userdel "$EXISTING_USER"
         fi
     fi
     
-    sudo usermod -u $ORCHEST_HOST_UID orchest
+    sudo usermod -u $ORCHEST_HOST_UID $NB_USER
 fi
 
-sudo chown orchest:orchest -R /home/orchest
+sudo chown $NB_USER:$NB_USER -R /home/$NB_USER
 
 if [ "$1" = "runnable" ]; then 
     python run.py "$2" "$3"

@@ -47,6 +47,10 @@ fi
 
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$DIR/userdir
+HOST_OS="linux"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    HOST_OS="darwin"
+fi
 
 # create config dir if it doesn't exist
 mkdir -p "${HOST_CONFIG_DIR}"
@@ -60,4 +64,5 @@ docker run \
     -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \
     -e HOST_REPO_DIR="${DIR}" \
     -e HOST_USER_DIR="${HOST_USER_DIR}" \
+    -e HOST_OS="${HOST_OS}" \
     orchest/orchest-ctl:latest "$@"
