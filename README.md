@@ -33,16 +33,16 @@ Orchest lets you:
 - Run any subset of a pipeline.
 - Skip certain cells when executing a notebook top-to-bottom.
 - Parametrize your data science pipelines to experiment with different modeling ideas.
-- Integrate commonly used data sources.
+- Integrate commonly used data-sources.
 - Easily define your custom runtime environment.
-- Version your pipelines through git.
+- Version your pipelines through Git.
 
 In our docs you can find a comprehensive
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial!
 
 ## Installation
 
-> **NOTE:** Orchest is in alpha.
+> **NOTE:** Orchest is in **alpha**.
 
 For GPU support, language dependencies other than Python, and other installation methods, such as
 building from source, refer to our [installation
@@ -50,7 +50,7 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 
 #### Requirements
 
-- Docker
+- **Docker**
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
@@ -94,10 +94,10 @@ The software in this repository is licensed as follows:
 ## Contributing
 
 Contributions are more than welcome! Please see our
-[contributer guides](https://orchest.readthedocs.io/en/stable/developer_guide/contributing.html)
+[contributor guides](https://orchest.readthedocs.io/en/stable/developer_guide/contributing.html)
 for more details.
 
 ## We love your feedback
 
 We would love to hear what you think and potentially add features based on your ideas. Come chat
-with us on [our Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
+with us on [our Slack Channel](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
