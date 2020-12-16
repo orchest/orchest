@@ -36,14 +36,6 @@ def create_app(config_class=None, use_db=True):
         db.init_app(app)
         with app.app_context():
             db.create_all()
-            # cleanup stuff that is temporary/ephemireal, the cleanup
-            # happens on startup so that it's still possible to inspect
-            # the db on shutdown
-            InteractiveSession.query.delete()
-            InteractiveRun.query.delete()
-            InteractiveRunPipelineStep.query.delete()
-            InteractiveRunImageMapping.query.delete()
-            db.session.commit()
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix="/api")
