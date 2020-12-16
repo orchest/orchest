@@ -132,9 +132,9 @@ def start():
         # TODO: should we have a generic abstraction when it comes to
         # dependencies among the services? I don't think it's needed.
         if container_image.startswith("postgres"):
-            exit_code, _ = container.exec_run("pg_isready")
+            exit_code, _ = container.exec_run("pg_isready --username postgres")
             while exit_code != 0:
-                exit_code, _ = container.exec_run("pg_isready")
+                exit_code, _ = container.exec_run("pg_isready --username postgres")
                 time.sleep(1)
 
     utils.log_server_url()

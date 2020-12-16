@@ -161,8 +161,8 @@ CONTAINER_MAPPING = {
         },
         "mounts": [
             {
-                "source": os.path.join(ENVS["HOST_USER_DIR"], ".orchest"),
-                "target": "/userdir/.orchest",
+                "source": os.path.join(ENVS["HOST_USER_DIR"], ".orchest", "database"),
+                "target": "/userdir/.orchest/database",
             },
         ],
     },
