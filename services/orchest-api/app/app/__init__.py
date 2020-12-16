@@ -12,16 +12,24 @@ from sqlalchemy_utils import create_database, database_exists
 
 from app.apis import blueprint as api
 from app.connections import db
-from app.models import (
-    InteractiveSession,
-    InteractiveRun,
-    InteractiveRunPipelineStep,
-    InteractiveRunImageMapping,
-)
 from config import CONFIG_CLASS
 
 
 def create_app(config_class=None, use_db=True):
+    """Create the Flask app and return it.
+
+    Args:
+        config_class: Configuration class. See orchest-api/app/config.
+        use_db: If true, associate a database to the Flask app instance,
+            which implies connecting to a given database and possibly
+            creating such database and/or tables if they do not exist
+            already. The reason to differentiate instancing the app
+            through this argument is that the celery worker does not
+            need to connect to the db that "belongs" to the orchest-api.
+
+    Returns:
+        Flask.app
+    """
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -43,9 +51,5 @@ def create_app(config_class=None, use_db=True):
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix="/api")
-
-    # create celery database if needed
-    if not database_exists(CONFIG_CLASS.result_backend_sqlalchemy_uri):
-        create_database(CONFIG_CLASS.result_backend_sqlalchemy_uri)
 
     return app
