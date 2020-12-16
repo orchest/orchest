@@ -238,6 +238,19 @@ class NonInteractivePipelineRun(PipelineRun):
     }
 
 
+class InteractivePipelineRun(PipelineRun):
+    # Just a wrapper around PipelineRun so that we can selectively
+    # reference InteractivePipelineRun(s) without filtering by the type
+    # column, which would be error prone.
+    # PipelineRun.query.filter_by(type="PipelineRun").all() becomes
+    # InteractivePipelineRun.query.all()
+    __tablename__ = None
+
+    __mapper_args__ = {
+        "polymorphic_identity": "InteractivePipelineRun",
+    }
+
+
 class PipelineRunImageMapping(BaseModel):
     """Stores mappings between a pipeline run and the environment
      images it uses.

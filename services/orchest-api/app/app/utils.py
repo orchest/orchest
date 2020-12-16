@@ -248,10 +248,12 @@ def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    return models.PipelineRun.query.filter(
-        models.PipelineRun.project_uuid == project_uuid,
-        models.PipelineRun.image_mappings.any(orchest_environment_uuid=env_uuid),
-        models.PipelineRun.status.in_(["PENDING", "STARTED"]),
+    return models.InteractivePipelineRun.query.filter(
+        models.InteractivePipelineRun.project_uuid == project_uuid,
+        models.InteractivePipelineRun.image_mappings.any(
+            orchest_environment_uuid=env_uuid
+        ),
+        models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
     ).all()
 
 

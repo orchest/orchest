@@ -32,18 +32,16 @@ class RunList(Resource):
         completed.
         """
 
-        query = models.PipelineRun.query
+        query = models.InteractivePipelineRun.query
 
         # Ability to query a specific runs given the `pipeline_uuid` or `project_uuid`
         # through the URL (using `request.args`).
         if "pipeline_uuid" in request.args and "project_uuid" in request.args:
             query = query.filter_by(
-                pipeline_uuid=request.args.get("pipeline_uuid"), type="PipelineRun"
+                pipeline_uuid=request.args.get("pipeline_uuid")
             ).filter_by(project_uuid=request.args.get("project_uuid"))
         elif "project_uuid" in request.args:
-            query = query.filter_by(
-                project_uuid=request.args.get("project_uuid"), type="PipelineRun"
-            )
+            query = query.filter_by(project_uuid=request.args.get("project_uuid"))
 
         runs = query.all()
         return {"runs": [run.__dict__ for run in runs]}, 200
@@ -71,7 +69,7 @@ class RunList(Resource):
             "project_uuid": post_data["project_uuid"],
             "status": "PENDING",
         }
-        db.session.add(models.PipelineRun(**run))
+        db.session.add(models.InteractivePipelineRun(**run))
         # need to flush because otherwise the bulk insertion of pipeline
         # steps will lead to foreign key errors
         # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
@@ -115,7 +113,7 @@ class RunList(Resource):
             run["status"] = "SUCCESS"
             for step in run["pipeline_steps"]:
                 step.status = "FAILURE"
-            models.PipelineRun.query.filter_by(run_uuid=task_id).update(
+            models.InteractivePipelineRun.query.filter_by(run_uuid=task_id).update(
                 {"status": "SUCCESS"}
             )
             models.PipelineRunStep.query.filter_by(run_uuid=task_id).update(
@@ -162,8 +160,8 @@ class Run(Resource):
     @api.marshal_with(schema.interactive_run, code=200)
     def get(self, run_uuid):
         """Fetches an interactive pipeline run given its UUID."""
-        run = models.PipelineRun.query.filter_by(
-            run_uuid=run_uuid, type="PipelineRun"
+        run = models.InteractivePipelineRun.query.filter_by(
+            run_uuid=run_uuid
         ).one_or_none()
         if run is None:
             abort(404, description="Run not found")
@@ -175,7 +173,7 @@ class Run(Resource):
         """Sets the status of a pipeline run."""
         post_data = request.get_json()
 
-        res = models.PipelineRun.query.filter_by(run_uuid=run_uuid).update(
+        res = models.InteractivePipelineRun.query.filter_by(run_uuid=run_uuid).update(
             {"status": post_data["status"]}
         )
 
