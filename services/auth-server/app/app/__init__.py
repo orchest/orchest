@@ -17,11 +17,15 @@ def create_app(config_class=None):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Initialize the database and create the database file.
+    # Create the database if it does not exist yet. Roughly equal to
+    # a "CREATE DATABASE IF NOT EXISTS <db_name>" call.
     if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
         create_database(app.config["SQLALCHEMY_DATABASE_URI"])
+
     db.init_app(app)
     with app.app_context():
+        # This call will create tables if needed (the ones which do not
+        # exist in the database yet).
         db.create_all()
 
     register_views(app)
