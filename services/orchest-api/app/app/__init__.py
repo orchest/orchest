@@ -12,6 +12,7 @@ from sqlalchemy_utils import create_database, database_exists
 
 from app.apis import blueprint as api
 from app.connections import db
+from app.models import InteractiveSession, InteractivePipelineRun
 from config import CONFIG_CLASS
 
 
@@ -48,6 +49,14 @@ def create_app(config_class=None, use_db=True):
             # This call will create tables if needed (the ones which do
             # not exist in the database yet).
             db.create_all()
+
+            # in case of an ungraceful shutdown, these entities could be
+            # in an invalid state
+            InteractiveSession.query.delete()
+            InteractivePipelineRun.query.filter(
+                InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
+            ).delete(synchronize_session="fetch")
+            db.session.commit()
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix="/api")

@@ -127,7 +127,7 @@ class Experiment(BaseModel):
         # with relationship(), it’s important to note first and foremost
         # that the relationship.cascade setting must still be configured
         # to match the desired “delete” or “set null” behavior
-        # Essentially, the specifed behaviour in the FK column
+        # Essentially, the specified behaviour in the FK column
         # and the one specified in the relationship must match.
         cascade="all, delete",
     )
