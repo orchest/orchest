@@ -658,10 +658,8 @@ def _get_container_specs(
             f"ORCHEST_HOST_GID={os.environ.get('ORCHEST_HOST_GID')}",
         ],
         "command": [
-            "--allow-root",
             "--port=8888",
             "--no-browser",
-            "--debug",
             f"--gateway-url={'http://' + gateway_hostname}:8888",
             f"--notebook-dir={_config.PROJECT_DIR}",
             f"--ServerApp.base_url=/{jupyter_hostname}",

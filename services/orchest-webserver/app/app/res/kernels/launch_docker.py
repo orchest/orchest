@@ -59,8 +59,8 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         "PATH"
     )  # Let the image PATH be used.  Since this is relative to images, we're probably safe.
 
-    user = param_env.get("KERNEL_UID")
-    group = param_env.get("KERNEL_GID")
+    user = param_env.get("ORCHEST_HOST_UID")
+    group = param_env.get("ORCHEST_HOST_GID")
 
     # setup common args
     kwargs = dict()
