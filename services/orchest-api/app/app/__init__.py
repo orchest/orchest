@@ -6,6 +6,8 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
+import os
+
 from flask import Flask
 from flask_cors import CORS
 from sqlalchemy_utils import create_database, database_exists
@@ -50,13 +52,21 @@ def create_app(config_class=None, use_db=True):
             # not exist in the database yet).
             db.create_all()
 
-            # in case of an ungraceful shutdown, these entities could be
-            # in an invalid state
-            InteractiveSession.query.delete()
-            InteractivePipelineRun.query.filter(
-                InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
-            ).delete(synchronize_session="fetch")
-            db.session.commit()
+            # In case of an ungraceful shutdown, these entities could be
+            # in an invalid state, so they are deleted, since for sure
+            # they are not running anymore.
+            # To avoid the issue of entities being deleted because of a
+            # flask app reload triggered by a dev mode code change, we
+            # attempt to create a directory first. Since this is an
+            # atomic operation that will result in an error if the
+            # directory is already there, this cleanup operation will
+            # run only once per container.
+            if os.system("mkdir /tmp/interactive_cleanup_done > /dev/null 2>&1") == 0:
+                InteractiveSession.query.delete()
+                InteractivePipelineRun.query.filter(
+                    InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
+                ).delete(synchronize_session="fetch")
+                db.session.commit()
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix="/api")
