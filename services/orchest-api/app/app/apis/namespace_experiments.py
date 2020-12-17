@@ -271,7 +271,6 @@ class PipelineRun(Resource):
         ).one_or_none()
         if non_interactive_run is None:
             abort(404, "Given experiment has no run with given run_uuid")
-        print(non_interactive_run.__dict__)
         return non_interactive_run.__dict__
 
     @api.doc("set_pipeline_run_status")
