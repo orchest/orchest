@@ -653,7 +653,6 @@ def _get_container_specs(
         "name": jupyter_hostname,
         "network": network,
         "environment": [
-            "KERNEL_UID=0",
             f"ORCHEST_HOST_UID={os.environ.get('ORCHEST_HOST_UID')}",
             f"ORCHEST_HOST_GID={os.environ.get('ORCHEST_HOST_GID')}",
         ],

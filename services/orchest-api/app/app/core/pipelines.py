@@ -270,7 +270,7 @@ class PipelineStepRunner:
             "NetworkingConfig": {
                 "EndpointsConfig": {"orchest": {}}  # TODO: should not be hardcoded.
             },
-            "User": f'{os.environ.get("ORCHEST_HOST_UID")}:{os.environ.get("ORCHEST_HOST_GID")}',
+            "User": f'1000:100',
             # NOTE: the `'tests-uuid'` key is only used for tests and
             # gets ignored by the `docker_client`.
             "tests-uuid": self.properties["uuid"],
