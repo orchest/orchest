@@ -19,7 +19,8 @@ COPY ./lib/javascript/ app/static/js/src/lib/
 # Compile front-end code with npx and compile style
 WORKDIR /orchest/services/auth-server/app/static
 RUN npm install
-RUN ./compile-js.sh && ./compile-sass.sh
+RUN ./compile-js.sh && ./compile-sass.sh \
+  && rm -rf node_modules/
 
 # Application files.
 WORKDIR /orchest/services/auth-server
