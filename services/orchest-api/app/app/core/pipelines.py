@@ -258,6 +258,7 @@ class PipelineStepRunner:
             "HostConfig": {
                 "Binds": orchest_mounts,
                 "DeviceRequests": device_requests,
+                "GroupAdd": [os.environ.get("ORCHEST_HOST_GID")],
             },
             "Cmd": [
                 "/orchest/bootscript.sh",
@@ -268,7 +269,6 @@ class PipelineStepRunner:
             "NetworkingConfig": {
                 "EndpointsConfig": {"orchest": {}}  # TODO: should not be hardcoded.
             },
-            "GroupAdd": [os.environ.get("ORCHEST_HOST_GID")],
             # NOTE: the `'tests-uuid'` key is only used for tests and
             # gets ignored by the `docker_client`.
             "tests-uuid": self.properties["uuid"],
