@@ -2,6 +2,8 @@
 FROM orchest/kernel-py:2.3.0-gpu
 
 USER root
+# enable sudo for the NB_USER by default
+RUN passwd -d $NB_USER && echo "$NB_USER   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/sudoers.d/$NB_USER
 
 WORKDIR /
 
@@ -20,6 +22,11 @@ WORKDIR /orchest/services/base-images/runnable-shared/runner
 RUN pip install -r requirements.txt
 
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
+
+USER $NB_USER
+ENV HOME=/home/$NB_USER
+
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
+
 CMD [ "/orchest/bootscript.sh" ]

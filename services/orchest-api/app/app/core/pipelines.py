@@ -258,6 +258,7 @@ class PipelineStepRunner:
             "HostConfig": {
                 "Binds": orchest_mounts,
                 "DeviceRequests": device_requests,
+                "GroupAdd": [os.environ.get("ORCHEST_HOST_GID")],
             },
             "Cmd": [
                 "/orchest/bootscript.sh",

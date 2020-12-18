@@ -100,6 +100,9 @@ def start():
     # Clean up lingering, old images from previous starts.
     utils.clean_containers()
 
+    # Make sure userdir/ permissions are correct
+    utils.fix_userdir_permissions()
+
     # TODO: is the repo tag always the first tag in the Docker
     #       Engine API?
     # Determine the containers that are already running as we do not

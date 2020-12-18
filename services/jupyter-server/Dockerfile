@@ -30,4 +30,6 @@ WORKDIR /project-dir
 
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
-ENTRYPOINT [ "jupyter", "lab" ]
+
+COPY start.sh /
+ENTRYPOINT [ "/start.sh" ]

@@ -194,6 +194,17 @@ def clean_containers():
             container.remove()
 
 
+def fix_userdir_permissions():
+    """setgid on all directories in userdir to make sure new files
+    created by containers are read/write for sibling containers
+    and the host user"""
+    
+    try:
+        os.system("find /orchest-host/userdir -type d -exec chmod g+s {} \;")
+    except Exception as e:
+        logging.warning("Could not set gid permissions on /orchest-host/userdir")
+
+
 def get_application_url():
     try:
         docker_client.containers.get("orchest-webserver")
@@ -294,4 +305,11 @@ def convert_to_run_config(image_name, container_spec):
         "hostname": container_spec.get("hostname"),
         "auto_remove": container_spec.get("auto_remove", False),
     }
+
+    if "user" in container_spec:
+        run_config["user"] = container_spec.get("user")
+
+    if "group_add" in container_spec:
+        run_config["group_add"] = container_spec.get("group_add")
+
     return run_config

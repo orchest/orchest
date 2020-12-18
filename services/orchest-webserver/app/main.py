@@ -2,10 +2,16 @@
 
 import logging
 import sys
+import subprocess
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 from app import create_app, create_app_managed
+
+logging.info(
+    "Running orchest-webserver as %s"
+    % subprocess.check_output("whoami", shell=True).decode()
+)
 
 if __name__ == "__main__":
 

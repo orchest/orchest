@@ -44,9 +44,15 @@ if [ "$1" == "update" ] ; then
 fi
 # End of warnings
 
-
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$DIR/userdir
+
+# We detect the host OS to properly set the GID owner 
+# that is used for files in the userdir/
+HOST_OS="linux"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    HOST_OS="darwin"
+fi
 
 # create config dir if it doesn't exist
 mkdir -p "${HOST_CONFIG_DIR}"
@@ -60,4 +66,5 @@ docker run \
     -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \
     -e HOST_REPO_DIR="${DIR}" \
     -e HOST_USER_DIR="${HOST_USER_DIR}" \
+    -e HOST_OS="${HOST_OS}" \
     orchest/orchest-ctl:latest "$@"

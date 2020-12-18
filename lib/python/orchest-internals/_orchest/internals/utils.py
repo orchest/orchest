@@ -39,6 +39,7 @@ def run_orchest_ctl(client, command):
             "HOST_CONFIG_DIR": os.environ.get("HOST_CONFIG_DIR"),
             "HOST_REPO_DIR": os.environ.get("HOST_REPO_DIR"),
             "HOST_USER_DIR": os.environ.get("HOST_USER_DIR"),
+            "HOST_OS": os.environ.get("HOST_OS"),
         },
     )
 

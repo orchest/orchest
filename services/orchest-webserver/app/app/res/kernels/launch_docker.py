@@ -2,10 +2,8 @@ import os
 import sys
 import argparse
 import urllib3
-import requests
 
 from docker.client import DockerClient
-from docker.types import EndpointSpec, RestartPolicy, DeviceRequest, Mount
 
 from _orchest.internals.utils import get_device_requests, get_orchest_mounts
 from _orchest.internals import config as _config
@@ -59,83 +57,48 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         "PATH"
     )  # Let the image PATH be used.  Since this is relative to images, we're probably safe.
 
-    user = param_env.get("KERNEL_UID")
-    group = param_env.get("KERNEL_GID")
-
     # setup common args
     kwargs = dict()
     kwargs["name"] = container_name
-    kwargs["user"] = user
     kwargs["labels"] = labels
 
     client = DockerClient.from_env()
-    if swarm_mode:
-        print("Started Jupyter kernel in swarm-mode")
-        networks = list()
-        networks.append(docker_network)
-        mounts = list()
-        mounts.append(
-            "/usr/local/share/jupyter/kernels:/usr/local/share/jupyter/kernels:ro"
-        )
-        endpoint_spec = EndpointSpec(mode="dnsrr")
-        restart_policy = RestartPolicy(condition="none")
+    print("Started Jupyter kernel in normal docker mode")
 
-        # finish args setup
-        kwargs["env"] = param_env
-        kwargs["endpoint_spec"] = endpoint_spec
-        kwargs["restart_policy"] = restart_policy
-        kwargs["container_labels"] = labels
-        kwargs["networks"] = networks
-        kwargs["groups"] = [group, "100"]
-        if param_env.get("KERNEL_WORKING_DIR"):
-            kwargs["workdir"] = param_env.get("KERNEL_WORKING_DIR")
-        # kwargs['mounts'] = mounts   # Enable if necessary
-        # print("service args: {}".format(kwargs))  # useful for debug
-        kernel_service = client.services.create(image_name, **kwargs)
-    else:
-        print("Started Jupyter kernel in normal docker mode")
+    # Note: seems to me that the kernels don't need to be mounted on a container that runs a single kernel
+    # mount the kernel working directory from EG to kernel container
 
-        # Note: seems to me that the kernels don't need to be mounted on a container that runs a single kernel
+    # finish args setup
+    kwargs["hostname"] = container_name
+    kwargs["environment"] = param_env
+    kwargs["remove"] = remove_container
+    kwargs["network"] = docker_network
+    kwargs["group_add"] = [param_env.get("ORCHEST_HOST_GID")]
+    kwargs["detach"] = True
+    if param_env.get("KERNEL_WORKING_DIR"):
+        kwargs["working_dir"] = param_env.get("KERNEL_WORKING_DIR")
 
-        # mount the kernel working directory from EG to kernel container
+    # print("container args: {}".format(kwargs))  # useful for debug
+    orchest_mounts = get_orchest_mounts(
+        project_dir=_config.PROJECT_DIR,
+        host_project_dir=param_env.get("ORCHEST_HOST_PROJECT_DIR"),
+    )
+    volume_source, volume_spec = get_volume_mount(
+        param_env.get("ORCHEST_PIPELINE_UUID"),
+        param_env.get("ORCHEST_PROJECT_UUID"),
+    )
+    orchest_mounts[volume_source] = volume_spec
 
-        # finish args setup
-        kwargs["hostname"] = container_name
-        kwargs["environment"] = param_env
-        kwargs["remove"] = remove_container
-        kwargs["network"] = docker_network
-        kwargs["group_add"] = [
-            group,
-            "100",
-        ]  # NOTE: "group_add" for newer versions of docker
-        kwargs["detach"] = True
-        if param_env.get("KERNEL_WORKING_DIR"):
-            kwargs["working_dir"] = param_env.get("KERNEL_WORKING_DIR")
+    # Extract environment_uuid from the image name (last 36 characters)
+    extracted_environment_uuid = image_name[-36:]
 
-        # print("container args: {}".format(kwargs))  # useful for debug
-        orchest_mounts = get_orchest_mounts(
-            project_dir=_config.PROJECT_DIR,
-            host_project_dir=param_env.get("ORCHEST_HOST_PROJECT_DIR"),
-        )
-        volume_source, volume_spec = get_volume_mount(
-            param_env.get("ORCHEST_PIPELINE_UUID"),
-            param_env.get("ORCHEST_PROJECT_UUID"),
-        )
-        orchest_mounts[volume_source] = volume_spec
+    device_requests = get_device_requests(
+        extracted_environment_uuid, param_env.get("ORCHEST_PROJECT_UUID")
+    )
 
-        # Extract environment_uuid from the image name (last 36 characters)
-        extracted_environment_uuid = image_name[-36:]
-
-        device_requests = get_device_requests(
-            extracted_environment_uuid, param_env.get("ORCHEST_PROJECT_UUID")
-        )
-
-        kernel_container = client.containers.run(
-            image_name,
-            volumes=orchest_mounts,
-            device_requests=device_requests,
-            **kwargs
-        )
+    kernel_container = client.containers.run(
+        image_name, volumes=orchest_mounts, device_requests=device_requests, **kwargs
+    )
 
 
 if __name__ == "__main__":

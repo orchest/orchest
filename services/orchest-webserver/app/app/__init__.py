@@ -9,11 +9,7 @@ Additinal note:
 
 import os
 import logging
-import json
 import sys
-import requests
-import uuid
-import atexit
 import contextlib
 import subprocess
 import posthog
@@ -172,21 +168,6 @@ def create_app():
     if process_start_gate():
 
         file_dir = os.path.dirname(os.path.realpath(__file__))
-
-        # TODO: reconsider file permission approach
-        # file_permission_watcher process
-        permission_process = Popen(
-            [
-                "python3",
-                "-m",
-                "scripts.file_permission_watcher",
-                app.config["USER_DIR"],
-            ],
-            cwd=os.path.join(file_dir, ".."),
-            stderr=subprocess.STDOUT,
-        )
-        logging.info("Started file_permission_watcher.py")
-        processes.append(permission_process)
 
         # log_streamer process
         log_streamer_process = Popen(

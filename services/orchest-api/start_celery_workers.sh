@@ -1,5 +1,7 @@
 #!/bin/bash
 
+umask 002
+
 # Experiments.
 celery worker -A app.core.tasks \
     -l INFO \
@@ -19,7 +21,6 @@ celery worker -A app.core.tasks \
     -f celery_interactive.log \
     --pidfile="worker-interactive.pid" \
     --detach
-
 
 # Environment builds. "celery" is the default queue name.
 # max-tasks-per-child is currently needed, because SocketIO is not
