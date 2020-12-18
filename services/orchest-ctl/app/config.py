@@ -22,14 +22,12 @@ DURABLE_QUEUES_DIR = ".orchest/rabbitmq-mnesia"
 
 # Get host UID/GID
 orchest_stat = os.stat("/orchest-host/orchest")
-ORCHEST_HOST_UID = orchest_stat.st_uid
 ORCHEST_HOST_GID = orchest_stat.st_gid
 
 # on macOS default to UID/GID of 1000/100
 # See macOS bind mounted directory permission behaviour here:
 # https://github.com/docker/for-mac/issues/2657#issuecomment-371210749
 if ENVS["HOST_OS"] == "darwin":
-    ORCHEST_HOST_UID = 1000
     ORCHEST_HOST_GID = 100
 
 # All the images that are used by Orchest.
@@ -87,12 +85,11 @@ ON_START_IMAGES = [
 CONTAINER_MAPPING = {
     "orchest/orchest-api:latest": {
         "environment": {
-            "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
-            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
             "HOST_OS": ENVS["HOST_OS"],
         },
         "command": None,
         "name": "orchest-api",
+        "user": f":{ENVS['ORCHEST_HOST_GID']}",
         "mounts": [
             {
                 # TODO: I don't think the orchest-api needs the entire
@@ -111,9 +108,8 @@ CONTAINER_MAPPING = {
             "HOST_CONFIG_DIR": ENVS["HOST_CONFIG_DIR"],
             "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
             "HOST_OS": ENVS["HOST_OS"],
-            "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
-            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
         },
+        "user": f":{ENVS['ORCHEST_HOST_GID']}",
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
             {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
@@ -124,10 +120,9 @@ CONTAINER_MAPPING = {
     "orchest/celery-worker:latest": {
         "name": "celery-worker",
         "environment": {
-            "ORCHEST_HOST_UID": ORCHEST_HOST_UID,
-            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
             "HOST_OS": ENVS["HOST_OS"],
         },
+        "user": f":{ENVS['ORCHEST_HOST_GID']}",
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
             {
@@ -162,7 +157,7 @@ CONTAINER_MAPPING = {
         "mounts": [
             {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
         ],
-        "user": f"{ORCHEST_HOST_UID}:{ORCHEST_HOST_GID}",
+        "user": f":{ENVS['ORCHEST_HOST_GID']}",
     },
     "orchest/nginx-proxy:latest": {
         "name": "nginx-proxy",

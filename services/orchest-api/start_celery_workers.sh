@@ -1,9 +1,9 @@
 #!/bin/bash
 
-. /user_permission_setup.sh
+umask 002
 
 # Experiments.
-sudo --preserve-env -H -u $NON_ROOT_USER -- celery worker -A app.core.tasks \
+celery worker -A app.core.tasks \
     -l INFO \
     -Q experiments \
     -n worker-expriments \
@@ -14,7 +14,7 @@ sudo --preserve-env -H -u $NON_ROOT_USER -- celery worker -A app.core.tasks \
     --detach
 
 # Interactive runs. "celery" is the default queue name.
-sudo --preserve-env -H -u $NON_ROOT_USER -- celery worker -A app.core.tasks \
+celery worker -A app.core.tasks \
     -l INFO \
     -Q celery \
     -n worker-interactive \
@@ -22,12 +22,11 @@ sudo --preserve-env -H -u $NON_ROOT_USER -- celery worker -A app.core.tasks \
     --pidfile="worker-interactive.pid" \
     --detach
 
-
 # Environment builds. "celery" is the default queue name.
 # max-tasks-per-child is currently needed, because SocketIO is not
 # cleaning up state when using disconnect, which will lead to sockets
 # related failures in a subsequent task
-sudo --preserve-env -H -u $NON_ROOT_USER -- celery worker -A app.core.tasks \
+celery worker -A app.core.tasks \
     -l INFO \
     -Q environment_builds \
     -n worker-env-builds \

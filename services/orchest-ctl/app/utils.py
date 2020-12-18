@@ -193,6 +193,14 @@ def clean_containers():
             logging.info("Removing exited container `%s`" % container.name)
             container.remove()
 
+def fix_userdir_permissions():
+    # setgid on all directories in userdir to make sure new files
+    # created by containers are read/write for sibling containers
+    # and the host user
+    try:
+        os.system("find /orchest-host/userdir -type d -exec chmod g+s {} \;")
+    except Exception as e:
+        logging.warning("Could not set gid permissions on /orchest-host/userdir")
 
 def get_application_url():
     try:
