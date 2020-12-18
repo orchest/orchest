@@ -71,7 +71,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     kwargs["environment"] = param_env
     kwargs["remove"] = remove_container
     kwargs["network"] = docker_network
-    kwargs["user"] = ":" + param_env.get("ORCHEST_HOST_GID")
+    kwargs["group_add"] = [param_env.get("ORCHEST_HOST_GID")]
     kwargs["detach"] = True
     if param_env.get("KERNEL_WORKING_DIR"):
         kwargs["working_dir"] = param_env.get("KERNEL_WORKING_DIR")

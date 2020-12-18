@@ -89,7 +89,7 @@ CONTAINER_MAPPING = {
         },
         "command": None,
         "name": "orchest-api",
-        "user": f":{ORCHEST_HOST_GID}",
+        "group_add": [ORCHEST_HOST_GID],
         "mounts": [
             {
                 # TODO: I don't think the orchest-api needs the entire
@@ -109,7 +109,7 @@ CONTAINER_MAPPING = {
             "HOST_REPO_DIR": ENVS["HOST_REPO_DIR"],
             "HOST_OS": ENVS["HOST_OS"],
         },
-        "user": f":{ORCHEST_HOST_GID}",
+        "group_add": [ORCHEST_HOST_GID],
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
             {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
@@ -122,7 +122,7 @@ CONTAINER_MAPPING = {
         "environment": {
             "HOST_OS": ENVS["HOST_OS"],
         },
-        "user": f":{ORCHEST_HOST_GID}",
+        "group_add": [ORCHEST_HOST_GID],
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
             {
@@ -157,7 +157,7 @@ CONTAINER_MAPPING = {
         "mounts": [
             {"source": ENVS["HOST_USER_DIR"], "target": "/userdir"},
         ],
-        "user": f":{ORCHEST_HOST_GID}",
+        "group_add": [ORCHEST_HOST_GID],
     },
     "orchest/nginx-proxy:latest": {
         "name": "nginx-proxy",

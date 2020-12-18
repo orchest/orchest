@@ -1,4 +1,4 @@
-FROM python:3.7-buster
+FROM python:3.7-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Get all requirements in place.

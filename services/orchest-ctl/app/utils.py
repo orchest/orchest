@@ -305,5 +305,8 @@ def convert_to_run_config(image_name, container_spec):
 
     if "user" in container_spec:
         run_config["user"] = container_spec.get("user")
+    
+    if "group_add" in container_spec:
+        run_config["group_add"] = container_spec.get("group_add")
 
     return run_config
