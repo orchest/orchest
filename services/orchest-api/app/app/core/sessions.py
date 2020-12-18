@@ -630,7 +630,6 @@ def _get_container_specs(
             f"ORCHEST_PIPELINE_PATH={pipeline_path}",
             f"ORCHEST_PROJECT_UUID={project_uuid}",
             f"ORCHEST_HOST_PROJECT_DIR={project_dir}",
-            f"ORCHEST_HOST_PROJECT_DIR={project_dir}",
             f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
         ],
         "user": "root",
