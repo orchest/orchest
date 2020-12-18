@@ -28,7 +28,7 @@ class EnvironmentEditView extends React.Component {
   constructor(props) {
     super(props);
 
-    this.BUILD_POLL_FREQUENCY = 3000;
+    this.BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
     this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
     this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -63,6 +63,7 @@ class EnvironmentEditView extends React.Component {
   }
 
   componentDidMount() {
+    this.environmentBuildRequest();
     this.environmentBuildPolling();
   }
 
@@ -242,6 +243,10 @@ class EnvironmentEditView extends React.Component {
 
     this.refManager.refs.tabBar.tabBar.activateTab(1);
 
+    // reinitialize polling - to increase frequency during build
+    this.state.building = true;
+    this.environmentBuildPolling();
+
     this.setState({
       building: true,
       ignoreIncomingLogs: true,
@@ -319,6 +324,10 @@ class EnvironmentEditView extends React.Component {
         building: true,
       });
     } else {
+      // reinitialize polling - to increase frequency during build
+      this.state.building = false;
+      this.environmentBuildPolling();
+
       this.setState({
         building: false,
       });
@@ -345,11 +354,12 @@ class EnvironmentEditView extends React.Component {
   }
 
   environmentBuildPolling() {
-    this.environmentBuildRequest();
     clearInterval(this.environmentBuildInterval);
     this.environmentBuildInterval = setInterval(
       this.environmentBuildRequest.bind(this),
-      this.BUILD_POLL_FREQUENCY
+      this.state.building
+        ? this.BUILD_POLL_FREQUENCY[1]
+        : this.BUILD_POLL_FREQUENCY[0]
     );
   }
 
