@@ -10,3 +10,6 @@ RUN /filebrowser config init --branding.name "File Manager" --auth.method noauth
 
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
+
+ENTRYPOINT ["/bin/sh"]
+CMD ["-c", "umask 002 && /filebrowser"]
