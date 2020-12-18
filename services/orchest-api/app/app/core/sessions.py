@@ -650,7 +650,7 @@ def _get_container_specs(
         "mounts": [mounts["project_dir"]],
         "name": jupyter_hostname,
         "network": network,
-        "group_add": [os.environ.get('ORCHEST_HOST_GID')],
+        "group_add": [os.environ.get("ORCHEST_HOST_GID")],
         "command": [
             "--allow-root",
             "--port=8888",

@@ -14,12 +14,14 @@ urllib3.disable_warnings()
 remove_container = bool(os.getenv("EG_REMOVE_CONTAINER", "True").lower() == "true")
 swarm_mode = bool(os.getenv("EG_DOCKER_MODE", "swarm").lower() == "swarm")
 
+
 def get_volume_mount(pipeline_uuid, project_uuid):
     target = _config.TEMP_DIRECTORY_PATH
     source = _config.TEMP_VOLUME_NAME.format(
         uuid=pipeline_uuid, project_uuid=project_uuid
     )
     return source, {"bind": target, "mode": "rw"}
+
 
 def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     # Launches a containerized kernel.
@@ -95,10 +97,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     )
 
     kernel_container = client.containers.run(
-        image_name,
-        volumes=orchest_mounts,
-        device_requests=device_requests,
-        **kwargs
+        image_name, volumes=orchest_mounts, device_requests=device_requests, **kwargs
     )
 
 
