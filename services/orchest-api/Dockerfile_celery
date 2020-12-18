@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y sudo
 
 # Get all requirements in place.
 COPY ./requirements.txt ./start_celery_workers.sh /orchest/services/orchest-api/
-COPY ./user_permission_setup.sh /
 COPY ./lib/python /orchest/lib/python
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`

@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y sudo
 
 # Get all requirements in place.
 COPY ./requirements.txt /orchest/services/orchest-api/
-COPY ./start.sh ./user_permission_setup.sh /
+COPY ./start.sh /
 COPY ./lib /orchest/lib
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`
