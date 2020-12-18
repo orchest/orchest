@@ -1905,8 +1905,8 @@ class PipelineView extends React.Component {
       let dx = e.nativeEvent.movementX;
       let dy = e.nativeEvent.movementY;
 
-      this.pipelineOffset[0] += dx / window.devicePixelRatio;
-      this.pipelineOffset[1] += dy / window.devicePixelRatio;
+      this.pipelineOffset[0] += dx;
+      this.pipelineOffset[1] += dy;
 
       this.renderPipelineHolder();
     }
