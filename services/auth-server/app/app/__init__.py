@@ -24,7 +24,7 @@ def create_app(config_class=None):
         create_database(app.config["SQLALCHEMY_DATABASE_URI"])
 
     db.init_app(app)
-    # necessary for migration related stuff
+    # necessary for migration
     Migrate().init_app(app, db)
 
     with app.app_context():
