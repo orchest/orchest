@@ -2,16 +2,14 @@ import React, { Fragment } from "react";
 import io from "socket.io-client";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
-import {
-  RefManager,
-} from "../lib/utils/all";
+import { RefManager } from "../lib/utils/all";
 
 class EnvironmentEditBuildTab extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       building: false,
-      ignoreIncomingLogs: this.props.ignoreIncomingLogs
+      ignoreIncomingLogs: this.props.ignoreIncomingLogs,
     };
 
     this.SOCKETIO_NAMESPACE_ENV_BUILDS =
@@ -36,7 +34,7 @@ class EnvironmentEditBuildTab extends React.Component {
     this.connectSocketIO();
     this.fitTerminal();
   }
-  
+
   connectSocketIO() {
     // disable polling
     this.socket = io.connect(this.SOCKETIO_NAMESPACE_ENV_BUILDS, {
@@ -80,7 +78,7 @@ class EnvironmentEditBuildTab extends React.Component {
       }
     });
   }
-  
+
   fitTerminal() {
     if (
       this.refManager.refs.term &&
@@ -99,12 +97,11 @@ class EnvironmentEditBuildTab extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
-
-    if(prevProps.ignoreIncomingLogs != this.props.ignoreIncomingLogs){
+    if (prevProps.ignoreIncomingLogs != this.props.ignoreIncomingLogs) {
       this.setState({
-        ignoreIncomingLogs: this.props.ignoreIncomingLogs
+        ignoreIncomingLogs: this.props.ignoreIncomingLogs,
       });
-      if(this.refManager.refs.terminal && this.props.ignoreIncomingLogs){
+      if (this.refManager.refs.terminal && this.props.ignoreIncomingLogs) {
         this.refManager.refs.term.terminal.reset();
       }
     }
@@ -119,10 +116,12 @@ class EnvironmentEditBuildTab extends React.Component {
           if (this.props.environmentBuild) {
             return (
               <div className="environment-notice">
-                <div><span className='build-label'>Build status:</span>
-                  {this.props.environmentBuild.status}</div>
                 <div>
-                  <span className='build-label'>Build started:</span>
+                  <span className="build-label">Build status:</span>
+                  {this.props.environmentBuild.status}
+                </div>
+                <div>
+                  <span className="build-label">Build started:</span>
                   {this.props.environmentBuild.started_time ? (
                     new Date(
                       this.props.environmentBuild.started_time + " GMT"
@@ -132,7 +131,7 @@ class EnvironmentEditBuildTab extends React.Component {
                   )}
                 </div>
                 <div>
-                  <span className='build-label'>Build finished:</span>
+                  <span className="build-label">Build finished:</span>
                   {this.props.environmentBuild.finished_time ? (
                     new Date(
                       this.props.environmentBuild.finished_time + " GMT"
@@ -149,7 +148,6 @@ class EnvironmentEditBuildTab extends React.Component {
         <div className={"xterm-holder push-down"}>
           <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
         </div>
-
       </Fragment>
     );
   }
