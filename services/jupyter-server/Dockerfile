@@ -31,5 +31,5 @@ WORKDIR /project-dir
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 
-COPY start.sh /start.sh
+COPY start.sh /
 ENTRYPOINT [ "/start.sh" ]
