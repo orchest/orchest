@@ -195,9 +195,10 @@ def clean_containers():
 
 
 def fix_userdir_permissions():
-    # setgid on all directories in userdir to make sure new files
-    # created by containers are read/write for sibling containers
-    # and the host user
+    """setgid on all directories in userdir to make sure new files
+    created by containers are read/write for sibling containers
+    and the host user"""
+    
     try:
         os.system("find /orchest-host/userdir -type d -exec chmod g+s {} \;")
     except Exception as e:
