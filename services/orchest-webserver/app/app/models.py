@@ -105,7 +105,7 @@ class BackgroundTask(db.Model):
 
     task_uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
     # see background_task_executor types
-    task_type = db.Column(db.String(15), unique=False, nullable=True)
+    task_type = db.Column(db.String(50), unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=False)
     code = db.Column(db.String(15), unique=False, nullable=True)
     result = db.Column(db.String(), unique=False, nullable=True)

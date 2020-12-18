@@ -3,12 +3,7 @@ class Config:
     TESTING = False
 
     # must be uppercase
-    # https://flask-appbuilder.readthedocs.io/en/latest/multipledbs.html
-    SQLALCHEMY_DATABASE_URI = "sqlite:////tmp/resources.db"
-    SQLALCHEMY_BINDS = {
-        # /userdir works because it's mounted via docker
-        "persistent_db": "sqlite:////userdir/.orchest/orchest-api.db",
-    }
+    SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/orchest_api"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -31,7 +26,12 @@ class Config:
     # For this reason no solution is provided for this, taking into account that we will eventually
     # implement cronjobs and such trimming might be an internal cronjob, or automatically managed
     # by celery if we end using "celery beat".
-    result_backend = "db+sqlite:////userdir/.orchest/celery_result_backend.db"
+    _result_backend_server = "postgres@orchest-database/celery_result_backend"
+    # used to create the db if it does not exist, the function needs
+    # this exact url format
+    result_backend_sqlalchemy_uri = f"postgresql://{_result_backend_server}"
+    # this format is used by celery
+    result_backend = f"db+postgresql+psycopg2://{_result_backend_server}"
 
     imports = ("app.core.tasks",)
     task_create_missing_queues = True

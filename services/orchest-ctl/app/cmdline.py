@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+import time
 
 import typer
 
@@ -127,7 +128,17 @@ def start():
         run_config = utils.convert_to_run_config(container_image, container_spec)
 
         logging.info("Starting image %s" % container_image)
-        docker_client.containers.run(**run_config)
+        container = docker_client.containers.run(**run_config)
+
+        # wait for the db to be accepting connections before launching
+        # other containers, this will likely take 1 try or two.
+        # TODO: should we have a generic abstraction when it comes to
+        # dependencies among the services? I don't think it's needed.
+        if container_image.startswith("postgres"):
+            exit_code, _ = container.exec_run("pg_isready --username postgres")
+            while exit_code != 0:
+                exit_code, _ = container.exec_run("pg_isready --username postgres")
+                time.sleep(1)
 
     utils.log_server_url()
 

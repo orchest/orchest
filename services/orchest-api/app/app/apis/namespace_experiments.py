@@ -4,7 +4,7 @@ import uuid
 
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
-from flask import current_app, request
+from flask import current_app, request, abort
 from flask_restplus import Namespace, Resource
 
 from app import schema
@@ -89,7 +89,11 @@ class ExperimentList(Resource):
                 "project_uuid": post_data["project_uuid"],
                 "status": "PENDING",
             }
-            db.session.add(models.NonInteractiveRun(**non_interactive_run))
+            db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
+            # need to flush because otherwise the bulk insertion of
+            # pipeline steps will lead to foreign key errors
+            # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
+            db.session.flush()
 
             # TODO: this code is also in `namespace_runs`. Could
             #       potentially be put in a function for modularity.
@@ -99,9 +103,8 @@ class ExperimentList(Resource):
             pipeline_steps = []
             for step_uuid in step_uuids:
                 pipeline_steps.append(
-                    models.NonInteractiveRunPipelineStep(
+                    models.PipelineRunStep(
                         **{
-                            "experiment_uuid": post_data["experiment_uuid"],
                             "run_uuid": task_id,
                             "step_uuid": step_uuid,
                             "status": "PENDING",
@@ -127,7 +130,6 @@ class ExperimentList(Resource):
                         task_id,
                         post_data["project_uuid"],
                         pipeline.get_environments(),
-                        is_interactive=False,
                     )
                 except errors.ImageNotFound as e:
                     experiment_creation_error_messages.append(
@@ -136,7 +138,7 @@ class ExperimentList(Resource):
                     )
             else:
                 image_mappings = [
-                    models.NonInteractiveRunImageMapping(
+                    models.PipelineRunImageMapping(
                         **{
                             "run_uuid": task_id,
                             "orchest_environment_uuid": env_uuid,
@@ -195,12 +197,14 @@ class ExperimentList(Resource):
                 pipeline_run.status = "SUCCESS"
                 for step in pipeline_run["pipeline_steps"]:
                     step.status = "FAILURE"
-            models.NonInteractiveRun.query.filter_by(
+
+                models.PipelineRunStep.query.filter_by(
+                    run_uuid=pipeline_run["run_uuid"]
+                ).update({"status": "FAILURE"})
+
+            models.NonInteractivePipelineRun.query.filter_by(
                 experiment_uuid=post_data["experiment_uuid"]
             ).update({"status": "SUCCESS"})
-            models.NonInteractiveRunPipelineStep.query.filter_by(
-                experiment_uuid=post_data["experiment_uuid"]
-            ).update({"status": "FAILURE"})
             db.session.commit()
 
             return {
@@ -262,10 +266,11 @@ class PipelineRun(Resource):
     @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid):
         """Fetch a pipeline run of an experiment given their ids."""
-        non_interactive_run = models.NonInteractiveRun.query.get_or_404(
-            ident=(experiment_uuid, run_uuid),
-            description="Given experiment has no run with given run_uuid",
-        )
+        non_interactive_run = models.NonInteractivePipelineRun.query.filter_by(
+            run_uuid=run_uuid,
+        ).one_or_none()
+        if non_interactive_run is None:
+            abort(404, "Given experiment has no run with given run_uuid")
         return non_interactive_run.__dict__
 
     @api.doc("set_pipeline_run_status")
@@ -289,7 +294,7 @@ class PipelineRun(Resource):
             "run_uuid": run_uuid,
         }
         update_status_db(
-            status_update, model=models.NonInteractiveRun, filter_by=filter_by
+            status_update, model=models.NonInteractivePipelineRun, filter_by=filter_by
         )
 
         return {"message": "Status was updated successfully"}, 200
@@ -313,8 +318,8 @@ class PipelineStepStatus(Resource):
     @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid, step_uuid):
         """Fetch a pipeline step of a run of an experiment given uuids."""
-        step = models.NonInteractiveRunPipelineStep.query.get_or_404(
-            ident=(experiment_uuid, run_uuid, step_uuid),
+        step = models.PipelineRunStep.query.get_or_404(
+            ident=(run_uuid, step_uuid),
             description="Combination of given experiment, run and step not found",
         )
         return step.__dict__
@@ -326,13 +331,12 @@ class PipelineStepStatus(Resource):
         status_update = request.get_json()
 
         filter_by = {
-            "experiment_uuid": experiment_uuid,
             "run_uuid": run_uuid,
             "step_uuid": step_uuid,
         }
         update_status_db(
             status_update,
-            model=models.NonInteractiveRunPipelineStep,
+            model=models.PipelineRunStep,
             filter_by=filter_by,
         )
 
@@ -395,13 +399,15 @@ def stop_experiment(experiment_uuid) -> bool:
         # it's aborted status
         res.abort()
 
-    # Update the status of the run and step entries to "REVOKED".
-    models.NonInteractiveRun.query.filter_by(
-        experiment_uuid=experiment.experiment_uuid
-    ).update({"status": "REVOKED"})
-    models.NonInteractiveRunPipelineStep.query.filter_by(
-        experiment_uuid=experiment.experiment_uuid
-    ).update({"status": "REVOKED"})
+        # Update the status of the run and step entries to "REVOKED".
+        models.NonInteractivePipelineRun.query.filter_by(run_uuid=run_uuid).update(
+            {"status": "REVOKED"}
+        )
+
+        models.PipelineRunStep.query.filter_by(run_uuid=run_uuid).update(
+            {"status": "REVOKED"}
+        )
+
     db.session.commit()
     return True
 
