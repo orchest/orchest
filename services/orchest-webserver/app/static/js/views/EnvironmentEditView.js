@@ -14,6 +14,7 @@ import {
   LANGUAGE_MAP,
   DEFAULT_BASE_IMAGES,
 } from "../lib/utils/all";
+
 import EnvironmentsView from "./EnvironmentsView";
 import EnvironmentEditBuildTab from "../components/EnvironmentEditBuildTab";
 require("codemirror/mode/shell/shell");
@@ -21,10 +22,16 @@ require("codemirror/mode/shell/shell");
 class EnvironmentEditView extends React.Component {
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
+    clearInterval(this.environmentBuildInterval);
   }
 
   constructor(props) {
     super(props);
+
+    this.BUILD_POLL_FREQUENCY = 3000;
+    this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
+    this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
+
 
     this.state = {
       subviewIndex: 0,
@@ -35,6 +42,8 @@ class EnvironmentEditView extends React.Component {
           : [...DEFAULT_BASE_IMAGES],
       newEnvironment: props.environment === undefined,
       unsavedChanges: false,
+      ignoreIncomingLogs: false,
+      environmentBuild: undefined,
       environment: props.environment
         ? props.environment
         : {
@@ -52,6 +61,10 @@ class EnvironmentEditView extends React.Component {
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
+  }
+
+  componentDidMount(){
+    this.environmentBuildPolling();
   }
 
   save() {
@@ -219,6 +232,129 @@ class EnvironmentEditView extends React.Component {
     });
   }
 
+  onBuildStarted(){
+    this.setState({
+      ignoreIncomingLogs: false
+    })
+  }
+
+  build(e) {
+    e.nativeEvent.preventDefault();
+
+    this.refManager.refs.tabBar.tabBar.activateTab(1);
+
+    this.setState({
+      building: true,
+      ignoreIncomingLogs: true,
+    });
+
+    this.save().then(() => {
+      makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
+        type: "json",
+        content: {
+          environment_build_requests: [
+            {
+              environment_uuid: this.props.environment.uuid,
+              project_uuid: this.props.environment.project_uuid,
+            },
+          ],
+        },
+      })
+        .then((response) => {
+          try {
+            let environmentBuild = JSON.parse(response)[
+              "environment_builds"
+            ][0];
+            this.updateEnvironmentBuildState(environmentBuild);
+          } catch (error) {
+            console.error(error);
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    });
+  }
+
+  cancelBuild() {
+    // send DELETE to cancel ongoing build
+    if (
+      this.state.environmentBuild &&
+      this.CANCELABLE_STATUSES.indexOf(this.state.environmentBuild.status) !==
+        -1
+    ) {
+      makeRequest(
+        "DELETE",
+        `/catch/api-proxy/api/environment-builds/${this.state.environmentBuild.build_uuid}`
+      )
+        .then(() => {
+          // immediately fetch latest status
+          // NOTE: this DELETE call doesn't actually destroy the resource, that's
+          // why we're querying it again.
+          this.environmentBuildRequest();
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+
+      this.setState({
+        building: false,
+      });
+    } else {
+      orchest.alert(
+        "Could not cancel build, please try again in a few seconds."
+      );
+    }
+  }
+
+  updateEnvironmentBuildState(environmentBuild) {
+    this.updateBuildStatus(environmentBuild);
+    this.setState({
+      environmentBuild: environmentBuild,
+    });
+  }
+
+  updateBuildStatus(environmentBuild) {
+    if (this.CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1) {
+      this.setState({
+        building: true,
+      });
+    } else {
+      this.setState({
+        building: false,
+      });
+    }
+  }
+
+  environmentBuildRequest() {
+    let environmentBuildRequestPromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.environment.project_uuid}/${this.props.environment.uuid}`
+      ),
+      this.promiseManager
+    );
+
+    environmentBuildRequestPromise.promise
+      .then((response) => {
+        let environmentBuild = JSON.parse(response);
+        this.updateEnvironmentBuildState(environmentBuild);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }
+
+  environmentBuildPolling() {
+    this.environmentBuildRequest();
+    clearInterval(this.environmentBuildInterval);
+    this.environmentBuildInterval = setInterval(
+      this.environmentBuildRequest.bind(this),
+      this.BUILD_POLL_FREQUENCY
+    );
+  }
+
+
   render() {
     let subview;
 
@@ -229,9 +365,9 @@ class EnvironmentEditView extends React.Component {
             {(() => {
               if (this.state.environment.uuid !== "new") {
                 return (
-                  <span className="environment-uuid">
+                  <div className="environment-notice">
                     Environment UUID: {this.state.environment.uuid}
-                  </span>
+                  </div>
                 );
               }
             })()}
@@ -358,20 +494,16 @@ class EnvironmentEditView extends React.Component {
               <div className="clear"></div>
             </div>
 
-            <MDCButtonReact
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              onClick={this.onSave.bind(this)}
-              label={this.state.unsavedChanges ? "Save*" : "Save"}
-              icon="save"
-            />
           </Fragment>
         );
         break;
       case 1:
         subview = (
           <EnvironmentEditBuildTab
+            onBuildStarted={this.onBuildStarted.bind(this)}
             environment={this.state.environment}
-            saveEnvironment={this.save.bind(this)}
+            ignoreIncomingLogs={this.state.ignoreIncomingLogs}
+            environmentBuild={this.state.environmentBuild}
           />
         );
     }
@@ -396,13 +528,44 @@ class EnvironmentEditView extends React.Component {
           <MDCTabBarReact
             ref={this.refManager.nrefs.tabBar}
             selectedIndex={this.state.subviewIndex}
-            items={["Properties", "Build"]}
-            icons={["tune", "memory"]}
+            items={["Properties", "Build logs"]}
+            icons={["tune", "view_headline"]}
             onChange={this.onSelectSubview.bind(this)}
           />
         </div>
 
         {subview}
+
+        <div className="multi-button">
+            <MDCButtonReact
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              onClick={this.onSave.bind(this)}
+              label={this.state.unsavedChanges ? "Save*" : "Save"}
+              icon="save"
+            />
+
+            {(() => {
+              if (!this.state.building) {
+                return (
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    onClick={this.build.bind(this)}
+                    label="Build"
+                    icon="memory"
+                  />
+                );
+              } else {
+                return (
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    onClick={this.cancelBuild.bind(this)}
+                    label="Cancel build"
+                    icon="memory"
+                  />
+                );
+              }
+            })()}
+          </div>
       </div>
     );
   }

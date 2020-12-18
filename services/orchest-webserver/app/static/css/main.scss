@@ -275,8 +275,10 @@ p > i.material-icons.float-left {
 }
 
 .edit-environment {
-  .build-status {
-    font-size: $defaultFontSize;
+
+  span.build-label {
+    display: inline-block;
+    min-width: 130px;
   }
 
   .xterm-holder {
@@ -286,7 +288,7 @@ p > i.material-icons.float-left {
     }
   }
 
-  .environment-uuid {
+  .environment-notice {
     font-size: $codeSize;
     color: #555;
     display: inline-block;

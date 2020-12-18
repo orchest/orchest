@@ -2,11 +2,7 @@ import React, { Fragment } from "react";
 import io from "socket.io-client";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
-import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import {
-  makeRequest,
-  PromiseManager,
-  makeCancelable,
   RefManager,
 } from "../lib/utils/all";
 
@@ -15,13 +11,8 @@ class EnvironmentEditBuildTab extends React.Component {
     super(props);
     this.state = {
       building: false,
-      ignoreIncomingLogs: false,
-      environmentBuild: undefined,
+      ignoreIncomingLogs: this.props.ignoreIncomingLogs
     };
-
-    this.BUILD_POLL_FREQUENCY = 3000;
-    this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
-    this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
     this.SOCKETIO_NAMESPACE_ENV_BUILDS =
       orchest.config["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"];
@@ -30,7 +21,6 @@ class EnvironmentEditBuildTab extends React.Component {
     this.fitAddon = new FitAddon();
 
     this.refManager = new RefManager();
-    this.promiseManager = new PromiseManager();
   }
 
   componentWillUnmount() {
@@ -40,94 +30,13 @@ class EnvironmentEditBuildTab extends React.Component {
         `SocketIO with namespace ${this.SOCKETIO_NAMESPACE_ENV_BUILDS} disconnected.`
       );
     }
-    this.promiseManager.cancelCancelablePromises();
-    clearInterval(this.environmentBuildInterval);
   }
 
   componentDidMount() {
     this.connectSocketIO();
     this.fitTerminal();
-    this.environmentBuildPolling();
   }
-
-  updateBuildStatus(environmentBuild) {
-    if (this.CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1) {
-      this.setState({
-        building: true,
-      });
-    } else {
-      this.setState({
-        building: false,
-      });
-    }
-  }
-
-  cancelBuild() {
-    // send DELETE to cancel ongoing build
-    if (
-      this.state.environmentBuild &&
-      this.CANCELABLE_STATUSES.indexOf(this.state.environmentBuild.status) !==
-        -1
-    ) {
-      makeRequest(
-        "DELETE",
-        `/catch/api-proxy/api/environment-builds/${this.state.environmentBuild.build_uuid}`
-      )
-        .then(() => {
-          // immediately fetch latest status
-          // NOTE: this DELETE call doesn't actually destroy the resource, that's
-          // why we're querying it again.
-          this.environmentBuildRequest();
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-
-      this.setState({
-        building: false,
-      });
-    } else {
-      orchest.alert(
-        "Could not cancel build, please try again in a few seconds."
-      );
-    }
-  }
-
-  updateEnvironmentBuildState(environmentBuild) {
-    this.updateBuildStatus(environmentBuild);
-    this.setState({
-      environmentBuild: environmentBuild,
-    });
-  }
-
-  environmentBuildRequest() {
-    let environmentBuildRequestPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.environment.project_uuid}/${this.props.environment.uuid}`
-      ),
-      this.promiseManager
-    );
-
-    environmentBuildRequestPromise.promise
-      .then((response) => {
-        let environmentBuild = JSON.parse(response);
-        this.updateEnvironmentBuildState(environmentBuild);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }
-
-  environmentBuildPolling() {
-    this.environmentBuildRequest();
-    clearInterval(this.environmentBuildInterval);
-    this.environmentBuildInterval = setInterval(
-      this.environmentBuildRequest.bind(this),
-      this.BUILD_POLL_FREQUENCY
-    );
-  }
-
+  
   connectSocketIO() {
     // disable polling
     this.socket = io.connect(this.SOCKETIO_NAMESPACE_ENV_BUILDS, {
@@ -166,54 +75,12 @@ class EnvironmentEditBuildTab extends React.Component {
           this.setState({
             ignoreIncomingLogs: false,
           });
+          this.props.onBuildStarted();
         }
       }
     });
   }
-
-  build(e) {
-    e.nativeEvent.preventDefault();
-
-    this.setState({
-      building: true,
-    });
-
-    if (this.refManager.refs.term) {
-      this.refManager.refs.term.terminal.reset();
-
-      this.setState({
-        ignoreIncomingLogs: true,
-      });
-    }
-
-    this.props.saveEnvironment().then(() => {
-      makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
-        type: "json",
-        content: {
-          environment_build_requests: [
-            {
-              environment_uuid: this.props.environment.uuid,
-              project_uuid: this.props.environment.project_uuid,
-            },
-          ],
-        },
-      })
-        .then((response) => {
-          try {
-            let environmentBuild = JSON.parse(response)[
-              "environment_builds"
-            ][0];
-            this.updateEnvironmentBuildState(environmentBuild);
-          } catch (error) {
-            console.error(error);
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    });
-  }
-
+  
   fitTerminal() {
     if (
       this.refManager.refs.term &&
@@ -231,7 +98,17 @@ class EnvironmentEditBuildTab extends React.Component {
     }
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevState, snapshot) {
+
+    if(prevProps.ignoreIncomingLogs != this.props.ignoreIncomingLogs){
+      this.setState({
+        ignoreIncomingLogs: this.props.ignoreIncomingLogs
+      });
+      if(this.refManager.refs.terminal && this.props.ignoreIncomingLogs){
+        this.refManager.refs.term.terminal.reset();
+      }
+    }
+
     this.fitTerminal();
   }
 
@@ -239,25 +116,26 @@ class EnvironmentEditBuildTab extends React.Component {
     return (
       <Fragment>
         {(() => {
-          if (this.state.environmentBuild) {
+          if (this.props.environmentBuild) {
             return (
-              <div className="build-status">
-                <div>Build status: {this.state.environmentBuild.status}</div>
+              <div className="environment-notice">
+                <div><span className='build-label'>Build status:</span>
+                  {this.props.environmentBuild.status}</div>
                 <div>
-                  Build started:{" "}
-                  {this.state.environmentBuild.started_time ? (
+                  <span className='build-label'>Build started:</span>
+                  {this.props.environmentBuild.started_time ? (
                     new Date(
-                      this.state.environmentBuild.started_time + " GMT"
+                      this.props.environmentBuild.started_time + " GMT"
                     ).toLocaleString()
                   ) : (
                     <i>not yet started</i>
                   )}
                 </div>
                 <div>
-                  Build finished:{" "}
-                  {this.state.environmentBuild.finished_time ? (
+                  <span className='build-label'>Build finished:</span>
+                  {this.props.environmentBuild.finished_time ? (
                     new Date(
-                      this.state.environmentBuild.finished_time + " GMT"
+                      this.props.environmentBuild.finished_time + " GMT"
                     ).toLocaleString()
                   ) : (
                     <i>not yet finished</i>
@@ -268,35 +146,10 @@ class EnvironmentEditBuildTab extends React.Component {
           }
         })()}
 
-        <div>
-          <div className={"xterm-holder push-up "}>
-            <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
-          </div>
+        <div className={"xterm-holder push-down"}>
+          <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
         </div>
 
-        <div className="multi-button push-up push-down">
-          {(() => {
-            if (!this.state.building) {
-              return (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={this.build.bind(this)}
-                  label="Build"
-                  icon="memory"
-                />
-              );
-            } else {
-              return (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={this.cancelBuild.bind(this)}
-                  label="Cancel build"
-                  icon="memory"
-                />
-              );
-            }
-          })()}
-        </div>
       </Fragment>
     );
   }
