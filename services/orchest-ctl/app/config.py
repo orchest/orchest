@@ -120,6 +120,9 @@ CONTAINER_MAPPING = {
     "orchest/celery-worker:latest": {
         "name": "celery-worker",
         "group_add": [ORCHEST_HOST_GID],
+        "environment": {
+            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
+        },
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},
             {
