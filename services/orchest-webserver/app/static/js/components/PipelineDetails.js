@@ -54,7 +54,11 @@ class PipelineDetails extends React.Component {
         return {
           paneWidth: Math.max(
             0,
-            Math.max(50, state.paneWidth - e.originalEvent.movementX)
+            Math.max(
+              50,
+              state.paneWidth -
+                e.originalEvent.movementX / window.devicePixelRatio
+            )
           ),
         };
       });
