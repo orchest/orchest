@@ -7,6 +7,7 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 from flask import Flask
+from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
 
 from app.views import register_views
@@ -23,10 +24,13 @@ def create_app(config_class=None):
         create_database(app.config["SQLALCHEMY_DATABASE_URI"])
 
     db.init_app(app)
+    # necessary for migration related stuff
+    Migrate().init_app(app, db)
+
     with app.app_context():
-        # This call will create tables if needed (the ones which do not
-        # exist in the database yet).
-        db.create_all()
+        # Upgrade to the latest revision. This also takes care of
+        # bringing an "empty" db (no tables) on par.
+        upgrade()
 
     register_views(app)
 

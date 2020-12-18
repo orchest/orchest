@@ -7,6 +7,19 @@ TEMP_DIRECTORY_PATH = "/tmp/orchest"
 TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
 PROJECT_DIR = "/project-dir"
 
+# Databases
+database_naming_convention = {
+    # The _N_, e.g. (column_0_N_label) is there so that the name will
+    # contain all columns names, to avoid name collision with other
+    # constraints.
+    # https://docs.sqlalchemy.org/en/13/core/metadata.html#sqlalchemy.schema.MetaData.params.naming_convention
+    "ix": "ix_%(column_0_N_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_N_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
 # Relative to the `userdir` path.
 KERNELSPECS_PATH = ".orchest/kernels/{project_uuid}"
 

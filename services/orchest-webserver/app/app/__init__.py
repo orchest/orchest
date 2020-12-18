@@ -20,6 +20,7 @@ import posthog
 import base64
 
 from flask import Flask, send_from_directory
+from flask_migrate import Migrate, upgrade
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
@@ -124,18 +125,13 @@ def create_app():
         create_database(app.config["SQLALCHEMY_DATABASE_URI"])
     db.init_app(app)
     ma.init_app(app)
+    # necessary for migration related stuff
+    Migrate().init_app(app, db)
 
     with app.app_context():
-        # This call will create tables if needed (the ones which do not
-        # exist in the database yet).
-        db.create_all()
-        # this class is only serialized on disk
-        # see the Environment model
-        # to avoid errors like querying the Environments table
-        # to see if there is any environemnt (and getting
-        # no environments while they might actually be there), the
-        # table is deleted, so that it will produce a ~loud~ error
-        Environment.__table__.drop(db.engine)
+        # Upgrade to the latest revision. This also takes care of
+        # bringing an "empty" db (no tables) on par.
+        upgrade()
         initialize_default_datasources(db, app)
 
     # Telemetry
