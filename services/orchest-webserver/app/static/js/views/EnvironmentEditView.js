@@ -370,136 +370,132 @@ class EnvironmentEditView extends React.Component {
       case 0:
         subview = (
           <Fragment>
-            {(() => {
-              if (this.state.environment.uuid !== "new") {
-                return (
-                  <div className="environment-notice">
-                    Environment UUID: {this.state.environment.uuid}
-                  </div>
-                );
-              }
-            })()}
-            <div className="columns inner-padded">
-              <div className="column">
-                <MDCTextFieldReact
-                  classNames={["fullwidth", "push-down"]}
-                  label="Environment name"
-                  onChange={this.onChangeName.bind(this)}
-                  value={this.state.environment.name}
-                />
+            <div className="environment-properties">
+              {(() => {
+                if (this.state.environment.uuid !== "new") {
+                  return (
+                    <div className="environment-notice">
+                      Environment UUID: {this.state.environment.uuid}
+                    </div>
+                  );
+                }
+              })()}
+              <MDCTextFieldReact
+                classNames={["fullwidth", "push-down"]}
+                label="Environment name"
+                onChange={this.onChangeName.bind(this)}
+                value={this.state.environment.name}
+              />
 
-                <div className="select-button-columns">
-                  <MDCSelectReact
-                    ref={this.refManager.nrefs.environmentName}
-                    classNames={["fullwidth"]}
-                    label="Base image"
-                    onChange={this.onChangeBaseImage.bind(this)}
-                    value={this.state.environment.base_image}
-                    options={this.state.baseImages.map((el) => [el])}
-                  />
-                  <MDCButtonReact
-                    icon="add"
-                    label="Custom image"
-                    onClick={this.onAddCustomBaseImage.bind(this)}
-                  />
-                  <div className="clear"></div>
-                </div>
-                <div className="form-helper-text push-down">
-                  The base image will be the starting point from which the
-                  environment will be built.
-                </div>
-
+              <div className="select-button-columns">
                 <MDCSelectReact
-                  value="python"
-                  label="Language"
+                  ref={this.refManager.nrefs.environmentName}
                   classNames={["fullwidth"]}
-                  ref={this.refManager.nrefs.environmentLanguage}
-                  onChange={this.onChangeLanguage.bind(this)}
-                  options={[
-                    ["python", LANGUAGE_MAP["python"]],
-                    ["r", LANGUAGE_MAP["r"]],
-                    ["julia", LANGUAGE_MAP["julia"]],
-                  ]}
-                  value={this.state.environment.language}
+                  label="Base image"
+                  onChange={this.onChangeBaseImage.bind(this)}
+                  value={this.state.environment.base_image}
+                  options={this.state.baseImages.map((el) => [el])}
                 />
-                <div className="form-helper-text push-down">
-                  The language determines for which kernel language this
-                  environment can be used. This only affects pipeline steps that
-                  point to a Notebook.
-                </div>
-
-                {(() => {
-                  if (this.state.languageDocsNotice === true) {
-                    return (
-                      <div className="docs-notice push-down">
-                        Language explanation
-                      </div>
-                    );
-                  }
-                })()}
-
-                <MDCCheckboxReact
-                  onChange={this.onGPUChange.bind(this)}
-                  label="GPU support"
-                  classNames={["push-down"]}
-                  value={this.state.environment.gpu_support}
-                  ref={this.refManager.nrefs.environmentGPUSupport}
+                <MDCButtonReact
+                  icon="add"
+                  label="Custom image"
+                  onClick={this.onAddCustomBaseImage.bind(this)}
                 />
-
-                {(() => {
-                  if (this.state.gpuDocsNotice === true) {
-                    return (
-                      <div className="docs-notice push-down">
-                        <p className="push-down">
-                          If enabled, the environment will request GPU
-                          capabilities when in use.
-                        </p>
-                        <p>
-                          Check out{" "}
-                          <a
-                            target="_blank"
-                            href={
-                              orchest.config.ORCHEST_WEB_URLS.readthedocs +
-                              "/getting_started/installation.html#gpu-support"
-                            }
-                          >
-                            the documentation
-                          </a>{" "}
-                          to make sure Orchest is properly configured for
-                          environments with GPU support. In particular, make
-                          sure the selected base image supports GPU pass
-                          through.
-                        </p>
-                      </div>
-                    );
-                  }
-                })()}
+                <div className="clear"></div>
               </div>
-              <div className="column">
-                <h3>Environment set-up script</h3>
-                <div className="form-helper-text push-down">
-                  This will execute when you build the environment. Use it to
-                  include your dependencies.
-                </div>
-                <CodeMirror
-                  value={this.state.environment.setup_script}
-                  options={{
-                    mode: "application/x-sh",
-                    theme: "jupyter",
-                    lineNumbers: true,
-                    viewportMargin: Infinity,
-                  }}
-                  onBeforeChange={(editor, data, value) => {
-                    this.state.environment.setup_script = value;
-
-                    this.setState({
-                      environment: this.state.environment,
-                      unsavedChanges: true,
-                    });
-                  }}
-                />
+              <div className="form-helper-text push-down">
+                The base image will be the starting point from which the
+                environment will be built.
               </div>
-              <div className="clear"></div>
+
+              <MDCSelectReact
+                value="python"
+                label="Language"
+                classNames={["fullwidth"]}
+                ref={this.refManager.nrefs.environmentLanguage}
+                onChange={this.onChangeLanguage.bind(this)}
+                options={[
+                  ["python", LANGUAGE_MAP["python"]],
+                  ["r", LANGUAGE_MAP["r"]],
+                  ["julia", LANGUAGE_MAP["julia"]],
+                ]}
+                value={this.state.environment.language}
+              />
+              <div className="form-helper-text push-down">
+                The language determines for which kernel language this
+                environment can be used. This only affects pipeline steps that
+                point to a Notebook.
+              </div>
+
+              {(() => {
+                if (this.state.languageDocsNotice === true) {
+                  return (
+                    <div className="docs-notice push-down">
+                      Language explanation
+                    </div>
+                  );
+                }
+              })()}
+
+              <MDCCheckboxReact
+                onChange={this.onGPUChange.bind(this)}
+                label="GPU support"
+                classNames={["push-down"]}
+                value={this.state.environment.gpu_support}
+                ref={this.refManager.nrefs.environmentGPUSupport}
+              />
+
+              {(() => {
+                if (this.state.gpuDocsNotice === true) {
+                  return (
+                    <div className="docs-notice push-down">
+                      <p className="push-down">
+                        If enabled, the environment will request GPU
+                        capabilities when in use.
+                      </p>
+                      <p>
+                        Check out{" "}
+                        <a
+                          target="_blank"
+                          href={
+                            orchest.config.ORCHEST_WEB_URLS.readthedocs +
+                            "/getting_started/installation.html#gpu-support"
+                          }
+                        >
+                          the documentation
+                        </a>{" "}
+                        to make sure Orchest is properly configured for
+                        environments with GPU support. In particular, make sure
+                        the selected base image supports GPU pass through.
+                      </p>
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+            <h3>Environment set-up script</h3>
+            <div className="form-helper-text push-down">
+              This will execute when you build the environment. Use it to
+              include your dependencies.
+            </div>
+            <div className="push-down">
+              <CodeMirror
+                value={this.state.environment.setup_script}
+                options={{
+                  mode: "application/x-sh",
+                  theme: "jupyter",
+                  lineNumbers: true,
+                  viewportMargin: Infinity,
+                }}
+                onBeforeChange={(editor, data, value) => {
+                  this.state.environment.setup_script = value;
+
+                  this.setState({
+                    environment: this.state.environment,
+                    unsavedChanges: true,
+                  });
+                }}
+              />
             </div>
           </Fragment>
         );

@@ -275,6 +275,10 @@ p > i.material-icons.float-left {
 }
 
 .edit-environment {
+  .environment-properties {
+    max-width: 800px;
+  }
+
   span.build-label {
     display: inline-block;
     min-width: 130px;
