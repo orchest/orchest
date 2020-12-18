@@ -2,6 +2,7 @@
 FROM elyra/kernel-py:2.3.0
 
 USER root
+RUN passwd -d $NB_USER && echo "$NB_USER   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/sudoers.d/$NB_USER
 
 WORKDIR /
 
@@ -20,11 +21,11 @@ WORKDIR /orchest/services/base-images/runnable-shared/runner
 RUN pip install -r requirements.txt
 
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
-ARG ORCHEST_VERSION
-ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 
-RUN passwd -d $NB_USER && echo "$NB_USER   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/sudoers.d/$NB_USER
 USER $NB_USER
 ENV HOME=/home/$NB_USER
+
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 
 CMD [ "/orchest/bootscript.sh" ]
