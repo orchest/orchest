@@ -61,12 +61,15 @@ def create_app(config_class=None, use_db=True):
             # atomic operation that will result in an error if the
             # directory is already there, this cleanup operation will
             # run only once per container.
-            if os.system("mkdir /tmp/interactive_cleanup_done > /dev/null 2>&1") == 0:
+            try:
+                os.mkdir("/tmp/interactive_cleanup_done")
                 InteractiveSession.query.delete()
                 InteractivePipelineRun.query.filter(
                     InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
                 ).delete(synchronize_session="fetch")
                 db.session.commit()
+            except FileExistsError:
+                pass
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix="/api")
