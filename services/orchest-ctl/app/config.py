@@ -85,7 +85,7 @@ ON_START_IMAGES = [
 CONTAINER_MAPPING = {
     "orchest/orchest-api:latest": {
         "environment": {
-            "HOST_OS": ENVS["HOST_OS"],
+            "ORCHEST_HOST_GID": ORCHEST_HOST_GID,
         },
         "command": None,
         "name": "orchest-api",
@@ -119,9 +119,6 @@ CONTAINER_MAPPING = {
     },
     "orchest/celery-worker:latest": {
         "name": "celery-worker",
-        "environment": {
-            "HOST_OS": ENVS["HOST_OS"],
-        },
         "group_add": [ORCHEST_HOST_GID],
         "mounts": [
             {"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"},

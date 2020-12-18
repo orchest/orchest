@@ -44,7 +44,6 @@ if [ "$1" == "update" ] ; then
 fi
 # End of warnings
 
-
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$DIR/userdir
 HOST_OS="linux"
