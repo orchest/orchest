@@ -2,7 +2,7 @@ FROM python:3.7-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # refresh SSL certificates
-RUN apt-get update && apt-get install -y git curl sudo ca-certificates && update-ca-certificates --fresh
+RUN apt-get update && apt-get install -y git curl ca-certificates && update-ca-certificates --fresh
 
 # install nodejs for jupyterextension install support
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs

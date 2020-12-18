@@ -231,7 +231,7 @@ def write_environment_dockerfile(
     # and cause the docker build to fail, as it should.
     # the bash script is removed so that the user won't be able to see it after the build is done
     statements.append(
-        f"RUN cd \"{os.path.join('/', work_dir)}\" && sudo chown -R $(id -u):$(id -u) . && chmod +x {bash_script} && echo \"{flag}\" && bash {bash_script} && echo \"{flag}\" && rm {bash_script}"
+        f"RUN cd \"{os.path.join('/', work_dir)}\" && chmod +x {bash_script} && echo \"{flag}\" && bash {bash_script} && echo \"{flag}\" && rm {bash_script}"
     )
     statements.append("LABEL _orchest_env_build_is_intermediate=0")
 

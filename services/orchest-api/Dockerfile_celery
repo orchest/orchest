@@ -1,9 +1,6 @@
 FROM python:3.7-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
-# Make sudo available for more granular user permissions
-RUN apt-get update && apt-get install -y sudo
-
 # Get all requirements in place.
 COPY ./requirements.txt ./start_celery_workers.sh /orchest/services/orchest-api/
 COPY ./lib/python /orchest/lib/python
