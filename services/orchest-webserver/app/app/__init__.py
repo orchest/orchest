@@ -9,11 +9,7 @@ Additinal note:
 
 import os
 import logging
-import json
 import sys
-import requests
-import uuid
-import atexit
 import contextlib
 import subprocess
 import posthog
