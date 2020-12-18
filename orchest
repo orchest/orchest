@@ -46,6 +46,9 @@ fi
 
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$DIR/userdir
+
+# We detect the host OS to properly set the GID owner 
+# that is used for files in the userdir/
 HOST_OS="linux"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     HOST_OS="darwin"
