@@ -106,6 +106,7 @@ class ParameterEditor extends React.Component {
               }
             })()}
           </div>
+          <div className="clear"></div>
         </div>
       </div>
     );

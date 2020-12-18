@@ -699,8 +699,6 @@ h2.header {
 }
 
 .columns {
-  overflow: auto;
-
   .column {
     width: 50%;
     float: left;
@@ -742,7 +740,7 @@ button.themed-secondary {
 }
 
 .docs-notice {
-  background: #eee;
+  background: whitesmoke;
   border-radius: 3px;
   padding: 10px;
   color: #333;
@@ -1287,6 +1285,30 @@ span.code {
 .mdc-top-app-bar {
   position: relative;
 }
+
 .mdc-top-app-bar--fixed-adjust {
   padding-top: 0;
+}
+
+@media only screen and (min-width: 1201px) {
+  .columns {
+    &.inner-padded {
+      .column:nth-child(1) {
+        padding-right: $generalPadding;
+      }
+      .column:nth-child(2) {
+        padding-left: $generalPadding;
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: 1200px) {
+  .columns {
+    .column {
+      width: 100%;
+      padding: 0;
+      padding-bottom: $generalPadding;
+    }
+  }
 }

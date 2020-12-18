@@ -219,6 +219,7 @@ class ExperimentView extends React.Component {
             <label>Pipeline</label>
             <h3>{this.props.pipeline.name}</h3>
           </div>
+          <div className="clear"></div>
         </div>
 
         <MDCTabBarReact
