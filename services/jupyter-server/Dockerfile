@@ -23,7 +23,7 @@ RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/vis
     jupyter labextension install /jupyter-extensions/orchest-integration --no-build && \
     jupyter labextension install @jupyter-widgets/jupyterlab-manager
 
-COPY ./jupyter_server_config.py /usr/local/etc/jupyter/jupyter_server_config.py
+COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir
