@@ -44,7 +44,7 @@ def delete_pipeline(project_uuid, pipeline_uuid):
     """
     # any interactive run related to the pipeline is stopped
     # if necessary, then deleted
-    interactive_runs = models.InteractiveRun.query.filter_by(
+    interactive_runs = models.InteractivePipelineRun.query.filter_by(
         project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
     ).all()
     for run in interactive_runs:

@@ -21,6 +21,8 @@ import base64
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
+from sqlalchemy_utils import create_database, database_exists
+
 from app.config import CONFIG_CLASS
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
@@ -116,11 +118,16 @@ def create_app():
 
     logging.info("Flask CONFIG: %s" % app.config)
 
+    # Create the database if it does not exist yet. Roughly equal to a
+    # "CREATE DATABASE IF NOT EXISTS <db_name>" call.
+    if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
+        create_database(app.config["SQLALCHEMY_DATABASE_URI"])
     db.init_app(app)
     ma.init_app(app)
 
-    # according to SQLAlchemy will only create tables if they do not exist
     with app.app_context():
+        # This call will create tables if needed (the ones which do not
+        # exist in the database yet).
         db.create_all()
         # this class is only serialized on disk
         # see the Environment model

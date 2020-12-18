@@ -138,7 +138,7 @@ def get_env_uuids_to_docker_id_mappings(
 
 
 def lock_environment_images_for_run(
-    run_id: str, project_uuid: str, environment_uuids: Set[str], is_interactive: bool
+    run_id: str, project_uuid: str, environment_uuids: Set[str]
 ) -> Dict[str, str]:
     """Retrieve the docker ids to use for a pipeline run.
 
@@ -171,9 +171,6 @@ def lock_environment_images_for_run(
         run_id:
         project_uuid:
         environment_uuids:
-        is_interactive: True if this is an interactive run, false
-         otherwise. Simply affects to what table new records are written to,
-         i.e. interactive or non interactive.
 
     Returns:
         A dictionary mapping environment uuids to the docker id
@@ -182,11 +179,7 @@ def lock_environment_images_for_run(
         if they become outdated.
 
     """
-    model = (
-        models.InteractiveRunImageMapping
-        if is_interactive
-        else models.NonInteractiveRunImageMapping
-    )
+    model = models.PipelineRunImageMapping
 
     # read the current docker image ids of each env
     env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
@@ -255,10 +248,12 @@ def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    return models.InteractiveRun.query.filter(
-        models.InteractiveRun.project_uuid == project_uuid,
-        models.InteractiveRun.image_mappings.any(orchest_environment_uuid=env_uuid),
-        models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
+    return models.InteractivePipelineRun.query.filter(
+        models.InteractivePipelineRun.project_uuid == project_uuid,
+        models.InteractivePipelineRun.image_mappings.any(
+            orchest_environment_uuid=env_uuid
+        ),
+        models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
     ).all()
 
 
@@ -278,10 +273,10 @@ def experiments_using_environment(project_uuid: str, env_uuid: str):
         # and is or will make use of the environment (PENDING/STARTED)
         models.Experiment.pipeline_runs.any(
             and_(
-                models.NonInteractiveRun.image_mappings.any(
+                models.NonInteractivePipelineRun.image_mappings.any(
                     orchest_environment_uuid=env_uuid
                 ),
-                models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
+                models.NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
             )
         ),
     ).all()
@@ -312,15 +307,11 @@ def is_docker_image_in_use(img_id: str) -> bool:
         bool:
     """
 
-    int_runs = models.InteractiveRun.query.filter(
-        models.InteractiveRun.image_mappings.any(docker_img_id=img_id),
-        models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
+    runs = models.PipelineRun.query.filter(
+        models.PipelineRun.image_mappings.any(docker_img_id=img_id),
+        models.PipelineRun.status.in_(["PENDING", "STARTED"]),
     ).all()
-    non_int_runs = models.NonInteractiveRun.query.filter(
-        models.NonInteractiveRun.image_mappings.any(docker_img_id=img_id),
-        models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
-    ).all()
-    return len(int_runs) > 0 or len(non_int_runs) > 0
+    return bool(runs)
 
 
 def remove_if_dangling(img) -> bool:

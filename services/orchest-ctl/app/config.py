@@ -27,6 +27,7 @@ _orchest_images = [
     "orchest/file-manager:latest",
     "orchest/nginx-proxy:latest",
     "rabbitmq:3",
+    "postgres:13.1",
 ]
 LANGUAGE_IMAGES = {
     "none": _orchest_images,
@@ -56,6 +57,9 @@ LANGUAGE_IMAGES = {
 
 # Images to be run on start of Orchest.
 ON_START_IMAGES = [
+    # the database (postgres) needs to be started before the containers
+    # that depend on it are (webserver, api, auth)
+    "postgres:13.1",
     "orchest/orchest-api:latest",
     "orchest/orchest-webserver:latest",
     "orchest/celery-worker:latest",
@@ -148,6 +152,19 @@ CONTAINER_MAPPING = {
             "443/tcp": 443,
         },
         "mounts": [],  # dynamically added in start() based on presence of certs on host
+    },
+    "postgres:13.1": {
+        "name": "orchest-database",
+        "environment": {
+            "PGDATA": "/userdir/.orchest/database/data",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+        },
+        "mounts": [
+            {
+                "source": os.path.join(ENVS["HOST_USER_DIR"], ".orchest", "database"),
+                "target": "/userdir/.orchest/database",
+            },
+        ],
     },
     "orchest/update-server:latest": {
         "name": "update-server",

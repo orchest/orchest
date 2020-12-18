@@ -45,8 +45,8 @@ def delete_project(project_uuid):
 
     # any interactive run related to the pipeline is stopped
     # if necessary, then deleted
-    interactive_runs = models.InteractiveRun.query.filter_by(
-        project_uuid=project_uuid,
+    interactive_runs = models.InteractivePipelineRun.query.filter_by(
+        project_uuid=project_uuid
     ).all()
     for run in interactive_runs:
         if run.status in ["PENDING", "STARTED"]:
@@ -72,8 +72,8 @@ def delete_project(project_uuid):
         # stop and delete any session if it exists
         stop_interactive_session(session.project_uuid, session.pipeline_uuid)
 
-    # any experiment related to the pipeline is stopped if necessary
-    # , then deleted
+    # any experiment related to the pipeline is stopped if necessary,
+    # then deleted
     experiments = (
         models.Experiment.query.filter_by(
             project_uuid=project_uuid,

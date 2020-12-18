@@ -1,6 +1,6 @@
 class Config:
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = "sqlite:////userdir/.orchest/auth-server.db"
+    SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/auth_server"
 
     TOKEN_DURATION_HOURS = 24
 

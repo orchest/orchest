@@ -34,15 +34,27 @@ def fix_path_permission(path, is_dir):
             os.chmod(path, 0o646)
 
 
-def walk_dir(path):
+def walk_dir(path, ignored_paths):
 
     for dp, dirs, files in os.walk(path):
         for f in files:
             current_path = os.path.join(dp, f)
-            fix_path_permission(current_path, os.path.isdir(current_path))
+            if all(
+                [
+                    not current_path.startswith(ignored_path)
+                    for ignored_path in ignored_paths
+                ]
+            ):
+                fix_path_permission(current_path, os.path.isdir(current_path))
         for d in dirs:
             current_path = os.path.join(dp, d)
-            fix_path_permission(current_path, os.path.isdir(current_path))
+            if all(
+                [
+                    not current_path.startswith(ignored_path)
+                    for ignored_path in ignored_paths
+                ]
+            ):
+                fix_path_permission(current_path, os.path.isdir(current_path))
 
 
 def main():
@@ -60,8 +72,11 @@ def main():
 
     logger.info("Started permission logging")
 
+    ignored_paths = [os.path.join(".orchest", "database")]
+    ignored_paths = [os.path.join(sys.argv[1], path) for path in ignored_paths]
+
     while True:
-        walk_dir(sys.argv[1])
+        walk_dir(sys.argv[1], ignored_paths)
         time.sleep(1)
 
 

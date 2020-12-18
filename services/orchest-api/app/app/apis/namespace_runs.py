@@ -5,7 +5,7 @@ Note: "run" is short for "interactive pipeline run".
 import uuid
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
-from flask import current_app, request
+from flask import current_app, request, abort
 from flask_restplus import Namespace, Resource, marshal
 import logging
 
@@ -32,7 +32,7 @@ class RunList(Resource):
         completed.
         """
 
-        query = models.InteractiveRun.query
+        query = models.InteractivePipelineRun.query
 
         # Ability to query a specific runs given the `pipeline_uuid` or `project_uuid`
         # through the URL (using `request.args`).
@@ -69,7 +69,11 @@ class RunList(Resource):
             "project_uuid": post_data["project_uuid"],
             "status": "PENDING",
         }
-        db.session.add(models.InteractiveRun(**run))
+        db.session.add(models.InteractivePipelineRun(**run))
+        # need to flush because otherwise the bulk insertion of pipeline
+        # steps will lead to foreign key errors
+        # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
+        db.session.flush()
 
         # Set an initial value for the status of the pipeline steps that
         # will be run.
@@ -78,7 +82,7 @@ class RunList(Resource):
         pipeline_steps = []
         for step_uuid in step_uuids:
             pipeline_steps.append(
-                models.InteractiveRunPipelineStep(
+                models.PipelineRunStep(
                     **{"run_uuid": task_id, "step_uuid": step_uuid, "status": "PENDING"}
                 )
             )
@@ -94,7 +98,6 @@ class RunList(Resource):
                 task_id,
                 post_data["project_uuid"],
                 pipeline.get_environments(),
-                is_interactive=True,
             )
         except errors.ImageNotFound as e:
             logging.error(
@@ -110,10 +113,10 @@ class RunList(Resource):
             run["status"] = "SUCCESS"
             for step in run["pipeline_steps"]:
                 step.status = "FAILURE"
-            models.InteractiveRun.query.filter_by(run_uuid=task_id).update(
+            models.InteractivePipelineRun.query.filter_by(run_uuid=task_id).update(
                 {"status": "SUCCESS"}
             )
-            models.InteractiveRunPipelineStep.query.filter_by(run_uuid=task_id).update(
+            models.PipelineRunStep.query.filter_by(run_uuid=task_id).update(
                 {"status": "FAILURE"}
             )
             db.session.commit()
@@ -156,10 +159,12 @@ class Run(Resource):
     @api.doc("get_run")
     @api.marshal_with(schema.interactive_run, code=200)
     def get(self, run_uuid):
-        """Fetches a pipeline run given its UUID."""
-        run = models.InteractiveRun.query.get_or_404(
-            run_uuid, description="Run not found"
-        )
+        """Fetches an interactive pipeline run given its UUID."""
+        run = models.InteractivePipelineRun.query.filter_by(
+            run_uuid=run_uuid
+        ).one_or_none()
+        if run is None:
+            abort(404, description="Run not found")
         return run.__dict__
 
     @api.doc("set_run_status")
@@ -168,7 +173,7 @@ class Run(Resource):
         """Sets the status of a pipeline run."""
         post_data = request.get_json()
 
-        res = models.InteractiveRun.query.filter_by(run_uuid=run_uuid).update(
+        res = models.InteractivePipelineRun.query.filter_by(run_uuid=run_uuid).update(
             {"status": post_data["status"]}
         )
 
@@ -196,7 +201,7 @@ class StepStatus(Resource):
     @api.marshal_with(schema.pipeline_run_pipeline_step, code=200)
     def get(self, run_uuid, step_uuid):
         """Fetches the status of a pipeline step of a specific run."""
-        step = models.InteractiveRunPipelineStep.query.get_or_404(
+        step = models.PipelineRunStep.query.get_or_404(
             ident=(run_uuid, step_uuid),
             description="Run and step combination not found",
         )
@@ -208,18 +213,12 @@ class StepStatus(Resource):
         """Sets the status of a pipeline step."""
         status_update = request.get_json()
 
-        # TODO: don't we want to do this async? Since otherwise the API
-        #       call might be blocking another since they both execute
-        #       on the database? SQLite can only have one process write
-        #       to the db. If this becomes an issue than we could also
-        #       use an in-memory db (since that is a lot faster than
-        #       disk). Otherwise we might have to use PostgreSQL.
         # TODO: first check the status and make sure it says PENDING or
         #       whatever. Because if is empty then this would write it
         #       and then get overwritten afterwards with "PENDING".
         filter_by = {"run_uuid": run_uuid, "step_uuid": step_uuid}
         update_status_db(
-            status_update, model=models.InteractiveRunPipelineStep, filter_by=filter_by
+            status_update, model=models.PipelineRunStep, filter_by=filter_by
         )
 
         return {"message": "Status was updated successfully"}, 200
@@ -238,15 +237,11 @@ def stop_pipeline_run(run_uuid) -> bool:
         True if a cancellation was issued to the run, false if the
         run did not exist or was not PENDING/STARTED.
     """
-    interactive_run = models.InteractiveRun.query.filter(
-        models.InteractiveRun.status.in_(["PENDING", "STARTED"]),
-        models.InteractiveRun.run_uuid == run_uuid,
+    interactive_run = models.PipelineRun.query.filter(
+        models.PipelineRun.status.in_(["PENDING", "STARTED"]),
+        models.PipelineRun.run_uuid == run_uuid,
     ).one_or_none()
-    non_interactive_run = models.NonInteractiveRun.query.filter(
-        models.NonInteractiveRun.status.in_(["PENDING", "STARTED"]),
-        models.NonInteractiveRun.run_uuid == run_uuid,
-    ).one_or_none()
-    if interactive_run is None and non_interactive_run is None:
+    if interactive_run is None:
         return False
 
     celery_app = make_celery(current_app)
