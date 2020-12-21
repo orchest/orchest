@@ -12,13 +12,14 @@ if ! docker ps >/dev/null 2>/dev/null ; then
         ORCHEST_PATH=$DIR
     fi
 
-    echo "docker command not accesible for user '$USERNAME'. Please run \`sudo $ORCHEST_PATH/orchest\` instead."
-    exit 1
+    echo "docker command not accesible for user '$USERNAME'."
+    echo "Requiring 'sudo' for docker commands."
+    SUDO_PREFIX="sudo"
 fi
 
 function update_orchest_ctl {
     # Update orchest-ctl to latest before performing update
-    docker pull orchest/orchest-ctl:latest
+    $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
 }
 
 # Warnings
@@ -56,9 +57,9 @@ fi
 
 # create config dir if it doesn't exist
 mkdir -p "${HOST_CONFIG_DIR}"
-chown $USER "${HOST_CONFIG_DIR}"
+$SUDO_PREFIX chown -R $USER:$USER "${HOST_CONFIG_DIR}"
 
-docker run \
+$SUDO_PREFIX docker run \
     --rm \
     --name orchest-ctl \
     -v /var/run/docker.sock:/var/run/docker.sock \
