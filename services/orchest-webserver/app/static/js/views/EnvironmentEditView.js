@@ -348,9 +348,7 @@ class EnvironmentEditView extends React.Component {
         let environmentBuild = JSON.parse(response);
         this.updateEnvironmentBuildState(environmentBuild);
       })
-      .catch((error) => {
-        console.log(error);
-      });
+      .catch((error) => {});
   }
 
   environmentBuildPolling() {
