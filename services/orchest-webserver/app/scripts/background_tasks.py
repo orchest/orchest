@@ -40,8 +40,9 @@ def git_clone_project(args):
             msg = "successfully cloned"
             # should be the only directory in there, also this way we
             # get the directory without knowing the repo name if the project_name has not been provided
-            res = os.listdir(tmp_path)
-            from_path = os.path.join(tmp_path, res[0])
+            inferred_project_name = os.listdir(tmp_path)[0]
+
+            from_path = os.path.join(tmp_path, inferred_project_name)
             exit_code = os.system(f'mv "{from_path}" /userdir/projects/')
             if exit_code != 0:
                 msg = "project move failed"
@@ -50,7 +51,7 @@ def git_clone_project(args):
             # on projects directory.
             projects_gid = os.stat("/userdir/projects").st_gid
             os.system(
-                f'chown -R :{projects_gid} "{os.path.join("/userdir/projects", res[0])}"'
+                f'chown -R :{projects_gid} "{os.path.join("/userdir/projects", inferred_project_name)}"'
             )
 
     except Exception as e:
