@@ -187,33 +187,6 @@ p > i.material-icons.float-left {
   }
 }
 
-.multi-step-pane {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: row;
-  padding: $generalPadding * 2;
-
-  .dummy-steps {
-    position: relative;
-    width: $pipelineStepWidth;
-
-    .dummy-step {
-      width: $pipelineStepWidth;
-      height: $pipelineStepHeight;
-      border-radius: $stepBorderRadius;
-      border: 1px solid $borderColor;
-      background: rgba(250, 250, 250);
-      color: #ccc;
-
-      &:nth-child(2) {
-        margin-left: 20px;
-        margin-top: -$pipelineStepHeight + 20px;
-      }
-    }
-  }
-}
-
 /* override title styling on overflow */
 .mdc-dialog--scrollable .mdc-dialog__title {
   padding-bottom: 9px;
@@ -797,6 +770,17 @@ span.code {
       }
     }
 
+    &.bottom-right {
+      top: auto;
+      bottom: 0;
+      right: 0;
+      left: auto;
+
+      button {
+        margin: 0;
+      }
+    }
+
     &.bottom-left {
       top: auto;
       bottom: 0;
@@ -1058,9 +1042,6 @@ span.code {
     border-left: 1px solid $borderColor;
     z-index: 12;
     width: 0;
-    &.multi-step {
-      width: 400px;
-    }
 
     .overflowable {
       padding: 0 $generalPadding;
