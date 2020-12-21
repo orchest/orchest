@@ -293,9 +293,11 @@ p > i.material-icons.float-left {
 
   .environment-notice {
     font-size: $codeSize;
-    color: #555;
     display: inline-block;
     margin-bottom: $generalPadding;
+    &.subtle {
+      color: #555;
+    }
   }
 
   .CodeMirror {
@@ -963,6 +965,12 @@ span.code {
         background: rgb(250, 250, 250);
       }
 
+      &.creating-connection {
+        &:active {
+          background: #fff;
+        }
+      }
+
       .step-label-holder {
         display: block;
         height: 100%;
@@ -1050,6 +1058,9 @@ span.code {
     border-left: 1px solid $borderColor;
     z-index: 12;
     width: 0;
+    &.multi-step {
+      width: 400px;
+    }
 
     .overflowable {
       padding: 0 $generalPadding;

@@ -237,7 +237,9 @@ class ExperimentList extends React.Component {
       rows.push([
         experiments[x].name,
         experiments[x].pipeline_name,
-        experiments[x].created.replace(/T/, " ").replace(/\..+/, ""),
+        new Date(
+          experiments[x].created.replace(/T/, " ").replace(/\..+/, "") + " GMT"
+        ).toLocaleString(),
         experiments[x].draft ? "Draft" : "Submitted",
       ]);
     }

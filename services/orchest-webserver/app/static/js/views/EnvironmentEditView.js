@@ -258,8 +258,8 @@ class EnvironmentEditView extends React.Component {
         content: {
           environment_build_requests: [
             {
-              environment_uuid: this.props.environment.uuid,
-              project_uuid: this.props.environment.project_uuid,
+              environment_uuid: this.state.environment.uuid,
+              project_uuid: this.state.environment.project_uuid,
             },
           ],
         },
@@ -338,7 +338,7 @@ class EnvironmentEditView extends React.Component {
     let environmentBuildRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.environment.project_uuid}/${this.props.environment.uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.state.environment.project_uuid}/${this.state.environment.uuid}`
       ),
       this.promiseManager
     );
@@ -374,7 +374,7 @@ class EnvironmentEditView extends React.Component {
               {(() => {
                 if (this.state.environment.uuid !== "new") {
                   return (
-                    <div className="environment-notice">
+                    <div className="environment-notice subtle">
                       Environment UUID: {this.state.environment.uuid}
                     </div>
                   );

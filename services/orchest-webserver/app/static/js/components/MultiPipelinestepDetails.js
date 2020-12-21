@@ -15,7 +15,7 @@ class MultiPipelinestepDetails extends React.Component {
 
   render() {
     return (
-      <div className={"pipeline-details pane"}>
+      <div className={"pipeline-details multi-step pane"}>
         <div className="overflowable multi-step-pane">
           <div className="dummy-steps">
             <div className="dummy-step"></div>

@@ -25,13 +25,10 @@ def api_proxy_environment_builds(environment_build_requests, orchest_api_address
 
     json_obj = {"environment_build_requests": environment_build_requests}
 
-    resp = requests.post(
+    return requests.post(
         "http://" + orchest_api_address + "/api/environment-builds/",
         json=json_obj,
-        stream=True,
     )
-
-    return resp
 
 
 def register_orchest_api_views(app, db):
@@ -49,10 +46,9 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/validations/environments",
             json={"project_uuid": project_uuid, "environment_uuids": environment_uuids},
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
         "/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>/<environment_uuid>",
@@ -65,10 +61,9 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/environment-builds/most-recent/%s/%s"
             % (project_uuid, environment_uuid),
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
         "/catch/api-proxy/api/environment-builds/<environment_build_uuid>",
@@ -80,10 +75,9 @@ def register_orchest_api_views(app, db):
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/environment-builds/%s" % (environment_build_uuid),
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
         "/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>",
@@ -95,10 +89,9 @@ def register_orchest_api_views(app, db):
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/environment-builds/most-recent/%s" % project_uuid,
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/environment-builds", methods=["POST"])
     def catch_api_proxy_environment_builds():
@@ -114,7 +107,7 @@ def register_orchest_api_views(app, db):
             environment_build_requests, app.config["ORCHEST_API_ADDRESS"]
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
         "/catch/api-proxy/api/environment-images/in-use/<project_uuid>/<environment_uuid>",
@@ -126,56 +119,9 @@ def register_orchest_api_views(app, db):
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/environment-images/in-use/%s/%s" % (project_uuid, environment_uuid),
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
-
-    @app.route("/catch/api-proxy/api/runs/", methods=["GET", "POST"])
-    def catch_api_proxy_runs():
-
-        if request.method == "POST":
-
-            json_obj = request.json
-
-            # add image mapping
-            # TODO: replace with dynamic mapping instead of hardcoded
-            json_obj["run_config"] = {
-                "project_dir": get_project_directory(
-                    json_obj["project_uuid"], host_path=True
-                ),
-                "pipeline_path": pipeline_uuid_to_path(
-                    json_obj["pipeline_definition"]["uuid"], json_obj["project_uuid"]
-                ),
-            }
-
-            # Analytics call
-            send_pipeline_run(
-                app,
-                f"{json_obj['project_uuid']}-{json_obj['pipeline_definition']['uuid']}",
-                get_project_directory(json_obj["project_uuid"]),
-                "interactive",
-            )
-
-            resp = requests.post(
-                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
-                json=json_obj,
-                stream=True,
-            )
-
-            return resp.raw.read(), resp.status_code, resp.headers.items()
-
-        elif request.method == "GET":
-
-            resp = requests.get(
-                "http://"
-                + app.config["ORCHEST_API_ADDRESS"]
-                + "/api/runs/?"
-                + request.query_string.decode(),
-                stream=True,
-            )
-
-            return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
     def catch_api_proxy_experiments_post():
@@ -204,10 +150,9 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/",
             json=json_obj,
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
     def catch_api_proxy_sessions():
@@ -233,10 +178,9 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
             json=json_obj,
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
         "/catch/api-proxy/api/sessions/<project_uuid>/<pipeline_uuid>", methods=["PUT"]
@@ -271,10 +215,9 @@ def register_orchest_api_views(app, db):
                     "http://"
                     + app.config["ORCHEST_API_ADDRESS"]
                     + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
-                    stream=True,
                 )
 
-                return resp.raw.read(), resp.status_code, resp.headers.items()
+                return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
             logging.error(
                 "Could not get session information from orchest-api. Error: %s (%s)"
@@ -282,6 +225,50 @@ def register_orchest_api_views(app, db):
             )
 
         return "", 500
+
+    @app.route("/catch/api-proxy/api/runs/", methods=["GET", "POST"])
+    def catch_api_proxy_runs():
+
+        if request.method == "POST":
+
+            json_obj = request.json
+
+            # add image mapping
+            # TODO: replace with dynamic mapping instead of hardcoded
+            json_obj["run_config"] = {
+                "project_dir": get_project_directory(
+                    json_obj["project_uuid"], host_path=True
+                ),
+                "pipeline_path": pipeline_uuid_to_path(
+                    json_obj["pipeline_definition"]["uuid"], json_obj["project_uuid"]
+                ),
+            }
+
+            # Analytics call
+            send_pipeline_run(
+                app,
+                f"{json_obj['project_uuid']}-{json_obj['pipeline_definition']['uuid']}",
+                get_project_directory(json_obj["project_uuid"]),
+                "interactive",
+            )
+
+            resp = requests.post(
+                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
+                json=json_obj,
+            )
+
+            return resp.content, resp.status_code, resp.headers.items()
+
+        elif request.method == "GET":
+
+            resp = requests.get(
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/runs/?"
+                + request.query_string.decode(),
+            )
+
+            return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/runs/<run_uuid>", methods=["GET", "DELETE"])
     def catch_api_proxy_runs_single(run_uuid):
@@ -292,10 +279,9 @@ def register_orchest_api_views(app, db):
                 "http://"
                 + app.config["ORCHEST_API_ADDRESS"]
                 + "/api/runs/%s" % run_uuid,
-                stream=True,
             )
 
-            return resp.raw.read(), resp.status_code, resp.headers.items()
+            return resp.content, resp.status_code, resp.headers.items()
 
         elif request.method == "DELETE":
 
@@ -303,10 +289,9 @@ def register_orchest_api_views(app, db):
                 "http://"
                 + app.config["ORCHEST_API_ADDRESS"]
                 + "/api/runs/%s" % run_uuid,
-                stream=True,
             )
 
-            return resp.raw.read(), resp.status_code, resp.headers.items()
+            return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
         "/catch/api-proxy/api/experiments/<experiment_uuid>/<run_uuid>", methods=["GET"]
@@ -317,10 +302,9 @@ def register_orchest_api_views(app, db):
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/experiments/%s/%s" % (experiment_uuid, run_uuid),
-            stream=True,
         )
 
-        return resp.raw.read(), resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/experiments/<experiment_uuid>", methods=["GET"])
     def catch_api_proxy_experiments_get(experiment_uuid):
@@ -330,7 +314,6 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/experiments/"
             + experiment_uuid,
-            stream=True,
         )
 
         # get PipelineRuns to augment response
@@ -364,4 +347,4 @@ def register_orchest_api_views(app, db):
                 return str(e), 500
 
         else:
-            return resp.raw.read(), resp.status_code, resp.headers.items()
+            return resp.content, resp.status_code, resp.headers.items()

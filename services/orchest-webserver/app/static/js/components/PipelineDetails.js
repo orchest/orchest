@@ -44,6 +44,7 @@ class PipelineDetails extends React.Component {
     // overflow checks
     $(window).on("resize.pipelineDetails", this.overflowChecks.bind(this));
     $(window).on("mousemove.pipelineDetails", this.onMouseMove.bind(this));
+    $(window).on("mousedown.pipelineDetails", this.onMouseDown.bind(this));
     $(window).on("mouseup.pipelineDetails", this.onMouseUp.bind(this));
     this.overflowChecks();
   }
@@ -51,14 +52,18 @@ class PipelineDetails extends React.Component {
   onMouseMove(e) {
     if (this.state.draggingPaneColumn) {
       this.setState((state, _) => {
+        let deltaX = e.clientX - this.draggingPreviousClientX;
+        this.draggingPreviousClientX = e.clientX;
+
         return {
-          paneWidth: Math.max(
-            0,
-            Math.max(50, state.paneWidth - e.originalEvent.movementX)
-          ),
+          paneWidth: Math.max(0, Math.max(50, state.paneWidth - deltaX)),
         };
       });
     }
+  }
+
+  onMouseDown(e) {
+    this.draggingPreviousClientX = e.clientX;
   }
 
   onMouseUp() {

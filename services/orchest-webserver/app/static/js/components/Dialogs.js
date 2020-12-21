@@ -16,6 +16,7 @@ class Dialogs extends React.Component {
     let uuid = uuidv4();
     this.state.dialogs.push(
       <AlertDialog
+        key={uuid}
         uuid={uuid}
         onClose={() => {
           if (onClose) {
@@ -37,13 +38,15 @@ class Dialogs extends React.Component {
     let uuid = uuidv4();
     this.state.dialogs.push(
       <ConfirmDialog
+        key={uuid}
+        uuid={uuid}
+        title={title}
+        content={content}
         onConfirm={() => {
           if (onConfirm) {
             onConfirm();
           }
         }}
-        key={uuid}
-        uuid={uuid}
         onCancel={() => {
           if (onCancel) {
             onCancel();
@@ -52,8 +55,6 @@ class Dialogs extends React.Component {
         onClose={() => {
           this.remove(uuid);
         }}
-        title={title}
-        content={content}
       />
     );
 

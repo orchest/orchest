@@ -112,7 +112,17 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.svgPath.setAttribute("stroke-width", "2");
   this.svgPath.setAttribute("fill", "none");
   this.svgPath.setAttribute("id", "path");
+
+  this.svgPathClickable = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "path"
+  );
+  this.svgPathClickable.setAttribute("stroke", "transparent");
+  this.svgPathClickable.setAttribute("stroke-width", "16");
+  this.svgPathClickable.setAttribute("fill", "none");
+  this.svgPathClickable.setAttribute("id", "path-clickable");
   this.svgEl.appendChild(this.svgPath);
+  this.svgEl.appendChild(this.svgPathClickable);
 
   this.el.append(this.svgEl);
 
@@ -183,6 +193,7 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
         this.svgPadding + targetY - yOffset
       )
     );
+    this.svgPathClickable.setAttribute("d", this.svgPath.getAttribute("d"));
   };
 
   this.curvedHorizontal = function (x1, y1, x2, y2) {
@@ -702,6 +713,9 @@ class PipelineView extends React.Component {
       this.setState({
         unsavedChanges: this.state.unsavedChanges,
       });
+
+      // clean up creating-connection class
+      $(".pipeline-step").removeClass("creating-connection");
     });
 
     $(this.refManager.refs.pipelineStepsHolder).on(
@@ -709,6 +723,7 @@ class PipelineView extends React.Component {
       ".pipeline-step .outgoing-connections",
       (e) => {
         if (e.button === 0) {
+          $(e.target).parents(".pipeline-step").addClass("creating-connection");
           // create connection
           this.createConnection($(e.target));
         }
@@ -770,11 +785,13 @@ class PipelineView extends React.Component {
           for (let key in this.state.selectedSteps) {
             let uuid = this.state.selectedSteps[key];
 
-            this.state.steps[uuid].meta_data.position[0] += delta[0];
-            this.state.steps[uuid].meta_data.position[1] += delta[1];
+            let singleStep = this.state.steps[uuid];
+
+            singleStep.meta_data.position[0] += delta[0];
+            singleStep.meta_data.position[1] += delta[1];
 
             this.refManager.refs[uuid].updatePosition(
-              this.state.steps[uuid].meta_data.position
+              singleStep.meta_data.position
             );
 
             // note: state will be invalidated in mouseup event for view updating
@@ -822,7 +839,7 @@ class PipelineView extends React.Component {
       ".pipeline-step",
       (e) => {
         if (e.button === 0) {
-          if (!$(e.target).hasClass("connection-point")) {
+          if (!$(e.target).hasClass("outgoing-connections")) {
             let stepUUID = $(e.currentTarget).attr("data-uuid");
             this.selectedItem = stepUUID;
           }
@@ -832,6 +849,7 @@ class PipelineView extends React.Component {
 
     $(document).on("mouseup.initializePipeline", (e) => {
       let stepClicked = false;
+      let stepDragged = false;
 
       if (this.selectedItem !== undefined) {
         let step = this.state.steps[this.selectedItem];
@@ -864,6 +882,8 @@ class PipelineView extends React.Component {
               });
             }
           }
+        } else {
+          stepDragged = true;
         }
 
         step.meta_data._dragged = false;
@@ -872,9 +892,13 @@ class PipelineView extends React.Component {
 
       // check if step needs to be selected based on selectedSteps
       if (this.state.stepSelector.active || this.selectedItem !== undefined) {
-        if (this.state.selectedSteps.length == 1 && !stepClicked) {
+        if (
+          this.state.selectedSteps.length == 1 &&
+          !stepClicked &&
+          !stepDragged
+        ) {
           this.selectStep(this.state.selectedSteps[0]);
-        } else if (this.state.selectedSteps.length > 1) {
+        } else if (this.state.selectedSteps.length > 1 && !stepDragged) {
           // make sure single step detail view is closed
           this.closeDetailsView();
 
@@ -933,7 +957,7 @@ class PipelineView extends React.Component {
     let _this = this;
     $(this.refManager.refs.pipelineStepsHolder).on(
       "mousedown",
-      "#path",
+      "#path-clickable",
       function (e) {
         if (e.button === 0) {
           if (_this.selectedConnection) {
@@ -1880,9 +1904,6 @@ class PipelineView extends React.Component {
   }
 
   onPipelineStepsOuterHolderMove(e) {
-    this.mouseClientX = e.clientX;
-    this.mouseClientY = e.clientY;
-
     if (this.state.stepSelector.active) {
       let pipelineStepHolderOffset = $(
         this.refManager.refs.pipelineStepsHolder
@@ -1902,14 +1923,17 @@ class PipelineView extends React.Component {
     }
 
     if (this.draggingPipeline) {
-      let dx = e.nativeEvent.movementX;
-      let dy = e.nativeEvent.movementY;
+      let dx = e.clientX - this.mouseClientX;
+      let dy = e.clientY - this.mouseClientY;
 
       this.pipelineOffset[0] += dx;
       this.pipelineOffset[1] += dy;
 
       this.renderPipelineHolder();
     }
+
+    this.mouseClientX = e.clientX;
+    this.mouseClientY = e.clientY;
   }
 
   getStepSelectorRectangle() {
