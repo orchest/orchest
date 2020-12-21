@@ -9,7 +9,7 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -
 
 # Get all Python requirements in place and install them.
 COPY ./requirements.txt /orchest/services/auth-server/
-COPY ./lib /orchest/lib
+COPY ./lib/python /orchest/lib/python
 WORKDIR /orchest/services/auth-server
 RUN pip3 install -r requirements.txt
 
