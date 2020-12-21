@@ -2,7 +2,7 @@ from docker.client import DockerClient
 from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
 
-from _orchest.internals import _config
+from _orchest.internals import config as _config
 
 
 # TODO: we should check whether it is possible for the docker client to
