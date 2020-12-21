@@ -144,11 +144,12 @@ class _PlasmaConnector:
             A plasma slient.
 
         Raises:
-            MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
+            MemoryOutputNotFoundError: If output from `step_uuid` cannot
+                be found.
             OrchestNetworkError: Could not connect to the
-                ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
-                might be because the specified value was wrong or the store
-                died.
+                ``Config.STORE_SOCKET_NAME``, because it does not exist.
+                Which might be because the specified value was wrong or
+                the store died.
         """
         if self._client is not None:
             return self._client
@@ -391,7 +392,8 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
         Data from the step identified by `step_uuid`.
 
     Raises:
-        DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
+        DiskOutputNotFoundError: If output from `step_uuid` cannot be
+            found.
         DiskDeserializationError: If the data could not be deserialized.
     """
     step_data_dir = Config.get_step_data_dir(step_uuid)
@@ -405,7 +407,8 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
         raise DiskOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
-            # IOError is to try to catch pyarrow failures on opening the file.
+            # IOError is to try to catch pyarrow failures on opening the
+            # file.
         )
     except (pickle.UnpicklingError, IOError):
         raise DiskDeserializationError(
@@ -432,7 +435,8 @@ def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
         to the data that would be retrieved.
 
     Raises:
-        DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
+        DiskOutputNotFoundError: If output from `step_uuid` cannot be
+            found.
     """
     step_data_dir = Config.get_step_data_dir(step_uuid)
     head_file = os.path.join(step_data_dir, "HEAD")
@@ -557,9 +561,9 @@ def output_to_memory(
         MemoryError: If the `data` does not fit in memory and
             ``disk_fallback=False``.
         OrchestNetworkError: Could not connect to the
-            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
-            might be because the specified value was wrong or the store
-            died.
+            ``Config.STORE_SOCKET_NAME``, because it does not exist.
+            Which might be because the specified value was wrong or the
+            store died.
         PipelineDefinitionNotFoundError: If the pipeline definition file
             could not be found.
         StepUUIDResolveError: The step's UUID cannot be resolved and
@@ -713,11 +717,12 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
     Raises:
         MemoryDeserializationError: If the data could not be
             deserialized.
-        MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
+        MemoryOutputNotFoundError: If output from `step_uuid` cannot be
+            found.
         OrchestNetworkError: Could not connect to the
-            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
-            might be because the specified value was wrong or the store
-            died.
+            ``Config.STORE_SOCKET_NAME``, because it does not exist.
+            Which might be because the specified value was wrong or the
+            store died.
     """
     client = _PlasmaConnector().client
 
@@ -774,11 +779,12 @@ def _resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
         related to the data that would be retrieved.
 
     Raises:
-        MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
+        MemoryOutputNotFoundError: If output from `step_uuid` cannot be
+            found.
         OrchestNetworkError: Could not connect to the
-            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
-            might be because the specified value was wrong or the store
-            died.
+            ``Config.STORE_SOCKET_NAME``, because it does not exist.
+            Which might be because the specified value was wrong or the
+            store died.
     """
     client = _PlasmaConnector().client
 
@@ -907,8 +913,9 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
 
         * Named data, which is data that was outputted with a `name` by
           any parent step. Named data can be retrieved through the
-          dictionary by its name, e.g. ``data = get_inputs()["my_name"]``.
-          Name collisions will raise an :exc:`InputNameCollisionError`.
+          dictionary by its name, e.g.
+          ``data = get_inputs()["my_name"]``.  Name collisions will
+          raise an :exc:`InputNameCollisionError`.
         * Unnamed data, which is an ordered list containing all the
           data that was outputted without a name by the parent steps.
           Unnamed data can be retrieved by accessing the reserved
@@ -918,8 +925,9 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
 
         Example::
 
-            # It does not matter how the data was output by parent steps.
-            # It is resolved automatically by the get_inputs method.
+            # It does not matter how the data was output by parent
+            # steps. It is resolved automatically by the get_inputs
+            # method.
             {
                 "unnamed" : ["Hello World!", (3, 4)],
                 "named_1" : "mystring",
@@ -1043,9 +1051,9 @@ def output(data: Any, name: Optional[str]) -> None:
             e.g because it is a reserved name (``"unnamed"``) or because
             it contains a reserved substring.
         OrchestNetworkError: Could not connect to the
-            ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
-            might be because the specified value was wrong or the store
-            died.
+            ``Config.STORE_SOCKET_NAME``, because it does not exist.
+            Which might be because the specified value was wrong or the
+            store died.
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus data cannot be outputted.
 
