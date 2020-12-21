@@ -10,12 +10,12 @@ import os
 
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
 
 from app.apis import blueprint as api
 from app.connections import db
 from app.models import InteractiveSession, InteractivePipelineRun
-from config import CONFIG_CLASS
 
 
 def create_app(config_class=None, use_db=True):
@@ -47,10 +47,13 @@ def create_app(config_class=None, use_db=True):
             create_database(app.config["SQLALCHEMY_DATABASE_URI"])
 
         db.init_app(app)
+        # necessary for migration
+        Migrate().init_app(app, db)
+
         with app.app_context():
-            # This call will create tables if needed (the ones which do
-            # not exist in the database yet).
-            db.create_all()
+            # Upgrade to the latest revision. This also takes care of
+            # bringing an "empty" db (no tables) on par.
+            upgrade()
 
             # In case of an ungraceful shutdown, these entities could be
             # in an invalid state, so they are deleted, since for sure

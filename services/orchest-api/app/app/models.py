@@ -8,7 +8,7 @@ TODO:
 
 """
 from app.connections import db
-from sqlalchemy import Index, UniqueConstraint, ForeignKeyConstraint
+from sqlalchemy import Index, UniqueConstraint, ForeignKeyConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 
 
@@ -105,9 +105,8 @@ class Experiment(BaseModel):
     completed_pipeline_runs = db.Column(
         db.Integer,
         unique=False,
-        default=0,
+        server_default=text("0"),
     )
-
     pipeline_runs = db.relationship(
         "NonInteractivePipelineRun",
         lazy="joined",

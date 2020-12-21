@@ -1,4 +1,4 @@
-import datetime
+from sqlalchemy.sql import text
 
 from app.connections import db
 
@@ -27,7 +27,10 @@ class User(db.Model):
     )
 
     created = db.Column(
-        db.DateTime, unique=False, nullable=False, default=datetime.datetime.utcnow
+        db.DateTime,
+        unique=False,
+        nullable=False,
+        server_default=text("timezone('utc', now())"),
     )
 
 
@@ -40,5 +43,8 @@ class Token(db.Model):
     user = db.Column(db.String(36), db.ForeignKey("users.uuid"), primary_key=True)
 
     created = db.Column(
-        db.DateTime, unique=False, nullable=False, default=datetime.datetime.utcnow
+        db.DateTime,
+        unique=False,
+        nullable=False,
+        server_default=text("timezone('utc', now())"),
     )

@@ -1,6 +1,6 @@
 from app.connections import db
 from sqlalchemy import UniqueConstraint
-import datetime
+from sqlalchemy.sql import text, expression
 import uuid
 
 
@@ -38,7 +38,9 @@ class DataSource(db.Model):
     name = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     source_type = db.Column(db.String(100), nullable=False)
     connection_details = db.Column(db.JSON, nullable=False)
-    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    created = db.Column(
+        db.DateTime, nullable=False, server_default=text("timezone('utc', now())")
+    )
 
     def __repr__(self):
         return f"<DataSource {self.name}:{self.source_type}>"
@@ -54,16 +56,24 @@ class Environment(db.Model):
     __tablename__ = "environments"
 
     uuid = db.Column(
-        db.String(255), unique=True, nullable=False, primary_key=True, default=str_uuid4
+        db.String(255),
+        unique=True,
+        nullable=False,
+        primary_key=True,
+        # using a server_default would require to install a postgres
+        # plugin, leaving it as an ORM-only default
+        default=str_uuid4,
     )
     name = db.Column(db.String(255), unique=False, nullable=False)
     project_uuid = db.Column(db.String(255), unique=False, nullable=False)
     language = db.Column(db.String(255), nullable=False)
 
     # Startup script is stored as separate file (start_script.sh)
-    setup_script = db.Column(db.String(255), default="")
+    setup_script = db.Column(db.String(255), server_default="")
     base_image = db.Column(db.String(255), nullable=False)
-    gpu_support = db.Column(db.Boolean, default=False)
+    gpu_support = db.Column(
+        db.Boolean, nullable=False, server_default=expression.false()
+    )
 
     def __repr__(self):
         return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"
@@ -80,7 +90,9 @@ class Experiment(db.Model):
     )
     pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
     pipeline_path = db.Column(db.String(255), unique=False, nullable=False)
-    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    created = db.Column(
+        db.DateTime, nullable=False, server_default=text("timezone('utc', now())")
+    )
     strategy_json = db.Column(db.Text, nullable=False)
     draft = db.Column(db.Boolean())
 

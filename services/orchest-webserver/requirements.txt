@@ -8,6 +8,7 @@ Flask-SocketIO==4.3.2
 eventlet==0.29.1
 marshmallow-sqlalchemy==0.24.1
 Flask-Migrate==2.5.3
+flask-script==2.0.6
 requests==2.25.0
 APScheduler==3.6.3
 nbformat==5.0.8
