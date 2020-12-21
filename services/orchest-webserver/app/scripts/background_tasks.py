@@ -45,6 +45,14 @@ def git_clone_project(args):
             exit_code = os.system(f'mv "{from_path}" /userdir/projects/')
             if exit_code != 0:
                 msg = "project move failed"
+
+            # Set correct group permission as git clone ignores setgid
+            # on projects directory.
+            projects_gid = os.stat("/userdir/projects").st_gid
+            os.system(
+                f'chown -R :{projects_gid} "{os.path.join("/userdir/projects", res[0])}"'
+            )
+
     except Exception as e:
         msg = str(e)
         exit_code = 1

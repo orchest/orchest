@@ -84,6 +84,11 @@ def main():
     with start_plasma_store(
         memory=args.memory, store_socket_name=args.store_socket_name
     ) as (store_socket_name, _):
+
+        # Set flexible permissions to make the socket writeable to all
+        # who have access to the path through the volume mount
+        os.chmod(store_socket_name, 0o777)
+
         # Start the manager that handles eviction by listening to the
         # notification socket of the store.
         start_manager(store_socket_name, pipeline_fname=args.pipeline_fname)
