@@ -115,7 +115,7 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
             Serialization.PICKLE.name,
         ]:
             raise InvalidMetaDataError(
-                f"Metadata {metadata} has an"
+                f"Metadata {metadata} has an "
                 f"invalid serialization ({serialization})."
             )
 
