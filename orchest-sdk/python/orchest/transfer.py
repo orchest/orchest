@@ -12,17 +12,37 @@ import pyarrow.plasma as plasma
 
 from orchest.config import Config
 from orchest.errors import (
+    DataInvalidNameError,
+    DiskDeserializationError,
     DiskOutputNotFoundError,
-    OutputNotFoundError,
+    InputNameCollisionError,
+    InvalidMetaDataError,
+    MemoryDeserializationError,
     MemoryOutputNotFoundError,
+    OutputNotFoundError,
     ObjectNotFoundError,
     OrchestNetworkError,
+    PipelineDefinitionNotFoundError,
+    SerializationError,
     StepUUIDResolveError,
-    InputNameCollisionError,
-    DataInvalidNameError,
 )
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
+
+
+class Serialization(Enum):
+    """Possible types of serialization.
+
+    Types are:
+        * ``ARROW_TABLE``
+        * ``ARROW_BATCH``
+        * ``PICKLE``
+
+    """
+
+    ARROW_TABLE = 0
+    ARROW_BATCH = 1
+    PICKLE = 2
 
 
 def _check_data_name_validity(name: Optional[str]):
@@ -43,19 +63,67 @@ def _check_data_name_validity(name: Optional[str]):
         )
 
 
-class Serialization(Enum):
-    """Possible types of serialization.
+def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
+    """Interpret and return Orchest SDK metadata.
 
-    Types are:
-        * ``ARROW_TABLE``
-        * ``ARROW_BATCH``
-        * ``PICKLE``
+    Args:
+        metadata: A string that can be interpreted as Orchest SDK
+            metadata. To be considered valid, it must contain the string
+            ``Config.__METADATA__SEPARATOR`` in a way that splitting the
+            string through the separator would result in 3 or 4 elements
+            , in the case of 4 elements, only the last 3 elements are
+            considered. Those three strings must be, in order: a valid
+            string representing a datetime (utc, ISO format), the string
+            representation of a member of the Serialization enum, any
+            string.
 
+    Raises:
+        InvalidMetaDataError: If the input string is invalid.
+
+    Returns:
+        A tuple of 3 strings. The first is the timestamp of when the
+            data related to the metadata was produced (utc, ISO format).
+            The second string is the type of serialization used (See the
+            Serialization enum). The third string is the name with which
+            the data was output.
     """
 
-    ARROW_TABLE = 0
-    ARROW_BATCH = 1
-    PICKLE = 2
+    if Config.__METADATA_SEPARATOR__ not in metadata:
+        raise InvalidMetaDataError(
+            f"Metadata {metadata} is missing the required separator."
+        )
+    metadata = metadata.split(Config.__METADATA_SEPARATOR__)
+
+    # Metadata that was stored in memory has 4 elements, first is
+    # ignored because it's an internal flag.
+    # Metadata that was stored on disk has 3 elements.
+    if len(metadata) in [3, 4]:
+        timestamp, serialization, name = metadata[-3:]
+
+        # check timestamp for correctness
+        try:
+            datetime.fromisoformat(timestamp)
+        except ValueError:
+            raise InvalidMetaDataError(
+                f"Metadata {metadata} has an" f"invalid timestamp ({timestamp})."
+            )
+
+        # check serialization for correctness
+        if serialization not in [
+            Serialization.ARROW_TABLE.name,
+            Serialization.ARROW_BATCH.name,
+            Serialization.PICKLE.name,
+        ]:
+            raise InvalidMetaDataError(
+                f"Metadata {metadata} has an"
+                f"invalid serialization ({serialization})."
+            )
+
+        return timestamp, serialization, name
+    else:
+        raise InvalidMetaDataError(
+            f"Metadata {metadata} has an invalid number of elements."
+        )
 
 
 class _PlasmaConnector:
@@ -112,6 +180,9 @@ def _serialize(
         Tuple of the serialized data (in ``pa.Buffer`` format) and the
         :class:`Serialization` that was used.
 
+    Raises:
+        SerializationError: If the data could not be serialized.
+
     Note:
         ``pickle`` does not include the code of custom functions or
         classes, it only pickles their names. Following to the official
@@ -130,9 +201,13 @@ def _serialize(
             serialization = Serialization.ARROW_BATCH
 
         output_buffer = pa.BufferOutputStream()
-        writer = pa.RecordBatchStreamWriter(output_buffer, data.schema)
-        writer.write(data)
-        writer.close()
+        try:
+            writer = pa.RecordBatchStreamWriter(output_buffer, data.schema)
+            writer.write(data)
+            writer.close()
+        except pa.ArrowSerializationError:
+            raise SerializationError(f"Could not serialize data of type {type(data)}.")
+
         serialized = output_buffer.getvalue()
 
     else:
@@ -141,7 +216,10 @@ def _serialize(
 
         # Use the best protocol possible, for reference see:
         # https://docs.python.org/3/library/pickle.html#pickle-protocols
-        serialized = pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
+        try:
+            serialized = pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
+        except pickle.PicklingError:
+            raise SerializationError(f"Could not pickle data of type {type(data)}.")
 
         # NOTE: zero-copy view on the bytes.
         serialized = pa.py_buffer(serialized)
@@ -197,6 +275,8 @@ def output_to_disk(
         DataInvalidNameError: The name of the output data is invalid,
             e.g because it is a reserved name (``"unnamed"``) or because
             it contains a reserved substring.
+        PipelineDefinitionNotFoundError: If the pipeline definition file
+            could not be found.
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine where to output data to.
 
@@ -219,8 +299,13 @@ def output_to_disk(
     if name is None:
         name = Config._RESERVED_UNNAMED_OUTPUTS_STR
 
-    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
-        pipeline_definition = json.load(f)
+    try:
+        with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
+            pipeline_definition = json.load(f)
+    except FileNotFoundError:
+        raise PipelineDefinitionNotFoundError(
+            f"Could not open {Config.PIPELINE_DEFINITION_PATH}."
+        )
 
     pipeline = Pipeline.from_json(pipeline_definition)
 
@@ -307,6 +392,7 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
 
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
+        DiskDeserializationError: If the data could not be deserialized.
     """
     step_data_dir = Config.get_step_data_dir(step_uuid)
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -319,6 +405,12 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
         raise DiskOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
+            # IOError is to try to catch pyarrow failures on opening the file.
+        )
+    except (pickle.UnpicklingError, IOError):
+        raise DiskDeserializationError(
+            f'Output from incoming step "{step_uuid}" ({full_path}) '
+            "could not be deserialized."
         )
 
 
@@ -347,9 +439,7 @@ def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
 
     try:
         with open(head_file, "r") as f:
-            timestamp, serialization, name = f.read().split(
-                Config.__METADATA_SEPARATOR__
-            )
+            timestamp, serialization, name = _interpret_metadata(f.read())
 
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
@@ -470,6 +560,8 @@ def output_to_memory(
             ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
             might be because the specified value was wrong or the store
             died.
+        PipelineDefinitionNotFoundError: If the pipeline definition file
+            could not be found.
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot set the correct ID to identify the data in
             the memory store.
@@ -492,8 +584,13 @@ def output_to_memory(
 
     # TODO: we might want to wrap this so we can throw a custom error,
     #       if the file cannot be found, i.e. FileNotFoundError.
-    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
-        pipeline_definition = json.load(f)
+    try:
+        with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
+            pipeline_definition = json.load(f)
+    except FileNotFoundError:
+        raise PipelineDefinitionNotFoundError(
+            f"Could not open {Config.PIPELINE_DEFINITION_PATH}."
+        )
 
     pipeline = Pipeline.from_json(pipeline_definition)
 
@@ -601,7 +698,6 @@ def _deserialize_output_memory(
         # Can load the buffer directly because its a bytes-like-object:
         # https://docs.python.org/3/library/pickle.html#pickle.loads
         return pickle.loads(buffer)
-
     else:
         raise ValueError("Object was serialized with an unsupported serialization")
 
@@ -620,6 +716,8 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         Data from step identified by `step_uuid`.
 
     Raises:
+        MemoryDeserializationError: If the data could not be
+            deserialized.
         MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
         OrchestNetworkError: Could not connect to the
             ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
@@ -637,7 +735,11 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
         )
-
+    # IOError is to try to catch pyarrow deserialization errors.
+    except (pickle.UnpicklingError, IOError):
+        raise MemoryDeserializationError(
+            f'Output from incoming step "{step_uuid}" could not be deserialized.'
+        )
     else:
         # TODO: note somewhere (maybe in the docstring) that it might
         #       although very unlikely raise MemoryError, because the
@@ -698,9 +800,8 @@ def _resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     # this is a pyarrow.Buffer, gotta make it into pybytes to decode,
     # not much overhead given that this is just metadata
     metadata = metadata.to_pybytes()
-    metadata = metadata.decode("utf-8").split(Config.__METADATA_SEPARATOR__)
-    # the first element is an internal flag, see output_to_memory
-    _, timestamp, serialization, name = metadata
+    metadata = _interpret_metadata(metadata.decode("utf-8"))
+    timestamp, serialization, name = metadata
 
     res = {
         "method_to_call": _get_output_memory,
@@ -747,30 +848,36 @@ def _resolve(
     resolve_methods: List[Callable] = [_resolve_memory, _resolve_disk]
 
     method_infos = []
+    method_infos_exceptions = []
     for method in resolve_methods:
         try:
             if method.__name__ == "_resolve_memory":
                 method_info = method(step_uuid, consumer=consumer)
             else:
                 method_info = method(step_uuid)
-
-        except OutputNotFoundError:
-            # We know now that the user did not use this method to output
-            # thus we can just skip it and continue.
-            pass
-        except OrchestNetworkError:
+        except (
+            # Might happen in the case a user has metadata produced by a
+            # version of the Orchest-SDK that is incompatible with this
+            # one.
+            InvalidMetaDataError,
+            # We know now that the user did not use this method to
+            # output thus we can just skip it and continue.
+            OutputNotFoundError,
             # If no in-memory store is running, then getting the data
             # from memory obviously will not work.
-            pass
+            OrchestNetworkError,
+        ) as e:
+            method_infos_exceptions.append(str(e))
         else:
             method_infos.append(method_info)
 
     # If no info could be collected, then the previous step has not yet
     # been executed.
     if not method_infos:
+        method_infos_exceptions = "\n".join(method_infos_exceptions)
         raise OutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
-            "Try rerunning it."
+            f"Try rerunning it. Info:\n{method_infos_exceptions}"
         )
 
     # Get the method that was most recently used based on its logged
@@ -839,8 +946,13 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         data or maintain a copy yourself.
 
     """
-    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
-        pipeline_definition = json.load(f)
+    try:
+        with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
+            pipeline_definition = json.load(f)
+    except FileNotFoundError:
+        raise PipelineDefinitionNotFoundError(
+            f"Could not open {Config.PIPELINE_DEFINITION_PATH}."
+        )
 
     pipeline = Pipeline.from_json(pipeline_definition)
     try:
