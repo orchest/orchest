@@ -236,6 +236,21 @@ def update(language):
         # during the update to support _updateserver
         stop(skip_names=["nginx-proxy", "update-server"])
 
+    # Delete all user built environments. This is to avoid the issue of
+    # having environments with mismatching Orchest SDK versions.
+    # TODO: once/if we have GPU and Language labels then we might be
+    # more selective on the way we delete such environments.
+    filters = {
+        "label": [
+            "_orchest_project_uuid",
+        ]
+    }
+    filters = {"label": ["_orchest_project_uuid"]}
+    # Can't use docker_client.images.prune because such filtering is not
+    # supported.
+    for img in docker_client.images.list(filters=filters):
+        docker_client.images.remove(img.id)
+
     # Update git repository to get the latest changes to the ``userdir``
     # structure.
     logging.info("Updating repo ...")
