@@ -582,8 +582,6 @@ def output_to_memory(
     except (ValueError, TypeError) as e:
         raise DataInvalidNameError(e)
 
-    # TODO: we might want to wrap this so we can throw a custom error,
-    #       if the file cannot be found, i.e. FileNotFoundError.
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
             pipeline_definition = json.load(f)
@@ -608,9 +606,6 @@ def output_to_memory(
         if not disk_fallback:
             raise OrchestNetworkError(e)
 
-        # TODO: note that metadata is lost when falling back to disk.
-        #       Therefore we will only support metadata added by the
-        #       user, once disk also supports passing metadata.
         return output_to_disk(obj, name, serialization=serialization)
 
     # Try to output to memory.
