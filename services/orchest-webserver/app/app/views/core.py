@@ -17,6 +17,8 @@ from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
 from subprocess import Popen
+import sqlalchemy
+
 
 from app.utils import (
     get_hash,
@@ -633,8 +635,12 @@ def register_views(app, db):
             uuid=str(uuid.uuid4()),
             path=project_path,
         )
-        db.session.add(new_project)
-        db.session.commit()
+        try:
+            db.session.add(new_project)
+            db.session.commit()
+        except sqlalchemy.exc.IntegrityError as e:
+            db.session.rollback()
+            raise Exception(f'Project "{project_path}" already exists.')
 
         try:
             # this would actually be created as a collateral effect when populating with default environments,
