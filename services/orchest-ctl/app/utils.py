@@ -198,7 +198,7 @@ def fix_userdir_permissions():
     """setgid on all directories in userdir to make sure new files
     created by containers are read/write for sibling containers
     and the host user"""
-    
+
     try:
         os.system("find /orchest-host/userdir -type d -exec chmod g+s {} \;")
     except Exception as e:
@@ -313,3 +313,19 @@ def convert_to_run_config(image_name, container_spec):
         run_config["group_add"] = container_spec.get("group_add")
 
     return run_config
+
+
+def clear_environment_images():
+    """Delete all user built environments.
+
+    This is to avoid the issue of having environments with mismatching
+    Orchest SDK versions.
+    """
+
+    # TODO: once/if we have GPU and Language labels then we might be
+    # more selective on the way we delete such environments.
+    filters = {"label": ["_orchest_project_uuid"]}
+    # Can't use docker_client.images.prune because such filtering is not
+    # supported.
+    for img in docker_client.images.list(filters=filters):
+        docker_client.images.remove(img.id)
