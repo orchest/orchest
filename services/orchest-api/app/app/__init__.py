@@ -6,6 +6,7 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
+from logging.config import dictConfig
 import os
 
 from flask import Flask
@@ -33,8 +34,10 @@ def create_app(config_class=None, use_db=True):
     Returns:
         Flask.app
     """
-    app = Flask(__name__)
+    app = Flask("orchest-api")
     app.config.from_object(config_class)
+
+    init_logging()
 
     # Cross-origin resource sharing. Allow API to be requested from the
     # different microservices such as the webserver.
@@ -78,3 +81,46 @@ def create_app(config_class=None, use_db=True):
     app.register_blueprint(api, url_prefix="/api")
 
     return app
+
+
+def init_logging():
+    logging_config = {
+        "version": 1,
+        "formatters": {
+            "verbose": {
+                "format": (
+                    "%(levelname)s:%(name)s:%(filename)s - [%(asctime)s] - %(message)s"
+                ),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+        },
+        "handlers": {
+            "console": {
+                "level": "INFO",
+                "class": "logging.StreamHandler",
+                "formatter": "verbose",
+            },
+        },
+        "loggers": {
+            "orchest-api": {
+                "handlers": ["console"],
+                "level": "INFO",
+            },
+            "alembic": {
+                "handlers": ["console"],
+                "level": "WARNING",
+            },
+            "werkzeug": {
+                # NOTE: Werkzeug automatically creates a handler at the
+                # level of its logger if none is defined.
+                "level": "INFO",
+                "handlers": ["console"],
+            },
+            # "sqlalchemy.engine": {
+            #     "handlers": ["console"],
+            #     "level": "DEBUG",
+            # },
+        }
+    }
+
+    dictConfig(logging_config)

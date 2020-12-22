@@ -1,6 +1,3 @@
-import logging
-import sys
-
 from flask import request
 from flask_restplus import Namespace
 from flask_restplus import Resource
@@ -11,8 +8,6 @@ import app.models as models
 from app.utils import register_schema
 from app import schema
 
-
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)

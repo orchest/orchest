@@ -1,6 +1,5 @@
 from docker import errors
 from flask_restplus import Namespace, Resource
-import logging
 
 from app.connections import docker_client
 import app.models as models

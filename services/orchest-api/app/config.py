@@ -1,4 +1,5 @@
 class Config:
+    # TODO: Should we read these from ENV variables instead?
     DEBUG = False
     TESTING = False
 
@@ -17,16 +18,19 @@ class Config:
     # config class will be loaded directly by the Celery instance.
     broker_url = "amqp://guest:guest@rabbitmq-server:5672//"
 
-    # note: the database might require trimming from time to time,
-    # to enable having the db trimmed automatically use:
+    # NOTE: the database might require trimming from time to time, to
+    # enable having the db trimmed automatically use:
     # https://docs.celeryproject.org/en/master/userguide/configuration.html#std:setting-result_expires
-    # note that "When using the database backend, celery beat must be running for the results to be expired."
-    # The db reaching a large size is probably an unreasonable edge case, given that currently our celery tasks do
-    # not produce output.
-    # For this reason no solution is provided for this, taking into account that we will eventually
-    # implement cronjobs and such trimming might be an internal cronjob, or automatically managed
-    # by celery if we end using "celery beat".
+    # note that "When using the database backend, celery beat must be
+    # running for the results to be expired." The db reaching a large
+    # size is probably an unreasonable edge case, given that currently
+    # our celery tasks do not produce output.  For this reason no
+    # solution is provided for this, taking into account that we will
+    # eventually implement cronjobs and such trimming might be an
+    # internal cronjob, or automatically managed by celery if we end
+    # using "celery beat".
     _result_backend_server = "postgres@orchest-database/celery_result_backend"
+
     # used to create the db if it does not exist, the function needs
     # this exact url format
     result_backend_sqlalchemy_uri = f"postgresql://{_result_backend_server}"
@@ -43,19 +47,6 @@ class Config:
     }
 
 
-class DevelopmentConfig(Config):
-    DEBUG = True
-    # ORCHEST_API_ADDRESS = 'http://127.0.0.1:5000/api'
-
-
-class TestingConfig(Config):
-    # This config is used by the tests.
-    TESTING = True
-
-
 # ---- CONFIGURATIONS ----
 # Production
 CONFIG_CLASS = Config
-
-# Development
-# CONFIG_CLASS = DevelopmentConfig

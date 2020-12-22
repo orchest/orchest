@@ -7,7 +7,6 @@ from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
 from flask import current_app, request, abort
 from flask_restplus import Namespace, Resource, marshal
-import logging
 
 from app import schema
 from app.celery_app import make_celery
@@ -50,6 +49,7 @@ class RunList(Resource):
     @api.expect(schema.interactive_run_spec)
     def post(self):
         """Starts a new (interactive) pipeline run."""
+        current_app.logger.info("THIS IS AN INFO MESSAGE")
         post_data = request.get_json()
         post_data["run_config"]["run_endpoint"] = "runs"
 
@@ -100,7 +100,7 @@ class RunList(Resource):
                 pipeline.get_environments(),
             )
         except errors.ImageNotFound as e:
-            logging.error(
+            current_app.logger.error(
                 f"Pipeline was referencing environments for "
                 f"which an image does not exist, {e}"
             )

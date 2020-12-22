@@ -1,9 +1,9 @@
 from datetime import datetime, time
 from typing import Dict, Set, Union
 import requests
-import logging
 
 from docker import errors
+from flask import current_app
 from flask_restplus import Model, Namespace
 from sqlalchemy import and_
 
@@ -45,7 +45,7 @@ def shutdown_jupyter_server(url: str) -> bool:
         False if no Jupyter server is running. True otherwise.
     """
 
-    logging.info("Shutting down Jupyter Server at url: %s" % url)
+    current_app.logger.info("Shutting down Jupyter Server at url: %s" % url)
 
     # Shutdown the server, such that it also shuts down all related
     # kernels.
@@ -345,7 +345,7 @@ def remove_if_dangling(img) -> bool:
             except errors.ImageNotFound:
                 return False
             except Exception as e:
-                logging.warning(f"exception during removal of image {img.id}:\n{e}")
+                current_app.logger.warning(f"exception during removal of image {img.id}:\n{e}")
                 pass
             time.sleep(1)
             tries -= 1
