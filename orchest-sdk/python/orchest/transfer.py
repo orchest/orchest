@@ -105,7 +105,7 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
             datetime.fromisoformat(timestamp)
         except ValueError:
             raise InvalidMetaDataError(
-                f"Metadata {metadata} has an" f"invalid timestamp ({timestamp})."
+                f"Metadata {metadata} has an invalid timestamp ({timestamp})."
             )
 
         # check serialization for correctness
