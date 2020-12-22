@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from orchest import errors
+from orchest import error
 
 
 # NOTE: the TypedDict from the typing module is support only >=3.8
@@ -132,7 +132,7 @@ class Pipeline:
             if step.properties["uuid"] == uuid:
                 return step
 
-        raise errors.StepUUIDResolveError(
+        raise error.StepUUIDResolveError(
             "Step does not exist in the pipeline with UUID: {uuid}."
         )
 

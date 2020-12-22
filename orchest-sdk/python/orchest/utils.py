@@ -4,7 +4,7 @@ from typing import Any, Dict
 import urllib
 
 from orchest.config import Config
-from orchest.errors import OrchestNetworkError, StepUUIDResolveError
+from orchest.error import OrchestNetworkError, StepUUIDResolveError
 from orchest.pipeline import Pipeline
 
 

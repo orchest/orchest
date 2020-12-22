@@ -11,20 +11,7 @@ import pyarrow as pa
 import pyarrow.plasma as plasma
 
 from orchest.config import Config
-from orchest.errors import (
-    DataInvalidNameError,
-    DeserializationError,
-    DiskOutputNotFoundError,
-    InputNameCollisionError,
-    InvalidMetaDataError,
-    MemoryOutputNotFoundError,
-    OutputNotFoundError,
-    ObjectNotFoundError,
-    OrchestNetworkError,
-    PipelineDefinitionNotFoundError,
-    SerializationError,
-    StepUUIDResolveError,
-)
+from orchest import error
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
@@ -88,7 +75,7 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
     """
 
     if Config.__METADATA_SEPARATOR__ not in metadata:
-        raise InvalidMetaDataError(
+        raise error.InvalidMetaDataError(
             f"Metadata {metadata} is missing the required separator."
         )
     metadata = metadata.split(Config.__METADATA_SEPARATOR__)
@@ -103,7 +90,7 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
         try:
             datetime.fromisoformat(timestamp)
         except ValueError:
-            raise InvalidMetaDataError(
+            raise error.InvalidMetaDataError(
                 f"Metadata {metadata} has an" f"invalid timestamp ({timestamp})."
             )
 
@@ -113,14 +100,14 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
             Serialization.ARROW_BATCH.name,
             Serialization.PICKLE.name,
         ]:
-            raise InvalidMetaDataError(
+            raise error.InvalidMetaDataError(
                 f"Metadata {metadata} has an "
                 f"invalid serialization ({serialization})."
             )
 
         return timestamp, serialization, name
     else:
-        raise InvalidMetaDataError(
+        raise error.InvalidMetaDataError(
             f"Metadata {metadata} has an invalid number of elements."
         )
 
@@ -157,7 +144,9 @@ class _PlasmaConnector:
                 Config.STORE_SOCKET_NAME, num_retries=Config.CONN_NUM_RETRIES
             )
         except OSError:
-            raise OrchestNetworkError("Failed to connect to in-memory object store.")
+            raise error.OrchestNetworkError(
+                "Failed to connect to in-memory object store."
+            )
 
         return self._client
 
@@ -205,7 +194,9 @@ def _serialize(
             writer.write(data)
             writer.close()
         except pa.ArrowSerializationError:
-            raise SerializationError(f"Could not serialize data of type {type(data)}.")
+            raise error.SerializationError(
+                f"Could not serialize data of type {type(data)}."
+            )
 
         serialized = output_buffer.getvalue()
 
@@ -218,7 +209,9 @@ def _serialize(
         try:
             serialized = pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
         except pickle.PicklingError:
-            raise SerializationError(f"Could not pickle data of type {type(data)}.")
+            raise error.SerializationError(
+                f"Could not pickle data of type {type(data)}."
+            )
 
         # NOTE: zero-copy view on the bytes.
         serialized = pa.py_buffer(serialized)
@@ -293,7 +286,7 @@ def output_to_disk(
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
-        raise DataInvalidNameError(e)
+        raise error.DataInvalidNameError(e)
 
     if name is None:
         name = Config._RESERVED_UNNAMED_OUTPUTS_STR
@@ -302,7 +295,7 @@ def output_to_disk(
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
             pipeline_definition = json.load(f)
     except FileNotFoundError:
-        raise PipelineDefinitionNotFoundError(
+        raise error.PipelineDefinitionNotFoundError(
             f"Could not open {Config.PIPELINE_DEFINITION_PATH}."
         )
 
@@ -310,8 +303,8 @@ def output_to_disk(
 
     try:
         step_uuid = get_step_uuid(pipeline)
-    except StepUUIDResolveError:
-        raise StepUUIDResolveError("Failed to determine where to output data to.")
+    except error.StepUUIDResolveError:
+        raise error.StepUUIDResolveError("Failed to determine where to output data to.")
 
     # In case the data is not already serialized, then we need to
     # serialize it.
@@ -401,13 +394,13 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
-        raise DiskOutputNotFoundError(
+        raise error.DiskOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
         )
     # IOError is to try to catch pyarrow failures on opening the file.
     except (pickle.UnpicklingError, IOError):
-        raise DeserializationError(
+        raise error.DeserializationError(
             f'Output from incoming step "{step_uuid}" ({full_path}) '
             "could not be deserialized."
         )
@@ -443,7 +436,7 @@ def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
     except FileNotFoundError:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
-        raise DiskOutputNotFoundError(
+        raise error.DiskOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
         )
@@ -579,13 +572,13 @@ def output_to_memory(
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
-        raise DataInvalidNameError(e)
+        raise error.DataInvalidNameError(e)
 
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
             pipeline_definition = json.load(f)
     except FileNotFoundError:
-        raise PipelineDefinitionNotFoundError(
+        raise error.PipelineDefinitionNotFoundError(
             f"Could not open {Config.PIPELINE_DEFINITION_PATH}."
         )
 
@@ -593,17 +586,17 @@ def output_to_memory(
 
     try:
         step_uuid = get_step_uuid(pipeline)
-    except StepUUIDResolveError:
-        raise StepUUIDResolveError("Failed to determine where to output data to.")
+    except error.StepUUIDResolveError:
+        raise error.StepUUIDResolveError("Failed to determine where to output data to.")
 
     # Serialize the object and collect the serialization metadata.
     obj, serialization = _serialize(data)
 
     try:
         client = _PlasmaConnector().client
-    except OrchestNetworkError as e:
+    except error.OrchestNetworkError as e:
         if not disk_fallback:
-            raise OrchestNetworkError(e)
+            raise error.OrchestNetworkError(e)
 
         return output_to_disk(obj, name, serialization=serialization)
 
@@ -672,7 +665,7 @@ def _deserialize_output_memory(
     # Getting the buffer timed out. We conclude that the object has not
     # yet been written to the store and maybe never will.
     if metadata is None and buffer is None:
-        raise ObjectNotFoundError(
+        raise error.ObjectNotFoundError(
             f'Object with ObjectID "{obj_id}" does not exist in store.'
         )
 
@@ -723,14 +716,14 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
     try:
         obj = _deserialize_output_memory(obj_id, client)
 
-    except ObjectNotFoundError:
-        raise MemoryOutputNotFoundError(
+    except error.ObjectNotFoundError:
+        raise error.MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
         )
     # IOError is to try to catch pyarrow deserialization errors.
     except (pickle.UnpicklingError, IOError):
-        raise DeserializationError(
+        raise error.DeserializationError(
             f'Output from incoming step "{step_uuid}" could not be deserialized.'
         )
     else:
@@ -786,7 +779,7 @@ def _resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     metadata = client.get_metadata([obj_id], timeout_ms=0)
     metadata = metadata[0]
     if metadata is None:
-        raise MemoryOutputNotFoundError(
+        raise error.MemoryOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
         )
@@ -852,13 +845,13 @@ def _resolve(
             # Might happen in the case a user has metadata produced by a
             # version of the Orchest-SDK that is incompatible with this
             # one.
-            InvalidMetaDataError,
+            error.InvalidMetaDataError,
             # We know now that the user did not use this method to
             # output thus we can just skip it and continue.
-            OutputNotFoundError,
+            error.OutputNotFoundError,
             # If no in-memory store is running, then getting the data
             # from memory obviously will not work.
-            OrchestNetworkError,
+            error.OrchestNetworkError,
         ) as e:
             method_infos_exceptions.append(str(e))
         else:
@@ -868,7 +861,7 @@ def _resolve(
     # been executed.
     if not method_infos:
         method_infos_exceptions = "\n".join(method_infos_exceptions)
-        raise OutputNotFoundError(
+        raise error.OutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             f"Try rerunning it. Info:\n{method_infos_exceptions}"
         )
@@ -943,15 +936,15 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
             pipeline_definition = json.load(f)
     except FileNotFoundError:
-        raise PipelineDefinitionNotFoundError(
+        raise error.PipelineDefinitionNotFoundError(
             f"Could not open {Config.PIPELINE_DEFINITION_PATH}."
         )
 
     pipeline = Pipeline.from_json(pipeline_definition)
     try:
         step_uuid = get_step_uuid(pipeline)
-    except StepUUIDResolveError:
-        raise StepUUIDResolveError("Failed to determine from where to get data.")
+    except error.StepUUIDResolveError:
+        raise error.StepUUIDResolveError("Failed to determine from where to get data.")
 
     collisions_dict = defaultdict(list)
     get_output_methods = []
@@ -981,7 +974,7 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             for name, step_names in collisions_dict.items()
         ]
         msg = "".join(msg)
-        raise InputNameCollisionError(
+        raise error.InputNameCollisionError(
             f"Name collisions between input data coming from different steps: {msg}"
         )
 
@@ -999,9 +992,9 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         # continue with other steps.
         try:
             incoming_step_data = get_output_method(*args, **kwargs)
-        except OutputNotFoundError as e:
+        except error.OutputNotFoundError as e:
             if not ignore_failure:
-                raise OutputNotFoundError(e)
+                raise error.OutputNotFoundError(e)
 
             incoming_step_data = None
 
@@ -1061,7 +1054,7 @@ def output(data: Any, name: Optional[str]) -> None:
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
-        raise DataInvalidNameError(e)
+        raise error.DataInvalidNameError(e)
 
     return output_to_memory(data, name, disk_fallback=True)
 

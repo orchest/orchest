@@ -8,7 +8,7 @@ import json
 from typing import Any, Dict
 
 from orchest.config import Config
-from orchest.errors import StepUUIDResolveError
+from orchest.error import StepUUIDResolveError
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
