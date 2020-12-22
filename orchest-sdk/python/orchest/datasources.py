@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError
 from sqlalchemy import create_engine
 
 from orchest.config import Config
-from orchest.errors import OrchestNetworkError, OrchestInternalDataSourceError
+from orchest.error import OrchestNetworkError, OrchestInternalDataSourceError
 
 
 class _DB:
