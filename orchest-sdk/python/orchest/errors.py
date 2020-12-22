@@ -90,7 +90,7 @@ class InputNameCollisionError(Error):
 
 
 class DataInvalidNameError(Error):
-    """Data has an invalid name"""
+    """Data has an invalid name."""
 
     pass
 
