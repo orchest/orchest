@@ -96,10 +96,6 @@ class DataInvalidNameError(Error):
 
 
 class InvalidMetaDataError(Error):
-    """Metadata is invalid
-
-    For metadata that is missing the separator, that does not contain
-    the right amount of elements, or that has invalid content.
-    """
+    """Metadata is invalid."""
 
     pass
