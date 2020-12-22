@@ -86,11 +86,13 @@ class DataInvalidNameError(Error):
 class InvalidMetaDataError(Error):
     """Metadata is invalid."""
 
-    helper_message = "The issue might be caused due to cached metadata "
-    "when upgrading to the new version of Orchest, try to delete the "
-    '".orchest/pipelines" directory inside your pipeline directory or '
-    "try rerunning the steps that produced data."
+    helper_message = (
+        "The issue might be caused due to cached metadata "
+        "when upgrading to the new version of Orchest, try to delete the "
+        '".orchest/pipelines" directory inside your pipeline directory or '
+        "try rerunning the steps that produced data."
+    )
 
     def __init__(self, msg="", *args, **kwargs):
-        msg = " ".join(msg, self.helper_message)
+        msg = " ".join([msg, self.helper_message])
         super().__init__(msg, *args, **kwargs)
