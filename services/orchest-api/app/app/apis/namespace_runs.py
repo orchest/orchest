@@ -49,7 +49,6 @@ class RunList(Resource):
     @api.expect(schema.interactive_run_spec)
     def post(self):
         """Starts a new (interactive) pipeline run."""
-        current_app.logger.info("THIS IS AN INFO MESSAGE")
         post_data = request.get_json()
         post_data["run_config"]["run_endpoint"] = "runs"
 

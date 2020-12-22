@@ -8,8 +8,9 @@ Additinal note:
 """
 from logging.config import dictConfig
 import os
+from pprint import pformat
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
@@ -42,6 +43,9 @@ def create_app(config_class=None, use_db=True):
     # Cross-origin resource sharing. Allow API to be requested from the
     # different microservices such as the webserver.
     CORS(app, resources={r"/*": {"origins": "*"}})
+
+    if os.getenv("FLASK_ENV") == "development":
+        app = register_teardown_request(app)
 
     if use_db:
         # Create the database if it does not exist yet. Roughly equal to
@@ -124,3 +128,18 @@ def init_logging():
     }
 
     dictConfig(logging_config)
+
+
+def register_teardown_request(app):
+    @app.after_request
+    def teardown(response):
+        app.logger.debug(
+            "%s %s %s\n[Request object]: %s",
+            request.method,
+            request.path,
+            response.status,
+            pformat(request.get_json())
+        )
+        return response
+
+    return app
