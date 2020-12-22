@@ -13,11 +13,10 @@ import pyarrow.plasma as plasma
 from orchest.config import Config
 from orchest.errors import (
     DataInvalidNameError,
-    DiskDeserializationError,
+    DeserializationError,
     DiskOutputNotFoundError,
     InputNameCollisionError,
     InvalidMetaDataError,
-    MemoryDeserializationError,
     MemoryOutputNotFoundError,
     OutputNotFoundError,
     ObjectNotFoundError,
@@ -392,7 +391,7 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
 
     Raises:
         DiskOutputNotFoundError: If output from `step_uuid` cannot be found.
-        DiskDeserializationError: If the data could not be deserialized.
+        DeserializationError: If the data could not be deserialized.
     """
     step_data_dir = Config.get_step_data_dir(step_uuid)
     full_path = os.path.join(step_data_dir, step_uuid)
@@ -405,10 +404,10 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
         raise DiskOutputNotFoundError(
             f'Output from incoming step "{step_uuid}" cannot be found. '
             "Try rerunning it."
-            # IOError is to try to catch pyarrow failures on opening the file.
         )
+    # IOError is to try to catch pyarrow failures on opening the file.
     except (pickle.UnpicklingError, IOError):
-        raise DiskDeserializationError(
+        raise DeserializationError(
             f'Output from incoming step "{step_uuid}" ({full_path}) '
             "could not be deserialized."
         )
@@ -711,8 +710,7 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         Data from step identified by `step_uuid`.
 
     Raises:
-        MemoryDeserializationError: If the data could not be
-            deserialized.
+        DeserializationError: If the data could not be deserialized.
         MemoryOutputNotFoundError: If output from `step_uuid` cannot be found.
         OrchestNetworkError: Could not connect to the
             ``Config.STORE_SOCKET_NAME``, because it does not exist. Which
@@ -732,7 +730,7 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
         )
     # IOError is to try to catch pyarrow deserialization errors.
     except (pickle.UnpicklingError, IOError):
-        raise MemoryDeserializationError(
+        raise DeserializationError(
             f'Output from incoming step "{step_uuid}" could not be deserialized.'
         )
     else:

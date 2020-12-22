@@ -26,18 +26,6 @@ class DeserializationError(Error):
     pass
 
 
-class DiskDeserializationError(DeserializationError):
-    """DeserializationError for disk objects (files)."""
-
-    pass
-
-
-class MemoryDeserializationError(DeserializationError):
-    """DeserializationError for in-memory objects."""
-
-    pass
-
-
 class ObjectNotFoundError(Error):
     """Error when the object cannot be found in the in-memory store.
 
