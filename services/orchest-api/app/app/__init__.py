@@ -97,12 +97,21 @@ def init_logging():
                 ),
                 "datefmt": "%d/%b/%Y %H:%M:%S",
             },
+            "minimal": {
+                "format": ("%(levelname)s:%(name)s:%(filename)s - %(message)s"),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
         },
         "handlers": {
             "console": {
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
                 "class": "logging.StreamHandler",
                 "formatter": "verbose",
+            },
+            "console-minimal": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "minimal",
             },
         },
         "loggers": {
@@ -118,7 +127,7 @@ def init_logging():
                 # NOTE: Werkzeug automatically creates a handler at the
                 # level of its logger if none is defined.
                 "level": "INFO",
-                "handlers": ["console"],
+                "handlers": ["console-minimal"],
             },
             # "sqlalchemy.engine": {
             #     "handlers": ["console"],
