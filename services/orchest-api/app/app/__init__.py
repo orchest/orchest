@@ -100,7 +100,7 @@ def init_logging():
         },
         "handlers": {
             "console": {
-                "level": "INFO",
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
                 "class": "logging.StreamHandler",
                 "formatter": "verbose",
             },
@@ -108,7 +108,7 @@ def init_logging():
         "loggers": {
             "orchest-api": {
                 "handlers": ["console"],
-                "level": "INFO",
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
             "alembic": {
                 "handlers": ["console"],
@@ -124,7 +124,7 @@ def init_logging():
             #     "handlers": ["console"],
             #     "level": "DEBUG",
             # },
-        }
+        },
     }
 
     dictConfig(logging_config)
@@ -138,7 +138,7 @@ def register_teardown_request(app):
             request.method,
             request.path,
             response.status,
-            pformat(request.get_json())
+            pformat(request.get_json()),
         )
         return response
 
