@@ -21,7 +21,7 @@ class SerializationError(Error):
 
 
 class DeserializationError(Error):
-    """Error when an object cannot be serialized."""
+    """Error when an object cannot be deserialized."""
 
     pass
 
