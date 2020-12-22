@@ -345,7 +345,9 @@ def remove_if_dangling(img) -> bool:
             except errors.ImageNotFound:
                 return False
             except Exception as e:
-                current_app.logger.warning(f"exception during removal of image {img.id}:\n{e}")
+                current_app.logger.warning(
+                    f"exception during removal of image {img.id}:\n{e}"
+                )
                 pass
             time.sleep(1)
             tries -= 1

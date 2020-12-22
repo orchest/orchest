@@ -232,11 +232,11 @@ def write_environment_dockerfile(
     # the bash script is removed so that the user won't be able to see it after the build is done
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
-        f'&& sudo chmod +x {bash_script} '
+        f"&& sudo chmod +x {bash_script} "
         f'&& echo "{flag}" '
-        f'&& bash {bash_script} '
+        f"&& bash {bash_script} "
         f'&& echo "{flag}" '
-        f'&& sudo rm {bash_script}'
+        f"&& sudo rm {bash_script}"
     )
     statements.append("LABEL _orchest_env_build_is_intermediate=0")
 
