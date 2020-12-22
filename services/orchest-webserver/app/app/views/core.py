@@ -549,35 +549,44 @@ def register_views(app, db):
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-    def cleanup_project_from_orchest(project):
+    def cleanup_project_from_orchest(project_uuid):
         """Cleanup a project at the orchest level.
 
         Removes references of the project in the webserver db, and
-        issues a cleanup request to the orchest-api.
+        issues a cleanup request to the orchest-api. Note that we pass
+        the uuid and not a project instance because this function does
+        commit, meaning that the passed instance might then become stale
+        , since it belonged to another transaction. That could be a
+        problem when the record related to said instance has been
+        deleted from the db, which will lead to an error since
+        sqlalchemy will try to refresh that object on accessing any of
+        its attributes, failing because the record does not exist.
 
         Args:
-            project:
+            project_uuid:
 
         Returns:
 
         """
-        url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/projects/{project.uuid}"
+        url = (
+            f"http://{app.config['ORCHEST_API_ADDRESS']}" "/api/projects/{project_uuid}"
+        )
         app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         experiments = Experiment.query.filter(
-            Experiment.project_uuid == project.uuid
+            Experiment.project_uuid == project_uuid
         ).all()
 
         for ex in experiments:
             remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
         # cleanup kernels
-        cleanup_kernel(app, project.uuid)
+        cleanup_kernel(app, project_uuid)
 
         # will delete cascade
         # pipeline
         # experiment -> pipeline run
-        db.session.delete(project)
+        Project.query.filter_by(uuid=project_uuid).delete()
         db.session.commit()
 
     def cleanup_pipeline_from_orchest(pipeline):
@@ -991,15 +1000,16 @@ def register_views(app, db):
             if os.path.isdir(os.path.join(projects_dir, name))
         ]
 
-        # look for projects that have been removed through the filesystem by the user, cleanup
-        # dangling resources
+        # look for projects that have been removed through the filesystem by the
+        # user, cleanup dangling resources
         fs_removed_projects = Project.query.filter(
             Project.path.notin_(project_paths)
         ).all()
-        for fs_removed_project in fs_removed_projects:
-            cleanup_project_from_orchest(fs_removed_project)
+        for uuid in [project.uuid for project in fs_removed_projects]:
+            cleanup_project_from_orchest(uuid)
 
-        # detect new projects by detecting directories that were not registered in the db as projects
+        # detect new projects by detecting directories that were not
+        # registered in the db as projects
         existing_project_paths = [
             project.path
             for project in Project.query.filter(Project.path.in_(project_paths)).all()
@@ -1045,7 +1055,7 @@ def register_views(app, db):
                 full_project_path = os.path.join(projects_dir, project_path)
                 shutil.rmtree(full_project_path)
 
-                cleanup_project_from_orchest(project)
+                cleanup_project_from_orchest(request.json["project_uuid"])
 
                 return jsonify({"message": "Project deleted."})
             else:
