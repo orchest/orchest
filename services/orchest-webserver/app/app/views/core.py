@@ -1010,11 +1010,26 @@ def register_views(app, db):
 
         # detect new projects by detecting directories that were not
         # registered in the db as projects
-        existing_project_paths = [
-            project.path
-            for project in Project.query.filter(Project.path.in_(project_paths)).all()
+        existing_project_paths = [project.path for project in Project.query.all()]
+        # We need to check the project_paths after the database to avoid
+        # a race condition. It might happen that request A has read a
+        # file path related to project X, and that request B deletes
+        # project X. The project would be deleted from the FS and the db
+        # , but request A would still have the file_path in memory, and
+        # would think that path is related to a new project that was
+        # created through the FS.
+        # By checking the FS after the db, we will avoid the race
+        # condition since deleting a project involves first deleting the
+        # directory, then deleting the db entries. If no db entries
+        # refer to the path and the path is there, then this is actually
+        # a project which has been created through the FS.
+        project_paths = [
+            name
+            for name in os.listdir(projects_dir)
+            if os.path.isdir(os.path.join(projects_dir, name))
         ]
         new_project_paths = set(project_paths) - set(existing_project_paths)
+
         for new_project_path in new_project_paths:
             try:
                 init_project(new_project_path)
@@ -1053,8 +1068,12 @@ def register_views(app, db):
 
                 project_path = project_uuid_to_path(project_uuid)
                 full_project_path = os.path.join(projects_dir, project_path)
-                shutil.rmtree(full_project_path)
 
+                # Note that deleting from the FS first and the db later matters!
+                # Part of the code is avoiding race conditions by
+                # relying on this behaviour. See the discovery of new
+                # projects or project cleanup.
+                shutil.rmtree(full_project_path)
                 cleanup_project_from_orchest(request.json["project_uuid"])
 
                 return jsonify({"message": "Project deleted."})
