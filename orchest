@@ -57,7 +57,7 @@ fi
 
 # create config dir if it doesn't exist
 mkdir -p "${HOST_CONFIG_DIR}"
-$SUDO_PREFIX chown -R $USER:$USER "${HOST_CONFIG_DIR}"
+$SUDO_PREFIX chown $USER:$USER "${HOST_CONFIG_DIR}"
 
 $SUDO_PREFIX docker run \
     --rm \
