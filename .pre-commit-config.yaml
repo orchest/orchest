@@ -8,3 +8,4 @@ repos:
     rev: 2.1.2
     hooks:
       - id: prettier
+        language_version: 14.13.0
