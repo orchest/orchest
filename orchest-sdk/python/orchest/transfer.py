@@ -82,10 +82,10 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
 
     Returns:
         A tuple of 3 strings. The first is the timestamp of when the
-            data related to the metadata was produced (utc, ISO format).
-            The second string is the type of serialization used (See the
-            Serialization enum). The third string is the name with which
-            the data was output.
+        data related to the metadata was produced (utc, ISO format).
+        The second string is the type of serialization used (See the
+        Serialization enum). The third string is the name with which the
+        data was output.
     """
 
     if Config.__METADATA_SEPARATOR__ not in metadata:
