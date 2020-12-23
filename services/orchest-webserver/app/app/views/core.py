@@ -1001,9 +1001,7 @@ def register_views(app, db):
 
         projects_dir = os.path.join(app.config["USER_DIR"], "projects")
         project_paths = [
-            name
-            for name in os.listdir(projects_dir)
-            if os.path.isdir(os.path.join(projects_dir, name))
+            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
         ]
 
         # look for projects that have been removed through the filesystem by the
@@ -1030,9 +1028,7 @@ def register_views(app, db):
         # refer to the path and the path is there, then this is actually
         # a project which has been created through the FS.
         project_paths = [
-            name
-            for name in os.listdir(projects_dir)
-            if os.path.isdir(os.path.join(projects_dir, name))
+            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
         ]
         new_project_paths = set(project_paths) - set(existing_project_paths)
 
