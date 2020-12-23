@@ -236,6 +236,8 @@ def update(language):
         # during the update to support _updateserver
         stop(skip_names=["nginx-proxy", "update-server"])
 
+    utils.clear_environment_images()
+
     # Update git repository to get the latest changes to the ``userdir``
     # structure.
     logging.info("Updating repo ...")

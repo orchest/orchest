@@ -21,7 +21,6 @@ import {
 
 import PipelineSettingsView from "./PipelineSettingsView";
 import PipelineDetails from "../components/PipelineDetails";
-import MultiPipelinestepDetails from "../components/MultiPipelinestepDetails";
 import PipelineStep from "../components/PipelineStep";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import io from "socket.io-client";
@@ -781,7 +780,10 @@ class PipelineView extends React.Component {
           step.meta_data._drag_count = 0;
         }
 
-        if (this.state.selectedSteps.length > 1) {
+        if (
+          this.state.selectedSteps.length > 1 &&
+          this.state.selectedSteps.indexOf(this.selectedItem) !== -1
+        ) {
           for (let key in this.state.selectedSteps) {
             let uuid = this.state.selectedSteps[key];
 
@@ -2150,11 +2152,14 @@ class PipelineView extends React.Component {
           }
           if (this.state.openedMultistep) {
             return (
-              <MultiPipelinestepDetails
-                onDelete={this.onDeleteMultistep.bind(this)}
-                onClose={this.onCloseMultistep.bind(this)}
-                readOnly={this.props.readOnly}
-              />
+              <div className={"pipeline-actions bottom-right"}>
+                <MDCButtonReact
+                  classNames={["mdc-button--raised"]}
+                  label={"Delete"}
+                  onClick={this.onDeleteMultistep.bind(this)}
+                  icon={"delete"}
+                />
+              </div>
             );
           }
         })()}

@@ -34,6 +34,10 @@ class ProjectFilePicker extends React.Component {
     this.checkFileValidity();
   }
 
+  componentWillUnmount() {
+    this.promiseManager.cancelCancelablePromises();
+  }
+
   componentDidUpdate(prevProps) {
     if (prevProps.value != this.props.value) {
       this.checkFileValidity();

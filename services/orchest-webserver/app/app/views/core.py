@@ -55,7 +55,7 @@ from app.schemas import (
     ExperimentSchema,
     BackgroundTaskSchema,
 )
-from app.kernel_manager import populate_kernels
+from app.kernel_manager import populate_kernels, cleanup_kernel
 from app.analytics import send_anonymized_pipeline_definition
 from app.views.orchest_api import api_proxy_environment_builds
 from _orchest.internals.utils import run_orchest_ctl
@@ -114,7 +114,7 @@ def register_views(app, db):
 
                 delete_environment(app, project_uuid, environment_uuid)
                 # refresh kernels after change in environments
-                populate_kernels(app, db)
+                populate_kernels(app, db, project_uuid)
 
                 return jsonify({"message": "Environment deletion was successful."})
 
@@ -143,7 +143,7 @@ def register_views(app, db):
                 serialize_environment_to_disk(e, environment_dir)
 
                 # refresh kernels after change in environments
-                populate_kernels(app, db)
+                populate_kernels(app, db, project_uuid)
 
                 return environment_schema.dump(e)
 
@@ -566,6 +566,9 @@ def register_views(app, db):
         for ex in experiments:
             remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
+        # cleanup kernels
+        cleanup_kernel(app, project.uuid)
+
         # will delete cascade
         # pipeline
         # experiment -> pipeline run
@@ -628,7 +631,7 @@ def register_views(app, db):
                     "The expected internal directory (.orchest) is a file."
                 )
             elif not os.path.isdir(expected_internal_dir):
-                os.makedirs(expected_internal_dir)
+                os.makedirs(expected_internal_dir, exist_ok=True)
 
             # init the .gitignore file if it is not there already
             expected_git_ignore_file = os.path.join(
@@ -653,7 +656,7 @@ def register_views(app, db):
 
             # refresh kernels after change in environments, given that  either we added the default environments
             # or the project has environments of its own
-            populate_kernels(app, db)
+            populate_kernels(app, db, new_project.uuid)
 
             # build environments on project creation
             build_environments_for_project(new_project.uuid)
@@ -666,7 +669,6 @@ def register_views(app, db):
         except Exception as e:
             db.session.delete(new_project)
             db.session.commit()
-            populate_kernels(app, db)
             raise e
 
         return new_project.uuid
@@ -991,9 +993,6 @@ def register_views(app, db):
         ).all()
         for fs_removed_project in fs_removed_projects:
             cleanup_project_from_orchest(fs_removed_project)
-        if len(fs_removed_projects) > 0:
-            # refresh kernels after change in environments
-            populate_kernels(app, db)
 
         # detect new projects by detecting directories that were not registered in the db as projects
         existing_project_paths = [
@@ -1040,9 +1039,8 @@ def register_views(app, db):
                 project_path = project_uuid_to_path(project_uuid)
                 full_project_path = os.path.join(projects_dir, project_path)
                 shutil.rmtree(full_project_path)
+
                 cleanup_project_from_orchest(project)
-                # refresh kernels after change in environments
-                populate_kernels(app, db)
 
                 return jsonify({"message": "Project deleted."})
             else:
@@ -1059,7 +1057,7 @@ def register_views(app, db):
             if project_path not in project_paths:
                 full_project_path = os.path.join(projects_dir, project_path)
                 if not os.path.isdir(full_project_path):
-                    os.makedirs(full_project_path)
+                    os.makedirs(full_project_path, exist_ok=True)
                     # note that given the current pattern we have in the
                     # GUI, where we POST and then GET projects,
                     # this line does not strictly need to be there,
@@ -1070,6 +1068,10 @@ def register_views(app, db):
                     try:
                         init_project(project_path)
                     except Exception as e:
+                        logging.error(
+                            "Failed to create the project. Error: %s (%s)"
+                            % (e, type(e))
+                        )
                         return (
                             jsonify(
                                 {
