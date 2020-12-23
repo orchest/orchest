@@ -1,12 +1,11 @@
-import logging
-import uuid
-import requests
+import copy
 import os
 import time
-import posthog
-import copy
+import uuid
 
+import posthog
 from posthog.request import APIError
+
 from app.utils import write_config
 
 
@@ -93,13 +92,13 @@ def send_event(app, event, properties):
         properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
 
         posthog.capture(telemetry_uuid, event, properties)
-        logging.debug(
+        app.logger.debug(
             "Sending event[%s] to Posthog for anonymized user [%s] with properties: %s"
             % (event, telemetry_uuid, properties)
         )
         return True
     except (Exception, APIError) as e:
-        logging.error("Could not send event through posthog %s" % e)
+        app.logger.error("Could not send event through posthog %s" % e)
         return False
 
 
@@ -113,7 +112,7 @@ def analytics_ping(app):
         send_event(app, "heartbeat trigger", properties)
 
     except Exception as e:
-        logging.warning("Exception while sending telemetry request %s" % e)
+        app.logger.warning("Exception while sending telemetry request %s" % e)
 
 
 def check_active(app):
@@ -126,5 +125,5 @@ def check_active(app):
             app.config["TELEMETRY_INTERVAL"] * 0.5
         )  # check whether user was active in last half of TELEMETRY_INTERVAL
     except OSError as e:
-        logging.debug("Exception while reading request log recency %s" % e)
+        app.logger.debug("Exception while reading request log recency %s" % e)
         return False

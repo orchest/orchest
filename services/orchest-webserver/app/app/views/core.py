@@ -1,22 +1,19 @@
 import json
+import nbformat
 import os
 import shutil
-import uuid
-import pdb
-import requests
-import logging
-import nbformat
-import docker
 import subprocess
-
-from sqlalchemy.sql.expression import not_
-from flask import render_template, request, jsonify
-from flask import json as flask_json
-from flask_restful import Api, Resource, HTTPException
-from flask_marshmallow import Marshmallow
-from distutils.dir_util import copy_tree
-from nbconvert import HTMLExporter
 from subprocess import Popen
+import uuid
+
+import docker
+from flask import json as flask_json
+from flask import render_template, request, jsonify
+from flask_marshmallow import Marshmallow
+from flask_restful import Api, Resource, HTTPException
+from nbconvert import HTMLExporter
+import requests
+from sqlalchemy.sql.expression import not_
 
 from app.utils import (
     get_hash,
@@ -63,8 +60,6 @@ from app.analytics import send_anonymized_pipeline_definition
 from app.views.orchest_api import api_proxy_environment_builds
 from _orchest.internals.utils import run_orchest_ctl
 from _orchest.internals import config as _config
-
-logging.basicConfig(level=logging.DEBUG)
 
 
 def register_views(app, db):
@@ -415,7 +410,7 @@ def register_views(app, db):
                                 "display_name"
                             ] = environment.name
                     else:
-                        logging.warn(
+                        app.logger.warn(
                             "Could not find environment [%s] while setting notebook kernelspec for notebook %s."
                             % (step["environment"], notebook_path)
                         )
@@ -425,7 +420,7 @@ def register_views(app, db):
                             file.write(json.dumps(notebook_json, indent=4))
 
                 else:
-                    logging.info(
+                    app.logger.info(
                         "pipeline_set_notebook_kernels called on notebook_path that doesn't exist %s"
                         % notebook_path
                     )
@@ -760,7 +755,7 @@ def register_views(app, db):
                 db.session.commit()
 
             except Exception as e:
-                logging.info(e)
+                app.logger.info(e)
 
     @app.route("/", methods=["GET"])
     def index():
@@ -836,7 +831,7 @@ def register_views(app, db):
                 save_user_conf_raw(config)
 
             except json.JSONDecodeError as e:
-                logging.debug(e)
+                app.logger.debug(e)
 
             return ""
         else:
@@ -1010,7 +1005,7 @@ def register_views(app, db):
             try:
                 init_project(new_project_path)
             except Exception as e:
-                logging.error(
+                app.logger.error(
                     f"Error during project initialization of {new_project_path}: {e}"
                 )
 
@@ -1170,7 +1165,7 @@ def register_views(app, db):
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
             except Exception as e:
-                logging.info(e)
+                app.logger.info(e)
                 return return_404(
                     "Invalid JSON for pipeline %s error: %e" % (pipeline_json_path, e)
                 )
@@ -1190,7 +1185,7 @@ def register_views(app, db):
                     (file_content, _) = html_exporter.from_filename(file_path)
 
                 except IOError as error:
-                    logging.info(
+                    app.logger.info(
                         "Error opening notebook file %s error: %s" % (file_path, error)
                     )
                     return return_404("Could not find notebook file %s" % file_path)
@@ -1328,12 +1323,12 @@ def register_views(app, db):
                     try:
                         dir_nodes[root]["children"].append(file_node)
                     except KeyError as e:
-                        logging.error(
+                        app.logger.error(
                             "Key %s does not exist in dir_nodes %s. Error: %s"
                             % (root, dir_nodes, e)
                         )
                     except Exception as e:
-                        logging.error("Error: %e" % e)
+                        app.logger.error("Error: %e" % e)
 
         return jsonify(tree)
 
@@ -1354,7 +1349,7 @@ def register_views(app, db):
             open(file_path, "a").close()
             return jsonify({"message": "File created."})
         except IOError as e:
-            logging.error("Could not create file at %s. Error: %s" % (file_path, e))
+            app.logger.error("Could not create file at %s. Error: %s" % (file_path, e))
 
     @app.route(
         "/async/project-files/exists/<project_uuid>/<pipeline_uuid>", methods=["POST"]

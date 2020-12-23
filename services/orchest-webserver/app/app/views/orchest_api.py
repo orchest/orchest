@@ -1,7 +1,8 @@
-import requests
-import logging
-from app.models import PipelineRun
 from flask import request, jsonify
+import requests
+
+from app.analytics import send_pipeline_run
+from app.models import PipelineRun
 from app.utils import (
     project_uuid_to_path,
     get_project_directory,
@@ -9,8 +10,6 @@ from app.utils import (
     get_environments,
     get_pipeline_json,
 )
-
-from app.analytics import send_pipeline_run
 
 
 def api_proxy_environment_builds(environment_build_requests, orchest_api_address):
@@ -219,7 +218,7 @@ def register_orchest_api_views(app, db):
 
                 return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
-            logging.error(
+            app.logger.error(
                 "Could not get session information from orchest-api. Error: %s (%s)"
                 % (e, type(e))
             )
@@ -335,7 +334,7 @@ def register_orchest_api_views(app, db):
         if resp.status_code == 200:
 
             try:
-                logging.info(json_return)
+                app.logger.info(json_return)
 
                 for run in json_return["pipeline_runs"]:
                     run["parameters"] = pipeline_runs_dict[

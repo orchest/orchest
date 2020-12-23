@@ -7,31 +7,31 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 
-import os
-import logging
-import sys
-import contextlib
-import subprocess
-import posthog
+from logging.config import dictConfig
+from pprint import pformat
 import base64
+import contextlib
+import os
+import subprocess
+from subprocess import Popen
 
-from flask import Flask, send_from_directory
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Flask, request, send_from_directory
 from flask_migrate import Migrate, upgrade
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
+import posthog
 
-from app.config import CONFIG_CLASS
-from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
-from subprocess import Popen
+from app.config import CONFIG_CLASS
+from app.connections import db, ma
+from app.models import DataSource
+from app.socketio_server import register_socketio_broadcast
+from app.utils import get_user_conf, get_repo_tag
+from app.views.analytics import register_analytics_views
+from app.views.background_tasks import register_background_tasks_view
 from app.views.core import register_views
 from app.views.orchest_api import register_orchest_api_views
-from app.views.background_tasks import register_background_tasks_view
-from app.views.analytics import register_analytics_views
-from app.socketio_server import register_socketio_broadcast
-from app.models import DataSource, Environment
-from app.connections import db, ma
-from app.utils import get_user_conf, get_repo_tag
 
 
 def initialize_default_datasources(db, app):
@@ -85,26 +85,27 @@ def create_app_managed():
 
     finally:
         for process in processes:
-            logging.info("Killing subprocess with PID %d" % process.pid)
+            app.logger.info("Killing subprocess with PID %d" % process.pid)
             process.kill()
 
 
 def create_app():
-
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
     app = Flask(__name__)
     app.config.from_object(CONFIG_CLASS)
 
+    init_logging()
+
     socketio = SocketIO(app, cors_allowed_origins="*")
-    logging.getLogger("engineio").setLevel(logging.ERROR)
+
+    if os.getenv("FLASK_ENV") == "development":
+        app = register_teardown_request(app)
 
     # read directory mount based config into Flask config
     try:
         conf_data = get_user_conf()
         app.config.update(conf_data)
-    except Exception as e:
-        logging.warning("Failed to load config.json")
+    except Exception:
+        app.logger.warning("Failed to load config.json")
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
@@ -113,7 +114,7 @@ def create_app():
     scheduler = BackgroundScheduler()
     app.config["SCHEDULER"] = scheduler
 
-    logging.info("Flask CONFIG: %s" % app.config)
+    app.logger.info("Flask CONFIG: %s" % app.config)
 
     # Create the database if it does not exist yet. Roughly equal to a
     # "CREATE DATABASE IF NOT EXISTS <db_name>" call.
@@ -172,7 +173,81 @@ def create_app():
             stderr=subprocess.STDOUT,
         )
 
-        logging.info("Started log_streamer.py")
+        app.logger.info("Started log_streamer.py")
         processes.append(log_streamer_process)
 
     return app, socketio, processes
+
+
+def init_logging():
+    logging_config = {
+        "version": 1,
+        "formatters": {
+            "verbose": {
+                "format": (
+                    "%(levelname)s:%(name)s:%(filename)s - [%(asctime)s] - %(message)s"
+                ),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+            "minimal": {
+                "format": ("%(levelname)s:%(name)s:%(filename)s - %(message)s"),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+        },
+        "handlers": {
+            "console": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "verbose",
+            },
+            "console-minimal": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "minimal",
+            },
+        },
+        "loggers": {
+            # NOTE: this is the name of the Flask app, since we use
+            # ``__name__``. Using ``__name__`` is required for the app
+            # to function correctly.
+            "app": {
+                "handlers": ["console"],
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
+            "engineio": {
+                "handlers": ["console"],
+                "level": "ERROR",
+            },
+            "alembic": {
+                "handlers": ["console"],
+                "level": "WARNING",
+            },
+            "werkzeug": {
+                # NOTE: Werkzeug automatically creates a handler at the
+                # level of its logger if none is defined.
+                "level": "INFO",
+                "handlers": ["console-minimal"],
+            },
+            # "sqlalchemy.engine": {
+            #     "handlers": ["console"],
+            #     "level": "DEBUG",
+            # },
+        },
+    }
+
+    dictConfig(logging_config)
+
+
+def register_teardown_request(app):
+    @app.after_request
+    def teardown(response):
+        app.logger.debug(
+            "%s %s %s\n[Request object]: %s",
+            request.method,
+            request.path,
+            response.status,
+            pformat(request.get_json()),
+        )
+        return response
+
+    return app

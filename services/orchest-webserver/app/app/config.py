@@ -1,5 +1,4 @@
 import os
-import logging
 
 from _orchest.internals import config as _config
 
@@ -50,9 +49,6 @@ class Config:
 
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
-
-    if DEBUG:
-        logging.basicConfig(level=logging.INFO)
 
     RESOURCE_DIR = os.path.join(dir_path, "res")
 
