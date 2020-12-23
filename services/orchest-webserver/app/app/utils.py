@@ -298,7 +298,9 @@ def remove_dir_if_empty(path):
         if os.path.isdir(path) and not os.listdir(path):
             shutil.rmtree(path, ignore_errors=True)
     except FileNotFoundError as e:
-        logging.erorr("Failed to remove directory %s" % path)
+        logging.error(
+            "Failed to remove directory %s. Error: %s [%s]" % (path, e, type(e))
+        )
 
 
 def pipeline_uuid_to_path(pipeline_uuid, project_uuid, experiment_uuid=None):
