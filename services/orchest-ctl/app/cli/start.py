@@ -84,9 +84,13 @@ def dev(
         "80/tcp": port,
         "443/tcp": 443,
     }
-    if log_level is not None:
-        containers = ["orchest/orchest-api:latest"]
 
+    if log_level is not None:
+        containers = [
+            "orchest/orchest-api:latest",
+            "orchest/orchest-webserver:latest",
+            "orchest/auth-server:latest",
+        ]
         for c in containers:
             config.CONTAINER_MAPPING[c]["environment"][
                 "ORCHEST_LOG_LEVEL"
