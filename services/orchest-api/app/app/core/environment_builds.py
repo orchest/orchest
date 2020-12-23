@@ -232,7 +232,10 @@ def write_environment_dockerfile(
     # the bash script is removed so that the user won't be able to see it after the build is done
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
-        f"&& sudo chmod +x {bash_script} "
+        "&& sudo chown -R :$(id -g) . "
+        "&& sudo find . -type d -exec chmod g+rwxs {} \; "
+        "&& sudo find . -type f -exec chmod g+rwx {} \; "
+        "&& sudo chmod g+rwx . "
         f'&& echo "{flag}" '
         f"&& bash {bash_script} "
         f'&& echo "{flag}" '

@@ -1,10 +1,11 @@
-from datetime import datetime, time
+from datetime import datetime
 from typing import Dict, Set, Union
-import requests
+import time
 
 from docker import errors
 from flask import current_app
 from flask_restplus import Model, Namespace
+import requests
 from sqlalchemy import and_
 
 from app import schema

@@ -12,7 +12,7 @@ class Project(db.Model):
     __tablename__ = "project"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
-    path = db.Column(db.String(255), nullable=False)
+    path = db.Column(db.String(255), nullable=False, unique=True)
 
     __table_args__ = (UniqueConstraint("uuid", "path"),)
     experiments = db.relationship(

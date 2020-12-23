@@ -109,9 +109,20 @@ def create_app():
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
-    # create thread for non-cpu bound background tasks, e.g.
-    # requests
-    scheduler = BackgroundScheduler()
+    # create thread for non-cpu bound background tasks, e.g. requests
+    scheduler = BackgroundScheduler(
+        job_defaults={
+            # Infinite amount of grace time, so that if a task cannot be
+            # instantly executed (e.g. if the webserver is busy) then it
+            # will eventually be.
+            "misfire_grace_time": 2 ** 31,
+            "coalesce": False,
+            # So that the same job can be in the queue an infinite
+            # amount of times, e.g. for concurrent requests issuing the
+            # same tasks.
+            "max_instances": 2 ** 31,
+        }
+    )
     app.config["SCHEDULER"] = scheduler
 
     app.logger.info("Flask CONFIG: %s" % app.config)

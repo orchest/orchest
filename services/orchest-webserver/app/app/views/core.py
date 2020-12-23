@@ -13,6 +13,7 @@ from flask_marshmallow import Marshmallow
 from flask_restful import Api, Resource, HTTPException
 from nbconvert import HTMLExporter
 import requests
+import sqlalchemy
 from sqlalchemy.sql.expression import not_
 
 from app.utils import (
@@ -532,47 +533,52 @@ def register_views(app, db):
         experiment_project_path = os.path.join(
             app.config["USER_DIR"], "experiments", project_uuid
         )
-
         experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
-
         experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
 
         if os.path.isdir(experiment_path):
-            shutil.rmtree(experiment_path)
+            shutil.rmtree(experiment_path, ignore_errors=True)
 
         # clean up parent directory if this experiment removal created empty directories
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-    def cleanup_project_from_orchest(project):
+    def cleanup_project_from_orchest(project_uuid):
         """Cleanup a project at the orchest level.
 
         Removes references of the project in the webserver db, and
-        issues a cleanup request to the orchest-api.
+        issues a cleanup request to the orchest-api. Note that we pass
+        the uuid and not a project instance because this function does
+        commit, meaning that the passed instance might then become stale
+        , since it belonged to another transaction. That could be a
+        problem when the record related to said instance has been
+        deleted from the db, which will lead to an error since
+        sqlalchemy will try to refresh that object on accessing any of
+        its attributes, failing because the record does not exist.
 
         Args:
-            project:
+            project_uuid:
 
         Returns:
 
         """
-        url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/projects/{project.uuid}"
+        url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/projects/{project_uuid}"
         app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         experiments = Experiment.query.filter(
-            Experiment.project_uuid == project.uuid
+            Experiment.project_uuid == project_uuid
         ).all()
 
         for ex in experiments:
             remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
         # cleanup kernels
-        cleanup_kernel(app, project.uuid)
+        cleanup_kernel(app, project_uuid)
 
         # will delete cascade
         # pipeline
         # experiment -> pipeline run
-        db.session.delete(project)
+        Project.query.filter_by(uuid=project_uuid).delete()
         db.session.commit()
 
     def cleanup_pipeline_from_orchest(pipeline):
@@ -619,8 +625,12 @@ def register_views(app, db):
             uuid=str(uuid.uuid4()),
             path=project_path,
         )
-        db.session.add(new_project)
-        db.session.commit()
+        try:
+            db.session.add(new_project)
+            db.session.commit()
+        except sqlalchemy.exc.IntegrityError as e:
+            db.session.rollback()
+            raise Exception(f'Project "{project_path}" already exists.')
 
         try:
             # this would actually be created as a collateral effect when populating with default environments,
@@ -976,30 +986,42 @@ def register_views(app, db):
 
     api.add_resource(ImportGitProjectListResource, "/async/projects/import-git")
 
-    @app.route("/async/projects", methods=["GET", "POST", "DELETE"])
-    def projects():
+    @app.route("/async/projects", methods=["GET"])
+    def projects_get():
 
         projects_dir = os.path.join(app.config["USER_DIR"], "projects")
         project_paths = [
-            name
-            for name in os.listdir(projects_dir)
-            if os.path.isdir(os.path.join(projects_dir, name))
+            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
         ]
 
-        # look for projects that have been removed through the filesystem by the user, cleanup
-        # dangling resources
+        # look for projects that have been removed through the filesystem by the
+        # user, cleanup dangling resources
         fs_removed_projects = Project.query.filter(
             Project.path.notin_(project_paths)
         ).all()
-        for fs_removed_project in fs_removed_projects:
-            cleanup_project_from_orchest(fs_removed_project)
+        for uuid in [project.uuid for project in fs_removed_projects]:
+            cleanup_project_from_orchest(uuid)
 
-        # detect new projects by detecting directories that were not registered in the db as projects
-        existing_project_paths = [
-            project.path
-            for project in Project.query.filter(Project.path.in_(project_paths)).all()
+        # detect new projects by detecting directories that were not
+        # registered in the db as projects
+        existing_project_paths = [project.path for project in Project.query.all()]
+        # We need to check the project_paths after the database to avoid
+        # a race condition. It might happen that request A has read a
+        # file path related to project X, and that request B deletes
+        # project X. The project would be deleted from the FS and the db
+        # , but request A would still have the file_path in memory, and
+        # would think that path is related to a new project that was
+        # created through the FS.
+        # By checking the FS after the db, we will avoid the race
+        # condition since deleting a project involves first deleting the
+        # directory, then deleting the db entries. If no db entries
+        # refer to the path and the path is there, then this is actually
+        # a project which has been created through the FS.
+        project_paths = [
+            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
         ]
         new_project_paths = set(project_paths) - set(existing_project_paths)
+
         for new_project_path in new_project_paths:
             try:
                 init_project(new_project_path)
@@ -1008,91 +1030,87 @@ def register_views(app, db):
                     f"Error during project initialization of {new_project_path}: {e}"
                 )
 
-        if request.method == "GET":
+        projects = projects_schema.dump(Project.query.all())
 
-            projects = projects_schema.dump(Project.query.all())
+        # Get counts for: pipelines, experiments and environments
+        for project in projects:
+            # catch both pipelines of newly initialized projects
+            # and manually initialized pipelines of existing
+            # projects
+            sync_project_pipelines_db_state(project["uuid"])
+            project["pipeline_count"] = Pipeline.query.filter(
+                Pipeline.project_uuid == project["uuid"]
+            ).count()
+            project["experiment_count"] = Experiment.query.filter(
+                Experiment.project_uuid == project["uuid"]
+            ).count()
+            project["environment_count"] = len(get_environments(project["uuid"]))
 
-            # Get counts for: pipelines, experiments and environments
-            for project in projects:
-                # catch both pipelines of newly initialized projects
-                # and manually initialized pipelines of existing
-                # projects
-                sync_project_pipelines_db_state(project["uuid"])
-                project["pipeline_count"] = Pipeline.query.filter(
-                    Pipeline.project_uuid == project["uuid"]
-                ).count()
-                project["experiment_count"] = Experiment.query.filter(
-                    Experiment.project_uuid == project["uuid"]
-                ).count()
-                project["environment_count"] = len(get_environments(project["uuid"]))
+        return jsonify(projects)
 
-            return jsonify(projects)
+    @app.route("/async/projects", methods=["POST"])
+    def projects_post():
+        projects_dir = os.path.join(app.config["USER_DIR"], "projects")
+        project_path = request.json["name"]
 
-        elif request.method == "DELETE":
+        project_paths = [
+            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
+        ]
 
-            project_uuid = request.json["project_uuid"]
-
-            project = Project.query.filter(Project.uuid == project_uuid).first()
-
-            if project != None:
-
-                project_path = project_uuid_to_path(project_uuid)
-                full_project_path = os.path.join(projects_dir, project_path)
-                shutil.rmtree(full_project_path)
-
-                cleanup_project_from_orchest(project)
-
-                return jsonify({"message": "Project deleted."})
-            else:
-                return (
-                    jsonify(
-                        {"message": "Project not found for UUID %s." % project_uuid}
-                    ),
-                    404,
-                )
-
-        elif request.method == "POST":
-            project_path = request.json["name"]
-
-            if project_path not in project_paths:
-                full_project_path = os.path.join(projects_dir, project_path)
-                if not os.path.isdir(full_project_path):
-                    os.makedirs(full_project_path, exist_ok=True)
-                    # note that given the current pattern we have in the
-                    # GUI, where we POST and then GET projects,
-                    # this line does not strictly need to be there,
-                    # since the new directory will be picked up
-                    # on the GET request and initialized, placing it
-                    # here is more explicit and less relying
-                    # on the POST->GET pattern from the GUI
-                    try:
-                        init_project(project_path)
-                    except Exception as e:
-                        logging.error(
-                            "Failed to create the project. Error: %s (%s)"
-                            % (e, type(e))
-                        )
-                        return (
-                            jsonify(
-                                {
-                                    "message": "Failed to create the project. Error: %s"
-                                    % e
-                                }
-                            ),
-                            500,
-                        )
-                else:
+        if project_path not in project_paths:
+            full_project_path = os.path.join(projects_dir, project_path)
+            if not os.path.isdir(full_project_path):
+                os.makedirs(full_project_path, exist_ok=True)
+                try:
+                    init_project(project_path)
+                except Exception as e:
+                    app.logger.error(
+                        "Failed to create the project. Error: %s (%s)" % (e, type(e))
+                    )
                     return (
-                        jsonify({"message": "Project directory already exists."}),
-                        409,
+                        jsonify(
+                            {"message": "Failed to create the project. Error: %s" % e}
+                        ),
+                        500,
                     )
             else:
                 return (
-                    jsonify({"message": "Project name already exists."}),
+                    jsonify({"message": "Project directory already exists."}),
                     409,
                 )
+        else:
+            return (
+                jsonify({"message": "Project name already exists."}),
+                409,
+            )
 
-            return jsonify({"message": "Project created."})
+        return jsonify({"message": "Project created."})
+
+    @app.route("/async/projects", methods=["DELETE"])
+    def projects_delete():
+
+        project_uuid = request.json["project_uuid"]
+        projects_dir = os.path.join(app.config["USER_DIR"], "projects")
+        project = Project.query.filter(Project.uuid == project_uuid).first()
+
+        if project != None:
+
+            project_path = project_uuid_to_path(project_uuid)
+            full_project_path = os.path.join(projects_dir, project_path)
+
+            # Note that deleting from the FS first and the db later matters!
+            # Part of the code is avoiding race conditions by
+            # relying on this behaviour. See the discovery of new
+            # projects or project cleanup.
+            shutil.rmtree(full_project_path)
+            cleanup_project_from_orchest(request.json["project_uuid"])
+
+            return jsonify({"message": "Project deleted."})
+        else:
+            return (
+                jsonify({"message": "Project not found for UUID %s." % project_uuid}),
+                404,
+            )
 
     @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["GET"])
     def pipeline_get(project_uuid, pipeline_uuid):

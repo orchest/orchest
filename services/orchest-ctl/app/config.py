@@ -2,13 +2,21 @@ import os
 
 from app.errors import ENVVariableNotFound
 
-REQUIRED_ENV_VARS = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR", "HOST_OS"]
+# NOTE! All environment variables need to be passed to all
+# containers that will invoke the orchest-ctl service.
+# Adding environment variables requires a default, as the web updater
+# will not be able to access the `orchest` bash script to set them.
+
+REQUIRED_ENV_VARS = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR"]
 ENVS = {}
 
 for var_name in REQUIRED_ENV_VARS:
     ENVS[var_name] = os.environ.get(var_name)
     if ENVS[var_name] is None:
         raise ENVVariableNotFound("%s cannot be found in the environment." % var_name)
+
+# Optional ENV_VARS
+ENVS["HOST_OS"] = os.environ.get("HOST_OS", "linux")
 
 # Can either be "reg" or "dev"
 RUN_MODE = "reg"
