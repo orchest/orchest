@@ -568,9 +568,7 @@ def register_views(app, db):
         Returns:
 
         """
-        url = (
-            f"http://{app.config['ORCHEST_API_ADDRESS']}" "/api/projects/{project_uuid}"
-        )
+        url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/projects/{project_uuid}"
         app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         experiments = Experiment.query.filter(
