@@ -1,7 +1,8 @@
-from datetime import datetime, time
+from datetime import datetime
 from typing import Dict, Set, Union
 import requests
 import logging
+import time
 
 from docker import errors
 from flask_restplus import Model, Namespace
