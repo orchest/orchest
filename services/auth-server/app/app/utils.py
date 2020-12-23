@@ -1,7 +1,7 @@
 import hashlib
 import json
-import logging
-import sys
+
+from flask import current_app
 
 
 def get_hash(path):
@@ -28,6 +28,6 @@ def get_user_conf():
 
         conf_data.update(config)
     except Exception as e:
-        logging.debug(e)
+        current_app.logger.debug(e)
 
     return conf_data
