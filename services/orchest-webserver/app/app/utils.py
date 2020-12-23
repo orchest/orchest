@@ -295,7 +295,7 @@ def clear_folder(folder):
 
 def remove_dir_if_empty(path):
     try:
-        if os.path.isdir(path) and not os.listdir(path):
+        if os.path.isdir(path) and not any(True for _ in os.scandir(path)):
             shutil.rmtree(path, ignore_errors=True)
     except FileNotFoundError as e:
         logging.error(
