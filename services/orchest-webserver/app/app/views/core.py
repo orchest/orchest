@@ -539,13 +539,11 @@ def register_views(app, db):
         experiment_project_path = os.path.join(
             app.config["USER_DIR"], "experiments", project_uuid
         )
-
         experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
-
         experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
 
         if os.path.isdir(experiment_path):
-            shutil.rmtree(experiment_path)
+            shutil.rmtree(experiment_path, ignore_errors=True)
 
         # clean up parent directory if this experiment removal created empty directories
         remove_dir_if_empty(experiment_pipeline_path)

@@ -294,8 +294,11 @@ def clear_folder(folder):
 
 
 def remove_dir_if_empty(path):
-    if os.path.isdir(path) and not os.listdir(path):
-        shutil.rmtree(path)
+    try:
+        if os.path.isdir(path) and not os.listdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+    except FileNotFoundError as e:
+        logging.erorr("Failed to remove directory %s" % path)
 
 
 def pipeline_uuid_to_path(pipeline_uuid, project_uuid, experiment_uuid=None):
