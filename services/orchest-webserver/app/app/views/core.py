@@ -17,6 +17,8 @@ from flask_marshmallow import Marshmallow
 from distutils.dir_util import copy_tree
 from nbconvert import HTMLExporter
 from subprocess import Popen
+import sqlalchemy
+
 
 from app.utils import (
     get_hash,
@@ -537,47 +539,54 @@ def register_views(app, db):
         experiment_project_path = os.path.join(
             app.config["USER_DIR"], "experiments", project_uuid
         )
-
         experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
-
         experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
 
         if os.path.isdir(experiment_path):
-            shutil.rmtree(experiment_path)
+            shutil.rmtree(experiment_path, ignore_errors=True)
 
         # clean up parent directory if this experiment removal created empty directories
         remove_dir_if_empty(experiment_pipeline_path)
         remove_dir_if_empty(experiment_project_path)
 
-    def cleanup_project_from_orchest(project):
+    def cleanup_project_from_orchest(project_uuid):
         """Cleanup a project at the orchest level.
 
         Removes references of the project in the webserver db, and
-        issues a cleanup request to the orchest-api.
+        issues a cleanup request to the orchest-api. Note that we pass
+        the uuid and not a project instance because this function does
+        commit, meaning that the passed instance might then become stale
+        , since it belonged to another transaction. That could be a
+        problem when the record related to said instance has been
+        deleted from the db, which will lead to an error since
+        sqlalchemy will try to refresh that object on accessing any of
+        its attributes, failing because the record does not exist.
 
         Args:
-            project:
+            project_uuid:
 
         Returns:
 
         """
-        url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/projects/{project.uuid}"
+        url = (
+            f"http://{app.config['ORCHEST_API_ADDRESS']}" "/api/projects/{project_uuid}"
+        )
         app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         experiments = Experiment.query.filter(
-            Experiment.project_uuid == project.uuid
+            Experiment.project_uuid == project_uuid
         ).all()
 
         for ex in experiments:
             remove_experiment_directory(ex.uuid, ex.pipeline_uuid, ex.project_uuid)
 
         # cleanup kernels
-        cleanup_kernel(app, project.uuid)
+        cleanup_kernel(app, project_uuid)
 
         # will delete cascade
         # pipeline
         # experiment -> pipeline run
-        db.session.delete(project)
+        Project.query.filter_by(uuid=project_uuid).delete()
         db.session.commit()
 
     def cleanup_pipeline_from_orchest(pipeline):
@@ -624,8 +633,12 @@ def register_views(app, db):
             uuid=str(uuid.uuid4()),
             path=project_path,
         )
-        db.session.add(new_project)
-        db.session.commit()
+        try:
+            db.session.add(new_project)
+            db.session.commit()
+        except sqlalchemy.exc.IntegrityError as e:
+            db.session.rollback()
+            raise Exception(f'Project "{project_path}" already exists.')
 
         try:
             # this would actually be created as a collateral effect when populating with default environments,
@@ -986,25 +999,37 @@ def register_views(app, db):
 
         projects_dir = os.path.join(app.config["USER_DIR"], "projects")
         project_paths = [
-            name
-            for name in os.listdir(projects_dir)
-            if os.path.isdir(os.path.join(projects_dir, name))
+            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
         ]
 
-        # look for projects that have been removed through the filesystem by the user, cleanup
-        # dangling resources
+        # look for projects that have been removed through the filesystem by the
+        # user, cleanup dangling resources
         fs_removed_projects = Project.query.filter(
             Project.path.notin_(project_paths)
         ).all()
-        for fs_removed_project in fs_removed_projects:
-            cleanup_project_from_orchest(fs_removed_project)
+        for uuid in [project.uuid for project in fs_removed_projects]:
+            cleanup_project_from_orchest(uuid)
 
-        # detect new projects by detecting directories that were not registered in the db as projects
-        existing_project_paths = [
-            project.path
-            for project in Project.query.filter(Project.path.in_(project_paths)).all()
+        # detect new projects by detecting directories that were not
+        # registered in the db as projects
+        existing_project_paths = [project.path for project in Project.query.all()]
+        # We need to check the project_paths after the database to avoid
+        # a race condition. It might happen that request A has read a
+        # file path related to project X, and that request B deletes
+        # project X. The project would be deleted from the FS and the db
+        # , but request A would still have the file_path in memory, and
+        # would think that path is related to a new project that was
+        # created through the FS.
+        # By checking the FS after the db, we will avoid the race
+        # condition since deleting a project involves first deleting the
+        # directory, then deleting the db entries. If no db entries
+        # refer to the path and the path is there, then this is actually
+        # a project which has been created through the FS.
+        project_paths = [
+            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
         ]
         new_project_paths = set(project_paths) - set(existing_project_paths)
+
         for new_project_path in new_project_paths:
             try:
                 init_project(new_project_path)
@@ -1043,9 +1068,13 @@ def register_views(app, db):
 
                 project_path = project_uuid_to_path(project_uuid)
                 full_project_path = os.path.join(projects_dir, project_path)
-                shutil.rmtree(full_project_path)
 
-                cleanup_project_from_orchest(project)
+                # Note that deleting from the FS first and the db later matters!
+                # Part of the code is avoiding race conditions by
+                # relying on this behaviour. See the discovery of new
+                # projects or project cleanup.
+                shutil.rmtree(full_project_path)
+                cleanup_project_from_orchest(request.json["project_uuid"])
 
                 return jsonify({"message": "Project deleted."})
             else:
