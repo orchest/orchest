@@ -38,7 +38,7 @@ To start, make sure you have :ref:`installed Orchest <regular installation>` and
 
 .. code-block:: bash
 
-   # Make sure to be in the root-level orchest directly.
+   # Make sure to be in the root-level orchest directory.
    ./orchest start
 
 For the quickstart we will create a new project named ``quickstart``. After creating the project, you
