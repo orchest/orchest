@@ -20,6 +20,7 @@ class Serialization(Enum):
     """Possible types of serialization.
 
     Types are:
+
         * ``ARROW_TABLE``
         * ``ARROW_BATCH``
         * ``PICKLE``

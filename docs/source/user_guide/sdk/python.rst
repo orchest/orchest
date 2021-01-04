@@ -8,24 +8,22 @@ Quickstart
 
 Data passing
 ~~~~~~~~~~~~
-The SDK manages the target and source of the data, leaving you
-only with the decision what data to pass. The target and source of the data are inferred
-through the :ref:`pipeline definition <pipeline definition>`.
+The SDK manages the target and source of the data, leaving you only with the decision what data to
+pass. The target and source of the data are inferred through the :ref:`pipeline definition <pipeline
+definition>`.
 
-For this example we let the pipeline be defined as follows: 
+For this example we let the pipeline be defined as follows:
 
 .. image:: ../../img/pipeline.png
   :width: 400
   :alt: Pipeline defined as: step-1, step-2 --> step-3
   :align: center
 
-where the order of getting data by `step-3` is [`step-2`, `step-1`].
-
-.. note:: The order in which the data is retrieved in `step-3` is determined via the UI through the
-   `Connections` section in the pipeline step properties pane. Order is from top to bottom, where
-   the left most element in the list (returned by :meth:`orchest.transfer.get_inputs`) is the output
-   of the top most step from the `Connections`. See more in the dedicated :ref:`connections section
-   <connections>`.
+.. note::
+   In this example we will name the data we output in the steps. It is also possible to use
+   ``name=None`` and obtain the data using the ``"unnamed"`` key, which allows you treat the inputs
+   as a collection. Additionally, there is an implied order of data in ``"unnamed"``, for more
+   information please read the dedicated :ref:`connections section <connections>`.
 
 
 .. code-block:: python
@@ -56,15 +54,15 @@ where the order of getting data by `step-3` is [`step-2`, `step-1`].
    import orchest
 
    # Get the input for step-3, i.e. the output of step-1 and step-2.
-   data = orchest.get_inputs()  
-   print(data)
+   input_data = orchest.get_inputs()
 
+   print(input_data)
    # {
    #  "my_list": [3, 1, 4],
    #  "my_string": "Hello, World!"
    # }
 
-.. note:: 
+.. note::
    Memory eviction of objects is disabled by default, refer to :ref:`configuration <configuration>`
    to learn how to enable it.
 
@@ -80,7 +78,7 @@ Parameters
    # Get the parameters of the current step.
    params = orchest.get_params()  # e.g. params = {"vegetable": "carrot"}
 
-   # Add a new parameter and update the step's parameters. The 
+   # Add a new parameter and update the step's parameters. The
    # parameters now also become visible through the properties pane in
    # the UI when clicking on a pipeline step.
    params["fruit"] = "apple"
