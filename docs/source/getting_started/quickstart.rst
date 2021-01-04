@@ -90,7 +90,7 @@ JupyterLab* (making sure you have the step selected) and paste in the following 
    
    # Output the housing data so the next steps can retrieve it.
    print("Outputting converted housing data...")
-   orchest.output((df_data, df_target), name="training_data")
+   orchest.output((df_data, df_target), name="data")
    print("Success!")
 
 As you can see, we have highlighted a few lines in the code to emphasize important nuts and bolts to
