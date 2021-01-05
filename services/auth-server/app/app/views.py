@@ -1,14 +1,15 @@
-import random
-import uuid
-import secrets
 import datetime
-import os
 import json
+import os
+import random
+import secrets
+import uuid
 
-from flask import request, make_response, send_from_directory, render_template, redirect
+from flask import make_response, redirect, render_template, request, send_from_directory
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from app.connections import db
-from app.models import User, Token
-from werkzeug.security import generate_password_hash, check_password_hash
+from app.models import Token, User
 from app.utils import get_hash, get_user_conf
 
 

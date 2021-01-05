@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
-import socketio
+import html
 import logging
 import os
 import sys
-import html
-
-from threading import Lock
 from datetime import datetime, timedelta
 from pathlib import Path
+from threading import Lock
+
+import socketio
+
 from _orchest.internals import config as _config
 
 # timeout after 2 minutes, heartbeat should be sent every minute

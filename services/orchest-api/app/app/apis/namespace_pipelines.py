@@ -5,11 +5,11 @@ pipeline, a good amount of other models depend on such a concept.
 """
 from flask_restplus import Namespace, Resource
 
-from app.connections import db
-from app.apis.namespace_sessions import stop_interactive_session
-from app.apis.namespace_runs import stop_pipeline_run
-from app.utils import register_schema
 import app.models as models
+from app.apis.namespace_runs import stop_pipeline_run
+from app.apis.namespace_sessions import stop_interactive_session
+from app.connections import db
+from app.utils import register_schema
 
 api = Namespace("pipelines", description="Managing pipelines")
 api = register_schema(api)

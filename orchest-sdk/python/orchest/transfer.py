@@ -1,17 +1,17 @@
 """Transfer mechanisms to output data and get data."""
-from collections import defaultdict
-from datetime import datetime
-from enum import Enum
 import json
 import os
 import pickle
+from collections import defaultdict
+from datetime import datetime
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import pyarrow as pa
 import pyarrow.plasma as plasma
 
-from orchest.config import Config
 from orchest import error
+from orchest.config import Config
 from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 

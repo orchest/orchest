@@ -1,21 +1,25 @@
-from docker import errors
-from flask_restplus import Namespace, Resource
 import logging
 
-from app.connections import docker_client
+from docker import errors
+from flask_restplus import Namespace, Resource
+
 import app.models as models
-from app.utils import register_schema
-from app.utils import remove_if_dangling
-from app.utils import experiments_using_environment
-from app.utils import interactive_runs_using_environment
-from app.utils import is_environment_in_use
-from app.apis.namespace_experiments import stop_experiment
-from app.apis.namespace_environment_builds import delete_project_environment_builds
-from app.apis.namespace_environment_builds import delete_project_builds
-from app.apis.namespace_runs import stop_pipeline_run
 from _orchest.internals import config as _config
-from _orchest.internals.utils import docker_images_list_safe
-from _orchest.internals.utils import docker_images_rm_safe
+from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
+from app.apis.namespace_environment_builds import (
+    delete_project_builds,
+    delete_project_environment_builds,
+)
+from app.apis.namespace_experiments import stop_experiment
+from app.apis.namespace_runs import stop_pipeline_run
+from app.connections import docker_client
+from app.utils import (
+    experiments_using_environment,
+    interactive_runs_using_environment,
+    is_environment_in_use,
+    register_schema,
+    remove_if_dangling,
+)
 
 api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)

@@ -1,6 +1,7 @@
 import os
 
 from flask import request
+
 from app.analytics import send_event
 
 

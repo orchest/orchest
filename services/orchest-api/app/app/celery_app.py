@@ -1,7 +1,6 @@
 from celery import Celery
-from sqlalchemy_utils import create_database, database_exists
-
 from config import CONFIG_CLASS
+from sqlalchemy_utils import create_database, database_exists
 
 
 def make_celery(app, use_backend_db=False):

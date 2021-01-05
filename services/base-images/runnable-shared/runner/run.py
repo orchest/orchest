@@ -1,10 +1,11 @@
-import sys
 import os
 import subprocess
+import sys
+
 import nbformat
 
-from runner.runners import NotebookRunner, ProcessRunner
 from runner.config import Config
+from runner.runners import NotebookRunner, ProcessRunner
 
 
 def get_filename_extension(filename):

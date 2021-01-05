@@ -1,9 +1,10 @@
 import os
 import shutil
+
 import pytest
 
-from runner.runners import NotebookRunner
 from runner.config import Config
+from runner.runners import NotebookRunner
 
 Config.PROJECT_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "test-outputs"

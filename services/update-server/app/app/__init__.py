@@ -7,6 +7,7 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 from flask import Flask
+
 from app.views import register_views
 
 

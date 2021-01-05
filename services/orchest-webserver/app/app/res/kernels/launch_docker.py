@@ -1,12 +1,12 @@
+import argparse
 import os
 import sys
-import argparse
-import urllib3
 
+import urllib3
 from docker.client import DockerClient
 
-from _orchest.internals.utils import get_device_requests, get_orchest_mounts
 from _orchest.internals import config as _config
+from _orchest.internals.utils import get_device_requests, get_orchest_mounts
 
 urllib3.disable_warnings()
 

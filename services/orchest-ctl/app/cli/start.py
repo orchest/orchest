@@ -2,8 +2,7 @@ from typing import Optional
 
 import typer
 
-from app import cmdline
-from app import config
+from app import cmdline, config
 
 
 def _default(

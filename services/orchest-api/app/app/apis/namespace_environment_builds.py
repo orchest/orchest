@@ -1,16 +1,16 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 
-from flask import current_app, request, abort
+from celery.contrib.abortable import AbortableAsyncResult
+from flask import abort, current_app, request
 from flask_restplus import Namespace, Resource
-from sqlalchemy import func, desc, or_
+from sqlalchemy import desc, func, or_
 
+import app.models as models
 from app import schema
 from app.celery_app import make_celery
-from celery.contrib.abortable import AbortableAsyncResult
 from app.connections import db
 from app.utils import register_schema, update_status_db
-import app.models as models
 
 api = Namespace("environment-builds", description="Managing environment builds")
 api = register_schema(api)

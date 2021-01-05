@@ -4,8 +4,9 @@ import time
 from unittest.mock import patch
 
 import numpy as np
-import orchest
 import pytest
+
+import orchest
 
 # Add the folder to the path to not break imports. This has to do with
 # imports that work differently when started via a subprocess.

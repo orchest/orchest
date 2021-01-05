@@ -1,7 +1,7 @@
 import json
 import os
-from typing import Any, Dict
 import urllib
+from typing import Any, Dict
 
 from orchest.config import Config
 from orchest.error import OrchestNetworkError, StepUUIDResolveError
