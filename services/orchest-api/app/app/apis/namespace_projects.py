@@ -33,7 +33,7 @@ class Project(Resource):
 
 
 def delete_project(project_uuid):
-    """Delee a project and all related entities.
+    """Delete a project and all related entities.
 
     Project sessions, runs and experiments are stopped. Every
     related entity in the db is removed. Environment images are
