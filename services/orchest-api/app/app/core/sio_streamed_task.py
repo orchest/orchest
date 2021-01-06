@@ -2,9 +2,10 @@ import logging
 import os
 import select
 import signal
-import socketio
-import time
 import threading
+import time
+
+import socketio
 
 
 # TODO: move this to util?

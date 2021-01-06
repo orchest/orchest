@@ -1,14 +1,13 @@
-import os
-import docker
-import requests
 import logging
-import time
-from concurrent.futures import ThreadPoolExecutor
-
-from flask import request, Response
 import os
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor
+
+import docker
+import requests
+from flask import Response, request
+
 from _orchest.internals.utils import run_orchest_ctl
 
 executor = ThreadPoolExecutor(1)

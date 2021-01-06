@@ -2,19 +2,20 @@
 
 Note: "run" is short for "interactive pipeline run".
 """
+import logging
 import uuid
+
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
-from flask import current_app, request, abort
+from flask import abort, current_app, request
 from flask_restplus import Namespace, Resource, marshal
 
+import app.models as models
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import construct_pipeline
-from app.utils import register_schema, update_status_db
-from app.utils import lock_environment_images_for_run
-import app.models as models
+from app.utils import lock_environment_images_for_run, register_schema, update_status_db
 
 api = Namespace("runs", description="Manages interactive pipeline runs")
 api = register_schema(api)

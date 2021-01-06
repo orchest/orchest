@@ -1,13 +1,11 @@
 import asyncio
-from enum import Enum
 import os
+from enum import Enum
 from typing import Optional
 
 import typer
 
-from app import cmdline
-from app import config
-from app import utils
+from app import cmdline, config, utils
 from app.cli import start as cli_start
 
 

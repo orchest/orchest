@@ -1,6 +1,7 @@
+import subprocess
+
 from app import create_app
 from config import CONFIG_CLASS
-import subprocess
 
 
 app = create_app(config_class=CONFIG_CLASS)

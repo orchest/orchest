@@ -1,21 +1,20 @@
 import asyncio
 import json
 import os
-
-from typing import Dict, Optional, Union, Any
+from typing import Any, Dict, Optional, Union
 
 import aiohttp
 from celery import Task
-from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
+from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
+from config import CONFIG_CLASS
 
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import docker_client
+from app.core.environment_builds import build_environment_task
 from app.core.pipelines import Pipeline, PipelineDefinition
 from app.core.sessions import launch_noninteractive_session
-from app.core.environment_builds import build_environment_task
-from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
 

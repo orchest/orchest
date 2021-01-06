@@ -10,7 +10,6 @@ from app.apis.namespace_runs import api as ns_runs
 from app.apis.namespace_sessions import api as ns_sessions
 from app.apis.namespace_validations import api as ns_validations
 
-
 blueprint = Blueprint("api", __name__)
 
 api = Api(

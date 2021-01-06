@@ -1,15 +1,15 @@
 import asyncio
 import copy
-import os
 import logging
+import os
 from datetime import datetime
-from docker.types import Mount
-from typing import Any, Dict, Iterable, List, Set, Optional
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 import aiodocker
 import aiohttp
-
 from config import CONFIG_CLASS
+from docker.types import Mount
+
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_device_requests, get_orchest_mounts
 

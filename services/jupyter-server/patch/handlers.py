@@ -1,24 +1,22 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-import os
 import logging
 import mimetypes
-
-from ..base.handlers import APIHandler, JupyterHandler
-from ..utils import url_path_join
-
-from tornado import web
-from tornado.concurrent import Future
-from tornado.ioloop import IOLoop, PeriodicCallback
-from tornado.websocket import WebSocketHandler, websocket_connect
-from tornado.httpclient import HTTPRequest
-from tornado.escape import url_escape, json_decode, utf8
+import os
 
 from ipython_genutils.py3compat import cast_unicode
 from jupyter_client.session import Session
+from tornado import web
+from tornado.concurrent import Future
+from tornado.escape import json_decode, url_escape, utf8
+from tornado.httpclient import HTTPRequest
+from tornado.ioloop import IOLoop, PeriodicCallback
+from tornado.websocket import WebSocketHandler, websocket_connect
 from traitlets.config.configurable import LoggingConfigurable
 
+from ..base.handlers import APIHandler, JupyterHandler
+from ..utils import url_path_join
 from .managers import GatewayClient
 
 # Keepalive ping interval (default: 30 seconds)

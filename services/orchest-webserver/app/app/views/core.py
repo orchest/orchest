@@ -1,66 +1,66 @@
 import json
-import nbformat
 import os
+import pdb
 import shutil
 import subprocess
-from subprocess import Popen
 import uuid
+from distutils.dir_util import copy_tree
+from subprocess import Popen
 
 import docker
-from flask import json as flask_json
-from flask import render_template, request, jsonify
-from flask_marshmallow import Marshmallow
-from flask_restful import Api, Resource, HTTPException
-from nbconvert import HTMLExporter
+import nbformat
 import requests
 import sqlalchemy
+from flask import json as flask_json
+from flask import jsonify, render_template, request
+from flask_marshmallow import Marshmallow
+from flask_restful import Api, HTTPException, Resource
+from nbconvert import HTMLExporter
 from sqlalchemy.sql.expression import not_
 
-from app.utils import (
-    get_hash,
-    get_user_conf,
-    get_user_conf_raw,
-    save_user_conf_raw,
-    find_pipelines_in_dir,
-    pipeline_uuid_to_path,
-    project_uuid_to_path,
-    remove_dir_if_empty,
-    get_pipeline_path,
-    get_pipeline_directory,
-    get_experiment_directory,
-    get_project_directory,
-    get_environment_directory,
-    get_environments,
-    get_environment,
-    serialize_environment_to_disk,
-    read_environment_from_disk,
-    delete_environment,
-    get_repo_tag,
-)
-
+from _orchest.internals import config as _config
+from _orchest.internals.utils import run_orchest_ctl
+from app.analytics import send_anonymized_pipeline_definition
+from app.kernel_manager import cleanup_kernel, populate_kernels
 from app.models import (
+    BackgroundTask,
     DataSource,
-    Experiment,
     Environment,
+    Experiment,
+    Pipeline,
     PipelineRun,
     Project,
-    Pipeline,
-    BackgroundTask,
 )
-
 from app.schemas import (
-    ProjectSchema,
-    PipelineSchema,
+    BackgroundTaskSchema,
     DataSourceSchema,
     EnvironmentSchema,
     ExperimentSchema,
-    BackgroundTaskSchema,
+    PipelineSchema,
+    ProjectSchema,
 )
-from app.kernel_manager import populate_kernels, cleanup_kernel
-from app.analytics import send_anonymized_pipeline_definition
+from app.utils import (
+    delete_environment,
+    find_pipelines_in_dir,
+    get_environment,
+    get_environment_directory,
+    get_environments,
+    get_experiment_directory,
+    get_hash,
+    get_pipeline_directory,
+    get_pipeline_path,
+    get_project_directory,
+    get_repo_tag,
+    get_user_conf,
+    get_user_conf_raw,
+    pipeline_uuid_to_path,
+    project_uuid_to_path,
+    read_environment_from_disk,
+    remove_dir_if_empty,
+    save_user_conf_raw,
+    serialize_environment_to_disk,
+)
 from app.views.orchest_api import api_proxy_environment_builds
-from _orchest.internals.utils import run_orchest_ctl
-from _orchest.internals import config as _config
 
 
 def register_views(app, db):

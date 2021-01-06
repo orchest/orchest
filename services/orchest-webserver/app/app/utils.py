@@ -3,8 +3,8 @@ import json
 import os
 import shutil
 
-import docker
 from flask import current_app
+import docker
 import requests
 
 from app.config import CONFIG_CLASS as StaticConfig
@@ -12,7 +12,6 @@ from app.models import Pipeline, Project, Environment, Experiment
 from app.schemas import EnvironmentSchema
 
 from _orchest.internals import config as _config
-
 
 # Directory resolves
 def get_pipeline_path(

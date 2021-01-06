@@ -1,13 +1,11 @@
 from flask import request
-from flask_restplus import Namespace
-from flask_restplus import Resource
+from flask_restplus import Namespace, Resource
 
+import app.models as models
+from app import schema
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
-import app.models as models
 from app.utils import register_schema
-from app import schema
-
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)

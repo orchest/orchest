@@ -17,7 +17,7 @@ from sqlalchemy_utils import create_database, database_exists
 
 from app.apis import blueprint as api
 from app.connections import db
-from app.models import InteractiveSession, InteractivePipelineRun
+from app.models import InteractivePipelineRun, InteractiveSession
 
 
 def create_app(config_class=None, use_db=True):

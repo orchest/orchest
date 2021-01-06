@@ -1,9 +1,10 @@
+import json
 import logging
 import sys
-import json
+
+from config import CONFIG_CLASS
 
 from app import create_app
-from config import CONFIG_CLASS
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 

@@ -1,12 +1,12 @@
 import asyncio
 import json
 
-from aiodocker.containers import DockerContainer, DockerContainers
 import pytest
+from aiodocker.containers import DockerContainer, DockerContainers
 
+from _orchest.internals import config as _config
 from app.core import pipelines
 from app.core.pipelines import Pipeline
-from _orchest.internals import config as _config
 
 
 class IO:

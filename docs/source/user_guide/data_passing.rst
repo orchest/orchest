@@ -14,6 +14,10 @@ directly.
 
 Connections
 -----------
+.. note::
+   This section only applies when you are outputting unnamed data, i.e.
+   calling :meth:`orchest.transfer.output` with ``name=None``.
+
 The image below is a screenshot from the properties pane of step that has incoming steps "A", "B"
 and "C". The order of the list can be changed with a simple drag and drop.
 
@@ -22,7 +26,7 @@ and "C". The order of the list can be changed with a simple drag and drop.
   :alt: From top to bottom: A -> C -> B
   :align: center
 
-The order of this list is important as it determines the order in which the receiving step obtaines
+The order of this list is important as it determines the order in which the receiving step obtains
 data from the steps A, B and C when calling :meth:`orchest.transfer.get_inputs`. In the example
 image above the receiving step would get a list with the data from steps A, C and B respectively.
 
@@ -37,7 +41,7 @@ To pass data through memory between steps (which is enabled by default) we make 
 in-memory object store <https://arrow.apache.org/docs/python/plasma.html>`_ from the Apache Arrow
 project. Within Orchest it is wrapped with additional code for object eviction, which we will cover
 later in this section. Every interactive session gets its own memory store, which is shared between
-the kernels and interactive runs, for pipeline runs as part of experiments each gets an insolated
+the kernels and interactive runs, for pipeline runs as part of experiments each gets an isolated
 memory store.
 
 When an object is sent from one step to another (using :meth:`orchest.transfer.output`) it is
