@@ -35,7 +35,7 @@ def create_app(config_class=None, use_db=True):
     Returns:
         Flask.app
     """
-    app = Flask("orchest-api")
+    app = Flask(__name__)
     app.config.from_object(config_class)
 
     init_logging()
@@ -115,7 +115,7 @@ def init_logging():
             },
         },
         "loggers": {
-            "orchest-api": {
+            __name__: {
                 "handlers": ["console"],
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },

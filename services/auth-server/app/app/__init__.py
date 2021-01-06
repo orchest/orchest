@@ -19,7 +19,7 @@ from app.views import register_views
 
 
 def create_app(config_class=None):
-    app = Flask("auth-server")
+    app = Flask(__name__)
     app.config.from_object(config_class)
 
     init_logging()
@@ -74,7 +74,7 @@ def init_logging():
             },
         },
         "loggers": {
-            "orchest-api": {
+            __name__: {
                 "handlers": ["console"],
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },

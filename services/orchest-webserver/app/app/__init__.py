@@ -220,8 +220,9 @@ def init_logging():
         "loggers": {
             # NOTE: this is the name of the Flask app, since we use
             # ``__name__``. Using ``__name__`` is required for the app
-            # to function correctly.
-            "app": {
+            # to function correctly. See:
+            # https://blog.miguelgrinberg.com/post/why-do-we-pass-name-to-the-flask-class
+            __name__: {
                 "handlers": ["console"],
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
