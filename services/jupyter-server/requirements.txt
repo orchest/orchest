@@ -1,0 +1,3 @@
+jupyterlab==3.0.1
+ipywidgets==7.6.2
+jupyter_server==1.1.4

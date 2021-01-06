@@ -3,7 +3,7 @@ from datetime import datetime
 
 from celery.contrib.abortable import AbortableAsyncResult
 from flask import abort, current_app, request
-from flask_restplus import Namespace, Resource
+from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func, or_
 
 import app.models as models

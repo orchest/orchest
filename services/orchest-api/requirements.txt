@@ -5,12 +5,11 @@ celery==4.4.2
 docker>=4.3.0
 Flask==1.1.1
 Flask-Cors==3.0.8
-flask-restplus==0.13.0
+flask-restx==0.2.0
 Flask-SQLAlchemy==2.4.1
 flask-migrate==2.5.3
 flask-script==2.0.6
 requests==2.22.0
-Werkzeug==0.16.0
 python-engineio==3.14.2
 python-socketio[client]==4.6.1
 eventlet==0.29.1

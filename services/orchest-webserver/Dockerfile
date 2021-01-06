@@ -1,4 +1,4 @@
-FROM tiangolo/meinheld-gunicorn-flask:python3.7
+FROM tiangolo/meinheld-gunicorn-flask:python3.8
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Refresh SSL certificates
@@ -27,7 +27,7 @@ WORKDIR /orchest/services/orchest-webserver/app/static
 RUN npm install && \
     ./compile-js.sh && ./compile-sass.sh && \
     rm -rf node_modules/
-    
+
 # Application files.
 WORKDIR /orchest/services/orchest-webserver/
 COPY ./app ./app

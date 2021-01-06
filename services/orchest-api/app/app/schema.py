@@ -6,7 +6,7 @@ TODO:
       to share attributes?
 
 """
-from flask_restplus import Model, fields
+from flask_restx import Model, fields
 
 from _orchest.internals import config as _config
 
@@ -122,6 +122,12 @@ pipeline_run = Model(
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of the run"),
+        "started_time": fields.String(
+            required=True, description="Time at which the pipeline started executing"
+        ),
+        "finished_time": fields.String(
+            required=True, description="Time at which the pipeline finished executing"
+        ),
         "pipeline_steps": fields.List(  # TODO: rename
             fields.Nested(pipeline_run_pipeline_step),
             description="Status of each pipeline step",
