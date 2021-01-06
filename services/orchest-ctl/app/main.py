@@ -122,6 +122,7 @@ def install(
     cmdline.install(lang)
 
 
+# TODO: make mode in Mode type. Although it is "web" here
 @app.command()
 def update(
     mode: Optional[str] = typer.Option(None, hidden=True),

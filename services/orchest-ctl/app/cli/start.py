@@ -1,9 +1,12 @@
+import logging
 from enum import Enum
 from typing import Optional
 
 import typer
 
 from app import cmdline, config
+
+logger = logging.getLogger(__name__)
 
 
 def _default(
@@ -77,6 +80,11 @@ def dev(
     in the Docker containers. This allows for active code changes being
     reflected inside the application.
     """
+    logger.info(
+        "Starting Orchest in DEV mode. This mounts host directories "
+        "to monitor for source code changes."
+    )
+
     # TODO: This is not really the cleanest way to inject into the
     # config object.
     config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
@@ -89,6 +97,7 @@ def dev(
             "orchest/orchest-api:latest",
             "orchest/orchest-webserver:latest",
             "orchest/auth-server:latest",
+            "orchest/celery-worker:latest",
         ]
         for c in containers:
             config.CONTAINER_MAPPING[c]["environment"][
