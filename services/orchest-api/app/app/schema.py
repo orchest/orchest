@@ -6,7 +6,7 @@ TODO:
       to share attributes?
 
 """
-from flask_restplus import Model, fields
+from flask_restx import Model, fields
 
 from _orchest.internals import config as _config
 
