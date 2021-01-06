@@ -122,6 +122,12 @@ pipeline_run = Model(
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of the run"),
+        "started_time": fields.String(
+            required=True, description="Time at which the pipeline started executing"
+        ),
+        "finished_time": fields.String(
+            required=True, description="Time at which the pipeline finished executing"
+        ),
         "pipeline_steps": fields.List(  # TODO: rename
             fields.Nested(pipeline_run_pipeline_step),
             description="Status of each pipeline step",
