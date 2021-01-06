@@ -13,6 +13,7 @@ from app.schemas import EnvironmentSchema
 
 from _orchest.internals import config as _config
 
+
 # Directory resolves
 def get_pipeline_path(
     pipeline_uuid,

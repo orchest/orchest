@@ -1,18 +1,18 @@
-import logging
 import os
-import sys
 import time
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Dict, NamedTuple, Optional, Union
+from typing import Dict, NamedTuple, Optional
 from uuid import uuid4
 
 import requests
 from docker.errors import APIError, ContainerError, NotFound
 from docker.types import Mount
+from flask import current_app
 
 from _orchest.internals import config as _config
 from app import utils
+
 
 class IP(NamedTuple):
     jupyter_EG: str

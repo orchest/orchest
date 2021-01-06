@@ -1,7 +1,3 @@
-import json
-import logging
-import sys
-
 from config import CONFIG_CLASS
 
 from app import create_app

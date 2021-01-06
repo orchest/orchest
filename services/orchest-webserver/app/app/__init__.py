@@ -16,7 +16,7 @@ import subprocess
 from subprocess import Popen
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, request
 from flask_migrate import Migrate, upgrade
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
@@ -25,7 +25,7 @@ import posthog
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
-from app.models import DataSource, Environment
+from app.models import DataSource
 from app.socketio_server import register_socketio_broadcast
 from app.utils import get_repo_tag, get_user_conf
 from app.views.analytics import register_analytics_views

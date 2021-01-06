@@ -1,9 +1,7 @@
 import os
-import shutil
 from distutils.dir_util import copy_tree
 
 from _orchest.internals import config as _config
-from app.models import Project
 from app.utils import clear_folder, get_environments
 
 
