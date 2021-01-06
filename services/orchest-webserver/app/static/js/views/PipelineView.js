@@ -339,20 +339,13 @@ class PipelineView extends React.Component {
       let data = JSON.parse(response);
 
       try {
-        // TODO: allow getting the latest run directly from the orchest-api
-        // (newest run last in the list)
-        data["runs"].reverse();
-
-        for (let run of data["runs"]) {
-          if (
-            run.pipeline_uuid == this.props.pipeline_uuid &&
-            run.project_uuid == this.props.project_uuid
-          ) {
-            this.state.runUUID = run.run_uuid;
-            this.pollPipelineStepStatuses();
-            this.startStatusInterval();
-            break;
-          }
+        // Note that runs are returned by the orchest-api by
+        // started_time DESC. So we can just retrieve the first run.
+        if (data["runs"].length > 0) {
+          let run = data["runs"][0];
+          this.state.runUUID = run.run_uuid;
+          this.pollPipelineStepStatuses();
+          this.startStatusInterval();
         }
       } catch (e) {
         console.log("Error parsing return from orchest-api " + e);

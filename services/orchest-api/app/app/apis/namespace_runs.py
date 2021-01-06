@@ -9,6 +9,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
 from flask import abort, current_app, request
 from flask_restplus import Namespace, Resource, marshal
+from sqlalchemy import nullslast
 
 import app.models as models
 from app import schema
@@ -29,7 +30,7 @@ class RunList(Resource):
         """Fetches all (interactive) pipeline runs.
 
         These pipeline runs are either pending, running or have already
-        completed.
+        completed. Runs are ordered by started time descending.
         """
 
         query = models.InteractivePipelineRun.query
@@ -43,7 +44,7 @@ class RunList(Resource):
         elif "project_uuid" in request.args:
             query = query.filter_by(project_uuid=request.args.get("project_uuid"))
 
-        runs = query.all()
+        runs = query.order_by(nullslast(models.PipelineRun.started_time.desc())).all()
         return {"runs": [run.__dict__ for run in runs]}, 200
 
     @api.doc("start_run")
@@ -171,14 +172,10 @@ class Run(Resource):
     @api.expect(schema.status_update)
     def put(self, run_uuid):
         """Sets the status of a pipeline run."""
-        post_data = request.get_json()
 
-        res = models.InteractivePipelineRun.query.filter_by(run_uuid=run_uuid).update(
-            {"status": post_data["status"]}
-        )
-
-        if res:
-            db.session.commit()
+        filter_by = {"run_uuid": run_uuid}
+        status_update = request.get_json()
+        update_status_db(status_update, model=models.PipelineRun, filter_by=filter_by)
 
         return {"message": "Status was updated successfully"}, 200
 
@@ -252,8 +249,5 @@ def stop_pipeline_run(run_uuid) -> bool:
     res.abort()
 
     celery_app.control.revoke(run_uuid)
-    # TODO: possibly set status of steps and Run to "ABORTED"
-    #  note that a race condition would be present since the
-    # task will try to set the status as well
 
     return True
