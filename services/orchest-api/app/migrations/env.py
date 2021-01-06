@@ -1,7 +1,6 @@
 from __future__ import with_statement
 
 import logging
-from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -10,10 +9,8 @@ from sqlalchemy import engine_from_config, pool
 # access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
 # This line sets up loggers basically.
-# fileConfig(config.config_file_name)
-# logger = logging.getLogger("alembic.env")
+logger = logging.getLogger("alembic.env")
 
 # add your model's MetaData object here
 # for 'autogenerate' support

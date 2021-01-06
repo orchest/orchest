@@ -1,5 +1,3 @@
-import logging
-
 import requests
 from flask import jsonify, request
 
@@ -220,7 +218,7 @@ def register_orchest_api_views(app, db):
 
                 return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
-            logging.error(
+            app.logger.error(
                 "Could not get session information from orchest-api. Error: %s (%s)"
                 % (e, type(e))
             )
@@ -336,7 +334,7 @@ def register_orchest_api_views(app, db):
         if resp.status_code == 200:
 
             try:
-                logging.info(json_return)
+                app.logger.info(json_return)
 
                 for run in json_return["pipeline_runs"]:
                     run["parameters"] = pipeline_runs_dict[

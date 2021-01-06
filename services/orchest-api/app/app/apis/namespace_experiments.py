@@ -1,4 +1,3 @@
-import logging
 import uuid
 from datetime import datetime
 
@@ -189,7 +188,7 @@ class ExperimentList(Resource):
 
             return experiment, 201
         else:
-            logging.error("\n".join(experiment_creation_error_messages))
+            current_app.logger.error("\n".join(experiment_creation_error_messages))
 
             # simple way to update both in memory objects
             # and the db while avoiding multiple update statements

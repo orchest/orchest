@@ -6,9 +6,11 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
+from logging.config import dictConfig
 import os
+from pprint import pformat
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
@@ -36,9 +38,14 @@ def create_app(config_class=None, use_db=True):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    init_logging()
+
     # Cross-origin resource sharing. Allow API to be requested from the
     # different microservices such as the webserver.
     CORS(app, resources={r"/*": {"origins": "*"}})
+
+    if os.getenv("FLASK_ENV") == "development":
+        app = register_teardown_request(app)
 
     if use_db:
         # Create the database if it does not exist yet. Roughly equal to
@@ -76,5 +83,72 @@ def create_app(config_class=None, use_db=True):
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix="/api")
+
+    return app
+
+
+def init_logging():
+    logging_config = {
+        "version": 1,
+        "formatters": {
+            "verbose": {
+                "format": (
+                    "%(levelname)s:%(name)s:%(filename)s - [%(asctime)s] - %(message)s"
+                ),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+            "minimal": {
+                "format": ("%(levelname)s:%(name)s:%(filename)s - %(message)s"),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+        },
+        "handlers": {
+            "console": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "verbose",
+            },
+            "console-minimal": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "minimal",
+            },
+        },
+        "loggers": {
+            __name__: {
+                "handlers": ["console"],
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
+            "alembic": {
+                "handlers": ["console"],
+                "level": "WARNING",
+            },
+            "werkzeug": {
+                # NOTE: Werkzeug automatically creates a handler at the
+                # level of its logger if none is defined.
+                "level": "INFO",
+                "handlers": ["console-minimal"],
+            },
+            # "sqlalchemy.engine": {
+            #     "handlers": ["console"],
+            #     "level": "DEBUG",
+            # },
+        },
+    }
+
+    dictConfig(logging_config)
+
+
+def register_teardown_request(app):
+    @app.after_request
+    def teardown(response):
+        app.logger.debug(
+            "%s %s %s\n[Request object]: %s",
+            request.method,
+            request.path,
+            response.status,
+            pformat(request.get_json()),
+        )
+        return response
 
     return app

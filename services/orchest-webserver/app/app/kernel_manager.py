@@ -1,10 +1,7 @@
-import logging
 import os
-import shutil
 from distutils.dir_util import copy_tree
 
 from _orchest.internals import config as _config
-from app.models import Project
 from app.utils import clear_folder, get_environments
 
 
@@ -41,7 +38,7 @@ def populate_kernels(app, db, project_uuid):
         with open(kernel_json_template_path, "r") as f:
             kernel_json_template = f.read()
     except Exception as e:
-        logging.info(
+        app.logger.info(
             "Error reading kernel.json at path %s. Error: %s"
             % (kernel_json_template_path, e)
         )
@@ -77,7 +74,7 @@ def populate_kernels(app, db, project_uuid):
             with open(kernel_json_path, "w") as f:
                 f.write(filled_kernel_json)
         except Exception as e:
-            logging.info(
+            app.logger.info(
                 "Error writing kernel.json at path %s. Error: %s"
                 % (kernel_json_path, e)
             )

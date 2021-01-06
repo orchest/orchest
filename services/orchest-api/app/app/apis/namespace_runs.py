@@ -101,7 +101,7 @@ class RunList(Resource):
                 pipeline.get_environments(),
             )
         except errors.ImageNotFound as e:
-            logging.error(
+            current_app.logger.error(
                 f"Pipeline was referencing environments for "
                 f"which an image does not exist, {e}"
             )
