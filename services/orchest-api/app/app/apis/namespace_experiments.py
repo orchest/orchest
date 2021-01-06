@@ -39,14 +39,14 @@ class ExperimentList(Resource):
         """Queues a new experiment."""
         # TODO: possibly use marshal() on the post_data. Note that we
         # have moved over to using flask_restx
-        # https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.marshal
+        # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.marshal
         #       to make sure the default values etc. are filled in.
         post_data = request.get_json()
 
         # TODO: maybe we can expect a datetime (in the schema) so we
         #       do not have to parse it here. Again note that we are now
         #       using flask_restx
-        # https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.fields.DateTime
+        # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.fields.DateTime
         scheduled_start = post_data["scheduled_start"]
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
