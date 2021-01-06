@@ -5,7 +5,7 @@ from typing import Dict, Set, Union
 
 import requests
 from docker import errors
-from flask_restplus import Model, Namespace
+from flask_restx import Model, Namespace
 from sqlalchemy import and_
 
 import app.models as models

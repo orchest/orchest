@@ -1,9 +1,9 @@
 """API endpoint to manage projects.
 
-Despite the fact that the orchest api has no model related to a 
+Despite the fact that the orchest api has no model related to a
 project, a good amount of other models depend on such a concept.
 """
-from flask_restplus import Namespace, Resource
+from flask_restx import Namespace, Resource
 
 import app.models as models
 from app.apis.namespace_environment_images import delete_project_environment_images

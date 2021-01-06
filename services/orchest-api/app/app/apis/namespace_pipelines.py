@@ -1,9 +1,9 @@
 """API endpoint to manage pipelines.
 
-Despite the fact that the orchest api has no model related to a 
+Despite the fact that the orchest api has no model related to a
 pipeline, a good amount of other models depend on such a concept.
 """
-from flask_restplus import Namespace, Resource
+from flask_restx import Namespace, Resource
 
 import app.models as models
 from app.apis.namespace_runs import stop_pipeline_run

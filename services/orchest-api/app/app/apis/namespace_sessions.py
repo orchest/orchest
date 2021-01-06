@@ -2,7 +2,7 @@ import logging
 import sys
 
 from flask import request
-from flask_restplus import Namespace, Resource
+from flask_restx import Namespace, Resource
 
 import app.models as models
 from app import schema
