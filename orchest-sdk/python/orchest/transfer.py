@@ -866,8 +866,8 @@ def _resolve(
     # If no info could be collected, then the previous step has not yet
     # been executed.
     if not method_infos:
-        method_infos_exceptions = "\n".join(method_infos_exceptions)
-        raise error.OutputNotFoundError(method_infos_exceptions)
+        msg = "\n".join(method_infos_exceptions)
+        raise error.OutputNotFoundError(msg)
 
     # Get the method that was most recently used based on its logged
     # timestamp.
@@ -984,11 +984,12 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     # If there are collisions raise an error.
     collisions_dict = {k: v for k, v in collisions_dict.items() if len(v) > 1}
     if collisions_dict:
-        msg = [
-            f"\n{name}: {sorted(step_names)}"
-            for name, step_names in collisions_dict.items()
-        ]
-        msg = "".join(msg)
+        msg = "".join(
+            [
+                f"\n{name}: {sorted(step_names)}"
+                for name, step_names in collisions_dict.items()
+            ]
+        )
         raise error.InputNameCollisionError(
             f"Name collisions between input data coming from different steps: {msg}"
         )
