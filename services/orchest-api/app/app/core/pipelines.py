@@ -253,6 +253,17 @@ class PipelineStepRunner:
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
                 f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
+                # ORCHEST_MEMORY_EVICTION is never present when running
+                # notebooks interactively and otherwise always present,
+                # this means eviction of objects from memory can never
+                # be triggered when running notebooks interactively.
+                # This environment variable being present implies that
+                # the Orchest SDK will always emit an eviction message
+                # given the choice, this however, does not imply that
+                # eviction will actually take place, since the memory
+                # server manager will check the pipeline definition
+                # settings to decide whetever object eviction should
+                # take place or not.
                 "ORCHEST_MEMORY_EVICTION=1",
             ],
             "HostConfig": {
