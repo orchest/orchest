@@ -3,15 +3,13 @@ import json
 import os
 import shutil
 
-from flask import current_app
-import docker
 import requests
-
-from app.config import CONFIG_CLASS as StaticConfig
-from app.models import Pipeline, Project, Environment, Experiment
-from app.schemas import EnvironmentSchema
+from flask import current_app
 
 from _orchest.internals import config as _config
+from app.config import CONFIG_CLASS as StaticConfig
+from app.models import Environment, Experiment, Pipeline, Project
+from app.schemas import EnvironmentSchema
 
 
 # Directory resolves
@@ -26,7 +24,7 @@ def get_pipeline_path(
     """Returns path to pipeline definition file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path == True:
+    if host_path is True:
         USER_DIR = StaticConfig.HOST_USER_DIR
 
     if pipeline_path is None:
@@ -65,7 +63,7 @@ def get_experiment_directory(
     """
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path == True:
+    if host_path is True:
         USER_DIR = StaticConfig.HOST_USER_DIR
 
     return os.path.join(
@@ -80,7 +78,7 @@ def get_pipeline_directory(
     pipeline_run_uuid=None,
     host_path=False,
 ):
-    """Returns path to directory CONTAINING the pipeline definition file."""
+    """Returns path to directory with the pipeline definition file."""
 
     return os.path.split(
         get_pipeline_path(
@@ -95,7 +93,7 @@ def get_pipeline_directory(
 
 def get_project_directory(project_uuid, host_path=False):
     USER_DIR = StaticConfig.USER_DIR
-    if host_path == True:
+    if host_path is True:
         USER_DIR = StaticConfig.HOST_USER_DIR
 
     return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
@@ -132,8 +130,9 @@ def get_environments(project_uuid, language=None):
             if os.path.isdir(environment_dir):
                 env = read_environment_from_disk(environment_dir, project_uuid)
 
-                # read_environment_from_disk is not guaranteed to succeed
-                # on failure it returns None, and logs the error.
+                # read_environment_from_disk is not guaranteed to
+                # succeed on failure it returns None, and logs the
+                # error.
                 if env is not None:
                     if language is None:
                         environments.append(env)
@@ -203,7 +202,9 @@ def read_environment_from_disk(env_directory, project_uuid):
 
 
 def delete_environment(app, project_uuid, environment_uuid):
-    """Delete an environment from disk and from the runtime environment (docker).
+    """Delete an environment from disk and from the runtime environment
+
+    The only runtime environment for now is Docker.
 
     Args:
         project_uuid:
@@ -212,7 +213,10 @@ def delete_environment(app, project_uuid, environment_uuid):
     Returns:
 
     """
-    url = f"http://{app.config['ORCHEST_API_ADDRESS']}/api/environment-images/{project_uuid}/{environment_uuid}"
+    url = (
+        f"http://{app.config['ORCHEST_API_ADDRESS']}"
+        f"/api/environment-images/{project_uuid}/{environment_uuid}"
+    )
     app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
     environment_dir = get_environment_directory(environment_uuid, project_uuid)
@@ -289,9 +293,11 @@ def clear_folder(folder):
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
             except Exception as e:
-                logging.error("Failed to delete %s. Reason: %s" % (file_path, e))
+                current_app.logger.error(
+                    "Failed to delete %s. Reason: %s" % (file_path, e)
+                )
     except FileNotFoundError as e:
-        logging.error("Failed to delete %s. Reason: %s" % (folder, e))
+        current_app.logger.error("Failed to delete %s. Reason: %s" % (folder, e))
 
 
 def remove_dir_if_empty(path):
@@ -299,7 +305,7 @@ def remove_dir_if_empty(path):
         if os.path.isdir(path) and not any(True for _ in os.scandir(path)):
             shutil.rmtree(path, ignore_errors=True)
     except FileNotFoundError as e:
-        logging.error(
+        current_app.logger.error(
             "Failed to remove directory %s. Error: %s [%s]" % (path, e, type(e))
         )
 

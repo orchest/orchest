@@ -13,3 +13,7 @@ repos:
     hooks:
       - id: prettier
         language_version: 14.13.0
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.4
+    hooks:
+      - id: flake8

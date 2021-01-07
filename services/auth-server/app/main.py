@@ -3,7 +3,6 @@ from config import CONFIG_CLASS
 from app import create_app
 from app.utils import get_user_conf
 
-
 conf_data = get_user_conf()
 
 app = create_app(config_class=CONFIG_CLASS)

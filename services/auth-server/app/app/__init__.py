@@ -6,8 +6,8 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
-from logging.config import dictConfig
 import os
+from logging.config import dictConfig
 from pprint import pformat
 
 from flask import Flask, request
