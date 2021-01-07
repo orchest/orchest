@@ -435,7 +435,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             )
 
             # cleanup
-            os.system('rm -rf "%s"' % build_context)
+            os.system('rm -rf "%s"' % build_context["snapshot_path"])
 
             update_environment_build_status(status, session, task_uuid)
 
