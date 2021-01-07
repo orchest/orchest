@@ -1,17 +1,16 @@
 """API endpoint to do system level validations."""
 
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import docker
 from flask import request
 from flask_restplus import Namespace, Resource
 
+import app.models as models
+from _orchest.internals import config as _config
 from app import schema
 from app.connections import docker_client
-import app.models as models
 from app.utils import register_schema
-from _orchest.internals import config as _config
-
 
 api = Namespace("validations", description="Validates system requirements")
 api = register_schema(api)

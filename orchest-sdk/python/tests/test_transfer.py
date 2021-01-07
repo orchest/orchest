@@ -5,15 +5,14 @@ import shutil
 import time
 from unittest.mock import patch
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 import pyarrow.plasma as plasma
 import pytest
 
 import orchest
 from orchest import transfer
-
 
 KILOBYTE = 1 << 10
 MEGABYTE = KILOBYTE * KILOBYTE

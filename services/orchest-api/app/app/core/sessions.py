@@ -1,19 +1,18 @@
-from abc import abstractmethod
-from contextlib import contextmanager
-from typing import Dict, NamedTuple, Optional, Union
-from uuid import uuid4
 import logging
 import os
 import sys
 import time
-from docker.errors import APIError, NotFound, ContainerError
+from abc import abstractmethod
+from contextlib import contextmanager
+from typing import Dict, NamedTuple, Optional, Union
+from uuid import uuid4
 
-from docker.types import Mount
 import requests
+from docker.errors import APIError, ContainerError, NotFound
+from docker.types import Mount
 
-from app import utils
 from _orchest.internals import config as _config
-
+from app import utils
 
 # TODO: logging should probably be done toplevel instead of here.
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

@@ -1,6 +1,6 @@
 from flask_marshmallow import Marshmallow
-from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
 
 from _orchest.internals import config as _config
 

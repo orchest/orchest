@@ -1,6 +1,6 @@
 import os
-from typing import List, Optional
 import warnings
+from typing import List, Optional
 
 import boto3
 import requests
@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError
 from sqlalchemy import create_engine
 
 from orchest.config import Config
-from orchest.error import OrchestNetworkError, OrchestInternalDataSourceError
+from orchest.error import OrchestInternalDataSourceError, OrchestNetworkError
 
 
 class _DB:

@@ -1,11 +1,11 @@
-import os
 import logging
+import os
 import shutil
-
-from app.utils import get_environments, clear_folder
-from app.models import Project
 from distutils.dir_util import copy_tree
+
 from _orchest.internals import config as _config
+from app.models import Project
+from app.utils import clear_folder, get_environments
 
 
 def cleanup_kernel(app, project_uuid):

@@ -7,9 +7,10 @@ TODO:
     * Possibly add `pipeline_uuid` to the primary key.
 
 """
-from app.connections import db
-from sqlalchemy import Index, UniqueConstraint, ForeignKeyConstraint, text
+from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
+
+from app.connections import db
 
 
 class BaseModel(db.Model):

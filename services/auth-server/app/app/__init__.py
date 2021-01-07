@@ -10,8 +10,8 @@ from flask import Flask
 from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
 
-from app.views import register_views
 from app.connections import db
+from app.views import register_views
 
 
 def create_app(config_class=None):

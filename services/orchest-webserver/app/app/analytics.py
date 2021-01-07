@@ -1,12 +1,13 @@
+import copy
 import logging
-import uuid
-import requests
 import os
 import time
-import posthog
-import copy
+import uuid
 
+import posthog
+import requests
 from posthog.request import APIError
+
 from app.utils import write_config
 
 

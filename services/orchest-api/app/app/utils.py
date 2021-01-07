@@ -1,17 +1,17 @@
-from datetime import datetime
-from typing import Dict, Set, Union
-import requests
 import logging
 import time
+from datetime import datetime
+from typing import Dict, Set, Union
 
+import requests
 from docker import errors
 from flask_restplus import Model, Namespace
 from sqlalchemy import and_
 
-from app import schema
-from app.connections import db, docker_client
 import app.models as models
 from _orchest.internals import config as _config
+from app import schema
+from app.connections import db, docker_client
 
 
 def register_schema(api: Namespace) -> Namespace:

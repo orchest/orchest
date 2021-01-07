@@ -1,15 +1,15 @@
-from typing import Any
-from datetime import datetime
 import json
 import logging
 import os
-import requests
 import time
+from datetime import datetime
+from typing import Any
+
 import docker
-
+import requests
 from celery.contrib.abortable import AbortableAsyncResult
-
 from config import CONFIG_CLASS
+
 from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe
 from app.connections import docker_client

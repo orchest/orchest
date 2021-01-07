@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import logging
-import sys
 import subprocess
+import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 

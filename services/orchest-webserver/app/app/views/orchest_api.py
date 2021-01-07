@@ -1,16 +1,17 @@
-import requests
 import logging
-from app.models import PipelineRun
-from flask import request, jsonify
-from app.utils import (
-    project_uuid_to_path,
-    get_project_directory,
-    pipeline_uuid_to_path,
-    get_environments,
-    get_pipeline_json,
-)
+
+import requests
+from flask import jsonify, request
 
 from app.analytics import send_pipeline_run
+from app.models import PipelineRun
+from app.utils import (
+    get_environments,
+    get_pipeline_json,
+    get_project_directory,
+    pipeline_uuid_to_path,
+    project_uuid_to_path,
+)
 
 
 def api_proxy_environment_builds(environment_build_requests, orchest_api_address):

@@ -5,11 +5,11 @@ import subprocess
 import time
 from typing import Tuple
 
-import pyarrow as pa
-
 import config
-from _orchest.internals import config as _config
+import pyarrow as pa
 from manager import start_manager
+
+from _orchest.internals import config as _config
 
 
 def get_command_line_args():

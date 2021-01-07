@@ -1,10 +1,10 @@
 import logging
 import os
-import requests
 import time
 import uuid
 
 import docker
+import requests
 from docker.types import DeviceRequest
 
 

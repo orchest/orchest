@@ -1,5 +1,5 @@
-from app.connections import ma
 from _orchest.internals import config as _config
+from app.connections import ma
 
 
 class ProjectSchema(ma.Schema):

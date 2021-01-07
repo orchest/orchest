@@ -1,4 +1,8 @@
 repos:
+  - repo: https://github.com/pycqa/isort
+    rev: 5.6.4
+    hooks:
+      - id: isort
   - repo: https://github.com/psf/black
     rev: 20.8b1 # Replace by any tag/version: https://github.com/psf/black/tags
     hooks:

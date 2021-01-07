@@ -1,13 +1,13 @@
 import logging
 import os
+from collections import deque
+from threading import Lock
 
+from flask import request
+
+from app.config import Config
 from app.models import DataSource, Experiment, PipelineRun
 from app.utils import project_uuid_to_path
-from app.config import Config
-from flask import request
-from collections import deque
-
-from threading import Lock
 
 
 def register_socketio_broadcast(db, socketio):

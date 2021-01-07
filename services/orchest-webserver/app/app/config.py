@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 
 from _orchest.internals import config as _config
 

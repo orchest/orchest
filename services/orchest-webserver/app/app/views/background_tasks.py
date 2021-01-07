@@ -1,5 +1,5 @@
-from flask_restful import Api, Resource
 from flask import request
+from flask_restful import Api, Resource
 
 from app.models import BackgroundTask
 from app.schemas import BackgroundTaskSchema

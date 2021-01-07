@@ -7,31 +7,31 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 
-import os
-import logging
-import sys
-import contextlib
-import subprocess
-import posthog
 import base64
+import contextlib
+import logging
+import os
+import subprocess
+import sys
+from subprocess import Popen
 
+import posthog
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, send_from_directory
 from flask_migrate import Migrate, upgrade
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
-from app.config import CONFIG_CLASS
-from apscheduler.schedulers.background import BackgroundScheduler
 from app.analytics import analytics_ping
-from subprocess import Popen
+from app.config import CONFIG_CLASS
+from app.connections import db, ma
+from app.models import DataSource, Environment
+from app.socketio_server import register_socketio_broadcast
+from app.utils import get_repo_tag, get_user_conf
+from app.views.analytics import register_analytics_views
+from app.views.background_tasks import register_background_tasks_view
 from app.views.core import register_views
 from app.views.orchest_api import register_orchest_api_views
-from app.views.background_tasks import register_background_tasks_view
-from app.views.analytics import register_analytics_views
-from app.socketio_server import register_socketio_broadcast
-from app.models import DataSource, Environment
-from app.connections import db, ma
-from app.utils import get_user_conf, get_repo_tag
 
 
 def initialize_default_datasources(db, app):

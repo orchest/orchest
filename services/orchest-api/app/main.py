@@ -1,8 +1,10 @@
-from app import create_app
-from config import CONFIG_CLASS
+import logging
 import subprocess
 import sys
-import logging
+
+from config import CONFIG_CLASS
+
+from app import create_app
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 

@@ -1,7 +1,9 @@
-from app.connections import db
-from sqlalchemy import UniqueConstraint
-from sqlalchemy.sql import text, expression
 import uuid
+
+from sqlalchemy import UniqueConstraint
+from sqlalchemy.sql import expression, text
+
+from app.connections import db
 
 
 def str_uuid4():
