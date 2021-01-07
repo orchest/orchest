@@ -27,26 +27,6 @@ _NOT_TO_BE_LOGGED = "_NOT_TO_BE_LOGGED"
 
 
 @pytest.mark.parametrize(
-    "task_uuid",
-    ["task_uuid"],
-    ids=["basic"],
-)
-@pytest.mark.parametrize(
-    "project_uuid",
-    ["project_uuid"],
-    ids=["basic"],
-)
-@pytest.mark.parametrize(
-    "environment_uuid",
-    ["environment_uuid"],
-    ids=["basic"],
-)
-@pytest.mark.parametrize(
-    "project_path",
-    ["project_path"],
-    ids=["basic"],
-)
-@pytest.mark.parametrize(
     "image_in_local_environment",
     [True, False],
     ids=["image_in_env", "image_not_in_env"],
@@ -62,15 +42,27 @@ _NOT_TO_BE_LOGGED = "_NOT_TO_BE_LOGGED"
     ids=["[]", "[None]", "[1, 2, 3, 4]", "[1, 2, 3, 4, None]"],
 )
 def test_environment_build(
-    task_uuid,
-    project_uuid,
-    environment_uuid,
-    project_path,
     image_in_local_environment,
     abort,
     build_events,
     monkeypatch,
 ):
+    task_uuid = "task_uuid"
+    # This way the name of the log file can easily be matched with the
+    # actual test.
+    project_uuid = "".join(
+        [
+            "events:",
+            str(build_events),
+            "-abort:",
+            str(abort),
+            "-image_in_local_environment:",
+            str(image_in_local_environment),
+        ]
+    )
+    environment_uuid = "environment_uuid"
+    project_path = "project_path"
+
     def mock_put_request(self, url, json=None, *args, **kwargs):
         put_requests.append(json["status"])
         return MockRequestReponse()
