@@ -47,22 +47,6 @@ def test_environment_build(
     build_events,
     monkeypatch,
 ):
-    task_uuid = "task_uuid"
-    # This way the name of the log file can easily be matched with the
-    # actual test.
-    project_uuid = "".join(
-        [
-            "events:",
-            str(build_events),
-            "-abort:",
-            str(abort),
-            "-image_in_local_environment:",
-            str(image_in_local_environment),
-        ]
-    )
-    environment_uuid = "environment_uuid"
-    project_path = "project_path"
-
     def mock_put_request(self, url, json=None, *args, **kwargs):
         put_requests.append(json["status"])
         return MockRequestReponse()
@@ -210,6 +194,23 @@ def test_environment_build(
         "has_connected": False,
         "has_disconnected": False,
     }
+
+    # Inputs of the function to be tested.
+    task_uuid = "task_uuid"
+    # This way the name of the log file can easily be matched with the
+    # actual test.
+    project_uuid = "".join(
+        [
+            "events:",
+            str(build_events),
+            "-abort:",
+            str(abort),
+            "-image_in_local_environment:",
+            str(image_in_local_environment),
+        ]
+    )
+    environment_uuid = "environment_uuid"
+    project_path = "project_path"
 
     app.core.environment_builds.build_environment_task(
         task_uuid,
