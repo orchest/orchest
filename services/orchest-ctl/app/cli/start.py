@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 
 import typer
@@ -27,6 +28,13 @@ app = typer.Typer(
 )
 
 
+class LogLevel(str, Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+
+
 @app.command()
 def reg(
     port: Optional[int] = typer.Option(
@@ -52,7 +60,14 @@ def reg(
 def dev(
     port: Optional[int] = typer.Option(
         8000, help="The port the Orchest webserver will listen on."
-    )
+    ),
+    log_level: Optional[LogLevel] = typer.Option(
+        None,
+        "-l",
+        "--log-level",
+        show_default=False,
+        help="Log level inside the application.",
+    ),
 ):
     """
     Start Orchest in DEV mode.
@@ -62,9 +77,23 @@ def dev(
     in the Docker containers. This allows for active code changes being
     reflected inside the application.
     """
+    # TODO: This is not really the cleanest way to inject into the
+    # config object.
     config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
         "80/tcp": port,
         "443/tcp": 443,
     }
+
+    if log_level is not None:
+        containers = [
+            "orchest/orchest-api:latest",
+            "orchest/orchest-webserver:latest",
+            "orchest/auth-server:latest",
+        ]
+        for c in containers:
+            config.CONTAINER_MAPPING[c]["environment"][
+                "ORCHEST_LOG_LEVEL"
+            ] = log_level.value
+
     config.RUN_MODE = "dev"
     cmdline.start()

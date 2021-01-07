@@ -1,16 +1,17 @@
 import hashlib
 import json
-import logging
 import os
 import shutil
 
+from flask import current_app
 import docker
 import requests
 
-from _orchest.internals import config as _config
 from app.config import CONFIG_CLASS as StaticConfig
-from app.models import Environment, Experiment, Pipeline, Project
+from app.models import Pipeline, Project, Environment, Experiment
 from app.schemas import EnvironmentSchema
+
+from _orchest.internals import config as _config
 
 
 # Directory resolves
@@ -140,17 +141,17 @@ def get_environments(project_uuid, language=None):
                         if language == env.language:
                             environments.append(env)
                 else:
-                    logging.info(
+                    current_app.logger.info(
                         "Could not read environment for env dir %s and project_uuid %s"
                         % (environment_dir, project_uuid)
                     )
     except FileNotFoundError:
-        logging.error(
+        current_app.logger.error(
             "Could not find environments directory in project path %s"
             % environments_dir
         )
     except Exception as e:
-        logging.error(e)
+        current_app.logger.error(e)
 
     return environments
 
@@ -195,7 +196,7 @@ def read_environment_from_disk(env_directory, project_uuid):
 
         return e
     except Exception as e:
-        logging.error(
+        current_app.logger.error(
             "Could not get environment from env_directory %s. Error: %s"
             % (env_directory, e)
         )
@@ -228,7 +229,7 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
         with open(pipeline_path, "r") as json_file:
             return json.load(json_file)
     except Exception as e:
-        logging.error("Could not read pipeline JSON from %s" % e)
+        current_app.logger.error("Could not read pipeline JSON from %s" % e)
 
 
 def get_hash(path):
@@ -257,7 +258,7 @@ def get_user_conf():
         with open("/config/config.json", "r") as f:
             conf_data = json.load(f)
     except Exception as e:
-        logging.debug(e)
+        current_app.logger.debug(e)
 
     return conf_data
 
@@ -267,7 +268,7 @@ def get_user_conf_raw():
         with open("/config/config.json", "r") as f:
             return f.read()
     except Exception as e:
-        logging.debug(e)
+        current_app.logger.debug(e)
 
 
 def save_user_conf_raw(config):
@@ -275,7 +276,7 @@ def save_user_conf_raw(config):
         with open("/config/config.json", "w") as f:
             f.write(config)
     except Exception as e:
-        logging.debug(e)
+        current_app.logger.debug(e)
 
 
 def clear_folder(folder):
@@ -376,9 +377,9 @@ def write_config(app, key, value):
             try:
                 json.dump(conf_data, f)
             except Exception as e:
-                logging.debug(e)
+                current_app.logger.debug(e)
     except Exception as e:
-        logging.debug(e)
+        current_app.logger.debug(e)
 
     # always set rw permissions on file
     os.system("chmod o+rw " + conf_json_path)

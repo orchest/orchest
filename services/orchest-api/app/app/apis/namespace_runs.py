@@ -8,7 +8,7 @@ import uuid
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
 from flask import abort, current_app, request
-from flask_restplus import Namespace, Resource, marshal
+from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import nullslast
 
 import app.models as models
@@ -101,7 +101,7 @@ class RunList(Resource):
                 pipeline.get_environments(),
             )
         except errors.ImageNotFound as e:
-            logging.error(
+            current_app.logger.error(
                 f"Pipeline was referencing environments for "
                 f"which an image does not exist, {e}"
             )

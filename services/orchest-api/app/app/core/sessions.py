@@ -1,21 +1,17 @@
-import logging
 import os
-import sys
 import time
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Dict, NamedTuple, Optional, Union
+from typing import Dict, NamedTuple, Optional
 from uuid import uuid4
 
 import requests
 from docker.errors import APIError, ContainerError, NotFound
 from docker.types import Mount
+from flask import current_app
 
 from _orchest.internals import config as _config
 from app import utils
-
-# TODO: logging should probably be done toplevel instead of here.
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 class IP(NamedTuple):
@@ -317,7 +313,7 @@ class InteractiveSession(Session):
 
         IP = self.get_containers_IP()
 
-        logging.info(
+        current_app.logger.info(
             "Starting Jupyter Server on %s with Enterprise "
             "Gateway on %s" % (IP.jupyter_server, IP.jupyter_EG)
         )

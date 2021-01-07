@@ -1,4 +1,4 @@
-FROM tiangolo/meinheld-gunicorn-flask:python3.7
+FROM tiangolo/meinheld-gunicorn-flask:python3.8
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Get all requirements in place.

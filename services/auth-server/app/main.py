@@ -1,13 +1,8 @@
-import json
-import logging
-import sys
-
 from config import CONFIG_CLASS
 
 from app import create_app
 from app.utils import get_user_conf
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 conf_data = get_user_conf()
 

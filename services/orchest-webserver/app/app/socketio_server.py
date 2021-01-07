@@ -1,12 +1,8 @@
-import logging
-import os
 from collections import deque
 from threading import Lock
 
-from flask import request
+from flask import current_app, request
 
-from app.config import Config
-from app.models import DataSource, Experiment, PipelineRun
 from app.utils import project_uuid_to_path
 
 
@@ -18,11 +14,11 @@ def register_socketio_broadcast(db, socketio):
 
     @socketio.on("connect", namespace="/pty")
     def connect_pty():
-        logging.info("socket.io client connected on /pty")
+        current_app.logger.info("socket.io client connected on /pty")
 
     @socketio.on("connect", namespace="/environment_builds")
     def connect_environment_builds():
-        logging.info("socket.io client connected on /environment_builds")
+        current_app.logger.info("socket.io client connected on /environment_builds")
 
         with lock:
 
@@ -67,7 +63,7 @@ def register_socketio_broadcast(db, socketio):
                 try:
                     del environment_build_buffer[data["identity"]]
                 except KeyError as e:
-                    logging.error(
+                    current_app.logger.error(
                         "Could not clear buffer for EnvironmentBuild with identity %s"
                         % data["identity"]
                     )

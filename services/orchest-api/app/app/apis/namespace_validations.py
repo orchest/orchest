@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 
 import docker
 from flask import request
-from flask_restplus import Namespace, Resource
+from flask_restx import Namespace, Resource
 
 import app.models as models
 from _orchest.internals import config as _config

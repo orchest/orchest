@@ -1,11 +1,10 @@
-import logging
 import uuid
 from datetime import datetime
 
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
 from flask import abort, current_app, request
-from flask_restplus import Namespace, Resource
+from flask_restx import Namespace, Resource
 
 import app.models as models
 from app import schema
@@ -37,14 +36,16 @@ class ExperimentList(Resource):
     @api.marshal_with(schema.experiment, code=201, description="Queued experiment")
     def post(self):
         """Queues a new experiment."""
-        # TODO: possibly use marshal() on the post_data
-        # https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.marshal
+        # TODO: possibly use marshal() on the post_data. Note that we
+        # have moved over to using flask_restx
+        # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.marshal
         #       to make sure the default values etc. are filled in.
         post_data = request.get_json()
 
         # TODO: maybe we can expect a datetime (in the schema) so we
-        #       do not have to parse it here.
-        #       https://flask-restplus.readthedocs.io/en/stable/api.html#flask_restplus.fields.DateTime
+        #       do not have to parse it here. Again note that we are now
+        #       using flask_restx
+        # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.fields.DateTime
         scheduled_start = post_data["scheduled_start"]
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
@@ -187,7 +188,7 @@ class ExperimentList(Resource):
 
             return experiment, 201
         else:
-            logging.error("\n".join(experiment_creation_error_messages))
+            current_app.logger.error("\n".join(experiment_creation_error_messages))
 
             # simple way to update both in memory objects
             # and the db while avoiding multiple update statements

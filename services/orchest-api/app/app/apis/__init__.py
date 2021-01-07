@@ -1,5 +1,5 @@
 from flask import Blueprint
-from flask_restplus import Api
+from flask_restx import Api
 
 from app.apis.namespace_environment_builds import api as ns_env_builds
 from app.apis.namespace_environment_images import api as ns_env_images
