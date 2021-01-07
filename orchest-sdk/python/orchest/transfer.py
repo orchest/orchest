@@ -398,7 +398,7 @@ def _get_output_disk(step_uuid: str, serialization: str) -> Any:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
         raise error.DiskOutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
+            f'Output from incoming step "{step_uuid}" cannot be found on disk. '
             "Try rerunning it."
         )
     # IOError is to try to catch pyarrow failures on opening the file.
@@ -441,7 +441,7 @@ def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
         # TODO: Ideally we want to provide the user with the step's
         #       name instead of UUID.
         raise error.DiskOutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
+            f'Output from incoming step "{step_uuid}" cannot be found on disk. '
             "Try rerunning it."
         )
 
@@ -723,8 +723,8 @@ def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
 
     except error.ObjectNotFoundError:
         raise error.MemoryOutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
-            "Try rerunning it."
+            f'Output from incoming step "{step_uuid}" cannot be found in the '
+            "memory server. Try rerunning it."
         )
     # IOError is to try to catch pyarrow deserialization errors.
     except (pickle.UnpicklingError, IOError):
@@ -786,8 +786,8 @@ def _resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
     metadata = metadata[0]
     if metadata is None:
         raise error.MemoryOutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
-            "Try rerunning it."
+            f'Output from incoming step "{step_uuid}" cannot be found in the '
+            "memory server. Try rerunning it."
         )
     # this is a pyarrow.Buffer, gotta make it into pybytes to decode,
     # not much overhead given that this is just metadata
@@ -867,10 +867,7 @@ def _resolve(
     # been executed.
     if not method_infos:
         method_infos_exceptions = "\n".join(method_infos_exceptions)
-        raise error.OutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
-            f"Try rerunning it. Info:\n{method_infos_exceptions}"
-        )
+        raise error.OutputNotFoundError(method_infos_exceptions)
 
     # Get the method that was most recently used based on its logged
     # timestamp.
@@ -963,9 +960,19 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         # For each parent get what function to use to retrieve its
         # output data and metadata related to said data.
         parent_uuid = parent.properties["uuid"]
-        get_output_method, args, kwargs, metadata = _resolve(
-            parent_uuid, consumer=step_uuid
-        )
+
+        try:
+            get_output_method, args, kwargs, metadata = _resolve(
+                parent_uuid, consumer=step_uuid
+            )
+        except error.OutputNotFoundError as e:
+            parent_title = parent.properties["title"]
+            msg = (
+                f'Output from incoming step "{step_uuid}" '
+                f'("{parent_title}") cannot be found. Try rerunning it. '
+                f"Info:\n{str(e)}"
+            )
+            raise error.OutputNotFoundError(msg)
 
         # Maintain the output methods in order, but wait with calling
         # them so that we can first check for collisions.
