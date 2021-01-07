@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from typing import Dict, NamedTuple, Optional
 from uuid import uuid4
 
+import docker
 import requests
 from docker.errors import APIError, ContainerError, NotFound
 from docker.types import Mount
@@ -137,7 +138,8 @@ class Session:
                 recommended to be either a pipeline UUID (for
                 interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
-            pipeline_path: Path to pipeline file (relative to project_dir).
+            pipeline_path: Path to pipeline file (relative to
+                project_dir).
             project_dir: Path to project directory.
             host_userdir: Path to the userdir on the host
             data_passing_memory_size: Size for the "memory-server".
@@ -180,9 +182,9 @@ class Session:
             # TODO: this depends on whether or not auto_remove is
             #       enabled in the container specs.
 
-            # we are relying on the fact
-            # that the session_identity_uuid and project_uuid are consistent among
-            # these containers, i.e. there is 1 of each
+            # we are relying on the fact that the session_identity_uuid
+            # and project_uuid are consistent among these containers,
+            # i.e. there is 1 of each
             if session_identity_uuid is not None:
                 session_identity_uuid = container.labels.get("session_identity_uuid")
             if project_uuid is not None:
@@ -239,7 +241,7 @@ class InteractiveSession(Session):
 
     @property
     def notebook_server_info(self):
-        """Contains the information to connect to the notebook server."""
+        """The information to connect to the notebook server."""
         # TODO: maybe error if launch was not called yet
         if self._notebook_server_info is None:
             pass
@@ -417,7 +419,8 @@ class NonInteractiveSession(Session):
         Args:
             uuid: Some UUID. If ``None`` then a randomly generated UUID
                 is used.
-            pipeline_path: Path to the pipeline file relative to the `project_dir`.
+            pipeline_path: Path to the pipeline file relative to the
+                `project_dir`.
             project_dir: Path to the project directory on the host.
 
         """
@@ -620,7 +623,13 @@ def _get_container_specs(
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             "EG_ALLOW_ORIGIN=*",
-            "EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,ORCHEST_PIPELINE_PATH,ORCHEST_PROJECT_UUID,ORCHEST_HOST_PROJECT_DIR,ORCHEST_HOST_GID",
+            (
+                "EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,"
+                "ORCHEST_PIPELINE_PATH,"
+                "ORCHEST_PROJECT_UUID,"
+                "ORCHEST_HOST_PROJECT_DIR,"
+                "ORCHEST_HOST_GID"
+            ),
             f"ORCHEST_PIPELINE_UUID={uuid}",
             f"ORCHEST_PIPELINE_PATH={pipeline_path}",
             f"ORCHEST_PROJECT_UUID={project_uuid}",

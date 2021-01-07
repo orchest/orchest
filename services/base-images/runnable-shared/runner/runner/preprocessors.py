@@ -7,13 +7,14 @@ from nbformat.v4 import output_from_msg
 
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
-    """This class extends the ExecutePreprocesser from nbconvert in order catch
-    the output of cell execution and write it to the appropriate logs
-    consumed by Orchest.
+    """This class extends the ExecutePreprocesser from nbconvert in
+    order catch the output of cell execution and write it to the
+    appropriate logs consumed by Orchest.
 
-    It's called Partial because it skips over cells in its execution process
-    that have been tagged 'skip'. A useful feature for running Notebooks
-    that contain code left over from interactive sessions/experimentation.
+    It's called Partial because it skips over cells in its execution
+    process that have been tagged 'skip'. A useful feature for running
+    Notebooks that contain code left over from interactive
+    sessions/experimentation.
     """
 
     def __init__(
@@ -38,17 +39,21 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
         if self.current_cell is None:
             raise Exception(
-                "log_output_message should not be called if there is no current notebook cell"
+                "log_output_message should not be called if there is no current"
+                " notebook cell"
             )
 
         # cell output to STDOUT of this process
         output_text = ""
 
         # support multiple types of output:
-        # output['text'] (for output['output_type']=='stream')
-        # output['data']['text/plain'] (for output['output_type']=='execute_result')
+        # (for output['output_type']=='stream')
+        # output['text']
+        # (for output['output_type']=='execute_result')
+        # output['data']['text/plain']
 
-        # Note this means application/json and image/png are currently not supported for logging.
+        # Note this means application/json and image/png are currently
+        # not supported for logging.
         if "text" in output:
             output_text = output["text"]
         elif "data" in output and "text/plain" in output["data"]:
@@ -113,8 +118,11 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
                 cell, resources = super().preprocess_cell(cell, resources, cell_index)
 
-                # TODO: Evaluate whether we want to output anything for no output cells
-                # self.log_file.write("%s" % ('<No output cell: %s >\n' % cell['cell_type']))
+                # TODO: Evaluate whether we want to output anything for
+                # no output cells
+                # self.log_file.write(
+                # "%s" % ('<No output cell: %s >\n' % cell['cell_type'])
+                # )
 
                 return cell, resources
 
