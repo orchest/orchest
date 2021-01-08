@@ -35,12 +35,13 @@ def abort_environment_build(environment_build_uuid, is_running=False):
     status_update = {"status": "ABORTED"}
     celery_app = make_celery(current_app)
 
-    # make use of both constructs (revoke, abort)
-    # so we cover both a task that is pending and a task which is running
+    # Make use of both constructs (revoke, abort) so we cover both a
+    # task that is pending and a task which is running.
     celery_app.control.revoke(environment_build_uuid, timeout=1.0)
     if is_running:
         res = AbortableAsyncResult(environment_build_uuid, app=celery_app)
-        # it is responsibility of the task to terminate by reading it's aborted status
+        # It is responsibility of the task to terminate by reading it's
+        # aborted status.
         res.abort()
 
     update_status_db(
@@ -57,7 +58,8 @@ class EnvironmentBuildList(Resource):
     def get(self):
         """Fetches all environment builds (past and present).
 
-        The environment builds are either PENDING, STARTED, SUCCESS, FAILURE, ABORTED
+        The environment builds are either PENDING, STARTED, SUCCESS,
+        FAILURE, ABORTED.
 
         """
         environment_builds = models.EnvironmentBuild.query.all()
@@ -109,10 +111,11 @@ class EnvironmentBuildList(Resource):
 
         defined_builds = []
         celery = make_celery(current_app)
-        # start a celery task for each unique environment build request
+        # Start a celery task for each unique environment build request.
         for build_request in builds_requests:
 
-            # check if a build for this project/environment is PENDING/STARTED
+            # Check if a build for this project/environment is
+            # PENDING/STARTED.
             builds = models.EnvironmentBuild.query.filter(
                 models.EnvironmentBuild.project_uuid == build_request["project_uuid"],
                 models.EnvironmentBuild.environment_uuid
@@ -219,7 +222,10 @@ class EnvironmentBuild(Resource):
         if status != "PENDING" and status != "STARTED":
             return (
                 {
-                    "message": "Environment build has state %s, no revocation or abortion necessary or possible"
+                    "message": (
+                        "Environment build has state %s, no revocation "
+                        "or abortion necessary or possible"
+                    )
                     % status
                 },
                 200,
@@ -241,7 +247,7 @@ class ProjectMostRecentBuildsList(Resource):
     @api.doc("get_project_most_recent_environment_builds")
     @api.marshal_with(schema.environment_builds, code=200)
     def get(self, project_uuid):
-        """Get the most recent environment build for each environment of a project.
+        """Get the most recent build for each environment of a project.
 
         Only environments for which builds have already been requested
         are considered.  Meaning that environments that are part of a
@@ -249,9 +255,8 @@ class ProjectMostRecentBuildsList(Resource):
 
         """
 
-        # filter by project uuid
-        # use a window function to get the most recently requested build for each environment
-        # return
+        # Filter by project uuid. Use a window function to get the most
+        # recently requested build for each environment return.
         rank = (
             func.rank()
             .over(partition_by="environment_uuid", order_by=desc("requested_time"))
@@ -260,9 +265,9 @@ class ProjectMostRecentBuildsList(Resource):
         query = db.session.query(models.EnvironmentBuild)
         query = query.filter_by(project_uuid=project_uuid)
         query = query.add_column(rank)
-        # note: this works because rank is of type Label and
-        # rank == 1 will evaluate to sqlalchemy.sql.elements.BinaryExpression since the equality
-        # operator is overloaded
+        # Note: this works because rank is of type Label and rank == 1
+        # will evaluate to sqlalchemy.sql.elements.BinaryExpression
+        # since the equality operator is overloaded.
         query = query.from_self().filter(rank == 1)
         query = query.with_entities(models.EnvironmentBuild)
         env_builds = query.all()
@@ -277,8 +282,10 @@ class ProjectEnvironmentMostRecentBuild(Resource):
     @api.doc("get_most_recent_build_by_proj_env")
     @api.marshal_with(schema.environment_build, code=200)
     def get(self, project_uuid, environment_uuid):
-        """Get the most recent environment build for a project_uuid, environment_uuid pair.
-        Only environments for which builds have already been requested are considered.
+        """Get the most recent build for a project and environment pair.
+
+        Only environments for which builds have already been requested
+        are considered.
         """
 
         recent = (

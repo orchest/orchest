@@ -8,6 +8,8 @@ ignore =
     # Allow breaks before/after binary operators
     W503,
     W504,
+    # Ignore invalid escape sequences.
+    W605
 
 # black is set to 88
 max-line-length = 88

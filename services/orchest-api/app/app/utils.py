@@ -77,9 +77,14 @@ def update_status_db(
 ) -> None:
     """Updates the status attribute of particular entry in the database.
 
+    An entity that has already reached an end state, i.e. FAILURE,
+    SUCCESS, ABORTED, will not be updated. This is to avoid race
+    conditions.
+
     Args:
         status_update: The new status {'status': 'STARTED'}.
-        model: Database model to update the status of.
+        model: Database model to update the status of. Assumed to have a
+            status column mapping to a string.
         filter_by: The filter to query the exact resource for which to
             update its status.
 
@@ -91,7 +96,29 @@ def update_status_db(
     elif data["status"] in ["SUCCESS", "FAILURE"]:
         data["finished_time"] = datetime.fromisoformat(data["finished_time"])
 
-    res = model.query.filter_by(**filter_by).update(data)
+    res = (
+        model.query.filter_by(**filter_by)
+        .filter(
+            # This implies that an entity cannot be furtherly updated
+            # once it reaches an "end state", i.e. FAILURE, SUCCESS,
+            # ABORTED. This helps avoiding race conditions given by the
+            # orchest-api and a celery task trying to update the same
+            # entity concurrently, for example when a task is aborted.
+            model.status.in_(["PENDING", "STARTED"])
+        )
+        .update(
+            data,
+            # https://docs.sqlalchemy.org/en/14/orm/session_basics.html#orm-expression-update-delete
+            # The default "evaluate" is not reliable, because depending
+            # on the complexity of the model sqlalchemy might not have a
+            # working implementation, in that case it will raise an
+            # exception. From the docs:
+            # For UPDATE or DELETE statements with complex criteria, the
+            # 'evaluate' strategy may not be able to evaluate the
+            # expression in Python and will raise an error.
+            synchronize_session="fetch",
+        )
+    )
 
     if res:
         db.session.commit()

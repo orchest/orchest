@@ -1,9 +1,5 @@
-import logging
-
-from docker import errors
 from flask_restx import Namespace, Resource
 
-import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app.apis.namespace_environment_builds import (
@@ -33,7 +29,7 @@ api = register_schema(api)
 class EnvironmentImage(Resource):
     @api.doc("delete-environment-image")
     def delete(self, project_uuid, environment_uuid):
-        """Removes an environment image given project_uuid and image_uuid
+        """Removes an environment image given project and env uuids.
 
         Will stop any run or experiment making use of this environment.
         """
@@ -106,22 +102,21 @@ def delete_project_environment_images(project_uuid):
         project_uuid:
     """
 
-    # cleanup references to the builds and dangling images
-    # of all environments of this project
+    # Cleanup references to the builds and dangling images
+    # of all environments of this project.
     delete_project_builds(project_uuid)
     delete_project_dangling_images(project_uuid)
 
     filters = {
         "label": [
-            f"_orchest_env_build_is_intermediate=0",
+            "_orchest_env_build_is_intermediate=0",
             f"_orchest_project_uuid={project_uuid}",
         ]
     }
     images_to_remove = docker_images_list_safe(docker_client, filters=filters)
 
-    image_remove_exceptions = []
-    # try with repeat because there might be a race condition
-    # where the aborted runs are still using the image
+    # Try with repeat because there might be a race condition
+    # where the aborted runs are still using the image.
     for img in images_to_remove:
         docker_images_rm_safe(docker_client, img.id)
 
@@ -136,10 +131,10 @@ def delete_project_dangling_images(project_uuid):
     Args:
         project_uuid:
     """
-    # look only through runs belonging to the project
+    # Look only through runs belonging to the project.
     filters = {
         "label": [
-            f"_orchest_env_build_is_intermediate=0",
+            "_orchest_env_build_is_intermediate=0",
             f"_orchest_project_uuid={project_uuid}",
         ]
     }
@@ -165,7 +160,7 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
     # consider only docker ids related to the environment_uuid
     filters = {
         "label": [
-            f"_orchest_env_build_is_intermediate=0",
+            "_orchest_env_build_is_intermediate=0",
             f"_orchest_project_uuid={project_uuid}",
             f"_orchest_environment_uuid={environment_uuid}",
         ]
