@@ -29,7 +29,7 @@ api = register_schema(api)
 class EnvironmentImage(Resource):
     @api.doc("delete-environment-image")
     def delete(self, project_uuid, environment_uuid):
-        """Removes an environment image given project and image uuids.
+        """Removes an environment image given project and env uuids.
 
         Will stop any run or experiment making use of this environment.
         """
