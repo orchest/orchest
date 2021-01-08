@@ -8,8 +8,6 @@ TODO:
 """
 from flask_restx import Model, fields
 
-from _orchest.internals import config as _config
-
 # Namespace: Sessions
 server = Model(
     "Server",
@@ -104,7 +102,7 @@ pipeline_run_pipeline_step = Model(
         "status": fields.String(
             required=True,
             description="Status of the step",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED", "REVOKED"],
+            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
         ),
         "started_time": fields.String(
             required=True, description="Time at which the step started executing"
@@ -169,7 +167,7 @@ status_update = Model(
         "status": fields.String(
             required=True,
             description="New status of executable, e.g. pipeline or step",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED", "REVOKED"],
+            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
         ),
     },
 )
@@ -241,7 +239,9 @@ experiment_spec = Model(
         "pipeline_run_spec": fields.Nested(
             non_interactive_run_spec,
             required=True,
-            description='Specification of the pipeline runs, e.g. "full", "incoming" etc',
+            description=(
+                'Specification of the pipeline runs, e.g. "full",' ' "incoming" etc',
+            ),
         ),
         "scheduled_start": fields.String(
             required=True,

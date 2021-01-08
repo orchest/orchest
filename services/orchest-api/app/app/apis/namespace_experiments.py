@@ -161,8 +161,8 @@ class ExperimentList(Resource):
                     "run_config": run_config,
                 }
 
-                # Due to circular imports we use the task name instead of
-                # importing the function directly.
+                # Due to circular imports we use the task name instead
+                # of importing the function directly.
                 tasks_to_launch.append(
                     {
                         "name": "app.core.tasks.start_non_interactive_pipeline_run",
@@ -179,10 +179,11 @@ class ExperimentList(Resource):
             celery = make_celery(current_app)
             for task in tasks_to_launch:
                 res = celery.send_task(**task)
-                # NOTE: this is only if a backend is configured.  The task does
-                # not return anything. Therefore we can forget its result and
-                # make sure that the Celery backend releases recourses (for
-                # storing and transmitting results) associated to the task.
+                # NOTE: this is only if a backend is configured.
+                # The task does not return anything. Therefore we can
+                # forget its result and make sure that the Celery
+                # backend releases recourses (for storing and
+                # transmitting results) associated to the task.
                 # Uncomment the line below if applicable.
                 res.forget()
 
@@ -208,7 +209,10 @@ class ExperimentList(Resource):
             db.session.commit()
 
             return {
-                "message": "Failed to create experiment because not all referenced environments are available."
+                "message": (
+                    "Failed to create experiment because not all referenced"
+                    "environments are available."
+                )
             }, 500
 
 
@@ -226,17 +230,17 @@ class Experiment(Resource):
         )
         return experiment.__dict__
 
-    # TODO: We should also make it possible to stop a particular pipeline
-    #       run of an experiment. It should state "cancel" the execution
-    #       of a pipeline run, since we do not do termination of running
-    #       tasks.
+    # TODO: We should also make it possible to stop a particular
+    # pipeline run of an experiment. It should state "cancel" the
+    # execution of a pipeline run, since we do not do termination of
+    # running tasks.
     @api.doc("delete_experiment")
     @api.response(200, "Experiment terminated")
     def delete(self, experiment_uuid):
         """Stops an experiment given its UUID.
 
         However, it will not delete any corresponding database entries,
-        it will update the status of corresponding objects to "REVOKED".
+        it will update the status of corresponding objects to "ABORTED".
         """
         if stop_experiment(experiment_uuid):
             return {"message": "Experiment termination was successful"}, 200
@@ -287,7 +291,6 @@ class PipelineRun(Resource):
                 description="Experiment not found",
             )
             experiment.completed_pipeline_runs += 1
-            db.session.commit()
 
         filter_by = {
             "experiment_uuid": experiment_uuid,
@@ -317,7 +320,7 @@ class PipelineStepStatus(Resource):
     @api.doc("get_pipeline_run_pipeline_step")
     @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, experiment_uuid, run_uuid, step_uuid):
-        """Fetch a pipeline step of a run of an experiment given uuids."""
+        """Fetch a pipeline step of an experiment run given uuids."""
         step = models.PipelineRunStep.query.get_or_404(
             ident=(run_uuid, step_uuid),
             description="Combination of given experiment, run and step not found",
@@ -399,13 +402,13 @@ def stop_experiment(experiment_uuid) -> bool:
         # it's aborted status
         res.abort()
 
-        # Update the status of the run and step entries to "REVOKED".
-        models.NonInteractivePipelineRun.query.filter_by(run_uuid=run_uuid).update(
-            {"status": "REVOKED"}
+        filter_by = {"run_uuid": run_uuid}
+        status_update = {"status": "ABORTED"}
+        update_status_db(
+            status_update, model=models.NonInteractivePipelineRun, filter_by=filter_by
         )
-
-        models.PipelineRunStep.query.filter_by(run_uuid=run_uuid).update(
-            {"status": "REVOKED"}
+        update_status_db(
+            status_update, model=models.PipelineRunStep, filter_by=filter_by
         )
 
     db.session.commit()
