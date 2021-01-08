@@ -89,6 +89,7 @@ def dev(
             "orchest/orchest-api:latest",
             "orchest/orchest-webserver:latest",
             "orchest/auth-server:latest",
+            "orchest/celery-worker:latest",
         ]
         for c in containers:
             config.CONTAINER_MAPPING[c]["environment"][

@@ -2,9 +2,11 @@
 
 umask 002
 
+[ -z "$ORCHEST_LOG_LEVEL" ] && ORCHEST_LOG_LEVEL="INFO"
+
 # Experiments.
 celery worker -A app.core.tasks \
-    -l INFO \
+    -l "$ORCHEST_LOG_LEVEL" \
     -Q experiments \
     -n worker-expriments \
     --statedb /userdir/.orchest/celery-state.db \
@@ -15,7 +17,7 @@ celery worker -A app.core.tasks \
 
 # Interactive runs. "celery" is the default queue name.
 celery worker -A app.core.tasks \
-    -l INFO \
+    -l "$ORCHEST_LOG_LEVEL" \
     -Q celery \
     -n worker-interactive \
     -f celery_interactive.log \
@@ -27,7 +29,7 @@ celery worker -A app.core.tasks \
 # cleaning up state when using disconnect, which will lead to sockets
 # related failures in a subsequent task
 celery worker -A app.core.tasks \
-    -l INFO \
+    -l "$ORCHEST_LOG_LEVEL" \
     -Q environment_builds \
     -n worker-env-builds \
     --statedb /userdir/.orchest/celery-environment-builds-state.db \
