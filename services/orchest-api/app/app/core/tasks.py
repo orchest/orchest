@@ -83,8 +83,8 @@ async def get_run_status(
             return await response.json()
 
 
-# Periodically check whether task has been aborted, if it has been, kill all
-# running containers to short-circuit pipeline run.
+# Periodically check whether task has been aborted, if it has been, kill
+# all running containers to short-circuit pipeline run.
 async def check_pipeline_run_task_status(run_config, pipeline, task_id):
 
     while True:
@@ -258,7 +258,7 @@ def start_non_interactive_pipeline_run(
         run_config["pipeline_path"],
         run_config["project_dir"],
         pipeline_definition["settings"]["data_passing_memory_size"],
-    ) as session:
+    ):
         status = run_pipeline(
             pipeline_definition, project_uuid, run_config, task_id=self.request.id
         )
@@ -276,7 +276,7 @@ def build_environment(
     environment_uuid,
     project_path,
 ) -> str:
-    """Builds an environment, resulting in a new image in the docker environment.
+    """Builds an environment, producing a new image in the docker env.
 
     Args:
         project_uuid: UUID of the project.
