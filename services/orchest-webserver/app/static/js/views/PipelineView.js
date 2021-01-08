@@ -1419,7 +1419,7 @@ class PipelineView extends React.Component {
           });
         }
 
-        if (result.status === "SUCCESS") {
+        if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
           // make sure stale opened files are reloaded in active
           // Jupyter instance
 

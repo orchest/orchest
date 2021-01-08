@@ -254,6 +254,7 @@ def stop_pipeline_run(run_uuid) -> bool:
 
     filter_by = {"run_uuid": run_uuid}
     status_update = {"status": "ABORTED"}
+    update_status_db(status_update, model=models.PipelineRunStep, filter_by=filter_by)
     update_status_db(status_update, model=models.PipelineRun, filter_by=filter_by)
 
     return True

@@ -822,11 +822,8 @@ class Pipeline:
                 compute_backend=compute_backend,
             )
 
-            # NOTE: the status of a pipeline is always success once it
-            # is done executing. Errors in steps are reflected by the
-            # status of the respective steps.
             await update_status(
-                "SUCCESS",
+                status,
                 task_id,
                 session,
                 type="pipeline",
@@ -838,10 +835,6 @@ class Pipeline:
         # Reset the execution environment of the Pipeline.
         for step in self.steps:
             step._status = "PENDING"
-
-        # Status will contain whether any failures occured during
-        # execution of the pipeline.
-        return status
 
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"

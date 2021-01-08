@@ -497,4 +497,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             )
             session.delete(url)
 
-    return status
+    # The status of the Celery task is SUCCESS since it has finished
+    # running. Not related to the actual state of the build, e.g.
+    # FAILURE.
+    return "SUCCESS"

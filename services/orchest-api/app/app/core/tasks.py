@@ -127,6 +127,9 @@ async def run_pipeline_async(run_config, pipeline, task_id):
     # in check_pipeline_run_task_status
     run_config["docker_client"] = docker_client
     pipeline.remove_containerization_resources(task_id, "docker", run_config)
+    # The celery task has completed successfully. This is not related to
+    # the success or failure of the pipeline itself.
+    return "SUCCESS"
 
 
 @celery.task(bind=True, base=AbortableTask)
