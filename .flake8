@@ -8,6 +8,8 @@ ignore =
     # Allow breaks before/after binary operators
     W503,
     W504,
+    # Ignore invalid escape sequence, see services/orchest-api/app/app/core/environment_builds.py:262:55
+    W605
 
 # black is set to 88
 max-line-length = 88
