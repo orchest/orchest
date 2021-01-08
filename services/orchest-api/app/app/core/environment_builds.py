@@ -88,7 +88,7 @@ def update_environment_build_status(
 
     url = (
         f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/environment-builds/"
-        "{environment_build_uuid}"
+        f"{environment_build_uuid}"
     )
 
     with session.put(url, json=data) as response:
