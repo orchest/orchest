@@ -724,19 +724,19 @@ class PipelineView extends React.Component {
 
     $(document).on("keydown.initializePipeline", (e) => {
       // Ctrl / Meta + S for saving pipeline
-      if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
+      if (e.keyCode === 83 && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         // saveButton.click is used instead of savePipeline() to trigger visual
         // button press
         this.refManager.refs.saveButton.click();
       }
-      if (e.keyCode == 46) {
+      if (e.keyCode === 46 || e.keyCode === 8) {
         this.deleteSelectedSteps();
       }
     });
 
     $(document).on("keyup.initializePipeline", (e) => {
-      if (e.keyCode === 8) {
+      if (e.keyCode === 8 || e.keyCode === 46) {
         if (this.selectedConnection) {
           e.preventDefault();
 
