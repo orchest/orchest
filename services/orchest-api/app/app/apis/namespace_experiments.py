@@ -7,6 +7,7 @@ from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
 
 import app.models as models
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
@@ -56,164 +57,20 @@ class ExperimentList(Resource):
             "scheduled_start": scheduled_start,
             "total_number_of_pipeline_runs": len(post_data["pipeline_definitions"]),
         }
-        db.session.add(models.Experiment(**experiment))
-        db.session.commit()
 
-        pipeline_runs = []
-        pipeline_run_spec = post_data["pipeline_run_spec"]
-        env_uuid_docker_id_mappings = None
-        # this way we write the entire exp to db, but avoid
-        # launching any run (celery task) if we detected a problem
-        experiment_creation_error_messages = []
-        tasks_to_launch = []
-
-        # TODO: This can be made more efficient, since the pipeline
-        #       is the same for all pipeline runs. The only
-        #       difference is the parameters. So all the jobs could
-        #       be created in batch.
-        for pipeline_definition, id_ in zip(
-            post_data["pipeline_definitions"], post_data["pipeline_run_ids"]
-        ):
-            pipeline_run_spec["pipeline_definition"] = pipeline_definition
-            pipeline = construct_pipeline(**post_data["pipeline_run_spec"])
-
-            # specify the task_id beforehand to avoid race conditions
-            # between the task and its presence in the db
-            task_id = str(uuid.uuid4())
-
-            non_interactive_run = {
-                "experiment_uuid": post_data["experiment_uuid"],
-                "run_uuid": task_id,
-                "pipeline_run_id": id_,
-                "pipeline_uuid": pipeline.properties["uuid"],
-                "project_uuid": post_data["project_uuid"],
-                "status": "PENDING",
-            }
-            db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
-            # need to flush because otherwise the bulk insertion of
-            # pipeline steps will lead to foreign key errors
-            # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
-            db.session.flush()
-
-            # TODO: this code is also in `namespace_runs`. Could
-            #       potentially be put in a function for modularity.
-            # Set an initial value for the status of the pipeline
-            # steps that will be run.
-            step_uuids = [s.properties["uuid"] for s in pipeline.steps]
-            pipeline_steps = []
-            for step_uuid in step_uuids:
-                pipeline_steps.append(
-                    models.PipelineRunStep(
-                        **{
-                            "run_uuid": task_id,
-                            "step_uuid": step_uuid,
-                            "status": "PENDING",
-                        }
-                    )
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                experiment = CreateExperiment(tpe).transaction(
+                    experiment,
+                    post_data["pipeline_run_spec"],
+                    post_data["pipeline_definitions"],
+                    post_data["pipeline_run_ids"],
                 )
-            db.session.bulk_save_objects(pipeline_steps)
-            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            return {"message": str(e)}, 500
 
-            non_interactive_run["pipeline_steps"] = pipeline_steps
-            pipeline_runs.append(non_interactive_run)
-
-            # get docker ids of images to use and make it so that the
-            # images will not be deleted in case they become
-            # outdated by an environment rebuild
-            # compute it only once because this way we are guaranteed
-            # that the mappings will be the same for all runs, having
-            # a new environment build terminate while submitting the
-            # different runs won't affect the experiment
-            if env_uuid_docker_id_mappings is None:
-                try:
-                    env_uuid_docker_id_mappings = lock_environment_images_for_run(
-                        task_id,
-                        post_data["project_uuid"],
-                        pipeline.get_environments(),
-                    )
-                except errors.ImageNotFound as e:
-                    experiment_creation_error_messages.append(
-                        f"Pipeline was referencing environments for "
-                        f"which an image does not exist, {e}"
-                    )
-            else:
-                image_mappings = [
-                    models.PipelineRunImageMapping(
-                        **{
-                            "run_uuid": task_id,
-                            "orchest_environment_uuid": env_uuid,
-                            "docker_img_id": docker_id,
-                        }
-                    )
-                    for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-                ]
-                db.session.bulk_save_objects(image_mappings)
-                db.session.commit()
-
-            if len(experiment_creation_error_messages) == 0:
-                # prepare the args for the task
-                run_config = pipeline_run_spec["run_config"]
-                run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
-                celery_job_kwargs = {
-                    "experiment_uuid": post_data["experiment_uuid"],
-                    "project_uuid": post_data["project_uuid"],
-                    "pipeline_definition": pipeline.to_dict(),
-                    "run_config": run_config,
-                }
-
-                # Due to circular imports we use the task name instead
-                # of importing the function directly.
-                tasks_to_launch.append(
-                    {
-                        "name": "app.core.tasks.start_non_interactive_pipeline_run",
-                        "eta": scheduled_start,
-                        "kwargs": celery_job_kwargs,
-                        "task_id": task_id,
-                    }
-                )
-
-        experiment["pipeline_runs"] = pipeline_runs
-
-        if len(experiment_creation_error_messages) == 0:
-            # Create Celery object with the Flask context
-            celery = make_celery(current_app)
-            for task in tasks_to_launch:
-                res = celery.send_task(**task)
-                # NOTE: this is only if a backend is configured.
-                # The task does not return anything. Therefore we can
-                # forget its result and make sure that the Celery
-                # backend releases recourses (for storing and
-                # transmitting results) associated to the task.
-                # Uncomment the line below if applicable.
-                res.forget()
-
-            return experiment, 201
-        else:
-            current_app.logger.error("\n".join(experiment_creation_error_messages))
-
-            # simple way to update both in memory objects
-            # and the db while avoiding multiple update statements
-            # (1 for each object)
-            for pipeline_run in experiment["pipeline_runs"]:
-                pipeline_run.status = "SUCCESS"
-                for step in pipeline_run["pipeline_steps"]:
-                    step.status = "FAILURE"
-
-                models.PipelineRunStep.query.filter_by(
-                    run_uuid=pipeline_run["run_uuid"]
-                ).update({"status": "FAILURE"})
-
-            models.NonInteractivePipelineRun.query.filter_by(
-                experiment_uuid=post_data["experiment_uuid"]
-            ).update({"status": "SUCCESS"})
-            db.session.commit()
-
-            return {
-                "message": (
-                    "Failed to create experiment because not all referenced"
-                    "environments are available."
-                )
-            }, 500
+        return experiment, 201
 
 
 @api.route("/<string:experiment_uuid>")
@@ -242,16 +99,19 @@ class Experiment(Resource):
         However, it will not delete any corresponding database entries,
         it will update the status of corresponding objects to "ABORTED".
         """
-        if stop_experiment(experiment_uuid):
-            return {"message": "Experiment termination was successful"}, 200
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_abort = AbortExperiment(tpe).transaction(experiment_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if could_abort:
+            return {"message": "Experiment termination was successful."}, 200
         else:
-            return (
-                {
-                    "message": "Experiment does not \
-            exist or is already completed"
-                },
-                404,
-            )
+            return {
+                "message": "Experiment does not exist or is already completed."
+            }, 404
 
 
 @api.route(
@@ -296,9 +156,17 @@ class PipelineRun(Resource):
             "experiment_uuid": experiment_uuid,
             "run_uuid": run_uuid,
         }
-        update_status_db(
-            status_update, model=models.NonInteractivePipelineRun, filter_by=filter_by
-        )
+        try:
+            update_status_db(
+                status_update,
+                model=models.NonInteractivePipelineRun,
+                filter_by=filter_by,
+            )
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.info(str(e))
+            db.session.rollback()
+            return {"message": "Failed update operation."}, 500
 
         return {"message": "Status was updated successfully"}, 200
 
@@ -337,13 +205,19 @@ class PipelineStepStatus(Resource):
             "run_uuid": run_uuid,
             "step_uuid": step_uuid,
         }
-        update_status_db(
-            status_update,
-            model=models.PipelineRunStep,
-            filter_by=filter_by,
-        )
+        try:
+            update_status_db(
+                status_update,
+                model=models.PipelineRunStep,
+                filter_by=filter_by,
+            )
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.info(str(e))
+            db.session.rollback()
+            return {"message": "Failed update operation."}, 500
 
-        return {"message": "Status was updated successfully"}, 200
+        return {"message": "Status was updated successfully."}, 200
 
 
 @api.route("/cleanup/<string:experiment_uuid>")
@@ -358,85 +232,237 @@ class ExperimentDeletion(Resource):
         The experiment is stopped if its running, related entities
         are then removed from the db.
         """
-        if delete_experiment(experiment_uuid):
-            return {"message": "Experiment deletion was successful"}, 200
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_delete = DeleteExperiment(tpe).transaction(experiment_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if could_delete:
+            return {"message": "Experiment deletion was successful."}, 200
         else:
-            return {"message": "Experiment does not exist"}, 404
+            return {"message": "Experiment does not exist."}, 404
 
 
-def stop_experiment(experiment_uuid) -> bool:
-    """Stop an experiment.
+class CreateExperiment(TwoPhaseFunction):
+    """Create an experiment."""
 
-    Args:
-        experiment_uuid:
+    def transaction(
+        self, experiment, pipeline_run_spec, pipeline_definitions, pipeline_run_ids
+    ):
 
-    Returns:
-        True if the experiment exists and was stopped, false
-        if it did not exist or if it was already completed.
-    """
-    experiment = models.Experiment.query.filter_by(
-        experiment_uuid=experiment_uuid
-    ).one_or_none()
-    if experiment is None:
-        return False
+        db.session.add(models.Experiment(**experiment))
+        # So that the experiment can be returned with all runs.
+        experiment["pipeline_runs"] = []
+        # To be later used by the collateral effect function.
+        self.experiment = experiment
+        self.pipeline_run_spec = pipeline_run_spec
+        self.tasks_to_launch = []
 
-    run_uuids = [
-        run.run_uuid
-        for run in experiment.pipeline_runs
-        if run.status in ["PENDING", "STARTED"]
-    ]
-    if len(run_uuids) == 0:
-        return False
+        for pipeline_definition, id_ in zip(pipeline_definitions, pipeline_run_ids):
+            # Note: the pipeline definition contains the parameters of
+            # the specific run.
+            pipeline_run_spec["pipeline_definition"] = pipeline_definition
+            pipeline = construct_pipeline(**pipeline_run_spec)
 
-    # Aborts and revokes all pipeline runs and waits for a
-    # reply for 1.0s.
-    celery = make_celery(current_app)
-    celery.control.revoke(run_uuids, timeout=1.0)
+            # Specify the task_id beforehand to avoid race conditions
+            # between the task and its presence in the db.
+            task_id = str(uuid.uuid4())
+            self.tasks_to_launch.append((task_id, pipeline))
 
-    # TODO: possibly set status of steps and Run to "ABORTED"
-    #  note that a race condition would be present since the task
-    # will try to set the status as well
-    for run_uuid in run_uuids:
-        res = AbortableAsyncResult(run_uuid, app=celery)
-        # it is responsibility of the task to terminate by reading \
-        # it's aborted status
-        res.abort()
+            non_interactive_run = {
+                "experiment_uuid": experiment["experiment_uuid"],
+                "run_uuid": task_id,
+                "pipeline_run_id": id_,
+                "pipeline_uuid": pipeline.properties["uuid"],
+                "project_uuid": experiment["project_uuid"],
+                "status": "PENDING",
+            }
+            db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
+            # Need to flush because otherwise the bulk insertion of
+            # pipeline steps will lead to foreign key errors.
+            # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
+            db.session.flush()
 
-        filter_by = {"run_uuid": run_uuid}
-        status_update = {"status": "ABORTED"}
-        update_status_db(
-            status_update, model=models.NonInteractivePipelineRun, filter_by=filter_by
-        )
-        update_status_db(
-            status_update, model=models.PipelineRunStep, filter_by=filter_by
-        )
+            # TODO: this code is also in `namespace_runs`. Could
+            #       potentially be put in a function for modularity.
+            # Set an initial value for the status of the pipeline
+            # steps that will be run.
+            step_uuids = [s.properties["uuid"] for s in pipeline.steps]
+            pipeline_steps = []
+            for step_uuid in step_uuids:
+                pipeline_steps.append(
+                    models.PipelineRunStep(
+                        **{
+                            "run_uuid": task_id,
+                            "step_uuid": step_uuid,
+                            "status": "PENDING",
+                        }
+                    )
+                )
+            db.session.bulk_save_objects(pipeline_steps)
 
-    db.session.commit()
-    return True
+            non_interactive_run["pipeline_steps"] = pipeline_steps
+            self.experiment["pipeline_runs"].append(non_interactive_run)
+        return self.experiment
+
+    def collateral(self):
+        # Safety check in case the experiment has no runs.
+        if not self.tasks_to_launch:
+            return
+
+        # Get docker ids of images to use and make it so that the
+        # images will not be deleted in case they become outdate by an
+        # an environment rebuild. Compute it only once because this way
+        # we are guaranteed that the mappings will be the same for all
+        # runs, having a new environment build terminate while
+        # submitting the different runs won't affect the experiment.
+        try:
+            env_uuid_docker_id_mappings = lock_environment_images_for_run(
+                # first (task_id, pipeline) -> task id.
+                self.tasks_to_launch[0][0],
+                self.experiment["project_uuid"],
+                # first (task_id, pipeline) -> pipeline.
+                self.tasks_to_launch[0][1].get_environments(),
+            )
+        except errors.ImageNotFound as e:
+            raise errors.ImageNotFound(
+                "Pipeline was referencing environments for "
+                f"which an image does not exist, {e}"
+            )
+
+        for task_id, _ in self.tasks_to_launch[1:]:
+            image_mappings = [
+                models.PipelineRunImageMapping(
+                    **{
+                        "run_uuid": task_id,
+                        "orchest_environment_uuid": env_uuid,
+                        "docker_img_id": docker_id,
+                    }
+                )
+                for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
+            ]
+            db.session.bulk_save_objects(image_mappings)
+        db.session.commit()
+
+        # Launch each task through celery.
+        celery = make_celery(current_app)
+        for task_id, pipeline in self.tasks_to_launch:
+            run_config = self.pipeline_run_spec["run_config"]
+            run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
+            celery_job_kwargs = {
+                "experiment_uuid": self.experiment["experiment_uuid"],
+                "project_uuid": self.experiment["project_uuid"],
+                "pipeline_definition": pipeline.to_dict(),
+                "run_config": run_config,
+            }
+
+            # Due to circular imports we use the task name instead of
+            # importing the function directly.
+            task_args = {
+                "name": "app.core.tasks.start_non_interactive_pipeline_run",
+                "eta": self.experiment["scheduled_start"],
+                "kwargs": celery_job_kwargs,
+                "task_id": task_id,
+            }
+            res = celery.send_task(**task_args)
+            # NOTE: this is only if a backend is configured.
+            # The task does not return anything. Therefore we can
+            # forget its result and make sure that the Celery
+            # backend releases recourses (for storing and
+            # transmitting results) associated to the task.
+            # Uncomment the line below if applicable.
+            res.forget()
+
+    def revert(self):
+        # Set the status to FAILURE for runs and their steps.
+        models.PipelineRunStep.query.filter_by(
+            models.PipelineRunStep.run_uuid.in_(self.tasks_to_launch)
+        ).update({"status": "FAILURE"})
+
+        models.NonInteractivePipelineRun.query.filter_by(
+            models.PipelineRun.run_uuid.in_(self.tasks_to_launch)
+        ).update({"status": "FAILURE"})
+        db.session.commit()
 
 
-def delete_experiment(experiment_uuid) -> bool:
-    """Delete an experiment.
+class AbortExperiment(TwoPhaseFunction):
+    """Abort an experiment."""
 
-    If running, the experiment is aborted. All data related
-    to the experiment is removed.
+    def transaction(self, experiment_uuid):
+        # To be later used by the collateral function.
+        self.run_uuids = []
 
-    Args:
-        experiment_uuid:
+        experiment = models.Experiment.query.filter_by(
+            experiment_uuid=experiment_uuid
+        ).one_or_none()
+        if experiment is None:
+            return False
 
-    Returns:
-        True if the experiment existed and was removed, false
-        otherwise.
-    """
-    experiment = models.Experiment.query.filter_by(
-        experiment_uuid=experiment_uuid
-    ).one_or_none()
-    if experiment is None:
-        return False
+        # Store each uuid of runs that can still be aborted. These uuid
+        # are the celery task uuid as well.
+        for run in experiment.pipeline_runs:
+            if run.status in ["PENDING", "STARTED"]:
+                self.run_uuids.append(run.run_uuid)
 
-    stop_experiment(experiment_uuid)
-    # non interactive runs -> non interactive run image mapping
-    # non interactive runs step
-    db.session.delete(experiment)
-    db.session.commit()
-    return True
+        if len(self.run_uuids) == 0:
+            return False
+
+        # Set the state of each run and related steps to ABORTED. Note
+        # that the status of steps that have already been completed will
+        # not be modified.
+        for run_uuid in self.run_uuids:
+            filter_by = {"run_uuid": run_uuid}
+            status_update = {"status": "ABORTED"}
+
+            update_status_db(
+                status_update,
+                model=models.NonInteractivePipelineRun,
+                filter_by=filter_by,
+            )
+
+            update_status_db(
+                status_update, model=models.PipelineRunStep, filter_by=filter_by
+            )
+
+        return True
+
+    def collateral(self):
+        # Aborts and revokes all pipeline runs and waits for a reply for
+        # 1.0s.
+        celery = make_celery(current_app)
+        celery.control.revoke(self.run_uuids, timeout=1.0)
+
+        for run_uuid in self.run_uuids:
+            res = AbortableAsyncResult(run_uuid, app=celery)
+            # It is responsibility of the task to terminate by reading
+            # its aborted status.
+            res.abort()
+
+    def revert(self):
+        pass
+
+
+class DeleteExperiment(TwoPhaseFunction):
+    """Delete an experiment."""
+
+    def transaction(self, experiment_uuid):
+        experiment = models.Experiment.query.filter_by(
+            experiment_uuid=experiment_uuid
+        ).one_or_none()
+        if experiment is None:
+            return False
+
+        # Abort the experiment, won't to anything if the experiment is
+        # not running.
+        AbortExperiment(self.tpe).transaction(experiment_uuid)
+
+        # Deletes cascade to: experiment -> non interactive run
+        # non interactive runs -> non interactive run image mapping
+        # non interactive runs -> pipeline run step
+        db.session.delete(experiment)
+        return True
+
+    def collateral(self):
+        pass

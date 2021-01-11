@@ -1,14 +1,15 @@
 from flask_restx import Namespace, Resource
 
 from _orchest.internals import config as _config
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app.apis.namespace_environment_builds import (
-    delete_project_builds,
-    delete_project_environment_builds,
+    DeleteProjectBuilds,
+    DeleteProjectEnvironmentBuilds,
 )
-from app.apis.namespace_experiments import stop_experiment
-from app.apis.namespace_runs import stop_pipeline_run
-from app.connections import docker_client
+from app.apis.namespace_experiments import AbortExperiment
+from app.apis.namespace_runs import AbortPipelineRun
+from app.connections import db, docker_client
 from app.utils import (
     experiments_using_environment,
     interactive_runs_using_environment,
@@ -33,33 +34,14 @@ class EnvironmentImage(Resource):
 
         Will stop any run or experiment making use of this environment.
         """
-        image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-            project_uuid=project_uuid, environment_uuid=environment_uuid
-        )
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                DeleteImage(tpe).transaction(project_uuid, environment_uuid)
 
-        # stop all interactive runs making use of the environment
-        int_runs = interactive_runs_using_environment(project_uuid, environment_uuid)
-        for run in int_runs:
-            stop_pipeline_run(run.run_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
 
-        # stop all experiments making use of the environment
-        exps = experiments_using_environment(project_uuid, environment_uuid)
-        for exp in exps:
-            stop_experiment(exp.experiment_uuid)
-
-        # cleanup references to the builds and dangling images
-        # of this environment
-        delete_project_environment_builds(project_uuid, environment_uuid)
-        delete_project_environment_dangling_images(project_uuid, environment_uuid)
-
-        # try with repeat because there might be a race condition
-        # where the aborted runs are still using the image
-        docker_images_rm_safe(docker_client, image_name)
-
-        return (
-            {"message": f"Environment image {image_name} was successfully deleted"},
-            200,
-        )
+        return {"message": "Environment image was successfully deleted."}, 200
 
 
 @api.route(
@@ -88,37 +70,7 @@ class ProjectEnvironmentDanglingImages(Resource):
         or experiment which are pending or running."""
 
         delete_project_environment_dangling_images(project_uuid, environment_uuid)
-        return {"message": "Successfully removed dangling images"}, 200
-
-
-def delete_project_environment_images(project_uuid):
-    """Delete environment images of a project.
-
-    All environment images related to the project are removed
-    from the environment, running environment builds are stopped
-    and removed from the db. Dangling docker images are also removed.
-
-    Args:
-        project_uuid:
-    """
-
-    # Cleanup references to the builds and dangling images
-    # of all environments of this project.
-    delete_project_builds(project_uuid)
-    delete_project_dangling_images(project_uuid)
-
-    filters = {
-        "label": [
-            "_orchest_env_build_is_intermediate=0",
-            f"_orchest_project_uuid={project_uuid}",
-        ]
-    }
-    images_to_remove = docker_images_list_safe(docker_client, filters=filters)
-
-    # Try with repeat because there might be a race condition
-    # where the aborted runs are still using the image.
-    for img in images_to_remove:
-        docker_images_rm_safe(docker_client, img.id)
+        return {"message": "Successfully removed dangling images."}, 200
 
 
 def delete_project_dangling_images(project_uuid):
@@ -156,8 +108,8 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
         project_uuid:
         environment_uuid:
     """
-    # look only through runs belonging to the project
-    # consider only docker ids related to the environment_uuid
+    # Look only through runs belonging to the project consider only
+    # docker ids related to the environment_uuid.
     filters = {
         "label": [
             "_orchest_env_build_is_intermediate=0",
@@ -170,3 +122,62 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
 
     for docker_img in project_env_images:
         remove_if_dangling(docker_img)
+
+
+class DeleteProjectEnvironmentImages(TwoPhaseFunction):
+    def transaction(self, project_uuid: str):
+        self.project_uuid = project_uuid
+        # Cleanup references to the builds and dangling images of all
+        # environments of this project.
+        DeleteProjectBuilds(self.tpe).transaction(self.project_uuid)
+
+    def collateral(self):
+        filters = {
+            "label": [
+                "_orchest_env_build_is_intermediate=0",
+                f"_orchest_project_uuid={self.project_uuid}",
+            ]
+        }
+        images_to_remove = docker_images_list_safe(docker_client, filters=filters)
+
+        # Try with repeat because there might be a race condition
+        # where the aborted runs are still using the image.
+        for img in images_to_remove:
+            docker_images_rm_safe(docker_client, img.id)
+
+
+class DeleteImage(TwoPhaseFunction):
+    def transaction(self, project_uuid: str, environment_uuid: str):
+
+        # Stop all interactive runs making use of the env.
+        int_runs = interactive_runs_using_environment(project_uuid, environment_uuid)
+        for run in int_runs:
+            AbortPipelineRun(self.tpe).transaction(run.run_uuid)
+
+        # Stop all experiments making use of the environment.
+        exps = experiments_using_environment(project_uuid, environment_uuid)
+        for exp in exps:
+            AbortExperiment(self.tpe).transaction(exp.experiment_uuid)
+
+        # Cleanup references to the builds and dangling images
+        # of this environment.
+        DeleteProjectEnvironmentBuilds(self.tpe).transaction(
+            project_uuid, environment_uuid
+        )
+
+        # To be used by the collateral function.
+        self.project_uuid = project_uuid
+        self.environment_uuid = environment_uuid
+
+    def collateral(self):
+        image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=self.project_uuid, environment_uuid=self.environment_uuid
+        )
+
+        delete_project_environment_dangling_images(
+            self.project_uuid, self.environment_uuid
+        )
+
+        # Try with repeat because there might be a race condition where
+        # the aborted runs are still using the image.
+        docker_images_rm_safe(docker_client, image_name)

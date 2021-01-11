@@ -315,15 +315,6 @@ environment_build = Model(
     },
 )
 
-environment_builds = Model(
-    "EnvironmentBuilds",
-    {
-        "environment_builds": fields.List(
-            fields.Nested(environment_build),
-            description="Collection of environment_builds",
-        ),
-    },
-)
 
 environment_build_request = Model(
     "EnvironmentBuildRequest",
@@ -342,6 +333,21 @@ environment_build_requests = Model(
         "environment_build_requests": fields.List(
             fields.Nested(environment_build_request),
             description="Collection of environment_build_request",
+            unique=True,
+        ),
+    },
+)
+
+environment_builds = Model(
+    "EnvironmentBuilds",
+    {
+        "environment_builds": fields.List(
+            fields.Nested(environment_build),
+            description="Collection of environment_builds",
+        ),
+        "failed_requests": fields.List(
+            fields.Nested(environment_build_request),
+            description="Collection of requests that could not be satisfied",
             unique=True,
         ),
     },

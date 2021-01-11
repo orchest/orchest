@@ -2,6 +2,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 
 import app.models as models
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
@@ -40,51 +41,33 @@ class SessionList(Resource):
         """Launches an interactive session."""
         post_data = request.get_json()
 
-        # TODO: error handling. If it does not succeed then the initial
-        #       entry has to be removed from the database as otherwise
-        #       no session can be started in the future due to unique
-        #       constraint.
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                CreateInteractiveSession(tpe).transaction(
+                    post_data["project_uuid"],
+                    post_data["pipeline_uuid"],
+                    post_data["pipeline_path"],
+                    post_data["project_dir"],
+                    post_data["host_userdir"],
+                    post_data["settings"]["data_passing_memory_size"],
+                )
+        except Exception as e:
+            # Error handling. If it does not succeed then the initial
+            # entry has to be removed from the database as otherwise no
+            # session can be started in the future due to the uniqueness
+            # constraint.
+            models.InteractiveSession.query.filter_by(
+                project_uuid=post_data["project_uuid"],
+                pipeline_uuid=post_data["pipeline_uuid"],
+            ).delete()
+            return {"message": str(e)}, 500
 
-        # Add initial entry to database.
-        pipeline_uuid = post_data["pipeline_uuid"]
-        pipeline_path = post_data["pipeline_path"]
-        project_uuid = post_data["project_uuid"]
+        isess = models.InteractiveSession.query.filter_by(
+            project_uuid=post_data["project_uuid"],
+            pipeline_uuid=post_data["pipeline_uuid"],
+        ).one_or_none()
 
-        interactive_session = {
-            "project_uuid": project_uuid,
-            "pipeline_uuid": pipeline_uuid,
-            "status": "LAUNCHING",
-        }
-        db.session.add(models.InteractiveSession(**interactive_session))
-        db.session.commit()
-
-        session = InteractiveSession(docker_client, network="orchest")
-        session.launch(
-            pipeline_uuid,
-            project_uuid,
-            pipeline_path,
-            post_data["project_dir"],
-            post_data["settings"]["data_passing_memory_size"],
-            post_data["host_userdir"],
-        )
-
-        # Update the database entry with information to connect to the
-        # launched resources.
-        IP = session.get_containers_IP()
-        interactive_session.update(
-            {
-                "status": "RUNNING",
-                "container_ids": session.get_container_IDs(),
-                "jupyter_server_ip": IP.jupyter_server,
-                "notebook_server_info": session.notebook_server_info,
-            }
-        )
-        models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).update(interactive_session)
-        db.session.commit()
-
-        return interactive_session, 201
+        return isess.as_dict(), 201
 
 
 @api.route("/<string:project_uuid>/<string:pipeline_uuid>")
@@ -112,10 +95,19 @@ class Session(Resource):
     @api.response(404, "Session not found")
     def delete(self, project_uuid, pipeline_uuid):
         """Shutdowns session."""
-        if stop_interactive_session(project_uuid, pipeline_uuid):
-            return {"message": "Session shutdown was successful"}, 200
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_shutdown = StopInteractiveSession(tpe).transaction(
+                    project_uuid, pipeline_uuid
+                )
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if could_shutdown:
+            return {"message": "Session shutdown was successful."}, 200
         else:
-            return {"message": "Session not found"}, 400
+            return {"message": "Session not found."}, 400
 
     @api.doc("restart_memory_server_of_session")
     @api.response(200, "Session resource memory-server restarted")
@@ -137,38 +129,105 @@ class Session(Resource):
         # Docker ID.
         session_obj.restart_resource(resource_name="memory-server")
 
-        return {"message": "Session restart was successful"}, 200
+        return {"message": "Session restart was successful."}, 200
 
 
-def stop_interactive_session(project_uuid, pipeline_uuid) -> bool:
-    """Stops an interactive session.
+class CreateInteractiveSession(TwoPhaseFunction):
+    def transaction(
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+        pipeline_path: str,
+        project_dir: str,
+        host_userdir: str,
+        data_passing_memory_size: str,
+    ):
+        self.project_uuid = project_uuid
+        self.pipeline_uuid = pipeline_uuid
+        self.pipeline_path = pipeline_path
+        self.project_dir = project_dir
+        self.host_userdir = host_userdir
+        self.data_passing_memory_size = data_passing_memory_size
 
-    Args:
-        project_uuid:
-        pipeline_uuid:
+        interactive_session = {
+            "project_uuid": project_uuid,
+            "pipeline_uuid": pipeline_uuid,
+            "status": "LAUNCHING",
+        }
+        db.session.add(models.InteractiveSession(**interactive_session))
 
-    Returns:
-        True if the session was stopped, false if no session was found.
-    """
-    session = models.InteractiveSession.query.filter_by(
-        project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-    ).one_or_none()
-    if session is None:
-        return False
+    def collateral(self):
+        session = InteractiveSession(docker_client, network="orchest")
+        session.launch(
+            self.pipeline_uuid,
+            self.project_uuid,
+            self.pipeline_path,
+            self.project_dir,
+            self.data_passing_memory_size,
+            self.host_userdir,
+        )
 
-    session.status = "STOPPING"
-    db.session.commit()
+        # Update the database entry with information to connect to the
+        # launched resources.
+        IP = session.get_containers_IP()
+        status = {
+            "status": "RUNNING",
+            "container_ids": session.get_container_IDs(),
+            "jupyter_server_ip": IP.jupyter_server,
+            "notebook_server_info": session.notebook_server_info,
+        }
+        models.InteractiveSession.query.filter_by(
+            project_uuid=self.project_uuid, pipeline_uuid=self.pipeline_uuid
+        ).update(status)
+        db.session.commit()
 
-    session_obj = InteractiveSession.from_container_IDs(
-        docker_client,
-        container_IDs=session.container_ids,
-        network="orchest",
-        notebook_server_info=session.notebook_server_info,
-    )
 
-    # TODO: error handling?
-    session_obj.shutdown()
+class StopInteractiveSession(TwoPhaseFunction):
+    def transaction(
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+    ):
+        pass
 
-    db.session.delete(session)
-    db.session.commit()
-    return True
+        self.project_uuid = project_uuid
+        self.pipeline_uuid = pipeline_uuid
+        session = models.InteractiveSession.query.filter_by(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+        ).one_or_none()
+        if session is None:
+            self._do_shutdown = False
+            return False
+
+        self._do_shutdown = True
+        session.status = "STOPPING"
+        return True
+
+    def collateral(self):
+        if not self._do_shutdown:
+            return
+
+        session = models.InteractiveSession.query.filter_by(
+            project_uuid=self.project_uuid, pipeline_uuid=self.pipeline_uuid
+        ).one_or_none()
+        if session is None:
+            return
+
+        session_obj = InteractiveSession.from_container_IDs(
+            docker_client,
+            container_IDs=session.container_ids,
+            network="orchest",
+            notebook_server_info=session.notebook_server_info,
+        )
+
+        # TODO: error handling?
+        # TODO: If we can do this task in the background then the
+        # request can return. The session shutting down should not
+        # depend on the existence of the object in the DB. Need to make
+        # sure if it is indeed possible, e.g. if there are no race
+        # conditions when shutting down and starting another interactive
+        # session at the same time.
+        session_obj.shutdown()
+
+        db.session.delete(session)
+        db.session.commit()
