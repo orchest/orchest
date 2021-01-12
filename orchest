@@ -19,7 +19,8 @@ fi
 
 function update_orchest_ctl {
     # Update orchest-ctl to latest before performing update
-    $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
+    # $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
+    :
 }
 
 # Warnings
@@ -29,17 +30,7 @@ if [ "$1" == "update" ] ; then
     if [[ "$@" == *"--help"* ]] ; then
         # Do nothing
         :
-    elif [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
-        update_orchest_ctl
     else
-        # Only query in case Orchest indeed has containers running
-        if [[ "$(docker ps -q -f network=orchest)" != "" ]] ; then
-            read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
-            if [[ ! $REPLY =~ ^[Yy]$ ]] ; then
-                echo "Cancelled by user. Exiting ..."
-                exit
-            fi
-        fi
         update_orchest_ctl
     fi
 fi
@@ -48,7 +39,7 @@ fi
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$DIR/userdir
 
-# We detect the host OS to properly set the GID owner 
+# We detect the host OS to properly set the GID owner
 # that is used for files in the userdir/
 HOST_OS="linux"
 if [[ "$OSTYPE" == "darwin"* ]]; then
