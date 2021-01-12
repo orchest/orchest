@@ -1,12 +1,11 @@
-# TODO: RENAME THIS MODULE!
+"""Manages the container configurations / specs."""
 
 import os
 from collections.abc import Container
-from typing import Dict, Iterable, Literal, Optional
+from typing import Dict, Optional, Literal
 
-# TODO: Errors need to end in Error
-from app.errors import ENVVariableNotFound
-from app.new_config import DOCKER_NETWORK
+from app import utils
+from app.config import DOCKER_NETWORK
 
 
 def inject_dict(self, other: dict, overwrite: bool = True) -> None:
@@ -14,6 +13,9 @@ def inject_dict(self, other: dict, overwrite: bool = True) -> None:
 
     In contrast to ``dict.update()`` this method recurses into
     nested dictionaries updating the values.
+
+    Note:
+        Modified `self` in-place.
 
     Args:
         other: The other dict to inject into self.
@@ -40,37 +42,14 @@ def inject_dict(self, other: dict, overwrite: bool = True) -> None:
             self[name] = config
 
 
-# TODO: possible add to utils.py
-def get_env():
-    env_vars = ["HOST_USER_DIR", "HOST_CONFIG_DIR", "HOST_REPO_DIR", "HOST_OS"]
-    env = {var: os.environ.get(var) for var in env_vars}
-
-    not_present = [var for var, value in env.items() if value is None]
-    if not_present:
-        raise ENVVariableNotFound(
-            "Required environment variables are not present: "
-            + ", ".join(not_present)
-        )
-
-    if env["HOST_OS"] == "darwin":
-        # macOs UID/GID behaves differently with Docker bind mounts. For
-        # the exact permission behaviour see:
-        # https://github.com/docker/for-mac/issues/2657#issuecomment-371210749
-        env["ORCHEST_HOST_GID"] = 100
-    else:
-        env["ORCHEST_HOST_GID"] = os.stat("/orchest-host/orchest").st_gid
-
-    return env
-
-
 def filter_container_config(
     container_config: dict, filter: Dict[str, Container]
 ) -> dict:
     """Filter the given container config based on a filter.
 
     Note:
-        The filter is only applied to second-level keys. That is nested
-        one level.
+        The filter is only applied to second-level keys, i.e. the keys
+        right after the top-level keys.
 
     Example:
         >>> filter = {"Image": ["orchest/orchest-api:latest"]}
@@ -92,6 +71,10 @@ def filter_container_config(
         ...     },
         ... }
 
+    Returns:
+        A copy of the dictionary corresponding to the filtered original.
+        Whereas the original is not modified!
+
     """
     res = {}
     for key, valid_options in filter.items():
@@ -105,6 +88,25 @@ def filter_container_config(
 def get_container_config(
     mode: Literal["reg", "dev"], env: Optional[dict] = None
 ) -> dict:
+    """Returns a container configuration given a mode.
+
+    This methods serves as a convenience method to the particular config
+    methods for each individual mode.
+
+    Note:
+        Each of the following keys (with a corresponding value) have to
+        be present in the `env` (if it is not ``None``):
+            * ``"HOST_USER_DIR"``
+            * ``"HOST_CONFIG_DIR"``
+            * ``"HOST_REPO_DIR"``
+            * ``"HOST_OS"``
+            * ``"ORCHEST_HOST_GID"``
+
+    Args:
+        env: Dictionary containing the environment from which to
+            construct the container configurations.
+
+    """
     if mode == "reg":
         return get_reg_container_config(env)
 
@@ -113,12 +115,28 @@ def get_container_config(
 
 
 def get_reg_container_config(env: Optional[dict] = None) -> dict:
-    """
-    Config adheres to:
+    """Constructs the container config to run Orchest in "reg" mode.
+
+    Note:
+        The returned dictionary needs to contain a configuration
+        specification for every container that is to be started through
+        the orchest-ctl.
+
+    Note:
+        The returned configuration adheres to:
         https://docs.docker.com/engine/api/v1.41/#operation/ContainerCreate
+
+    Args:
+        env: Refer to :meth:`get_container_config`.
+
+    Returns:
+        Dictionary mapping the name of the docker containers to their
+        respective configs in the format required by the docker engine
+        API.
+
     """
     if env is None:
-        env = get_env()
+        env = utils.get_env()
 
     # name -> request body
     container_config = {
@@ -270,7 +288,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
         },
     }
 
-    if do_proxy_certs_exist_on_host():
+    if utils.do_proxy_certs_exist_on_host():
         certs_bind: dict = {
             "nginx-proxy": {
                 "ExposedPorts": {
@@ -290,17 +308,30 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
         }
         inject_dict(container_config, certs_bind, overwrite=True)
 
-    # return container_config
     return container_config
 
 
 def get_dev_container_config(env: Optional[dict] = None) -> dict:
+    """Constructs the container config to run Orchest in "dev" mode.
+
+    Note:
+        The returned configuration adheres to:
+        https://docs.docker.com/engine/api/v1.41/#operation/ContainerCreate
+
+    Args:
+        env: Refer to :meth:`get_container_config`.
+
+    Returns:
+        Dictionary mapping the name of the docker containers to their
+        respective configs in the format required by the docker engine
+        API.
+
+    """
     if env is None:
-        env = get_env()
+        env = utils.get_env()
 
     container_config = get_reg_container_config(env)
 
-    # Injects
     dev_inject = {
         "orchest-webserver": {
             "Cmd": ["./debug.sh"],
@@ -369,12 +400,3 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
 
     inject_dict(container_config, dev_inject, overwrite=False)
     return container_config
-
-
-def do_proxy_certs_exist_on_host() -> bool:
-    certs_path = "/orchest-host/services/nginx-proxy/certs/"
-
-    crt_exists = os.path.isfile(os.path.join(certs_path, "server.crt"))
-    key_exists = os.path.isfile(os.path.join(certs_path, "server.key"))
-
-    return crt_exists and key_exists

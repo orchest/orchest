@@ -12,6 +12,6 @@ setuptools.setup(
     ],
     entry_points="""
         [console_scripts]
-        orchest=app.new_main:__entrypoint
+        orchest=app.cli.main:__entrypoint
     """,
 )

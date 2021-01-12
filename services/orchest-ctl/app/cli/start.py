@@ -4,7 +4,8 @@ from typing import Optional
 
 import typer
 
-from app import cmdline, config
+from app.spec import get_container_config, inject_dict
+from app.orchest import OrchestApp
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ def _default(
         reg(port=port)
 
 
-app = typer.Typer(
+typer_app = typer.Typer(
     name="start",
     invoke_without_command=True,
     add_completion=False,
@@ -30,6 +31,8 @@ app = typer.Typer(
     callback=_default,
 )
 
+app = OrchestApp()
+
 
 class LogLevel(str, Enum):
     DEBUG = "DEBUG"
@@ -38,7 +41,7 @@ class LogLevel(str, Enum):
     ERROR = "ERROR"
 
 
-@app.command()
+@typer_app.command()
 def reg(
     port: Optional[int] = typer.Option(
         8000, help="The port the Orchest webserver will listen on."
@@ -52,14 +55,22 @@ def reg(
     \b
         orchest start [OPTIONS]
     """
-    config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
-        "80/tcp": port,
-        "443/tcp": 443,
+    container_config = get_container_config("reg")
+
+    port_bind: dict = {
+        "nginx-proxy": {
+            "HostConfig": {
+                "PortBindings": {
+                    "80/tcp": [{"HostPort": f"{port}"}],
+                },
+            },
+        },
     }
-    cmdline.start()
+    inject_dict(container_config, port_bind, overwrite=True)
+    app.start(container_config)
 
 
-@app.command()
+@typer_app.command()
 def dev(
     port: Optional[int] = typer.Option(
         8000, help="The port the Orchest webserver will listen on."
@@ -80,29 +91,39 @@ def dev(
     in the Docker containers. This allows for active code changes being
     reflected inside the application.
     """
+    container_config = get_container_config("dev")
+
+    port_bind: dict = {
+        "nginx-proxy": {
+            "HostConfig": {
+                "PortBindings": {
+                    "80/tcp": [{"HostPort": f"{port}"}],
+                },
+            },
+        },
+    }
+    inject_dict(container_config, port_bind, overwrite=True)
+
+    if log_level is not None:
+        logging_env = f"ORCHEST_LOG_LEVEL={log_level.value}"
+        log_levels: dict = {
+            "orchest-webserver": {
+                "Env": [logging_env],
+            },
+            "orchest-api": {
+                "Env": [logging_env],
+            },
+            "auth-server": {
+                "Env": [logging_env],
+            },
+            "celery-worker": {
+                "Env": [logging_env],
+            },
+        }
+        inject_dict(container_config, log_levels, overwrite=False)
+
     logger.info(
         "Starting Orchest in DEV mode. This mounts host directories "
         "to monitor for source code changes."
     )
-
-    # TODO: This is not really the cleanest way to inject into the
-    # config object.
-    config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
-        "80/tcp": port,
-        "443/tcp": 443,
-    }
-
-    if log_level is not None:
-        containers = [
-            "orchest/orchest-api:latest",
-            "orchest/orchest-webserver:latest",
-            "orchest/auth-server:latest",
-            "orchest/celery-worker:latest",
-        ]
-        for c in containers:
-            config.CONTAINER_MAPPING[c]["environment"][
-                "ORCHEST_LOG_LEVEL"
-            ] = log_level.value
-
-    config.RUN_MODE = "dev"
-    cmdline.start()
+    app.start(container_config)

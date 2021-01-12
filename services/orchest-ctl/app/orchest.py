@@ -13,8 +13,6 @@ import asyncio
 import logging
 import os
 import subprocess
-import textwrap
-import time
 from functools import reduce
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Literal, Union
 
@@ -25,7 +23,8 @@ from docker.client import DockerClient
 from tqdm.asyncio import tqdm
 
 from app import spec
-from app.new_config import ORCHEST_IMAGES, DOCKER_NETWORK
+from app import utils
+from app.config import ORCHEST_IMAGES, DOCKER_NETWORK, WRAP_LINES
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +58,9 @@ class DockerWrapper:
             return False
         except docker.errors.APIError as e:
             # TODO: I don't really know whether we want to catch this
-            # error or just let it fail. We cannot let it fail silently
-            # and so I see no need to log it as well (containers are
-            # stateless).
+            #       error or just let it fail. We cannot let it fail
+            #       silently and so I see no need to log it as well
+            #       (orchest-ctl is auto-removed).
 
             # Possible causes can be that the network already exists
             # multiple times, making the request ambiguous.
@@ -143,8 +142,6 @@ class DockerWrapper:
                 present and thus replacing it.
 
         """
-        # TODO: possible calling asyncio.run won't work because the
-        #       entrypoint in the CLI already creates an event-loop.
         return asyncio.run(
             self._pull_images(images, prog_bar=prog_bar, force=force)
         )
@@ -185,23 +182,23 @@ class DockerWrapper:
     async def _remove_image(self, image: Iterable[str], force: bool = False):
         await self.aclient.images.delete(image, force=force)
 
-    async def _remove_images(self, images: Iterable[str], force: bool = False):
+    async def _remove_images(self, image_ids: Iterable[str], force: bool = False):
         await asyncio.gather(
-            *[self._remove_image(img, force=force) for img in images]
+            *[self._remove_image(img, force=force) for img in image_ids]
         )
         await self.close_aclient()
 
-    def remove_images(self, images: Iterable[str], force: bool = False):
+    def remove_images(self, image_ids: Iterable[str], force: bool = False):
         """
 
         Args:
-            images: Iterable of image IDs.
+            image_ids: Iterable of image IDs.
             force: Remove an image even if it is being used by stopped
                    containers or has other tags.
 
         """
         # TODO: use typing to state that str should be of type ID
-        asyncio.run(self._remove_images(images, force=force))
+        asyncio.run(self._remove_images(image_ids, force=force))
 
     async def _get_containers(
         self,
@@ -228,9 +225,6 @@ class DockerWrapper:
 
         return ids, img_names
 
-    # TODO: all=True so make into
-    #       get_containers(running=True)
-    #       --> container._container["State"] == "Exited"
     def get_containers(
         self,
         state: Literal["all", "running", "exited"] = "running",
@@ -252,26 +246,6 @@ class DockerWrapper:
         return asyncio.run(
             self._get_containers(state=state, network=network)
         )
-
-    # async def _get_containers(
-    #         self, containers: Iterable[str],
-    # ):
-    #     res = await asyncio.gather(
-    #         *[self.aclient.containers.get(container) for container in containers]
-    #     )
-    #     await self.close_aclient()
-    #     return res
-
-    # def get_containers(
-    #         self, containers: Iterable[str]
-    # ):
-    #     """Returns an iterable of containers.
-
-    #     Args:
-    #         containers: IDs.
-
-    #     """
-    #     return asyncio.run(self._get_containers(containers))
 
     async def _remove_containers(
         self, container_ids: Iterable[str]
@@ -310,11 +284,6 @@ class DockerWrapper:
         if not detach:
             await container.wait()
             stdout = await container.log(stdout=True)
-
-            # TODO: this is probably only the output for the versions
-            #       and should not be parsed here
-            # stdout = ['v0.4.1-58-g3f4bc64\n']
-            stdout = stdout[0].rstrip()
 
         info = {
             "id": container.id,
@@ -358,6 +327,25 @@ class DockerWrapper:
     def exec_run(self, container_id: str, cmd: Union[str, List[Any]]) -> int:
         """Returns the exit code of running a cmd inside a container.
 
+        Making this function async (rough idea):
+        ```python
+        container = self.aclient.containers.container(container_id)
+
+        # If the container is running, kill it before removing it
+        # and remove anonymous volumes associated with the
+        # container.
+        exec = await container.exec(...)
+
+        https://github.com/aio-libs/aiodocker/blob/master/aiodocker/execs.py#L69
+        exec.start(...)
+
+        # Not sure whether start has to be called before inspect
+        https://github.com/aio-libs/aiodocker/blob/master/aiodocker/execs.py#L34
+        res = exec.inspect(...)
+
+        https://docs.docker.com/engine/api/v1.41/#operation/ExecInspect
+        res["ExitCode"]
+        ```
         """
         container = docker.models.containers.Container(
             attrs={"Id": container_id}, client=self.sclient
@@ -398,12 +386,12 @@ class OrchestResourceManager:
             # best bet is that if the Orchest network has not yet been
             # installed, then most likely the user has not seen this
             # message before.
-            echo(
+            utils.echo(
                 "Orchest sends anonymized telemetry to analytics.orchest.io."
                 " To disable it, please refer to:",
-                wrap=72
+                wrap=WRAP_LINES
             )
-            echo("\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration")
+            utils.echo("\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration")
 
             self.docker_client.install_network(self.network)
 
@@ -424,7 +412,7 @@ class OrchestResourceManager:
         exists = self.docker_client.do_images_exist(check_images)
 
         # TODO: could make it into set as well as order is not important
-        # here.
+        #       here.
         return [img for i, img in enumerate(check_images) if exists[i]]
 
     # TODO: this function might be a bit strange if it
@@ -500,11 +488,10 @@ class OrchestApp:
         if pulled_images:
             typer.echo("Some images have been pulled before. Don't forget to run:")
             typer.echo("\torchest update")
-            echo(
+            utils.echo(
                 "after the installation is finished to ensure that all images are"
                 " running the same version of Orchest.",
-                # TODO: Make the wrap parameter a config variable.
-                wrap=72
+                wrap=WRAP_LINES
             )
 
         typer.echo("Installing Orchest...")
@@ -555,10 +542,10 @@ class OrchestApp:
         # state. Possibly the start command was issued whilst Orchest
         # is still shutting down.
         if running_containers:
-            echo(
+            utils.echo(
                 "Orchest seems to be partially running. Before attempting to start"
                 " Orchest, shut the application down first:",
-                wrap=72
+                wrap=WRAP_LINES
             )
             typer.echo("\torchest stop")
 
@@ -566,7 +553,7 @@ class OrchestApp:
         ids, exited_containers = self.resource_manager.get_containers(state="exited")
         self.docker_client.remove_containers(ids)
 
-        fix_userdir_permissions()
+        utils.fix_userdir_permissions()
         logger.info("Fixing permissions on the 'userdir/'.")
 
         typer.echo("Starting Orchest...")
@@ -582,10 +569,10 @@ class OrchestApp:
             )
 
             # TODO: Abstract version of when the next set of images can
-            #       be started. In case the on_start_images has more
+            #       be started. In case the `on_start_images` has more
             #       stages.
             if i == 0:
-                wait_for_zero_exitcode(
+                utils.wait_for_zero_exitcode(
                     self.docker_client,
                     stdouts["orchest-database"]["id"],
                     "pg_isready -- username postgres"
@@ -692,28 +679,28 @@ class OrchestApp:
         # versions of those images are running.
         # TODO: remove the warning from the orchest.sh script that
         #       containers will be shut down.
-        echo("Updating...")
-        echo("Using Orchest whilst updating is NOT recommended.")
+        utils.echo("Updating...")
+        utils.echo("Using Orchest whilst updating is NOT recommended.")
 
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.
-        # logger.info(
-        #     "Updating Orchest git repository to get the latest userdir changes..."
-        # )
-        # script_path = os.path.join(
-        #     "/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh"
-        # )
-        # script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
-        # return_code = script_process.wait()
-        # if return_code != 0:
-        #     echo("Cancelling update...")
-        #     # TODO: raise custom UpdateError
-        #     _ = (
-        #         "'git' repo update failed. Please make sure you don't have "
-        #         "any commits that conflict with the master branch in the "
-        #         "'orchest' repository."
-        #     )
-        #     raise
+        logger.info(
+            "Updating Orchest git repository to get the latest userdir changes..."
+        )
+        script_path = os.path.join(
+            "/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh"
+        )
+        script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
+        return_code = script_process.wait()
+        if return_code != 0:
+            utils.echo("Cancelling update...")
+            # TODO: raise custom UpdateError
+            _ = (
+                "'git' repo update failed. Please make sure you don't have "
+                "any commits that conflict with the master branch in the "
+                "'orchest' repository."
+            )
+            raise
 
         logger.info("Updating images:\n" + "\n".join(pulled_images))
         self.docker_client.pull_images(pulled_images, prog_bar=True, force=True)
@@ -728,15 +715,15 @@ class OrchestApp:
         # most likely does not want to invoke "orchest restart"
         # manually.
         if mode == "web":
-            echo("Update completed.")
+            utils.echo("Update completed.")
             self.restart()
             return
 
         # Let the user know they need to restart the application for the
         # changes to take effect. NOTE: otherwise Orchest might also be
         # running a mix of containers on different versions.
-        echo("Don't forget to restart Orchest for the changes to take effect:")
-        echo("\torchest restart")
+        utils.echo("Don't forget to restart Orchest for the changes to take effect:")
+        utils.echo("\torchest restart")
 
     def version(self, ext=False):
         """Returns the version of Orchest.
@@ -766,15 +753,17 @@ class OrchestApp:
         stdout_values = set()
         for img, info in stdouts.items():
             stdout = info["stdout"]
+            # stdout = ['v0.4.1-58-g3f4bc64\n']
+            stdout = stdout[0].rstrip()
             stdout_values.add(stdout)
             typer.echo(f"{img:<44}: {stdout}")
 
         # If not all versions are the same.
         if len(stdout_values) > 1:
-            echo(
+            utils.echo(
                 "Not all containers are running on the same version of Orchest, which"
                 " can lead to the application crashing. You can fix this by running:",
-                wrap=72
+                wrap=WRAP_LINES
             )
             typer.echo("\torchest update")
             typer.echo("To get all containers on the same version again.")
@@ -804,71 +793,3 @@ def get_required_images(language: Optional[str], gpu: bool = False) -> List[str]
         required_images += gpu_images["language"]
 
     return required_images
-
-
-def echo(*args, wrap=0, **kwargs):
-    """Wraps typer.echo to natively support line wrapping."""
-    if wrap:
-        message = kwargs.get("message")
-        if message is not None:
-            kwargs["message"] = textwrap.fill(kwargs["message"], width=wrap)
-
-        else:
-            if args[0] is not None:
-                args = (textwrap.fill(args[0], width=wrap), *args[1:])
-
-    typer.echo(*args, **kwargs)
-
-
-# TODO: utils.py
-def fix_userdir_permissions() -> None:
-    """Fixes the permissions on files and dirs in the userdir.
-
-    Run setgid on all directories in the "userdir" to make sure new
-    files created by containers are read/write for sibling containers
-    and the host user.
-
-    """
-    try:
-        # NOTE: The exit code is only returned on Unix systems
-        exit_code = os.system(
-            "find /orchest-host/userdir -type d -exec chmod g+s {} \;"
-        )
-    except Exception as e:
-        logger.warning("Could not set gid permissions on '/orchest-host/userdir'.")
-        raise e from None
-    else:
-        if exit_code != 0:
-            echo(
-                "Could not set gid permissions on your userdir/. This is an extra"
-                " check to make sure files created in Orchest are also read and"
-                " writable directly on your host.",
-                wrap=72
-            )
-
-
-# TODO: utils.py
-def wait_for_zero_exitcode(docker_client, container_id, cmd):
-    """
-    container = self.aclient.containers.container(container_id)
-
-    # If the container is running, kill it before removing it
-    # and remove anonymous volumes associated with the
-    # container.
-    exec = await container.exec(...)
-
-    https://github.com/aio-libs/aiodocker/blob/master/aiodocker/execs.py#L69
-    exec.start(...)
-
-    # Not sure whether start has to be called before inspect
-    https://github.com/aio-libs/aiodocker/blob/master/aiodocker/execs.py#L34
-    res = exec.inspect(...)
-
-    https://docs.docker.com/engine/api/v1.41/#operation/ExecInspect
-    res["ExitCode"]
-    """
-    # This will likely take a maximum of 4 tries.
-    exit_code = 1
-    while exit_code != 0:
-        exit_code = docker_client.exec_run(container_id, cmd)
-        time.sleep(0.5)

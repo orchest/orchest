@@ -2,7 +2,7 @@ class Error(Exception):
     pass
 
 
-class ENVVariableNotFound(Error):
+class ENVVariableNotFoundError(Error):
     """ENV variable not found."""
 
     pass
