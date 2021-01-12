@@ -6,6 +6,7 @@ from typing import List, Union
 
 import typer
 
+from app.config import WRAP_LINES
 from app.error import ENVVariableNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -33,8 +34,7 @@ def get_env() -> dict:
     not_present = [var for var, value in env.items() if value is None]
     if not_present:
         raise ENVVariableNotFoundError(
-            "Required environment variables are not present: "
-            + ", ".join(not_present)
+            "Required environment variables are not present: " + ", ".join(not_present)
         )
 
     if env["HOST_OS"] == "darwin":
@@ -70,7 +70,7 @@ def fix_userdir_permissions() -> None:
                 "Could not set gid permissions on your userdir/. This is an extra"
                 " check to make sure files created in Orchest are also read and"
                 " writable directly on your host.",
-                wrap=72
+                wrap=WRAP_LINES,
             )
 
 

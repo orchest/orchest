@@ -14,7 +14,7 @@ import logging
 import os
 import subprocess
 from functools import reduce
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Literal, Union
+from typing import Any, Dict, Iterable, List, Literal, Optional, Set, Tuple, Union
 
 import aiodocker
 import docker
@@ -22,9 +22,8 @@ import typer
 from docker.client import DockerClient
 from tqdm.asyncio import tqdm
 
-from app import spec
-from app import utils
-from app.config import ORCHEST_IMAGES, DOCKER_NETWORK, WRAP_LINES
+from app import spec, utils
+from app.config import DOCKER_NETWORK, ORCHEST_IMAGES, WRAP_LINES
 
 logger = logging.getLogger(__name__)
 
@@ -142,9 +141,7 @@ class DockerWrapper:
                 present and thus replacing it.
 
         """
-        return asyncio.run(
-            self._pull_images(images, prog_bar=prog_bar, force=force)
-        )
+        return asyncio.run(self._pull_images(images, prog_bar=prog_bar, force=force))
 
     async def _does_image_exist(self, image: str) -> bool:
         try:
@@ -155,9 +152,7 @@ class DockerWrapper:
         return True
 
     async def _do_images_exist(self, images: Iterable[str]) -> List[bool]:
-        res = await asyncio.gather(
-            *[self._does_image_exist(image) for image in images]
-        )
+        res = await asyncio.gather(*[self._does_image_exist(image) for image in images])
         await self.close_aclient()
 
         return res
@@ -203,7 +198,7 @@ class DockerWrapper:
     async def _get_containers(
         self,
         state: Literal["all", "running", "exited"] = "running",
-        network: Optional[str] = None
+        network: Optional[str] = None,
     ) -> Tuple[List[str], List[Optional[str]]]:
         all_ = True if state in ["all", "exited"] else False
         containers = await self.aclient.containers.list(
@@ -228,7 +223,7 @@ class DockerWrapper:
     def get_containers(
         self,
         state: Literal["all", "running", "exited"] = "running",
-        network: Optional[str] = None
+        network: Optional[str] = None,
     ) -> Tuple[List[str], List[Optional[str]]]:
         """Returns runnings containers (on a network).
 
@@ -243,13 +238,9 @@ class DockerWrapper:
             containers.
 
         """
-        return asyncio.run(
-            self._get_containers(state=state, network=network)
-        )
+        return asyncio.run(self._get_containers(state=state, network=network))
 
-    async def _remove_containers(
-        self, container_ids: Iterable[str]
-    ):
+    async def _remove_containers(self, container_ids: Iterable[str]):
         # TODO: Probably faster to use gather() here.
         for id_ in container_ids:
             container = self.aclient.containers.container(id_)
@@ -294,10 +285,12 @@ class DockerWrapper:
     async def _run_containers(
         self, configs: Dict[str, Dict[str, Any]], use_name=False, detach=True
     ):
-        stdouts = await asyncio.gather(*[
-              self._run_container(name, config, use_name=use_name, detach=detach)
-              for name, config in configs.items()
-        ])
+        stdouts = await asyncio.gather(
+            *[
+                self._run_container(name, config, use_name=use_name, detach=detach)
+                for name, config in configs.items()
+            ]
+        )
 
         await self.close_aclient()
 
@@ -389,9 +382,11 @@ class OrchestResourceManager:
             utils.echo(
                 "Orchest sends anonymized telemetry to analytics.orchest.io."
                 " To disable it, please refer to:",
-                wrap=WRAP_LINES
+                wrap=WRAP_LINES,
             )
-            utils.echo("\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration")
+            utils.echo(
+                "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration"
+            )
 
             self.docker_client.install_network(self.network)
 
@@ -427,9 +422,7 @@ class OrchestResourceManager:
             state: The state of the container to be in in order for it
                 to be returned.
         """
-        return self.docker_client.get_containers(
-            state=state, network=self.network
-        )
+        return self.docker_client.get_containers(state=state, network=self.network)
 
     def get_env_build_imgs(self):
         return self.docker_client.list_image_ids(label="_orchest_project_uuid")
@@ -454,10 +447,22 @@ class OrchestApp:
     # postgres -> orchest-webserver, orchest-api, auth-server
     # rabbitmq -> celery-worker
     on_start_images: List[Set[str]] = [
-        set(["postgres:13.1", "orchest/file-manager:latest",
-             "orchest/nginx-proxy:latest", "rabbitmq:3"]),
-        set(["orchest/orchest-api:latest", "orchest/orchest-webserver:latest",
-             "orchest/celery-worker:latest", "orchest/auth-server:latest"]),
+        set(
+            [
+                "postgres:13.1",
+                "orchest/file-manager:latest",
+                "orchest/nginx-proxy:latest",
+                "rabbitmq:3",
+            ]
+        ),
+        set(
+            [
+                "orchest/orchest-api:latest",
+                "orchest/orchest-webserver:latest",
+                "orchest/celery-worker:latest",
+                "orchest/auth-server:latest",
+            ]
+        ),
     ]
 
     def __init__(self):
@@ -491,7 +496,7 @@ class OrchestApp:
             utils.echo(
                 "after the installation is finished to ensure that all images are"
                 " running the same version of Orchest.",
-                wrap=WRAP_LINES
+                wrap=WRAP_LINES,
             )
 
         typer.echo("Installing Orchest...")
@@ -545,7 +550,7 @@ class OrchestApp:
             utils.echo(
                 "Orchest seems to be partially running. Before attempting to start"
                 " Orchest, shut the application down first:",
-                wrap=WRAP_LINES
+                wrap=WRAP_LINES,
             )
             typer.echo("\torchest stop")
 
@@ -575,7 +580,7 @@ class OrchestApp:
                 utils.wait_for_zero_exitcode(
                     self.docker_client,
                     stdouts["orchest-database"]["id"],
-                    "pg_isready -- username postgres"
+                    "pg_isready -- username postgres",
                 )
 
         # Get the port on which Orchest is running.
@@ -605,11 +610,15 @@ class OrchestApp:
 
         ids: Tuple[str]
         running_containers: Tuple[Optional[str]]
-        ids, running_containers = list(zip(*[
-            (id_, c)
-            for id_, c in zip(ids, running_containers)
-            if c not in skip_containers
-        ]))
+        ids, running_containers = list(
+            zip(
+                *[
+                    (id_, c)
+                    for id_, c in zip(ids, running_containers)
+                    if c not in skip_containers
+                ]
+            )
+        )
 
         typer.echo("Shutting down...")
         logger.info("Shutting down containers:\n" + "\n".join(running_containers))
@@ -637,9 +646,7 @@ class OrchestApp:
         container_config = spec.get_container_config("reg")
         config["update-server"] = container_config["update-server"]
 
-        self.docker_client.run_containers(
-            config, use_name=True, detach=True
-        )
+        self.docker_client.run_containers(config, use_name=True, detach=True)
 
     def status(self):
         _, running_containers = self.resource_manager.get_containers(state="running")
@@ -698,7 +705,7 @@ class OrchestApp:
                 "It seems like you have unstaged changes in the 'orchest'"
                 " repository. Please commit or stash them as 'orchest update'"
                 " pulls the newest changes to the 'userdir/' using a rebase.",
-                wrap=WRAP_LINES
+                wrap=WRAP_LINES,
             )
             logger.error("Failed update due to unstaged changes.")
             return
@@ -764,7 +771,7 @@ class OrchestApp:
             utils.echo(
                 "Not all containers are running on the same version of Orchest, which"
                 " can lead to the application crashing. You can fix this by running:",
-                wrap=WRAP_LINES
+                wrap=WRAP_LINES,
             )
             typer.echo("\torchest update")
             typer.echo("To get all containers on the same version again.")

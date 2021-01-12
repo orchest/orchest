@@ -2,7 +2,7 @@
 
 import os
 from collections.abc import Container
-from typing import Dict, Optional, Literal
+from typing import Dict, Literal, Optional
 
 from app import utils
 from app.config import DOCKER_NETWORK
@@ -32,11 +32,13 @@ def inject_dict(self, other: dict, overwrite: bool = True) -> None:
 
     """
     for name, config in other.items():
-        if (name in self and isinstance(self[name], dict) and
-                isinstance(config, dict)):
+        if name in self and isinstance(self[name], dict) and isinstance(config, dict):
             inject_dict(self[name], config, overwrite=overwrite)
-        elif (name in self and isinstance(self[name], list) and
-                isinstance(type(config), list)):
+        elif (
+            name in self
+            and isinstance(self[name], list)
+            and isinstance(type(config), list)
+        ):
             self[name] += config
         else:
             self[name] = config
@@ -150,11 +152,9 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 "Binds": [
                     "/var/run/docker.sock:/var/run/docker.sock",
                     f'{env["HOST_USER_DIR"]}:/userdir',
-                ]
+                ],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "orchest-webserver": {
             "Image": "orchest/orchest-webserver:latest",
@@ -173,9 +173,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_REPO_DIR"]}:/orchest-host',
                 ],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "celery-worker": {
             "Image": "orchest/celery-worker:latest",
@@ -191,9 +189,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_USER_DIR"]}:/userdir',
                 ],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "rabbitmq-server": {
             "Image": "rabbitmq:3",
@@ -201,14 +197,11 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             "HostConfig": {
                 "Binds": [
                     # Persisting RabbitMQ Queues.
-                    os.path.join(
-                        env["HOST_USER_DIR"], ".orchest/rabbitmq-mnesia"
-                    ) + ":/var/lib/rabbitmq/mnesia",
+                    os.path.join(env["HOST_USER_DIR"], ".orchest/rabbitmq-mnesia")
+                    + ":/var/lib/rabbitmq/mnesia",
                 ],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "auth-server": {
             "Image": "orchest/auth-server:latest",
@@ -218,9 +211,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_CONFIG_DIR"]}:/config',
                 ],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "file-manager": {
             "Image": "orchest/file-manager:latest",
@@ -230,15 +221,11 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_USER_DIR"]}:/userdir',
                 ],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "nginx-proxy": {
             "Image": "orchest/nginx-proxy:latest",
-            "ExposedPorts": {
-                "80/tcp": {}
-            },
+            "ExposedPorts": {"80/tcp": {}},
             "HostConfig": {
                 "PortBindings": {
                     # Exposure of 443 is injected based on certs.
@@ -247,9 +234,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 # Injected based on presence of certs on host.
                 "Binds": [],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "orchest-database": {
             "Image": "postgres:13.1",
@@ -259,14 +244,11 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             ],
             "HostConfig": {
                 "Binds": [
-                    os.path.join(
-                        env["HOST_USER_DIR"], ".orchest/database"
-                    ) + ":/userdir/.orchest/database",
+                    os.path.join(env["HOST_USER_DIR"], ".orchest/database")
+                    + ":/userdir/.orchest/database",
                 ],
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
         "update-server": {
             "Image": "orchest/update-server:latest",
@@ -282,18 +264,14 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 ],
                 "AutoRemove": True,
             },
-            "NetworkingConfig": {
-                "EndpointsConfig": {DOCKER_NETWORK: {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
         },
     }
 
     if utils.do_proxy_certs_exist_on_host():
         certs_bind: dict = {
             "nginx-proxy": {
-                "ExposedPorts": {
-                    "443/tcp": {}
-                },
+                "ExposedPorts": {"443/tcp": {}},
                 "HostConfig": {
                     "PortBindings": {
                         "443/tcp": [{"HostPort": "443"}],
@@ -301,7 +279,8 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     "Binds": [
                         os.path.join(
                             env["HOST_REPO_DIR"], "services", "nginx-proxy", "certs"
-                        ) + ":/etc/ssl/certs",
+                        )
+                        + ":/etc/ssl/certs",
                     ],
                 },
             },
@@ -342,7 +321,8 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
                 "Binds": [
                     os.path.join(
                         env["HOST_REPO_DIR"], "services", "orchest-webserver", "app"
-                    ) + ":/orchest/services/orchest-webserver/app",
+                    )
+                    + ":/orchest/services/orchest-webserver/app",
                     # Internal library.
                     os.path.join(env["HOST_REPO_DIR"], "lib") + ":/orchest/lib",
                 ],
@@ -356,9 +336,8 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
             ],
             "HostConfig": {
                 "Binds": [
-                    os.path.join(
-                        env["HOST_REPO_DIR"], "services", "auth-server", "app"
-                    ) + ":/orchest/services/auth-server/app",
+                    os.path.join(env["HOST_REPO_DIR"], "services", "auth-server", "app")
+                    + ":/orchest/services/auth-server/app",
                     # Internal library.
                     os.path.join(env["HOST_REPO_DIR"], "lib") + ":/orchest/lib",
                 ],
@@ -369,7 +348,8 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
                 "Binds": [
                     os.path.join(
                         env["HOST_REPO_DIR"], "services", "file-manager", "static"
-                    ) + ":/custom-static",
+                    )
+                    + ":/custom-static",
                 ],
             },
         },
@@ -379,18 +359,15 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
                 "FLASK_APP=main.py",
                 "FLASK_ENV=development",
             ],
-            "ExposedPorts": {
-                "80/tcp": {}
-            },
+            "ExposedPorts": {"80/tcp": {}},
             "HostConfig": {
                 "PortBindings": {
                     # Expose Swagger.
                     "80/tcp": [{"HostPort": "8080"}],
                 },
                 "Binds": [
-                    os.path.join(
-                        env["HOST_REPO_DIR"], "services", "orchest-api", "app"
-                    ) + ":/orchest/services/orchest-api/app",
+                    os.path.join(env["HOST_REPO_DIR"], "services", "orchest-api", "app")
+                    + ":/orchest/services/orchest-api/app",
                     # Internal library.
                     os.path.join(env["HOST_REPO_DIR"], "lib") + ":/orchest/lib",
                 ],

@@ -15,7 +15,8 @@ _minimal_orchest_images = [
 ]
 ORCHEST_IMAGES = {
     "minimal": _minimal_orchest_images,
-    "all": _minimal_orchest_images + [
+    "all": _minimal_orchest_images
+    + [
         "orchest/base-kernel-py:latest",
         "orchest/base-kernel-py-gpu:latest",
         "orchest/base-kernel-r:latest",

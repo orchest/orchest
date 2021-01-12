@@ -4,8 +4,8 @@ from typing import Optional
 
 import typer
 
-from app.spec import get_container_config, inject_dict
 from app.orchest import OrchestApp
+from app.spec import get_container_config, inject_dict
 
 logger = logging.getLogger(__name__)
 
