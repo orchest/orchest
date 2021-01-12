@@ -581,13 +581,6 @@ class OrchestApp:
                 config, use_name=True, detach=True
             )
 
-            # Get the port on which Orchest is running.
-            nginx_proxy = config.get("nginx-proxy")
-            if nginx_proxy is not None:
-                exposed_ports = []
-                for port, port_binding in nginx_proxy["HostConfig"]["PortBindings"].items():
-                    exposed_ports.append(port_binding[0]["HostPort"])
-
             # TODO: Abstract version of when the next set of images can
             #       be started. In case the on_start_images has more
             #       stages.
@@ -598,9 +591,12 @@ class OrchestApp:
                     "pg_isready -- username postgres"
                 )
 
-        # TODO: echo where Orchest is running
-        for exposed_port in exposed_ports:
-            typer.echo(f"Orchest is running at: http://localhost:{exposed_port}")
+        # Get the port on which Orchest is running.
+        nginx_proxy = container_config.get("nginx-proxy")
+        if nginx_proxy is not None:
+            for port, port_binding in nginx_proxy["HostConfig"]["PortBindings"].items():
+                exposed_port = port_binding[0]["HostPort"]
+                typer.echo(f"Orchest is running at: http://localhost:{exposed_port}")
 
     def stop(self, skip_containers: Optional[List[str]] = None):
         """Stop the Orchest application.
@@ -633,6 +629,30 @@ class OrchestApp:
 
         self.docker_client.remove_containers(ids)
         typer.echo("Shutdown successful.")
+
+    def restart(self, container_config: dict):
+        """Starts Orchest.
+
+        Raises:
+            ValueError: If the `container_config` does not contain a
+                configuration for every image that is supposed to run
+                on start.
+
+        """
+        self.stop()
+        self.start(container_config)
+
+    def _updateserver(self):
+        """Starts the update-server service."""
+        logger.info("Starting Orchest update service...")
+
+        config = {}
+        container_config = spec.get_container_config("reg")
+        config["update-server"] = container_config["update-server"]
+
+        self.docker_client.run_containers(
+            config, use_name=True, detach=True
+        )
 
     def status(self):
         _, running_containers = self.resource_manager.get_containers(state="running")
@@ -729,7 +749,7 @@ class OrchestApp:
         """
         if not ext:
             version = os.getenv("ORCHEST_VERSION")
-            typer.echo(f"Orchest version {version}")
+            typer.echo(f"Orchest version: {version}")
             return
 
         typer.echo("Getting versions of all containers...")
@@ -822,7 +842,7 @@ def fix_userdir_permissions() -> None:
             echo(
                 "Could not set gid permissions on your userdir/. This is an extra"
                 " check to make sure files created in Orchest are also read and"
-                " writable directory on your host.",
+                " writable directly on your host.",
                 wrap=72
             )
 
