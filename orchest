@@ -19,22 +19,12 @@ fi
 
 function update_orchest_ctl {
     # Update orchest-ctl to latest before performing update
-    # $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
-    :
+    $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
 }
 
-# Warnings
-if [ "$1" == "update" ] ; then
-
-    # Do nothing in case "--help" is present in the commands or args.
-    if [[ "$@" == *"--help"* ]] ; then
-        # Do nothing
-        :
-    else
-        update_orchest_ctl
-    fi
-fi
-# End of warnings
+# Before running an update, update the orchest-ctl as the latest
+# orchest-ctl should be used to update the application.
+[[ "$1" == "update" ]] && [[ "$@" != *"--help"* ]] && update_orchest_ctl
 
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$DIR/userdir
