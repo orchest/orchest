@@ -694,13 +694,14 @@ class OrchestApp:
         return_code = script_process.wait()
         if return_code != 0:
             utils.echo("Cancelling update...")
-            # TODO: raise custom UpdateError
-            _ = (
-                "'git' repo update failed. Please make sure you don't have "
-                "any commits that conflict with the master branch in the "
-                "'orchest' repository."
+            utils.echo(
+                "It seems like you have unstaged changes in the 'orchest'"
+                " repository. Please commit or stash them as 'orchest update'"
+                " pulls the newest changes to the 'userdir/' using a rebase.",
+                wrap=WRAP_LINES
             )
-            raise
+            logger.error("Failed update due to unstaged changes.")
+            return
 
         logger.info("Updating images:\n" + "\n".join(pulled_images))
         self.docker_client.pull_images(pulled_images, prog_bar=True, force=True)
