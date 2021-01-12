@@ -16,7 +16,7 @@ import subprocess
 import textwrap
 import time
 from functools import reduce
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Literal, Union
 
 import aiodocker
 import docker
@@ -203,26 +203,45 @@ class DockerWrapper:
         # TODO: use typing to state that str should be of type ID
         asyncio.run(self._remove_images(images, force=force))
 
-    async def _get_running_containers(
+    async def _get_containers(
         self,
+        state: Literal["all", "running", "exited"] = "running",
         network: Optional[str] = None
     ) -> Tuple[List[str], List[Optional[str]]]:
-        containers = await self.aclient.containers.list(filters={"network": [network]})
+        all_ = True if state in ["all", "exited"] else False
+        containers = await self.aclient.containers.list(
+            all=all_, filters={"network": [network]}
+        )
         await self.close_aclient()
 
         ids = []
         img_names = []
         for c in containers:
-            img_names.append(c._container.get("Image"))
-            ids.append(c.id)
+            if state == "exited":
+                if c._container.get("State") != "running":
+                    img_names.append(c._container.get("Image"))
+                    ids.append(c.id)
+
+            else:
+                img_names.append(c._container.get("Image"))
+                ids.append(c.id)
 
         return ids, img_names
 
-    def get_running_containers(
+    # TODO: all=True so make into
+    #       get_containers(running=True)
+    #       --> container._container["State"] == "Exited"
+    def get_containers(
         self,
+        state: Literal["all", "running", "exited"] = "running",
         network: Optional[str] = None
     ) -> Tuple[List[str], List[Optional[str]]]:
         """Returns runnings containers (on a network).
+
+        Args:
+            state: The state of the container to be in in order for it
+                to be returned.
+            network: The network on which to filter the containers.
 
         Returns:
             (container_ids, img_names) in respective order. Where the
@@ -230,7 +249,9 @@ class DockerWrapper:
             containers.
 
         """
-        return asyncio.run(self._get_running_containers(network=network))
+        return asyncio.run(
+            self._get_containers(state=state, network=network)
+        )
 
     # async def _get_containers(
     #         self, containers: Iterable[str],
@@ -255,6 +276,7 @@ class DockerWrapper:
     async def _remove_containers(
         self, container_ids: Iterable[str]
     ):
+        # TODO: Probably faster to use gather() here.
         for id_ in container_ids:
             container = self.aclient.containers.container(id_)
 
@@ -270,6 +292,10 @@ class DockerWrapper:
 
         If the container is running, then it is killed before removing
         it.
+
+        Args:
+            containers: An iterable of containers, where a container
+                is given by its name or ID.
 
         """
         asyncio.run(self._remove_containers(container_ids))
@@ -329,6 +355,24 @@ class DockerWrapper:
             self._run_containers(configs, use_name=use_name, detach=detach)
         )
 
+    def exec_run(self, container_id: str, cmd: Union[str, List[Any]]) -> int:
+        """Returns the exit code of running a cmd inside a container.
+
+        """
+        container = docker.models.containers.Container(
+            attrs={"Id": container_id}, client=self.sclient
+        )
+        # Calling the lower level API as the following command gave
+        # incorrect exit codes:
+        # exit_code, _ = container.exec_run(cmd)
+        resp = container.client.api.exec_create(
+            container.id, "pg_isready --username postgres"
+        )
+        _ = container.client.api.exec_start(resp["Id"])
+        exit_code = container.client.api.exec_inspect(resp["Id"])["ExitCode"]
+
+        return exit_code
+
 
 class OrchestResourceManager:
     orchest_images: List[str] = ORCHEST_IMAGES["all"]
@@ -383,10 +427,21 @@ class OrchestResourceManager:
         # here.
         return [img for i, img in enumerate(check_images) if exists[i]]
 
-    # TODO: the get_running_containers might be a bit strange if it
+    # TODO: this function might be a bit strange if it
     #       returns img names.
-    def get_running_containers(self) -> Tuple[List[str], List[Optional[str]]]:
-        return self.docker_client.get_running_containers(network=self.network)
+    def get_containers(
+        self,
+        state: Literal["all", "running", "exited"] = "running",
+    ) -> Tuple[List[str], List[Optional[str]]]:
+        """
+
+        Args:
+            state: The state of the container to be in in order for it
+                to be returned.
+        """
+        return self.docker_client.get_containers(
+            state=state, network=self.network
+        )
 
     def get_env_build_imgs(self):
         return self.docker_client.list_image_ids(label="_orchest_project_uuid")
@@ -480,7 +535,7 @@ class OrchestApp:
 
         # Check whether the container config contains the set of
         # required images.
-        present_imgs = set(config["Img"] for config in container_config.values())
+        present_imgs = set(config["Image"] for config in container_config.values())
         if present_imgs < req_images:  # proper subset
             raise ValueError(
                 "The container_config does not contain a configuration for "
@@ -488,7 +543,7 @@ class OrchestApp:
             )
 
         # Orchest is already running
-        ids, running_containers = self.resource_manager.get_running_containers()
+        ids, running_containers = self.resource_manager.get_containers(state="running")
         if not (req_images - set(running_containers)):
             # TODO: Ideally this would print the port on which Orchest
             #       is running. (Was started before and so we do not
@@ -507,33 +562,45 @@ class OrchestApp:
             )
             typer.echo("\torchest stop")
 
-        # Orchest is not running
-        typer.echo("Starting Orchest...")
-        logger.info("Starting containers:\n" + "\n".join(req_images))
-
-        # Orchest is stopped first as that will also remove old
-        # containers.
-        self.stop()
+        # Remove old lingering containers.
+        ids, exited_containers = self.resource_manager.get_containers(state="exited")
+        self.docker_client.remove_containers(ids)
 
         fix_userdir_permissions()
         logger.info("Fixing permissions on the 'userdir/'.")
 
+        typer.echo("Starting Orchest...")
+        logger.info("Starting containers:\n" + "\n".join(req_images))
+
         # Start the containers in the correct order, keeping in mind
         # dependencies between containers.
         for i, to_start_imgs in enumerate(self.on_start_images):
-            filter_ = {"Img": to_start_imgs}
+            filter_ = {"Image": to_start_imgs}
             config = spec.filter_container_config(container_config, filter=filter_)
             stdouts = self.docker_client.run_containers(
                 config, use_name=True, detach=True
             )
+
+            # Get the port on which Orchest is running.
+            nginx_proxy = config.get("nginx-proxy")
+            if nginx_proxy is not None:
+                exposed_ports = []
+                for port, port_binding in nginx_proxy["HostConfig"]["PortBindings"].items():
+                    exposed_ports.append(port_binding[0]["HostPort"])
 
             # TODO: Abstract version of when the next set of images can
             #       be started. In case the on_start_images has more
             #       stages.
             if i == 0:
                 wait_for_zero_exitcode(
-                    stdouts["orchest-database"]["id"], "pg_isready -- username postgres"
+                    self.docker_client,
+                    stdouts["orchest-database"]["id"],
+                    "pg_isready -- username postgres"
                 )
+
+        # TODO: echo where Orchest is running
+        for exposed_port in exposed_ports:
+            typer.echo(f"Orchest is running at: http://localhost:{exposed_port}")
 
     def stop(self, skip_containers: Optional[List[str]] = None):
         """Stop the Orchest application.
@@ -543,7 +610,7 @@ class OrchestApp:
                 for which the containers are not stopped.
 
         """
-        ids, running_containers = self.resource_manager.get_running_containers()
+        ids, running_containers = self.resource_manager.get_containers(state="running")
         if not running_containers:
             typer.echo("Orchest is not running.")
             return
@@ -568,7 +635,7 @@ class OrchestApp:
         typer.echo("Shutdown successful.")
 
     def status(self):
-        _, running_containers = self.resource_manager.get_running_containers()
+        _, running_containers = self.resource_manager.get_containers(state="running")
         if not running_containers:
             typer.echo("Orchest is not running.")
             return
@@ -743,14 +810,25 @@ def fix_userdir_permissions() -> None:
 
     """
     try:
-        os.system("find /orchest-host/userdir -type d -exec chmod g+s {} \;")
+        # NOTE: The exit code is only returned on Unix systems
+        exit_code = os.system(
+            "find /orchest-host/userdir -type d -exec chmod g+s {} \;"
+        )
     except Exception as e:
         logger.warning("Could not set gid permissions on '/orchest-host/userdir'.")
         raise e from None
+    else:
+        if exit_code != 0:
+            echo(
+                "Could not set gid permissions on your userdir/. This is an extra"
+                " check to make sure files created in Orchest are also read and"
+                " writable directory on your host.",
+                wrap=72
+            )
 
 
 # TODO: utils.py
-def wait_for_zero_exitcode(container_id, cmd):
+def wait_for_zero_exitcode(docker_client, container_id, cmd):
     """
     container = self.aclient.containers.container(container_id)
 
@@ -769,5 +847,8 @@ def wait_for_zero_exitcode(container_id, cmd):
     https://docs.docker.com/engine/api/v1.41/#operation/ExecInspect
     res["ExitCode"]
     """
-    # TODO: maybe the cmd has to be list
-    time.sleep(2)
+    # This will likely take a maximum of 4 tries.
+    exit_code = 1
+    while exit_code != 0:
+        exit_code = docker_client.exec_run(container_id, cmd)
+        time.sleep(0.5)

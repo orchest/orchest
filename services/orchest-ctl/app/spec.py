@@ -73,21 +73,21 @@ def filter_container_config(
         one level.
 
     Example:
-        >>> filter = {"Img": ["orchest/orchest-api:latest"]}
+        >>> filter = {"Image": ["orchest/orchest-api:latest"]}
         >>> config = {
         ...     "orchest-api": {
-        ...         "Img": "orchest/orchest-api:latest",
+        ...         "Image": "orchest/orchest-api:latest",
         ...         ...
         ...     },
         ...     "orchest-webserver": {
-        ...         "Img": "orchest/orchest-webserver:latest",
+        ...         "Image": "orchest/orchest-webserver:latest",
         ...         ...
         ...     }
         ... }
         >>> filter_container_config(config, filter)
         ... {
         ...     "orchest-api": {
-        ...         "Img": "orchest/orchest-api:latest",
+        ...         "Image": "orchest/orchest-api:latest",
         ...         ...
         ...     },
         ... }
@@ -111,6 +111,7 @@ def get_container_config(
     if mode == "dev":
         return get_dev_container_config(env)
 
+
 def get_reg_container_config(env: Optional[dict] = None) -> dict:
     """
     Config adheres to:
@@ -127,7 +128,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
             ],
             "HostConfig": {
-                "GroupAdd": [env["ORCHEST_HOST_GID"]],
+                "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
                 "Binds": [
                     "/var/run/docker.sock:/var/run/docker.sock",
                     f'{env["HOST_USER_DIR"]}:/userdir',
@@ -146,7 +147,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 f'HOST_OS={env["HOST_OS"]}',
             ],
             "HostConfig": {
-                "GroupAdd": [env["ORCHEST_HOST_GID"]],
+                "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
                 "Binds": [
                     "/var/run/docker.sock:/var/run/docker.sock",
                     f'{env["HOST_USER_DIR"]}:/userdir',
@@ -159,12 +160,12 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "celery-worker": {
-            "Img": "orchest/celery-worker:latest",
+            "Image": "orchest/celery-worker:latest",
             "Env": [
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
             ],
             "HostConfig": {
-                "GroupAdd": [env["ORCHEST_HOST_GID"]],
+                "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
                 "Binds": [
                     "/var/run/docker.sock:/var/run/docker.sock",
                     # Mount is needed for copying the snapshot dir to
@@ -177,7 +178,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "rabbitmq-server": {
-            "Img": "rabbitmq:3",
+            "Image": "rabbitmq:3",
             "HostName": "rabbitmq-server",
             "HostConfig": {
                 "Binds": [
@@ -192,7 +193,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "auth-server": {
-            "Img": "orchest/auth-server:latest",
+            "Image": "orchest/auth-server:latest",
             "HostConfig": {
                 "Binds": [
                     f'{env["HOST_USER_DIR"]}:/userdir',
@@ -204,9 +205,9 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "file-manager": {
-            "Img": "orchest/file-manager:latest",
+            "Image": "orchest/file-manager:latest",
             "HostConfig": {
-                "GroupAdd": [env["ORCHEST_HOST_GID"]],
+                "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
                 "Binds": [
                     f'{env["HOST_USER_DIR"]}:/userdir',
                 ],
@@ -216,10 +217,10 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "nginx-proxy": {
-            "Img": "orchest/nginx-proxy:latest",
-            # "ExposedPorts": {
-            #     "22/tcp": {}
-            # },
+            "Image": "orchest/nginx-proxy:latest",
+            "ExposedPorts": {
+                "80/tcp": {}
+            },
             "HostConfig": {
                 "PortBindings": {
                     # Exposure of 443 is injected based on certs.
@@ -233,7 +234,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "orchest-database": {
-            "Img": "postgres:13:1",
+            "Image": "postgres:13.1",
             "Env": [
                 "PGDATA=/userdir/.orchest/database/data",
                 "POSTGRES_HOST_AUTH_METHOD=trust",
@@ -250,7 +251,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "update-server": {
-            "Img": "orchest/update-server:latest",
+            "Image": "orchest/update-server:latest",
             "Env": [
                 f'HOST_USER_DIR={env["HOST_USER_DIR"]}',
                 f'HOST_CONFIG_DIR={env["HOST_CONFIG_DIR"]}',
@@ -272,6 +273,9 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
     if do_proxy_certs_exist_on_host():
         certs_bind: dict = {
             "nginx-proxy": {
+                "ExposedPorts": {
+                    "443/tcp": {}
+                },
                 "HostConfig": {
                     "PortBindings": {
                         "443/tcp": [{"HostPort": "443"}],
@@ -344,9 +348,9 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
                 "FLASK_APP=main.py",
                 "FLASK_ENV=development",
             ],
-            # "ExposedPorts": {
-            #     "80/tcp": {}
-            # },
+            "ExposedPorts": {
+                "80/tcp": {}
+            },
             "HostConfig": {
                 "PortBindings": {
                     # Expose Swagger.
