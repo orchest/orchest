@@ -7,11 +7,11 @@ setuptools.setup(
     install_requires=[
         "typer",
         "docker",
-        "aiodocker",
+        "aiodocker @ git+https://github.com/yannickperrenet/aiodocker.git",
         "tqdm==4.53.0",
     ],
     entry_points="""
         [console_scripts]
-        orchest=app.main:__entrypoint
+        orchest=app.new_main:__entrypoint
     """,
 )
