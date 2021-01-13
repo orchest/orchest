@@ -12,7 +12,6 @@ TODO:
 import asyncio
 import logging
 import os
-import subprocess
 from functools import reduce
 from typing import Any, Dict, Iterable, List, Literal, Optional, Set, Tuple, Union
 
@@ -553,6 +552,7 @@ class OrchestApp:
                 wrap=WRAP_LINES,
             )
             typer.echo("\torchest stop")
+            return
 
         # Remove old lingering containers.
         ids, exited_containers = self.resource_manager.get_containers(state="exited")
@@ -691,15 +691,8 @@ class OrchestApp:
 
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.
-        logger.info(
-            "Updating Orchest git repository to get the latest userdir changes..."
-        )
-        script_path = os.path.join(
-            "/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh"
-        )
-        script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
-        return_code = script_process.wait()
-        if return_code != 0:
+        exit_code = utils.update_git_repo()
+        if exit_code != 0:
             utils.echo("Cancelling update...")
             utils.echo(
                 "It seems like you have unstaged changes in the 'orchest'"

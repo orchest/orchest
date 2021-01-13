@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 import textwrap
 import time
 from typing import List, Union
@@ -98,3 +99,15 @@ def do_proxy_certs_exist_on_host() -> bool:
     key_exists = os.path.isfile(os.path.join(certs_path, "server.key"))
 
     return crt_exists and key_exists
+
+
+def update_git_repo():
+    """Pulls the latest changes from the Orchest git repository."""
+    logger.info("Updating Orchest git repository to get the latest userdir changes...")
+    script_path = os.path.join(
+        "/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh"
+    )
+    script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
+    exit_code = script_process.wait()
+
+    return exit_code
