@@ -13,9 +13,7 @@
 
 [![Join us on Slack](https://img.shields.io/badge/%20-Join%20us%20on%20Slack-blue?style=for-the-badge&logo=slack&labelColor=5c5c5c)](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
-Orchest is a web based tool for creating data science pipelines. Under the hood Orchest runs a
-collection of containers to provide a scalable platform that can run on your laptop as well as on a
-large scale cloud cluster.
+Orchest is a browser based IDE for Data Science. It integrates your favorite Data Science tools out of the box, so you don’t have to. The application is easy to use and can run on your laptop as well as on a large scale cloud cluster.
 
 <p align="center">
 <a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/100893895-27227e00-34bc-11eb-84d3-c26316453eee.gif" width="868px" alt="orchest-0.3.0-demo" /></a/></p>
