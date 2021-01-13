@@ -31,7 +31,7 @@ class UpdateView extends React.Component {
   startUpdateTrigger() {
     orchest.confirm(
       "Warning",
-      "Are you sure you want to update Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
+      "Are you sure you want to update Orchest?",
       () => {
         this.setState({
           updating: true,
@@ -69,8 +69,6 @@ class UpdateView extends React.Component {
 
     let data = {
       mode: orchest.environment === "development" ? "dev" : "reg",
-      gpu: this.refManager.refs.formGPU.mdc.checked ? "gpu" : "no-gpu",
-      language: this.refManager.refs.formLanguage.mdc.value,
     };
 
     let updatePromise = makeCancelable(
@@ -123,28 +121,6 @@ class UpdateView extends React.Component {
 
           return (
             <Fragment>
-              <div>
-                <h3 className="push-down">Update options</h3>
-                <MDCSelectReact
-                  label="Language images"
-                  options={[
-                    ["none", "None"],
-                    ["python", "Python"],
-                    ["r", "R"],
-                    ["julia", "Julia"],
-                    ["all", "All"],
-                  ]}
-                  classNames={["push-down"]}
-                  value="python"
-                  ref={this.refManager.nrefs.formLanguage}
-                />
-                <MDCCheckboxReact
-                  label="GPU support"
-                  ref={this.refManager.nrefs.formGPU}
-                  classNames={["push-down"]}
-                />
-              </div>
-
               <MDCButtonReact
                 classNames={["push-down"]}
                 label="Start update"
