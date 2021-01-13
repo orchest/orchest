@@ -35,9 +35,10 @@ def inject_dict(self, other: dict, overwrite: bool = True) -> None:
         if name in self and isinstance(self[name], dict) and isinstance(config, dict):
             inject_dict(self[name], config, overwrite=overwrite)
         elif (
-            name in self
+            not overwrite
+            and name in self
             and isinstance(self[name], list)
-            and isinstance(type(config), list)
+            and isinstance(config, list)
         ):
             self[name] += config
         else:
