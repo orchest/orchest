@@ -12,11 +12,7 @@ from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import nullslast
 
 import app.models as models
-from _orchest.internals.two_phase_executor import (
-    CollateralFailure,
-    TwoPhaseExecutor,
-    TwoPhaseFunction,
-)
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
@@ -277,7 +273,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
                 f"which an image does not exist, {e}"
             )
             current_app.logger.error(msg)
-            raise CollateralFailure(msg)
+            raise errors.ImageNotFound(msg)
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
