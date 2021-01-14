@@ -469,6 +469,15 @@ class OrchestApp:
         self.resource_manager = OrchestResourceManager()
         self.docker_client = DockerWrapper()
 
+    def is_running(self) -> bool:
+        """Check whether Orchest is running"""
+        _, running_containers = self.resource_manager.get_containers(state="running")
+
+        # Don't count orchest-ctl when checking whether Orchest is running.
+        running_containers.remove("orchest/orchest-ctl:latest")
+
+        return len(running_containers) > 0
+
     def install(self, language: str, gpu: bool = False):
         """Installs Orchest for the given language.
 
@@ -599,10 +608,12 @@ class OrchestApp:
                 for which the containers are not stopped.
 
         """
-        ids, running_containers = self.resource_manager.get_containers(state="running")
-        if not running_containers:
+
+        if not self.is_running():
             utils.echo("Orchest is not running.")
             return
+
+        ids, running_containers = self.resource_manager.get_containers(state="running")
 
         # Exclude the orchest-ctl from shutting down itself.
         if skip_containers is None:
@@ -650,10 +661,12 @@ class OrchestApp:
         self.docker_client.run_containers(config, use_name=True, detach=True)
 
     def status(self):
-        _, running_containers = self.resource_manager.get_containers(state="running")
-        if not running_containers:
+
+        if not self.is_running():
             utils.echo("Orchest is not running.")
             return
+
+        _, running_containers = self.resource_manager.get_containers(state="running")
 
         # Minimal set of containers to be running for Orchest to be in
         # a valid state.
@@ -688,7 +701,9 @@ class OrchestApp:
         # TODO: remove the warning from the orchest.sh script that
         #       containers will be shut down.
         utils.echo("Updating...")
-        utils.echo("Using Orchest whilst updating is NOT recommended.")
+
+        if self.is_running():
+            utils.echo("Using Orchest whilst updating is NOT recommended.")
 
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.

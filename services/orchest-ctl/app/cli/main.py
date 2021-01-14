@@ -59,7 +59,7 @@ typer_app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
     help="""
-    A tool for creating and running data science pipelines.
+    An IDE for Data Science.
     """,
     short_help="Orchest CLI",
     epilog="Run 'orchest COMMAND --help' for more information on a command.",
