@@ -474,7 +474,7 @@ class OrchestApp:
         _, running_containers = self.resource_manager.get_containers(state="running")
 
         # Don't count orchest-ctl when checking whether Orchest is running.
-        running_containers.remove("orchest/orchest-ctl:latest")
+        running_containers = [ c for c in running_containers if c not in ["orchest/orchest-ctl:latest"] ]
 
         return len(running_containers) > 0
 
