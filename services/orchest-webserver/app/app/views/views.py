@@ -196,7 +196,7 @@ def register_views(app, db):
                 db.session.delete(ds)
                 db.session.commit()
 
-                return jsonify({"message": "Data source deletion was successful"})
+                return jsonify({"message": "Data source deletion was successful."})
 
             def post(self, name):
                 if DataSource.query.filter(DataSource.name == name).count() > 0:
@@ -267,7 +267,7 @@ def register_views(app, db):
                     current_app.logger.error(msg)
                     return {"message": msg}, 500
 
-                return jsonify({"message": "Experiment termination was successful"})
+                return jsonify({"message": "Experiment termination was successful."})
 
             def post(self, experiment_uuid):
 

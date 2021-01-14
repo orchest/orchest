@@ -165,7 +165,7 @@ class EnvironmentBuild(Resource):
             )
             db.session.commit()
         except Exception as e:
-            current_app.logger.info(str(e))
+            current_app.logger.error(e)
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -185,6 +185,7 @@ class EnvironmentBuild(Resource):
                     environment_build_uuid
                 )
         except Exception as e:
+            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_abort:

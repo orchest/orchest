@@ -104,6 +104,7 @@ class Experiment(Resource):
             with TwoPhaseExecutor(db.session) as tpe:
                 could_abort = AbortExperiment(tpe).transaction(experiment_uuid)
         except Exception as e:
+            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_abort:
@@ -164,7 +165,7 @@ class PipelineRun(Resource):
             )
             db.session.commit()
         except Exception as e:
-            current_app.logger.info(str(e))
+            current_app.logger.error(e)
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -213,7 +214,7 @@ class PipelineStepStatus(Resource):
             )
             db.session.commit()
         except Exception as e:
-            current_app.logger.info(str(e))
+            current_app.logger.error(e)
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -237,6 +238,7 @@ class ExperimentDeletion(Resource):
             with TwoPhaseExecutor(db.session) as tpe:
                 could_delete = DeleteExperiment(tpe).transaction(experiment_uuid)
         except Exception as e:
+            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_delete:
@@ -367,12 +369,12 @@ class CreateExperiment(TwoPhaseFunction):
                 "task_id": task_id,
             }
             res = celery.send_task(**task_args)
-            # NOTE: this is only if a backend is configured.
-            # The task does not return anything. Therefore we can
-            # forget its result and make sure that the Celery
-            # backend releases recourses (for storing and
-            # transmitting results) associated to the task.
-            # Uncomment the line below if applicable.
+            # NOTE: this is only if a backend is configured. The task
+            # does not return anything. Therefore we can forget its
+            # result and make sure that the Celery backend releases
+            # recourses (for storing and transmitting results)
+            # associated to the task. Uncomment the line below if
+            # applicable.
             res.forget()
 
     def revert(self):

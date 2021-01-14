@@ -1,4 +1,4 @@
-from flask import request
+from flask import current_app, request
 from flask_restx import Namespace, Resource
 
 import app.models as models
@@ -52,6 +52,7 @@ class SessionList(Resource):
                     post_data["settings"]["data_passing_memory_size"],
                 )
         except Exception as e:
+            current_app.logger.error(e)
             # Error handling. If it does not succeed then the initial
             # entry has to be removed from the database as otherwise no
             # session can be started in the future due to the uniqueness
@@ -102,6 +103,7 @@ class Session(Resource):
                     project_uuid, pipeline_uuid
                 )
         except Exception as e:
+            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_shutdown:
