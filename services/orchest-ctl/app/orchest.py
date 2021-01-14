@@ -119,8 +119,8 @@ class DockerWrapper:
             # status bar instead of after.
             await asyncio.sleep(0.05)
             # TODO: Check whether we can use print(flush=True) here to
-            #       make this class not dependend on typer.
-            typer.echo()
+            #       make this class not dependend on utils.
+            utils.echo()
 
         await self.close_aclient()
 
@@ -483,22 +483,22 @@ class OrchestApp:
         missing_images = set(req_images) - set(pulled_images)
 
         if not missing_images:
-            typer.echo("Installation is already complete. Did you mean to run:")
-            typer.echo("\torchest update")
+            utils.echo("Installation is already complete. Did you mean to run:")
+            utils.echo("\torchest update")
             return
 
         # The installation is not yet complete, but some images were
         # already pulled before.
         if pulled_images:
-            typer.echo("Some images have been pulled before. Don't forget to run:")
-            typer.echo("\torchest update")
+            utils.echo("Some images have been pulled before. Don't forget to run:")
+            utils.echo("\torchest update")
             utils.echo(
                 "after the installation is finished to ensure that all images are"
                 " running the same version of Orchest.",
                 wrap=WRAP_LINES,
             )
 
-        typer.echo("Installing Orchest...")
+        utils.echo("Installing Orchest...")
         logger.info("Pulling images:\n" + "\n".join(missing_images))
         self.docker_client.pull_images(missing_images, prog_bar=True)
 
@@ -520,8 +520,8 @@ class OrchestApp:
         missing_images = req_images - set(pulled_images)
 
         if missing_images:
-            typer.echo("Before starting Orchest, make sure Orchest is installed. Run:")
-            typer.echo("\torchest install")
+            utils.echo("Before starting Orchest, make sure Orchest is installed. Run:")
+            utils.echo("\torchest install")
             return
 
         # Check whether the container config contains the set of
@@ -539,7 +539,7 @@ class OrchestApp:
             # TODO: Ideally this would print the port on which Orchest
             #       is running. (Was started before and so we do not
             #       simply know.)
-            typer.echo("Orchest is already running...")
+            utils.echo("Orchest is already running...")
             return
 
         # Orchest is partially running and thus in an inconsistent
@@ -551,7 +551,7 @@ class OrchestApp:
                 " Orchest, shut the application down first:",
                 wrap=WRAP_LINES,
             )
-            typer.echo("\torchest stop")
+            utils.echo("\torchest stop")
             return
 
         # Remove old lingering containers.
@@ -561,7 +561,7 @@ class OrchestApp:
         utils.fix_userdir_permissions()
         logger.info("Fixing permissions on the 'userdir/'.")
 
-        typer.echo("Starting Orchest...")
+        utils.echo("Starting Orchest...")
         logger.info("Starting containers:\n" + "\n".join(req_images))
 
         # Start the containers in the correct order, keeping in mind
@@ -588,7 +588,7 @@ class OrchestApp:
         if nginx_proxy is not None:
             for port, port_binding in nginx_proxy["HostConfig"]["PortBindings"].items():
                 exposed_port = port_binding[0]["HostPort"]
-                typer.echo(f"Orchest is running at: http://localhost:{exposed_port}")
+                utils.echo(f"Orchest is running at: http://localhost:{exposed_port}")
 
     def stop(self, skip_containers: Optional[List[str]] = None):
         """Stop the Orchest application.
@@ -600,7 +600,7 @@ class OrchestApp:
         """
         ids, running_containers = self.resource_manager.get_containers(state="running")
         if not running_containers:
-            typer.echo("Orchest is not running.")
+            utils.echo("Orchest is not running.")
             return
 
         # Exclude the orchest-ctl from shutting down itself.
@@ -620,11 +620,11 @@ class OrchestApp:
             )
         )
 
-        typer.echo("Shutting down...")
+        utils.echo("Shutting down...")
         logger.info("Shutting down containers:\n" + "\n".join(running_containers))
 
         self.docker_client.remove_containers(ids)
-        typer.echo("Shutdown successful.")
+        utils.echo("Shutdown successful.")
 
     def restart(self, container_config: dict):
         """Starts Orchest.
@@ -651,7 +651,7 @@ class OrchestApp:
     def status(self):
         _, running_containers = self.resource_manager.get_containers(state="running")
         if not running_containers:
-            typer.echo("Orchest is not running.")
+            utils.echo("Orchest is not running.")
             return
 
         # Minimal set of containers to be running for Orchest to be in
@@ -661,14 +661,14 @@ class OrchestApp:
         )
 
         if valid_set - set(running_containers):
-            typer.echo("Orchest is running, but has reached an invalid state. Run:")
-            typer.echo("\torchest restart")
+            utils.echo("Orchest is running, but has reached an invalid state. Run:")
+            utils.echo("\torchest restart")
             logger.warning(
                 "Orchest has reached an invalid state. Running containers:\n"
                 + "\n".join(running_containers)
             )
         else:
-            typer.echo("Orchest is running.")
+            utils.echo("Orchest is running.")
 
     def update(self, mode=None):
         """Update Orchest.
@@ -737,10 +737,10 @@ class OrchestApp:
         """
         if not ext:
             version = os.getenv("ORCHEST_VERSION")
-            typer.echo(f"Orchest version: {version}")
+            utils.echo(f"Orchest version: {version}")
             return
 
-        typer.echo("Getting versions of all containers...")
+        utils.echo("Getting versions of all containers...")
         pulled_images = self.resource_manager.get_images(orchest_owned=True)
 
         configs = {}
@@ -757,7 +757,7 @@ class OrchestApp:
             # stdout = ['v0.4.1-58-g3f4bc64\n']
             stdout = stdout[0].rstrip()
             stdout_values.add(stdout)
-            typer.echo(f"{img:<44}: {stdout}")
+            utils.echo(f"{img:<44}: {stdout}")
 
         # If not all versions are the same.
         if len(stdout_values) > 1:
@@ -766,8 +766,8 @@ class OrchestApp:
                 " can lead to the application crashing. You can fix this by running:",
                 wrap=WRAP_LINES,
             )
-            typer.echo("\torchest update")
-            typer.echo("To get all containers on the same version again.")
+            utils.echo("\torchest update")
+            utils.echo("To get all containers on the same version again.")
 
 
 # TODO: Could potentially make this into set as well.
