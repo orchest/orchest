@@ -17,7 +17,6 @@ from typing import Any, Dict, Iterable, List, Literal, Optional, Set, Tuple, Uni
 
 import aiodocker
 import docker
-import typer
 from docker.client import DockerClient
 from tqdm.asyncio import tqdm
 
@@ -103,9 +102,11 @@ class DockerWrapper:
             pulls = tqdm.as_completed(
                 pulls,
                 total=len(pulls),
-                ncols=100,
+                ncols=WRAP_LINES,
                 desc="Pulling images",
                 ascii=True,
+                position=0,
+                leave=True,
                 bar_format="{desc}: {n}/{total}|{bar}|",
             )
 
@@ -384,7 +385,7 @@ class OrchestResourceManager:
                 wrap=WRAP_LINES,
             )
             utils.echo(
-                "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration"
+                "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration"  # noqa: E501, W505
             )
 
             self.docker_client.install_network(self.network)
