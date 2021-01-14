@@ -472,7 +472,8 @@ class OrchestApp:
     def is_running(self, running_containers) -> bool:
         """Check whether Orchest is running"""
 
-        # Don't count orchest-ctl when checking whether Orchest is running.
+        # Don't count orchest-ctl when checking
+        # whether Orchest is running.
         running_containers = [
             c for c in running_containers if c not in ["orchest/orchest-ctl:latest"]
         ]
