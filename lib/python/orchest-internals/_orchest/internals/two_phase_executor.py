@@ -1,11 +1,3 @@
-class CollateralFailure(Exception):
-    pass
-
-
-class FunctionFailure(Exception):
-    pass
-
-
 # The TwoPhaseExecutor helps in creating a context where committing and
 # rollbacking in case of error is taken care of. This pattern wants to
 # encourage having changes to the DB in a single transaction, so that
@@ -39,6 +31,8 @@ class FunctionFailure(Exception):
 # the transaction method, while you are free to do so if you need to
 # apply db changes during the collateral phase, and cannot do otherwise.
 
+import logging
+
 
 class TwoPhaseExecutor(object):
     def __init__(self, session):
@@ -53,11 +47,15 @@ class TwoPhaseExecutor(object):
             try:
                 self.collateral_queue[i].revert()
             except Exception as e:
-                print("Revert failed %s [%s]" % (e, type(e)))
+                logging.error(f"Error during revert call {i}: {e}")
+                # In case any revert call contains updates to the db
+                # that were not comitted yet.
+                self.session.rollback()
 
     def __exit__(self, exc_type, exc_val, traceback):
 
         if exc_type is not None:
+            logging.error(f"Error during transactional phase: {exc_val}")
             # Rollback the transaction if any exception was raised
             # during the execution of the first phase.
             self.session.rollback()
@@ -69,19 +67,14 @@ class TwoPhaseExecutor(object):
             try:
                 tpf.collateral()
             except Exception as e:
+                logging.error(f"Error during collateral phase: {e}")
                 # In case any collateral effect contains updates to the
                 # db that were not committed yet.
                 self.session.rollback()
 
-                try:
-                    # If any exception is raised when running the
-                    # collateral effects try to revert the function.
-                    self.revert(idx)
-                except Exception as e:
-                    # In case any revert call contains updates to the db
-                    # that were not comitted yet.
-                    self.session.rollback()
-                    raise e
+                # If any exception is raised when running the
+                # collateral effects try to revert every function.
+                self.revert(idx)
                 raise e
 
 
@@ -93,15 +86,8 @@ class TwoPhaseFunction(object):
 
     def _transaction(self, *args, **kwargs):
 
-        try:
-            res = self.orig_transaction(*args, **kwargs)
-        except Exception as e:
-            raise FunctionFailure(
-                "Failed to run TwoPhaseFunction, error: %s [%s]" % (e, type(e))
-            )
-
         self.tpe.collateral_queue.append(self)
-        return res
+        return self.orig_transaction(*args, **kwargs)
 
     def transaction(self, *args, **kwargs):  # pylint: disable=E0202
         raise NotImplementedError()
