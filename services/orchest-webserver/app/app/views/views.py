@@ -1,14 +1,8 @@
-import contextlib
 import json
 import os
-import shutil
-import subprocess
 import uuid
-from subprocess import Popen
-from typing import Optional
 
 import docker
-import requests
 from flask import json as flask_json
 from flask import jsonify, render_template, request
 from flask.globals import current_app
@@ -16,12 +10,19 @@ from flask_restful import Api, HTTPException, Resource
 from nbconvert import HTMLExporter
 
 from _orchest.internals import config as _config
-from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app.analytics import send_anonymized_pipeline_definition
-from app.kernel_manager import cleanup_kernel, populate_kernels
+from app.core.experiments import CreateExperiment, DeleteExperiment
+from app.core.pipelines import CreatePipeline, DeletePipeline
+from app.core.projects import (
+    CreateProject,
+    DeleteProject,
+    ImportGitProject,
+    SyncProjectPipelinesDBState,
+)
+from app.kernel_manager import populate_kernels
 from app.models import (
-    BackgroundTask,
     DataSource,
     Environment,
     Experiment,
@@ -38,12 +39,11 @@ from app.schemas import (
     ProjectSchema,
 )
 from app.utils import (
+    create_pipeline_files,
     delete_environment,
-    find_pipelines_in_dir,
     get_environment,
     get_environment_directory,
     get_environments,
-    get_experiment_directory,
     get_hash,
     get_pipeline_directory,
     get_pipeline_path,
@@ -51,13 +51,10 @@ from app.utils import (
     get_repo_tag,
     get_user_conf,
     get_user_conf_raw,
-    pipeline_uuid_to_path,
-    project_uuid_to_path,
-    remove_dir_if_empty,
+    pipeline_set_notebook_kernels,
     save_user_conf_raw,
     serialize_environment_to_disk,
 )
-from app.views.orchest_api import api_proxy_environment_builds
 
 
 def register_views(app, db):
@@ -234,80 +231,6 @@ def register_views(app, db):
                 experiments = experiment_query.all()
                 return experiments_schema.dump(experiments)
 
-        class DeleteExperiment(TwoPhaseFunction):
-            def transaction(self, experiment_uuid: str):
-
-                # If the experiment does not exist this is a no op.
-                exp = Experiment.query.filter(
-                    Experiment.uuid == experiment_uuid
-                ).first()
-                self.do_collateral = exp is None
-                if self.do_collateral:
-                    return
-
-                self.exp_uuid = exp.uuid
-                self.pipeline_uuid = exp.pipeline_uuid
-                self.project_uuid = exp.project_uuid
-                db.session.delete(exp)
-
-            def collateral(self):
-                if self.do_collateral:
-                    # Tell the orchest-api that the experiment does not
-                    # exist anymore, will be stopped if necessary then
-                    # cleaned up from the orchest-api db.
-                    url = (
-                        f"http://{app.config['ORCHEST_API_ADDRESS']}/api/"
-                        f"experiments/cleanup/{self.exp_uuid}"
-                    )
-                    app.config["SCHEDULER"].add_job(requests.delete, args=[url])
-
-                    # Remove from the filesystem.
-                    remove_experiment_directory(
-                        self.exp_uuid, self.pipeline_uuid, self.project_uuid
-                    )
-
-        class CreateExperiment(TwoPhaseFunction):
-            def transaction(
-                self,
-                project_uuid: str,
-                pipeline_uuid: str,
-                pipeline_name: str,
-                experiment_name: str,
-                draft: bool,
-            ) -> Experiment:
-
-                experiment_uuid = str(uuid.uuid4())
-                pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
-
-                new_ex = Experiment(
-                    uuid=experiment_uuid,
-                    name=experiment_name,
-                    pipeline_uuid=pipeline_uuid,
-                    project_uuid=project_uuid,
-                    pipeline_name=pipeline_name,
-                    pipeline_path=pipeline_path,
-                    strategy_json="{}",
-                    draft=draft,
-                )
-
-                db.session.add(new_ex)
-
-                self.experiment_uuid = experiment_uuid
-                self.pipeline_uuid = pipeline_uuid
-                self.project_uuid = project_uuid
-
-                return new_ex
-
-            def collateral(self):
-                create_experiment_directory(
-                    self.experiment_uuid, self.pipeline_uuid, self.project_uuid
-                )
-
-            def revert(self):
-                Experiment.query.filter_by(
-                    experiment_uuid=self.experiment_uuid
-                ).delete()
-
         class ExperimentResource(Resource):
             def put(self, experiment_uuid):
 
@@ -383,539 +306,6 @@ def register_views(app, db):
         json_string = json.dumps({"success": False, "reason": reason})
 
         return json_string, 404, {"content-type": "application/json"}
-
-    def generate_gateway_kernel_name(environment_uuid):
-
-        return _config.KERNEL_NAME.format(environment_uuid=environment_uuid)
-
-    def build_environments(environment_uuids, project_uuid):
-        project_path = project_uuid_to_path(project_uuid)
-
-        environment_build_requests = [
-            {
-                "project_uuid": project_uuid,
-                "project_path": project_path,
-                "environment_uuid": environment_uuid,
-            }
-            for environment_uuid in environment_uuids
-        ]
-
-        return api_proxy_environment_builds(
-            environment_build_requests, app.config["ORCHEST_API_ADDRESS"]
-        )
-
-    def build_environments_for_project(project_uuid):
-        environments = get_environments(project_uuid)
-
-        return build_environments(
-            [environment.uuid for environment in environments], project_uuid
-        )
-
-    def populate_default_environments(project_uuid):
-
-        for env_spec in app.config["DEFAULT_ENVIRONMENTS"]:
-            e = Environment(**env_spec)
-
-            e.uuid = str(uuid.uuid4())
-            e.project_uuid = project_uuid
-
-            environment_dir = get_environment_directory(e.uuid, project_uuid)
-            os.makedirs(environment_dir, exist_ok=True)
-
-            serialize_environment_to_disk(e, environment_dir)
-
-    def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid):
-        # for each step set correct notebook kernel if it exists
-
-        steps = pipeline_json["steps"].keys()
-
-        for key in steps:
-            step = pipeline_json["steps"][key]
-
-            if "ipynb" == step["file_path"].split(".")[-1]:
-
-                notebook_path = os.path.join(pipeline_directory, step["file_path"])
-
-                if os.path.isfile(notebook_path):
-
-                    gateway_kernel = generate_gateway_kernel_name(step["environment"])
-
-                    with open(notebook_path, "r") as file:
-                        notebook_json = json.load(file)
-
-                    notebook_changed = False
-
-                    if (
-                        notebook_json["metadata"]["kernelspec"]["name"]
-                        != gateway_kernel
-                    ):
-                        notebook_changed = True
-                        notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
-
-                    environment = get_environment(step["environment"], project_uuid)
-
-                    if environment is not None:
-                        if (
-                            notebook_json["metadata"]["kernelspec"]["display_name"]
-                            != environment.name
-                        ):
-                            notebook_changed = True
-                            notebook_json["metadata"]["kernelspec"][
-                                "display_name"
-                            ] = environment.name
-                    else:
-                        app.logger.warn(
-                            (
-                                "Could not find environment [%s] while setting"
-                                "notebook kernelspec for notebook %s."
-                            )
-                            % (step["environment"], notebook_path)
-                        )
-
-                    if notebook_changed:
-                        with open(notebook_path, "w") as file:
-                            file.write(json.dumps(notebook_json, indent=4))
-
-                else:
-                    app.logger.info(
-                        (
-                            "pipeline_set_notebook_kernels called on notebook_path "
-                            "that doesn't exist %s"
-                        )
-                        % notebook_path
-                    )
-
-    def generate_ipynb_from_template(step, project_uuid):
-
-        # TODO: support additional languages to Python and R
-        if "python" in step["kernel"]["name"].lower():
-            template_json = json.load(
-                open(
-                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template.json"), "r"
-                )
-            )
-        elif "julia" in step["kernel"]["name"]:
-            template_json = json.load(
-                open(
-                    os.path.join(
-                        app.config["RESOURCE_DIR"], "ipynb_template_julia.json"
-                    ),
-                    "r",
-                )
-            )
-        else:
-            template_json = json.load(
-                open(
-                    os.path.join(app.config["RESOURCE_DIR"], "ipynb_template_r.json"),
-                    "r",
-                )
-            )
-
-        template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
-            "display_name"
-        ]
-        template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-            step["environment"]
-        )
-
-        return json.dumps(template_json, indent=4)
-
-    def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
-
-        # Currently, we check per step whether the file exists. If not,
-        # we create it (empty by default). In case the file has an
-        # .ipynb extension we generate the file from a template with a
-        # kernel based on the kernel description in the JSON step.
-
-        # Iterate over steps
-        steps = pipeline_json["steps"].keys()
-
-        for key in steps:
-            step = pipeline_json["steps"][key]
-
-            file_name = step["file_path"]
-
-            full_file_path = os.path.join(pipeline_directory, file_name)
-            file_name_split = file_name.split(".")
-            file_name_without_ext = ".".join(file_name_split[:-1])
-            ext = file_name_split[-1]
-
-            file_content = None
-
-            if not os.path.isfile(full_file_path):
-
-                if len(file_name_without_ext) > 0:
-                    file_content = ""
-
-                if ext == "ipynb":
-                    file_content = generate_ipynb_from_template(step, project_uuid)
-
-            elif ext == "ipynb":
-                # Check for empty .ipynb, for which we also generate a
-                # template notebook.
-                if os.stat(full_file_path).st_size == 0:
-                    file_content = generate_ipynb_from_template(step, project_uuid)
-
-            if file_content is not None:
-                with open(full_file_path, "w") as file:
-                    file.write(file_content)
-
-    def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
-        def ignore_patterns(path, fnames):
-            """
-            Example:
-                path, fnames = \
-                'docker/catching-error/testing', \
-                ['hello.txt', 'some-dir']
-            """
-            # Ignore the ".orchest/pipelines" directory containing the
-            # logs and data directories.
-            if path.endswith(".orchest"):
-                return ["pipelines"]
-
-            # Ignore nothing.
-            return []
-
-        snapshot_path = os.path.join(
-            get_experiment_directory(pipeline_uuid, project_uuid, experiment_uuid),
-            "snapshot",
-        )
-
-        os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
-
-        project_dir = os.path.join(
-            app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
-        )
-
-        shutil.copytree(project_dir, snapshot_path, ignore=ignore_patterns)
-
-    def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
-
-        experiment_project_path = os.path.join(
-            app.config["USER_DIR"], "experiments", project_uuid
-        )
-        experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
-        experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
-
-        if os.path.isdir(experiment_path):
-            shutil.rmtree(experiment_path, ignore_errors=True)
-
-        # Clean up parent directory if this experiment removal created
-        # empty directories.
-        remove_dir_if_empty(experiment_pipeline_path)
-        remove_dir_if_empty(experiment_project_path)
-
-    class DeleteProject(TwoPhaseFunction):
-        """Cleanup a project from Orchest.
-
-        Removes references of the project in the webserver db, and
-        issues a cleanup request to the orchest-api. Note that we pass
-        the uuid and not a project instance because this function does
-        commit, meaning that the passed instance might then become stale
-        , since it belonged to another transaction. That could be a
-        problem when the record related to said instance has been
-        deleted from the db, which will lead to an error since
-        sqlalchemy will try to refresh that object on accessing any of
-        its attributes, failing because the record does not exist.
-        """
-
-        def transaction(self, project_uuid: str):
-            """Remove a project from the db"""
-
-            # To be used by the collateral effect.
-            self.experiments_to_remove = []
-            experiments = Experiment.query.filter(
-                Experiment.project_uuid == project_uuid
-            ).all()
-            for ex in experiments:
-                self.experiments_to_remove.append(
-                    ((ex.uuid), ex.pipeline_uuid, ex.project_uuid)
-                )
-
-            Project.query.filter_by(uuid=project_uuid).update({"status": "DELETING"})
-
-            # To be used by the collateral effect.
-            self.project_uuid = project_uuid
-
-        def collateral(self):
-            """Remove a project from the fs and the orchest-api"""
-
-            # Delete the project directory.
-            projects_dir = os.path.join(app.config["USER_DIR"], "projects")
-            project_path = project_uuid_to_path(self.project_uuid)
-            full_project_path = os.path.join(projects_dir, project_path)
-            shutil.rmtree(full_project_path)
-
-            # Issue project deletion to the orchest-api
-            url = (
-                f"http://{app.config['ORCHEST_API_ADDRESS']}/api/projects/"
-                f"{self.project_uuid}"
-            )
-            app.config["SCHEDULER"].add_job(requests.delete, args=[url])
-
-            # Delete experiments.
-            for exp_uuid, pipeline_uuid, project_uuid in self.experiments_to_remove:
-                remove_experiment_directory(exp_uuid, pipeline_uuid, project_uuid)
-
-            # Cleanup kernels.
-            cleanup_kernel(app, self.project_uuid)
-
-            # Will delete cascade
-            # pipeline
-            # experiment -> pipeline run
-            Project.query.filter_by(uuid=self.project_uuid).delete()
-            db.session.commit()
-
-        def revert(self):
-            Project.query.filter_by(uuid=self.project_uuid).update({"status": "READY"})
-
-    class DeletePipeline(TwoPhaseFunction):
-        """Cleanup a pipeline from Orchest."""
-
-        def transaction(self, project_uuid: str, pipeline_uuid: str):
-            """Remove a pipeline from the db"""
-            # Used by the collateral effect.
-            self.project_uuid = project_uuid
-            self.pipeline_uuid = pipeline_uuid
-            # Necessary because get_pipeline_path is going to query the
-            # db entry, but the db entry does not exist anymore because
-            # it has been deleted.
-            self.pipeline_json_path = get_pipeline_path(
-                self.pipeline_uuid, self.project_uuid
-            )
-
-            # Will delete cascade experiment -> pipeline run.
-            Pipeline.query.filter_by(
-                project_uuid=project_uuid, uuid=pipeline_uuid
-            ).delete()
-
-        def collateral(self):
-            """Remove a pipeline from the FS and the orchest-api"""
-
-            # CleanupPipelineFromOrchest can be used when deleting a
-            # pipeline through Orchest or when cleaning up a pipeline
-            # that was deleted through the filesystrem by the user, so
-            # the file might not be there.
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(self.pipeline_json_path)
-
-            # Orchest-api deletion.
-            url = (
-                f"http://{app.config['ORCHEST_API_ADDRESS']}/api/pipelines/"
-                f"{self.project_uuid}/{self.pipeline_uuid}"
-            )
-            app.config["SCHEDULER"].add_job(requests.delete, args=[url])
-
-    class CreateProject(TwoPhaseFunction):
-        """Init an orchest project."""
-
-        def transaction(self, project_path: str) -> str:
-            """Add a project to the db.
-
-            Args:
-                project_path (str): [description]
-
-            Returns:
-                UUID of the newly initialized project.
-            """
-            # The collateral effect will later make use of this.
-            self.project_uuid = str(uuid.uuid4())
-            self.project_path = project_path
-            new_project = Project(
-                uuid=self.project_uuid, path=self.project_path, status="INITIALIZING"
-            )
-            db.session.add(new_project)
-            return self.project_uuid
-
-        def collateral(self):
-            """Create a project on the filesystem
-
-            Given a directory it will detect what parts are missing from
-            the .orchest directory for the project to be considered
-            initialized, e.g. the actual .orchest directory, .gitignore
-            file, environments directory, etc. As part of process
-            initialization environments are built and kernels refreshed.
-
-            Raises:
-                NotADirectoryError:
-                FileExistsError:
-                NotADirectoryError:
-            """
-            projects_dir = os.path.join(app.config["USER_DIR"], "projects")
-            full_project_path = os.path.join(projects_dir, self.project_path)
-            # exist_ok=True is there so that this function can be used
-            # both when initializing a project that was discovered
-            # through the filesystem or initializing a project from
-            # scratch.
-            os.makedirs(full_project_path, exist_ok=True)
-
-            # This would actually be created as a collateral effect when
-            # populating with default environments, do not rely on that.
-            expected_internal_dir = os.path.join(full_project_path, ".orchest")
-            if os.path.isfile(expected_internal_dir):
-                raise NotADirectoryError(
-                    "The expected internal directory (.orchest) is a file."
-                )
-            elif not os.path.isdir(expected_internal_dir):
-                os.makedirs(expected_internal_dir, exist_ok=True)
-
-            # Init the .gitignore file if it is not there already.
-            expected_git_ignore_file = os.path.join(
-                full_project_path, ".orchest", ".gitignore"
-            )
-            if os.path.isdir(expected_git_ignore_file):
-                raise FileExistsError(".orchest/.gitignore is a directory")
-            elif not os.path.isfile(expected_git_ignore_file):
-                with open(expected_git_ignore_file, "w") as ign_file:
-                    ign_file.write(app.config["PROJECT_ORCHEST_GIT_IGNORE_CONTENT"])
-
-            # Initialize with default environments only if the project
-            # has no environments directory.
-            expected_env_dir = os.path.join(
-                full_project_path, ".orchest", "environments"
-            )
-            if os.path.isfile(expected_env_dir):
-                raise NotADirectoryError(
-                    "The expected environments directory (.orchest/environments) "
-                    "is a file."
-                )
-            elif not os.path.isdir(expected_env_dir):
-                populate_default_environments(self.project_uuid)
-
-            # Refresh kernels after change in environments, given that
-            # either we added the default environments or the project
-            # has environments of its own.
-            populate_kernels(app, db, self.project_uuid)
-
-            # Build environments on project creation.
-            build_environments_for_project(self.project_uuid)
-
-            Project.query.filter_by(
-                uuid=self.project_uuid, path=self.project_path
-            ).update({"status": "READY"})
-            db.session.commit()
-
-        def revert(self):
-            Project.query.filter_by(
-                uuid=self.project_uuid, path=self.project_path
-            ).delete()
-            db.session.commit()
-
-    class SyncProjectPipelinesDBState(TwoPhaseFunction):
-        """Synchronizes the state of the pipelines of a project."""
-
-        def transaction(self, project_uuid):
-            """Synchronizes the state of the pipelines of a project.
-
-            Synchronizes the state of the filesystem with the db when it
-            comes to the pipelines of a project. Pipelines removed from
-            the filesystem are removed, new pipelines (or pipelines that
-            where there after, for example a project import) are
-            registered in the db.
-
-            Args:
-                project_uuid:
-
-            Raises:
-                FileNotFoundError: If the project directory is not found
-                .
-            """
-
-            project_path = project_uuid_to_path(project_uuid)
-            project_dir = os.path.join(app.config["USER_DIR"], "projects", project_path)
-
-            if not os.path.isdir(project_dir):
-                raise FileNotFoundError("Project directory not found")
-
-            # Find all pipelines in the project directory.
-            pipeline_paths = find_pipelines_in_dir(project_dir, project_dir)
-            # Cleanup pipelines that have been manually removed.
-            fs_removed_pipelines = [
-                pipeline
-                for pipeline in Pipeline.query.filter(
-                    Pipeline.path.notin_(pipeline_paths)
-                )
-                .filter(Pipeline.project_uuid == project_uuid)
-                .all()
-            ]
-            for pip in fs_removed_pipelines:
-                DeletePipeline(self.tpe).transaction(pip.project_uuid, pip.uuid)
-
-            # Identify all pipeline paths that are not yet a pipeline,
-            # that is, pipelines that were added through the filesystem.
-            existing_pipeline_paths = [
-                pipeline.path
-                for pipeline in Pipeline.query.filter(Pipeline.path.in_(pipeline_paths))
-                .filter(Pipeline.project_uuid == project_uuid)
-                .all()
-            ]
-            # TODO: handle existing pipeline assignments.
-            new_pipelines_from_fs = set(pipeline_paths) - set(existing_pipeline_paths)
-            for path in new_pipelines_from_fs:
-                AddPipelineFromFS(self.tpe).transaction(project_uuid, path)
-
-        def collateral(self):
-            pass
-
-    class AddPipelineFromFS(TwoPhaseFunction):
-        """Add a pipeline from the FS to Orchest.
-
-        To be used when a pipeline is "discovered" through the FS, e.g.
-        the user has manually added it.
-        """
-
-        def transaction(self, project_uuid: str, pipeline_path: str):
-
-            pipeline_json_path = get_pipeline_path(
-                None, project_uuid, pipeline_path=pipeline_path
-            )
-
-            # Check the uuid of the pipeline. If the uuid is taken by
-            # another pipeline in the project then generate a new uuid
-            # for the pipeline.    pipeline_json = json.load(json_file)
-            with open(pipeline_json_path, "r") as json_file:
-                pipeline_json = json.load(json_file)
-                file_pipeline_uuid = pipeline_json.get("uuid")
-                # See if pipeline_uuid is taken or if the pipeline has
-                # no uuid, in both cases it's going to need a new uuid.
-                if (not file_pipeline_uuid) or Pipeline.query.filter(
-                    Pipeline.uuid == file_pipeline_uuid
-                ).filter(Pipeline.project_uuid == project_uuid).count() > 0:
-                    file_pipeline_uuid = str(uuid.uuid4())
-                    # Only write to the file to update the uuid if it's
-                    # necessary.
-                    self.do_collateral = True
-
-                # Add the pipeline to the db.
-                new_pipeline = Pipeline(
-                    uuid=file_pipeline_uuid,
-                    path=pipeline_path,
-                    project_uuid=project_uuid,
-                )
-                db.session.add(new_pipeline)
-
-                # To be used by collateral and revert.
-                self.project_uuid = project_uuid
-                self.pipeline_uuidd = file_pipeline_uuid
-                self.pipeline_path = pipeline_path
-                self.pipeline_json = pipeline_json
-
-        def collateral(self):
-            if self.do_collateral:
-                pipeline_json_path = get_pipeline_path(
-                    None, self.project_uuid, pipeline_path=self.pipeline_path
-                )
-                with open(pipeline_json_path, "w") as json_file:
-                    self.pipeline_json["uuid"] = self.pipeline_uuidd
-                    json_file.write(json.dumps(self.pipeline_json, indent=4))
-
-        def revert(self):
-            Pipeline.query.filter(
-                project_uuid=self.project_uuid,
-                uuid=self.pipeline_uuidd,
-                path=self.pipeline_path,
-            ).delete()
-            db.session.commit()
 
     @app.route("/", methods=["GET"])
     def index():
@@ -1042,65 +432,6 @@ def register_views(app, db):
 
         return jsonify({"success": True})
 
-    class CreatePipeline(TwoPhaseFunction):
-        def transaction(
-            self, project_uuid: str, pipeline_name: str, pipeline_path: str
-        ):
-
-            # Reject creation if a pipeline which this path exists
-            # already.
-            if (
-                Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
-                .filter(Pipeline.path == pipeline_path)
-                .count()
-                > 0
-            ):
-                raise FileExistsError(
-                    f"Pipeline already exists at path {pipeline_path}"
-                )
-
-            self.pipeline_uuid = str(uuid.uuid4())
-            pipeline = Pipeline(
-                path=pipeline_path, uuid=self.pipeline_uuid, project_uuid=project_uuid
-            )
-            db.session.add(pipeline)
-
-            # To be used by the collateral and revert functions.
-            self.project_uuid = project_uuid
-            self.pipeline_name = pipeline_name
-            self.pipeline_path = pipeline_path
-
-        def collateral(self):
-            pipeline_dir = get_pipeline_directory(self.pipeline_uuid, self.project_uuid)
-            pipeline_json_path = get_pipeline_path(
-                self.pipeline_uuid, self.project_uuid
-            )
-
-            os.makedirs(pipeline_dir, exist_ok=True)
-
-            # Generate clean pipeline.json.
-            pipeline_json = {
-                "name": self.pipeline_name,
-                "version": "1.0.0",
-                "uuid": self.pipeline_uuid,
-                "settings": {
-                    "auto_eviction": False,
-                    "data_passing_memory_size": "1GB",
-                },
-                "steps": {},
-            }
-
-            with open(pipeline_json_path, "w") as pipeline_json_file:
-                pipeline_json_file.write(json.dumps(pipeline_json, indent=4))
-
-        def revert(self):
-            Pipeline.query.filter_by(
-                project_uuid=self.project_uuid,
-                uuid=self.pipeline_uuid,
-                path=self.pipeline_path,
-            ).delete()
-            db.session.commit()
-
     @app.route("/async/pipelines/create/<project_uuid>", methods=["POST"])
     def pipelines_create(project_uuid):
 
@@ -1118,43 +449,6 @@ def register_views(app, db):
 
         return jsonify({"success": True})
 
-    class ImportGitProject(TwoPhaseFunction):
-        def transaction(self, url: str, project_name: Optional[str] = None):
-            self.n_uuid = str(uuid.uuid4())
-            new_task = BackgroundTask(
-                task_uuid=self.n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
-            )
-            db.session.add(new_task)
-
-            # To be later used by the collateral function.
-            self.url = url
-            self.project_name = project_name
-            return background_task_schema.dump(new_task)
-
-        def collateral(self):
-            # Start the background process in charge of cloning.
-            file_dir = os.path.dirname(os.path.realpath(__file__))
-            args = [
-                "python3",
-                "-m",
-                "scripts.background_tasks",
-                "--type",
-                "git_clone_project",
-                "--uuid",
-                self.n_uuid,
-                "--url",
-                self.url,
-            ]
-
-            if self.project_name:
-                args.append("--path")
-                args.append(str(self.project_name))
-
-            Popen(args, cwd=os.path.join(file_dir, "../.."), stderr=subprocess.STDOUT)
-
-        def revert(self):
-            BackgroundTask.query.filter_by(task_uuid=self.n_uuid).delete()
-
     class ImportGitProjectListResource(Resource):
         def post(self):
 
@@ -1167,7 +461,7 @@ def register_views(app, db):
                 current_app.logger.error(str(e))
                 return jsonify({"message": str(e)}), 500
 
-            return task
+            return background_task_schema.dump(task)
 
     api.add_resource(ImportGitProjectListResource, "/async/projects/import-git")
 
@@ -1286,7 +580,7 @@ def register_views(app, db):
         except Exception as e:
             current_app.logger.error(str(e))
             return (
-                jsonify({"message": f"Failed to delete the project. Error: {str(e)}"}),
+                jsonify({"message": f"Failed to delete the project. Error: {e}"}),
                 500,
             )
 

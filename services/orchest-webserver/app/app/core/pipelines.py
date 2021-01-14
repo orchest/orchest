@@ -1,0 +1,162 @@
+import contextlib
+import json
+import os
+import uuid
+
+import requests
+from flask.globals import current_app
+
+from _orchest.internals.two_phase_executor import TwoPhaseFunction
+from app.connections import db
+from app.models import Pipeline
+from app.utils import get_pipeline_directory, get_pipeline_path
+
+
+class CreatePipeline(TwoPhaseFunction):
+    def transaction(self, project_uuid: str, pipeline_name: str, pipeline_path: str):
+
+        # Reject creation if a pipeline which this path exists already.
+        if (
+            Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
+            .filter(Pipeline.path == pipeline_path)
+            .count()
+            > 0
+        ):
+            raise FileExistsError(f"Pipeline already exists at path {pipeline_path}")
+
+        self.pipeline_uuid = str(uuid.uuid4())
+        pipeline = Pipeline(
+            path=pipeline_path, uuid=self.pipeline_uuid, project_uuid=project_uuid
+        )
+        db.session.add(pipeline)
+
+        # To be used by the collateral and revert functions.
+        self.project_uuid = project_uuid
+        self.pipeline_name = pipeline_name
+        self.pipeline_path = pipeline_path
+
+    def collateral(self):
+        pipeline_dir = get_pipeline_directory(self.pipeline_uuid, self.project_uuid)
+        pipeline_json_path = get_pipeline_path(self.pipeline_uuid, self.project_uuid)
+
+        os.makedirs(pipeline_dir, exist_ok=True)
+
+        # Generate clean pipeline.json.
+        pipeline_json = {
+            "name": self.pipeline_name,
+            "version": "1.0.0",
+            "uuid": self.pipeline_uuid,
+            "settings": {
+                "auto_eviction": False,
+                "data_passing_memory_size": "1GB",
+            },
+            "steps": {},
+        }
+
+        with open(pipeline_json_path, "w") as pipeline_json_file:
+            pipeline_json_file.write(json.dumps(pipeline_json, indent=4))
+
+    def revert(self):
+        Pipeline.query.filter_by(
+            project_uuid=self.project_uuid,
+            uuid=self.pipeline_uuid,
+            path=self.pipeline_path,
+        ).delete()
+        db.session.commit()
+
+
+class DeletePipeline(TwoPhaseFunction):
+    """Cleanup a pipeline from Orchest."""
+
+    def transaction(self, project_uuid: str, pipeline_uuid: str):
+        """Remove a pipeline from the db"""
+        # Used by the collateral effect.
+        self.project_uuid = project_uuid
+        self.pipeline_uuid = pipeline_uuid
+        # Necessary because get_pipeline_path is going to query the db
+        # entry, but the db entry does not exist anymore because it has
+        # been deleted.
+        self.pipeline_json_path = get_pipeline_path(
+            self.pipeline_uuid, self.project_uuid
+        )
+
+        # Will delete cascade experiment -> pipeline run.
+        Pipeline.query.filter_by(project_uuid=project_uuid, uuid=pipeline_uuid).delete()
+
+    def collateral(self):
+        """Remove a pipeline from the FS and the orchest-api"""
+
+        # CleanupPipelineFromOrchest can be used when deleting a
+        # pipeline through Orchest or when cleaning up a pipeline that
+        # was deleted through the filesystrem by the user, so the file
+        # might not be there.
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(self.pipeline_json_path)
+
+        # Orchest-api deletion.
+        url = (
+            f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/pipelines/"
+            f"{self.project_uuid}/{self.pipeline_uuid}"
+        )
+        current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
+
+
+class AddPipelineFromFS(TwoPhaseFunction):
+    """Add a pipeline from the FS to Orchest.
+
+    To be used when a pipeline is "discovered" through the FS, e.g. the
+    user has manually added it.
+    """
+
+    def transaction(self, project_uuid: str, pipeline_path: str):
+
+        pipeline_json_path = get_pipeline_path(
+            None, project_uuid, pipeline_path=pipeline_path
+        )
+
+        # Check the uuid of the pipeline. If the uuid is taken by
+        # another pipeline in the project then generate a new uuid for
+        # the pipeline. pipeline_json = json.load(json_file)
+        with open(pipeline_json_path, "r") as json_file:
+            pipeline_json = json.load(json_file)
+            file_pipeline_uuid = pipeline_json.get("uuid")
+            # See if pipeline_uuid is taken or if the pipeline has no
+            # uuid, in both cases it's going to need a new uuid.
+            if (not file_pipeline_uuid) or Pipeline.query.filter(
+                Pipeline.uuid == file_pipeline_uuid
+            ).filter(Pipeline.project_uuid == project_uuid).count() > 0:
+                file_pipeline_uuid = str(uuid.uuid4())
+                # Only write to the file to update the uuid if it's
+                # necessary.
+                self.do_collateral = True
+
+            # Add the pipeline to the db.
+            new_pipeline = Pipeline(
+                uuid=file_pipeline_uuid,
+                path=pipeline_path,
+                project_uuid=project_uuid,
+            )
+            db.session.add(new_pipeline)
+
+            # To be used by collateral and revert.
+            self.project_uuid = project_uuid
+            self.pipeline_uuidd = file_pipeline_uuid
+            self.pipeline_path = pipeline_path
+            self.pipeline_json = pipeline_json
+
+    def collateral(self):
+        if self.do_collateral:
+            pipeline_json_path = get_pipeline_path(
+                None, self.project_uuid, pipeline_path=self.pipeline_path
+            )
+            with open(pipeline_json_path, "w") as json_file:
+                self.pipeline_json["uuid"] = self.pipeline_uuidd
+                json_file.write(json.dumps(self.pipeline_json, indent=4))
+
+    def revert(self):
+        Pipeline.query.filter(
+            project_uuid=self.project_uuid,
+            uuid=self.pipeline_uuidd,
+            path=self.pipeline_path,
+        ).delete()
+        db.session.commit()

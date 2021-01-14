@@ -30,8 +30,8 @@ from app.socketio_server import register_socketio_broadcast
 from app.utils import get_repo_tag, get_user_conf
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
-from app.views.core import register_views
 from app.views.orchest_api import register_orchest_api_views
+from app.views.views import register_views
 
 
 def initialize_default_datasources(db, app):
