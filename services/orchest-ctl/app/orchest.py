@@ -473,7 +473,9 @@ class OrchestApp:
         """Check whether Orchest is running"""
 
         # Don't count orchest-ctl when checking whether Orchest is running.
-        running_containers = [ c for c in running_containers if c not in ["orchest/orchest-ctl:latest"] ]
+        running_containers = [
+            c for c in running_containers if c not in ["orchest/orchest-ctl:latest"]
+        ]
 
         return len(running_containers) > 0
 
@@ -612,7 +614,6 @@ class OrchestApp:
         if not self.is_running(running_containers):
             utils.echo("Orchest is not running.")
             return
-
 
         # Exclude the orchest-ctl from shutting down itself.
         if skip_containers is None:
