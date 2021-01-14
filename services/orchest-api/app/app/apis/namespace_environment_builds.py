@@ -17,41 +17,6 @@ api = Namespace("environment-builds", description="Managing environment builds")
 api = register_schema(api)
 
 
-def abort_environment_build(environment_build_uuid, is_running=False):
-    """Aborts an environment build.
-
-    Aborts an environment build by setting its state to ABORTED and
-    sending a REVOKE and ABORT command to celery.
-
-    Args:
-        is_running:
-        environment_build_uuid: uuid of the environment build to abort
-
-    Returns:
-
-    """
-    filter_by = {
-        "build_uuid": environment_build_uuid,
-    }
-    status_update = {"status": "ABORTED"}
-    celery_app = make_celery(current_app)
-
-    # Make use of both constructs (revoke, abort) so we cover both a
-    # task that is pending and a task which is running.
-    celery_app.control.revoke(environment_build_uuid, timeout=1.0)
-    if is_running:
-        res = AbortableAsyncResult(environment_build_uuid, app=celery_app)
-        # It is responsibility of the task to terminate by reading it's
-        # aborted status.
-        res.abort()
-
-    update_status_db(
-        status_update,
-        model=models.EnvironmentBuild,
-        filter_by=filter_by,
-    )
-
-
 @api.route("/")
 class EnvironmentBuildList(Resource):
     @api.doc("get_environment_builds")
