@@ -6,6 +6,11 @@ set -e
 FILE_USER=$(ls -n /orchest-host/orchest | awk '{print $3}')
 FILE_GROUP=$(ls -n /orchest-host/orchest | awk '{print $4}')
 
+if [ -z $(git config user.name) ]; then
+  # a name is required for pull/fetch operations
+  git config user.name "John Doe"
+fi
+
 # Explicitely use HTTPS so that we do not get the error:
 # "error: cannot run ssh: No such file or directory"
 # It is caused when the remote "origin" uses SSH.
