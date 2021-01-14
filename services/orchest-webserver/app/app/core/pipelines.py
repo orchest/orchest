@@ -22,7 +22,7 @@ class CreatePipeline(TwoPhaseFunction):
             .count()
             > 0
         ):
-            raise FileExistsError(f"Pipeline already exists at path {pipeline_path}")
+            raise FileExistsError(f"Pipeline already exists at path {pipeline_path}.")
 
         self.pipeline_uuid = str(uuid.uuid4())
         pipeline = Pipeline(

@@ -3,6 +3,7 @@ import os
 import uuid
 
 import docker
+import sqlalchemy
 from flask import json as flask_json
 from flask import jsonify, render_template, request
 from flask.globals import current_app
@@ -587,10 +588,15 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 CreateProject(tpe).transaction(request.json["name"])
         except Exception as e:
-            current_app.logger.error(str(e))
-            # Do not show errors to the user, it can be quite ugly.
+            current_app.logger.error(e)
+
+            # The sql integrity error message can be quite ugly.
+            if isinstance(e, sqlalchemy.exc.IntegrityError):
+                msg = f'Project "{request.json["name"]}" already exists.'
+            else:
+                msg = str(e)
             return (
-                jsonify({"message": "Failed to create the project."}),
+                jsonify({"message": msg}),
                 500,
             )
 
