@@ -12,7 +12,7 @@ if [ -z "$(git config user.name)" ]; then
 fi
 
 if [ -z "$(git config user.email)" ]; then
-  # a name is required for pull/fetch operations
+  # an email is required for pull/fetch operations
   git config user.email "johndoe@example.org"
 fi
 
