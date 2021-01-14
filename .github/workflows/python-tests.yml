@@ -15,7 +15,14 @@ jobs:
 
     strategy:
       matrix:
-        service: [memory-server, orchest-api, orchest-sdk, base-images-runnable]
+        service:
+          [
+            memory-server,
+            orchest-api,
+            orchest-sdk,
+            base-images-runnable,
+            orchest-ctl,
+          ]
 
     steps:
       - uses: actions/checkout@v2
