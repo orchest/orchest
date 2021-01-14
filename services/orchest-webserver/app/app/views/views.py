@@ -175,7 +175,12 @@ def register_views(app, db):
                 ds.name = request.json["name"]
                 ds.source_type = request.json["source_type"]
                 ds.connection_details = request.json["connection_details"]
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    current_app.logger.error(e)
+                    db.session.rollback()
+                    return {"message": "Failed update operation."}, 500
 
                 return datasource_schema.dump(ds)
 
@@ -194,7 +199,12 @@ def register_views(app, db):
                     return "", 404
 
                 db.session.delete(ds)
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    current_app.logger.error(e)
+                    db.session.rollback()
+                    return {"message": "Failed to delete data source."}, 500
 
                 return jsonify({"message": "Data source deletion was successful."})
 
@@ -209,7 +219,12 @@ def register_views(app, db):
                 )
 
                 db.session.add(new_ds)
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    current_app.logger.error(e)
+                    db.session.rollback()
+                    return {"message": "Failed to create data source."}, 500
 
                 return datasource_schema.dump(new_ds)
 
@@ -245,7 +260,12 @@ def register_views(app, db):
                 ex.strategy_json = request.json["strategy_json"]
                 ex.draft = request.json["draft"]
 
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    current_app.logger.error(e)
+                    db.session.rollback()
+                    return {"message": "Failed update operation."}, 500
 
                 return experiment_schema.dump(ex)
 
@@ -428,7 +448,12 @@ def register_views(app, db):
 
             db.session.add(pr)
 
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            db.session.rollback()
+            return {"message": "Failed to create pipeline runs."}, 500
 
         return jsonify({"success": True})
 
