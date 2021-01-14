@@ -59,6 +59,7 @@ def fix_userdir_permissions() -> None:
     """
     try:
         # NOTE: The exit code is only returned on Unix systems
+        # (which includes macOS).
         exit_code = os.system(
             "find /orchest-host/userdir -type d -exec chmod g+s {} \;"
         )
