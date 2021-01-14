@@ -330,7 +330,7 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
             },
         },
         "auth-server": {
-            "Cmd": ["flask", "run", "--host=0.0.0.0", "--port=80"],
+            "Cmd": ["sh", "-c", "umask 002 && flask run --host=0.0.0.0 --port=80"],
             "Env": [
                 "FLASK_APP=main.py",
                 "FLASK_DEBUG=1",
