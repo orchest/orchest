@@ -124,6 +124,7 @@ def create_app():
         }
     )
     app.config["SCHEDULER"] = scheduler
+    scheduler.start()
 
     app.logger.info("Flask CONFIG: %s" % app.config)
 
@@ -158,7 +159,6 @@ def create_app():
             minutes=app.config["TELEMETRY_INTERVAL"],
             args=[app],
         )
-        scheduler.start()
 
     # static file serving
     @app.route("/public/<path:path>")

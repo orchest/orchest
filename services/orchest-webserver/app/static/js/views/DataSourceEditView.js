@@ -186,6 +186,7 @@ class DataSourceEditView extends React.Component {
       case "textfield":
         elements.push(
           <MDCTextFieldReact
+            maxLength={255}
             key={field.name}
             value={prefill}
             classNames={["push-down"]}
@@ -197,6 +198,7 @@ class DataSourceEditView extends React.Component {
       case "password":
         elements.push(
           <MDCTextFieldReact
+            maxLength={255}
             value={prefill}
             key={field.name}
             classNames={["push-down"]}
@@ -351,6 +353,7 @@ class DataSourceEditView extends React.Component {
           <MDCTextFieldReact
             classNames={["push-down"]}
             label="Name"
+            maxLength={255}
             value={this.state.dataSource["name"]}
             onChange={this.onChangeName.bind(this)}
           />

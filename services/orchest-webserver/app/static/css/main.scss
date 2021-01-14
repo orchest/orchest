@@ -658,6 +658,10 @@ h2.header {
   }
 }
 
+.mdc-data-table__table {
+  width: 100%;
+}
+
 .dropdown-file-picker {
   position: relative;
 
@@ -1172,6 +1176,13 @@ span.code {
       margin-left: 10px;
       color: #34ef34;
     }
+  }
+}
+
+table {
+  .mdc-data-table__header-cell.mdc-data-table__header-cell--checkbox,
+  .mdc-data-table__cell.mdc-data-table__cell--checkbox {
+    width: 56px;
   }
 }
 

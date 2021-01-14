@@ -254,10 +254,9 @@ def dev_mount_inject(container_spec):
     orchest_auth_server_spec["environment"]["FLASK_APP"] = "main.py"
     orchest_auth_server_spec["environment"]["FLASK_DEBUG"] = "1"
     orchest_auth_server_spec["command"] = [
-        "flask",
-        "run",
-        "--host=0.0.0.0",
-        "--port=80",
+        "sh",
+        "-c",
+        "umask 002 && flask run --host=0.0.0.0 --port=80",
     ]
 
     # file-manager

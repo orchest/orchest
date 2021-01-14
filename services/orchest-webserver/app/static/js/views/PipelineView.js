@@ -10,6 +10,7 @@ import {
   makeCancelable,
   PromiseManager,
   RefManager,
+  activeElementIsInput,
 } from "../lib/utils/all";
 
 import {
@@ -730,13 +731,13 @@ class PipelineView extends React.Component {
         // button press
         this.refManager.refs.saveButton.click();
       }
-      if (e.keyCode === 46 || e.keyCode === 8) {
+      if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
         this.deleteSelectedSteps();
       }
     });
 
     $(document).on("keyup.initializePipeline", (e) => {
-      if (e.keyCode === 8 || e.keyCode === 46) {
+      if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
         if (this.selectedConnection) {
           e.preventDefault();
 
