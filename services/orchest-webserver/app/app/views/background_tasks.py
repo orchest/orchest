@@ -1,4 +1,4 @@
-from flask import request
+from flask import current_app, request
 from flask_restful import Api, Resource
 
 from app.models import BackgroundTask
@@ -28,10 +28,15 @@ def register_background_tasks_view(app, db):
             if task is None:
                 return "", 404
 
-            task.status = request.json["status"]
-            task.code = request.json.get("code", None)
-            task.result = request.json.get("result", None)
-            db.session.commit()
+            try:
+                task.status = request.json["status"]
+                task.code = request.json.get("code", None)
+                task.result = request.json.get("result", None)
+                db.session.commit()
+            except Exception as e:
+                current_app.logger.error(e)
+                db.session.rollback()
+                return {"message": "Failed update operation."}, 500
 
             return background_task_schema.dump(task)
 
