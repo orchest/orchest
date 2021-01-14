@@ -59,8 +59,8 @@ class DeleteExperiment(TwoPhaseFunction):
 
         # If the experiment does not exist this is a no op.
         exp = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
-        self.do_collateral = exp is None
-        if self.do_collateral:
+        self.do_collateral = exp is not None
+        if not self.do_collateral:
             return
 
         self.exp_uuid = exp.uuid
