@@ -6,7 +6,7 @@ set -e
 FILE_USER=$(ls -n /orchest-host/orchest | awk '{print $3}')
 FILE_GROUP=$(ls -n /orchest-host/orchest | awk '{print $4}')
 
-if [ -z $(git config user.name) ]; then
+if [ -z "$(git config user.name)" ]; then
   # a name is required for pull/fetch operations
   git config user.name "John Doe"
 fi
