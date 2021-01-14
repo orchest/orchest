@@ -19,8 +19,7 @@ fi
 
 function update_orchest_ctl {
     # Update orchest-ctl to latest before performing update
-    #$SUDO_PREFIX docker pull orchest/orchest-ctl:latest
-    echo 'update_orchest_ctl'
+    $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
 }
 
 # Before running an update, update the orchest-ctl as the latest

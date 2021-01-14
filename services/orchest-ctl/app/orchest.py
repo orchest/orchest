@@ -469,9 +469,8 @@ class OrchestApp:
         self.resource_manager = OrchestResourceManager()
         self.docker_client = DockerWrapper()
 
-    def is_running(self) -> bool:
+    def is_running(self, running_containers) -> bool:
         """Check whether Orchest is running"""
-        _, running_containers = self.resource_manager.get_containers(state="running")
 
         # Don't count orchest-ctl when checking whether Orchest is running.
         running_containers = [ c for c in running_containers if c not in ["orchest/orchest-ctl:latest"] ]
@@ -609,11 +608,11 @@ class OrchestApp:
 
         """
 
-        if not self.is_running():
+        ids, running_containers = self.resource_manager.get_containers(state="running")
+        if not self.is_running(running_containers):
             utils.echo("Orchest is not running.")
             return
 
-        ids, running_containers = self.resource_manager.get_containers(state="running")
 
         # Exclude the orchest-ctl from shutting down itself.
         if skip_containers is None:
@@ -662,11 +661,11 @@ class OrchestApp:
 
     def status(self):
 
-        if not self.is_running():
+        _, running_containers = self.resource_manager.get_containers(state="running")
+
+        if not self.is_running(running_containers):
             utils.echo("Orchest is not running.")
             return
-
-        _, running_containers = self.resource_manager.get_containers(state="running")
 
         # Minimal set of containers to be running for Orchest to be in
         # a valid state.
@@ -702,7 +701,8 @@ class OrchestApp:
         #       containers will be shut down.
         utils.echo("Updating...")
 
-        if self.is_running():
+        _, running_containers = self.resource_manager.get_containers(state="running")
+        if self.is_running(running_containers):
             utils.echo("Using Orchest whilst updating is NOT recommended.")
 
         # Update the Orchest git repo to get the latest changes to the
