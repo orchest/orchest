@@ -7,20 +7,20 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 
-from logging.config import dictConfig
-from pprint import pformat
 import base64
 import contextlib
 import os
 import subprocess
+from logging.config import dictConfig
+from pprint import pformat
 from subprocess import Popen
 
+import posthog
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, send_from_directory, request
+from flask import Flask, request, send_from_directory
 from flask_migrate import Migrate, upgrade
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
-import posthog
 
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
@@ -64,8 +64,8 @@ def initialize_default_datasources(db, app):
 
 
 def process_start_gate():
-    # When Flask is running in dev mode, only start processes once the main
-    # process is running in 'reloading' mode. Signified by
+    # When Flask is running in dev mode, only start processes once the
+    # main process is running in 'reloading' mode. Signified by
     # WERKZEUG_RUN_MAIN=true.
 
     if os.environ.get("FLASK_ENV") != "development":

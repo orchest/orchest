@@ -362,6 +362,8 @@ class CreateExperimentView extends React.Component {
           pipelineJSON.steps[stepUUID].parameters[parameterKey] =
             runParameters[key];
         }
+        // Experiments should always have eviction enabled.
+        pipelineJSON.settings.auto_eviction = true;
         pipelineJSONs.push(pipelineJSON);
       }
     }

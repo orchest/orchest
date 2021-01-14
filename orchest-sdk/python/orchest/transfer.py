@@ -866,10 +866,8 @@ def _resolve(
     # If no info could be collected, then the previous step has not yet
     # been executed.
     if not method_infos:
-        method_infos_exceptions = "\n".join(method_infos_exceptions)
         raise error.OutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
-            f"Try rerunning it. Info:\n{method_infos_exceptions}"
+            "Output could not be found in memory or on disk."
         )
 
     # Get the method that was most recently used based on its logged
@@ -963,9 +961,18 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         # For each parent get what function to use to retrieve its
         # output data and metadata related to said data.
         parent_uuid = parent.properties["uuid"]
-        get_output_method, args, kwargs, metadata = _resolve(
-            parent_uuid, consumer=step_uuid
-        )
+
+        try:
+            get_output_method, args, kwargs, metadata = _resolve(
+                parent_uuid, consumer=step_uuid
+            )
+        except error.OutputNotFoundError:
+            parent_title = parent.properties["title"]
+            msg = (
+                f'Output from incoming step "{parent_title}" '
+                f'("{parent_uuid}") cannot be found. Try rerunning it.'
+            )
+            raise error.OutputNotFoundError(msg)
 
         # Maintain the output methods in order, but wait with calling
         # them so that we can first check for collisions.
@@ -977,11 +984,12 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     # If there are collisions raise an error.
     collisions_dict = {k: v for k, v in collisions_dict.items() if len(v) > 1}
     if collisions_dict:
-        msg = [
-            f"\n{name}: {sorted(step_names)}"
-            for name, step_names in collisions_dict.items()
-        ]
-        msg = "".join(msg)
+        msg = "".join(
+            [
+                f"\n{name}: {sorted(step_names)}"
+                for name, step_names in collisions_dict.items()
+            ]
+        )
         raise error.InputNameCollisionError(
             f"Name collisions between input data coming from different steps: {msg}"
         )

@@ -10,6 +10,7 @@ import {
   makeCancelable,
   PromiseManager,
   RefManager,
+  activeElementIsInput,
 } from "../lib/utils/all";
 
 import {
@@ -724,19 +725,19 @@ class PipelineView extends React.Component {
 
     $(document).on("keydown.initializePipeline", (e) => {
       // Ctrl / Meta + S for saving pipeline
-      if (e.keyCode == 83 && (e.ctrlKey || e.metaKey)) {
+      if (e.keyCode === 83 && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         // saveButton.click is used instead of savePipeline() to trigger visual
         // button press
         this.refManager.refs.saveButton.click();
       }
-      if (e.keyCode == 46) {
+      if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
         this.deleteSelectedSteps();
       }
     });
 
     $(document).on("keyup.initializePipeline", (e) => {
-      if (e.keyCode === 8) {
+      if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
         if (this.selectedConnection) {
           e.preventDefault();
 
@@ -1419,7 +1420,7 @@ class PipelineView extends React.Component {
           });
         }
 
-        if (result.status === "SUCCESS") {
+        if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
           // make sure stale opened files are reloaded in active
           // Jupyter instance
 

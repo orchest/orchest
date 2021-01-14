@@ -1,0 +1,21 @@
+[flake8]
+exclude =
+    jupyter_server_config.py,
+
+ignore =
+    # Space before :
+    E203,
+    # Allow breaks before/after binary operators
+    W503,
+    W504,
+    # Ignore invalid escape sequences.
+    W605
+
+# black is set to 88
+max-line-length = 88
+
+# PEP8 allows for longer line length but states comments and docstrings
+# are still wrapped at 72 characters.
+max-doc-length = 72
+
+statistics = True

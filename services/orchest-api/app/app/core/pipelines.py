@@ -8,7 +8,6 @@ from typing import Any, Dict, Iterable, List, Optional, Set
 import aiodocker
 import aiohttp
 from config import CONFIG_CLASS
-from docker.types import Mount
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_device_requests, get_orchest_mounts
@@ -58,8 +57,8 @@ def construct_pipeline(
         All options for the config should be documented somewhere.
 
     Args:
-        uuids: a selection/sequence of pipeline step UUIDs. If `run_type`
-            equals "full", then this argument is ignored.
+        uuids: a selection/sequence of pipeline step UUIDs. If
+            `run_type` equals "full", then this argument is ignored.
         run_type: one of ("full", "selection", "incoming").
         pipeline_definition: a json description of the pipeline.
         config: configuration for the `run_type`.
@@ -70,8 +69,9 @@ def construct_pipeline(
         `pipeline_definition`:
             * "full" -> entire pipeline from description
             * "selection" -> induced subgraph based on selection.
-            * "incoming" -> all incoming steps of the selection. In other
-                words: all ancestors of the steps of the selection.
+            * "incoming" -> all incoming steps of the selection. In
+                other words: all ancestors of the steps of the
+                selection.
 
         As of now, the selection itself is NOT included in the Pipeline
         if `run_type` equals "incoming".
@@ -122,9 +122,9 @@ async def update_status(
     elif type == "pipeline":
         url = base_url
 
-    # Just await the response.
-    # The proposed fix on the aiohttp GitHub to do
-    # `response.json(content_type=None)` still results in parsing issues.
+    # Just await the response. The proposed fix on the aiohttp GitHub to
+    # do `response.json(content_type=None)` still results in parsing
+    # issues.
     await session.put(url, json=data)
 
 
@@ -133,8 +133,10 @@ def get_volume_mounts(run_config, task_id):
     # Determine the appropriate name for the volume that shares
     # temporary data amongst containers.
 
-    # This branching logic is because the volume is shared with Jupyter kernels
-    # for the InteractiveRuns, while for NonInteractiveRuns it's unique to the task.
+    # This branching logic is because the volume is shared with Jupyter
+    # kernels.
+    # For the InteractiveRuns, while for NonInteractiveRuns it's unique
+    # to the task.
     if run_config["run_endpoint"] == "runs":
         volume_uuid = run_config["pipeline_uuid"]
     elif run_config["run_endpoint"].startswith("experiments"):
@@ -206,10 +208,11 @@ class PipelineStepRunner:
         if self._status != "PENDING":
             # The step has already been started.
 
-            # Each parent attempts to start their children when they finish.
-            # When all parents finish simultaneously (with all their _status'es being
-            # "SUCCESS") not checking whether the child has started or not would lead
-            # to multiple start attempts of the child, resulting in errors.
+            # Each parent attempts to start their children when they
+            # finish. When all parents finish simultaneously (with all
+            # their _status'es being "SUCCESS") not checking whether
+            # the child has started or not would lead to multiple start
+            # attempts of the child, resulting in errors.
             return self._status
 
         # TODO: better error handling?
@@ -238,10 +241,10 @@ class PipelineStepRunner:
             form="docker-engine",
         )
 
-        # the working directory relative to the project directory is based on the location of the pipeline
-        # e.g. if the pipeline is in
-        #   /project-dir/my/project/path/mypipeline.orchest the working directory will be
-        #   my/project/path/
+        # The working directory relative to the project directory is
+        # based on the location of the pipeline, e.g. if the pipeline is
+        # in /project-dir/my/project/path/mypipeline.orchest the working
+        # directory will be my/project/path/.
         working_dir = os.path.split(run_config["pipeline_path"])[0]
 
         config = {
@@ -253,6 +256,17 @@ class PipelineStepRunner:
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
                 f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
+                # ORCHEST_MEMORY_EVICTION is never present when running
+                # notebooks interactively and otherwise always present,
+                # this means eviction of objects from memory can never
+                # be triggered when running notebooks interactively.
+                # This environment variable being present implies that
+                # the Orchest SDK will always emit an eviction message
+                # given the choice, this however, does not imply that
+                # eviction will actually take place, since the memory
+                # server manager will check the pipeline definition
+                # settings to decide whetever object eviction should
+                # take place or not.
                 "ORCHEST_MEMORY_EVICTION=1",
             ],
             "HostConfig": {
@@ -267,7 +281,8 @@ class PipelineStepRunner:
                 self.properties["file_path"],
             ],
             "NetworkingConfig": {
-                "EndpointsConfig": {"orchest": {}}  # TODO: should not be hardcoded.
+                # TODO: should not be hardcoded.
+                "EndpointsConfig": {"orchest": {}}
             },
             # NOTE: the `'tests-uuid'` key is only used for tests and
             # gets ignored by the `docker_client`.
@@ -288,9 +303,9 @@ class PipelineStepRunner:
 
             data = await container.wait()
 
-            # The status code will be 0 for "SUCCESS" and -N otherwise. A
-            # negative value -N indicates that the child was terminated
-            # by signal N (POSIX only).
+            # The status code will be 0 for "SUCCESS" and -N otherwise.
+            # A negative value -N indicates that the child was
+            # terminated by signal N (POSIX only).
             if data.get("StatusCode") != 0:
                 self._status = "FAILURE"
                 logging.error(
@@ -356,9 +371,10 @@ class PipelineStepRunner:
 
             res = await asyncio.gather(*tasks)
 
-            # If one of the children turns out to fail, then we say the step
-            # itself has failed. Because we start by calling the sentinel node
-            # which is placed at the start of the pipeline.
+            # If one of the children turns out to fail, then we say the
+            # step itself has failed. Because we start by calling the
+            # sentinel node which is placed at the start of
+            # thepipeline.
             if "FAILURE" in res:
                 return "FAILURE"
 
@@ -387,8 +403,8 @@ class PipelineStepRunner:
 
             return "FAILURE"
         else:
-            # The status could be STARTED, which means a parent tried to invoke
-            # run_on_docker for a child that was already running.
+            # The status could be STARTED, which means a parent tried to
+            # invoke run_on_docker for a child that was already running.
             # We don't have to do anything in that case.
             pass
 
@@ -438,14 +454,15 @@ class PipelineStep(PipelineStepRunner):
             runner_client: client to manage the compute backend.
             compute_backend: one of ("docker", "kubernetes").
         """
-        # run_func = getattr(self, f'run_ancestors_on_{compute_backend}')
+        # run_func =
+        # getattr(self, f'run_ancestors_on_{compute_backend}')
         run_func = getattr(self, f"run_children_on_{compute_backend}")
         return await run_func(runner_client, session, task_id, run_config=run_config)
 
     def __eq__(self, other) -> bool:
-        # NOTE: steps get a UUID and are always only identified with the
-        # UUID. Thus if they get additional parents and/or children, then
-        # they will stay the same. I think this is fine though.
+        # NOTE: steps get a UUID and are always only identified with
+        # the UUID. Thus if they get additional parents and/or children,
+        # then they will stay the same. I think this is fine though.
         return self.properties["uuid"] == other.properties["uuid"]
 
     def __hash__(self) -> int:
@@ -455,25 +472,26 @@ class PipelineStep(PipelineStepRunner):
         if self.properties:
             return f'<PipelineStep: {self.properties["name"]}>'
 
-        return f"<Pipelinestep: None>"
+        return "<Pipelinestep: None>"
 
     def __repr__(self) -> str:
-        # TODO: This is actually not correct: it should be self.properties.
-        #       But this just look ugly as hell (so maybe for later). And
-        #       strictly, should also include its parents.
+        # TODO: This is actually not correct: it should be
+        #       self.properties. But this just look ugly as hell
+        #       (so maybe for later). And strictly, should also include
+        #       its parents.
         if self.properties:
             return f'PipelineStep({self.properties["name"]!r})'
 
-        return f"Pipelinestep(None)"
+        return "Pipelinestep(None)"
 
 
 class Pipeline:
     def __init__(self, steps: List[PipelineStep], properties: Dict[str, str]) -> None:
         self.steps = steps
 
-        # TODO: we want to be able to serialize a Pipeline back to a json
-        #       file. Therefore we would need to store the Pipeline name
-        #       and UUID from the json first.
+        # TODO: we want to be able to serialize a Pipeline back to a
+        #       json file. Therefore we would need to store the Pipeline
+        #       name and UUID from the json first.
         # self.properties: Dict[str, str] = {}
         self.properties = properties
 
@@ -552,27 +570,28 @@ class Pipeline:
         its steps given by the selection (of UUIDs).
 
         Example:
-            When the selection consists of: a --> b. Then it is important
-            that "a" is run before "b". Therefore the induced subgraph
-            has to be taken to ensure the correct ordering, instead of
-            executing the steps independently (and in parallel).
+            When the selection consists of: a --> b. Then it is
+            important that "a" is run before "b". Therefore the induced
+            subgraph has to be taken to ensure the correct ordering,
+            instead of executing the steps independently (and in
+            parallel).
 
         Args:
             selection: list of UUIDs representing `PipelineStep`s.
 
         Returns:
-            An induced pipeline by the set of steps (defined by the given
-            selection).
+            An induced pipeline by the set of steps (defined by the
+            given selection).
         """
         keep_steps = [
             step for step in self.steps if step.properties["uuid"] in selection
         ]
 
-        # Only keep connection to parents and children if these steps are
-        # also included in the selection. In addition, to keep consistency
-        # of the properties attributes of the steps, we update the
-        # "incoming_connections" to be representative of the new pipeline
-        # structure.
+        # Only keep connection to parents and children if these steps
+        # are also included in the selection. In addition, to keep
+        # consistency of the properties attributes of the steps, we
+        # update the "incoming_connections" to be representative of the
+        # new pipeline structure.
         new_steps = []
         for step in keep_steps:
             # Take a deepcopy such that the properties of the new and
@@ -625,17 +644,17 @@ class Pipeline:
                 be included.
 
         Returns:
-            An induced pipeline by the set of steps (defined by the given
-            selection).
+            An induced pipeline by the set of steps (defined by the
+            given selection).
         """
-        # This set will be populated with all the steps that are ancestors
-        # of the sets given by the selection. Depending on the kwarg
-        # `inclusive` the steps from the selection itself will either be
-        # included or excluded.
+        # This set will be populated with all the steps that are
+        # ancestors of the sets given by the selection. Depending on the
+        # kwarg `inclusive` the steps from the selection itself will
+        # either be included or excluded.
         steps = set()
 
-        # Essentially a BFS where its stack gets initialized with multiple
-        # root nodes.
+        # Essentially a BFS where its stack gets initialized with
+        # multiple root nodes.
         stack = [step for step in self.steps if step.properties["uuid"] in selection]
 
         while stack:
@@ -664,8 +683,8 @@ class Pipeline:
             steps.add(new_step)
             stack.extend(new_step.parents)
 
-        # Remove steps if the selection should not be included in the new
-        # pipeline.
+        # Remove steps if the selection should not be included in the
+        # new pipeline.
         if inclusive:
             steps_to_be_included = steps
         elif not inclusive:
@@ -743,12 +762,15 @@ class Pipeline:
             if container.name in container_names_to_remove:
                 try:
                     logging.info("removing container %s" % container.name)
-                    # force=False so we log if a container happened to be still running while we expected it to
-                    # not be
-                    # v=True does not actually do anything because, given the docker docs:
+                    # force=False so we log if a container happened to
+                    # be still running while we expected it to not be
+                    # v=True does not actually do anything because,
+                    # given the docker docs:
                     # https://docs.docker.com/engine/reference/commandline/rm/
-                    # "This command removes the container and any volumes associated with it.
-                    # Note that if a volume was specified with a name, it will not be removed."
+                    # "This command removes the container and any
+                    # volumes associated with it. Note that if a volume
+                    # was specified with a name, it will not be removed.
+                    # "
                     container.remove(force=False, v=True)
                 except Exception as e:
                     logging.error(
@@ -765,7 +787,8 @@ class Pipeline:
             run_config: Configuration of the run. Example
                 {
                     'run_endpoint': 'runs',
-                    'project_dir': '/home/.../userdir/projects/<project_path>',
+                    'project_dir':
+                        '/home/.../userdir/projects/<project_path>',
                     'pipeline_uuid': 'some-uuid',
                 }
 
@@ -799,11 +822,8 @@ class Pipeline:
                 compute_backend=compute_backend,
             )
 
-            # NOTE: the status of a pipeline is always success once it is
-            # done executing. Errors in steps are reflected by the status
-            # of the respective steps.
             await update_status(
-                "SUCCESS",
+                status,
                 task_id,
                 session,
                 type="pipeline",
@@ -815,10 +835,6 @@ class Pipeline:
         # Reset the execution environment of the Pipeline.
         for step in self.steps:
             step._status = "PENDING"
-
-        # Status will contain whether any failures occured during execution
-        # of the pipeline.
-        return status
 
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"

@@ -4,7 +4,6 @@ import subprocess
 
 from app import create_app, create_app_managed
 
-
 if __name__ == "__main__":
 
     with create_app_managed() as (app, socketio):

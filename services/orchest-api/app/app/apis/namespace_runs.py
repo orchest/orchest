@@ -2,7 +2,6 @@
 
 Note: "run" is short for "interactive pipeline run".
 """
-import logging
 import uuid
 
 from celery.contrib.abortable import AbortableAsyncResult
@@ -35,8 +34,8 @@ class RunList(Resource):
 
         query = models.InteractivePipelineRun.query
 
-        # Ability to query a specific runs given the `pipeline_uuid` or `project_uuid`
-        # through the URL (using `request.args`).
+        # Ability to query a specific runs given the `pipeline_uuid` or
+        # `project_uuid` through the URL (using `request.args`).
         if "pipeline_uuid" in request.args and "project_uuid" in request.args:
             query = query.filter_by(
                 pipeline_uuid=request.args.get("pipeline_uuid")
@@ -123,7 +122,10 @@ class RunList(Resource):
             db.session.commit()
 
             return {
-                "message": "Failed to start interactive run because not all referenced environments are available."
+                "message": (
+                    "Failed to start interactive run because not all"
+                    "referenced environments are available."
+                )
             }, 500
 
         # Create Celery object with the Flask context and construct the
@@ -249,5 +251,10 @@ def stop_pipeline_run(run_uuid) -> bool:
     res.abort()
 
     celery_app.control.revoke(run_uuid)
+
+    filter_by = {"run_uuid": run_uuid}
+    status_update = {"status": "ABORTED"}
+    update_status_db(status_update, model=models.PipelineRunStep, filter_by=filter_by)
+    update_status_db(status_update, model=models.PipelineRun, filter_by=filter_by)
 
     return True

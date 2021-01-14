@@ -6,7 +6,6 @@ import requests
 from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
-import requests
 from sqlalchemy import and_
 
 import app.models as models
@@ -78,9 +77,14 @@ def update_status_db(
 ) -> None:
     """Updates the status attribute of particular entry in the database.
 
+    An entity that has already reached an end state, i.e. FAILURE,
+    SUCCESS, ABORTED, will not be updated. This is to avoid race
+    conditions.
+
     Args:
         status_update: The new status {'status': 'STARTED'}.
-        model: Database model to update the status of.
+        model: Database model to update the status of. Assumed to have a
+            status column mapping to a string.
         filter_by: The filter to query the exact resource for which to
             update its status.
 
@@ -92,7 +96,29 @@ def update_status_db(
     elif data["status"] in ["SUCCESS", "FAILURE"]:
         data["finished_time"] = datetime.fromisoformat(data["finished_time"])
 
-    res = model.query.filter_by(**filter_by).update(data)
+    res = (
+        model.query.filter_by(**filter_by)
+        .filter(
+            # This implies that an entity cannot be furtherly updated
+            # once it reaches an "end state", i.e. FAILURE, SUCCESS,
+            # ABORTED. This helps avoiding race conditions given by the
+            # orchest-api and a celery task trying to update the same
+            # entity concurrently, for example when a task is aborted.
+            model.status.in_(["PENDING", "STARTED"])
+        )
+        .update(
+            data,
+            # https://docs.sqlalchemy.org/en/14/orm/session_basics.html#orm-expression-update-delete
+            # The default "evaluate" is not reliable, because depending
+            # on the complexity of the model sqlalchemy might not have a
+            # working implementation, in that case it will raise an
+            # exception. From the docs:
+            # For UPDATE or DELETE statements with complex criteria, the
+            # 'evaluate' strategy may not be able to evaluate the
+            # expression in Python and will raise an error.
+            synchronize_session="fetch",
+        )
+    )
 
     if res:
         db.session.commit()
@@ -147,27 +173,30 @@ def lock_environment_images_for_run(
     Locks a set of environment images by making it so that they will
     not be deleted by the attempt cleanup that follows an environment
     build.
-    This is done by adding some entries to the db that will signal
-    the fact that the image will be used by a run, as long as the
-    run is PENDING or STARTED.
-    In order to avoid a race condition that happens between
-    reading the docker ids of the used environment and actually
-    writing to db, some logic needs to take place, such logic constitutes
-    the bulk of this function.
+
+    This is done by adding some entries to the db that will signal the
+    fact that the image will be used by a run, as long as the run is
+    PENDING or STARTED.
+
+    In order to avoid a race condition that happens between reading the
+    docker ids of the used environment and actually writing to db, some
+    logic needs to take place, such logic constitutes the bulk of this
+    function.
+
     As a collateral effect, new entries for interactive or non
-    interactive image mappings will be added, which is at the same
-    time the mechanism through which we "lock" the images, or, protect
-    them from deletion as long as they are needed.
+    interactive image mappings will be added, which is at the same time
+    the mechanism through which we "lock" the images, or, protect them
+    from deletion as long as they are needed.
+
     About the race condition:
-        between the read of the images docker ids and the commit
-        to the db of the mappings a new environment could have been
-        built, an image could have become nameless and be
-        subsequently removed because the image mappings were not
-        in the db yet, and we would end up with  mappings that are
-        pointing to an image that does not exist.
-        If we would only check for the existence of the img we could
-        still be in a race condition, so we must act on the image
-        becoming nameless, not deleted.
+        between the read of the images docker ids and the commit to the
+        db of the mappings a new environment could have been built, an
+        image could have become nameless and be subsequently removed
+        because the image mappings were not in the db yet, and we would
+        end up with  mappings that are pointing to an image that does
+        not exist.  If we would only check for the existence of the img
+        we could still be in a race condition, so we must act on the
+        image becoming nameless, not deleted.
 
     Args:
         run_id:
@@ -357,9 +386,9 @@ def remove_if_dangling(img) -> bool:
 
 
 def parse_string_memory_size(memory_size: Union[str, int]) -> int:
-    """Simply converts string description of memory size to number of bytes
+    """Converts string description of memory size to number of bytes
 
-    Allowable inputs are: [\d]+\s*(KB|MB|GB)+
+    Allowable inputs are: [\\d]+\\s*(KB|MB|GB)+
     """
 
     # seems like this is already int (assumed to be number of bytes)
@@ -381,9 +410,9 @@ def calculate_shm_size(data_passing_memory_size: int) -> int:
     the Docker container is not equal to the request size for the
     memory-server.
 
-    If the Plasma server tries to allocate more than is available in /dev/shm it
-    will not fail but issue a warning. However, the full amount requested will
-    not be available to the user.
+    If the Plasma server tries to allocate more than is available in
+    /dev/shm it will not fail but issue a warning. However, the full
+    amount requested will not be available to the user.
 
     Args:
         data_passing_memory_size: Requested size for the memory-server.
@@ -392,6 +421,6 @@ def calculate_shm_size(data_passing_memory_size: int) -> int:
         The shm-size for the Docker container.
 
     """
-    # We need to overallocate by a fraction to make /dev/shm large enough for the
-    # request amount in `data_passing_memory_size`
+    # We need to overallocate by a fraction to make /dev/shm large
+    # enough for the request amount in `data_passing_memory_size`
     return int(data_passing_memory_size * 1.2)
