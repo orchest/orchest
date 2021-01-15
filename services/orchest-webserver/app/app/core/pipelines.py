@@ -88,7 +88,7 @@ class DeletePipeline(TwoPhaseFunction):
 
         # CleanupPipelineFromOrchest can be used when deleting a
         # pipeline through Orchest or when cleaning up a pipeline that
-        # was deleted through the filesystrem by the user, so the file
+        # was deleted through the filesystem by the user, so the file
         # might not be there.
         with contextlib.suppress(FileNotFoundError):
             os.remove(self.pipeline_json_path)
@@ -140,7 +140,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
 
             # To be used by collateral and revert.
             self.project_uuid = project_uuid
-            self.pipeline_uuidd = file_pipeline_uuid
+            self.pipeline_uuid = file_pipeline_uuid
             self.pipeline_path = pipeline_path
             self.pipeline_json = pipeline_json
 
@@ -150,13 +150,13 @@ class AddPipelineFromFS(TwoPhaseFunction):
                 None, self.project_uuid, pipeline_path=self.pipeline_path
             )
             with open(pipeline_json_path, "w") as json_file:
-                self.pipeline_json["uuid"] = self.pipeline_uuidd
+                self.pipeline_json["uuid"] = self.pipeline_uuid
                 json_file.write(json.dumps(self.pipeline_json, indent=4))
 
     def revert(self):
         Pipeline.query.filter(
             project_uuid=self.project_uuid,
-            uuid=self.pipeline_uuidd,
+            uuid=self.pipeline_uuid,
             path=self.pipeline_path,
         ).delete()
         db.session.commit()
