@@ -306,9 +306,9 @@ class CreateExperiment(TwoPhaseFunction):
             non_interactive_run["pipeline_steps"] = pipeline_steps
             experiment["pipeline_runs"].append(non_interactive_run)
 
-        self.collateral_kwargs["experiment"] = tasks_to_launch
+        self.collateral_kwargs["experiment"] = experiment
         self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
-        self.collateral_kwargs["pipeline_run_spec"] = tasks_to_launch
+        self.collateral_kwargs["pipeline_run_spec"] = pipeline_run_spec
 
         return experiment
 
@@ -387,15 +387,15 @@ class CreateExperiment(TwoPhaseFunction):
 
     def revert(self):
         # Set the status to FAILURE for runs and their steps.
-        models.PipelineRunStep.query.filter_by(
+        models.PipelineRunStep.query.filter(
             models.PipelineRunStep.run_uuid.in_(
                 self.collateral_kwargs["tasks_to_launch"]
             )
-        ).update({"status": "FAILURE"})
+        ).update({"status": "FAILURE"}, synchronize_session=False)
 
-        models.NonInteractivePipelineRun.query.filter_by(
+        models.NonInteractivePipelineRun.query.filter(
             models.PipelineRun.run_uuid.in_(self.collateral_kwargs["tasks_to_launch"])
-        ).update({"status": "FAILURE"})
+        ).update({"status": "FAILURE"}, synchronize_session=False)
         db.session.commit()
 
 

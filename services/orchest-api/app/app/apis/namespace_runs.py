@@ -251,9 +251,9 @@ class CreateInteractiveRun(TwoPhaseFunction):
         db.session.bulk_save_objects(pipeline_steps)
         run["pipeline_steps"] = pipeline_steps
 
-        self.collateral_kwargs["project_uuid"] = run_config
-        self.collateral_kwargs["task_id"] = run_config
-        self.collateral_kwargs["pipeline"] = run_config
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["task_id"] = task_id
+        self.collateral_kwargs["pipeline"] = pipeline
         self.collateral_kwargs["run_config"] = run_config
         self.collateral_kwargs["run"] = run
         return run
@@ -266,7 +266,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         run_config: Dict[str, Any],
         **kwargs,
     ):
-        # Het docker ids of images to use and make it so that the images
+        # Get docker ids of images to use and make it so that the images
         # will not be deleted in case they become outdated by an
         # environment rebuild.
         try:
