@@ -1,35 +1,38 @@
-# The TwoPhaseExecutor helps in creating a context where committing and
-# rollbacking in case of error is taken care of. This pattern wants to
-# encourage having changes to the DB in a single transaction, so that
-# a rollback can be issued if any error arises during the transactional
-# phase, leaving the state clean. Moreover, this pattern wants to
-# encourage having collateral effecs into a second phase, the collateral
-# one. The separation between DB changes and collateral effects should
-# help in making the code clearer, easier to debug and to test, while
-# improving the capacity of leaving a consistent state in case of error.
-# The pattern works through the use of TwoPhaseFunction(s). Implementing
-# a TwoPhaseFunction means implementing a transaction and a collateral
-# function. The user of a TwoPhaseFunction is in charge of creating the
-# context and calling 2phase_function.transaction(*args, **kwargs),
-# while the TwoPhaseExecutor will take care of making it so that a
-# commit will happen after all transactional code has execute, and will
-# take core of calling the collateral part of each TwoPhaseFunction for
-# which the transation call has been made in the context.
-# Example:
-#
-# try:
-#     with TwoPhaseExecutor(db.session) as tpe:
-#         could_abort = AbortEnvironmentBuild(tpe).transaction(
-#             environment_build_uuid
-#         )
-# except Exception as e:
-#     current_app.logger.error(e)
-#     return {"message": str(e)}, 500
-#
-#
-# Note that you should not call commit during any implementation of
-# the transaction method, while you are free to do so if you need to
-# apply db changes during the collateral phase, and cannot do otherwise.
+"""Classes to support the transaction first, collaterals later pattern.
+
+The TwoPhaseExecutor helps in creating a context where committing and
+rollbacking in case of error is taken care of. This pattern wants to
+encourage having changes to the DB in a single transaction, so that a
+rollback can be issued if any error arises during the transactional
+phase, leaving the state clean. Moreover, this pattern wants to
+encourage having collateral effecs into a second phase, the collateral
+one. The separation between DB changes and collateral effects should
+help in making the code clearer, easier to debug and to test, while
+improving the capacity of leaving a consistent state in case of error.
+The pattern works through the use of TwoPhaseFunction(s). Implementing
+a TwoPhaseFunction means implementing a transaction and a collateral
+function. The user of a TwoPhaseFunction is in charge of creating the
+context and calling 2phase_function.transaction(*args, **kwargs), while
+the TwoPhaseExecutor will take care of making it so that a commit will
+happen after all transactional code has execute, and will take core of
+calling the collateral part of each TwoPhaseFunction for which the
+transation call has been made in the context.
+Example:
+
+try:
+    with TwoPhaseExecutor(db.session) as tpe:
+        could_abort = AbortEnvironmentBuild(tpe).transaction(
+            environment_build_uuid
+        )
+except Exception as e:
+    current_app.logger.error(e)
+    return {"message": str(e)}, 500
+
+
+Note that you should not call commit during any implementation of the
+transaction method, while you are free to do so if you need to apply db
+changes during the collateral phase, and cannot do otherwise.
+"""
 
 import logging
 
