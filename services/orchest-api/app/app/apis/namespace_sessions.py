@@ -190,7 +190,6 @@ class StopInteractiveSession(TwoPhaseFunction):
         project_uuid: str,
         pipeline_uuid: str,
     ):
-        pass
 
         self.project_uuid = project_uuid
         self.pipeline_uuid = pipeline_uuid
