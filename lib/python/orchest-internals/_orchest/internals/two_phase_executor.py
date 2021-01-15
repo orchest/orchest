@@ -175,7 +175,7 @@ class TwoPhaseFunction(ABC):
         self._revert()
 
     @abstractmethod
-    def _transaction(self, *args, **kwargs):  # pylint: disable=E0202
+    def _transaction(self, *args, **kwargs):
         pass
 
     @abstractmethod
