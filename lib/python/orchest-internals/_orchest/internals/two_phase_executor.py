@@ -34,6 +34,7 @@ transaction method, while you are free to do so if you need to apply db
 changes during the collateral phase, and cannot do otherwise.
 """
 
+from abc import ABC, abstractmethod
 import logging
 
 
@@ -81,7 +82,7 @@ class TwoPhaseExecutor(object):
                 raise e
 
 
-class TwoPhaseFunction(object):
+class TwoPhaseFunction(ABC):
     def __init__(self, tpe):
         self.tpe = tpe
         self.orig_transaction = self.transaction
@@ -92,11 +93,13 @@ class TwoPhaseFunction(object):
         self.tpe.collateral_queue.append(self)
         return self.orig_transaction(*args, **kwargs)
 
+    @abstractmethod
     def transaction(self, *args, **kwargs):  # pylint: disable=E0202
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def collateral(self):
-        raise NotImplementedError()
+        pass
 
     def revert(self):
         pass
