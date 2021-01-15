@@ -12,11 +12,11 @@ improving the capacity of leaving a consistent state in case of error.
 The pattern works through the use of TwoPhaseFunction(s). Implementing
 a TwoPhaseFunction means implementing a transaction and a collateral
 function. The user of a TwoPhaseFunction is in charge of creating the
-context and calling 2phase_function.transaction(*args, **kwargs), while
+context and calling TwoPhaseFunction.transaction(*args, **kwargs), while
 the TwoPhaseExecutor will take care of making it so that a commit will
-happen after all transactional code has execute, and will take core of
+happen after all transactional code has executed, and will take care of
 calling the collateral part of each TwoPhaseFunction for which the
-transation call has been made in the context.
+transaction call has been made in the context.
 Example:
 
 try:
@@ -29,9 +29,9 @@ except Exception as e:
     return {"message": str(e)}, 500
 
 
-Note that you should not call commit during any implementation of the
-transaction method, while you are free to do so if you need to apply db
-changes during the collateral phase, and cannot do otherwise.
+Note that you should not call commit inside the transaction method,
+while you are free to do so if you need to apply db changes during the
+collateral phase, and cannot do otherwise.
 """
 
 import logging
@@ -105,7 +105,7 @@ class TwoPhaseFunction(ABC):
     effect and not part of a transaction. This mean that they must take
     care of their own commits. Taking care of rollbacks is optional
     since the TwoPhaseExecutor will rollback if any exception raises
-    during a collateral() or revert call(). All in all, this means that:
+    during a collateral() or revert() call. All in all, this means that:
     - transaction: must not commit, rollback not necessary
     - collateral: should commit it's own changes, rollback not necessary
     - revert: should commit it's own changes, rollback not necessary
