@@ -53,14 +53,6 @@ class SessionList(Resource):
                 )
         except Exception as e:
             current_app.logger.error(e)
-            # Error handling. If it does not succeed then the initial
-            # entry has to be removed from the database as otherwise no
-            # session can be started in the future due to the uniqueness
-            # constraint.
-            models.InteractiveSession.query.filter_by(
-                project_uuid=post_data["project_uuid"],
-                pipeline_uuid=post_data["pipeline_uuid"],
-            ).delete()
             return {"message": str(e)}, 500
 
         isess = models.InteractiveSession.query.filter_by(
@@ -181,6 +173,16 @@ class CreateInteractiveSession(TwoPhaseFunction):
         models.InteractiveSession.query.filter_by(
             project_uuid=self.project_uuid, pipeline_uuid=self.pipeline_uuid
         ).update(status)
+        db.session.commit()
+
+    def revert(self):
+        # Error handling. If it does not succeed then the initial
+        # entry has to be removed from the database as otherwise no
+        # session can be started in the future due to the uniqueness
+        # constraint.
+        models.InteractiveSession.query.filter_by(
+            project_uuid=self.project_uuid, pipeline_uuid=self.pipeline_uuid
+        ).delete()
         db.session.commit()
 
 
