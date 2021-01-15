@@ -405,6 +405,9 @@ class AbortExperiment(TwoPhaseFunction):
     def _transaction(self, experiment_uuid: str):
         # To be later used by the collateral function.
         run_uuids = []
+        # Assign asap since the function will return if there is nothing
+        # to do.
+        self.collateral_kwargs["run_uuids"] = run_uuids
 
         experiment = models.Experiment.query.filter_by(
             experiment_uuid=experiment_uuid
@@ -437,8 +440,6 @@ class AbortExperiment(TwoPhaseFunction):
             update_status_db(
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
-
-        self.collateral_kwargs["run_uuids"] = run_uuids
 
         return True
 
