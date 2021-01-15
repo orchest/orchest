@@ -165,7 +165,7 @@ class TwoPhaseFunction(ABC):
             raise CollateralHasBeenRunTwice()
 
         self._has_run_collateral = True
-        self._collateral()
+        self._collateral(**kwargs)
 
     def revert(self):
         if self._has_run_revert:
@@ -182,6 +182,5 @@ class TwoPhaseFunction(ABC):
     def _collateral(self, **kwargs):
         pass
 
-    @abstractmethod
     def _revert(self):
         pass
