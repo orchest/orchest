@@ -161,7 +161,7 @@ class AbortPipelineRun(TwoPhaseFunction):
     Sets its state in the db to ABORTED, revokes the celery task.
     """
 
-    def transaction(self, run_uuid):
+    def _transaction(self, run_uuid):
         """Abort a pipeline level at the db level.
 
         Args:
@@ -194,7 +194,7 @@ class AbortPipelineRun(TwoPhaseFunction):
 
         return can_abort
 
-    def collateral(self, run_uuid: Optional[str]):
+    def _collateral(self, run_uuid: Optional[str]):
         """Revoke the pipeline run celery task"""
         # If there run status was not STARTED/PENDING then there is
         # nothing to abort/revoke.
@@ -210,7 +210,7 @@ class AbortPipelineRun(TwoPhaseFunction):
 
 
 class CreateInteractiveRun(TwoPhaseFunction):
-    def transaction(
+    def _transaction(
         self, project_uuid: str, run_config: Dict[str, Any], pipeline: Pipeline
     ):
         # specify the task_id beforehand to avoid race conditions
@@ -258,7 +258,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         self.collateral_kwargs["run"] = run
         return run
 
-    def collateral(
+    def _collateral(
         self,
         project_uuid: str,
         task_id: str,
@@ -309,7 +309,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         # Uncomment the line below if applicable.
         res.forget()
 
-    def revert(self):
+    def _revert(self):
         models.InteractivePipelineRun.query.filter_by(
             run_uuid=self.collateral_kwargs["task_id"]
         ).update({"status": "FAILURE"})

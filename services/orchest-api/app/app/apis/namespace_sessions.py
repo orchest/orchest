@@ -125,7 +125,7 @@ class Session(Resource):
 
 
 class CreateInteractiveSession(TwoPhaseFunction):
-    def transaction(
+    def _transaction(
         self,
         project_uuid: str,
         pipeline_uuid: str,
@@ -148,7 +148,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
         self.collateral_kwargs["host_userdir"] = host_userdir
         self.collateral_kwargs["data_passing_memory_size"] = data_passing_memory_size
 
-    def collateral(
+    def _collateral(
         self,
         project_uuid: str,
         pipeline_uuid: str,
@@ -181,7 +181,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
         ).update(status)
         db.session.commit()
 
-    def revert(self):
+    def _revert(self):
         # Error handling. If it does not succeed then the initial
         # entry has to be removed from the database as otherwise no
         # session can be started in the future due to the uniqueness
@@ -194,7 +194,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
 
 class StopInteractiveSession(TwoPhaseFunction):
-    def transaction(
+    def _transaction(
         self,
         project_uuid: str,
         pipeline_uuid: str,
@@ -213,7 +213,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         return True
 
-    def collateral(self, project_uuid: str, pipeline_uuid: str):
+    def _collateral(self, project_uuid: str, pipeline_uuid: str):
         if not project_uuid or not pipeline_uuid:
             return
 

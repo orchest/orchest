@@ -25,7 +25,7 @@ from app.views.orchest_api import api_proxy_environment_builds
 class CreateProject(TwoPhaseFunction):
     """Init an orchest project."""
 
-    def transaction(self, project_path: str) -> str:
+    def _transaction(self, project_path: str) -> str:
         """Add a project to the db.
 
         Args:
@@ -45,7 +45,7 @@ class CreateProject(TwoPhaseFunction):
         self.collateral_kwargs["project_path"] = project_path
         return project_uuid
 
-    def collateral(self, project_uuid: str, project_path: str):
+    def _collateral(self, project_uuid: str, project_path: str):
         """Create a project on the filesystem.
 
         Given a directory it will detect what parts are missing from the
@@ -110,7 +110,7 @@ class CreateProject(TwoPhaseFunction):
         )
         db.session.commit()
 
-    def revert(self):
+    def _revert(self):
         Project.query.filter_by(
             uuid=self.collateral_kwargs["project_uuid"],
             path=self.collateral_kwargs["project_path"],
@@ -125,7 +125,7 @@ class DeleteProject(TwoPhaseFunction):
     cleanup request to the orchest-api.
     """
 
-    def transaction(self, project_uuid: str):
+    def _transaction(self, project_uuid: str):
         """Remove a project from the db"""
 
         experiments = Experiment.query.filter(
@@ -139,7 +139,7 @@ class DeleteProject(TwoPhaseFunction):
         # To be used by the collateral effect.
         self.collateral_kwargs["project_uuid"] = project_uuid
 
-    def collateral(self, project_uuid: str):
+    def _collateral(self, project_uuid: str):
         """Remove a project from the fs and the orchest-api"""
 
         # Delete the project directory.
@@ -159,7 +159,7 @@ class DeleteProject(TwoPhaseFunction):
         Project.query.filter_by(uuid=project_uuid).delete()
         db.session.commit()
 
-    def revert(self):
+    def _revert(self):
         Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
             {"status": "READY"}
         )
@@ -168,7 +168,7 @@ class DeleteProject(TwoPhaseFunction):
 class SyncProjectPipelinesDBState(TwoPhaseFunction):
     """Synchronizes the state of the pipelines of a project."""
 
-    def transaction(self, project_uuid):
+    def _transaction(self, project_uuid):
         """Synchronizes the state of the pipelines of a project.
 
         Synchronizes the state of the filesystem with the db when it
@@ -217,12 +217,12 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
         for path in new_pipelines_from_fs:
             AddPipelineFromFS(self.tpe).transaction(project_uuid, path)
 
-    def collateral(self):
+    def _collateral(self):
         pass
 
 
 class ImportGitProject(TwoPhaseFunction):
-    def transaction(self, url: str, project_name: Optional[str] = None):
+    def _transaction(self, url: str, project_name: Optional[str] = None):
         n_uuid = str(uuid.uuid4())
         new_task = BackgroundTask(
             task_uuid=n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
@@ -235,7 +235,7 @@ class ImportGitProject(TwoPhaseFunction):
         self.collateral_kwargs["project_name"] = project_name
         return new_task
 
-    def collateral(self, n_uuid: str, url: str, project_name: str):
+    def _collateral(self, n_uuid: str, url: str, project_name: str):
         # Start the background process in charge of cloning.
         file_dir = os.path.dirname(os.path.realpath(__file__))
         args = [
@@ -258,7 +258,7 @@ class ImportGitProject(TwoPhaseFunction):
             args, cwd=os.path.join(file_dir, "../.."), stderr=subprocess.STDOUT
         )
 
-    def revert(self):
+    def _revert(self):
         BackgroundTask.query.filter_by(
             task_uuid=self.collateral_kwargs["n_uuid"]
         ).delete()

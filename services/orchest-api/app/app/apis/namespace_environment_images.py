@@ -125,14 +125,14 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
 
 
 class DeleteProjectEnvironmentImages(TwoPhaseFunction):
-    def transaction(self, project_uuid: str):
+    def _transaction(self, project_uuid: str):
         # Cleanup references to the builds and dangling images of all
         # environments of this project.
         DeleteProjectBuilds(self.tpe).transaction(project_uuid)
 
         self.collateral_kwargs["project_uuid"] = project_uuid
 
-    def collateral(self, project_uuid: str):
+    def _collateral(self, project_uuid: str):
         filters = {
             "label": [
                 "_orchest_env_build_is_intermediate=0",
@@ -148,7 +148,7 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
 
 
 class DeleteImage(TwoPhaseFunction):
-    def transaction(self, project_uuid: str, environment_uuid: str):
+    def _transaction(self, project_uuid: str, environment_uuid: str):
 
         # Stop all interactive runs making use of the env.
         int_runs = interactive_runs_using_environment(project_uuid, environment_uuid)
@@ -169,7 +169,7 @@ class DeleteImage(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["environment_uuid"] = environment_uuid
 
-    def collateral(self, project_uuid: str, environment_uuid: str):
+    def _collateral(self, project_uuid: str, environment_uuid: str):
         image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
             project_uuid=project_uuid, environment_uuid=environment_uuid
         )

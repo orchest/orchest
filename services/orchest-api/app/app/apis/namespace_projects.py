@@ -48,7 +48,7 @@ class DeleteProject(TwoPhaseFunction):
     deleted up.
     """
 
-    def transaction(self, project_uuid: str):
+    def _transaction(self, project_uuid: str):
         # Any interactive run related to the project is stopped if
         # if necessary, then deleted.
         interactive_runs = (
@@ -96,5 +96,5 @@ class DeleteProject(TwoPhaseFunction):
         # Remove images related to the project.
         DeleteProjectEnvironmentImages(self.tpe).transaction(project_uuid)
 
-    def collateral(self):
+    def _collateral(self):
         pass

@@ -14,7 +14,7 @@ from app.utils import (
 
 
 class CreateExperiment(TwoPhaseFunction):
-    def transaction(
+    def _transaction(
         self,
         project_uuid: str,
         pipeline_uuid: str,
@@ -45,17 +45,17 @@ class CreateExperiment(TwoPhaseFunction):
 
         return new_ex
 
-    def collateral(self, experiment_uuid: str, pipeline_uuid: str, project_uuid: str):
+    def _collateral(self, experiment_uuid: str, pipeline_uuid: str, project_uuid: str):
         create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid)
 
-    def revert(self):
+    def _revert(self):
         Experiment.query.filter_by(
             experiment_uuid=self.collateral_kwargs["experiment_uuid"]
         ).delete()
 
 
 class DeleteExperiment(TwoPhaseFunction):
-    def transaction(self, experiment_uuid: str):
+    def _transaction(self, experiment_uuid: str):
 
         # If the experiment does not exist this is a no op.
         exp = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
@@ -69,7 +69,7 @@ class DeleteExperiment(TwoPhaseFunction):
             self.collateral_kwargs["project_uuid"] = exp.project_uuid
             db.session.delete(exp)
 
-    def collateral(self, exp_uuid: str, pipeline_uuid: str, project_uuid: str):
+    def _collateral(self, exp_uuid: str, pipeline_uuid: str, project_uuid: str):
         if exp_uuid:
             # Tell the orchest-api that the experiment does not exist
             # anymore, will be stopped if necessary then cleaned up from

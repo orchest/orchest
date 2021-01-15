@@ -223,7 +223,7 @@ class ProjectEnvironmentMostRecentBuild(Resource):
 
 
 class CreateEnvironmentBuild(TwoPhaseFunction):
-    def transaction(self, build_request):
+    def _transaction(self, build_request):
 
         # Abort any environment build of this environment that is
         # already running, given by the status of PENDING/STARTED.
@@ -270,7 +270,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         self.collateral_kwargs["project_path"] = build_request["project_path"]
         return environment_build
 
-    def collateral(
+    def _collateral(
         self, task_id: str, project_uuid: str, environment_uuid: str, project_path: str
     ):
         celery = make_celery(current_app)
@@ -288,7 +288,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
 
 
 class AbortEnvironmentBuild(TwoPhaseFunction):
-    def transaction(self, environment_build_uuid: str):
+    def _transaction(self, environment_build_uuid: str):
 
         filter_by = {
             "build_uuid": environment_build_uuid,
@@ -307,7 +307,7 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
         )
         return abortable
 
-    def collateral(self, environment_build_uuid: Optional[str]):
+    def _collateral(self, environment_build_uuid: Optional[str]):
 
         if not environment_build_uuid:
             return
@@ -323,7 +323,7 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
 
 
 class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
-    def transaction(self, project_uuid: str, environment_uuid: str):
+    def _transaction(self, project_uuid: str, environment_uuid: str):
         # Order by request time so that the first build might be related
         # be related to a PENDING or STARTED build, all others are
         # surely not PENDING or STARTED.
@@ -341,12 +341,12 @@ class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
         for build in env_builds:
             db.session.delete(build)
 
-    def collateral(self):
+    def _collateral(self):
         pass
 
 
 class DeleteProjectBuilds(TwoPhaseFunction):
-    def transaction(self, project_uuid: str):
+    def _transaction(self, project_uuid: str):
         builds = (
             models.EnvironmentBuild.query.filter_by(project_uuid=project_uuid)
             .with_entities(
@@ -362,5 +362,5 @@ class DeleteProjectBuilds(TwoPhaseFunction):
                 build.project_uuid, build.environment_uuid
             )
 
-    def collateral(self):
+    def _collateral(self):
         pass

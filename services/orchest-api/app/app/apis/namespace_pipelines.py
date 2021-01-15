@@ -46,7 +46,7 @@ class DeletePipeline(TwoPhaseFunction):
     from the db.
     """
 
-    def transaction(self, project_uuid: str, pipeline_uuid: str):
+    def _transaction(self, project_uuid: str, pipeline_uuid: str):
         # Any interactive run related to the pipeline is stopped if
         # necessary, then deleted.
         interactive_runs = (
@@ -66,5 +66,5 @@ class DeletePipeline(TwoPhaseFunction):
         # Stop any interactive session related to the pipeline.
         StopInteractiveSession(self.tpe).transaction(project_uuid, pipeline_uuid)
 
-    def collateral(self):
+    def _collateral(self):
         pass

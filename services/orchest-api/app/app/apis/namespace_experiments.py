@@ -246,7 +246,7 @@ class ExperimentDeletion(Resource):
 class CreateExperiment(TwoPhaseFunction):
     """Create an experiment."""
 
-    def transaction(
+    def _transaction(
         self,
         experiment: Dict[str, Any],
         pipeline_run_spec: Dict[str, Any],
@@ -312,7 +312,7 @@ class CreateExperiment(TwoPhaseFunction):
 
         return experiment
 
-    def collateral(
+    def _collateral(
         self,
         experiment: Dict[str, Any],
         pipeline_run_spec: Dict[str, Any],
@@ -385,7 +385,7 @@ class CreateExperiment(TwoPhaseFunction):
             # applicable.
             res.forget()
 
-    def revert(self):
+    def _revert(self):
         # Set the status to FAILURE for runs and their steps.
         models.PipelineRunStep.query.filter(
             models.PipelineRunStep.run_uuid.in_(
@@ -402,7 +402,7 @@ class CreateExperiment(TwoPhaseFunction):
 class AbortExperiment(TwoPhaseFunction):
     """Abort an experiment."""
 
-    def transaction(self, experiment_uuid: str):
+    def _transaction(self, experiment_uuid: str):
         # To be later used by the collateral function.
         run_uuids = []
 
@@ -442,7 +442,7 @@ class AbortExperiment(TwoPhaseFunction):
 
         return True
 
-    def collateral(self, run_uuids: List[str]):
+    def _collateral(self, run_uuids: List[str]):
         # Aborts and revokes all pipeline runs and waits for a reply for
         # 1.0s.
         celery = make_celery(current_app)
@@ -454,14 +454,14 @@ class AbortExperiment(TwoPhaseFunction):
             # its aborted status.
             res.abort()
 
-    def revert(self):
+    def _revert(self):
         pass
 
 
 class DeleteExperiment(TwoPhaseFunction):
     """Delete an experiment."""
 
-    def transaction(self, experiment_uuid):
+    def _transaction(self, experiment_uuid):
         experiment = models.Experiment.query.filter_by(
             experiment_uuid=experiment_uuid
         ).one_or_none()
@@ -478,5 +478,5 @@ class DeleteExperiment(TwoPhaseFunction):
         db.session.delete(experiment)
         return True
 
-    def collateral(self):
+    def _collateral(self):
         pass

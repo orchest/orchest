@@ -10,7 +10,7 @@ one. The separation between DB changes and collateral effects should
 help in making the code clearer, easier to debug and to test, while
 improving the capacity of leaving a consistent state in case of error.
 The pattern works through the use of TwoPhaseFunction(s). Implementing
-a TwoPhaseFunction means implementing a transaction and a collateral
+a TwoPhaseFunction means implementing a _transaction and a _collateral
 function. The user of a TwoPhaseFunction is in charge of creating the
 context and calling TwoPhaseFunction.transaction(*args, **kwargs), while
 the TwoPhaseExecutor will take care of making it so that a commit will
@@ -29,7 +29,7 @@ except Exception as e:
     return {"message": str(e)}, 500
 
 
-Note that you should not call commit inside the transaction method,
+Note that you should not call commit inside the _transaction method,
 while you are free to do so if you need to apply db changes during the
 collateral phase, and cannot do otherwise.
 """
@@ -88,37 +88,55 @@ class TwoPhaseExecutor(object):
                 raise e
 
 
+class TwoPhaseFunctionException(Exception):
+    pass
+
+
+class TransactionHasBeenRunTwice(Exception):
+    pass
+
+
+class CollateralHasBeenRunTwice(Exception):
+    pass
+
+
+class RevertHasBeenRunTwice(Exception):
+    pass
+
+
 class TwoPhaseFunction(ABC):
     """A class to keep database and collateral effects separated.
 
     Use this class (combined with TwoPhaseExecutor) to have
     transactional effects happen before collateral effects. Assuming a
     TwoPhaseFunction is executed in the context of a TwoPhaseExecutor,
-    the transaction method must not commit, given that all the combined
-    transaction methods of the TwoPhaseFunctions that are run in the
+    the _transaction method must not commit, given that all the combined
+    _transaction methods of the TwoPhaseFunctions that are run in the
     context of a TwoPhaseExecutor are considered to be part of the same
     transaction, so that errors during the transactional phase can be
     solved by issuing a rollback of the entire transaction. Similarly,
-    the transaction method does not have (nor need) to rollback, since
+    the _transaction method does not have (nor need) to rollback, since
     any uncaught exception during the transactional phase will bubble
     up to the TwoPhaseExecutor, which will take care of that. The
-    collateral and revert functions are free to commit and rollback,
+    _collateral and _revert functions are free to commit and rollback,
     given that whatever happens in their body is considered a collateral
     effect and not part of a transaction. This mean that they must take
     care of their own commits. Taking care of rollbacks is optional
     since the TwoPhaseExecutor will rollback if any exception raises
-    during a collateral() or revert() call. All in all, this means that:
-    - transaction: must not commit, rollback not necessary
-    - collateral: should commit it's own changes, rollback not necessary
-    - revert: should commit it's own changes, rollback not necessary
+    during a _collateral() or _revert() call. All in all, this means
+    that:
+    - _transaction: must not commit, rollback not necessary
+    - _collateral: should commit it's own changes, rollback not
+        necessary
+    - _revert: should commit it's own changes, rollback not necessary
 
     When implementing the transaction and collateral functions be sure
     to use the self.collateral_kwargs dictionary to pass data from the
     transaction function to the collateral function. The dictionary
-    will be unpacked as kwargs when calling collateral. The revert
+    will be unpacked as kwargs when calling _collateral. The _revert
     function will instead have to use the dictionary directly, since
     it might not be guaranteed what kwargs get to the dictionary in case
-    the collateral function fails before setting any.
+    the _collateral function fails before setting any.
 
     TODO: find a way to detect if a commit has happened in the
     transactional phase, i.e. if any transaction is calling commit on
@@ -129,21 +147,41 @@ class TwoPhaseFunction(ABC):
     def __init__(self, tpe):
         self.tpe = tpe
         self.collateral_kwargs = {}
-        self._orig_transaction = self.transaction
-        self.transaction = self._transaction
 
-    def _transaction(self, *args, **kwargs):
+        self._has_run_transaction = False
+        self._has_run_collateral = False
+        self._has_run_revert = False
 
+    def transaction(self, *args, **kwargs):
+        if self._has_run_transaction:
+            raise TransactionHasBeenRunTwice()
+
+        self._has_run_transaction = True
         self.tpe.collateral_queue.append(self)
-        return self._orig_transaction(*args, **kwargs)
+        return self._transaction(*args, **kwargs)
 
-    @abstractmethod
-    def transaction(self, *args, **kwargs):  # pylint: disable=E0202
-        pass
-
-    @abstractmethod
     def collateral(self, **kwargs):
-        pass
+        if self._has_run_collateral:
+            raise CollateralHasBeenRunTwice()
+
+        self._has_run_collateral = True
+        self._collateral()
 
     def revert(self):
+        if self._has_run_revert:
+            raise RevertHasBeenRunTwice()
+
+        self._has_run_revert = True
+        self._revert()
+
+    @abstractmethod
+    def _transaction(self, *args, **kwargs):  # pylint: disable=E0202
+        pass
+
+    @abstractmethod
+    def _collateral(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def _revert(self):
         pass

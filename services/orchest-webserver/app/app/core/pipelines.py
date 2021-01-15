@@ -13,7 +13,7 @@ from app.utils import get_pipeline_directory, get_pipeline_path
 
 
 class CreatePipeline(TwoPhaseFunction):
-    def transaction(self, project_uuid: str, pipeline_name: str, pipeline_path: str):
+    def _transaction(self, project_uuid: str, pipeline_name: str, pipeline_path: str):
 
         # Reject creation if a pipeline which this path exists already.
         if (
@@ -36,7 +36,7 @@ class CreatePipeline(TwoPhaseFunction):
         self.collateral_kwargs["pipeline_name"] = pipeline_name
         self.collateral_kwargs["pipeline_path"] = pipeline_path
 
-    def collateral(
+    def _collateral(
         self, project_uuid: str, pipeline_uuid: str, pipeline_name: str, **kwargs
     ):
         pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
@@ -59,7 +59,7 @@ class CreatePipeline(TwoPhaseFunction):
         with open(pipeline_json_path, "w") as pipeline_json_file:
             pipeline_json_file.write(json.dumps(pipeline_json, indent=4))
 
-    def revert(self):
+    def _revert(self):
         Pipeline.query.filter_by(
             project_uuid=self.collateral_kwargs["project_uuid"],
             uuid=self.collateral_kwargs["pipeline_uuid"],
@@ -71,7 +71,7 @@ class CreatePipeline(TwoPhaseFunction):
 class DeletePipeline(TwoPhaseFunction):
     """Cleanup a pipeline from Orchest."""
 
-    def transaction(self, project_uuid: str, pipeline_uuid: str):
+    def _transaction(self, project_uuid: str, pipeline_uuid: str):
         """Remove a pipeline from the db"""
         # Necessary because get_pipeline_path is going to query the db
         # entry, but the db entry does not exist anymore because it has
@@ -85,7 +85,7 @@ class DeletePipeline(TwoPhaseFunction):
         self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         self.collateral_kwargs["pipeline_json_path"] = pipeline_json_path
 
-    def collateral(
+    def _collateral(
         self, project_uuid: str, pipeline_uuid: str, pipeline_json_path: str
     ):
         """Remove a pipeline from the FS and the orchest-api"""
@@ -112,7 +112,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
     user has manually added it.
     """
 
-    def transaction(self, project_uuid: str, pipeline_path: str):
+    def _transaction(self, project_uuid: str, pipeline_path: str):
 
         pipeline_json_path = get_pipeline_path(
             None, project_uuid, pipeline_path=pipeline_path
@@ -154,7 +154,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
             )
             db.session.add(new_pipeline)
 
-    def collateral(
+    def _collateral(
         self,
         new_uuid: bool,
         project_uuid: str,
@@ -170,7 +170,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
                 pipeline_json["uuid"] = pipeline_uuid
                 json_file.write(json.dumps(pipeline_json, indent=4))
 
-    def revert(self):
+    def _revert(self):
         Pipeline.query.filter(
             project_uuid=self.collateral_kwargs["project_uuid"],
             uuid=self.collateral_kwargs["pipeline_uuid"],
