@@ -214,6 +214,10 @@ class StopInteractiveSession(TwoPhaseFunction):
         return True
 
     def _collateral(self, project_uuid: str, pipeline_uuid: str):
+        # Could be none when the _transaction call sets them to None
+        # because there is no session to shutdown. This is a way that
+        # the _transaction function effectively tells the _collateral
+        # function to not be run.
         if not project_uuid or not pipeline_uuid:
             return
 
