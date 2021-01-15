@@ -14,7 +14,7 @@ To show the help output, run ``./orchest --help``, example output:
 
     Usage: orchest [OPTIONS] COMMAND [ARGS]...
 
-      A tool for creating and running data science pipelines.
+      An IDE for Data Science.
 
     Options:
       -v, --verbose  Counter to set verbosity level, e.g. -vvv

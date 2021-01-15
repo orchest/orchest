@@ -57,13 +57,8 @@ def register_views(app):
                     logging.error(e)
                 yield "Pulled orchest-ctl. Starting update ...\n"
 
-                gpu_flag = f"--{json_obj.get('gpu')}"
-                language_flag = f"--lang={json_obj.get('language')}"
-
                 try:
-                    container = run_orchest_ctl(
-                        client, ["update", "--mode=web", gpu_flag, language_flag]
-                    )
+                    container = run_orchest_ctl(client, ["update", "--mode=web"])
 
                     for line in container.logs(stream=True):
                         yield line.decode()

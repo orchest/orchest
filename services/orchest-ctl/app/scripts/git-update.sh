@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Get the user and group of the "orchest" shell script as this is most
 # likely also the user that should own the files in the repository.

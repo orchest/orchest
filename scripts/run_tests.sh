@@ -61,6 +61,7 @@ if [ ${#SERVICES[@]} -eq 0 ]; then
         "memory-server"
         "orchest-api"
         "orchest-sdk"
+        "orchest-ctl"
         "base-images-runnable"
     )
 fi
@@ -100,6 +101,11 @@ do
         TEST_DIR=$DIR/../orchest-sdk/python
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements.txt
+    fi
+    if [ $SERVICE == "orchest-ctl" ]; then
+        TEST_DIR=$DIR/../services/orchest-ctl
+        REQ_DIR=$TEST_DIR
+        REQ_FILE=$REQ_DIR/requirements-dev.txt
     fi
     if [ $SERVICE == "base-images-runnable" ]; then
         TEST_DIR=$DIR/../services/base-images/runnable-shared/runner

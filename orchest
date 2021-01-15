@@ -22,33 +22,14 @@ function update_orchest_ctl {
     $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
 }
 
-# Warnings
-if [ "$1" == "update" ] ; then
-
-    # Do nothing in case "--help" is present in the commands or args.
-    if [[ "$@" == *"--help"* ]] ; then
-        # Do nothing
-        :
-    elif [[ $ORCHEST_FRONTEND == "noninteractive" ]] ; then
-        update_orchest_ctl
-    else
-        # Only query in case Orchest indeed has containers running
-        if [[ "$(docker ps -q -f network=orchest)" != "" ]] ; then
-            read -p "Updating Orchest will stop all Orchest related containers. Are you sure? [N/y] " -r
-            if [[ ! $REPLY =~ ^[Yy]$ ]] ; then
-                echo "Cancelled by user. Exiting ..."
-                exit
-            fi
-        fi
-        update_orchest_ctl
-    fi
-fi
-# End of warnings
+# Before running an update, update the orchest-ctl as the latest
+# orchest-ctl should be used to update the application.
+[[ "$1" == "update" ]] && [[ "$@" != *"--help"* ]] && update_orchest_ctl
 
 HOST_CONFIG_DIR=$HOME/.config/orchest
 HOST_USER_DIR=$DIR/userdir
 
-# We detect the host OS to properly set the GID owner 
+# We detect the host OS to properly set the GID owner
 # that is used for files in the userdir/
 HOST_OS="linux"
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -61,7 +42,6 @@ $SUDO_PREFIX chown $USER "${HOST_CONFIG_DIR}"
 
 $SUDO_PREFIX docker run \
     --rm \
-    --name orchest-ctl \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${DIR}":/orchest-host \
     -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \

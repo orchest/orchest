@@ -1,12 +1,42 @@
-import asyncio
-import os
+import logging
+import sys
 from enum import Enum
 from typing import Optional
 
 import typer
 
-from app import cmdline, config, utils
 from app.cli import start as cli_start
+from app.orchest import OrchestApp
+from app.spec import get_container_config, inject_dict
+
+
+# TODO: utils.py
+def init_logger(verbosity=0):
+    """Initialize logger.
+
+    The logging module is used to output to STDOUT for the CLI.
+
+    Args:
+        verbosity: The level of verbosity to use. Corresponds to the
+        logging levels:
+            3 DEBUG
+            2 INFO
+            1 WARNING
+            0 ERROR
+
+    """
+    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    logging.basicConfig(level=levels[verbosity])
+
+    root = logging.getLogger()
+    if len(root.handlers) > 0:
+        h = root.handlers[0]
+        root.removeHandler(h)
+
+    formatter = logging.Formatter("%(levelname)s: %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
 
 
 def _default(
@@ -21,22 +51,24 @@ def _default(
         help="Counter to set verbosity level, e.g. 'orchest -vvv start'",
     ),
 ):
-    utils.init_logger(verbosity=verbosity)
+    init_logger(verbosity=verbosity)
 
 
-app = typer.Typer(
+typer_app = typer.Typer(
     name="orchest",
     no_args_is_help=True,
     add_completion=False,
     help="""
-    A tool for creating and running data science pipelines.
+    An IDE for Data Science.
     """,
     short_help="Orchest CLI",
     epilog="Run 'orchest COMMAND --help' for more information on a command.",
     callback=_default,
 )
 
-app.add_typer(cli_start.app, name="start")
+typer_app.add_typer(cli_start.typer_app, name="start")
+
+app = OrchestApp()
 
 
 class Mode(str, Enum):
@@ -53,47 +85,41 @@ class Language(str, Enum):
 
 
 def __entrypoint():
-    loop = asyncio.get_event_loop()
-    app()
-    loop.close()
+    typer_app()
 
 
-@app.command()
+@typer_app.command()
 def version(
-    ext: Optional[bool] = typer.Option(
-        None,
+    ext: bool = typer.Option(
+        False,
         "--ext",
+        show_default=False,
         help="Get extensive version information.",
     ),
 ):
     """
     Get Orchest version.
     """
-    if ext:
-        version = cmdline.echo_extensive_versions()
-        typer.echo(version)
-    else:
-        orchest_version = os.getenv("ORCHEST_VERSION")
-        typer.echo(f"Orchest version {orchest_version}")
+    app.version(ext=ext)
 
 
-@app.command()
+@typer_app.command()
 def stop():
     """
     Shutdown Orchest.
     """
-    cmdline.stop()
+    app.stop()
 
 
-@app.command()
+@typer_app.command()
 def status():
     """
     Get status of Orchest.
     """
-    cmdline.status()
+    app.status()
 
 
-@app.command()
+@typer_app.command()
 def install(
     language: Language = typer.Option(
         Language.python,
@@ -101,7 +127,7 @@ def install(
         show_default=True,
         help="Language dependencies to install.",
     ),
-    gpu: Optional[bool] = typer.Option(
+    gpu: bool = typer.Option(
         False,
         show_default="--no-gpu",
         help=(
@@ -115,30 +141,13 @@ def install(
     Installation might take some time depending on your network
     bandwidth.
     """
-    lang = language.value
-    if gpu:
-        lang += "-gpu"
-
-    cmdline.install(lang)
+    app.install(language, gpu=gpu)
 
 
-@app.command()
+# TODO: make mode in Mode type. Although it is "web" here
+@typer_app.command()
 def update(
     mode: Optional[str] = typer.Option(None, hidden=True),
-    language: Language = typer.Option(
-        Language.python,
-        "--lang",
-        show_default=True,
-        help="Language dependencies to update.",
-    ),
-    gpu: Optional[bool] = typer.Option(
-        False,
-        show_default="--no-gpu",
-        help=(
-            "Whether to update GPU supported images corresponding"
-            " to the given language dependencies."
-        ),
-    ),
 ):
     """
     Update Orchest.
@@ -148,18 +157,10 @@ def update(
     where '--lang=none' will only get you the services that Orchest
     uses.
     """
-    if mode is not None:
-        # Only mode that is given is "web", used for the update-server.
-        config.UPDATE_MODE = mode
-
-    lang = language.value
-    if gpu:
-        lang += "-gpu"
-
-    cmdline.update(lang)
+    app.update(mode=mode)
 
 
-@app.command()
+@typer_app.command()
 def restart(
     mode: Mode = typer.Option(
         Mode.reg, help="Mode in which to start Orchest afterwards."
@@ -171,32 +172,23 @@ def restart(
     """
     Restart Orchest.
     """
-    config.CONTAINER_MAPPING["orchest/nginx-proxy:latest"]["ports"] = {
-        "80/tcp": port,
-        "443/tcp": 443,
+    container_config = get_container_config(mode.value)
+    port_bind: dict = {
+        "nginx-proxy": {
+            "HostConfig": {
+                "PortBindings": {
+                    "80/tcp": [{"HostPort": f"{port}"}],
+                },
+            },
+        },
     }
+    inject_dict(container_config, port_bind, overwrite=True)
+    app.restart(container_config)
 
-    config.RUN_MODE = mode
-    cmdline.restart()
 
-
-@app.command(hidden=True)
+@typer_app.command(hidden=True)
 def updateserver():
     """
     Update Orchest through the update-server.
     """
-    cmdline._updateserver()
-
-
-@app.command(hidden=True)
-def adduser(
-    username: str = typer.Argument(..., help="Username to add to Orchest"),
-    password: str = typer.Option(
-        ..., prompt=True, confirmation_prompt=True, hide_input=True
-    ),
-):
-    """
-    Add user to Orchest.
-    """
-    # TODO: once we do authentication
-    typer.echo(f"Adding user {username}")
+    app._updateserver()
