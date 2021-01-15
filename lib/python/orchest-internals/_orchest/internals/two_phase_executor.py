@@ -34,8 +34,12 @@ transaction method, while you are free to do so if you need to apply db
 changes during the collateral phase, and cannot do otherwise.
 """
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+
+# See the logging config that is setup by the orchest-api, webserver,
+# auth-server on initialization for the specific settings.
+logger = logging.getLogger("orchest-lib")
 
 
 class TwoPhaseExecutor(object):
@@ -51,7 +55,7 @@ class TwoPhaseExecutor(object):
             try:
                 self.collateral_queue[i].revert()
             except Exception as e:
-                logging.error(f"Error during revert call {i}: {e}")
+                logger.error(f"Error during revert call {i}: {e}")
                 # In case any revert call contains updates to the db
                 # that were not comitted yet.
                 self.session.rollback()
@@ -59,7 +63,7 @@ class TwoPhaseExecutor(object):
     def __exit__(self, exc_type, exc_val, traceback):
 
         if exc_type is not None:
-            logging.error(f"Error during transactional phase: {exc_val}")
+            logger.error(f"Error during transactional phase: {exc_val}")
             # Rollback the transaction if any exception was raised
             # during the execution of the first phase.
             self.session.rollback()
@@ -71,7 +75,7 @@ class TwoPhaseExecutor(object):
             try:
                 tpf.collateral()
             except Exception as e:
-                logging.error(f"Error during collateral phase: {e}")
+                logger.error(f"Error during collateral phase: {e}")
                 # In case any collateral effect contains updates to the
                 # db that were not committed yet.
                 self.session.rollback()

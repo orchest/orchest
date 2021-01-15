@@ -240,6 +240,10 @@ def init_logging():
                 "level": "INFO",
                 "handlers": ["console-minimal"],
             },
+            "orchest-lib": {
+                "handlers": ["console"],
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
             # "sqlalchemy.engine": {
             #     "handlers": ["console"],
             #     "level": "DEBUG",
