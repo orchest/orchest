@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
@@ -11,7 +12,7 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
-from app.core.pipelines import construct_pipeline
+from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import lock_environment_images_for_run, register_schema, update_status_db
 
 api = Namespace("experiments", description="Managing experiments")
@@ -246,16 +247,18 @@ class CreateExperiment(TwoPhaseFunction):
     """Create an experiment."""
 
     def transaction(
-        self, experiment, pipeline_run_spec, pipeline_definitions, pipeline_run_ids
+        self,
+        experiment: Dict[str, Any],
+        pipeline_run_spec: Dict[str, Any],
+        pipeline_definitions: List[Dict[str, Any]],
+        pipeline_run_ids: List[str],
     ):
 
         db.session.add(models.Experiment(**experiment))
         # So that the experiment can be returned with all runs.
         experiment["pipeline_runs"] = []
         # To be later used by the collateral effect function.
-        self.experiment = experiment
-        self.pipeline_run_spec = pipeline_run_spec
-        self.tasks_to_launch = []
+        tasks_to_launch = []
 
         for pipeline_definition, id_ in zip(pipeline_definitions, pipeline_run_ids):
             # Note: the pipeline definition contains the parameters of
@@ -266,7 +269,7 @@ class CreateExperiment(TwoPhaseFunction):
             # Specify the task_id beforehand to avoid race conditions
             # between the task and its presence in the db.
             task_id = str(uuid.uuid4())
-            self.tasks_to_launch.append((task_id, pipeline))
+            tasks_to_launch.append((task_id, pipeline))
 
             non_interactive_run = {
                 "experiment_uuid": experiment["experiment_uuid"],
@@ -301,12 +304,22 @@ class CreateExperiment(TwoPhaseFunction):
             db.session.bulk_save_objects(pipeline_steps)
 
             non_interactive_run["pipeline_steps"] = pipeline_steps
-            self.experiment["pipeline_runs"].append(non_interactive_run)
-        return self.experiment
+            experiment["pipeline_runs"].append(non_interactive_run)
 
-    def collateral(self):
+        self.collateral_kwargs["experiment"] = tasks_to_launch
+        self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
+        self.collateral_kwargs["pipeline_run_spec"] = tasks_to_launch
+
+        return experiment
+
+    def collateral(
+        self,
+        experiment: Dict[str, Any],
+        pipeline_run_spec: Dict[str, Any],
+        tasks_to_launch: Tuple[str, Pipeline],
+    ):
         # Safety check in case the experiment has no runs.
-        if not self.tasks_to_launch:
+        if not tasks_to_launch:
             return
 
         # Get docker ids of images to use and make it so that the
@@ -318,10 +331,10 @@ class CreateExperiment(TwoPhaseFunction):
         try:
             env_uuid_docker_id_mappings = lock_environment_images_for_run(
                 # first (task_id, pipeline) -> task id.
-                self.tasks_to_launch[0][0],
-                self.experiment["project_uuid"],
+                tasks_to_launch[0][0],
+                experiment["project_uuid"],
                 # first (task_id, pipeline) -> pipeline.
-                self.tasks_to_launch[0][1].get_environments(),
+                tasks_to_launch[0][1].get_environments(),
             )
         except errors.ImageNotFound as e:
             raise errors.ImageNotFound(
@@ -329,7 +342,7 @@ class CreateExperiment(TwoPhaseFunction):
                 f"which an image does not exist, {e}"
             )
 
-        for task_id, _ in self.tasks_to_launch[1:]:
+        for task_id, _ in tasks_to_launch[1:]:
             image_mappings = [
                 models.PipelineRunImageMapping(
                     **{
@@ -345,12 +358,12 @@ class CreateExperiment(TwoPhaseFunction):
 
         # Launch each task through celery.
         celery = make_celery(current_app)
-        for task_id, pipeline in self.tasks_to_launch:
-            run_config = self.pipeline_run_spec["run_config"]
+        for task_id, pipeline in tasks_to_launch:
+            run_config = pipeline_run_spec["run_config"]
             run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
             celery_job_kwargs = {
-                "experiment_uuid": self.experiment["experiment_uuid"],
-                "project_uuid": self.experiment["project_uuid"],
+                "experiment_uuid": experiment["experiment_uuid"],
+                "project_uuid": experiment["project_uuid"],
                 "pipeline_definition": pipeline.to_dict(),
                 "run_config": run_config,
             }
@@ -359,7 +372,7 @@ class CreateExperiment(TwoPhaseFunction):
             # importing the function directly.
             task_args = {
                 "name": "app.core.tasks.start_non_interactive_pipeline_run",
-                "eta": self.experiment["scheduled_start"],
+                "eta": experiment["scheduled_start"],
                 "kwargs": celery_job_kwargs,
                 "task_id": task_id,
             }
@@ -375,11 +388,13 @@ class CreateExperiment(TwoPhaseFunction):
     def revert(self):
         # Set the status to FAILURE for runs and their steps.
         models.PipelineRunStep.query.filter_by(
-            models.PipelineRunStep.run_uuid.in_(self.tasks_to_launch)
+            models.PipelineRunStep.run_uuid.in_(
+                self.collateral_kwargs["tasks_to_launch"]
+            )
         ).update({"status": "FAILURE"})
 
         models.NonInteractivePipelineRun.query.filter_by(
-            models.PipelineRun.run_uuid.in_(self.tasks_to_launch)
+            models.PipelineRun.run_uuid.in_(self.collateral_kwargs["tasks_to_launch"])
         ).update({"status": "FAILURE"})
         db.session.commit()
 
@@ -387,9 +402,9 @@ class CreateExperiment(TwoPhaseFunction):
 class AbortExperiment(TwoPhaseFunction):
     """Abort an experiment."""
 
-    def transaction(self, experiment_uuid):
+    def transaction(self, experiment_uuid: str):
         # To be later used by the collateral function.
-        self.run_uuids = []
+        run_uuids = []
 
         experiment = models.Experiment.query.filter_by(
             experiment_uuid=experiment_uuid
@@ -401,15 +416,15 @@ class AbortExperiment(TwoPhaseFunction):
         # are the celery task uuid as well.
         for run in experiment.pipeline_runs:
             if run.status in ["PENDING", "STARTED"]:
-                self.run_uuids.append(run.run_uuid)
+                run_uuids.append(run.run_uuid)
 
-        if len(self.run_uuids) == 0:
+        if len(run_uuids) == 0:
             return False
 
         # Set the state of each run and related steps to ABORTED. Note
         # that the status of steps that have already been completed will
         # not be modified.
-        for run_uuid in self.run_uuids:
+        for run_uuid in run_uuids:
             filter_by = {"run_uuid": run_uuid}
             status_update = {"status": "ABORTED"}
 
@@ -423,15 +438,17 @@ class AbortExperiment(TwoPhaseFunction):
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
 
+        self.collateral_kwargs["run_uuids"] = run_uuids
+
         return True
 
-    def collateral(self):
+    def collateral(self, run_uuids: List[str]):
         # Aborts and revokes all pipeline runs and waits for a reply for
         # 1.0s.
         celery = make_celery(current_app)
-        celery.control.revoke(self.run_uuids, timeout=1.0)
+        celery.control.revoke(run_uuids, timeout=1.0)
 
-        for run_uuid in self.run_uuids:
+        for run_uuid in run_uuids:
             res = AbortableAsyncResult(run_uuid, app=celery)
             # It is responsibility of the task to terminate by reading
             # its aborted status.

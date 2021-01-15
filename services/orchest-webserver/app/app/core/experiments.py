@@ -39,19 +39,19 @@ class CreateExperiment(TwoPhaseFunction):
 
         db.session.add(new_ex)
 
-        self.experiment_uuid = experiment_uuid
-        self.pipeline_uuid = pipeline_uuid
-        self.project_uuid = project_uuid
+        self.collateral_kwargs["experiment_uuid"] = experiment_uuid
+        self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
+        self.collateral_kwargs["project_uuid"] = project_uuid
 
         return new_ex
 
-    def collateral(self):
-        create_experiment_directory(
-            self.experiment_uuid, self.pipeline_uuid, self.project_uuid
-        )
+    def collateral(self, experiment_uuid: str, pipeline_uuid: str, project_uuid: str):
+        create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid)
 
     def revert(self):
-        Experiment.query.filter_by(experiment_uuid=self.experiment_uuid).delete()
+        Experiment.query.filter_by(
+            experiment_uuid=self.collateral_kwargs["experiment_uuid"]
+        ).delete()
 
 
 class DeleteExperiment(TwoPhaseFunction):
@@ -59,27 +59,26 @@ class DeleteExperiment(TwoPhaseFunction):
 
         # If the experiment does not exist this is a no op.
         exp = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
-        self.do_collateral = exp is not None
-        if not self.do_collateral:
-            return
+        if exp is None:
+            self.collateral_kwargs["exp_uuid"] = None
+            self.collateral_kwargs["pipeline_uuid"] = None
+            self.collateral_kwargs["project_uuid"] = None
+        else:
+            self.collateral_kwargs["exp_uuid"] = exp.uuid
+            self.collateral_kwargs["pipeline_uuid"] = exp.pipeline_uuid
+            self.collateral_kwargs["project_uuid"] = exp.project_uuid
+            db.session.delete(exp)
 
-        self.exp_uuid = exp.uuid
-        self.pipeline_uuid = exp.pipeline_uuid
-        self.project_uuid = exp.project_uuid
-        db.session.delete(exp)
-
-    def collateral(self):
-        if self.do_collateral:
+    def collateral(self, exp_uuid: str, pipeline_uuid: str, project_uuid: str):
+        if exp_uuid:
             # Tell the orchest-api that the experiment does not exist
             # anymore, will be stopped if necessary then cleaned up from
             # the orchest-api db.
             url = (
                 f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-                f"experiments/cleanup/{self.exp_uuid}"
+                f"experiments/cleanup/{exp_uuid}"
             )
             current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
             # Remove from the filesystem.
-            remove_experiment_directory(
-                self.exp_uuid, self.pipeline_uuid, self.project_uuid
-            )
+            remove_experiment_directory(exp_uuid, pipeline_uuid, project_uuid)

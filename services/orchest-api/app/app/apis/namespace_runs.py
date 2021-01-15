@@ -3,7 +3,7 @@
 Note: "run" is short for "interactive pipeline run".
 """
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from celery.contrib.abortable import AbortableAsyncResult
 from docker import errors
@@ -172,61 +172,59 @@ class AbortPipelineRun(TwoPhaseFunction):
             did not exist or was not PENDING/STARTED.
         """
 
-        self.run_uuid = run_uuid
         # If the run is not abortable return false, abortion failed.
         # Set the state and return.
-        filter_by = {"run_uuid": self.run_uuid}
+        filter_by = {"run_uuid": run_uuid}
         status_update = {"status": "ABORTED"}
 
         # _can_abort is set to True if any row was affected, that is,
         # the run was in a PENDING or STARTED state, since
         # update_status_db won't update it otherwise.
-        self._can_abort = update_status_db(
+        can_abort = update_status_db(
             status_update, model=models.PipelineRun, filter_by=filter_by
         )
         # Do not attempt to update the status of the steps if the status
         # of the pipeline could not be updated.
-        if self._can_abort:
+        if can_abort:
             update_status_db(
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
-        return self._can_abort
 
-    def collateral(self):
+        self.collateral_kwargs["run_uuid"] = run_uuid if can_abort else None
+
+        return can_abort
+
+    def collateral(self, run_uuid: Optional[str]):
         """Revoke the pipeline run celery task"""
         # If there run status was not STARTED/PENDING then there is
         # nothing to abort/revoke.
-        if self._can_abort:
-            celery_app = make_celery(current_app)
-            res = AbortableAsyncResult(self.run_uuid, app=celery_app)
-            # it is responsibility of the task to terminate by reading
-            # it's aborted status
-            res.abort()
-            celery_app.control.revoke(self.run_uuid)
+        if not run_uuid:
+            return
 
-    def revert(self):
-        pass
+        celery_app = make_celery(current_app)
+        res = AbortableAsyncResult(run_uuid, app=celery_app)
+        # It is responsibility of the task to terminate by reading it's
+        # aborted status.
+        res.abort()
+        celery_app.control.revoke(run_uuid)
 
 
 class CreateInteractiveRun(TwoPhaseFunction):
     def transaction(
         self, project_uuid: str, run_config: Dict[str, Any], pipeline: Pipeline
     ):
-        self.run_config = run_config
-        self.pipeline = pipeline
-        self.project_uuid = project_uuid
         # specify the task_id beforehand to avoid race conditions
         # between the task and its presence in the db
-        self.task_id = str(uuid.uuid4())
+        task_id = str(uuid.uuid4())
 
         # NOTE: we are setting the status of the run ourselves without
         # using the option of celery to get the status of tasks. This
         # way we do not have to configure a backend (where the default
         # of "rpc://" does not give the results we would want).
         run = {
-            "run_uuid": self.task_id,
+            "run_uuid": task_id,
             "pipeline_uuid": pipeline.properties["uuid"],
-            "project_uuid": self.project_uuid,
+            "project_uuid": project_uuid,
             "status": "PENDING",
         }
         db.session.add(models.InteractivePipelineRun(**run))
@@ -244,7 +242,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
             pipeline_steps.append(
                 models.PipelineRunStep(
                     **{
-                        "run_uuid": self.task_id,
+                        "run_uuid": task_id,
                         "step_uuid": step_uuid,
                         "status": "PENDING",
                     }
@@ -252,18 +250,30 @@ class CreateInteractiveRun(TwoPhaseFunction):
             )
         db.session.bulk_save_objects(pipeline_steps)
         run["pipeline_steps"] = pipeline_steps
-        self._run = run
+
+        self.collateral_kwargs["project_uuid"] = run_config
+        self.collateral_kwargs["task_id"] = run_config
+        self.collateral_kwargs["pipeline"] = run_config
+        self.collateral_kwargs["run_config"] = run_config
+        self.collateral_kwargs["run"] = run
         return run
 
-    def collateral(self):
-        # get docker ids of images to use and make it so that the images
+    def collateral(
+        self,
+        project_uuid: str,
+        task_id: str,
+        pipeline: Pipeline,
+        run_config: Dict[str, Any],
+        **kwargs,
+    ):
+        # Het docker ids of images to use and make it so that the images
         # will not be deleted in case they become outdated by an
-        # environment rebuild
+        # environment rebuild.
         try:
             env_uuid_docker_id_mappings = lock_environment_images_for_run(
-                self.task_id,
-                self.project_uuid,
-                self.pipeline.get_environments(),
+                task_id,
+                project_uuid,
+                pipeline.get_environments(),
             )
         except errors.ImageNotFound as e:
             msg = (
@@ -275,11 +285,11 @@ class CreateInteractiveRun(TwoPhaseFunction):
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
         celery = make_celery(current_app)
-        run_config = self.run_config
+        run_config = run_config
         run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
         celery_job_kwargs = {
-            "pipeline_definition": self.pipeline.to_dict(),
-            "project_uuid": self.project_uuid,
+            "pipeline_definition": pipeline.to_dict(),
+            "project_uuid": project_uuid,
             "run_config": run_config,
         }
 
@@ -289,7 +299,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         res = celery.send_task(
             "app.core.tasks.run_pipeline",
             kwargs=celery_job_kwargs,
-            task_id=self.task_id,
+            task_id=task_id,
         )
 
         # NOTE: this is only if a backend is configured.  The task does
@@ -300,18 +310,10 @@ class CreateInteractiveRun(TwoPhaseFunction):
         res.forget()
 
     def revert(self):
-        # simple way to update both in memory objects
-        # and the db while avoiding multiple update statements
-        # (1 for each object)
-        # TODO: make it so that the client does not rely
-        # on SUCCESS as a status
-        self._run["status"] = "FAILURE"
-        for step in self.run["pipeline_steps"]:
-            step.status = "FAILURE"
-        models.InteractivePipelineRun.query.filter_by(run_uuid=self.task_id).update(
-            {"status": "FAILURE"}
-        )
-        models.PipelineRunStep.query.filter_by(run_uuid=self.task_id).update(
-            {"status": "FAILURE"}
-        )
+        models.InteractivePipelineRun.query.filter_by(
+            run_uuid=self.collateral_kwargs["task_id"]
+        ).update({"status": "FAILURE"})
+        models.PipelineRunStep.query.filter_by(
+            run_uuid=self.collateral_kwargs["task_id"]
+        ).update({"status": "FAILURE"})
         db.session.commit()

@@ -73,7 +73,9 @@ class TwoPhaseExecutor(object):
 
         for idx, tpf in enumerate(self.collateral_queue):
             try:
-                tpf.collateral()
+                # Unpack tpf.data as kwargs to be passed to the
+                # collateral function.
+                tpf.collateral(**tpf.collateral_kwargs)
             except Exception as e:
                 logger.error(f"Error during collateral phase: {e}")
                 # In case any collateral effect contains updates to the
@@ -110,6 +112,14 @@ class TwoPhaseFunction(ABC):
     - collateral: should commit it's own changes, rollback not necessary
     - revert: should commit it's own changes, rollback not necessary
 
+    When implementing the transaction and collateral functions be sure
+    to use the self.collateral_kwargs dictionary to pass data from the
+    transaction function to the collateral function. The dictionary
+    will be unpacked as kwargs when calling collateral. The revert
+    function will instead have to use the dictionary directly, since
+    it might not be guaranteed what kwargs get to the dictionary in case
+    the collateral function fails before setting any.
+
     TODO: find a way to detect if a commit has happened in the
     transactional phase, i.e. if any transaction is calling commit on
     its own.
@@ -118,6 +128,7 @@ class TwoPhaseFunction(ABC):
 
     def __init__(self, tpe):
         self.tpe = tpe
+        self.collateral_kwargs = {}
         self._orig_transaction = self.transaction
         self.transaction = self._transaction
 
@@ -131,7 +142,7 @@ class TwoPhaseFunction(ABC):
         pass
 
     @abstractmethod
-    def collateral(self):
+    def collateral(self, **kwargs):
         pass
 
     def revert(self):

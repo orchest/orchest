@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from celery.contrib.abortable import AbortableAsyncResult
 from flask import abort, current_app, request
@@ -224,7 +225,6 @@ class ProjectEnvironmentMostRecentBuild(Resource):
 class CreateEnvironmentBuild(TwoPhaseFunction):
     def transaction(self, build_request):
 
-        self.build_request = build_request
         # Abort any environment build of this environment that is
         # already running, given by the status of PENDING/STARTED.
         already_running_builds = models.EnvironmentBuild.query.filter(
@@ -246,7 +246,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         # make some calls to the orchest-api referring to itself (e.g.
         # a status update), and thus expecting to find itself in the db.
         # This way we avoid race conditions.
-        self.task_id = str(uuid.uuid4())
+        task_id = str(uuid.uuid4())
 
         # TODO: verify if forget has the same effect of
         # ignore_result=True because ignore_result cannot be used with
@@ -255,7 +255,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         # task.forget()
 
         environment_build = {
-            "build_uuid": self.task_id,
+            "build_uuid": task_id,
             "project_uuid": build_request["project_uuid"],
             "environment_uuid": build_request["environment_uuid"],
             "project_path": build_request["project_path"],
@@ -263,27 +263,32 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
             "status": "PENDING",
         }
         db.session.add(models.EnvironmentBuild(**environment_build))
+
+        self.collateral_kwargs["task_id"] = task_id
+        self.collateral_kwargs["project_uuid"] = build_request["project_uuid"]
+        self.collateral_kwargs["environment_uuid"] = build_request["environment_uuid"]
+        self.collateral_kwargs["project_path"] = build_request["project_path"]
         return environment_build
 
-    def collateral(self):
+    def collateral(
+        self, task_id: str, project_uuid: str, environment_uuid: str, project_path: str
+    ):
         celery = make_celery(current_app)
         celery_job_kwargs = {
-            "project_uuid": self.build_request["project_uuid"],
-            "environment_uuid": self.build_request["environment_uuid"],
-            "project_path": self.build_request["project_path"],
+            "project_uuid": project_uuid,
+            "environment_uuid": environment_uuid,
+            "project_path": project_path,
         }
 
         celery.send_task(
             "app.core.tasks.build_environment",
             kwargs=celery_job_kwargs,
-            task_id=self.task_id,
+            task_id=task_id,
         )
 
 
 class AbortEnvironmentBuild(TwoPhaseFunction):
     def transaction(self, environment_build_uuid: str):
-
-        self.environment_build_uuid = environment_build_uuid
 
         filter_by = {
             "build_uuid": environment_build_uuid,
@@ -291,24 +296,29 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
         status_update = {"status": "ABORTED"}
         # Will return true if any row is affected, meaning that the
         # environment build was actually PENDING or STARTED.
-        self._can_abort = update_status_db(
+        abortable = update_status_db(
             status_update,
             model=models.EnvironmentBuild,
             filter_by=filter_by,
         )
-        return self._can_abort
 
-    def collateral(self):
-        if not self._can_abort:
+        self.collateral_kwargs["environment_build_uuid"] = (
+            environment_build_uuid if abortable else None
+        )
+        return abortable
+
+    def collateral(self, environment_build_uuid: Optional[str]):
+
+        if not environment_build_uuid:
             return
 
         celery_app = make_celery(current_app)
         # Make use of both constructs (revoke, abort) so we cover both a
         # task that is pending and a task which is running.
-        celery_app.control.revoke(self.environment_build_uuid, timeout=1.0)
-        res = AbortableAsyncResult(self.environment_build_uuid, app=celery_app)
-        # It is responsibility of the task to terminate by reading
-        # it's aborted status.
+        celery_app.control.revoke(environment_build_uuid, timeout=1.0)
+        res = AbortableAsyncResult(environment_build_uuid, app=celery_app)
+        # It is responsibility of the task to terminate by reading it's
+        # aborted status.
         res.abort()
 
 

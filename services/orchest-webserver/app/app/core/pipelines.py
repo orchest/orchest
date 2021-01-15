@@ -24,28 +24,31 @@ class CreatePipeline(TwoPhaseFunction):
         ):
             raise FileExistsError(f"Pipeline already exists at path {pipeline_path}.")
 
-        self.pipeline_uuid = str(uuid.uuid4())
+        pipeline_uuid = str(uuid.uuid4())
         pipeline = Pipeline(
-            path=pipeline_path, uuid=self.pipeline_uuid, project_uuid=project_uuid
+            path=pipeline_path, uuid=pipeline_uuid, project_uuid=project_uuid
         )
         db.session.add(pipeline)
 
         # To be used by the collateral and revert functions.
-        self.project_uuid = project_uuid
-        self.pipeline_name = pipeline_name
-        self.pipeline_path = pipeline_path
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
+        self.collateral_kwargs["pipeline_name"] = pipeline_name
+        self.collateral_kwargs["pipeline_path"] = pipeline_path
 
-    def collateral(self):
-        pipeline_dir = get_pipeline_directory(self.pipeline_uuid, self.project_uuid)
-        pipeline_json_path = get_pipeline_path(self.pipeline_uuid, self.project_uuid)
+    def collateral(
+        self, project_uuid: str, pipeline_uuid: str, pipeline_name: str, **kwargs
+    ):
+        pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+        pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
         os.makedirs(pipeline_dir, exist_ok=True)
 
         # Generate clean pipeline.json.
         pipeline_json = {
-            "name": self.pipeline_name,
+            "name": pipeline_name,
             "version": "1.0.0",
-            "uuid": self.pipeline_uuid,
+            "uuid": pipeline_uuid,
             "settings": {
                 "auto_eviction": False,
                 "data_passing_memory_size": "1GB",
@@ -58,9 +61,9 @@ class CreatePipeline(TwoPhaseFunction):
 
     def revert(self):
         Pipeline.query.filter_by(
-            project_uuid=self.project_uuid,
-            uuid=self.pipeline_uuid,
-            path=self.pipeline_path,
+            project_uuid=self.collateral_kwargs["project_uuid"],
+            uuid=self.collateral_kwargs["pipeline_uuid"],
+            path=self.collateral_kwargs["pipeline_path"],
         ).delete()
         db.session.commit()
 
@@ -70,20 +73,21 @@ class DeletePipeline(TwoPhaseFunction):
 
     def transaction(self, project_uuid: str, pipeline_uuid: str):
         """Remove a pipeline from the db"""
-        # Used by the collateral effect.
-        self.project_uuid = project_uuid
-        self.pipeline_uuid = pipeline_uuid
         # Necessary because get_pipeline_path is going to query the db
         # entry, but the db entry does not exist anymore because it has
         # been deleted.
-        self.pipeline_json_path = get_pipeline_path(
-            self.pipeline_uuid, self.project_uuid
-        )
+        pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
         # Will delete cascade experiment -> pipeline run.
         Pipeline.query.filter_by(project_uuid=project_uuid, uuid=pipeline_uuid).delete()
 
-    def collateral(self):
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
+        self.collateral_kwargs["pipeline_json_path"] = pipeline_json_path
+
+    def collateral(
+        self, project_uuid: str, pipeline_uuid: str, pipeline_json_path: str
+    ):
         """Remove a pipeline from the FS and the orchest-api"""
 
         # CleanupPipelineFromOrchest can be used when deleting a
@@ -91,12 +95,12 @@ class DeletePipeline(TwoPhaseFunction):
         # was deleted through the filesystem by the user, so the file
         # might not be there.
         with contextlib.suppress(FileNotFoundError):
-            os.remove(self.pipeline_json_path)
+            os.remove(pipeline_json_path)
 
         # Orchest-api deletion.
         url = (
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/pipelines/"
-            f"{self.project_uuid}/{self.pipeline_uuid}"
+            f"{project_uuid}/{pipeline_uuid}"
         )
         current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
@@ -116,19 +120,31 @@ class AddPipelineFromFS(TwoPhaseFunction):
 
         # Check the uuid of the pipeline. If the uuid is taken by
         # another pipeline in the project then generate a new uuid for
-        # the pipeline. pipeline_json = json.load(json_file)
+        # the pipeline.
         with open(pipeline_json_path, "r") as json_file:
             pipeline_json = json.load(json_file)
             file_pipeline_uuid = pipeline_json.get("uuid")
-            # See if pipeline_uuid is taken or if the pipeline has no
-            # uuid, in both cases it's going to need a new uuid.
-            if (not file_pipeline_uuid) or Pipeline.query.filter(
-                Pipeline.uuid == file_pipeline_uuid
-            ).filter(Pipeline.project_uuid == project_uuid).count() > 0:
+
+            # If the pipeline has its own uuid and the uuid is not in
+            # the db already then the pipeline does not need to have a
+            # new uuid assigned and written to disk.
+            if (
+                file_pipeline_uuid
+                and Pipeline.query.filter(Pipeline.uuid == file_pipeline_uuid)
+                .filter(Pipeline.project_uuid == project_uuid)
+                .count()
+                == 0
+            ):
+                self.collateral_kwargs["new_uuid"] = False
+            else:
+                self.collateral_kwargs["new_uuid"] = True
+                # Generate a new uuid for the pipeline.
                 file_pipeline_uuid = str(uuid.uuid4())
-                # Only write to the file to update the uuid if it's
-                # necessary.
-                self.do_collateral = True
+
+            self.collateral_kwargs["project_uuid"] = project_uuid
+            self.collateral_kwargs["pipeline_uuid"] = file_pipeline_uuid
+            self.collateral_kwargs["pipeline_path"] = pipeline_path
+            self.collateral_kwargs["pipeline_json"] = pipeline_json
 
             # Add the pipeline to the db.
             new_pipeline = Pipeline(
@@ -138,25 +154,26 @@ class AddPipelineFromFS(TwoPhaseFunction):
             )
             db.session.add(new_pipeline)
 
-            # To be used by collateral and revert.
-            self.project_uuid = project_uuid
-            self.pipeline_uuid = file_pipeline_uuid
-            self.pipeline_path = pipeline_path
-            self.pipeline_json = pipeline_json
-
-    def collateral(self):
-        if self.do_collateral:
+    def collateral(
+        self,
+        new_uuid: bool,
+        project_uuid: str,
+        pipeline_uuid: str,
+        pipeline_path: str,
+        pipeline_json: str,
+    ):
+        if new_uuid:
             pipeline_json_path = get_pipeline_path(
-                None, self.project_uuid, pipeline_path=self.pipeline_path
+                None, project_uuid, pipeline_path=pipeline_path
             )
             with open(pipeline_json_path, "w") as json_file:
-                self.pipeline_json["uuid"] = self.pipeline_uuid
-                json_file.write(json.dumps(self.pipeline_json, indent=4))
+                pipeline_json["uuid"] = pipeline_uuid
+                json_file.write(json.dumps(pipeline_json, indent=4))
 
     def revert(self):
         Pipeline.query.filter(
-            project_uuid=self.project_uuid,
-            uuid=self.pipeline_uuid,
-            path=self.pipeline_path,
+            project_uuid=self.collateral_kwargs["project_uuid"],
+            uuid=self.collateral_kwargs["pipeline_uuid"],
+            path=self.collateral_kwargs["pipeline_path"],
         ).delete()
         db.session.commit()

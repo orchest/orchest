@@ -35,15 +35,17 @@ class CreateProject(TwoPhaseFunction):
             UUID of the newly initialized project.
         """
         # The collateral effect will later make use of this.
-        self.project_uuid = str(uuid.uuid4())
-        self.project_path = project_path
+        project_uuid = str(uuid.uuid4())
         new_project = Project(
-            uuid=self.project_uuid, path=self.project_path, status="INITIALIZING"
+            uuid=project_uuid, path=project_path, status="INITIALIZING"
         )
         db.session.add(new_project)
-        return self.project_uuid
 
-    def collateral(self):
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["project_path"] = project_path
+        return project_uuid
+
+    def collateral(self, project_uuid: str, project_path: str):
         """Create a project on the filesystem.
 
         Given a directory it will detect what parts are missing from the
@@ -58,7 +60,7 @@ class CreateProject(TwoPhaseFunction):
             NotADirectoryError:
         """
         projects_dir = os.path.join(current_app.config["USER_DIR"], "projects")
-        full_project_path = os.path.join(projects_dir, self.project_path)
+        full_project_path = os.path.join(projects_dir, project_path)
         # exist_ok=True is there so that this function can be used both
         # when initializing a project that was discovered through the
         # filesystem or initializing a project from scratch.
@@ -93,23 +95,26 @@ class CreateProject(TwoPhaseFunction):
                 "is a file."
             )
         elif not os.path.isdir(expected_env_dir):
-            populate_default_environments(self.project_uuid)
+            populate_default_environments(project_uuid)
 
         # Refresh kernels after change in environments, given that
         # either we added the default environments or the project has
         # environments of its own.
-        populate_kernels(current_app, db, self.project_uuid)
+        populate_kernels(current_app, db, project_uuid)
 
         # Build environments on project creation.
-        build_environments_for_project(self.project_uuid)
+        build_environments_for_project(project_uuid)
 
-        Project.query.filter_by(uuid=self.project_uuid, path=self.project_path).update(
+        Project.query.filter_by(uuid=project_uuid, path=project_path).update(
             {"status": "READY"}
         )
         db.session.commit()
 
     def revert(self):
-        Project.query.filter_by(uuid=self.project_uuid, path=self.project_path).delete()
+        Project.query.filter_by(
+            uuid=self.collateral_kwargs["project_uuid"],
+            path=self.collateral_kwargs["project_path"],
+        ).delete()
         db.session.commit()
 
 
@@ -132,30 +137,32 @@ class DeleteProject(TwoPhaseFunction):
         Project.query.filter_by(uuid=project_uuid).update({"status": "DELETING"})
 
         # To be used by the collateral effect.
-        self.project_uuid = project_uuid
+        self.collateral_kwargs["project_uuid"] = project_uuid
 
-    def collateral(self):
+    def collateral(self, project_uuid: str):
         """Remove a project from the fs and the orchest-api"""
 
         # Delete the project directory.
         projects_dir = os.path.join(current_app.config["USER_DIR"], "projects")
-        project_path = project_uuid_to_path(self.project_uuid)
+        project_path = project_uuid_to_path(project_uuid)
         full_project_path = os.path.join(projects_dir, project_path)
         shutil.rmtree(full_project_path)
 
         # Issue project deletion to the orchest-api.
         url = (
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/projects/"
-            f"{self.project_uuid}"
+            f"{project_uuid}"
         )
         current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         # Will delete cascade pipeline, experiment, pipeline run.
-        Project.query.filter_by(uuid=self.project_uuid).delete()
+        Project.query.filter_by(uuid=project_uuid).delete()
         db.session.commit()
 
     def revert(self):
-        Project.query.filter_by(uuid=self.project_uuid).update({"status": "READY"})
+        Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
+            {"status": "READY"}
+        )
 
 
 class SyncProjectPipelinesDBState(TwoPhaseFunction):
@@ -216,18 +223,19 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
 
 class ImportGitProject(TwoPhaseFunction):
     def transaction(self, url: str, project_name: Optional[str] = None):
-        self.n_uuid = str(uuid.uuid4())
+        n_uuid = str(uuid.uuid4())
         new_task = BackgroundTask(
-            task_uuid=self.n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
+            task_uuid=n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
         )
         db.session.add(new_task)
 
         # To be later used by the collateral function.
-        self.url = url
-        self.project_name = project_name
+        self.collateral_kwargs["n_uuid"] = n_uuid
+        self.collateral_kwargs["url"] = url
+        self.collateral_kwargs["project_name"] = project_name
         return new_task
 
-    def collateral(self):
+    def collateral(self, n_uuid: str, url: str, project_name: str):
         # Start the background process in charge of cloning.
         file_dir = os.path.dirname(os.path.realpath(__file__))
         args = [
@@ -237,21 +245,23 @@ class ImportGitProject(TwoPhaseFunction):
             "--type",
             "git_clone_project",
             "--uuid",
-            self.n_uuid,
+            n_uuid,
             "--url",
-            self.url,
+            url,
         ]
 
-        if self.project_name:
+        if project_name:
             args.append("--path")
-            args.append(str(self.project_name))
+            args.append(str(project_name))
 
         subprocess.Popen(
             args, cwd=os.path.join(file_dir, "../.."), stderr=subprocess.STDOUT
         )
 
     def revert(self):
-        BackgroundTask.query.filter_by(task_uuid=self.n_uuid).delete()
+        BackgroundTask.query.filter_by(
+            task_uuid=self.collateral_kwargs["n_uuid"]
+        ).delete()
 
 
 # Need to have these two functions here because of circular imports.

@@ -126,16 +126,17 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
 
 class DeleteProjectEnvironmentImages(TwoPhaseFunction):
     def transaction(self, project_uuid: str):
-        self.project_uuid = project_uuid
         # Cleanup references to the builds and dangling images of all
         # environments of this project.
-        DeleteProjectBuilds(self.tpe).transaction(self.project_uuid)
+        DeleteProjectBuilds(self.tpe).transaction(project_uuid)
 
-    def collateral(self):
+        self.collateral_kwargs["project_uuid"] = project_uuid
+
+    def collateral(self, project_uuid: str):
         filters = {
             "label": [
                 "_orchest_env_build_is_intermediate=0",
-                f"_orchest_project_uuid={self.project_uuid}",
+                f"_orchest_project_uuid={project_uuid}",
             ]
         }
         images_to_remove = docker_images_list_safe(docker_client, filters=filters)
@@ -165,18 +166,15 @@ class DeleteImage(TwoPhaseFunction):
             project_uuid, environment_uuid
         )
 
-        # To be used by the collateral function.
-        self.project_uuid = project_uuid
-        self.environment_uuid = environment_uuid
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["environment_uuid"] = environment_uuid
 
-    def collateral(self):
+    def collateral(self, project_uuid: str, environment_uuid: str):
         image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-            project_uuid=self.project_uuid, environment_uuid=self.environment_uuid
+            project_uuid=project_uuid, environment_uuid=environment_uuid
         )
 
-        delete_project_environment_dangling_images(
-            self.project_uuid, self.environment_uuid
-        )
+        delete_project_environment_dangling_images(project_uuid, environment_uuid)
 
         # Try with repeat because there might be a race condition where
         # the aborted runs are still using the image.

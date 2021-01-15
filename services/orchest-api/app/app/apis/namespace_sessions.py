@@ -134,13 +134,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
         host_userdir: str,
         data_passing_memory_size: str,
     ):
-        self.project_uuid = project_uuid
-        self.pipeline_uuid = pipeline_uuid
-        self.pipeline_path = pipeline_path
-        self.project_dir = project_dir
-        self.host_userdir = host_userdir
-        self.data_passing_memory_size = data_passing_memory_size
-
         interactive_session = {
             "project_uuid": project_uuid,
             "pipeline_uuid": pipeline_uuid,
@@ -148,15 +141,30 @@ class CreateInteractiveSession(TwoPhaseFunction):
         }
         db.session.add(models.InteractiveSession(**interactive_session))
 
-    def collateral(self):
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
+        self.collateral_kwargs["pipeline_path"] = pipeline_path
+        self.collateral_kwargs["project_dir"] = project_dir
+        self.collateral_kwargs["host_userdir"] = host_userdir
+        self.collateral_kwargs["data_passing_memory_size"] = data_passing_memory_size
+
+    def collateral(
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+        pipeline_path: str,
+        project_dir: str,
+        host_userdir: str,
+        data_passing_memory_size: str,
+    ):
         session = InteractiveSession(docker_client, network="orchest")
         session.launch(
-            self.pipeline_uuid,
-            self.project_uuid,
-            self.pipeline_path,
-            self.project_dir,
-            self.data_passing_memory_size,
-            self.host_userdir,
+            pipeline_uuid,
+            project_uuid,
+            pipeline_path,
+            project_dir,
+            data_passing_memory_size,
+            host_userdir,
         )
 
         # Update the database entry with information to connect to the
@@ -169,7 +177,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
             "notebook_server_info": session.notebook_server_info,
         }
         models.InteractiveSession.query.filter_by(
-            project_uuid=self.project_uuid, pipeline_uuid=self.pipeline_uuid
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
         ).update(status)
         db.session.commit()
 
@@ -179,7 +187,8 @@ class CreateInteractiveSession(TwoPhaseFunction):
         # session can be started in the future due to the uniqueness
         # constraint.
         models.InteractiveSession.query.filter_by(
-            project_uuid=self.project_uuid, pipeline_uuid=self.pipeline_uuid
+            project_uuid=self.collateral_kwargs["project_uuid"],
+            pipeline_uuid=self.collateral_kwargs["pipeline_uuid"],
         ).delete()
         db.session.commit()
 
@@ -191,25 +200,25 @@ class StopInteractiveSession(TwoPhaseFunction):
         pipeline_uuid: str,
     ):
 
-        self.project_uuid = project_uuid
-        self.pipeline_uuid = pipeline_uuid
         session = models.InteractiveSession.query.filter_by(
             project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
         ).one_or_none()
         if session is None:
-            self._do_shutdown = False
+            self.collateral_kwargs["project_uuid"] = None
+            self.collateral_kwargs["pipeline_uuid"] = None
             return False
-
-        self._do_shutdown = True
-        session.status = "STOPPING"
+        else:
+            session.status = "STOPPING"
+            self.collateral_kwargs["project_uuid"] = project_uuid
+            self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         return True
 
-    def collateral(self):
-        if not self._do_shutdown:
+    def collateral(self, project_uuid: str, pipeline_uuid: str):
+        if not project_uuid or not pipeline_uuid:
             return
 
         session = models.InteractiveSession.query.filter_by(
-            project_uuid=self.project_uuid, pipeline_uuid=self.pipeline_uuid
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
         ).one_or_none()
         if session is None:
             return
