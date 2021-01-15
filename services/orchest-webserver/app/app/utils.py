@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import shutil
+import uuid
 
 import requests
 from flask import current_app
@@ -131,8 +132,8 @@ def get_environments(project_uuid, language=None):
                 env = read_environment_from_disk(environment_dir, project_uuid)
 
                 # read_environment_from_disk is not guaranteed to
-                # succeed on failure it returns None, and logs the
-                # error.
+                # succeed on failure it returns None, and logs the error
+                # .
                 if env is not None:
                     if language is None:
                         environments.append(env)
@@ -221,6 +222,20 @@ def delete_environment(app, project_uuid, environment_uuid):
 
     environment_dir = get_environment_directory(environment_uuid, project_uuid)
     shutil.rmtree(environment_dir)
+
+
+def populate_default_environments(project_uuid):
+
+    for env_spec in current_app.config["DEFAULT_ENVIRONMENTS"]:
+        e = Environment(**env_spec)
+
+        e.uuid = str(uuid.uuid4())
+        e.project_uuid = project_uuid
+
+        environment_dir = get_environment_directory(e.uuid, project_uuid)
+        os.makedirs(environment_dir, exist_ok=True)
+
+        serialize_environment_to_disk(e, environment_dir)
 
 
 # End of environments
@@ -389,3 +404,194 @@ def write_config(app, key, value):
 
     # always set rw permissions on file
     os.system("chmod o+rw " + conf_json_path)
+
+
+def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+    def ignore_patterns(path, fnames):
+        """
+            Example:
+                path, fnames = \
+                'docker/catching-error/testing', \
+                ['hello.txt', 'some-dir']
+            """
+        # Ignore the ".orchest/pipelines" directory containing the
+        # logs and data directories.
+        if path.endswith(".orchest"):
+            return ["pipelines"]
+
+        # Ignore nothing.
+        return []
+
+    snapshot_path = os.path.join(
+        get_experiment_directory(pipeline_uuid, project_uuid, experiment_uuid),
+        "snapshot",
+    )
+
+    os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
+
+    project_dir = os.path.join(
+        current_app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
+    )
+
+    shutil.copytree(project_dir, snapshot_path, ignore=ignore_patterns)
+
+
+def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+
+    experiment_project_path = os.path.join(
+        current_app.config["USER_DIR"], "experiments", project_uuid
+    )
+    experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
+    experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
+
+    if os.path.isdir(experiment_path):
+        shutil.rmtree(experiment_path, ignore_errors=True)
+
+    # Clean up parent directory if this experiment removal created empty
+    # directories.
+    remove_dir_if_empty(experiment_pipeline_path)
+    remove_dir_if_empty(experiment_project_path)
+
+
+def generate_ipynb_from_template(step, project_uuid):
+
+    # TODO: support additional languages to Python and R
+    if "python" in step["kernel"]["name"].lower():
+        template_json = json.load(
+            open(
+                os.path.join(current_app.config["RESOURCE_DIR"], "ipynb_template.json"),
+                "r",
+            )
+        )
+    elif "julia" in step["kernel"]["name"]:
+        template_json = json.load(
+            open(
+                os.path.join(
+                    current_app.config["RESOURCE_DIR"], "ipynb_template_julia.json"
+                ),
+                "r",
+            )
+        )
+    else:
+        template_json = json.load(
+            open(
+                os.path.join(
+                    current_app.config["RESOURCE_DIR"], "ipynb_template_r.json"
+                ),
+                "r",
+            )
+        )
+
+    template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
+        "display_name"
+    ]
+    template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
+        step["environment"]
+    )
+
+    return json.dumps(template_json, indent=4)
+
+
+def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
+
+    # Currently, we check per step whether the file exists. If not,
+    # we create it (empty by default). In case the file has an
+    # .ipynb extension we generate the file from a template with a
+    # kernel based on the kernel description in the JSON step.
+
+    # Iterate over steps
+    steps = pipeline_json["steps"].keys()
+
+    for key in steps:
+        step = pipeline_json["steps"][key]
+
+        file_name = step["file_path"]
+
+        full_file_path = os.path.join(pipeline_directory, file_name)
+        file_name_split = file_name.split(".")
+        file_name_without_ext = ".".join(file_name_split[:-1])
+        ext = file_name_split[-1]
+
+        file_content = None
+
+        if not os.path.isfile(full_file_path):
+
+            if len(file_name_without_ext) > 0:
+                file_content = ""
+
+            if ext == "ipynb":
+                file_content = generate_ipynb_from_template(step, project_uuid)
+
+        elif ext == "ipynb":
+            # Check for empty .ipynb, for which we also generate a
+            # template notebook.
+            if os.stat(full_file_path).st_size == 0:
+                file_content = generate_ipynb_from_template(step, project_uuid)
+
+        if file_content is not None:
+            with open(full_file_path, "w") as file:
+                file.write(file_content)
+
+
+def generate_gateway_kernel_name(environment_uuid):
+
+    return _config.KERNEL_NAME.format(environment_uuid=environment_uuid)
+
+
+def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid):
+    # for each step set correct notebook kernel if it exists
+
+    steps = pipeline_json["steps"].keys()
+
+    for key in steps:
+        step = pipeline_json["steps"][key]
+
+        if "ipynb" == step["file_path"].split(".")[-1]:
+
+            notebook_path = os.path.join(pipeline_directory, step["file_path"])
+
+            if os.path.isfile(notebook_path):
+
+                gateway_kernel = generate_gateway_kernel_name(step["environment"])
+
+                with open(notebook_path, "r") as file:
+                    notebook_json = json.load(file)
+
+                notebook_changed = False
+
+                if notebook_json["metadata"]["kernelspec"]["name"] != gateway_kernel:
+                    notebook_changed = True
+                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+
+                environment = get_environment(step["environment"], project_uuid)
+
+                if environment is not None:
+                    if (
+                        notebook_json["metadata"]["kernelspec"]["display_name"]
+                        != environment.name
+                    ):
+                        notebook_changed = True
+                        notebook_json["metadata"]["kernelspec"][
+                            "display_name"
+                        ] = environment.name
+                else:
+                    current_app.logger.warn(
+                        (
+                            "Could not find environment [%s] while setting"
+                            "notebook kernelspec for notebook %s."
+                        )
+                        % (step["environment"], notebook_path)
+                    )
+
+                if notebook_changed:
+                    with open(notebook_path, "w") as file:
+                        file.write(json.dumps(notebook_json, indent=4))
+
+            else:
+                current_app.logger.info(
+                    (
+                        "pipeline_set_notebook_kernels called on notebook_path "
+                        "that doesn't exist %s"
+                    )
+                    % notebook_path
+                )

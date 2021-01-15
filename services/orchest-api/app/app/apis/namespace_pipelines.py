@@ -6,8 +6,9 @@ pipeline, a good amount of other models depend on such a concept.
 from flask_restx import Namespace, Resource
 
 import app.models as models
-from app.apis.namespace_runs import stop_pipeline_run
-from app.apis.namespace_sessions import stop_interactive_session
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from app.apis.namespace_runs import AbortPipelineRun
+from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
 from app.utils import register_schema
 
@@ -27,36 +28,43 @@ class Pipeline(Resource):
         Any session, run, experiment related to the pipeline is stopped
         and removed from the db.
         """
-        delete_pipeline(project_uuid, pipeline_uuid)
-        return {"message": "Pipeline deletion was successful"}, 200
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                DeletePipeline(tpe).transaction(project_uuid, pipeline_uuid)
+
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        return {"message": "Pipeline deletion was successful."}, 200
 
 
-def delete_pipeline(project_uuid, pipeline_uuid):
+class DeletePipeline(TwoPhaseFunction):
     """Delete a pipeline and all related entities.
 
 
-    Any session or run related to the pipeline is stopped
-    and removed from the db.
-
-    Args:
-        project_uuid:
-        pipeline_uuid:
+    Any session or run related to the pipeline is stopped and removed
+    from the db.
     """
-    # any interactive run related to the pipeline is stopped
-    # if necessary, then deleted
-    interactive_runs = models.InteractivePipelineRun.query.filter_by(
-        project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-    ).all()
-    for run in interactive_runs:
-        if run.status in ["PENDING", "STARTED"]:
-            stop_pipeline_run(run.run_uuid)
 
-        # will delete cascade
-        # interactive run pipeline step
-        # interactive run image mapping
-        db.session.delete(run)
+    def _transaction(self, project_uuid: str, pipeline_uuid: str):
+        # Any interactive run related to the pipeline is stopped if
+        # necessary, then deleted.
+        interactive_runs = (
+            models.InteractivePipelineRun.query.filter_by(
+                project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+            )
+            .filter(models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]))
+            .all()
+        )
+        for run in interactive_runs:
+            AbortPipelineRun(self.tpe).transaction(run.run_uuid)
 
-    # stop and delete any session if it exists
-    stop_interactive_session(project_uuid, pipeline_uuid)
+            # Will delete cascade: run pipeline step, interactive run
+            # image mapping,
+            db.session.delete(run)
 
-    db.session.commit()
+        # Stop any interactive session related to the pipeline.
+        StopInteractiveSession(self.tpe).transaction(project_uuid, pipeline_uuid)
+
+    def _collateral(self):
+        pass

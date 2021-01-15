@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from celery.contrib.abortable import AbortableAsyncResult
 from flask import abort, current_app, request
@@ -7,6 +8,7 @@ from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func, or_
 
 import app.models as models
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
@@ -14,41 +16,6 @@ from app.utils import register_schema, update_status_db
 
 api = Namespace("environment-builds", description="Managing environment builds")
 api = register_schema(api)
-
-
-def abort_environment_build(environment_build_uuid, is_running=False):
-    """Aborts an environment build.
-
-    Aborts an environment build by setting its state to ABORTED and
-    sending a REVOKE and ABORT command to celery.
-
-    Args:
-        is_running:
-        environment_build_uuid: uuid of the environment build to abort
-
-    Returns:
-
-    """
-    filter_by = {
-        "build_uuid": environment_build_uuid,
-    }
-    status_update = {"status": "ABORTED"}
-    celery_app = make_celery(current_app)
-
-    # Make use of both constructs (revoke, abort) so we cover both a
-    # task that is pending and a task which is running.
-    celery_app.control.revoke(environment_build_uuid, timeout=1.0)
-    if is_running:
-        res = AbortableAsyncResult(environment_build_uuid, app=celery_app)
-        # It is responsibility of the task to terminate by reading it's
-        # aborted status.
-        res.abort()
-
-    update_status_db(
-        status_update,
-        model=models.EnvironmentBuild,
-        filter_by=filter_by,
-    )
 
 
 @api.route("/")
@@ -74,7 +41,7 @@ class EnvironmentBuildList(Resource):
     @api.doc("start_environment_builds")
     @api.expect(schema.environment_build_requests)
     @api.marshal_with(
-        schema.environment_builds, code=201, description="Queued environment build"
+        schema.environment_builds, code=201, description="Queued environment builds"
     )
     def post(self):
         """Queues a list of environment builds.
@@ -110,65 +77,25 @@ class EnvironmentBuildList(Resource):
         ]
 
         defined_builds = []
-        celery = make_celery(current_app)
+        failed_requests = []
         # Start a celery task for each unique environment build request.
         for build_request in builds_requests:
+            try:
+                with TwoPhaseExecutor(db.session) as tpe:
+                    defined_builds.append(
+                        CreateEnvironmentBuild(tpe).transaction(build_request)
+                    )
+            except Exception:
+                failed_requests.append(build_request)
 
-            # Check if a build for this project/environment is
-            # PENDING/STARTED.
-            builds = models.EnvironmentBuild.query.filter(
-                models.EnvironmentBuild.project_uuid == build_request["project_uuid"],
-                models.EnvironmentBuild.environment_uuid
-                == build_request["environment_uuid"],
-                models.EnvironmentBuild.project_path == build_request["project_path"],
-                or_(
-                    models.EnvironmentBuild.status == "PENDING",
-                    models.EnvironmentBuild.status == "STARTED",
-                ),
-            ).all()
+        return_data = {"environment_builds": defined_builds}
+        return_code = 200
 
-            for build in builds:
-                abort_environment_build(build.build_uuid, build.status == "STARTED")
+        if failed_requests:
+            return_data["failed_requests"] = failed_requests
+            return_code = 500
 
-            # We specify the task id beforehand so that we can commit to
-            # the db before actually launching the task, since the task
-            # might make some calls to the orchest-api referring to
-            # itself (e.g. a status update), and thus expecting to find
-            # itself in the db.  This way we avoid race conditions.
-            task_id = str(uuid.uuid4())
-
-            # TODO: verify if forget has the same effect of
-            # ignore_result=True because ignore_result cannot be used
-            # with abortable tasks
-            # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
-            # task.forget()
-
-            environment_build = {
-                "build_uuid": task_id,
-                "project_uuid": build_request["project_uuid"],
-                "environment_uuid": build_request["environment_uuid"],
-                "project_path": build_request["project_path"],
-                "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
-                "status": "PENDING",
-            }
-            defined_builds.append(environment_build)
-            db.session.add(models.EnvironmentBuild(**environment_build))
-            db.session.commit()
-
-            # could probably do without this...
-            celery_job_kwargs = {
-                "project_uuid": build_request["project_uuid"],
-                "environment_uuid": build_request["environment_uuid"],
-                "project_path": build_request["project_path"],
-            }
-
-            celery.send_task(
-                "app.core.tasks.build_environment",
-                kwargs=celery_job_kwargs,
-                task_id=task_id,
-            )
-
-        return {"environment_builds": defined_builds}
+        return return_data, return_code
 
 
 @api.route(
@@ -195,13 +122,18 @@ class EnvironmentBuild(Resource):
         filter_by = {
             "build_uuid": environment_build_uuid,
         }
-        update_status_db(
-            status_update,
-            model=models.EnvironmentBuild,
-            filter_by=filter_by,
-        )
+        try:
+            update_status_db(
+                status_update,
+                model=models.EnvironmentBuild,
+                filter_by=filter_by,
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return {"message": "Failed update operation."}, 500
 
-        return {"message": "Status was updated successfully"}, 200
+        return {"message": "Status was updated successfully."}, 200
 
     @api.doc("delete_environment_build")
     @api.response(200, "Environment build cancelled or stopped ")
@@ -211,29 +143,20 @@ class EnvironmentBuild(Resource):
         However, it will not delete any corresponding database entries,
         it will update the status of corresponding objects to ABORTED.
         """
-        # this first read is to make sure the build exist
-        environment_build = models.EnvironmentBuild.query.get_or_404(
-            environment_build_uuid,
-            description="EnvironmentBuildTask not found",
-        )
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_abort = AbortEnvironmentBuild(tpe).transaction(
+                    environment_build_uuid
+                )
+        except Exception as e:
+            return {"message": str(e)}, 500
 
-        status = environment_build.status
-
-        if status != "PENDING" and status != "STARTED":
-            return (
-                {
-                    "message": (
-                        "Environment build has state %s, no revocation "
-                        "or abortion necessary or possible"
-                    )
-                    % status
-                },
-                200,
-            )
-
-        abort_environment_build(environment_build_uuid, status == "STARTED")
-
-        return {"message": "Environment build was successfully ABORTED"}, 200
+        if could_abort:
+            return {"message": "Environment build termination was successfull."}, 200
+        else:
+            return {
+                "message": "Environment build does not exist or is not running."
+            }, 400
 
 
 @api.route(
@@ -296,54 +219,148 @@ class ProjectEnvironmentMostRecentBuild(Resource):
         )
         if recent:
             return recent.as_dict()
-        abort(404, "EnvironmentBuild not found")
+        abort(404, "EnvironmentBuild not found.")
 
 
-def delete_project_environment_builds(project_uuid, environment_uuid):
-    """Delete environment builds for an environment.
+class CreateEnvironmentBuild(TwoPhaseFunction):
+    def _transaction(self, build_request):
 
-    Environment builds that are in progress are stopped.
+        # Abort any environment build of this environment that is
+        # already running, given by the status of PENDING/STARTED.
+        already_running_builds = models.EnvironmentBuild.query.filter(
+            models.EnvironmentBuild.project_uuid == build_request["project_uuid"],
+            models.EnvironmentBuild.environment_uuid
+            == build_request["environment_uuid"],
+            models.EnvironmentBuild.project_path == build_request["project_path"],
+            or_(
+                models.EnvironmentBuild.status == "PENDING",
+                models.EnvironmentBuild.status == "STARTED",
+            ),
+        ).all()
 
-    Args:
-        project_uuid:
-        environment_uuid:
-    """
-    # order by request time so that the first build might
-    # be related to a PENDING or STARTED build, all others
-    # are surely not PENDING or STARTED
-    env_builds = (
-        models.EnvironmentBuild.query.filter_by(
-            project_uuid=project_uuid, environment_uuid=environment_uuid
+        for build in already_running_builds:
+            AbortEnvironmentBuild(self.tpe).transaction(build.build_uuid)
+
+        # We specify the task id beforehand so that we can commit to the
+        # db before actually launching the task, since the task might
+        # make some calls to the orchest-api referring to itself (e.g.
+        # a status update), and thus expecting to find itself in the db.
+        # This way we avoid race conditions.
+        task_id = str(uuid.uuid4())
+
+        # TODO: verify if forget has the same effect of
+        # ignore_result=True because ignore_result cannot be used with
+        # abortable tasks.
+        # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
+        # task.forget()
+
+        environment_build = {
+            "build_uuid": task_id,
+            "project_uuid": build_request["project_uuid"],
+            "environment_uuid": build_request["environment_uuid"],
+            "project_path": build_request["project_path"],
+            "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
+            "status": "PENDING",
+        }
+        db.session.add(models.EnvironmentBuild(**environment_build))
+
+        self.collateral_kwargs["task_id"] = task_id
+        self.collateral_kwargs["project_uuid"] = build_request["project_uuid"]
+        self.collateral_kwargs["environment_uuid"] = build_request["environment_uuid"]
+        self.collateral_kwargs["project_path"] = build_request["project_path"]
+        return environment_build
+
+    def _collateral(
+        self, task_id: str, project_uuid: str, environment_uuid: str, project_path: str
+    ):
+        celery = make_celery(current_app)
+        celery_job_kwargs = {
+            "project_uuid": project_uuid,
+            "environment_uuid": environment_uuid,
+            "project_path": project_path,
+        }
+
+        celery.send_task(
+            "app.core.tasks.build_environment",
+            kwargs=celery_job_kwargs,
+            task_id=task_id,
         )
-        .order_by(desc(models.EnvironmentBuild.requested_time))
-        .all()
-    )
-
-    if len(env_builds) > 0 and env_builds[0].status in ["PENDING", "STARTED"]:
-        abort_environment_build(env_builds[0].build_uuid, True)
-
-    for build in env_builds:
-        db.session.delete(build)
-    db.session.commit()
 
 
-def delete_project_builds(project_uuid):
-    """Delete up all environment builds for a project.
+class AbortEnvironmentBuild(TwoPhaseFunction):
+    def _transaction(self, environment_build_uuid: str):
 
-    Environment builds that are in progress are stopped.
-
-    Args:
-        project_uuid:
-    """
-    builds = (
-        models.EnvironmentBuild.query.filter_by(project_uuid=project_uuid)
-        .with_entities(
-            models.EnvironmentBuild.project_uuid,
-            models.EnvironmentBuild.environment_uuid,
+        filter_by = {
+            "build_uuid": environment_build_uuid,
+        }
+        status_update = {"status": "ABORTED"}
+        # Will return true if any row is affected, meaning that the
+        # environment build was actually PENDING or STARTED.
+        abortable = update_status_db(
+            status_update,
+            model=models.EnvironmentBuild,
+            filter_by=filter_by,
         )
-        .distinct()
-        .all()
-    )
 
-    for build in builds:
-        delete_project_environment_builds(build.project_uuid, build.environment_uuid)
+        self.collateral_kwargs["environment_build_uuid"] = (
+            environment_build_uuid if abortable else None
+        )
+        return abortable
+
+    def _collateral(self, environment_build_uuid: Optional[str]):
+
+        if not environment_build_uuid:
+            return
+
+        celery_app = make_celery(current_app)
+        # Make use of both constructs (revoke, abort) so we cover both a
+        # task that is pending and a task which is running.
+        celery_app.control.revoke(environment_build_uuid, timeout=1.0)
+        res = AbortableAsyncResult(environment_build_uuid, app=celery_app)
+        # It is responsibility of the task to terminate by reading it's
+        # aborted status.
+        res.abort()
+
+
+class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
+    def _transaction(self, project_uuid: str, environment_uuid: str):
+        # Order by request time so that the first build might be related
+        # be related to a PENDING or STARTED build, all others are
+        # surely not PENDING or STARTED.
+        env_builds = (
+            models.EnvironmentBuild.query.filter_by(
+                project_uuid=project_uuid, environment_uuid=environment_uuid
+            )
+            .order_by(desc(models.EnvironmentBuild.requested_time))
+            .all()
+        )
+
+        if len(env_builds) > 0 and env_builds[0].status in ["PENDING", "STARTED"]:
+            AbortEnvironmentBuild(self.tpe).transaction(env_builds[0].build_uuid)
+
+        for build in env_builds:
+            db.session.delete(build)
+
+    def _collateral(self):
+        pass
+
+
+class DeleteProjectBuilds(TwoPhaseFunction):
+    def _transaction(self, project_uuid: str):
+        builds = (
+            models.EnvironmentBuild.query.filter_by(project_uuid=project_uuid)
+            .with_entities(
+                models.EnvironmentBuild.project_uuid,
+                models.EnvironmentBuild.environment_uuid,
+            )
+            .distinct()
+            .all()
+        )
+
+        for build in builds:
+            DeleteProjectEnvironmentBuilds(self.tpe).transaction(
+                build.project_uuid, build.environment_uuid
+            )
+
+    def _collateral(self):
+        pass

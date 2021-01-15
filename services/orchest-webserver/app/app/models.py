@@ -15,6 +15,19 @@ class Project(db.Model):
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
     path = db.Column(db.String(255), nullable=False, unique=True)
+    # Can be: INITIALIZING, READY, DELETING. The status is used to avoid
+    # race conditions and inconsistencies when discovering new projects
+    # or projects that were deleted through the filesystem, given that
+    # discovery can be concurrent to project deletion or creation.
+    status = db.Column(
+        db.String(15),
+        unique=False,
+        nullable=False,
+        # The default value is rather important, so that people having
+        # their db automatically migrated will have projects in a valid
+        # state.
+        server_default=text("'READY'"),
+    )
 
     __table_args__ = (UniqueConstraint("uuid", "path"),)
     experiments = db.relationship(
@@ -48,8 +61,8 @@ class DataSource(db.Model):
         return f"<DataSource {self.name}:{self.source_type}>"
 
 
-# This class is only serialized on disk, it's never stored in the database
-# The properties are stored in properties.json in the
+# This class is only serialized on disk, it's never stored in the
+# database. The properties are stored in properties.json in the
 # <project>/.orchest/environments/<environment_uuid>/. directory.
 # to avoid unknowingly querying a table that will always be empty, the
 # table is deleted
@@ -113,7 +126,7 @@ class PipelineRun(db.Model):
 
 
 class BackgroundTask(db.Model):
-    """BackgroundTasks, a catch all model for tasks to be run in the background."""
+    """BackgroundTasks, models all tasks to be run in the background."""
 
     __tablename__ = "background_tasks"
 

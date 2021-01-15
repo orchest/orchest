@@ -88,6 +88,9 @@ def update_status_db(
         filter_by: The filter to query the exact resource for which to
             update its status.
 
+    Returns:
+        True if at least 1 row was updated, false otherwise.
+
     """
     data = status_update
 
@@ -120,10 +123,7 @@ def update_status_db(
         )
     )
 
-    if res:
-        db.session.commit()
-
-    return
+    return bool(res)
 
 
 def get_environment_image_docker_id(name_or_id: str):
@@ -230,6 +230,9 @@ def lock_environment_images_for_run(
         for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
     ]
     db.session.bulk_save_objects(run_image_mappings)
+    # Note that the commit(s) in this function are necessary to be able
+    # to "lock" the images, i.e. we need to have the data in the db
+    # ASAP.
     db.session.commit()
 
     # if the mappings have changed it means that at least 1 image

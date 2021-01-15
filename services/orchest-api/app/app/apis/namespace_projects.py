@@ -6,10 +6,11 @@ project, a good amount of other models depend on such a concept.
 from flask_restx import Namespace, Resource
 
 import app.models as models
-from app.apis.namespace_environment_images import delete_project_environment_images
-from app.apis.namespace_experiments import delete_experiment
-from app.apis.namespace_runs import stop_pipeline_run
-from app.apis.namespace_sessions import stop_interactive_session
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from app.apis.namespace_environment_images import DeleteProjectEnvironmentImages
+from app.apis.namespace_experiments import DeleteExperiment
+from app.apis.namespace_runs import AbortPipelineRun
+from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
 from app.utils import register_schema
 
@@ -28,62 +29,72 @@ class Project(Resource):
         Any session, run, experiment related to the project is stopped
         and removed from the db. Environment images are removed.
         """
-        delete_project(project_uuid)
-        return {"message": "Project deletion was successful"}, 200
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                DeleteProject(tpe).transaction(project_uuid)
+
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        return {"message": "Project deletion was successful."}, 200
 
 
-def delete_project(project_uuid):
+class DeleteProject(TwoPhaseFunction):
     """Delete a project and all related entities.
+
 
     Project sessions, runs and experiments are stopped. Every
     related entity in the db is removed. Environment images are
     deleted up.
-
-    Args:
-        project_uuid:
     """
 
-    # any interactive run related to the pipeline is stopped
-    # if necessary, then deleted
-    interactive_runs = models.InteractivePipelineRun.query.filter_by(
-        project_uuid=project_uuid
-    ).all()
-    for run in interactive_runs:
-        if run.status in ["PENDING", "STARTED"]:
-            stop_pipeline_run(run.run_uuid)
-        # will delete cascade
-        # interactive run pipeline step
-        # interactive run image mapping
-        db.session.delete(run)
-
-    # stop and delete any running session
-    sessions = (
-        models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid,
+    def _transaction(self, project_uuid: str):
+        # Any interactive run related to the project is stopped if
+        # if necessary, then deleted.
+        interactive_runs = (
+            models.InteractivePipelineRun.query.filter_by(project_uuid=project_uuid)
+            .filter(models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]))
+            .all()
         )
-        .with_entities(
-            models.InteractiveSession.project_uuid,
-            models.InteractiveSession.pipeline_uuid,
-        )
-        .distinct()
-        .all()
-    )
-    for session in sessions:
-        # stop and delete any session if it exists
-        stop_interactive_session(session.project_uuid, session.pipeline_uuid)
+        for run in interactive_runs:
+            AbortPipelineRun(self.tpe).transaction(run.run_uuid)
+            # Will delete cascade interactive run pipeline step,
+            # interactive run image mapping.
+            db.session.delete(run)
 
-    # any experiment related to the pipeline is stopped if necessary,
-    # then deleted
-    experiments = (
-        models.Experiment.query.filter_by(
-            project_uuid=project_uuid,
+        # Stop (and delete) any interactive session related to the
+        # project.
+        sessions = (
+            models.InteractiveSession.query.filter_by(
+                project_uuid=project_uuid,
+            )
+            .with_entities(
+                models.InteractiveSession.project_uuid,
+                models.InteractiveSession.pipeline_uuid,
+            )
+            .distinct()
+            .all()
         )
-        .with_entities(models.Experiment.experiment_uuid)
-        .all()
-    )
-    for experiment in experiments:
-        delete_experiment(experiment.experiment_uuid)
+        for session in sessions:
+            # Stop any interactive session related to the pipeline.
+            StopInteractiveSession(self.tpe).transaction(
+                project_uuid, session.pipeline_uuid
+            )
 
-    # delete images (will also take care of builds and dangling images)
-    delete_project_environment_images(project_uuid)
-    db.session.commit()
+        # Any experiment related to the pipeline is stopped if necessary
+        # , then deleted.
+        experiments = (
+            models.Experiment.query.filter_by(
+                project_uuid=project_uuid,
+            )
+            .with_entities(models.Experiment.experiment_uuid)
+            .all()
+        )
+        for experiment in experiments:
+            DeleteExperiment(experiment.experiment_uuid)
+
+        # Remove images related to the project.
+        DeleteProjectEnvironmentImages(self.tpe).transaction(project_uuid)
+
+    def _collateral(self):
+        pass

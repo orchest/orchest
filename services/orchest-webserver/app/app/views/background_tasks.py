@@ -28,10 +28,14 @@ def register_background_tasks_view(app, db):
             if task is None:
                 return "", 404
 
-            task.status = request.json["status"]
-            task.code = request.json.get("code", None)
-            task.result = request.json.get("result", None)
-            db.session.commit()
+            try:
+                task.status = request.json["status"]
+                task.code = request.json.get("code", None)
+                task.result = request.json.get("result", None)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                return {"message": "Failed update operation."}, 500
 
             return background_task_schema.dump(task)
 
