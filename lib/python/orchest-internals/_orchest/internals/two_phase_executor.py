@@ -118,13 +118,13 @@ class TwoPhaseFunction(ABC):
 
     def __init__(self, tpe):
         self.tpe = tpe
-        self.orig_transaction = self.transaction
+        self._orig_transaction = self.transaction
         self.transaction = self._transaction
 
     def _transaction(self, *args, **kwargs):
 
         self.tpe.collateral_queue.append(self)
-        return self.orig_transaction(*args, **kwargs)
+        return self._orig_transaction(*args, **kwargs)
 
     @abstractmethod
     def transaction(self, *args, **kwargs):  # pylint: disable=E0202
