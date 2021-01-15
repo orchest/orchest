@@ -87,6 +87,35 @@ class TwoPhaseExecutor(object):
 
 
 class TwoPhaseFunction(ABC):
+    """A class to keep database and collateral effects separated.
+
+    Use this class (combined with TwoPhaseExecutor) to have
+    transactional effects happen before collateral effects. Assuming a
+    TwoPhaseFunction is executed in the context of a TwoPhaseExecutor,
+    the transaction method must not commit, given that all the combined
+    transaction methods of the TwoPhaseFunctions that are run in the
+    context of a TwoPhaseExecutor are considered to be part of the same
+    transaction, so that errors during the transactional phase can be
+    solved by issuing a rollback of the entire transaction. Similarly,
+    the transaction method does not have (nor need) to rollback, since
+    any uncaught exception during the transactional phase will bubble
+    up to the TwoPhaseExecutor, which will take care of that. The
+    collateral and revert functions are free to commit and rollback,
+    given that whatever happens in their body is considered a collateral
+    effect and not part of a transaction. This mean that they must take
+    care of their own commits. Taking care of rollbacks is optional
+    since the TwoPhaseExecutor will rollback if any exception raises
+    during a collateral() or revert call(). All in all, this means that:
+    - transaction: must not commit, rollback not necessary
+    - collateral: should commit it's own changes, rollback not necessary
+    - revert: should commit it's own changes, rollback not necessary
+
+    TODO: find a way to detect if a commit has happened in the
+    transactional phase, i.e. if any transaction is calling commit on
+    its own.
+
+    """
+
     def __init__(self, tpe):
         self.tpe = tpe
         self.orig_transaction = self.transaction
