@@ -1,4 +1,3 @@
-from flask import current_app
 from flask_restx import Namespace, Resource
 
 from _orchest.internals import config as _config
@@ -40,7 +39,6 @@ class EnvironmentImage(Resource):
                 DeleteImage(tpe).transaction(project_uuid, environment_uuid)
 
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         return {"message": "Environment image was successfully deleted."}, 200

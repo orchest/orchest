@@ -95,8 +95,7 @@ class Run(Resource):
                 status_update, model=models.PipelineRun, filter_by=filter_by
             )
             db.session.commit()
-        except Exception as e:
-            current_app.logger.info(str(e))
+        except Exception:
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -149,9 +148,8 @@ class StepStatus(Resource):
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
             db.session.commit()
-        except Exception as e:
+        except Exception:
             db.session.rollback()
-            current_app.logger.info(str(e))
             return {"message": "Failed update operation."}, 500
 
         return {"message": "Status was updated successfully."}, 200
@@ -272,7 +270,6 @@ class CreateInteractiveRun(TwoPhaseFunction):
                 "Pipeline was referencing environments for "
                 f"which an image does not exist, {e}"
             )
-            current_app.logger.error(msg)
             raise errors.ImageNotFound(msg)
 
         # Create Celery object with the Flask context and construct the

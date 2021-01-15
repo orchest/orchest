@@ -67,7 +67,6 @@ class ExperimentList(Resource):
                     post_data["pipeline_run_ids"],
                 )
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         return experiment, 201
@@ -104,7 +103,6 @@ class Experiment(Resource):
             with TwoPhaseExecutor(db.session) as tpe:
                 could_abort = AbortExperiment(tpe).transaction(experiment_uuid)
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_abort:
@@ -164,8 +162,7 @@ class PipelineRun(Resource):
                 filter_by=filter_by,
             )
             db.session.commit()
-        except Exception as e:
-            current_app.logger.error(e)
+        except Exception:
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -213,8 +210,7 @@ class PipelineStepStatus(Resource):
                 filter_by=filter_by,
             )
             db.session.commit()
-        except Exception as e:
-            current_app.logger.error(e)
+        except Exception:
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -238,7 +234,6 @@ class ExperimentDeletion(Resource):
             with TwoPhaseExecutor(db.session) as tpe:
                 could_delete = DeleteExperiment(tpe).transaction(experiment_uuid)
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_delete:

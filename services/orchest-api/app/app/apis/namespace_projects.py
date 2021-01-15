@@ -3,7 +3,6 @@
 Despite the fact that the orchest api has no model related to a
 project, a good amount of other models depend on such a concept.
 """
-from flask import current_app
 from flask_restx import Namespace, Resource
 
 import app.models as models
@@ -35,7 +34,6 @@ class Project(Resource):
                 DeleteProject(tpe).transaction(project_uuid)
 
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         return {"message": "Project deletion was successful."}, 200

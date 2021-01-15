@@ -148,8 +148,6 @@ class DeleteProject(TwoPhaseFunction):
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/projects/"
             f"{self.project_uuid}"
         )
-        current_app.logger.info("api deletion")
-        current_app.logger.info(url)
         current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
         # Will delete cascade pipeline, experiment, pipeline run.

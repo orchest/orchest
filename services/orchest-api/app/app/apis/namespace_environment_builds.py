@@ -84,8 +84,7 @@ class EnvironmentBuildList(Resource):
                     defined_builds.append(
                         CreateEnvironmentBuild(tpe).transaction(build_request)
                     )
-            except Exception as e:
-                current_app.logger.error(e)
+            except Exception:
                 failed_requests.append(build_request)
 
         return_data = {"environment_builds": defined_builds}
@@ -129,8 +128,7 @@ class EnvironmentBuild(Resource):
                 filter_by=filter_by,
             )
             db.session.commit()
-        except Exception as e:
-            current_app.logger.error(e)
+        except Exception:
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -150,7 +148,6 @@ class EnvironmentBuild(Resource):
                     environment_build_uuid
                 )
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_abort:

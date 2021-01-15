@@ -1,4 +1,4 @@
-from flask import current_app, request
+from flask import request
 from flask_restx import Namespace, Resource
 
 import app.models as models
@@ -52,7 +52,6 @@ class SessionList(Resource):
                     post_data["settings"]["data_passing_memory_size"],
                 )
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         isess = models.InteractiveSession.query.filter_by(
@@ -95,7 +94,6 @@ class Session(Resource):
                     project_uuid, pipeline_uuid
                 )
         except Exception as e:
-            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         if could_shutdown:

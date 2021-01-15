@@ -178,8 +178,7 @@ def register_views(app, db):
                 ds.connection_details = request.json["connection_details"]
                 try:
                     db.session.commit()
-                except Exception as e:
-                    current_app.logger.error(e)
+                except Exception:
                     db.session.rollback()
                     return {"message": "Failed update operation."}, 500
 
@@ -202,8 +201,7 @@ def register_views(app, db):
                 db.session.delete(ds)
                 try:
                     db.session.commit()
-                except Exception as e:
-                    current_app.logger.error(e)
+                except Exception:
                     db.session.rollback()
                     return {"message": "Failed to delete data source."}, 500
 
@@ -222,8 +220,7 @@ def register_views(app, db):
                 db.session.add(new_ds)
                 try:
                     db.session.commit()
-                except Exception as e:
-                    current_app.logger.error(e)
+                except Exception:
                     db.session.rollback()
                     return {"message": "Failed to create data source."}, 500
 
@@ -263,8 +260,7 @@ def register_views(app, db):
 
                 try:
                     db.session.commit()
-                except Exception as e:
-                    current_app.logger.error(e)
+                except Exception:
                     db.session.rollback()
                     return {"message": "Failed update operation."}, 500
 
@@ -285,7 +281,6 @@ def register_views(app, db):
                         DeleteExperiment(tpe).transaction(experiment_uuid)
                 except Exception as e:
                     msg = f"Error during experiment deletion:{e}"
-                    current_app.logger.error(msg)
                     return {"message": msg}, 500
 
                 return jsonify({"message": "Experiment termination was successful."})
@@ -309,7 +304,6 @@ def register_views(app, db):
                         )
                 except Exception as e:
                     msg = f"Error during experiment creation:{e}"
-                    current_app.logger.error(msg)
                     return {"message": msg}, 500
 
                 return experiment_schema.dump(new_exp)
@@ -417,7 +411,6 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 DeletePipeline(tpe).transaction(project_uuid, pipeline_uuid)
         except Exception as e:
-            current_app.logger.error(str(e))
             return {"message": str(e)}, 500
 
         return jsonify({"success": True})
@@ -451,8 +444,7 @@ def register_views(app, db):
 
         try:
             db.session.commit()
-        except Exception as e:
-            current_app.logger.error(e)
+        except Exception:
             db.session.rollback()
             return {"message": "Failed to create pipeline runs."}, 500
 
@@ -470,7 +462,6 @@ def register_views(app, db):
                     project_uuid, pipeline_name, pipeline_path
                 )
         except Exception as e:
-            current_app.logger.error(str(e))
             return jsonify({"message": str(e)}), 409
 
         return jsonify({"success": True})
@@ -484,7 +475,6 @@ def register_views(app, db):
                         request.json["url"], request.json.get("name")
                     )
             except Exception as e:
-                current_app.logger.error(str(e))
                 return jsonify({"message": str(e)}), 500
 
             return background_task_schema.dump(task)
@@ -516,7 +506,7 @@ def register_views(app, db):
             except Exception as e:
                 current_app.logger.error(
                     (
-                        "Error during project initialization (discovery) of "
+                        "Error during project deletion (discovery) of "
                         f"{proj_uuid}: {e}."
                     )
                 )
@@ -541,7 +531,10 @@ def register_views(app, db):
                     CreateProject(tpe).transaction(new_project_path)
             except Exception as e:
                 current_app.logger.error(
-                    f"Error during project initialization of {new_project_path}: {e}."
+                    (
+                        "Error during project initialization (discovery) of "
+                        f"{new_project_path}: {e}."
+                    )
                 )
 
     @app.route("/async/projects", methods=["GET"])
@@ -588,7 +581,6 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 CreateProject(tpe).transaction(request.json["name"])
         except Exception as e:
-            current_app.logger.error(e)
 
             # The sql integrity error message can be quite ugly.
             if isinstance(e, sqlalchemy.exc.IntegrityError):
@@ -609,7 +601,6 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 DeleteProject(tpe).transaction(request.json["project_uuid"])
         except Exception as e:
-            current_app.logger.error(str(e))
             return (
                 jsonify({"message": f"Failed to delete the project. Error: {e}"}),
                 500,
@@ -642,7 +633,6 @@ def register_views(app, db):
                 "Error during project pipelines synchronization of "
                 f"{project_uuid}: {str(e)}."
             )
-            current_app.logger.error(msg)
             return jsonify({"message": msg}), 500
 
         pipelines = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).all()
