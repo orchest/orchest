@@ -9,10 +9,10 @@ from flask.globals import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
 from app.connections import db
-from app.core.experiments import DeleteExperiment
+from app.core.jobs import DeleteJob
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
 from app.kernel_manager import populate_kernels
-from app.models import BackgroundTask, Experiment, Pipeline, Project
+from app.models import BackgroundTask, Job, Pipeline, Project
 from app.utils import (
     find_pipelines_in_dir,
     get_environments,
@@ -128,11 +128,9 @@ class DeleteProject(TwoPhaseFunction):
     def _transaction(self, project_uuid: str):
         """Remove a project from the db"""
 
-        experiments = Experiment.query.filter(
-            Experiment.project_uuid == project_uuid
-        ).all()
-        for ex in experiments:
-            DeleteExperiment(self.tpe).transaction(ex.uuid)
+        jobs = Job.query.filter(Job.project_uuid == project_uuid).all()
+        for ex in jobs:
+            DeleteJob(self.tpe).transaction(ex.uuid)
 
         Project.query.filter_by(uuid=project_uuid).update({"status": "DELETING"})
 
@@ -155,7 +153,7 @@ class DeleteProject(TwoPhaseFunction):
         )
         current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
-        # Will delete cascade pipeline, experiment, pipeline run.
+        # Will delete cascade pipeline, job, pipeline run.
         Project.query.filter_by(uuid=project_uuid).delete()
         db.session.commit()
 

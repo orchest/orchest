@@ -10,7 +10,7 @@ With Orchest you get to:
 * :ref:`Write code using any other editor of choice <edit with vim>`.
 * :ref:`Run any subset of a pipeline <run any subset>`.
 * :ref:`Skip certain cells when executing a notebook top-to-bottom <skip cells>`.
-* :ref:`Parametrize your data science pipelines to experiment with different modeling ideas
+* :ref:`Parametrize your data science pipelines to try out different modeling ideas
   <parametrize pipelines>`.
 * :ref:`Integrate commonly used data sources <integrate data sources>`.
 * :ref:`Easily define your custom runtime environment <custom runtime environment>`.

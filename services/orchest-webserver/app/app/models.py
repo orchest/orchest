@@ -30,8 +30,8 @@ class Project(db.Model):
     )
 
     __table_args__ = (UniqueConstraint("uuid", "path"),)
-    experiments = db.relationship(
-        "Experiment", lazy="joined", passive_deletes=False, cascade="all, delete"
+    jobs = db.relationship(
+        "Job", lazy="joined", passive_deletes=False, cascade="all, delete"
     )
 
 
@@ -94,8 +94,8 @@ class Environment(db.Model):
         return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"
 
 
-class Experiment(db.Model):
-    __tablename__ = "experiments"
+class Job(db.Model):
+    __tablename__ = "jobs"
 
     name = db.Column(db.String(255), unique=False, nullable=False)
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
@@ -121,7 +121,7 @@ class PipelineRun(db.Model):
 
     uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
     id = db.Column(db.Integer(), unique=False)
-    experiment = db.Column(db.ForeignKey("experiments.uuid", ondelete="CASCADE"))
+    job = db.Column(db.ForeignKey("jobs.uuid", ondelete="CASCADE"))
     parameter_json = db.Column(db.JSON, nullable=False)
 
 

@@ -47,7 +47,7 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    user_guide/how_orchest_works
    user_guide/data_passing
    user_guide/environments
-   user_guide/experiments
+   user_guide/jobs
    user_guide/data_sources
    user_guide/sdk/index
    user_guide/other

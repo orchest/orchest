@@ -1,4 +1,3 @@
-from _orchest.internals import config as _config
 from app.connections import ma
 
 
@@ -30,7 +29,7 @@ class EnvironmentSchema(ma.Schema):
         )
 
 
-class ExperimentSchema(ma.Schema):
+class JobSchema(ma.Schema):
     class Meta:
         fields = (
             "name",

@@ -3,7 +3,7 @@ from flask_restx import Api
 
 from app.apis.namespace_environment_builds import api as ns_env_builds
 from app.apis.namespace_environment_images import api as ns_env_images
-from app.apis.namespace_experiments import api as ns_experiments
+from app.apis.namespace_jobs import api as ns_jobs
 from app.apis.namespace_pipelines import api as ns_pipelines
 from app.apis.namespace_projects import api as ns_projects
 from app.apis.namespace_runs import api as ns_runs
@@ -21,7 +21,7 @@ api = Api(
 
 api.add_namespace(ns_env_builds)
 api.add_namespace(ns_env_images)
-api.add_namespace(ns_experiments)
+api.add_namespace(ns_jobs)
 api.add_namespace(ns_pipelines)
 api.add_namespace(ns_projects)
 api.add_namespace(ns_runs)

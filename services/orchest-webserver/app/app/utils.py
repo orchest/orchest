@@ -9,7 +9,7 @@ from flask import current_app
 
 from _orchest.internals import config as _config
 from app.config import CONFIG_CLASS as StaticConfig
-from app.models import Environment, Experiment, Pipeline, Project
+from app.models import Environment, Job, Pipeline, Project
 from app.schemas import EnvironmentSchema
 
 
@@ -17,7 +17,7 @@ from app.schemas import EnvironmentSchema
 def get_pipeline_path(
     pipeline_uuid,
     project_uuid,
-    experiment_uuid=None,
+    job_uuid=None,
     pipeline_run_uuid=None,
     host_path=False,
     pipeline_path=None,
@@ -29,36 +29,28 @@ def get_pipeline_path(
         USER_DIR = StaticConfig.HOST_USER_DIR
 
     if pipeline_path is None:
-        pipeline_path = pipeline_uuid_to_path(
-            pipeline_uuid, project_uuid, experiment_uuid
-        )
+        pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid)
 
     project_path = project_uuid_to_path(project_uuid)
 
-    if pipeline_run_uuid is None and experiment_uuid is None:
+    if pipeline_run_uuid is None and job_uuid is None:
         return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
-    elif pipeline_run_uuid is not None and experiment_uuid is not None:
+    elif pipeline_run_uuid is not None and job_uuid is not None:
         return os.path.join(
-            get_experiment_directory(
-                pipeline_uuid, project_uuid, experiment_uuid, host_path
-            ),
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
             pipeline_run_uuid,
             pipeline_path,
         )
-    elif experiment_uuid is not None:
+    elif job_uuid is not None:
         return os.path.join(
-            get_experiment_directory(
-                pipeline_uuid, project_uuid, experiment_uuid, host_path
-            ),
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
             "snapshot",
             pipeline_path,
         )
 
 
-def get_experiment_directory(
-    pipeline_uuid, project_uuid, experiment_uuid, host_path=False
-):
-    """Experiment directory contains:
+def get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path=False):
+    """Job directory contains:
     snapshot/
     <pipeline_run_uuid>/<project copy>
     """
@@ -67,15 +59,13 @@ def get_experiment_directory(
     if host_path is True:
         USER_DIR = StaticConfig.HOST_USER_DIR
 
-    return os.path.join(
-        USER_DIR, "experiments", project_uuid, pipeline_uuid, experiment_uuid
-    )
+    return os.path.join(USER_DIR, "jobs", project_uuid, pipeline_uuid, job_uuid)
 
 
 def get_pipeline_directory(
     pipeline_uuid,
     project_uuid,
-    experiment_uuid=None,
+    job_uuid=None,
     pipeline_run_uuid=None,
     host_path=False,
 ):
@@ -85,7 +75,7 @@ def get_pipeline_directory(
         get_pipeline_path(
             pipeline_uuid,
             project_uuid,
-            experiment_uuid,
+            job_uuid,
             pipeline_run_uuid,
             host_path,
         )
@@ -325,8 +315,8 @@ def remove_dir_if_empty(path):
         )
 
 
-def pipeline_uuid_to_path(pipeline_uuid, project_uuid, experiment_uuid=None):
-    if experiment_uuid is None:
+def pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid=None):
+    if job_uuid is None:
         pipeline = (
             Pipeline.query.filter(Pipeline.uuid == pipeline_uuid)
             .filter(Pipeline.project_uuid == project_uuid)
@@ -337,10 +327,10 @@ def pipeline_uuid_to_path(pipeline_uuid, project_uuid, experiment_uuid=None):
         else:
             return None
     else:
-        experiment = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
+        job = Job.query.filter(Job.uuid == job_uuid).first()
 
-        if experiment is not None:
-            return experiment.pipeline_path
+        if job is not None:
+            return job.pipeline_path
         else:
             return None
 
@@ -406,7 +396,7 @@ def write_config(app, key, value):
     os.system("chmod o+rw " + conf_json_path)
 
 
-def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
     def ignore_patterns(path, fnames):
         """
             Example:
@@ -423,7 +413,7 @@ def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
         return []
 
     snapshot_path = os.path.join(
-        get_experiment_directory(pipeline_uuid, project_uuid, experiment_uuid),
+        get_job_directory(pipeline_uuid, project_uuid, job_uuid),
         "snapshot",
     )
 
@@ -436,21 +426,21 @@ def create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
     shutil.copytree(project_dir, snapshot_path, ignore=ignore_patterns)
 
 
-def remove_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid):
+def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
 
-    experiment_project_path = os.path.join(
-        current_app.config["USER_DIR"], "experiments", project_uuid
+    job_project_path = os.path.join(
+        current_app.config["USER_DIR"], "jobs", project_uuid
     )
-    experiment_pipeline_path = os.path.join(experiment_project_path, pipeline_uuid)
-    experiment_path = os.path.join(experiment_pipeline_path, experiment_uuid)
+    job_pipeline_path = os.path.join(job_project_path, pipeline_uuid)
+    job_path = os.path.join(job_pipeline_path, job_uuid)
 
-    if os.path.isdir(experiment_path):
-        shutil.rmtree(experiment_path, ignore_errors=True)
+    if os.path.isdir(job_path):
+        shutil.rmtree(job_path, ignore_errors=True)
 
-    # Clean up parent directory if this experiment removal created empty
+    # Clean up parent directory if this job removal created empty
     # directories.
-    remove_dir_if_empty(experiment_pipeline_path)
-    remove_dir_if_empty(experiment_project_path)
+    remove_dir_if_empty(job_pipeline_path)
+    remove_dir_if_empty(job_project_path)
 
 
 def generate_ipynb_from_template(step, project_uuid):

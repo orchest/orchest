@@ -14,7 +14,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
     It's called Partial because it skips over cells in its execution
     process that have been tagged 'skip'. A useful feature for running
     Notebooks that contain code left over from interactive
-    sessions/experimentation.
+    sessions.
     """
 
     def __init__(

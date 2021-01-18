@@ -4,13 +4,13 @@ umask 002
 
 [ -z "$ORCHEST_LOG_LEVEL" ] && ORCHEST_LOG_LEVEL="INFO"
 
-# Experiments.
+# Jobs.
 celery worker -A app.core.tasks \
     -l "$ORCHEST_LOG_LEVEL" \
-    -Q experiments \
+    -Q jobs \
     -n worker-expriments \
     --statedb /userdir/.orchest/celery-state.db \
-    -f celery_experiments.log \
+    -f celery_jobs.log \
     --concurrency=1 \
     --pidfile="worker-expriments.pid" \
     --detach

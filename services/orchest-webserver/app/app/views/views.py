@@ -14,7 +14,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app.analytics import send_anonymized_pipeline_definition
-from app.core.experiments import CreateExperiment, DeleteExperiment
+from app.core.jobs import CreateJob, DeleteJob
 from app.core.pipelines import CreatePipeline, DeletePipeline
 from app.core.projects import (
     CreateProject,
@@ -23,19 +23,12 @@ from app.core.projects import (
     SyncProjectPipelinesDBState,
 )
 from app.kernel_manager import populate_kernels
-from app.models import (
-    DataSource,
-    Environment,
-    Experiment,
-    Pipeline,
-    PipelineRun,
-    Project,
-)
+from app.models import DataSource, Environment, Job, Pipeline, PipelineRun, Project
 from app.schemas import (
     BackgroundTaskSchema,
     DataSourceSchema,
     EnvironmentSchema,
-    ExperimentSchema,
+    JobSchema,
     PipelineSchema,
     ProjectSchema,
 )
@@ -81,8 +74,8 @@ def register_views(app, db):
     environment_schema = EnvironmentSchema()
     environments_schema = EnvironmentSchema(many=True)
 
-    experiment_schema = ExperimentSchema()
-    experiments_schema = ExperimentSchema(many=True)
+    job_schema = JobSchema()
+    jobs_schema = JobSchema(many=True)
 
     background_task_schema = BackgroundTaskSchema()
 
@@ -229,25 +222,23 @@ def register_views(app, db):
         api.add_resource(DataSourcesResource, "/store/datasources")
         api.add_resource(DataSourceResource, "/store/datasources/<string:name>")
 
-    def register_experiments(db, api):
-        class ExperimentsResource(Resource):
+    def register_jobs(db, api):
+        class JobsResource(Resource):
             def get(self):
 
-                experiment_query = Experiment.query
+                job_query = Job.query
 
                 project_uuid = request.args.get("project_uuid")
                 if project_uuid is not None:
-                    experiment_query = experiment_query.filter(
-                        Experiment.project_uuid == project_uuid
-                    )
+                    job_query = job_query.filter(Job.project_uuid == project_uuid)
 
-                experiments = experiment_query.all()
-                return experiments_schema.dump(experiments)
+                jobs = job_query.all()
+                return jobs_schema.dump(jobs)
 
-        class ExperimentResource(Resource):
-            def put(self, experiment_uuid):
+        class JobResource(Resource):
+            def put(self, job_uuid):
 
-                ex = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
+                ex = Job.query.filter(Job.uuid == job_uuid).first()
 
                 if ex is None:
                     return "", 404
@@ -264,57 +255,55 @@ def register_views(app, db):
                     db.session.rollback()
                     return {"message": "Failed update operation."}, 500
 
-                return experiment_schema.dump(ex)
+                return job_schema.dump(ex)
 
-            def get(self, experiment_uuid):
-                ex = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
+            def get(self, job_uuid):
+                ex = Job.query.filter(Job.uuid == job_uuid).first()
 
                 if ex is None:
                     return "", 404
 
-                return experiment_schema.dump(ex)
+                return job_schema.dump(ex)
 
-            def delete(self, experiment_uuid):
+            def delete(self, job_uuid):
 
                 try:
                     with TwoPhaseExecutor(db.session) as tpe:
-                        DeleteExperiment(tpe).transaction(experiment_uuid)
+                        DeleteJob(tpe).transaction(job_uuid)
                 except Exception as e:
-                    msg = f"Error during experiment deletion:{e}"
+                    msg = f"Error during job deletion:{e}"
                     return {"message": msg}, 500
 
-                return jsonify({"message": "Experiment termination was successful."})
+                return jsonify({"message": "Job termination was successful."})
 
-            def post(self, experiment_uuid):
+            def post(self, job_uuid):
 
                 project_uuid = request.json["project_uuid"]
                 pipeline_uuid = request.json["pipeline_uuid"]
                 pipeline_name = request.json["pipeline_name"]
-                experiment_name = request.json["name"]
+                job_name = request.json["name"]
                 draft = request.json["draft"]
 
                 try:
                     with TwoPhaseExecutor(db.session) as tpe:
-                        new_exp = CreateExperiment(tpe).transaction(
+                        new_exp = CreateJob(tpe).transaction(
                             project_uuid,
                             pipeline_uuid,
                             pipeline_name,
-                            experiment_name,
+                            job_name,
                             draft,
                         )
                 except Exception as e:
-                    msg = f"Error during experiment creation:{e}"
+                    msg = f"Error during job creation:{e}"
                     return {"message": msg}, 500
 
-                return experiment_schema.dump(new_exp)
+                return job_schema.dump(new_exp)
 
-        api.add_resource(ExperimentsResource, "/store/experiments")
-        api.add_resource(
-            ExperimentResource, "/store/experiments/<string:experiment_uuid>"
-        )
+        api.add_resource(JobsResource, "/store/jobs")
+        api.add_resource(JobResource, "/store/jobs/<string:job_uuid>")
 
     register_datasources(db, api)
-    register_experiments(db, api)
+    register_jobs(db, api)
     register_environments(db, api)
 
     def return_404(reason=""):
@@ -418,7 +407,7 @@ def register_views(app, db):
     @app.route("/async/pipelineruns/create", methods=["POST"])
     def pipelineruns_create():
 
-        experiment_uuid = request.json["experiment_uuid"]
+        job_uuid = request.json["job_uuid"]
 
         # Convert a list like [0, 1, 0, 1] to [1, 3].
         selected_indices = [
@@ -432,10 +421,10 @@ def register_views(app, db):
         for i, idx in enumerate(selected_indices):
             # NOTE: the order of the `pipeline_runs` property
             # corresponds to the order of the `selected_indices`.
-            pipeline_run = request.json["experiment_json"]["pipeline_runs"][i]
+            pipeline_run = request.json["job_json"]["pipeline_runs"][i]
             pr = PipelineRun(
                 uuid=pipeline_run["run_uuid"],
-                experiment=experiment_uuid,
+                job=job_uuid,
                 parameter_json=generated_runs[idx],
                 id=pipeline_run["pipeline_run_id"],
             )
@@ -567,8 +556,8 @@ def register_views(app, db):
             project["pipeline_count"] = Pipeline.query.filter(
                 Pipeline.project_uuid == project["uuid"]
             ).count()
-            project["experiment_count"] = Experiment.query.filter(
-                Experiment.project_uuid == project["uuid"]
+            project["job_count"] = Job.query.filter(
+                Job.project_uuid == project["uuid"]
             ).count()
             project["environment_count"] = len(get_environments(project["uuid"]))
 
@@ -665,14 +654,14 @@ def register_views(app, db):
     )
     def file_viewer(project_uuid, pipeline_uuid, step_uuid):
 
-        experiment_uuid = request.args.get("experiment_uuid")
+        job_uuid = request.args.get("job_uuid")
         pipeline_run_uuid = request.args.get("pipeline_run_uuid")
 
         pipeline_json_path = get_pipeline_path(
-            pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid
+            pipeline_uuid, project_uuid, job_uuid, pipeline_run_uuid
         )
         pipeline_dir = get_pipeline_directory(
-            pipeline_uuid, project_uuid, experiment_uuid, pipeline_run_uuid
+            pipeline_uuid, project_uuid, job_uuid, pipeline_run_uuid
         )
 
         if os.path.isfile(pipeline_json_path):
@@ -734,7 +723,7 @@ def register_views(app, db):
         pipeline_json_path = get_pipeline_path(
             pipeline_uuid,
             project_uuid,
-            request.args.get("experiment_uuid"),
+            request.args.get("job_uuid"),
             request.args.get("pipeline_run_uuid"),
         )
 
@@ -743,7 +732,7 @@ def register_views(app, db):
             pipeline_directory = get_pipeline_directory(
                 pipeline_uuid,
                 project_uuid,
-                request.args.get("experiment_uuid"),
+                request.args.get("job_uuid"),
                 request.args.get("pipeline_run_uuid"),
             )
 

@@ -287,9 +287,7 @@ class PipelineView extends React.Component {
       try {
         this.state.runUUID = this.props.pipelineRun.run_uuid;
         this.state.runStatusEndpoint =
-          "/catch/api-proxy/api/experiments/" +
-          this.props.pipelineRun.experiment_uuid +
-          "/";
+          "/catch/api-proxy/api/jobs/" + this.props.pipelineRun.job_uuid + "/";
         this.pollPipelineStepStatuses();
         this.startStatusInterval();
       } catch (e) {
@@ -1069,7 +1067,7 @@ class PipelineView extends React.Component {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       this.props.pipeline_uuid,
       this.props.project_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.experiment_uuid,
+      this.props.pipelineRun && this.props.pipelineRun.job_uuid,
       this.props.pipelineRun && this.props.pipelineRun.run_uuid
     );
 
@@ -1086,7 +1084,7 @@ class PipelineView extends React.Component {
         orchest.headerBarComponent.setPipeline(
           this.state.pipelineJson,
           this.props.project_uuid,
-          this.props.pipelineRun && this.props.pipelineRun.experiment_uuid
+          this.props.pipelineRun && this.props.pipelineRun.job_uuid
         );
 
         orchest.headerBarComponent.updateCurrentView("pipeline");

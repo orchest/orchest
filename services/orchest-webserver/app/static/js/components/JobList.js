@@ -5,7 +5,7 @@ import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleR
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
-import CreateExperimentView from "../views/CreateExperimentView";
+import CreateJobView from "../views/CreateJobView";
 import {
   makeRequest,
   PromiseManager,
@@ -13,20 +13,20 @@ import {
   RefManager,
 } from "../lib/utils/all";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
-import ExperimentView from "../views/ExperimentView";
+import JobView from "../views/JobView";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 
-class ExperimentList extends React.Component {
+class JobList extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
       createModal: false,
       createModelLoading: false,
-      experiments: undefined,
+      jobs: undefined,
       pipelines: undefined,
-      experimentsSearchMask: new Array(0).fill(1),
+      jobsSearchMask: new Array(0).fill(1),
     };
 
     this.promiseManager = new PromiseManager();
@@ -56,23 +56,20 @@ class ExperimentList extends React.Component {
         console.log(e);
       });
 
-    // retrieve experiments
+    // retrieve jobs
     this.fetchList();
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {}
 
   fetchList() {
-    // in case experimentTable exists, clear checks
-    if (this.refManager.refs.experimentTable) {
-      this.refManager.refs.experimentTable.setSelectedRowIds([]);
+    // in case jobTable exists, clear checks
+    if (this.refManager.refs.jobTable) {
+      this.refManager.refs.jobTable.setSelectedRowIds([]);
     }
 
     let fetchListPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/store/experiments?project_uuid=${this.props.project_uuid}`
-      ),
+      makeRequest("GET", `/store/jobs?project_uuid=${this.props.project_uuid}`),
       this.promiseManager
     );
 
@@ -81,8 +78,8 @@ class ExperimentList extends React.Component {
         let result = JSON.parse(response);
 
         this.setState({
-          experiments: result,
-          experimentsSearchMask: new Array(result.length).fill(1),
+          jobs: result,
+          jobsSearchMask: new Array(result.length).fill(1),
         });
       })
       .catch((e) => {
@@ -99,29 +96,28 @@ class ExperimentList extends React.Component {
   }
 
   onDeleteClick() {
-    // get experiment selection
-    let selectedRows = this.refManager.refs.experimentTable.getSelectedRowIndices();
+    // get job selection
+    let selectedRows = this.refManager.refs.jobTable.getSelectedRowIndices();
 
     if (selectedRows.length == 0) {
-      orchest.alert("Error", "You haven't selected any experiments.");
+      orchest.alert("Error", "You haven't selected any jobs.");
       return;
     }
 
     orchest.confirm(
       "Warning",
-      "Are you sure you want to delete these experiments? (This cannot be undone.)",
+      "Are you sure you want to delete these jobs? (This cannot be undone.)",
       () => {
         // delete indices
         let promises = [];
 
         for (let x = 0; x < selectedRows.length; x++) {
           promises.push(
-            // deleting the experiment will also
+            // deleting the job will also
             // take care of aborting it if necessary
             makeRequest(
               "DELETE",
-              "/store/experiments/" +
-                this.state.experiments[selectedRows[x]].uuid
+              "/store/jobs/" + this.state.jobs[selectedRows[x]].uuid
             )
           );
         }
@@ -129,7 +125,7 @@ class ExperimentList extends React.Component {
         Promise.all(promises).then(() => {
           this.fetchList();
 
-          this.refManager.refs.experimentTable.setSelectedRowIds([]);
+          this.refManager.refs.jobTable.setSelectedRowIds([]);
         });
       }
     );
@@ -145,8 +141,8 @@ class ExperimentList extends React.Component {
       }
     }
 
-    if (this.refManager.refs.formExperimentName.mdc.value.length == 0) {
-      orchest.alert("Error", "Please enter a name for your experiment.");
+    if (this.refManager.refs.formJobName.mdc.value.length == 0) {
+      orchest.alert("Error", "Please enter a name for your job.");
       return;
     }
 
@@ -161,55 +157,55 @@ class ExperimentList extends React.Component {
       createModelLoading: true,
     });
 
-    makeRequest("POST", "/store/experiments/new", {
+    makeRequest("POST", "/store/jobs/new", {
       type: "json",
       content: {
         pipeline_uuid: pipeline_uuid,
         pipeline_name: pipelineName,
         project_uuid: this.props.project_uuid,
-        name: this.refManager.refs.formExperimentName.mdc.value,
+        name: this.refManager.refs.formJobName.mdc.value,
         draft: true,
       },
     }).then((response) => {
-      let experiment = JSON.parse(response);
+      let job = JSON.parse(response);
 
-      orchest.loadView(CreateExperimentView, {
-        experiment: {
-          name: experiment.name,
+      orchest.loadView(CreateJobView, {
+        job: {
+          name: job.name,
           pipeline_uuid: pipeline_uuid,
           project_uuid: this.props.project_uuid,
-          uuid: experiment.uuid,
+          uuid: job.uuid,
         },
       });
     });
   }
   onCancelModal() {
-    this.refManager.refs.createExperimentDialog.close();
+    this.refManager.refs.createJobDialog.close();
   }
 
-  onCloseCreateExperimentModal() {
+  onCloseCreateJobModal() {
     this.setState({
       createModal: false,
     });
   }
 
   onRowClick(row, idx, event) {
-    let experiment = this.state.experiments[idx];
+    let job = this.state.jobs[idx];
 
-    if (experiment.draft === true) {
-      orchest.loadView(CreateExperimentView, {
-        experiment: {
-          name: experiment.name,
-          pipeline_uuid: experiment.pipeline_uuid,
-          project_uuid: experiment.project_uuid,
-          uuid: experiment.uuid,
+    if (job.draft === true) {
+      orchest.loadView(CreateJobView, {
+        job: {
+          name: job.name,
+          pipeline_uuid: job.pipeline_uuid,
+          project_uuid: job.project_uuid,
+          uuid: job.uuid,
         },
       });
     } else {
       let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-        experiment.pipeline_uuid,
-        experiment.project_uuid,
-        experiment.uuid
+        job.pipeline_uuid,
+        job.project_uuid,
+        job.uuid
       );
 
       makeRequest("GET", pipelineJSONEndpoint).then((response) => {
@@ -217,10 +213,10 @@ class ExperimentList extends React.Component {
         if (result.success) {
           let pipeline = JSON.parse(result["pipeline_json"]);
 
-          orchest.loadView(ExperimentView, {
+          orchest.loadView(JobView, {
             pipeline: pipeline,
-            experiment: experiment,
-            parameterizedSteps: JSON.parse(experiment.strategy_json),
+            job: job,
+            parameterizedSteps: JSON.parse(job.strategy_json),
           });
         } else {
           console.warn("Could not load pipeline.json");
@@ -230,17 +226,17 @@ class ExperimentList extends React.Component {
     }
   }
 
-  experimentListToTableData(experiments) {
+  jobListToTableData(jobs) {
     let rows = [];
-    for (let x = 0; x < experiments.length; x++) {
-      // keep only experiments that are related to a project!
+    for (let x = 0; x < jobs.length; x++) {
+      // keep only jobs that are related to a project!
       rows.push([
-        experiments[x].name,
-        experiments[x].pipeline_name,
+        jobs[x].name,
+        jobs[x].pipeline_name,
         new Date(
-          experiments[x].created.replace(/T/, " ").replace(/\..+/, "") + " GMT"
+          jobs[x].created.replace(/T/, " ").replace(/\..+/, "") + " GMT"
         ).toLocaleString(),
-        experiments[x].draft ? "Draft" : "Submitted",
+        jobs[x].draft ? "Draft" : "Submitted",
       ]);
     }
     return rows;
@@ -258,27 +254,27 @@ class ExperimentList extends React.Component {
 
   render() {
     return (
-      <div className={"experiments-page"}>
-        <h2>Experiments</h2>
+      <div className={"jobs-page"}>
+        <h2>Jobs</h2>
 
         {(() => {
-          if (this.state.experiments && this.state.pipelines) {
+          if (this.state.jobs && this.state.pipelines) {
             return (
               <Fragment>
                 {(() => {
                   if (this.state.createModal) {
                     return (
                       <MDCDialogReact
-                        title="Create a new experiment"
-                        ref={this.refManager.nrefs.createExperimentDialog}
-                        onClose={this.onCloseCreateExperimentModal.bind(this)}
+                        title="Create a new job"
+                        ref={this.refManager.nrefs.createJobDialog}
+                        onClose={this.onCloseCreateJobModal.bind(this)}
                         content={
                           <Fragment>
-                            <div className="create-experiment-modal">
+                            <div className="create-job-modal">
                               <MDCTextFieldReact
-                                ref={this.refManager.nrefs.formExperimentName}
+                                ref={this.refManager.nrefs.formJobName}
                                 classNames={["fullwidth push-down"]}
-                                label="Experiment name"
+                                label="Job name"
                               />
 
                               <MDCSelectReact
@@ -307,12 +303,12 @@ class ExperimentList extends React.Component {
                           <Fragment>
                             <MDCButtonReact
                               disabled={this.state.createModelLoading}
-                              icon="science"
+                              icon="add"
                               classNames={[
                                 "mdc-button--raised",
                                 "themed-secondary",
                               ]}
-                              label="Create experiment"
+                              label="Create job"
                               submitButton
                               onClick={this.onSubmitModal.bind(this)}
                             />
@@ -329,25 +325,25 @@ class ExperimentList extends React.Component {
                   }
                 })()}
 
-                <div className={"experiment-actions"}>
+                <div className={"job-actions"}>
                   <MDCIconButtonToggleReact
                     icon="add"
-                    tooltipText="Add experiment"
+                    tooltipText="Add job"
                     onClick={this.onCreateClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
                     icon="delete"
-                    tooltipText="Delete experiment"
+                    tooltipText="Delete job"
                     onClick={this.onDeleteClick.bind(this)}
                   />
                 </div>
 
                 <SearchableTable
-                  ref={this.refManager.nrefs.experimentTable}
+                  ref={this.refManager.nrefs.jobTable}
                   selectable={true}
                   onRowClick={this.onRowClick.bind(this)}
-                  rows={this.experimentListToTableData(this.state.experiments)}
-                  headers={["Experiment", "Pipeline", "Date created", "Status"]}
+                  rows={this.jobListToTableData(this.state.jobs)}
+                  headers={["Job", "Pipeline", "Date created", "Status"]}
                 />
               </Fragment>
             );
@@ -360,4 +356,4 @@ class ExperimentList extends React.Component {
   }
 }
 
-export default ExperimentList;
+export default JobList;

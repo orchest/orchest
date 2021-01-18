@@ -15,7 +15,7 @@
                 "display_name": "Python 3"
             },
             "image": "orchest/base-kernel-py",
-            "experiment_json": "",
+            "job_json": "",
             "meta_data": {
                 "position": [
                     3.75,
@@ -39,7 +39,7 @@
                 "display_name": "Python 3"
             },
             "image": "orchest/base-kernel-py",
-            "experiment_json": "",
+            "job_json": "",
             "meta_data": {
                 "position": [
                     297.81675,
@@ -60,7 +60,7 @@
                 "display_name": "Python 3"
             },
             "image": "orchest/base-kernel-py",
-            "experiment_json": "",
+            "job_json": "",
             "meta_data": {
                 "position": [
                     297.81675,

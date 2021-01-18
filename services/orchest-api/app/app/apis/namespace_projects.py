@@ -8,7 +8,7 @@ from flask_restx import Namespace, Resource
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app.apis.namespace_environment_images import DeleteProjectEnvironmentImages
-from app.apis.namespace_experiments import DeleteExperiment
+from app.apis.namespace_jobs import DeleteJob
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
@@ -26,7 +26,7 @@ class Project(Resource):
     def delete(self, project_uuid):
         """Delete a project.
 
-        Any session, run, experiment related to the project is stopped
+        Any session, run, job related to the project is stopped
         and removed from the db. Environment images are removed.
         """
         try:
@@ -43,7 +43,7 @@ class DeleteProject(TwoPhaseFunction):
     """Delete a project and all related entities.
 
 
-    Project sessions, runs and experiments are stopped. Every
+    Project sessions, runs and jobs are stopped. Every
     related entity in the db is removed. Environment images are
     deleted up.
     """
@@ -81,17 +81,17 @@ class DeleteProject(TwoPhaseFunction):
                 project_uuid, session.pipeline_uuid
             )
 
-        # Any experiment related to the pipeline is stopped if necessary
+        # Any job related to the pipeline is stopped if necessary
         # , then deleted.
-        experiments = (
-            models.Experiment.query.filter_by(
+        jobs = (
+            models.Job.query.filter_by(
                 project_uuid=project_uuid,
             )
-            .with_entities(models.Experiment.experiment_uuid)
+            .with_entities(models.Job.job_uuid)
             .all()
         )
-        for experiment in experiments:
-            DeleteExperiment(experiment.experiment_uuid)
+        for job in jobs:
+            DeleteJob(job.job_uuid)
 
         # Remove images related to the project.
         DeleteProjectEnvironmentImages(self.tpe).transaction(project_uuid)

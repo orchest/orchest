@@ -78,7 +78,7 @@ class DeletePipeline(TwoPhaseFunction):
         # been deleted.
         pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
-        # Will delete cascade experiment -> pipeline run.
+        # Will delete cascade job -> pipeline run.
         Pipeline.query.filter_by(project_uuid=project_uuid, uuid=pipeline_uuid).delete()
 
         self.collateral_kwargs["project_uuid"] = project_uuid

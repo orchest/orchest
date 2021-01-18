@@ -83,7 +83,7 @@ class FilePreviewView extends React.Component {
         ? getPipelineJSONEndpoint(
             this.props.pipeline_uuid,
             this.props.project_uuid,
-            this.props.pipelineRun.experiment_uuid,
+            this.props.pipelineRun.job_uuid,
             this.props.pipelineRun.run_uuid
           )
         : getPipelineJSONEndpoint(
@@ -153,7 +153,7 @@ class FilePreviewView extends React.Component {
       let fileURL = `/async/file-viewer/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`;
       if (this.props.pipelineRun) {
         fileURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
-        fileURL += "&experiment_uuid=" + this.props.pipelineRun.experiment_uuid;
+        fileURL += "&job_uuid=" + this.props.pipelineRun.job_uuid;
       }
 
       let fetchFilePromise = makeCancelable(

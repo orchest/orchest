@@ -186,7 +186,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 "Binds": [
                     "/var/run/docker.sock:/var/run/docker.sock",
                     # Mount is needed for copying the snapshot dir to
-                    # pipeline run dirs for experiments.
+                    # pipeline run dirs for jobs.
                     f'{env["HOST_USER_DIR"]}:/userdir',
                 ],
             },

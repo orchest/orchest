@@ -15,29 +15,29 @@ from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import lock_environment_images_for_run, register_schema, update_status_db
 
-api = Namespace("experiments", description="Managing experiments")
+api = Namespace("jobs", description="Managing jobs")
 api = register_schema(api)
 
 
 @api.route("/")
-class ExperimentList(Resource):
-    @api.doc("get_experiments")
-    @api.marshal_with(schema.experiments)
+class JobList(Resource):
+    @api.doc("get_jobs")
+    @api.marshal_with(schema.jobs)
     def get(self):
-        """Fetches all experiments.
+        """Fetches all jobs.
 
-        The experiments are either in queue, running or already
+        The jobs are either in queue, running or already
         completed.
 
         """
-        experiments = models.Experiment.query.all()
-        return {"experiments": [exp.__dict__ for exp in experiments]}, 200
+        jobs = models.Job.query.all()
+        return {"jobs": [exp.__dict__ for exp in jobs]}, 200
 
-    @api.doc("start_experiment")
-    @api.expect(schema.experiment_spec)
-    @api.marshal_with(schema.experiment, code=201, description="Queued experiment")
+    @api.doc("start_job")
+    @api.expect(schema.job_spec)
+    @api.marshal_with(schema.job, code=201, description="Queued job")
     def post(self):
-        """Queues a new experiment."""
+        """Queues a new job."""
         # TODO: possibly use marshal() on the post_data. Note that we
         # have moved over to using flask_restx
         # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.marshal
@@ -51,8 +51,8 @@ class ExperimentList(Resource):
         scheduled_start = post_data["scheduled_start"]
         scheduled_start = datetime.fromisoformat(scheduled_start)
 
-        experiment = {
-            "experiment_uuid": post_data["experiment_uuid"],
+        job = {
+            "job_uuid": post_data["job_uuid"],
             "project_uuid": post_data["project_uuid"],
             "pipeline_uuid": post_data["pipeline_uuid"],
             "scheduled_start": scheduled_start,
@@ -61,8 +61,8 @@ class ExperimentList(Resource):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                experiment = CreateExperiment(tpe).transaction(
-                    experiment,
+                job = CreateJob(tpe).transaction(
+                    job,
                     post_data["pipeline_run_spec"],
                     post_data["pipeline_definitions"],
                     post_data["pipeline_run_ids"],
@@ -70,31 +70,31 @@ class ExperimentList(Resource):
         except Exception as e:
             return {"message": str(e)}, 500
 
-        return experiment, 201
+        return job, 201
 
 
-@api.route("/<string:experiment_uuid>")
-@api.param("experiment_uuid", "UUID of experiment")
-@api.response(404, "Experiment not found")
-class Experiment(Resource):
-    @api.doc("get_experiment")
-    @api.marshal_with(schema.experiment, code=200)
-    def get(self, experiment_uuid):
-        """Fetches an experiment given its UUID."""
-        experiment = models.Experiment.query.get_or_404(
-            experiment_uuid,
-            description="Experiment not found",
+@api.route("/<string:job_uuid>")
+@api.param("job_uuid", "UUID of job")
+@api.response(404, "Job not found")
+class Job(Resource):
+    @api.doc("get_job")
+    @api.marshal_with(schema.job, code=200)
+    def get(self, job_uuid):
+        """Fetches a job given its UUID."""
+        job = models.Job.query.get_or_404(
+            job_uuid,
+            description="Job not found",
         )
-        return experiment.__dict__
+        return job.__dict__
 
     # TODO: We should also make it possible to stop a particular
-    # pipeline run of an experiment. It should state "cancel" the
+    # pipeline run of a job. It should state "cancel" the
     # execution of a pipeline run, since we do not do termination of
     # running tasks.
-    @api.doc("delete_experiment")
-    @api.response(200, "Experiment terminated")
-    def delete(self, experiment_uuid):
-        """Stops an experiment given its UUID.
+    @api.doc("delete_job")
+    @api.response(200, "Job terminated")
+    def delete(self, job_uuid):
+        """Stops a job given its UUID.
 
         However, it will not delete any corresponding database entries,
         it will update the status of corresponding objects to "ABORTED".
@@ -102,58 +102,52 @@ class Experiment(Resource):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                could_abort = AbortExperiment(tpe).transaction(experiment_uuid)
+                could_abort = AbortJob(tpe).transaction(job_uuid)
         except Exception as e:
             return {"message": str(e)}, 500
 
         if could_abort:
-            return {"message": "Experiment termination was successful."}, 200
+            return {"message": "Job termination was successful."}, 200
         else:
-            return {
-                "message": "Experiment does not exist or is already completed."
-            }, 404
+            return {"message": "Job does not exist or is already completed."}, 404
 
 
 @api.route(
-    "/<string:experiment_uuid>/<string:run_uuid>",
-    doc={
-        "description": (
-            "Set and get execution status of pipeline runs " "in an experiment."
-        )
-    },
+    "/<string:job_uuid>/<string:run_uuid>",
+    doc={"description": ("Set and get execution status of pipeline runs " "in a job.")},
 )
-@api.param("experiment_uuid", "UUID of Experiment")
+@api.param("job_uuid", "UUID of Job")
 @api.param("run_uuid", "UUID of Run")
 @api.response(404, "Pipeline run not found")
 class PipelineRun(Resource):
     @api.doc("get_pipeline_run")
     @api.marshal_with(schema.non_interactive_run, code=200)
-    def get(self, experiment_uuid, run_uuid):
-        """Fetch a pipeline run of an experiment given their ids."""
+    def get(self, job_uuid, run_uuid):
+        """Fetch a pipeline run of a job given their ids."""
         non_interactive_run = models.NonInteractivePipelineRun.query.filter_by(
             run_uuid=run_uuid,
         ).one_or_none()
         if non_interactive_run is None:
-            abort(404, "Given experiment has no run with given run_uuid")
+            abort(404, "Given job has no run with given run_uuid")
         return non_interactive_run.__dict__
 
     @api.doc("set_pipeline_run_status")
     @api.expect(schema.status_update)
-    def put(self, experiment_uuid, run_uuid):
+    def put(self, job_uuid, run_uuid):
         """Set the status of a pipeline run."""
         status_update = request.get_json()
 
         # The pipeline run has reached a final state, thus we can update
-        # the experiment "completed_pipeline_runs" attribute.
+        # the job "completed_pipeline_runs" attribute.
         if status_update["status"] in ["SUCCESS", "FAILURE"]:
-            experiment = models.Experiment.query.get_or_404(
-                experiment_uuid,
-                description="Experiment not found",
+            job = models.Job.query.get_or_404(
+                job_uuid,
+                description="Job not found",
             )
-            experiment.completed_pipeline_runs += 1
+            job.completed_pipeline_runs += 1
 
         filter_by = {
-            "experiment_uuid": experiment_uuid,
+            "job_uuid": job_uuid,
             "run_uuid": run_uuid,
         }
         try:
@@ -171,32 +165,32 @@ class PipelineRun(Resource):
 
 
 @api.route(
-    "/<string:experiment_uuid>/<string:run_uuid>/<string:step_uuid>",
+    "/<string:job_uuid>/<string:run_uuid>/<string:step_uuid>",
     doc={
         "description": (
             "Set and get execution status of individual steps of "
-            "pipeline runs in an experiment."
+            "pipeline runs in a job."
         )
     },
 )
-@api.param("experiment_uuid", "UUID of Experiment")
+@api.param("job_uuid", "UUID of Job")
 @api.param("run_uuid", "UUID of Run")
 @api.param("step_uuid", "UUID of Step")
 @api.response(404, "Pipeline step not found")
 class PipelineStepStatus(Resource):
     @api.doc("get_pipeline_run_pipeline_step")
     @api.marshal_with(schema.non_interactive_run, code=200)
-    def get(self, experiment_uuid, run_uuid, step_uuid):
-        """Fetch a pipeline step of an experiment run given uuids."""
+    def get(self, job_uuid, run_uuid, step_uuid):
+        """Fetch a pipeline step of a job run given uuids."""
         step = models.PipelineRunStep.query.get_or_404(
             ident=(run_uuid, step_uuid),
-            description="Combination of given experiment, run and step not found",
+            description="Combination of given job, run and step not found",
         )
         return step.__dict__
 
     @api.doc("set_pipeline_run_pipeline_step_status")
     @api.expect(schema.status_update)
-    def put(self, experiment_uuid, run_uuid, step_uuid):
+    def put(self, job_uuid, run_uuid, step_uuid):
         """Set the status of a pipeline step of a pipeline run."""
         status_update = request.get_json()
 
@@ -218,45 +212,45 @@ class PipelineStepStatus(Resource):
         return {"message": "Status was updated successfully."}, 200
 
 
-@api.route("/cleanup/<string:experiment_uuid>")
-@api.param("experiment_uuid", "UUID of experiment")
-@api.response(404, "Experiment not found")
-class ExperimentDeletion(Resource):
-    @api.doc("delete_experiment")
-    @api.response(200, "Experiment deleted")
-    def delete(self, experiment_uuid):
-        """Delete an experiment.
+@api.route("/cleanup/<string:job_uuid>")
+@api.param("job_uuid", "UUID of job")
+@api.response(404, "Job not found")
+class JobDeletion(Resource):
+    @api.doc("delete_job")
+    @api.response(200, "Job deleted")
+    def delete(self, job_uuid):
+        """Delete a job.
 
-        The experiment is stopped if its running, related entities
+        The job is stopped if its running, related entities
         are then removed from the db.
         """
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                could_delete = DeleteExperiment(tpe).transaction(experiment_uuid)
+                could_delete = DeleteJob(tpe).transaction(job_uuid)
         except Exception as e:
             return {"message": str(e)}, 500
 
         if could_delete:
-            return {"message": "Experiment deletion was successful."}, 200
+            return {"message": "Job deletion was successful."}, 200
         else:
-            return {"message": "Experiment does not exist."}, 404
+            return {"message": "Job does not exist."}, 404
 
 
-class CreateExperiment(TwoPhaseFunction):
-    """Create an experiment."""
+class CreateJob(TwoPhaseFunction):
+    """Create a job."""
 
     def _transaction(
         self,
-        experiment: Dict[str, Any],
+        job: Dict[str, Any],
         pipeline_run_spec: Dict[str, Any],
         pipeline_definitions: List[Dict[str, Any]],
         pipeline_run_ids: List[str],
     ):
 
-        db.session.add(models.Experiment(**experiment))
-        # So that the experiment can be returned with all runs.
-        experiment["pipeline_runs"] = []
+        db.session.add(models.Job(**job))
+        # So that the job can be returned with all runs.
+        job["pipeline_runs"] = []
         # To be later used by the collateral effect function.
         tasks_to_launch = []
 
@@ -272,11 +266,11 @@ class CreateExperiment(TwoPhaseFunction):
             tasks_to_launch.append((task_id, pipeline))
 
             non_interactive_run = {
-                "experiment_uuid": experiment["experiment_uuid"],
+                "job_uuid": job["job_uuid"],
                 "run_uuid": task_id,
                 "pipeline_run_id": id_,
                 "pipeline_uuid": pipeline.properties["uuid"],
-                "project_uuid": experiment["project_uuid"],
+                "project_uuid": job["project_uuid"],
                 "status": "PENDING",
             }
             db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
@@ -304,21 +298,21 @@ class CreateExperiment(TwoPhaseFunction):
             db.session.bulk_save_objects(pipeline_steps)
 
             non_interactive_run["pipeline_steps"] = pipeline_steps
-            experiment["pipeline_runs"].append(non_interactive_run)
+            job["pipeline_runs"].append(non_interactive_run)
 
-        self.collateral_kwargs["experiment"] = experiment
+        self.collateral_kwargs["job"] = job
         self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
         self.collateral_kwargs["pipeline_run_spec"] = pipeline_run_spec
 
-        return experiment
+        return job
 
     def _collateral(
         self,
-        experiment: Dict[str, Any],
+        job: Dict[str, Any],
         pipeline_run_spec: Dict[str, Any],
         tasks_to_launch: Tuple[str, Pipeline],
     ):
-        # Safety check in case the experiment has no runs.
+        # Safety check in case the job has no runs.
         if not tasks_to_launch:
             return
 
@@ -327,12 +321,12 @@ class CreateExperiment(TwoPhaseFunction):
         # an environment rebuild. Compute it only once because this way
         # we are guaranteed that the mappings will be the same for all
         # runs, having a new environment build terminate while
-        # submitting the different runs won't affect the experiment.
+        # submitting the different runs won't affect the job.
         try:
             env_uuid_docker_id_mappings = lock_environment_images_for_run(
                 # first (task_id, pipeline) -> task id.
                 tasks_to_launch[0][0],
-                experiment["project_uuid"],
+                job["project_uuid"],
                 # first (task_id, pipeline) -> pipeline.
                 tasks_to_launch[0][1].get_environments(),
             )
@@ -362,8 +356,8 @@ class CreateExperiment(TwoPhaseFunction):
             run_config = pipeline_run_spec["run_config"]
             run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
             celery_job_kwargs = {
-                "experiment_uuid": experiment["experiment_uuid"],
-                "project_uuid": experiment["project_uuid"],
+                "job_uuid": job["job_uuid"],
+                "project_uuid": job["project_uuid"],
                 "pipeline_definition": pipeline.to_dict(),
                 "run_config": run_config,
             }
@@ -372,7 +366,7 @@ class CreateExperiment(TwoPhaseFunction):
             # importing the function directly.
             task_args = {
                 "name": "app.core.tasks.start_non_interactive_pipeline_run",
-                "eta": experiment["scheduled_start"],
+                "eta": job["scheduled_start"],
                 "kwargs": celery_job_kwargs,
                 "task_id": task_id,
             }
@@ -399,25 +393,23 @@ class CreateExperiment(TwoPhaseFunction):
         db.session.commit()
 
 
-class AbortExperiment(TwoPhaseFunction):
-    """Abort an experiment."""
+class AbortJob(TwoPhaseFunction):
+    """Abort a job."""
 
-    def _transaction(self, experiment_uuid: str):
+    def _transaction(self, job_uuid: str):
         # To be later used by the collateral function.
         run_uuids = []
         # Assign asap since the function will return if there is nothing
         # to do.
         self.collateral_kwargs["run_uuids"] = run_uuids
 
-        experiment = models.Experiment.query.filter_by(
-            experiment_uuid=experiment_uuid
-        ).one_or_none()
-        if experiment is None:
+        job = models.Job.query.filter_by(job_uuid=job_uuid).one_or_none()
+        if job is None:
             return False
 
         # Store each uuid of runs that can still be aborted. These uuid
         # are the celery task uuid as well.
-        for run in experiment.pipeline_runs:
+        for run in job.pipeline_runs:
             if run.status in ["PENDING", "STARTED"]:
                 run_uuids.append(run.run_uuid)
 
@@ -459,24 +451,22 @@ class AbortExperiment(TwoPhaseFunction):
         pass
 
 
-class DeleteExperiment(TwoPhaseFunction):
-    """Delete an experiment."""
+class DeleteJob(TwoPhaseFunction):
+    """Delete a job."""
 
-    def _transaction(self, experiment_uuid):
-        experiment = models.Experiment.query.filter_by(
-            experiment_uuid=experiment_uuid
-        ).one_or_none()
-        if experiment is None:
+    def _transaction(self, job_uuid):
+        job = models.Job.query.filter_by(job_uuid=job_uuid).one_or_none()
+        if job is None:
             return False
 
-        # Abort the experiment, won't to anything if the experiment is
+        # Abort the job, won't to anything if the job is
         # not running.
-        AbortExperiment(self.tpe).transaction(experiment_uuid)
+        AbortJob(self.tpe).transaction(job_uuid)
 
-        # Deletes cascade to: experiment -> non interactive run
+        # Deletes cascade to: job -> non interactive run
         # non interactive runs -> non interactive run image mapping
         # non interactive runs -> pipeline run step
-        db.session.delete(experiment)
+        db.session.delete(job)
         return True
 
     def _collateral(self):

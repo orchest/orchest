@@ -9,12 +9,12 @@ Overview of the different paths inside the ``userdir/``.
 
    .
    ├── data/
-   ├── experiments
+   ├── jobs
    │   └── <project-uuid>
    │       └── <pipeline-uuid>
-   │           └── <experiment-uuid>
+   │           └── <job-uuid>
    │               ├── <noninteractive-run-uuid>
-   │               │   └── <copy-myproject-state-after-experiment>
+   │               │   └── <copy-myproject-state-after-job>
    │               └── snapshot
    │                   └── <complete-copy-of-myproject>
    ├── .orchest
@@ -52,7 +52,7 @@ step are:
 
 * Running the cell of a Jupyter Notebook in JupyterLab,
 * Running an interactive run through the pipeline editor,
-* Running a non-interactive run as part of an experiment.
+* Running a non-interactive run as part of a job.
 
 In all of the above mentioned cases the following ENV variables set: ``ORCHEST_PROJECT_UUID``,
 ``ORCHEST_PIPELINE_UUID`` and ``ORCHEST_PIPELINE_PATH``. Then there is ``ORCHEST_STEP_UUID``, which is

@@ -201,7 +201,7 @@ class Session:
                 pass
 
         # the reasons such removal needs to be done in sessions.py
-        # instead of pipelines.py are: 1) in an experiment run, the
+        # instead of pipelines.py are: 1) in a job run, the
         # memory server is the last container that is removed, that
         # happens when the session is shutting down, before that happens
         # the TMP volume(s) cannot be removed 2) this way we also
@@ -413,7 +413,7 @@ class NonInteractiveSession(Session):
         and therefore session needs to have a unique docker container
         name for its memory-server.
 
-        For experiments a good option for the `uuid` would be the
+        For jobs a good option for the `uuid` would be the
         pipeline run UUID. If none is given
 
         Args:

@@ -11,16 +11,16 @@ import ManageUsersView from "./views/ManageUsersView";
 import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
 import DataSourceEditView from "./views/DataSourceEditView";
-import ExperimentsView from "./views/ExperimentsView";
+import JobsView from "./views/JobsView";
 import PipelinesView from "./views/PipelinesView";
-import CreateExperimentView from "./views/CreateExperimentView";
+import CreateJobView from "./views/CreateJobView";
 import HeaderButtons from "./components/HeaderButtons";
 import React from "react";
 import ReactDOM from "react-dom";
 import PipelineView from "./views/PipelineView";
 import Jupyter from "./jupyter/Jupyter";
 import "./utils/overflowing";
-import ExperimentView from "./views/ExperimentView";
+import JobView from "./views/JobView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import Dialogs from "./components/Dialogs";
 import EnvironmentsView from "./views/EnvironmentsView";
@@ -54,9 +54,9 @@ function Orchest() {
     HelpView,
     UpdateView,
     PipelinesView,
-    ExperimentsView,
-    ExperimentView,
-    CreateExperimentView,
+    JobsView,
+    JobView,
+    CreateJobView,
     ManageUsersView,
   };
 
