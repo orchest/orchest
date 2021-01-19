@@ -57,7 +57,7 @@ class CreatePipeline(TwoPhaseFunction):
         }
 
         with open(pipeline_json_path, "w") as pipeline_json_file:
-            pipeline_json_file.write(json.dumps(pipeline_json, indent=4))
+            json.dump(pipeline_json, pipeline_json_file, indent=4, sort_keys=True)
 
     def _revert(self):
         Pipeline.query.filter_by(
@@ -168,7 +168,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
             )
             with open(pipeline_json_path, "w") as json_file:
                 pipeline_json["uuid"] = pipeline_uuid
-                json_file.write(json.dumps(pipeline_json, indent=4))
+                json.dump(pipeline_json, json_file, indent=4, sort_keys=True)
 
     def _revert(self):
         Pipeline.query.filter(

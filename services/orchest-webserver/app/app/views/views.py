@@ -751,7 +751,7 @@ def register_views(app, db):
             )
 
             with open(pipeline_json_path, "w") as json_file:
-                json_file.write(json.dumps(pipeline_json, indent=4))
+                json.dump(pipeline_json, json_file, indent=4, sort_keys=True)
 
             # Analytics call.
             send_anonymized_pipeline_definition(app, pipeline_json)
