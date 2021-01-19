@@ -89,13 +89,22 @@ The software in this repository is licensed as follows:
   "Apache-2.0" license as defined in "orchest-sdk/LICENSE".
 - Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
 
+## We love your feedback
+
+We would love to hear what you think and potentially add features based on your ideas. Come chat
+with us on [our Slack Channel](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
+
 ## Contributing
 
 Contributions are more than welcome! Please see our
 [contributor guides](https://orchest.readthedocs.io/en/stable/developer_guide/contributing.html)
 for more details.
 
-## We love your feedback
-
-We would love to hear what you think and potentially add features based on your ideas. Come chat
-with us on [our Slack Channel](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
+## Contributors
+<!-- To get src for img: https://api.github.com/users/username -->
+<a href="https://github.com/ricklamers"><img src="https://avatars2.githubusercontent.com/u/1309307?v=4" title="ricklamers" width="50" height="50"></a>
+<a href="https://github.com/yannickperrenet"><img src="https://avatars0.githubusercontent.com/u/26223174?v=4" title="yannickperrenet" width="50" height="50"></a>
+<a href="https://github.com/fruttasecca"><img src="https://avatars3.githubusercontent.com/u/19429509?v=4" title="fruttasecca" width="50" height="50"></a>
+<a href="https://github.com/samkovaly"><img src="https://avatars2.githubusercontent.com/u/32314099?v=4" title="samkovaly" width="50" height="50"></a>
+<a href="https://github.com/VivanVatsa"><img src="https://avatars0.githubusercontent.com/u/56357691?v=4" title="VivanVatsa" width="50" height="50"></a>
+<a href="https://github.com/obulat"><img src="https://avatars1.githubusercontent.com/u/15233243?v=4" title="obulat" width="50" height="50"></a>
