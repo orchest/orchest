@@ -61,4 +61,4 @@ def update_params(params: Dict[str, Any]) -> None:
     step.update_params(params)
 
     with open(Config.PIPELINE_DEFINITION_PATH, "w") as f:
-        json.dump(pipeline.to_dict(), f)
+        json.dump(pipeline.to_dict(), f, indent=4, sort_keys=True)

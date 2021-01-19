@@ -250,7 +250,7 @@ def start_non_interactive_pipeline_run(
     # every step.
     pipeline_json = os.path.join(run_dir, run_config["pipeline_path"])
     with open(pipeline_json, "w") as f:
-        json.dump(pipeline_definition, f)
+        json.dump(pipeline_definition, f, indent=4, sort_keys=True)
 
     with launch_noninteractive_session(
         docker_client,
