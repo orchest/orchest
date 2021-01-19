@@ -63,7 +63,7 @@ pipeline = Model(
     },
 )
 
-# Namespace: Runs & Experiments
+# Namespace: Runs & Jobs
 pipeline_run_config = Model(
     "PipelineRunConfig",
     {
@@ -172,12 +172,12 @@ status_update = Model(
     },
 )
 
-# Namespace: Experiments.
+# Namespace: Jobs.
 non_interactive_run_config = pipeline_run_config.inherit(
     "NonInteractiveRunConfig",
     {
         # Needed for the celery-worker to set the new project-dir for
-        # experiments. Note that the `orchest-webserver` has this value
+        # jobs. Note that the `orchest-webserver` has this value
         # stored in the ENV variable `HOST_USER_DIR`.
         "host_user_dir": fields.String(
             required=True, description="Path to the /userdir on the host"
@@ -204,21 +204,17 @@ non_interactive_run_spec = pipeline_run_spec.inherit(
 non_interactive_run = pipeline_run.inherit(
     "NonInteractiveRun",
     {
-        "experiment_uuid": fields.String(
-            required=True, description="UUID for experiment"
-        ),
+        "job_uuid": fields.String(required=True, description="UUID for job"),
         "pipeline_run_id": fields.Integer(
-            required=True, description="Respective run ID in experiment"
+            required=True, description="Respective run ID in job"
         ),
     },
 )
 
-experiment_spec = Model(
-    "ExperimentSpecification",
+job_spec = Model(
+    "Jobspecification",
     {
-        "experiment_uuid": fields.String(
-            required=True, description="UUID for experiment"
-        ),
+        "job_uuid": fields.String(required=True, description="UUID for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "pipeline_definitions": fields.List(
@@ -245,45 +241,41 @@ experiment_spec = Model(
         ),
         "scheduled_start": fields.String(
             required=True,
-            description="Time at which the experiment is scheduled to start",
+            description="Time at which the job is scheduled to start",
         ),
     },
 )
 
-experiment = Model(
-    "Experiment",
+job = Model(
+    "Job",
     {
-        "experiment_uuid": fields.String(
-            required=True, description="UUID for experiment"
-        ),
+        "job_uuid": fields.String(required=True, description="UUID for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "total_number_of_pipeline_runs": fields.Integer(
             required=True,
-            description="Total number of pipeline runs part of the experiment",
+            description="Total number of pipeline runs part of the job",
         ),
         "pipeline_runs": fields.List(
             fields.Nested(non_interactive_run),
-            description="Collection of pipeline runs part of the experiment",
+            description="Collection of pipeline runs part of the job",
         ),
         "scheduled_start": fields.String(
             required=True,
-            description="Time at which the experiment is scheduled to start",
+            description="Time at which the job is scheduled to start",
         ),
         "completed_pipeline_runs": fields.Integer(
             required=True,
             default=0,
-            description="Number of completed pipeline runs part of the experiment",
+            description="Number of completed pipeline runs part of the job",
         ),
     },
 )
 
-experiments = Model(
-    "Experiments",
+jobs = Model(
+    "Jobs",
     {
-        "experiments": fields.List(
-            fields.Nested(experiment), description="Collection of all experiments"
-        ),
+        "jobs": fields.List(fields.Nested(job), description="Collection of all jobs"),
     },
 )
 

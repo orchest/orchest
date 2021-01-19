@@ -3,7 +3,7 @@ import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import ParameterEditor from "../components/ParameterEditor";
 import DateTimeInput from "../components/DateTimeInput";
-import ExperimentsView from "./ExperimentsView";
+import JobsView from "./JobsView";
 import SearchableTable from "../components/SearchableTable";
 import { makeRequest, PromiseManager, RefManager } from "../lib/utils/all";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
@@ -16,7 +16,7 @@ import {
   requestBuild,
 } from "../utils/webserver-utils";
 
-class CreateExperimentView extends React.Component {
+class CreateJobView extends React.Component {
   constructor(props) {
     super(props);
 
@@ -28,7 +28,7 @@ class CreateExperimentView extends React.Component {
       selectedIndices: [],
       scheduleOption: "now",
       pipeline: undefined,
-      runExperimentLoading: false,
+      runJobLoading: false,
     };
 
     this.promiseManager = new PromiseManager();
@@ -44,9 +44,9 @@ class CreateExperimentView extends React.Component {
       makeRequest(
         "GET",
         getPipelineJSONEndpoint(
-          this.props.experiment.pipeline_uuid,
-          this.props.experiment.project_uuid,
-          this.props.experiment.uuid
+          this.props.job.pipeline_uuid,
+          this.props.job.project_uuid,
+          this.props.job.uuid
         )
       ),
       this.promiseManager
@@ -187,7 +187,7 @@ class CreateExperimentView extends React.Component {
     });
   }
 
-  validateExperimentConfig() {
+  validateJobConfig() {
     if (this.state.selectedIndices.reduce((acc, val) => acc + val, 0) == 0) {
       return {
         pass: false,
@@ -198,21 +198,21 @@ class CreateExperimentView extends React.Component {
     return { pass: true };
   }
 
-  attemptRunExperiment() {
-    // validate experiment configuration
-    let validation = this.validateExperimentConfig();
+  attemptRunJob() {
+    // validate job configuration
+    let validation = this.validateJobConfig();
 
     if (validation.pass === true) {
-      checkGate(this.props.experiment.project_uuid)
+      checkGate(this.props.job.project_uuid)
         .then(() => {
-          this.runExperiment();
+          this.runJob();
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
             requestBuild(
-              this.props.experiment.project_uuid,
+              this.props.job.project_uuid,
               result.data,
-              "CreateExperiment"
+              "CreateJob"
             ).catch((e) => {});
           }
         });
@@ -221,9 +221,9 @@ class CreateExperimentView extends React.Component {
     }
   }
 
-  runExperiment() {
+  runJob() {
     this.setState({
-      runExperimentLoading: true,
+      runJobLoading: true,
     });
 
     let formValueScheduledStart;
@@ -257,10 +257,10 @@ class CreateExperimentView extends React.Component {
       pipelineRunIds[x] = x + 1;
     }
 
-    let apiExperimentData = {
-      experiment_uuid: this.props.experiment.uuid,
+    let apiJobData = {
+      job_uuid: this.props.job.uuid,
       pipeline_uuid: this.state.pipeline.uuid,
-      project_uuid: this.props.experiment.project_uuid,
+      project_uuid: this.props.job.project_uuid,
       pipeline_definitions: pipelineDefinitions,
       pipeline_run_ids: pipelineRunIds,
       pipeline_run_spec: {
@@ -270,34 +270,34 @@ class CreateExperimentView extends React.Component {
       scheduled_start: formValueScheduledStart,
     };
 
-    makeRequest("POST", "/catch/api-proxy/api/experiments/", {
+    makeRequest("POST", "/catch/api-proxy/api/jobs/", {
       type: "json",
-      content: apiExperimentData,
+      content: apiJobData,
     })
       .then((response) => {
         let apiResult = JSON.parse(response);
 
-        let experimentData = {
+        let jobData = {
           pipeline_uuid: this.state.pipeline.uuid,
           pipeline_name: this.state.pipeline.name,
-          name: this.props.experiment.name,
+          name: this.props.job.name,
           strategy_json: JSON.stringify(this.state.parameterizedSteps),
           draft: false,
         };
 
         let webserverPromises = [];
 
-        let storeExperimentPromise = makeRequest(
+        let storeJobPromise = makeRequest(
           "PUT",
-          "/store/experiments/" + this.props.experiment.uuid,
+          "/store/jobs/" + this.props.job.uuid,
           {
             type: "json",
-            content: experimentData,
+            content: jobData,
           }
         );
-        webserverPromises.push(storeExperimentPromise);
+        webserverPromises.push(storeJobPromise);
 
-        storeExperimentPromise.catch((e) => {
+        storeJobPromise.catch((e) => {
           console.log(e);
         });
 
@@ -307,10 +307,10 @@ class CreateExperimentView extends React.Component {
           {
             type: "json",
             content: {
-              experiment_uuid: this.props.experiment.uuid,
+              job_uuid: this.props.job.uuid,
               generated_pipeline_runs: this.state.generatedPipelineRuns,
               selected_indices: this.state.selectedIndices,
-              experiment_json: apiResult,
+              job_json: apiResult,
             },
           }
         );
@@ -321,8 +321,8 @@ class CreateExperimentView extends React.Component {
         });
 
         Promise.all(webserverPromises).then(() => {
-          orchest.loadView(ExperimentsView, {
-            project_uuid: this.props.experiment.project_uuid,
+          orchest.loadView(JobsView, {
+            project_uuid: this.props.job.project_uuid,
           });
         });
       })
@@ -331,12 +331,12 @@ class CreateExperimentView extends React.Component {
           let data = JSON.parse(response.body);
           orchest.alert(
             "Error",
-            "There was a problem submitting your experiment. " + data.message
+            "There was a problem submitting your job. " + data.message
           );
         } catch {
           orchest.alert(
             "Error",
-            "There was a problem submitting your experiment. Unknown error."
+            "There was a problem submitting your job. Unknown error."
           );
         }
       });
@@ -362,7 +362,7 @@ class CreateExperimentView extends React.Component {
           pipelineJSON.steps[stepUUID].parameters[parameterKey] =
             runParameters[key];
         }
-        // Experiments should always have eviction enabled.
+        // Jobs should always have eviction enabled.
         pipelineJSON.settings.auto_eviction = true;
         pipelineJSONs.push(pipelineJSON);
       }
@@ -372,8 +372,8 @@ class CreateExperimentView extends React.Component {
   }
 
   cancel() {
-    orchest.loadView(ExperimentsView, {
-      project_uuid: this.props.experiment.project_uuid,
+    orchest.loadView(JobsView, {
+      project_uuid: this.props.job.project_uuid,
     });
   }
 
@@ -510,8 +510,8 @@ class CreateExperimentView extends React.Component {
         <Fragment>
           <div className="columns top-labels">
             <div className="column">
-              <label>Experiment</label>
-              <h3>{this.props.experiment.name}</h3>
+              <label>Job</label>
+              <h3>{this.props.job.name}</h3>
             </div>
             <div className="column">
               <label>Pipeline</label>
@@ -543,11 +543,11 @@ class CreateExperimentView extends React.Component {
 
           <div className="buttons">
             <MDCButtonReact
-              disabled={this.state.runExperimentLoading}
+              disabled={this.state.runJobLoading}
               classNames={["mdc-button--raised", "themed-secondary"]}
-              onClick={this.attemptRunExperiment.bind(this)}
+              onClick={this.attemptRunJob.bind(this)}
               icon="play_arrow"
-              label="Run experiment"
+              label="Run job"
             />
             <MDCButtonReact
               onClick={this.cancel.bind(this)}
@@ -561,8 +561,8 @@ class CreateExperimentView extends React.Component {
       rootView = <MDCLinearProgressReact />;
     }
 
-    return <div className="view-page experiment-view">{rootView}</div>;
+    return <div className="view-page job-view">{rootView}</div>;
   }
 }
 
-export default CreateExperimentView;
+export default CreateJobView;

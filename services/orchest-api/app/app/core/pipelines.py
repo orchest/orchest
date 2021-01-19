@@ -25,8 +25,8 @@ class PipelineStepProperties(TypedDict):
     uuid: str
     incoming_connections: List[str]  # list of UUIDs
     file_path: str
-    image: Dict[str, str]
-    experiment_json: str
+    environment: str
+    parameters: dict
     meta_data: Dict[str, List[int]]
 
 
@@ -139,7 +139,7 @@ def get_volume_mounts(run_config, task_id):
     # to the task.
     if run_config["run_endpoint"] == "runs":
         volume_uuid = run_config["pipeline_uuid"]
-    elif run_config["run_endpoint"].startswith("experiments"):
+    elif run_config["run_endpoint"].startswith("jobs"):
         volume_uuid = task_id
     temp_volume_name = _config.TEMP_VOLUME_NAME.format(
         uuid=volume_uuid, project_uuid=run_config["project_uuid"]

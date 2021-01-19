@@ -7,13 +7,13 @@ from app.apis.namespace_environment_builds import (
     DeleteProjectBuilds,
     DeleteProjectEnvironmentBuilds,
 )
-from app.apis.namespace_experiments import AbortExperiment
+from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.utils import (
-    experiments_using_environment,
     interactive_runs_using_environment,
     is_environment_in_use,
+    jobs_using_environment,
     register_schema,
     remove_if_dangling,
 )
@@ -32,7 +32,7 @@ class EnvironmentImage(Resource):
     def delete(self, project_uuid, environment_uuid):
         """Removes an environment image given project and env uuids.
 
-        Will stop any run or experiment making use of this environment.
+        Will stop any run or job making use of this environment.
         """
         try:
             with TwoPhaseExecutor(db.session) as tpe:
@@ -67,7 +67,7 @@ class ProjectEnvironmentDanglingImages(Resource):
         """Removes dangling images related to a project and environment.
         Dangling images are images that have been left nameless and
         tag-less and which are not referenced by any run
-        or experiment which are pending or running."""
+        or job which are pending or running."""
 
         delete_project_environment_dangling_images(project_uuid, environment_uuid)
         return {"message": "Successfully removed dangling images."}, 200
@@ -78,7 +78,7 @@ def delete_project_dangling_images(project_uuid):
 
     Dangling images are images that have been left nameless and
     tag-less and which are not referenced by any run
-    or experiment which are pending or running.
+    or job which are pending or running.
 
     Args:
         project_uuid:
@@ -102,7 +102,7 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
 
     Dangling images are images that have been left nameless and
     tag-less and which are not referenced by any run
-    or experiment which are pending or running.
+    or job which are pending or running.
 
     Args:
         project_uuid:
@@ -155,10 +155,10 @@ class DeleteImage(TwoPhaseFunction):
         for run in int_runs:
             AbortPipelineRun(self.tpe).transaction(run.run_uuid)
 
-        # Stop all experiments making use of the environment.
-        exps = experiments_using_environment(project_uuid, environment_uuid)
+        # Stop all jobs making use of the environment.
+        exps = jobs_using_environment(project_uuid, environment_uuid)
         for exp in exps:
-            AbortExperiment(self.tpe).transaction(exp.experiment_uuid)
+            AbortJob(self.tpe).transaction(exp.job_uuid)
 
         # Cleanup references to the builds and dangling images
         # of this environment.

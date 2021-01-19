@@ -46,7 +46,7 @@ class HeaderButtons extends React.Component {
     });
   }
 
-  setPipeline(pipelineJson, project_uuid, experiment_uuid) {
+  setPipeline(pipelineJson, project_uuid, job_uuid) {
     this.setState({
       pipeline: pipelineJson,
       project_uuid: project_uuid,

@@ -169,13 +169,13 @@ export function getScrollLineHeight() {
 export function getPipelineJSONEndpoint(
   pipeline_uuid,
   project_uuid,
-  experiment_uuid,
+  job_uuid,
   run_uuid
 ) {
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
-  if (experiment_uuid !== undefined) {
-    pipelineURL += `?experiment_uuid=${experiment_uuid}`;
+  if (job_uuid !== undefined) {
+    pipelineURL += `?job_uuid=${job_uuid}`;
   }
 
   if (run_uuid !== undefined) {

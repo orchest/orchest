@@ -135,7 +135,7 @@ class PipelineList extends React.Component {
           let pipeline_uuid = this.state.pipelines[index].uuid;
 
           // deleting the pipeline will also take care of running
-          // sessions, runs, experiments
+          // sessions, runs, jobs
           makeRequest(
             "DELETE",
             `/async/pipelines/delete/${this.props.project_uuid}/${pipeline_uuid}`

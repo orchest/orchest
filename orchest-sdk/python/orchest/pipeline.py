@@ -15,8 +15,8 @@ class PipelineStepProperties(TypedDict):
     uuid: str
     incoming_connections: List[str]  # list of UUIDs
     file_path: str
-    image: Dict[str, str]
-    experiment_json: str
+    environment: str
+    parameters: dict
     meta_data: Dict[str, List[int]]
 
 
@@ -64,16 +64,17 @@ class PipelineStep:
         if self.properties:
             return f'<PipelineStep: {self.properties["name"]}>'
 
-        return f"<Pipelinestep: None>"
+        return "<Pipelinestep: None>"
 
     def __repr__(self) -> str:
-        # TODO: This is actually not correct: it should be self.properties.
-        #       But this just look ugly as hell (so maybe for later). And
-        #       strictly, should also include its parents.
+        # TODO: This is actually not correct:
+        # it should be self.properties.
+        # But this just look ugly as hell (so maybe for later).
+        # And strictly, should also include its parents.
         if self.properties:
             return f'PipelineStep({self.properties["name"]!r})'
 
-        return f"Pipelinestep(None)"
+        return "Pipelinestep(None)"
 
 
 class Pipeline:

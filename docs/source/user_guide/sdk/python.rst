@@ -85,7 +85,7 @@ Parameters
    orchest.update_params(params)
 
 .. note::
-   Parameters are at the core of :ref:`experiments <experiments>`, giving a handle to try out
+   Parameters are at the core of :ref:`jobs <jobs>`, giving a handle to try out
    different modeling ideas based on a set of variable inputs.
 
 

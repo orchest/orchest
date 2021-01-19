@@ -14,7 +14,7 @@ import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import ParamTree from "../components/ParamTree";
 import PipelineView from "./PipelineView";
 
-class ExperimentView extends React.Component {
+class JobView extends React.Component {
   constructor(props) {
     super(props);
 
@@ -46,10 +46,7 @@ class ExperimentView extends React.Component {
 
   fetchPipelineRuns() {
     let fetchRunsPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        "/catch/api-proxy/api/experiments/" + this.props.experiment.uuid
-      ),
+      makeRequest("GET", "/catch/api-proxy/api/jobs/" + this.props.job.uuid),
       this.promiseManager
     );
 
@@ -209,11 +206,11 @@ class ExperimentView extends React.Component {
     }
 
     return (
-      <div className="view-page experiment-view">
+      <div className="view-page job-view">
         <div className="columns top-labels">
           <div className="column">
-            <label>Experiment</label>
-            <h3>{this.props.experiment.name}</h3>
+            <label>Job</label>
+            <h3>{this.props.job.name}</h3>
           </div>
           <div className="column">
             <label>Pipeline</label>
@@ -239,4 +236,4 @@ class ExperimentView extends React.Component {
   }
 }
 
-export default ExperimentView;
+export default JobView;

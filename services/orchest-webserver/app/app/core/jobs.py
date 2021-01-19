@@ -5,30 +5,26 @@ from flask.globals import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
 from app.connections import db
-from app.models import Experiment
-from app.utils import (
-    create_experiment_directory,
-    pipeline_uuid_to_path,
-    remove_experiment_directory,
-)
+from app.models import Job
+from app.utils import create_job_directory, pipeline_uuid_to_path, remove_job_directory
 
 
-class CreateExperiment(TwoPhaseFunction):
+class CreateJob(TwoPhaseFunction):
     def _transaction(
         self,
         project_uuid: str,
         pipeline_uuid: str,
         pipeline_name: str,
-        experiment_name: str,
+        job_name: str,
         draft: bool,
-    ) -> Experiment:
+    ) -> Job:
 
-        experiment_uuid = str(uuid.uuid4())
+        job_uuid = str(uuid.uuid4())
         pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid)
 
-        new_ex = Experiment(
-            uuid=experiment_uuid,
-            name=experiment_name,
+        new_ex = Job(
+            uuid=job_uuid,
+            name=job_name,
             pipeline_uuid=pipeline_uuid,
             project_uuid=project_uuid,
             pipeline_name=pipeline_name,
@@ -39,26 +35,24 @@ class CreateExperiment(TwoPhaseFunction):
 
         db.session.add(new_ex)
 
-        self.collateral_kwargs["experiment_uuid"] = experiment_uuid
+        self.collateral_kwargs["job_uuid"] = job_uuid
         self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         self.collateral_kwargs["project_uuid"] = project_uuid
 
         return new_ex
 
-    def _collateral(self, experiment_uuid: str, pipeline_uuid: str, project_uuid: str):
-        create_experiment_directory(experiment_uuid, pipeline_uuid, project_uuid)
+    def _collateral(self, job_uuid: str, pipeline_uuid: str, project_uuid: str):
+        create_job_directory(job_uuid, pipeline_uuid, project_uuid)
 
     def _revert(self):
-        Experiment.query.filter_by(
-            experiment_uuid=self.collateral_kwargs["experiment_uuid"]
-        ).delete()
+        Job.query.filter_by(job_uuid=self.collateral_kwargs["job_uuid"]).delete()
 
 
-class DeleteExperiment(TwoPhaseFunction):
-    def _transaction(self, experiment_uuid: str):
+class DeleteJob(TwoPhaseFunction):
+    def _transaction(self, job_uuid: str):
 
-        # If the experiment does not exist this is a no op.
-        exp = Experiment.query.filter(Experiment.uuid == experiment_uuid).first()
+        # If the job does not exist this is a no op.
+        exp = Job.query.filter(Job.uuid == job_uuid).first()
         if exp is None:
             self.collateral_kwargs["exp_uuid"] = None
             self.collateral_kwargs["pipeline_uuid"] = None
@@ -71,14 +65,14 @@ class DeleteExperiment(TwoPhaseFunction):
 
     def _collateral(self, exp_uuid: str, pipeline_uuid: str, project_uuid: str):
         if exp_uuid:
-            # Tell the orchest-api that the experiment does not exist
+            # Tell the orchest-api that the job does not exist
             # anymore, will be stopped if necessary then cleaned up from
             # the orchest-api db.
             url = (
                 f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-                f"experiments/cleanup/{exp_uuid}"
+                f"jobs/cleanup/{exp_uuid}"
             )
             current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
             # Remove from the filesystem.
-            remove_experiment_directory(exp_uuid, pipeline_uuid, project_uuid)
+            remove_job_directory(exp_uuid, pipeline_uuid, project_uuid)

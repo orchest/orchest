@@ -41,7 +41,7 @@ class Config:
     task_create_missing_queues = True
     task_default_queue = "celery"
     task_routes = {
-        "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "experiments"},
+        "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "jobs"},
         "app.core.tasks.run_pipeline": {"queue": "celery"},
         "app.core.tasks.build_environment": {"queue": "environment_builds"},
     }

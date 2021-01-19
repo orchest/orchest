@@ -5,7 +5,7 @@ import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
-import ExperimentsView from "./ExperimentsView";
+import JobsView from "./JobsView";
 import PipelinesView from "./PipelinesView";
 import EnvironmentsView from "./EnvironmentsView";
 
@@ -77,12 +77,8 @@ class ProjectsView extends React.Component {
           label={project.pipeline_count}
         />,
         <MDCButtonReact
-          onClick={this.onClickProjectEntity.bind(
-            this,
-            ExperimentsView,
-            project
-          )}
-          label={project.experiment_count}
+          onClick={this.onClickProjectEntity.bind(this, JobsView, project)}
+          label={project.job_count}
         />,
         <MDCButtonReact
           onClick={this.onClickProjectEntity.bind(
@@ -130,7 +126,7 @@ class ProjectsView extends React.Component {
 
     orchest.confirm(
       "Warning",
-      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding experiments. (This cannot be undone.)",
+      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
       () => {
         this.setState({
           loading: true,
@@ -470,12 +466,7 @@ class ProjectsView extends React.Component {
                   selectable
                   onRowClick={this.onClickListItem.bind(this)}
                   classNames={["fullwidth"]}
-                  headers={[
-                    "Project",
-                    "Pipelines",
-                    "Experiments",
-                    "Environments",
-                  ]}
+                  headers={["Project", "Pipelines", "Jobs", "Environments"]}
                   rows={this.state.listData}
                 />
               </Fragment>

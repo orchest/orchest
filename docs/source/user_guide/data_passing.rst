@@ -41,7 +41,7 @@ To pass data through memory between steps (which is enabled by default) we make 
 in-memory object store <https://arrow.apache.org/docs/python/plasma.html>`_ from the Apache Arrow
 project. Within Orchest it is wrapped with additional code for object eviction, which we will cover
 later in this section. Every interactive session gets its own memory store, which is shared between
-the kernels and interactive runs, for pipeline runs as part of experiments each gets an isolated
+the kernels and interactive runs, for pipeline runs as part of jobs each gets an isolated
 memory store.
 
 When an object is sent from one step to another (using :meth:`orchest.transfer.output`) it is

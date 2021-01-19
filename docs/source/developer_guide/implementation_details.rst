@@ -9,38 +9,40 @@ Overview of the different paths inside the ``userdir/``.
 
    .
    ├── data/
-   ├── experiments
-   │   └── <project-uuid>
-   │       └── <pipeline-uuid>
-   │           └── <experiment-uuid>
-   │               ├── <noninteractive-run-uuid>
-   │               │   └── <copy-myproject-state-after-experiment>
-   │               └── snapshot
-   │                   └── <complete-copy-of-myproject>
+   ├── jobs
+   │   └── <project-uuid>
+   │       └── <pipeline-uuid>
+   │           └── <job-uuid>
+   │               ├── <noninteractive-run-uuid>
+   │               │   └── <copy-myproject-state-after-job>
+   │               └── snapshot
+   │                   └── <complete-copy-of-myproject>
    ├── .orchest
-   │   ├── <state-db>.db
-   │   └── kernels
-   │       └── <project-uuid>
-   │           ├── launch_docker.py
-   │           └── orchest-env-<project-uuid>-<env-uuid>
-   │               └── kernel.json
+   │   ├── database
+   │   │   └── data
+   │   │       └── <postgres data store>
+   │   └── kernels
+   │       └── <project-uuid>
+   │           ├── launch_docker.py
+   │           └── orchest-env-<project-uuid>-<env-uuid>
+   │               └── kernel.json
    └── projects
-       └── myproject
-           ├── mypipe.orchest
-           ├── .orchest
-           │   ├── pipelines
-           │   │   └── <pipeline-uuid>
-           │   │       ├── logs
-           │   │       │   └── <pipeline-step-uuid>.log
-           │   │       └── data
-           │   │           ├── <pipeline-step-uuid>.<serialization>
-           │   │           └── HEAD
-           │   ├── environments
-           │   │   └── <env-uuid>
-           │   │       ├── properties.json
-           │   │       └── setup_script.sh
-           │   └── .gitignore
-           └── preprocessing.ipynb
+       └── myproject
+           ├── mypipe.orchest
+           ├── .orchest
+           │   ├── pipelines
+           │   │   └── <pipeline-uuid>
+           │   │       ├── logs
+           │   │       │   └── <pipeline-step-uuid>.log
+           │   │       └── data
+           │   │           ├── <pipeline-step-uuid>.<serialization>
+           │   │           └── HEAD
+           │   ├── environments
+           │   │   └── <env-uuid>
+           │   │       ├── properties.json
+           │   │       └── setup_script.sh
+           │   └── .gitignore
+           └── preprocessing.ipynb
 
 
 ENV variables
@@ -52,7 +54,7 @@ step are:
 
 * Running the cell of a Jupyter Notebook in JupyterLab,
 * Running an interactive run through the pipeline editor,
-* Running a non-interactive run as part of an experiment.
+* Running a non-interactive run as part of a job.
 
 In all of the above mentioned cases the following ENV variables set: ``ORCHEST_PROJECT_UUID``,
 ``ORCHEST_PIPELINE_UUID`` and ``ORCHEST_PIPELINE_PATH``. Then there is ``ORCHEST_STEP_UUID``, which is

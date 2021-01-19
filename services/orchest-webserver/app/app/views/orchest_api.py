@@ -50,7 +50,8 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
-        "/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>/<environment_uuid>",
+        "/catch/api-proxy/api/environment-builds/most-recent"
+        + "/<project_uuid>/<environment_uuid>",
         methods=["GET"],
     )
     def catch_api_proxy_environment_build_most_recent(project_uuid, environment_uuid):
@@ -109,7 +110,8 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
-        "/catch/api-proxy/api/environment-images/in-use/<project_uuid>/<environment_uuid>",
+        "/catch/api-proxy/api/environment-images/in-use"
+        + "/<project_uuid>/<environment_uuid>",
         methods=["GET"],
     )
     def catch_api_environment_images_in_use(project_uuid, environment_uuid):
@@ -122,8 +124,8 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/experiments/", methods=["POST"])
-    def catch_api_proxy_experiments_post():
+    @app.route("/catch/api-proxy/api/jobs/", methods=["POST"])
+    def catch_api_proxy_jobs_post():
 
         json_obj = request.json
 
@@ -147,7 +149,7 @@ def register_orchest_api_views(app, db):
         )
 
         resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/experiments/",
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
             json=json_obj,
         )
 
@@ -292,33 +294,26 @@ def register_orchest_api_views(app, db):
 
             return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route(
-        "/catch/api-proxy/api/experiments/<experiment_uuid>/<run_uuid>", methods=["GET"]
-    )
-    def catch_api_proxy_experiment_runs_single(experiment_uuid, run_uuid):
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])
+    def catch_api_proxy_job_runs_single(job_uuid, run_uuid):
 
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/experiments/%s/%s" % (experiment_uuid, run_uuid),
+            + "/api/jobs/%s/%s" % (job_uuid, run_uuid),
         )
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/experiments/<experiment_uuid>", methods=["GET"])
-    def catch_api_proxy_experiments_get(experiment_uuid):
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["GET"])
+    def catch_api_proxy_jobs_get(job_uuid):
 
         resp = requests.get(
-            "http://"
-            + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/experiments/"
-            + experiment_uuid,
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/" + job_uuid,
         )
 
         # get PipelineRuns to augment response
-        pipeline_runs = PipelineRun.query.filter(
-            PipelineRun.experiment == experiment_uuid
-        ).all()
+        pipeline_runs = PipelineRun.query.filter(PipelineRun.job == job_uuid).all()
 
         pipeline_runs_dict = {}
 
@@ -330,7 +325,8 @@ def register_orchest_api_views(app, db):
             json_return["pipeline_runs"], key=lambda x: x["pipeline_run_id"]
         )
 
-        # augment response with parameter values that are stored on the webserver
+        # Augment response with parameter values
+        # that are stored on the webserver.
         if resp.status_code == 200:
 
             try:

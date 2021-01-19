@@ -74,7 +74,7 @@ h3 {
   --mdc-theme-primary: #{$mdc-theme-secondary};
 }
 
-.create-experiment-modal {
+.create-job-modal {
   .mdc-linear-progress {
     margin: $generalPadding 0;
   }
@@ -119,7 +119,7 @@ a.button {
     }
   }
 
-  .experiments-page {
+  .jobs-page {
     .mdc-data-table {
       width: 100%;
     }
@@ -128,7 +128,7 @@ a.button {
       margin-bottom: $generalPadding;
     }
 
-    .experiment-actions {
+    .job-actions {
       margin-bottom: $generalPadding;
     }
   }
@@ -473,7 +473,7 @@ h2.header {
   font-weight: normal;
 }
 
-.new-experiment {
+.new-job {
   b {
     display: inline-block;
   }
@@ -513,7 +513,7 @@ h2.header {
   }
 }
 
-.experiment-view {
+.job-view {
   display: flex;
   flex-direction: column;
 

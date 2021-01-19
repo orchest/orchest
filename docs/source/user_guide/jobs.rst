@@ -1,16 +1,16 @@
-.. _experiments:
+.. _jobs:
 
-Experiments
+Jobs
 ===========
 
 .. tip::
    For reproducibility Orchest makes a full snapshot by copying the project directory. So make sure
    to put data in ``/data`` or a data source, otherwise it will be included in the snapshot.
 
-Run an experiment
+Run a job
 -----------------
 
-Before we get into experiments, it is good to first cover the notion of parameterizing your pipeline
+Before we get into jobs, it is good to first cover the notion of parameterizing your pipeline
 steps.
 
 1. Open a pipeline via the *Pipelines* option in the left menu pane.
@@ -23,24 +23,24 @@ You can now access the value of those parameters (and even update them) from wit
 the respective pipeline step.  See the :ref:`parameters section <sdk-quickstart-parameters>` to get
 started on using parameters inside your scripts.
 
-Now that we have covered how to parameterize your pipeline (steps) we will introduce experiments.
-With experiments you get to try out all your modeling ideas by iterating over different parameter
+Now that we have covered how to parameterize your pipeline (steps) we will introduce jobs.
+With jobs you get to try out all your modeling ideas by iterating over different parameter
 values. For now you can think of it as a `grid search
-<https://scikit-learn.org/stable/modules/grid_search.html>`_. To start an experiment
+<https://scikit-learn.org/stable/modules/grid_search.html>`_. To start a job
 
 1. Make sure you have defined some parameters or you will only be able to schedule the pipeline as
    is.
-2. Click on *Experiments* in the left menu pane.
-3. Click the "+" sign to configure your experiment.
-4. Choose an "Experiment name" and the "Pipeline" you want to run the experiment for.
+2. Click on *Jobs* in the left menu pane.
+3. Click the "+" sign to configure your job.
+4. Choose an "Job name" and the "Pipeline" you want to run the job for.
 5. Your default set of parameters are pre-loaded. By clicking on the values a JSON editor opens,
    allowing you to add additional values you would like to try out.
-6. If you would like to schedule the experiment to run at a specific time have a look at
+6. If you would like to schedule the job to run at a specific time have a look at
    *Scheduling*. In case you don't want your grid search to run every combination of your parameter
    values, you can deselect them through the *Pipeline runs* option.
-7. Press *Run experiment*.
+7. Press *Run job*.
 
-To inspect the result of your experiment, simply click on the experiment you just created, choose a
+To inspect the result of your job, simply click on the job you just created, choose a
 specific pipeline run (the one you want to inspect) and open *View pipeline*. The pipeline is now
 opened in *Read only* mode giving you the opportunity to check the logs or to open the HTML version
 of you notebooks.

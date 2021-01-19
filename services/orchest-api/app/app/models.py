@@ -89,10 +89,10 @@ class InteractiveSession(BaseModel):
         return f"<Launch {self.pipeline_uuid}>"
 
 
-class Experiment(BaseModel):
-    __tablename__ = "experiments"
+class Job(BaseModel):
+    __tablename__ = "jobs"
 
-    experiment_uuid = db.Column(db.String(36), primary_key=True)
+    job_uuid = db.Column(db.String(36), primary_key=True)
     project_uuid = db.Column(
         db.String(36),
     )
@@ -133,7 +133,7 @@ class Experiment(BaseModel):
     )
 
     def __repr__(self):
-        return f"<Experiment: {self.experiment_uuid}>"
+        return f"<Job: {self.job_uuid}>"
 
 
 class PipelineRun(BaseModel):
@@ -221,14 +221,14 @@ class NonInteractivePipelineRun(PipelineRun):
     # each "child" of the inheritance.
     __tablename__ = None
 
-    # TODO: verify why the experiment_uuid should be part of the
+    # TODO: verify why the job_uuid should be part of the
     # primary key
-    experiment_uuid = db.Column(
+    job_uuid = db.Column(
         db.String(36),
-        db.ForeignKey("experiments.experiment_uuid", ondelete="CASCADE"),
+        db.ForeignKey("jobs.job_uuid", ondelete="CASCADE"),
     )
     # This run_id is used to identify the pipeline run within the
-    # experiment and maintain a consistent ordering.
+    # job and maintain a consistent ordering.
     pipeline_run_id = db.Column(
         db.Integer,
         unique=False,

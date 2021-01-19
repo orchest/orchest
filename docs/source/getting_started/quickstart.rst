@@ -101,8 +101,8 @@ below.
     directory.  This is actually the ``userdir/data`` directory (from the Orchest GitHub repository)
     that gets bind mounted in the respective Docker container running your code.  This allows you to
     access the data from any pipeline, even from pipelines in different projects. Data should be
-    stored in ``/data`` not only for sharing purposes, but also to make sure that :ref:`experiments
-    <experiments>` do not unnecessarily copy the data when creating the snapshot for reprodicibility
+    stored in ``/data`` not only for sharing purposes, but also to make sure that :ref:`jobs
+    <jobs>` do not unnecessarily copy the data when creating the snapshot for reprodicibility
     reasons.
 
     Secondly, line ``19`` showcases the usage of the :ref:`Orchest SDK <orchest sdk>` to :ref:`pass data

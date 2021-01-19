@@ -187,17 +187,17 @@ def run_pipeline(
 @celery.task(bind=True, base=AbortableTask)
 def start_non_interactive_pipeline_run(
     self,
-    experiment_uuid,
+    job_uuid,
     project_uuid,
     pipeline_definition: PipelineDefinition,
     run_config: Dict[str, Union[str, Dict[str, str]]],
 ) -> str:
     """Starts a non-interactive pipeline run.
 
-    It is a pipeline run that is part of an experiment.
+    It is a pipeline run that is part of a job.
 
     Args:
-        experiment_uuid: UUID of the experiment.
+        job_uuid: UUID of the job.
         project_uuid: UUID of the project.
         pipeline_definition: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
@@ -216,11 +216,9 @@ def start_non_interactive_pipeline_run(
     """
     pipeline_uuid = pipeline_definition["uuid"]
 
-    experiment_dir = os.path.join(
-        "/userdir", "experiments", project_uuid, pipeline_uuid, experiment_uuid
-    )
-    snapshot_dir = os.path.join(experiment_dir, "snapshot")
-    run_dir = os.path.join(experiment_dir, self.request.id)
+    job_dir = os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
+    snapshot_dir = os.path.join(job_dir, "snapshot")
+    run_dir = os.path.join(job_dir, self.request.id)
 
     # TODO: It should not copy all directories, e.g. not "data".
     # Copy the contents of `snapshot_dir` to the new (not yet existing
@@ -243,7 +241,7 @@ def start_non_interactive_pipeline_run(
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
     run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
-    run_config["run_endpoint"] = f"experiments/{experiment_uuid}"
+    run_config["run_endpoint"] = f"jobs/{job_uuid}"
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
 

@@ -44,7 +44,7 @@ Interactive session
 Pipeline run
     Abstraction to execute pipelines.
 
-    * Can be scheduled to run at a specific time (through experiments).
+    * Can be scheduled to run at a specific time (through jobs).
     * If parameterized, runs for selected (by the user) default values. If not parameterized, runs
       without any parameter values.
 
@@ -59,13 +59,13 @@ Interactive (pipeline) run
 
 Non-interactive (pipeline) run
     A pipeline run that runs on its own copy of the pipeline directory. This type of pipeline run is the
-    building block of :ref:`experiments <experiment>`.
+    building block of :ref:`jobs <job>`.
 
-.. _experiment:
+.. _job:
 
-Experiment
+Job
     A set of pipeline runs (where each pipeline will run for a different set of parameters).  Currently
-    we support the following types of experiments:
+    we support the following types of jobs:
 
     * Grid search: a collection of :ref:`non-interactive pipeline runs <non-interactive pipeline run>`
       that is scheduled to run at a later time. The user can specify values for the parameters other

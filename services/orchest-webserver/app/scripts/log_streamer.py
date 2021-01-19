@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import html
 import logging
 import os
 import sys
@@ -31,7 +30,7 @@ class LogFile:
         project_path,
         step_uuid,
         pipeline_run_uuid=None,
-        experiment_uuid=None,
+        job_uuid=None,
     ):
         self.session_uuid = session_uuid
         self.pipeline_uuid = pipeline_uuid
@@ -39,7 +38,7 @@ class LogFile:
         self.project_path = project_path
         self.step_uuid = step_uuid
         self.pipeline_run_uuid = pipeline_run_uuid
-        self.experiment_uuid = experiment_uuid
+        self.job_uuid = job_uuid
         self.log_uuid = ""
         self.last_heartbeat = datetime.now()
 
@@ -107,7 +106,8 @@ def read_emit_all_content(file, sio, session_uuid):
         return
     except Exception as e:
         logging.error(
-            "Could not read latest_log_file for session_uuid[%s]" % session_uuid
+            "Could not read latest_log_file for session_uuid[%s]. Error: %s [%s]."
+            % (session_uuid, e, type(e))
         )
         return
 
@@ -117,7 +117,8 @@ def read_emit_all_content(file, sio, session_uuid):
     ):  # length of valid uuid
 
         logging.info(
-            "New log_uuid found, resetting pty. Debug info: read_log_uuid[%s] stored_log_uuid[%s] session_uuid[%s]."
+            "New log_uuid found, resetting pty."
+            + "Debug info: read_log_uuid[%s] stored_log_uuid[%s] session_uuid[%s]."
             % (read_log_uuid, log_file_store[session_uuid].log_uuid, session_uuid)
         )
 
@@ -163,25 +164,26 @@ def read_emit_all_content(file, sio, session_uuid):
         raise e
 
 
-# TODO: reuse (between Flask app and process scripts) and simplify code to get the correct pipeline path
-# There are currently two scenarios: a pipeline is in the userdir/pipelines or
-# as a pipeline run in experiments.
+# TODO: reuse (between Flask app and process scripts)
+# and simplify code to get the correct pipeline path
+# There are currently two scenarios: a pipeline is in
+# the userdir/pipelines or as a pipeline run in jobs.
 def get_project_dir(
     pipeline_uuid,
     project_uuid,
     project_path,
     pipeline_run_uuid=None,
-    experiment_uuid=None,
+    job_uuid=None,
 ):
 
     pipeline_dir_parts = ["/userdir"]
 
-    if pipeline_run_uuid is not None and experiment_uuid is not None:
+    if pipeline_run_uuid is not None and job_uuid is not None:
         pipeline_dir_parts += [
-            "experiments",
+            "jobs",
             project_uuid,
             pipeline_uuid,
-            experiment_uuid,
+            job_uuid,
             pipeline_run_uuid,
         ]
     else:
@@ -197,7 +199,7 @@ def get_log_path(log_file):
         log_file.project_uuid,
         log_file.project_path,
         log_file.pipeline_run_uuid,
-        log_file.experiment_uuid,
+        log_file.job_uuid,
     )
 
     return os.path.join(
@@ -289,7 +291,7 @@ def main():
 
                 if "pipeline_run_uuid" in data:
                     log_file.pipeline_run_uuid = data["pipeline_run_uuid"]
-                    log_file.experiment_uuid = data["experiment_uuid"]
+                    log_file.job_uuid = data["job_uuid"]
 
                 if data["session_uuid"] not in log_file_store:
 
@@ -319,8 +321,8 @@ def main():
                     )
                 else:
                     logging.error(
-                        "Tried removing session_uuid (%s) which is not in log_file_store."
-                        % session_uuid
+                        "Tried removing session_uuid (%s) "
+                        + "which is not in log_file_store." % session_uuid
                     )
 
             elif data["action"] == "heartbeat":
@@ -331,8 +333,8 @@ def main():
                     log_file_store[session_uuid].last_heartbeat = datetime.now()
                 else:
                     logging.error(
-                        "Received heartbeat for log_file with session_uuid %s that isn't registered."
-                        % session_uuid
+                        "Received heartbeat for log_file with "
+                        + "session_uuid %s that isn't registered." % session_uuid
                     )
 
     # Initialize file reader loop

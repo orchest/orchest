@@ -17,7 +17,7 @@ allowing you to structure and edit the files with any other editor such as VS Co
 .. caution::
    The ``userdir/`` directory not only contains your files and scripts, it also contains the state
    (inside the ``userdir/.orchest/`` directory) that Orchest needs to run. Touching the state can
-   result in, for example, losing experiment entries causing them to no longer show up in the UI.
+   result in, for example, losing job entries causing them to no longer show up in the UI.
 
 The mental model in Orchest is centered around *Projects*. Within each project you get to create
 multiple :ref:`pipelines <pipeline>` through the Orchest UI, and every pipeline consists of
@@ -44,7 +44,7 @@ following directory structure of a project:
 .. tip::
    You should not put large files inside your project and instead use :ref:`data sources <data
    sources>` or write to the special ``/data`` directory (which is the mounted ``userdir/data/``
-   directory that is shared between projects). :ref:`Experiments <experiments>` create snapshots of
+   directory that is shared between projects). :ref:`Jobs <jobs>` create snapshots of
    the project directory (for reproducibility reasons) and therefore would copy all the data.
 
 The :ref:`pipeline definition <pipeline definition>` file ``pipeline.orchest`` above defines the

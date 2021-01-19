@@ -30,7 +30,7 @@ Orchest lets you:
 - Write code using any other editor of choice.
 - Run any subset of a pipeline.
 - Skip certain cells when executing a notebook top-to-bottom.
-- Parametrize your data science pipelines to experiment with different modeling ideas.
+- Parametrize your data science pipelines to try out different modeling ideas.
 - Integrate commonly used data-sources.
 - Easily define your custom runtime environment.
 - Version your pipelines through Git.

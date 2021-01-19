@@ -291,8 +291,8 @@ def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
     ).all()
 
 
-def experiments_using_environment(project_uuid: str, env_uuid: str):
-    """Get the list of experiments using a given environment.
+def jobs_using_environment(project_uuid: str, env_uuid: str):
+    """Get the list of jobs using a given environment.
 
     Args:
         project_uuid:
@@ -300,12 +300,12 @@ def experiments_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    return models.Experiment.query.filter(
+    return models.Job.query.filter(
         # exp related to this project
-        models.Experiment.project_uuid == project_uuid,
+        models.Job.project_uuid == project_uuid,
         # keep project for which at least a run uses the environment
         # and is or will make use of the environment (PENDING/STARTED)
-        models.Experiment.pipeline_runs.any(
+        models.Job.pipeline_runs.any(
             and_(
                 models.NonInteractivePipelineRun.image_mappings.any(
                     orchest_environment_uuid=env_uuid
@@ -317,7 +317,7 @@ def experiments_using_environment(project_uuid: str, env_uuid: str):
 
 
 def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
-    """True if the environment is or will be in use by a run/experiment
+    """True if the environment is or will be in use by a run/job
 
     Args:
         env_uuid:
@@ -327,12 +327,12 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
     """
 
     int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
-    exps = experiments_using_environment(project_uuid, env_uuid)
+    exps = jobs_using_environment(project_uuid, env_uuid)
     return len(int_runs) > 0 or len(exps) > 0
 
 
 def is_docker_image_in_use(img_id: str) -> bool:
-    """True if the image is or will be in use by a run/experiment
+    """True if the image is or will be in use by a run/job
 
     Args:
         img_id:
@@ -368,7 +368,7 @@ def remove_if_dangling(img) -> bool:
     if len(img.attrs["RepoTags"]) == 0 and not is_docker_image_in_use(img.id):
         # need to check multiple times because of a race condition
         # given by the fact that cleaning up a project will
-        # stop runs and experiments, then cleanup images and dangling
+        # stop runs and jobs, then cleanup images and dangling
         # images, it might be that the celery worker running the task
         # still has to shut down the containers
         tries = 10

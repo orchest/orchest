@@ -25,7 +25,7 @@ class Pipeline(Resource):
     def delete(self, project_uuid, pipeline_uuid):
         """Delete a pipeline.
 
-        Any session, run, experiment related to the pipeline is stopped
+        Any session, run, job related to the pipeline is stopped
         and removed from the db.
         """
         try:
