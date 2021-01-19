@@ -10,37 +10,39 @@ Overview of the different paths inside the ``userdir/``.
    .
    ├── data/
    ├── jobs
-   │   └── <project-uuid>
-   │       └── <pipeline-uuid>
-   │           └── <job-uuid>
-   │               ├── <noninteractive-run-uuid>
-   │               │   └── <copy-myproject-state-after-job>
-   │               └── snapshot
-   │                   └── <complete-copy-of-myproject>
+   │   └── <project-uuid>
+   │       └── <pipeline-uuid>
+   │           └── <job-uuid>
+   │               ├── <noninteractive-run-uuid>
+   │               │   └── <copy-myproject-state-after-job>
+   │               └── snapshot
+   │                   └── <complete-copy-of-myproject>
    ├── .orchest
-   │   ├── <state-db>.db
-   │   └── kernels
-   │       └── <project-uuid>
-   │           ├── launch_docker.py
-   │           └── orchest-env-<project-uuid>-<env-uuid>
-   │               └── kernel.json
+   │   ├── database
+   │   │   └── data
+   │   │       └── <postgres data store>
+   │   └── kernels
+   │       └── <project-uuid>
+   │           ├── launch_docker.py
+   │           └── orchest-env-<project-uuid>-<env-uuid>
+   │               └── kernel.json
    └── projects
-       └── myproject
-           ├── mypipe.orchest
-           ├── .orchest
-           │   ├── pipelines
-           │   │   └── <pipeline-uuid>
-           │   │       ├── logs
-           │   │       │   └── <pipeline-step-uuid>.log
-           │   │       └── data
-           │   │           ├── <pipeline-step-uuid>.<serialization>
-           │   │           └── HEAD
-           │   ├── environments
-           │   │   └── <env-uuid>
-           │   │       ├── properties.json
-           │   │       └── setup_script.sh
-           │   └── .gitignore
-           └── preprocessing.ipynb
+       └── myproject
+           ├── mypipe.orchest
+           ├── .orchest
+           │   ├── pipelines
+           │   │   └── <pipeline-uuid>
+           │   │       ├── logs
+           │   │       │   └── <pipeline-step-uuid>.log
+           │   │       └── data
+           │   │           ├── <pipeline-step-uuid>.<serialization>
+           │   │           └── HEAD
+           │   ├── environments
+           │   │   └── <env-uuid>
+           │   │       ├── properties.json
+           │   │       └── setup_script.sh
+           │   └── .gitignore
+           └── preprocessing.ipynb
 
 
 ENV variables
