@@ -2,7 +2,7 @@ import requests
 from flask import jsonify, request
 
 from app.analytics import send_pipeline_run
-from app.models import PipelineRun
+from app.models import Job, PipelineRun
 from app.utils import (
     get_environments,
     get_pipeline_json,
@@ -134,10 +134,9 @@ def register_orchest_api_views(app, db):
             "project_dir": get_project_directory(
                 json_obj["project_uuid"], host_path=True
             ),
-            "pipeline_path": pipeline_uuid_to_path(
-                json_obj["pipeline_uuid"],
-                json_obj["project_uuid"],
-            ),
+            "pipeline_path": Job.query.filter(Job.uuid == json_obj["job_uuid"])
+            .first()
+            .pipeline_path,
         }
 
         # Analytics call

@@ -1,7 +1,5 @@
 import React from "react";
 import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
-import MDCDataTableReact from "../lib/mdc-components/MDCDataTableReact";
-import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import ParameterEditor from "../components/ParameterEditor";
 import SearchableTable from "../components/SearchableTable";
 import {
