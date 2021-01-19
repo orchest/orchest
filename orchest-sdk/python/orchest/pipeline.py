@@ -15,8 +15,8 @@ class PipelineStepProperties(TypedDict):
     uuid: str
     incoming_connections: List[str]  # list of UUIDs
     file_path: str
-    image: Dict[str, str]
-    job_json: str
+    environment: str
+    parameters: dict
     meta_data: Dict[str, List[int]]
 
 

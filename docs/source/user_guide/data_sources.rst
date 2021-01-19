@@ -21,7 +21,7 @@ Next, see :ref:`data sources <sdk-quickstart-data-sources>` in the SDK section t
 from within your scripts.
 
 .. note::
-   For full reproducibility of your experiments, Orchest creates a snapshot of your active pipeline
+   For full reproducibility of your jobs, Orchest creates a snapshot of your active pipeline
    directory. Therefore it is recommended to never write large amounts of data to your pipeline
    directory but to use the *Filesystem directory* data source type instead. It is nothing more than
    a special path that gets mounted for the purpose of storing large amounts of data.
