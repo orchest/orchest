@@ -11,7 +11,11 @@ export default class Login extends React.Component {
           <form method="post" action="">
             <MDCTextFieldReact label="Username" name="username" />
             <br />
-            <MDCTextFieldReact label="Password" password name="password" />
+            <MDCTextFieldReact
+              label="Password"
+              inputType="password"
+              name="password"
+            />
             <br />
             <MDCButtonReact
               submitButton

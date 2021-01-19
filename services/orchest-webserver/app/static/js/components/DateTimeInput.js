@@ -12,7 +12,11 @@ class DateTimeInput extends React.Component {
         ":" +
         ("0" + date.getMinutes()).slice(-2),
       dateValue:
-        date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate(),
+        date.getFullYear() +
+        "-" +
+        ("0" + (date.getMonth() + 1)).slice(-2) +
+        "-" +
+        ("0" + date.getDate()).slice(-2),
     };
   }
 
@@ -28,7 +32,8 @@ class DateTimeInput extends React.Component {
         <div>
           <MDCTextFieldReact
             label="Time"
-            icon="schedule"
+            inputType="time"
+            disabled={this.props.disabled}
             value={this.state.timeValue}
             onChange={(value) => {
               this.setState({ timeValue: value });
@@ -39,7 +44,8 @@ class DateTimeInput extends React.Component {
         <div>
           <MDCTextFieldReact
             label="Date"
-            icon="event"
+            inputType="date"
+            disabled={this.props.disabled}
             value={this.state.dateValue}
             onChange={(value) => {
               this.setState({ dateValue: value });

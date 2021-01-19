@@ -90,9 +90,13 @@ class JobList extends React.Component {
   componentWillUnmount() {}
 
   onCreateClick() {
-    this.setState({
-      createModal: true,
-    });
+    if (this.state.pipelines !== undefined && this.state.pipelines.length > 0) {
+      this.setState({
+        createModal: true,
+      });
+    } else {
+      orchest.alert("Error", "Could not find any pipelines for this project.");
+    }
   }
 
   onDeleteClick() {
@@ -263,6 +267,10 @@ class JobList extends React.Component {
               <Fragment>
                 {(() => {
                   if (this.state.createModal) {
+                    let pipelineOptions = this.generatePipelineOptions(
+                      this.state.pipelines
+                    );
+
                     return (
                       <MDCDialogReact
                         title="Create a new job"
@@ -281,9 +289,8 @@ class JobList extends React.Component {
                                 ref={this.refManager.nrefs.formPipeline}
                                 label="Pipeline"
                                 classNames={["fullwidth"]}
-                                options={this.generatePipelineOptions(
-                                  this.state.pipelines
-                                )}
+                                value={pipelineOptions[0][0]}
+                                options={pipelineOptions}
                               />
 
                               {(() => {

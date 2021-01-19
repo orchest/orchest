@@ -202,7 +202,7 @@ class DataSourceEditView extends React.Component {
             value={prefill}
             key={field.name}
             classNames={["push-down"]}
-            password={true}
+            inputType="password"
             label={field.label}
             onChange={this.changeValue.bind(this, field.name)}
           />
