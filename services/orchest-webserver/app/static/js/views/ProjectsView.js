@@ -114,7 +114,12 @@ class ProjectsView extends React.Component {
     });
   }
 
-  onClickListItem(row, idx, e) {}
+  onClickListItem(row, idx, e) {
+    if ($(e.target).parents(".mdc-button").length === 0) {
+      let project = this.state.projects[idx];
+      this.onClickProjectEntity(PipelinesView, project, e);
+    }
+  }
 
   onDeleteClick() {
     let selectedIndices = this.refManager.refs.projectListView.getSelectedRowIndices();
