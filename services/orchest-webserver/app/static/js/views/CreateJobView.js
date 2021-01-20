@@ -242,32 +242,31 @@ class CreateJobView extends React.Component {
       );
     }
 
+    let pipelineDefinition = JSON.parse(JSON.stringify(this.state.pipeline));
+    // Jobs should always have eviction enabled.
+    pipelineDefinition.settings.auto_eviction = true;
+
     // TODO: instead of bouncing three requests
     // (orchest-api, orchest-webserver, orchest-webserver)
     // perhaps wrap this into one larger request that goes straight
     // to orchest-webserver (more ACID? - no partial success)
-    let pipelineDefinitions = this.generatePipelineDefinitions(
-      this.state.pipeline,
+    let jobParameters = this.generateJobParameters(
       this.state.generatedPipelineRuns,
       this.state.selectedIndices
     );
-
-    let pipelineRunIds = new Array(pipelineDefinitions.length);
-    for (let x = 0; x < pipelineRunIds.length; x++) {
-      pipelineRunIds[x] = x + 1;
-    }
 
     let apiJobData = {
       job_uuid: this.props.job.uuid,
       pipeline_uuid: this.state.pipeline.uuid,
       project_uuid: this.props.job.project_uuid,
-      pipeline_definitions: pipelineDefinitions,
-      pipeline_run_ids: pipelineRunIds,
+
+      pipeline_definition: pipelineDefinition,
       pipeline_run_spec: {
         run_type: "full",
         uuids: [],
       },
-      scheduled_start: formValueScheduledStart,
+      parameters: jobParameters,
+      schedule: formValueScheduledStart,
     };
 
     makeRequest("POST", "/catch/api-proxy/api/jobs/", {
@@ -342,33 +341,31 @@ class CreateJobView extends React.Component {
       });
   }
 
-  generatePipelineDefinitions(
-    pipeline,
-    generatedPipelineRuns,
-    selectedIndices
-  ) {
-    let pipelineJSONs = [];
+  generateJobParameters(generatedPipelineRuns, selectedIndices) {
+    let parameters = [];
 
     for (let x = 0; x < generatedPipelineRuns.length; x++) {
       if (selectedIndices[x] === 1) {
         let runParameters = generatedPipelineRuns[x];
-        let pipelineJSON = JSON.parse(JSON.stringify(pipeline));
+        let selectedRunParameters = {};
 
         // key is formatted: <stepUUID>#<parameterKey>
         for (let key in runParameters) {
           let keySplit = key.split("#");
           let stepUUID = keySplit[0];
           let parameterKey = keySplit.slice(1).join("#");
-          pipelineJSON.steps[stepUUID].parameters[parameterKey] =
-            runParameters[key];
+
+          if (selectedRunParameters.stepUUID === undefined)
+            selectedRunParameters[stepUUID] = {};
+
+          selectedRunParameters[stepUUID][parameterKey] = runParameters[key];
         }
-        // Jobs should always have eviction enabled.
-        pipelineJSON.settings.auto_eviction = true;
-        pipelineJSONs.push(pipelineJSON);
+
+        parameters.push(selectedRunParameters);
       }
     }
 
-    return pipelineJSONs;
+    return parameters;
   }
 
   cancel() {
