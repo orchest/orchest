@@ -87,13 +87,20 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
     if len(metadata) in [3, 4]:
         timestamp, serialization, name = metadata[-3:]
 
-        # check timestamp for correctness
+        # check timestamp for validity
         try:
             datetime.fromisoformat(timestamp)
         except ValueError:
             raise error.InvalidMetaDataError(
                 f"Metadata {metadata} has an invalid timestamp ({timestamp})."
             )
+        except AttributeError:
+            # ``fromisoformat`` was added in Python3.7. For earlier
+            # versions we will simply not check the timestamp for
+            # validity. Since we know we are always writing ISO
+            # formatted strings, this case only becomes an issue if the
+            # user is manually writing the data passing.
+            pass
 
         # check serialization for correctness
         if serialization not in [
