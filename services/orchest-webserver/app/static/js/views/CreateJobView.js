@@ -266,7 +266,7 @@ class CreateJobView extends React.Component {
         uuids: [],
       },
       parameters: jobParameters,
-      schedule: formValueScheduledStart,
+      scheduled_start: formValueScheduledStart,
     };
 
     makeRequest("POST", "/catch/api-proxy/api/jobs/", {
@@ -297,25 +297,6 @@ class CreateJobView extends React.Component {
         webserverPromises.push(storeJobPromise);
 
         storeJobPromise.catch((e) => {
-          console.log(e);
-        });
-
-        let pipelineRunsPromise = makeRequest(
-          "POST",
-          "/async/pipelineruns/create",
-          {
-            type: "json",
-            content: {
-              job_uuid: this.props.job.uuid,
-              generated_pipeline_runs: this.state.generatedPipelineRuns,
-              selected_indices: this.state.selectedIndices,
-              job_json: apiResult,
-            },
-          }
-        );
-        webserverPromises.push(pipelineRunsPromise);
-
-        pipelineRunsPromise.catch((e) => {
           console.log(e);
         });
 

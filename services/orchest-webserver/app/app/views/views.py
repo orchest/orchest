@@ -23,7 +23,7 @@ from app.core.projects import (
     SyncProjectPipelinesDBState,
 )
 from app.kernel_manager import populate_kernels
-from app.models import DataSource, Environment, Job, Pipeline, PipelineRun, Project
+from app.models import DataSource, Environment, Job, Pipeline, Project
 from app.schemas import (
     BackgroundTaskSchema,
     DataSourceSchema,
@@ -401,41 +401,6 @@ def register_views(app, db):
                 DeletePipeline(tpe).transaction(project_uuid, pipeline_uuid)
         except Exception as e:
             return {"message": str(e)}, 500
-
-        return jsonify({"success": True})
-
-    @app.route("/async/pipelineruns/create", methods=["POST"])
-    def pipelineruns_create():
-
-        job_uuid = request.json["job_uuid"]
-
-        # Convert a list like [0, 1, 0, 1] to [1, 3].
-        selected_indices = [
-            i for i, val in enumerate(request.json["selected_indices"]) if val == 1
-        ]
-        # A list of all the generated runs (even the ones that are not
-        # selected). The values of the `selected_indices` correspond to
-        # the selected run.
-        generated_runs = request.json["generated_pipeline_runs"]
-
-        for i, idx in enumerate(selected_indices):
-            # NOTE: the order of the `pipeline_runs` property
-            # corresponds to the order of the `selected_indices`.
-            pipeline_run = request.json["job_json"]["pipeline_runs"][i]
-            pr = PipelineRun(
-                uuid=pipeline_run["run_uuid"],
-                job=job_uuid,
-                parameter_json=generated_runs[idx],
-                id=pipeline_run["pipeline_run_id"],
-            )
-
-            db.session.add(pr)
-
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            return {"message": "Failed to create pipeline runs."}, 500
 
         return jsonify({"success": True})
 

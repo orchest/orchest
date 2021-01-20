@@ -1,8 +1,10 @@
+import copy
+
 import requests
 from flask import jsonify, request
 
 from app.analytics import send_pipeline_run
-from app.models import Job, PipelineRun
+from app.models import Job
 from app.utils import (
     get_environments,
     get_pipeline_json,
@@ -311,30 +313,25 @@ def register_orchest_api_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/" + job_uuid,
         )
 
-        # get PipelineRuns to augment response
-        pipeline_runs = PipelineRun.query.filter(PipelineRun.job == job_uuid).all()
-
-        pipeline_runs_dict = {}
-
-        for pipeline_run in pipeline_runs:
-            pipeline_runs_dict[pipeline_run.id] = pipeline_run
-
-        json_return = resp.json()
-        json_return["pipeline_runs"] = sorted(
-            json_return["pipeline_runs"], key=lambda x: x["pipeline_run_id"]
-        )
-
         # Augment response with parameter values
         # that are stored on the webserver.
         if resp.status_code == 200:
 
-            try:
-                app.logger.info(json_return)
+            json_return = resp.json()
+            # TODO: sort in the DB in the orchest-api, not here.
+            json_return["pipeline_runs"] = sorted(
+                json_return["pipeline_runs"],
+                key=lambda x: (x["job_schedule_number"], x["pipeline_run_id"]),
+            )
 
-                for run in json_return["pipeline_runs"]:
-                    run["parameters"] = pipeline_runs_dict[
-                        run["pipeline_run_id"]
-                    ].parameter_json
+            try:
+
+                # Necessary because the front end expects a pipeline def
+                # and parameters for each run.
+                for run in enumerate(json_return["pipeline_runs"]):
+                    pipeline_def = copy.deepcopy(json_return["pipeline_definition"])
+                    pipeline_def["parameters"] = run["pipeline_parameters"]
+                    run["parameters"] = pipeline_def
 
                 return jsonify(json_return)
             except Exception as e:
