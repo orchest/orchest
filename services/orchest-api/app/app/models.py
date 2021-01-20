@@ -102,12 +102,60 @@ class Job(BaseModel):
         unique=False,
         nullable=False,
     )
-    scheduled_start = db.Column(db.DateTime, nullable=False)
+
+    # Jobs that are to be schedule once (right now) or once in the
+    # future will have no schedule (null).
+    schedule = db.Column(db.String(100), nullable=True)
+
+    # A list of dictionaries. The length of the list is the number of
+    # non interactive runs that will be run, one for each parameters
+    # dictinary. A parameter dictionary maps step uuids to a dictionary,
+    # containing the parameters of that step for that particular run.
+    # [{ <step_uuid>: {"a": 1}, ...}, ...GG]
+    job_parameters = db.Column(
+        JSONB,
+        nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid. Note that the entries will be stored as a list
+        # of dicts.
+        server_default="[]",
+    )
+
+    pipeline_definition = db.Column(
+        JSONB,
+        nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid.
+        server_default="{}",
+    )
+
+    pipeline_run_spec = db.Column(
+        JSONB,
+        nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid.
+        server_default="{}",
+    )
+
+    # So that we can efficiently look for jobs to run.
+    next_scheduled_time = db.Column(db.DateTime, index=True)
+
+    # So that we can "stamp" every non interactive run with the
+    # execution number it belongs to, e.g. the first time a job runs it
+    # will be batch 0, then 1, etc.
+    total_scheduled_executions = db.Column(
+        db.Integer,
+        unique=False,
+        server_default=text("0"),
+    )
+
+    # TODO: should this be removed?
     completed_pipeline_runs = db.Column(
         db.Integer,
         unique=False,
         server_default=text("0"),
     )
+
     pipeline_runs = db.relationship(
         "NonInteractivePipelineRun",
         lazy="joined",
@@ -227,11 +275,30 @@ class NonInteractivePipelineRun(PipelineRun):
         db.String(36),
         db.ForeignKey("jobs.job_uuid", ondelete="CASCADE"),
     )
+
     # This run_id is used to identify the pipeline run within the
     # job and maintain a consistent ordering.
     pipeline_run_id = db.Column(
         db.Integer,
         unique=False,
+    )
+
+    # To what batch of non interactive runs of a job it belongs. The
+    # first time a job runs will produce batch 0, then batch 1, etc.
+    job_schedule_number = db.Column(
+        db.Integer,
+        unique=False,
+        nullable=False,
+        server_default=text("0"),
+    )
+
+    # Parameters with which it was run, so that the history is kept.
+    pipeline_parameters = db.Column(
+        JSONB,
+        nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid.
+        server_default="{}",
     )
 
     # related to inheriting from PipelineRun
