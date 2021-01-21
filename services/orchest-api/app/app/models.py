@@ -97,12 +97,6 @@ class Job(BaseModel):
         db.String(36),
     )
     pipeline_uuid = db.Column(db.String(36), primary_key=False)
-    # TODO: should this be removed?
-    total_number_of_pipeline_runs = db.Column(
-        db.Integer,
-        unique=False,
-        nullable=False,
-    )
 
     # Jobs that are to be schedule once (right now) or once in the
     # future will have no schedule (null).
@@ -150,13 +144,6 @@ class Job(BaseModel):
         server_default=text("0"),
     )
 
-    # TODO: should this be removed?
-    completed_pipeline_runs = db.Column(
-        db.Integer,
-        unique=False,
-        server_default=text("0"),
-    )
-
     pipeline_runs = db.relationship(
         "NonInteractivePipelineRun",
         lazy="select",
@@ -185,6 +172,14 @@ class Job(BaseModel):
             "[NonInteractivePipelineRun.job_schedule_number, "
             "NonInteractivePipelineRun.pipeline_run_id]"
         ),
+    )
+
+    status = db.Column(
+        db.String(15),
+        unique=False,
+        nullable=False,
+        # Pre-existing Jobs of migrating users will be set to SUCCESS.
+        server_default=text("'SUCCESS'"),
     )
 
     def __repr__(self):

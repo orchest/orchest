@@ -267,10 +267,6 @@ job = Model(
         "job_uuid": fields.String(required=True, description="UUID for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "total_number_of_pipeline_runs": fields.Integer(
-            required=True,
-            description="Total number of pipeline runs part of the job",
-        ),
         "total_scheduled_executions": fields.Integer(
             required=True,
             description="Total number of times the job was run.",
@@ -283,11 +279,6 @@ job = Model(
         "next_scheduled_time": fields.String(
             required=True,
             description="Next time at which the job is scheduled to start.",
-        ),
-        "completed_pipeline_runs": fields.Integer(
-            required=True,
-            default=0,
-            description="Number of completed pipeline runs part of the job.",
         ),
         "job_parameters": fields.List(
             fields.Raw(description="Parameters of the job, one for each run."),
@@ -304,6 +295,7 @@ job = Model(
                 'Specification of the pipeline runs, e.g. "full",' ' "incoming" etc',
             ),
         ),
+        "status": fields.String(required=True, description="Status of the job."),
     },
 )
 

@@ -30,6 +30,7 @@ class Scheduler:
                         "schedule",
                         "next_scheduled_time",
                         "total_scheduled_executions",
+                        "status",
                     )
                 )
                 .with_for_update()
@@ -59,6 +60,10 @@ class Scheduler:
                     # next_scheduled_time must be set to NULL.
                     if job.schedule is None:
                         job.next_scheduled_time = None
+
+                        # The status of jobs that run once is initially
+                        # set to PENDING, thus we need to update that.
+                        job.status = "STARTED"
                     else:
                         # Else we need to decide what's the next
                         # scheduled time, based on the cron schedule and

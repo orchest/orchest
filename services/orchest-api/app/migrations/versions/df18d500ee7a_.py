@@ -1,8 +1,8 @@
-"""Extend Job and PipelineRuns for scheduling
+"""Extend Job and PipelineRun for scheduling.
 
-Revision ID: 7bba760668d0
+Revision ID: df18d500ee7a
 Revises: 96f304f85ee5
-Create Date: 2021-01-21 10:07:42.847877
+Create Date: 2021-01-21 13:07:25.127456
 
 """
 import sqlalchemy as sa
@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "7bba760668d0"
+revision = "df18d500ee7a"
 down_revision = "96f304f85ee5"
 branch_labels = None
 depends_on = None
@@ -54,6 +54,15 @@ def upgrade():
     op.add_column(
         "jobs",
         sa.Column(
+            "status",
+            sa.String(length=15),
+            server_default=sa.text("'SUCCESS'"),
+            nullable=False,
+        ),
+    )
+    op.add_column(
+        "jobs",
+        sa.Column(
             "total_scheduled_executions",
             sa.Integer(),
             server_default=sa.text("0"),
@@ -66,6 +75,8 @@ def upgrade():
         ["next_scheduled_time"],
         unique=False,
     )
+    op.drop_column("jobs", "completed_pipeline_runs")
+    op.drop_column("jobs", "total_number_of_pipeline_runs")
     op.drop_column("jobs", "scheduled_start")
     op.add_column(
         "pipeline_runs",
@@ -113,8 +124,28 @@ def downgrade():
             nullable=False,
         ),
     )
+    op.add_column(
+        "jobs",
+        sa.Column(
+            "total_number_of_pipeline_runs",
+            sa.INTEGER(),
+            autoincrement=False,
+            nullable=False,
+        ),
+    )
+    op.add_column(
+        "jobs",
+        sa.Column(
+            "completed_pipeline_runs",
+            sa.INTEGER(),
+            server_default=sa.text("0"),
+            autoincrement=False,
+            nullable=True,
+        ),
+    )
     op.drop_index(op.f("ix_jobs_next_scheduled_time"), table_name="jobs")
     op.drop_column("jobs", "total_scheduled_executions")
+    op.drop_column("jobs", "status")
     op.drop_column("jobs", "schedule")
     op.drop_column("jobs", "pipeline_run_spec")
     op.drop_column("jobs", "pipeline_definition")

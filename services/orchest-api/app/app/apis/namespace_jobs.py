@@ -8,6 +8,7 @@ from croniter import croniter
 from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 import app.models as models
@@ -53,6 +54,7 @@ class JobList(Resource):
 
             scheduled_start = post_data.get("scheduled_start", None)
             cron_schedule = post_data.get("cron_schedule", None)
+            status = "PENDING"
 
             # To be scheduled ASAP and to be run once.
             if cron_schedule is None and scheduled_start is None:
@@ -75,6 +77,10 @@ class JobList(Resource):
                     cron_schedule, datetime.now(timezone.utc)
                 ).get_next(datetime)
 
+                # A cronjob is considered to be started as soon as it is
+                # in the database and can be looked at by the scheduler.
+                status = "STARTED"
+
             else:
                 raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
@@ -90,13 +96,12 @@ class JobList(Resource):
                 "project_uuid": post_data["project_uuid"],
                 "pipeline_uuid": post_data["pipeline_uuid"],
                 "schedule": cron_schedule,
-                "total_number_of_pipeline_runs": len(post_data["parameters"]),
                 "job_parameters": post_data["parameters"],
                 "pipeline_definition": pipeline_definition,
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
-                "completed_pipeline_runs": 0,
                 "next_scheduled_time": next_scheduled_time,
+                "status": status,
             }
             db.session.add(models.Job(**job))
             db.session.commit()
@@ -179,28 +184,59 @@ class PipelineRun(Resource):
         """Set the status of a pipeline run."""
         status_update = request.get_json()
 
-        # The pipeline run has reached a final state, thus we can update
-        # the job "completed_pipeline_runs" attribute.
-        if status_update["status"] in ["SUCCESS", "FAILURE"]:
-            job = models.Job.query.get_or_404(
-                job_uuid,
-                description="Job not found",
-            )
-            job.completed_pipeline_runs += 1
-
-        filter_by = {
-            "job_uuid": job_uuid,
-            "run_uuid": run_uuid,
-        }
         try:
+
+            filter_by = {
+                "job_uuid": job_uuid,
+                "run_uuid": run_uuid,
+            }
+
             update_status_db(
                 status_update,
                 model=models.NonInteractivePipelineRun,
                 filter_by=filter_by,
             )
+
+            # The job has 1 run for every parameters set.
+            job = (
+                db.session.query(
+                    models.Job.schedule,
+                    func.jsonb_array_length(models.Job.job_parameters),
+                )
+                .filter_by(job_uuid=job_uuid)
+                .one()
+            )
+
+            # Only non recurring jobs have the concept of terminating as
+            # SUCCESS.
+            if job.schedule is None:
+
+                completed_runs = (
+                    models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                    .filter(
+                        models.NonInteractivePipelineRun.status.in_(
+                            ["SUCCESS", "FAILURE"]
+                        )
+                    )
+                    .count()
+                )
+
+                current_app.logger.info(
+                    (
+                        f"Non recurring job {job_uuid} has completed "
+                        f"{completed_runs}/{job[1]} runs."
+                    )
+                )
+
+                if completed_runs == job[1]:
+                    models.Job.query.filter_by(job_uuid=job_uuid).update(
+                        {"status": "SUCCESS"}
+                    )
+
             db.session.commit()
-        except Exception:
+        except Exception as e:
             db.session.rollback()
+            current_app.logger.error(e)
             return {"message": "Failed update operation."}, 500
 
         return {"message": "Status was updated successfully"}, 200
