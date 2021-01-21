@@ -231,20 +231,23 @@ class CreateJobView extends React.Component {
     });
 
     let formValueScheduledStart;
+    let cronSchedule;
 
     if (this.state.scheduleOption === "scheduled") {
       formValueScheduledStart = this.refManager.refs.scheduledDateTime.getISOString();
-    } else {
-      formValueScheduledStart = new Date().toISOString();
-    }
 
-    // API doesn't accept ISO date strings with 'Z' suffix
-    if (formValueScheduledStart[formValueScheduledStart.length - 1] === "Z") {
-      formValueScheduledStart = formValueScheduledStart.slice(
-        0,
-        formValueScheduledStart.length - 1
-      );
+      // API doesn't accept ISO date strings with 'Z' suffix
+      if (formValueScheduledStart[formValueScheduledStart.length - 1] === "Z") {
+        formValueScheduledStart = formValueScheduledStart.slice(
+          0,
+          formValueScheduledStart.length - 1
+        );
+      }
+    } else if (this.state.scheduleOption === "cron") {
+      cronSchedule = this.state.cronString;
     }
+    // Else: both entries are undefined, the run is considered to be
+    // started ASAP.
 
     let pipelineDefinition = JSON.parse(JSON.stringify(this.state.pipeline));
     // Jobs should always have eviction enabled.
@@ -271,6 +274,7 @@ class CreateJobView extends React.Component {
       },
       parameters: jobParameters,
       scheduled_start: formValueScheduledStart,
+      cron_schedule: cronSchedule,
     };
 
     makeRequest("POST", "/catch/api-proxy/api/jobs/", {
