@@ -79,15 +79,14 @@ class JobView extends React.Component {
     });
   }
 
-  formatPipelineParamJSON(paramJSON) {
+  formatPipelineParams(parameters) {
     let keyValuePairs = [];
 
-    for (let key in paramJSON) {
-      let splitKey = key.split("#");
-      let paramName = splitKey.slice(1).join("#");
-      keyValuePairs.push(paramName + ": " + paramJSON[key]);
+    for (let stepUUID in parameters) {
+      for (let parameter in parameters[stepUUID]) {
+        keyValuePairs.push(parameter + ": " + parameters[stepUUID][parameter]);
+      }
     }
-
     return keyValuePairs.join(", ");
   }
 
@@ -97,7 +96,7 @@ class JobView extends React.Component {
     for (let x = 0; x < pipelineRuns.length; x++) {
       rows.push([
         pipelineRuns[x].pipeline_run_id,
-        this.formatPipelineParamJSON(pipelineRuns[x].parameters),
+        this.formatPipelineParams(pipelineRuns[x].parameters),
         pipelineRuns[x].status,
       ]);
     }
@@ -106,13 +105,11 @@ class JobView extends React.Component {
   }
 
   parameterValueOverride(parameterizedSteps, parameters) {
-    for (let key in parameters) {
-      let splitKey = key.split("#");
-      let stepUUID = splitKey[0];
-      let paramKey = splitKey.slice(1).join("#");
-      let paramValue = parameters[key];
-
-      parameterizedSteps[stepUUID]["parameters"][paramKey] = paramValue;
+    for (let stepUUID in parameters) {
+      for (let parameter in parameters[stepUUID]) {
+        parameterizedSteps[stepUUID]["parameters"][parameter] =
+          parameters[stepUUID][parameter];
+      }
     }
 
     return parameterizedSteps;

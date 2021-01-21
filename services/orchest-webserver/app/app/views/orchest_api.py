@@ -2,6 +2,7 @@ import copy
 
 import requests
 from flask import jsonify, request
+from flask.globals import current_app
 
 from app.analytics import send_pipeline_run
 from app.models import Job
@@ -317,24 +318,32 @@ def register_orchest_api_views(app, db):
         # that are stored on the webserver.
         if resp.status_code == 200:
 
-            json_return = resp.json()
-            # TODO: sort in the DB in the orchest-api, not here.
-            json_return["pipeline_runs"] = sorted(
-                json_return["pipeline_runs"],
-                key=lambda x: (x["job_schedule_number"], x["pipeline_run_id"]),
-            )
-
             try:
+
+                # TODO: sort in the DB in the orchest-api, not here.
+                json_return = resp.json()
+                json_return["pipeline_runs"] = sorted(
+                    json_return["pipeline_runs"],
+                    key=lambda x: (x["job_schedule_number"], x["pipeline_run_id"]),
+                )
 
                 # Necessary because the front end expects a pipeline def
                 # and parameters for each run.
-                for run in enumerate(json_return["pipeline_runs"]):
+                for run in json_return["pipeline_runs"]:
                     pipeline_def = copy.deepcopy(json_return["pipeline_definition"])
                     pipeline_def["parameters"] = run["pipeline_parameters"]
-                    run["parameters"] = pipeline_def
+                    run["parameters"] = run["pipeline_parameters"]
+
+                    # Set the steps parameters in the pipeline
+                    # definition.
+                    for step_uuid, step_parameters in pipeline_def[
+                        "parameters"
+                    ].items():
+                        pipeline_def["steps"][step_uuid]["parameters"] = step_parameters
 
                 return jsonify(json_return)
             except Exception as e:
+                current_app.logger.error(e)
                 return str(e), 500
 
         else:

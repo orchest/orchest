@@ -205,8 +205,14 @@ non_interactive_run = pipeline_run.inherit(
     "NonInteractiveRun",
     {
         "job_uuid": fields.String(required=True, description="UUID for job"),
+        "job_schedule_number": fields.Integer(
+            required=True, description="To watch job schedule it belongs"
+        ),
         "pipeline_run_id": fields.Integer(
             required=True, description="Respective run ID in job"
+        ),
+        "pipeline_parameters": fields.Raw(
+            required=True, description="Parameters of the run"
         ),
     },
 )
@@ -240,8 +246,17 @@ job_spec = Model(
             ),
         ),
         "scheduled_start": fields.String(
+            required=False,
+            description="Time at which the job is scheduled to start.",
+        ),
+        "cron_schedule": fields.String(
+            required=False,
+            description="Cron string for recurrent scheduling of the job.",
+        ),
+        "parameters": fields.List(
+            fields.Raw(description="Parameters of the job, one for each run."),
             required=True,
-            description="Time at which the job is scheduled to start",
+            description="List of run parameters.",
         ),
     },
 )
@@ -256,18 +271,38 @@ job = Model(
             required=True,
             description="Total number of pipeline runs part of the job",
         ),
+        "total_scheduled_executions": fields.Integer(
+            required=True,
+            description="Total number of times the job was run.",
+        ),
+        "pipeline_definition": fields.Raw(description="Pipeline definition"),
         "pipeline_runs": fields.List(
             fields.Nested(non_interactive_run),
             description="Collection of pipeline runs part of the job",
         ),
-        "scheduled_start": fields.String(
+        "next_scheduled_time": fields.String(
             required=True,
-            description="Time at which the job is scheduled to start",
+            description="Next time at which the job is scheduled to start.",
         ),
         "completed_pipeline_runs": fields.Integer(
             required=True,
             default=0,
-            description="Number of completed pipeline runs part of the job",
+            description="Number of completed pipeline runs part of the job.",
+        ),
+        "job_parameters": fields.List(
+            fields.Raw(description="Parameters of the job, one for each run."),
+            description="List of run parameters.",
+        ),
+        "schedule": fields.String(
+            required=True,
+            description="Cron string for recurrent scheduling of the job.",
+        ),
+        "pipeline_run_spec": fields.Nested(
+            non_interactive_run_spec,
+            required=True,
+            description=(
+                'Specification of the pipeline runs, e.g. "full",' ' "incoming" etc',
+            ),
         ),
     },
 )

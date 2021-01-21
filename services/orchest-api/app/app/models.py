@@ -8,7 +8,7 @@ TODO:
 
 """
 from sqlalchemy import Index, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 
 from app.connections import db
 
@@ -97,6 +97,7 @@ class Job(BaseModel):
         db.String(36),
     )
     pipeline_uuid = db.Column(db.String(36), primary_key=False)
+    # TODO: should this be removed?
     total_number_of_pipeline_runs = db.Column(
         db.Integer,
         unique=False,
@@ -138,11 +139,11 @@ class Job(BaseModel):
     )
 
     # So that we can efficiently look for jobs to run.
-    next_scheduled_time = db.Column(db.DateTime, index=True)
+    next_scheduled_time = db.Column(TIMESTAMP(timezone=True), index=True)
 
     # So that we can "stamp" every non interactive run with the
     # execution number it belongs to, e.g. the first time a job runs it
-    # will be batch 0, then 1, etc.
+    # will be batch 1, then 2, etc.
     total_scheduled_executions = db.Column(
         db.Integer,
         unique=False,
@@ -158,7 +159,7 @@ class Job(BaseModel):
 
     pipeline_runs = db.relationship(
         "NonInteractivePipelineRun",
-        lazy="joined",
+        lazy="select",
         # let the db take care of cascading deletions
         # https://docs.sqlalchemy.org/en/13/orm/relationship_api.html#sqlalchemy.orm.relationship.params.passive_deletes
         # A value of True indicates that unloaded child items should not
@@ -276,20 +277,20 @@ class NonInteractivePipelineRun(PipelineRun):
         db.ForeignKey("jobs.job_uuid", ondelete="CASCADE"),
     )
 
-    # This run_id is used to identify the pipeline run within the
-    # job and maintain a consistent ordering.
-    pipeline_run_id = db.Column(
-        db.Integer,
-        unique=False,
-    )
-
     # To what batch of non interactive runs of a job it belongs. The
-    # first time a job runs will produce batch 0, then batch 1, etc.
+    # first time a job runs will produce batch 1, then batch 2, etc.
     job_schedule_number = db.Column(
         db.Integer,
         unique=False,
         nullable=False,
         server_default=text("0"),
+    )
+
+    # This run_id is used to identify the pipeline run within the
+    # job and maintain a consistent ordering.
+    pipeline_run_id = db.Column(
+        db.Integer,
+        unique=False,
     )
 
     # Parameters with which it was run, so that the history is kept.
@@ -305,6 +306,16 @@ class NonInteractivePipelineRun(PipelineRun):
     __mapper_args__ = {
         "polymorphic_identity": "NonInteractivePipelineRun",
     }
+
+
+# Each job execution can be seen as a batch of runs, identified through
+# the job_schedule_number, each pipeline run id, which is essentially
+# the index of the run in this job, must be unique at the level of the
+# batch of runs.
+UniqueConstraint(
+    NonInteractivePipelineRun.job_schedule_number,
+    NonInteractivePipelineRun.pipeline_run_id,
+)
 
 
 class InteractivePipelineRun(PipelineRun):

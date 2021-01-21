@@ -1,11 +1,14 @@
+import copy
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from celery.contrib.abortable import AbortableAsyncResult
+from croniter import croniter
 from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
+from sqlalchemy.orm import joinedload
 
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
@@ -30,8 +33,16 @@ class JobList(Resource):
         completed.
 
         """
-        jobs = models.Job.query.all()
-        return {"jobs": [exp.__dict__ for exp in jobs]}, 200
+        jobs = models.Job.query.options(joinedload(models.Job.pipeline_runs)).all()
+        jobs = [job.__dict__ for job in jobs]
+
+        for job in jobs:
+            # Jobs that do not have runs yet need to have this value
+            # filled manually to avoid errors in the webserver.
+            if "pipeline_runs" not in job:
+                job["pipeline_runs"] = []
+
+        return jobs
 
     @api.doc("start_job")
     @api.expect(schema.job_spec)
@@ -42,32 +53,63 @@ class JobList(Resource):
         # have moved over to using flask_restx
         # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.marshal
         #       to make sure the default values etc. are filled in.
-        post_data = request.get_json()
-
-        # TODO: maybe we can expect a datetime (in the schema) so we
-        #       do not have to parse it here. Again note that we are now
-        #       using flask_restx
-        # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.fields.DateTime
-        scheduled_start = post_data["scheduled_start"]
-        scheduled_start = datetime.fromisoformat(scheduled_start)
-
-        job = {
-            "job_uuid": post_data["job_uuid"],
-            "project_uuid": post_data["project_uuid"],
-            "pipeline_uuid": post_data["pipeline_uuid"],
-            "scheduled_start": scheduled_start,
-            "total_number_of_pipeline_runs": len(post_data["pipeline_definitions"]),
-        }
 
         try:
-            with TwoPhaseExecutor(db.session) as tpe:
-                job = CreateJob(tpe).transaction(
-                    job,
-                    post_data["pipeline_run_spec"],
-                    post_data["pipeline_definitions"],
-                    post_data["pipeline_run_ids"],
-                )
+            post_data = request.get_json()
+
+            scheduled_start = post_data.get("scheduled_start", None)
+            cron_schedule = post_data.get("cron_schedule", None)
+
+            # To be scheduled ASAP and to be run once.
+            if cron_schedule is None and scheduled_start is None:
+                next_scheduled_time = datetime.now(timezone.utc)
+
+            # To be scheduled according to argument, to be run once.
+            elif cron_schedule is None:
+                # TODO: what timezone is this data? Check & adjust.
+                next_scheduled_time = datetime.fromisoformat(scheduled_start)
+
+            # To follow a cron schedule. To be run an indefinite amount
+            # of times.
+            elif cron_schedule is not None and scheduled_start is None:
+                if not croniter.is_valid(cron_schedule):
+                    raise ValueError(f"Invalid cron schedule: {cron_schedule}")
+
+                # Check when is the next time the job should be
+                # scheduled starting from now.
+                next_scheduled_time = croniter(
+                    cron_schedule, datetime.now(timezone.utc)
+                ).get_next(datetime)
+
+            else:
+                raise ValueError("Can't define both cron_schedule and scheduled_start.")
+
+            # Remove parameters entries from the pipeline. These are not
+            # the job parameters but the parameters that are stored
+            # within the pipeline definition file.
+            pipeline_definition = post_data["pipeline_definition"]
+            for step in pipeline_definition["steps"].values():
+                del step["parameters"]
+
+            job = {
+                "job_uuid": post_data["job_uuid"],
+                "project_uuid": post_data["project_uuid"],
+                "pipeline_uuid": post_data["pipeline_uuid"],
+                "schedule": cron_schedule,
+                "total_number_of_pipeline_runs": len(post_data["parameters"]),
+                "job_parameters": post_data["parameters"],
+                "pipeline_definition": pipeline_definition,
+                "pipeline_run_spec": post_data["pipeline_run_spec"],
+                "total_scheduled_executions": 0,
+                "completed_pipeline_runs": 0,
+                "next_scheduled_time": next_scheduled_time,
+            }
+            db.session.add(models.Job(**job))
+            db.session.commit()
+
         except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         return job, 201
@@ -81,11 +123,22 @@ class Job(Resource):
     @api.marshal_with(schema.job, code=200)
     def get(self, job_uuid):
         """Fetches a job given its UUID."""
-        job = models.Job.query.get_or_404(
-            job_uuid,
-            description="Job not found",
+        job = (
+            models.Job.query.options(joinedload(models.Job.pipeline_runs))
+            .filter_by(job_uuid=job_uuid)
+            .one_or_none()
         )
-        return job.__dict__
+        if job is None:
+            abort(404, "Job not found.")
+
+        job = job.__dict__
+
+        # Jobs that do not have runs yet need to have this value filled
+        # manually to avoid errors in the webserver.
+        if "pipeline_runs" not in job:
+            job["pipeline_runs"] = []
+
+        return job
 
     # TODO: We should also make it possible to stop a particular
     # pipeline run of a job. It should state "cancel" the
@@ -237,27 +290,36 @@ class JobDeletion(Resource):
             return {"message": "Job does not exist."}, 404
 
 
-class CreateJob(TwoPhaseFunction):
-    """Create a job."""
+class RunJob(TwoPhaseFunction):
+    """Start the pipeline runs related to a job"""
 
-    def _transaction(
-        self,
-        job: Dict[str, Any],
-        pipeline_run_spec: Dict[str, Any],
-        pipeline_definitions: List[Dict[str, Any]],
-        pipeline_run_ids: List[str],
-    ):
+    def _transaction(self, job_uuid: str):
 
-        db.session.add(models.Job(**job))
-        # So that the job can be returned with all runs.
-        job["pipeline_runs"] = []
+        # with_entities is so that we do not retrieve the interactive
+        # runs of the job, since we do not need those.
+        job = (
+            models.Job.query.with_entities(models.Job)
+            .filter_by(job_uuid=job_uuid)
+            .one()
+        )
+        job.total_scheduled_executions += 1
+
         # To be later used by the collateral effect function.
         tasks_to_launch = []
 
-        for pipeline_definition, id_ in zip(pipeline_definitions, pipeline_run_ids):
-            # Note: the pipeline definition contains the parameters of
-            # the specific run.
-            pipeline_run_spec["pipeline_definition"] = pipeline_definition
+        # run_index is the index of the run within the runs of this job
+        # scheduling/execution.
+        for run_index, run_parameters in enumerate(job.job_parameters):
+            pipeline_def = copy.deepcopy(job.pipeline_definition)
+
+            # Set the steps parameters in the pipeline definition.
+            for step_uuid, step_parameters in run_parameters.items():
+                pipeline_def["steps"][step_uuid]["parameters"] = step_parameters
+
+            # Instantiate a pipeline object given the specs, definition
+            # and parameters.
+            pipeline_run_spec = copy.deepcopy(job.pipeline_run_spec)
+            pipeline_run_spec["pipeline_definition"] = pipeline_def
             pipeline = construct_pipeline(**pipeline_run_spec)
 
             # Specify the task_id beforehand to avoid race conditions
@@ -266,12 +328,14 @@ class CreateJob(TwoPhaseFunction):
             tasks_to_launch.append((task_id, pipeline))
 
             non_interactive_run = {
-                "job_uuid": job["job_uuid"],
+                "job_uuid": job.job_uuid,
                 "run_uuid": task_id,
-                "pipeline_run_id": id_,
-                "pipeline_uuid": pipeline.properties["uuid"],
-                "project_uuid": job["project_uuid"],
+                "pipeline_run_id": run_index,
+                "pipeline_uuid": job.pipeline_uuid,
+                "project_uuid": job.project_uuid,
                 "status": "PENDING",
+                "pipeline_parameters": run_parameters,
+                "job_schedule_number": job.total_scheduled_executions,
             }
             db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
             # Need to flush because otherwise the bulk insertion of
@@ -297,19 +361,14 @@ class CreateJob(TwoPhaseFunction):
                 )
             db.session.bulk_save_objects(pipeline_steps)
 
-            non_interactive_run["pipeline_steps"] = pipeline_steps
-            job["pipeline_runs"].append(non_interactive_run)
-
-        self.collateral_kwargs["job"] = job
+        self.collateral_kwargs["job"] = job.as_dict()
         self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
-        self.collateral_kwargs["pipeline_run_spec"] = pipeline_run_spec
-
-        return job
+        self.collateral_kwargs["run_config"] = job.pipeline_run_spec["run_config"]
 
     def _collateral(
         self,
         job: Dict[str, Any],
-        pipeline_run_spec: Dict[str, Any],
+        run_config: Dict[str, Any],
         tasks_to_launch: Tuple[str, Pipeline],
     ):
         # Safety check in case the job has no runs.
@@ -353,7 +412,6 @@ class CreateJob(TwoPhaseFunction):
         # Launch each task through celery.
         celery = make_celery(current_app)
         for task_id, pipeline in tasks_to_launch:
-            run_config = pipeline_run_spec["run_config"]
             run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
             celery_job_kwargs = {
                 "job_uuid": job["job_uuid"],
@@ -366,7 +424,6 @@ class CreateJob(TwoPhaseFunction):
             # importing the function directly.
             task_args = {
                 "name": "app.core.tasks.start_non_interactive_pipeline_run",
-                "eta": job["scheduled_start"],
                 "kwargs": celery_job_kwargs,
                 "task_id": task_id,
             }
