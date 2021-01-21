@@ -1,8 +1,8 @@
-"""Extend Job and NonInteractiveRun for scheduling.
+"""Extend Job and NonInteractiveRun for scheduling
 
-Revision ID: 42160678ae1e
+Revision ID: 52f19ca41671
 Revises: 96f304f85ee5
-Create Date: 2021-01-21 09:33:28.347298
+Create Date: 2021-01-21 09:55:35.007886
 
 """
 import sqlalchemy as sa
@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "42160678ae1e"
+revision = "52f19ca41671"
 down_revision = "96f304f85ee5"
 branch_labels = None
 depends_on = None
@@ -86,17 +86,15 @@ def upgrade():
         ),
     )
     op.create_unique_constraint(
-        op.f("uq_pipeline_runs_job_schedule_number_pipeline_run_id"),
+        op.f("uq_pipeline_runs_job_uuid_job_schedule_number_pipeline_run_id"),
         "pipeline_runs",
-        ["job_schedule_number", "pipeline_run_id"],
+        ["job_uuid", "job_schedule_number", "pipeline_run_id"],
     )
 
 
 def downgrade():
-    # Not checked for correctness, do check if you want to support
-    # downgrade.
     op.drop_constraint(
-        op.f("uq_pipeline_runs_job_schedule_number_pipeline_run_id"),
+        op.f("uq_pipeline_runs_job_uuid_job_schedule_number_pipeline_run_id"),
         "pipeline_runs",
         type_="unique",
     )
@@ -118,6 +116,3 @@ def downgrade():
     op.drop_column("jobs", "pipeline_definition")
     op.drop_column("jobs", "next_scheduled_time")
     op.drop_column("jobs", "job_parameters")
-    op.drop_constraint(
-        op.f("uq_environment_build_build_uuid"), "environment_build", type_="unique"
-    )

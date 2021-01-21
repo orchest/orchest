@@ -313,6 +313,7 @@ class NonInteractivePipelineRun(PipelineRun):
 # the index of the run in this job, must be unique at the level of the
 # batch of runs.
 UniqueConstraint(
+    NonInteractivePipelineRun.job_uuid,
     NonInteractivePipelineRun.job_schedule_number,
     NonInteractivePipelineRun.pipeline_run_id,
 )
