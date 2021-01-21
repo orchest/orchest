@@ -111,19 +111,6 @@ class Job(db.Model):
     strategy_json = db.Column(db.Text, nullable=False)
     draft = db.Column(db.Boolean())
 
-    pipeline_runs = db.relationship(
-        "PipelineRun", lazy="joined", passive_deletes=False, cascade="all, delete"
-    )
-
-
-class PipelineRun(db.Model):
-    __tablename__ = "pipelineruns"
-
-    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
-    id = db.Column(db.Integer(), unique=False)
-    job = db.Column(db.ForeignKey("jobs.uuid", ondelete="CASCADE"))
-    parameter_json = db.Column(db.JSON, nullable=False)
-
 
 class BackgroundTask(db.Model):
     """BackgroundTasks, models all tasks to be run in the background."""
