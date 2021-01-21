@@ -262,7 +262,9 @@ job_spec = Model(
         ),
         "scheduled_start": fields.String(
             required=False,
-            description="Time at which the job is scheduled to start.",
+            description=(
+                "Time at which the job is scheduled to start. Assumed to be UTC."
+            ),
         ),
         "cron_schedule": fields.String(
             required=False,

@@ -62,7 +62,7 @@ class JobList(Resource):
 
             # To be scheduled according to argument, to be run once.
             elif cron_schedule is None:
-                # TODO: what timezone is this data? Check & adjust.
+                # Expected to be UTC.
                 next_scheduled_time = datetime.fromisoformat(scheduled_start)
 
             # To follow a cron schedule. To be run an indefinite amount
