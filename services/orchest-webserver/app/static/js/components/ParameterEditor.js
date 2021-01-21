@@ -76,7 +76,7 @@ class ParameterEditor extends React.Component {
                         );
                       } catch {
                         return (
-                          <div className="json-warning">
+                          <div className="warning push-up">
                             <i className="material-icons">warning</i> Your input
                             is not valid JSON.
                           </div>

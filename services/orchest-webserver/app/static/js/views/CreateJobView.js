@@ -1,15 +1,18 @@
 import React, { Fragment } from "react";
 import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
+import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import MDCRadioReact from "../lib/mdc-components/MDCRadioReact";
+import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import ParameterEditor from "../components/ParameterEditor";
 import DateTimeInput from "../components/DateTimeInput";
 import JobsView from "./JobsView";
 import SearchableTable from "../components/SearchableTable";
 import { makeRequest, PromiseManager, RefManager } from "../lib/utils/all";
-import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import ParamTree from "../components/ParamTree";
-import MDCRadioReact from "../lib/mdc-components/MDCRadioReact";
 import { makeCancelable } from "../lib/utils/all";
+import cronstrue from "cronstrue";
+import cron from "cron-validate";
 import {
   checkGate,
   getPipelineJSONEndpoint,
@@ -29,6 +32,7 @@ class CreateJobView extends React.Component {
       scheduleOption: "now",
       pipeline: undefined,
       runJobLoading: false,
+      cronString: "* * * * *",
     };
 
     this.promiseManager = new PromiseManager();
@@ -393,6 +397,13 @@ class CreateJobView extends React.Component {
     return parameterizedSteps;
   }
 
+  setCronSchedule(cronString) {
+    this.setState({
+      cronString,
+      scheduleOption: "cron",
+    });
+  }
+
   detailRows(pipelineParameters) {
     let detailElements = [];
 
@@ -437,31 +448,103 @@ class CreateJobView extends React.Component {
           tabView = (
             <div className="tab-view">
               <div>
+                <div className="push-down">
+                  <MDCRadioReact
+                    label="Now"
+                    value="now"
+                    name="time"
+                    checked={this.state.scheduleOption === "now"}
+                    onChange={(e) => {
+                      this.setState({ scheduleOption: e.target.value });
+                    }}
+                  />
+                </div>
+                <div className="push-down">
+                  <MDCRadioReact
+                    label="Scheduled"
+                    value="scheduled"
+                    name="time"
+                    checked={this.state.scheduleOption === "scheduled"}
+                    onChange={(e) => {
+                      this.setState({ scheduleOption: e.target.value });
+                    }}
+                  />
+                </div>
+                <div>
+                  <DateTimeInput
+                    disabled={this.state.scheduleOption !== "scheduled"}
+                    ref={this.refManager.nrefs.scheduledDateTime}
+                    onFocus={() =>
+                      this.setState({ scheduleOption: "scheduled" })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="push-down">
                 <MDCRadioReact
-                  label="Now"
-                  value="now"
+                  label="Cron job"
+                  value="cron"
                   name="time"
-                  checked={this.state.scheduleOption === "now"}
+                  checked={this.state.scheduleOption === "cron"}
                   onChange={(e) => {
                     this.setState({ scheduleOption: e.target.value });
                   }}
                 />
               </div>
               <div>
-                <MDCRadioReact
-                  label="Scheduled"
-                  value="scheduled"
-                  name="time"
-                  checked={this.state.scheduleOption === "scheduled"}
-                  onChange={(e) => {
-                    this.setState({ scheduleOption: e.target.value });
+                <div className="push-down seperated">
+                  <MDCButtonReact
+                    disabled={this.state.scheduleOption !== "cron"}
+                    onClick={this.setCronSchedule.bind(this, "0 * * * *")}
+                    label="Hourly"
+                  />
+                  <MDCButtonReact
+                    disabled={this.state.scheduleOption !== "cron"}
+                    onClick={this.setCronSchedule.bind(this, "0 0 * * *")}
+                    label="Daily"
+                  />
+                  <MDCButtonReact
+                    disabled={this.state.scheduleOption !== "cron"}
+                    onClick={this.setCronSchedule.bind(this, "0 0 * * 0")}
+                    label="Weekly"
+                  />
+                  <MDCButtonReact
+                    disabled={this.state.scheduleOption !== "cron"}
+                    onClick={this.setCronSchedule.bind(this, "0 0 1 * *")}
+                    label="Monthly"
+                  />
+                </div>
+                <MDCTextFieldReact
+                  disabled={this.state.scheduleOption !== "cron"}
+                  label="Cron expression"
+                  onChange={(value) => {
+                    this.setCronSchedule(value);
                   }}
+                  classNames={["push-down"]}
+                  value={this.state.cronString}
                 />
-
-                <DateTimeInput
-                  ref={this.refManager.nrefs.scheduledDateTime}
-                  onFocus={() => this.setState({ scheduleOption: "scheduled" })}
-                />
+                <div
+                  className={
+                    this.state.scheduleOption !== "cron" ? "disabled-text" : ""
+                  }
+                >
+                  {(() => {
+                    try {
+                      let cronResult = cron(this.state.cronString);
+                      if (cronResult.isValid()) {
+                        return cronstrue.toString(this.state.cronString);
+                      }
+                    } catch (err) {
+                      console.warn(err);
+                    }
+                    return (
+                      <div className="warning">
+                        <i className="material-icons">warning</i> Invalid cron
+                        string.
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           );

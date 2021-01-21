@@ -31,7 +31,11 @@ export default class Admin extends React.Component {
             <h2>Add a user</h2>
             <MDCTextFieldReact label="Username" name="username" />
             <br />
-            <MDCTextFieldReact label="Password" password name="password" />
+            <MDCTextFieldReact
+              label="Password"
+              inputType="password"
+              name="password"
+            />
             <br />
             <MDCButtonReact
               submitButton
