@@ -394,8 +394,14 @@ class RunJob(TwoPhaseFunction):
             .filter_by(job_uuid=job_uuid)
             .one()
         )
-        job.total_scheduled_executions += 1
+        # In case the job gets aborted while the scheduler attempts to
+        # run it.
+        if job.status == "ABORTED":
+            self.collateral_kwargs["job"] = dict()
+            self.collateral_kwargs["tasks_to_launch"] = []
+            self.collateral_kwargs["run_config"] = dict()
 
+        job.total_scheduled_executions += 1
         # Based on the type of Job (recurring or not) set the status
         # and next_scheduled_time.
         if job.schedule is None:
@@ -568,9 +574,18 @@ class AbortJob(TwoPhaseFunction):
         # to do.
         self.collateral_kwargs["run_uuids"] = run_uuids
 
-        job = models.Job.query.filter_by(job_uuid=job_uuid).one_or_none()
+        job = (
+            models.Job.query.with_for_update()
+            .filter_by(job_uuid=job_uuid)
+            .one_or_none()
+        )
         if job is None:
             return False
+
+        job.status = "ABORTED"
+        # This way a recurring job or a job which is scheduled to run
+        # once in the future will not be scheduled anymore.
+        job.next_scheduled_time = None
 
         # Store each uuid of runs that can still be aborted. These uuid
         # are the celery task uuid as well.
