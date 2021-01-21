@@ -58,7 +58,7 @@ class JobList(Resource):
 
             # To be scheduled ASAP and to be run once.
             if cron_schedule is None and scheduled_start is None:
-                next_scheduled_time = datetime.now(timezone.utc)
+                next_scheduled_time = None
 
             # To be scheduled according to argument, to be run once.
             elif cron_schedule is None:
@@ -105,6 +105,13 @@ class JobList(Resource):
             }
             db.session.add(models.Job(**job))
             db.session.commit()
+
+            # The endpoint takes care of scheduling the Job if it needs
+            # to be scheduled asap. This way the scheduler can run less
+            # often while the job is still scheduled asap.
+            if cron_schedule is None and scheduled_start is None:
+                with TwoPhaseExecutor(db.session) as tpe:
+                    RunJob(tpe).transaction(post_data["job_uuid"])
 
         except Exception as e:
             db.session.rollback()
@@ -197,41 +204,45 @@ class PipelineRun(Resource):
                 filter_by=filter_by,
             )
 
-            # The job has 1 run for every parameters set.
-            job = (
-                db.session.query(
-                    models.Job.schedule,
-                    func.jsonb_array_length(models.Job.job_parameters),
+            # See if the job is done running (all its runs are done).
+            if status_update["status"] in ["SUCCESS", "FAILURE"]:
+
+                # The job has 1 run for every parameters set.
+                job = (
+                    db.session.query(
+                        models.Job.schedule,
+                        func.jsonb_array_length(models.Job.job_parameters),
+                    )
+                    .filter_by(job_uuid=job_uuid)
+                    .one()
                 )
-                .filter_by(job_uuid=job_uuid)
-                .one()
-            )
 
-            # Only non recurring jobs have the concept of terminating as
-            # SUCCESS.
-            if job.schedule is None:
+                # Only non recurring jobs terminate to SUCCESS.
+                if job.schedule is None:
 
-                completed_runs = (
-                    models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
-                    .filter(
-                        models.NonInteractivePipelineRun.status.in_(
-                            ["SUCCESS", "FAILURE"]
+                    completed_runs = (
+                        models.NonInteractivePipelineRun.query.filter_by(
+                            job_uuid=job_uuid
+                        )
+                        .filter(
+                            models.NonInteractivePipelineRun.status.in_(
+                                ["SUCCESS", "FAILURE"]
+                            )
+                        )
+                        .count()
+                    )
+
+                    current_app.logger.info(
+                        (
+                            f"Non recurring job {job_uuid} has completed "
+                            f"{completed_runs}/{job[1]} runs."
                         )
                     )
-                    .count()
-                )
 
-                current_app.logger.info(
-                    (
-                        f"Non recurring job {job_uuid} has completed "
-                        f"{completed_runs}/{job[1]} runs."
-                    )
-                )
-
-                if completed_runs == job[1]:
-                    models.Job.query.filter_by(job_uuid=job_uuid).update(
-                        {"status": "SUCCESS"}
-                    )
+                    if completed_runs == job[1]:
+                        models.Job.query.filter_by(job_uuid=job_uuid).update(
+                            {"status": "SUCCESS"}
+                        )
 
             db.session.commit()
         except Exception as e:
@@ -324,10 +335,36 @@ class RunJob(TwoPhaseFunction):
         # runs of the job, since we do not need those.
         job = (
             models.Job.query.with_entities(models.Job)
+            # Use with_for_update so that the job entry will be locked
+            # until commit, so that if, for whatever reason, the same
+            # job is launched concurrently the different launchs will
+            # actually be serialized, i.e. one has to wait for the
+            # commit of the other, so that the launched runs will
+            # correctly refer to a different total_scheduled_executions
+            # number.
+            # https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.with_for_update
+            # https://www.postgresql.org/docs/9.0/sql-select.html#SQL-FOR-UPDATE-SHARE
+            .with_for_update()
             .filter_by(job_uuid=job_uuid)
             .one()
         )
         job.total_scheduled_executions += 1
+
+        # Based on the type of Job (recurring or not) set the status
+        # and next_scheduled_time.
+        if job.schedule is None:
+            job.next_scheduled_time = None
+
+            # The status of jobs that run once is initially set to
+            # PENDING, thus we need to update that.
+            if job.status == "PENDING":
+                job.status = "STARTED"
+        else:
+            # Else we need to decide what's the next scheduled time,
+            # based on the cron schedule and this scheduled time.
+            job.next_scheduled_time = croniter(
+                job.schedule, job.next_scheduled_time
+            ).get_next(datetime)
 
         # To be later used by the collateral effect function.
         tasks_to_launch = []
