@@ -1,3 +1,32 @@
+"""Job scheduler.
+
+Only one scheduler should be running. This means that if the orchest-api
+is run as multiple processes then the scheduler needs to be factored out
+as a stand alone process. The scheduler currently runs in a background
+thread, and its invoked every orchest-api.config.SCHEDULER_INTERVAL
+seconds.
+
+The scheduler works by checking for which jobs are due to be run by
+querying the database, which acts as the ground truth. The column of
+interest to decide if a job should be scheduled is the
+next_scheduled_time column, which is a UTC timestamp confronted with the
+current UTC time.
+
+Given a job that should have been run at time X, if Orchest was not
+running at that time, the scheduler will run the job.
+Given a recurring job that should have been run at time X, if Orchest
+was not running at that time, the scheduler will run the job and set the
+next_scheduled_time accordingly, in a way that all job runs that have
+been missed will be scheduled. For example, given a recurring job with
+cron string "* * * * *" (runs every minute), next_scheduled_time set to
+12:00, if Orchest was offline and it's started at 12:10 the scheduler
+will schedule the job run of 12:00, and will set the next_scheduled_time
+to 12:01, which will in turn trigger another scheduling, which will
+set the next_scheduled_time to 12:02, etc., all the way up to being on
+par with all the runs that should have been scheduled. This way all
+job runs that were missed will be scheduled and run.
+
+"""
 import logging
 from datetime import datetime, timezone
 
