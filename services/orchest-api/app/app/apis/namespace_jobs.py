@@ -33,16 +33,10 @@ class JobList(Resource):
         completed.
 
         """
-        jobs = models.Job.query.options(joinedload(models.Job.pipeline_runs)).all()
+        jobs = models.Job.query.all()
         jobs = [job.__dict__ for job in jobs]
 
-        for job in jobs:
-            # Jobs that do not have runs yet need to have this value
-            # filled manually to avoid errors in the webserver.
-            if "pipeline_runs" not in job:
-                job["pipeline_runs"] = []
-
-        return jobs
+        return {"jobs": jobs}
 
     @api.doc("start_job")
     @api.expect(schema.job_spec)
@@ -124,6 +118,7 @@ class Job(Resource):
     def get(self, job_uuid):
         """Fetches a job given its UUID."""
         job = (
+            # joinedload is to also fetch pipeline_runs.
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
             .filter_by(job_uuid=job_uuid)
             .one_or_none()
@@ -132,12 +127,6 @@ class Job(Resource):
             abort(404, "Job not found.")
 
         job = job.__dict__
-
-        # Jobs that do not have runs yet need to have this value filled
-        # manually to avoid errors in the webserver.
-        if "pipeline_runs" not in job:
-            job["pipeline_runs"] = []
-
         return job
 
     # TODO: We should also make it possible to stop a particular
