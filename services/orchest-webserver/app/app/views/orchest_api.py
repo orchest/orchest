@@ -320,12 +320,7 @@ def register_orchest_api_views(app, db):
 
             try:
 
-                # TODO: sort in the DB in the orchest-api, not here.
                 json_return = resp.json()
-                json_return["pipeline_runs"] = sorted(
-                    json_return["pipeline_runs"],
-                    key=lambda x: (x["job_schedule_number"], x["pipeline_run_id"]),
-                )
 
                 # Necessary because the front end expects a pipeline def
                 # and parameters for each run.

@@ -179,6 +179,12 @@ class Job(BaseModel):
         # Essentially, the specified behaviour in the FK column
         # and the one specified in the relationship must match.
         cascade="all, delete",
+        # When querying a job and its runs the runs will be sorted by
+        # job schedule number and the index of the pipeline in that job.
+        order_by=(
+            "[NonInteractivePipelineRun.job_schedule_number, "
+            "NonInteractivePipelineRun.pipeline_run_id]"
+        ),
     )
 
     def __repr__(self):
