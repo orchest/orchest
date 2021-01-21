@@ -6,7 +6,7 @@ import requests
 from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -300,8 +300,10 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    return models.Job.query.filter(
-        # exp related to this project
+    # Jobs with PENDING or STARTED runs that are going to use or are
+    # using the environment.
+    active_runs_jobs = models.Job.query.filter(
+        # job related to this project
         models.Job.project_uuid == project_uuid,
         # keep project for which at least a run uses the environment
         # and is or will make use of the environment (PENDING/STARTED)
@@ -314,6 +316,32 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
             )
         ),
     ).all()
+
+    # Jobs for which there are no active runs but that will eventually
+    # be scheduled (recurrent jobs or jobs scheduled in the future).
+    future_jobs = models.Job.query.filter(
+        # job related to this project
+        models.Job.project_uuid == project_uuid,
+        or_(
+            models.Job.schedule.isnot(None), models.Job.next_scheduled_time.isnot(None)
+        ),
+    ).all()
+
+    # Only keep jobs that are making use of this environment.
+    # TODO: do this at the db level using jsonb operators.
+    future_jobs_using_env = []
+    for job in future_jobs:
+        steps = job.pipeline_definition["steps"]
+        envs = {step["environment"] for step in steps.values()}
+        if env_uuid in envs:
+            future_jobs_using_env.append(job)
+
+    # Make sure the returned jobs are unique.
+    uuid_to_job = dict()
+    for job in active_runs_jobs + future_jobs:
+        uuid_to_job[job.job_uuid] = job
+
+    return [job for job in uuid_to_job.values()]
 
 
 def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
