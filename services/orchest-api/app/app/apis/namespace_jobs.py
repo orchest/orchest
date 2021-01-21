@@ -137,9 +137,55 @@ class Job(Resource):
         )
         if job is None:
             abort(404, "Job not found.")
-
-        job = job.__dict__
         return job
+
+    @api.expect(schema.job_update)
+    @api.doc("update_job")
+    def put(self, job_uuid):
+        """Update a job (cronstring or parameters).
+
+        Update a job cron schedule or parameters. Updating the cron
+        schedule implies that the job will be rescheduled and will
+        follow the new given schedule. Updating the parameters of a job
+        implies that the next time the job will be run those parameters
+        will be used, thus affecting the number of pipeline runs that
+        are launched. Only recurring ongoing jobs can be updated.
+
+        """
+        job_update = request.get_json()
+
+        cron_schedule = job_update.get("cron_schedule", None)
+        parameters = job_update.get("parameters", None)
+
+        try:
+            job = models.Job.query.filter_by(job_uuid=job_uuid).one()
+
+            if job.schedule is None or job.status != "STARTED":
+                return {"message": "Failed update operation."}, 500
+
+            if cron_schedule is not None:
+                if not croniter.is_valid(cron_schedule):
+                    raise ValueError(f"Invalid cron schedule: {cron_schedule}")
+
+                # Check when is the next time the job should be
+                # scheduled starting from now.
+                next_scheduled_time = croniter(
+                    cron_schedule, datetime.now(timezone.utc)
+                ).get_next(datetime)
+
+                job.schedule = cron_schedule
+                job.next_scheduled_time = next_scheduled_time
+
+            if parameters is not None:
+                job["job_parameters"] = parameters
+
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            db.session.rollback()
+            return {"message": "Failed update operation."}, 500
+
+        return {"message": "Job was updated successfully"}, 200
 
     # TODO: We should also make it possible to stop a particular
     # pipeline run of a job. It should state "cancel" the

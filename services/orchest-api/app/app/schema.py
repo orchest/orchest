@@ -172,6 +172,21 @@ status_update = Model(
     },
 )
 
+job_update = Model(
+    "JobUpdate",
+    {
+        "cron_schedule": fields.String(
+            required=False,
+            description="Cron string for recurrent scheduling of the job.",
+        ),
+        "parameters": fields.List(
+            fields.Raw(description="Parameters of the job, one for each run."),
+            required=True,
+            description="List of run parameters.",
+        ),
+    },
+)
+
 # Namespace: Jobs.
 non_interactive_run_config = pipeline_run_config.inherit(
     "NonInteractiveRunConfig",
@@ -295,7 +310,11 @@ job = Model(
                 'Specification of the pipeline runs, e.g. "full",' ' "incoming" etc',
             ),
         ),
-        "status": fields.String(required=True, description="Status of the job."),
+        "status": fields.String(
+            required=True,
+            description="Status of the job.",
+            enum=["PENDING", "STARTED", "SUCCESS", "ABORTED"],
+        ),
     },
 )
 
