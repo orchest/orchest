@@ -1,8 +1,8 @@
-"""Extend Job and NonInteractiveRun for scheduling
+"""Extend Job and PipelineRuns for scheduling
 
-Revision ID: 52f19ca41671
+Revision ID: 7bba760668d0
 Revises: 96f304f85ee5
-Create Date: 2021-01-21 09:55:35.007886
+Create Date: 2021-01-21 10:07:42.847877
 
 """
 import sqlalchemy as sa
@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "52f19ca41671"
+revision = "7bba760668d0"
 down_revision = "96f304f85ee5"
 branch_labels = None
 depends_on = None
@@ -85,6 +85,9 @@ def upgrade():
             nullable=False,
         ),
     )
+    op.create_index(
+        op.f("ix_pipeline_runs_job_uuid"), "pipeline_runs", ["job_uuid"], unique=False
+    )
     op.create_unique_constraint(
         op.f("uq_pipeline_runs_job_uuid_job_schedule_number_pipeline_run_id"),
         "pipeline_runs",
@@ -98,6 +101,7 @@ def downgrade():
         "pipeline_runs",
         type_="unique",
     )
+    op.drop_index(op.f("ix_pipeline_runs_job_uuid"), table_name="pipeline_runs")
     op.drop_column("pipeline_runs", "pipeline_parameters")
     op.drop_column("pipeline_runs", "job_schedule_number")
     op.add_column(

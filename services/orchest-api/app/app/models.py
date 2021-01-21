@@ -273,8 +273,7 @@ class NonInteractivePipelineRun(PipelineRun):
     # TODO: verify why the job_uuid should be part of the
     # primary key
     job_uuid = db.Column(
-        db.String(36),
-        db.ForeignKey("jobs.job_uuid", ondelete="CASCADE"),
+        db.String(36), db.ForeignKey("jobs.job_uuid", ondelete="CASCADE"), index=True
     )
 
     # To what batch of non interactive runs of a job it belongs. The
