@@ -1,6 +1,5 @@
 import requests
 from flask import jsonify, request
-from flask.globals import current_app
 
 from app.analytics import send_pipeline_run
 from app.models import Job
@@ -312,23 +311,4 @@ def register_orchest_api_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/" + job_uuid,
         )
 
-        # Augment response with parameter values
-        # that are stored on the webserver.
-        if resp.status_code == 200:
-
-            try:
-
-                json_return = resp.json()
-
-                # Necessary because the front end expects a pipeline def
-                # and parameters for each run.
-                for run in json_return["pipeline_runs"]:
-                    run["parameters"] = run["pipeline_parameters"]
-
-                return jsonify(json_return)
-            except Exception as e:
-                current_app.logger.error(e)
-                return str(e), 500
-
-        else:
-            return resp.content, resp.status_code, resp.headers.items()
+        return resp.content, resp.status_code, resp.headers.items()

@@ -107,7 +107,7 @@ class Job(BaseModel):
     # dictinary. A parameter dictionary maps step uuids to a dictionary,
     # containing the parameters of that step for that particular run.
     # [{ <step_uuid>: {"a": 1}, ...}, ...GG]
-    job_parameters = db.Column(
+    parameters = db.Column(
         JSONB,
         nullable=False,
         # This way migrated entries that did not have this column will
@@ -294,7 +294,7 @@ class NonInteractivePipelineRun(PipelineRun):
     )
 
     # Parameters with which it was run, so that the history is kept.
-    pipeline_parameters = db.Column(
+    parameters = db.Column(
         JSONB,
         nullable=False,
         # This way migrated entries that did not have this column will

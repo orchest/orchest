@@ -20,7 +20,7 @@ def upgrade():
     op.add_column(
         "jobs",
         sa.Column(
-            "job_parameters",
+            "parameters",
             postgresql.JSONB(astext_type=sa.Text()),
             server_default="[]",
             nullable=False,
@@ -90,7 +90,7 @@ def upgrade():
     op.add_column(
         "pipeline_runs",
         sa.Column(
-            "pipeline_parameters",
+            "parameters",
             postgresql.JSONB(astext_type=sa.Text()),
             server_default="{}",
             nullable=False,
@@ -113,7 +113,7 @@ def downgrade():
         type_="unique",
     )
     op.drop_index(op.f("ix_pipeline_runs_job_uuid"), table_name="pipeline_runs")
-    op.drop_column("pipeline_runs", "pipeline_parameters")
+    op.drop_column("pipeline_runs", "parameters")
     op.drop_column("pipeline_runs", "job_schedule_number")
     op.add_column(
         "jobs",
@@ -150,4 +150,4 @@ def downgrade():
     op.drop_column("jobs", "pipeline_run_spec")
     op.drop_column("jobs", "pipeline_definition")
     op.drop_column("jobs", "next_scheduled_time")
-    op.drop_column("jobs", "job_parameters")
+    op.drop_column("jobs", "parameters")

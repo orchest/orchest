@@ -226,9 +226,7 @@ non_interactive_run = pipeline_run.inherit(
         "pipeline_run_id": fields.Integer(
             required=True, description="Respective run ID in job"
         ),
-        "pipeline_parameters": fields.Raw(
-            required=True, description="Parameters of the run"
-        ),
+        "parameters": fields.Raw(required=True, description="Parameters of the run"),
     },
 )
 
@@ -297,7 +295,7 @@ job = Model(
             required=True,
             description="Next time at which the job is scheduled to start.",
         ),
-        "job_parameters": fields.List(
+        "parameters": fields.List(
             fields.Raw(description="Parameters of the job, one for each run."),
             description="List of run parameters.",
         ),

@@ -96,7 +96,7 @@ class JobList(Resource):
                 "project_uuid": post_data["project_uuid"],
                 "pipeline_uuid": post_data["pipeline_uuid"],
                 "schedule": cron_schedule,
-                "job_parameters": post_data["parameters"],
+                "parameters": post_data["parameters"],
                 "pipeline_definition": pipeline_definition,
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
@@ -177,7 +177,7 @@ class Job(Resource):
                 job.next_scheduled_time = next_scheduled_time
 
             if parameters is not None:
-                job["job_parameters"] = parameters
+                job["parameters"] = parameters
 
             db.session.commit()
         except Exception as e:
@@ -257,7 +257,7 @@ class PipelineRun(Resource):
                 job = (
                     db.session.query(
                         models.Job.schedule,
-                        func.jsonb_array_length(models.Job.job_parameters),
+                        func.jsonb_array_length(models.Job.parameters),
                     )
                     .filter_by(job_uuid=job_uuid)
                     .one()
@@ -423,7 +423,7 @@ class RunJob(TwoPhaseFunction):
 
         # run_index is the index of the run within the runs of this job
         # scheduling/execution.
-        for run_index, run_parameters in enumerate(job.job_parameters):
+        for run_index, run_parameters in enumerate(job.parameters):
             pipeline_def = copy.deepcopy(job.pipeline_definition)
 
             # Set the steps parameters in the pipeline definition.
@@ -448,7 +448,7 @@ class RunJob(TwoPhaseFunction):
                 "pipeline_uuid": job.pipeline_uuid,
                 "project_uuid": job.project_uuid,
                 "status": "PENDING",
-                "pipeline_parameters": run_parameters,
+                "parameters": run_parameters,
                 "job_schedule_number": job.total_scheduled_executions,
             }
             db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
