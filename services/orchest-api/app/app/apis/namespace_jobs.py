@@ -394,7 +394,6 @@ class RunJob(TwoPhaseFunction):
             self.collateral_kwargs["tasks_to_launch"] = []
             self.collateral_kwargs["run_config"] = dict()
 
-        job.total_scheduled_executions += 1
         # Based on the type of Job (recurring or not) set the status
         # and next_scheduled_time.
         if job.schedule is None:
@@ -468,6 +467,7 @@ class RunJob(TwoPhaseFunction):
                 )
             db.session.bulk_save_objects(pipeline_steps)
 
+        job.total_scheduled_executions += 1
         self.collateral_kwargs["job"] = job.as_dict()
         self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
         self.collateral_kwargs["run_config"] = job.pipeline_run_spec["run_config"]
