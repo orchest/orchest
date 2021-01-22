@@ -84,20 +84,13 @@ class JobList(Resource):
             else:
                 raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
-            # Remove parameters entries from the pipeline. These are not
-            # the job parameters but the parameters that are stored
-            # within the pipeline definition file.
-            pipeline_definition = post_data["pipeline_definition"]
-            for step in pipeline_definition["steps"].values():
-                del step["parameters"]
-
             job = {
                 "job_uuid": post_data["job_uuid"],
                 "project_uuid": post_data["project_uuid"],
                 "pipeline_uuid": post_data["pipeline_uuid"],
                 "schedule": cron_schedule,
                 "parameters": post_data["parameters"],
-                "pipeline_definition": pipeline_definition,
+                "pipeline_definition": post_data["pipeline_definition"],
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
                 "next_scheduled_time": next_scheduled_time,
@@ -401,25 +394,18 @@ class RunJob(TwoPhaseFunction):
             self.collateral_kwargs["tasks_to_launch"] = []
             self.collateral_kwargs["run_config"] = dict()
 
-        job.total_scheduled_executions += 1
-        # Based on the type of Job (recurring or not) set the status
-        # and next_scheduled_time.
-        if job.schedule is None:
-            job.next_scheduled_time = None
-
-            # The status of jobs that run once is initially set to
-            # PENDING, thus we need to update that.
-            if job.status == "PENDING":
-                job.status = "STARTED"
-        else:
-            # Else we need to decide what's the next scheduled time,
-            # based on the cron schedule and this scheduled time.
-            job.next_scheduled_time = croniter(
-                job.schedule, job.next_scheduled_time
-            ).get_next(datetime)
+        # The status of jobs that run once is initially set to PENDING,
+        # thus we need to update that.
+        if job.status == "PENDING":
+            job.status = "STARTED"
 
         # To be later used by the collateral effect function.
         tasks_to_launch = []
+
+        # The number of pipeline runs of a job, across all job runs.
+        pipeline_run_index = models.NonInteractivePipelineRun.query.filter_by(
+            job_uuid=job_uuid
+        ).count()
 
         # run_index is the index of the run within the runs of this job
         # scheduling/execution.
@@ -444,13 +430,16 @@ class RunJob(TwoPhaseFunction):
             non_interactive_run = {
                 "job_uuid": job.job_uuid,
                 "run_uuid": task_id,
-                "pipeline_run_id": run_index,
                 "pipeline_uuid": job.pipeline_uuid,
                 "project_uuid": job.project_uuid,
                 "status": "PENDING",
                 "parameters": run_parameters,
-                "job_schedule_number": job.total_scheduled_executions,
+                "job_run_index": job.total_scheduled_executions,
+                "job_run_pipeline_run_index": run_index,
+                "pipeline_run_index": pipeline_run_index,
             }
+            pipeline_run_index += 1
+
             db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
             # Need to flush because otherwise the bulk insertion of
             # pipeline steps will lead to foreign key errors.
@@ -475,6 +464,7 @@ class RunJob(TwoPhaseFunction):
                 )
             db.session.bulk_save_objects(pipeline_steps)
 
+        job.total_scheduled_executions += 1
         self.collateral_kwargs["job"] = job.as_dict()
         self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
         self.collateral_kwargs["run_config"] = job.pipeline_run_spec["run_config"]
@@ -575,7 +565,7 @@ class AbortJob(TwoPhaseFunction):
         self.collateral_kwargs["run_uuids"] = run_uuids
 
         job = (
-            models.Job.query.with_for_update()
+            models.Job.query.options(joinedload(models.Job.pipeline_runs))
             .filter_by(job_uuid=job_uuid)
             .one_or_none()
         )
