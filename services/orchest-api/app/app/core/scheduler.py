@@ -30,6 +30,7 @@ job runs that were missed will be scheduled and run.
 import logging
 from datetime import datetime, timezone
 
+from croniter import croniter
 from sqlalchemy import desc
 from sqlalchemy.orm import load_only
 
@@ -40,6 +41,8 @@ from app.models import Job
 
 
 class Scheduler:
+    _first_iteration = True
+
     @classmethod
     def check_for_jobs_to_be_scheduled(cls, app):
 
@@ -52,6 +55,7 @@ class Scheduler:
                 Job.query.options(
                     load_only(
                         "job_uuid",
+                        "schedule",
                     )
                 )
                 # Filter out jobs that do not have to run anymore.
@@ -63,6 +67,26 @@ class Scheduler:
                 # which is more "behind" gets scheduled first.
                 .order_by(desc(now - Job.next_scheduled_time)).all()
             )
+
+            # While Orchest was offline, a recurring job could have
+            # missed N runs. We make it so that out of the N runs, only
+            # 1 will be scheduled again.
+            if Scheduler._first_iteration:
+                Scheduler._first_iteration = False
+                logger.info("Aggregating lost runs, if any exist.")
+
+                for job in jobs_to_run:
+                    # Only consider recurring jobs.
+                    if job.schedule is not None:
+
+                        # Set the next_scheduled_time to be the time of
+                        # the last run that was missed, which would be
+                        # the first schedule going backwards from now.
+                        job.next_scheduled_time = croniter(job.schedule, now).get_prev(
+                            datetime
+                        )
+
+                db.session.commit()
 
             # Separate logic at the job level so that errors in one job
             # do not hinder other jobs. Transform jobs from ORM objects
