@@ -577,7 +577,6 @@ class AbortJob(TwoPhaseFunction):
 
         job = (
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
-            .with_for_update()
             .filter_by(job_uuid=job_uuid)
             .one_or_none()
         )
