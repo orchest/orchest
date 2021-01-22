@@ -1,5 +1,3 @@
-import copy
-
 import requests
 from flask import jsonify, request
 from flask.globals import current_app
@@ -325,16 +323,7 @@ def register_orchest_api_views(app, db):
                 # Necessary because the front end expects a pipeline def
                 # and parameters for each run.
                 for run in json_return["pipeline_runs"]:
-                    pipeline_def = copy.deepcopy(json_return["pipeline_definition"])
-                    pipeline_def["parameters"] = run["pipeline_parameters"]
                     run["parameters"] = run["pipeline_parameters"]
-
-                    # Set the steps parameters in the pipeline
-                    # definition.
-                    for step_uuid, step_parameters in pipeline_def[
-                        "parameters"
-                    ].items():
-                        pipeline_def["steps"][step_uuid]["parameters"] = step_parameters
 
                 return jsonify(json_return)
             except Exception as e:
