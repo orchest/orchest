@@ -54,20 +54,14 @@ class Scheduler:
                         "job_uuid",
                     )
                 )
-                .filter(
-                    # Filter out jobs that do not have to run anymore.
-                    Job.next_scheduled_time.isnot(None)
-                )
-                .filter(
-                    # Jobs which have next_scheduled_time before now
-                    # need to be scheduled.
-                    now
-                    > Job.next_scheduled_time
-                )
+                # Filter out jobs that do not have to run anymore.
+                .filter(Job.next_scheduled_time.isnot(None))
+                # Jobs which have next_scheduled_time before now need to
+                # to be scheduled.
+                .filter(now > Job.next_scheduled_time)
                 # Order by time difference descending, so that the job
                 # which is more "behind" gets scheduled first.
-                .order_by(desc(now - Job.next_scheduled_time))
-                .all()
+                .order_by(desc(now - Job.next_scheduled_time)).all()
             )
 
             # Separate logic at the job level so that errors in one job

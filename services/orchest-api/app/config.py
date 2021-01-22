@@ -13,7 +13,7 @@ class Config:
     ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:5000"
 
     # How often to run the scheduling logic when the process is running
-    # as scheduler.
+    # as scheduler, in seconds.
     SCHEDULER_INTERVAL = 10
 
     # ---- Celery configurations ----
