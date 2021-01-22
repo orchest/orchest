@@ -116,6 +116,9 @@ class Job(BaseModel):
         server_default="[]",
     )
 
+    # Note that this column also contains the parameters that were
+    # stored within the pipeline definition file. These are not the job
+    # parameters, but the original ones.
     pipeline_definition = db.Column(
         JSONB,
         nullable=False,

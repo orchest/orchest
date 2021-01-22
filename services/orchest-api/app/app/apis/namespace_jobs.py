@@ -84,20 +84,13 @@ class JobList(Resource):
             else:
                 raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
-            # Remove parameters entries from the pipeline. These are not
-            # the job parameters but the parameters that are stored
-            # within the pipeline definition file.
-            pipeline_definition = post_data["pipeline_definition"]
-            for step in pipeline_definition["steps"].values():
-                del step["parameters"]
-
             job = {
                 "job_uuid": post_data["job_uuid"],
                 "project_uuid": post_data["project_uuid"],
                 "pipeline_uuid": post_data["pipeline_uuid"],
                 "schedule": cron_schedule,
                 "parameters": post_data["parameters"],
-                "pipeline_definition": pipeline_definition,
+                "pipeline_definition": post_data["pipeline_definition"],
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
                 "next_scheduled_time": next_scheduled_time,
