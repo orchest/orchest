@@ -174,12 +174,7 @@ class JobList extends React.Component {
       let job = JSON.parse(response);
 
       orchest.loadView(CreateJobView, {
-        job: {
-          name: job.name,
-          pipeline_uuid: pipeline_uuid,
-          project_uuid: this.props.project_uuid,
-          uuid: job.uuid,
-        },
+        job_uuid: job.uuid,
       });
     });
   }
@@ -198,34 +193,11 @@ class JobList extends React.Component {
 
     if (job.draft === true) {
       orchest.loadView(CreateJobView, {
-        job: {
-          name: job.name,
-          pipeline_uuid: job.pipeline_uuid,
-          project_uuid: job.project_uuid,
-          uuid: job.uuid,
-        },
+        job_uuid: job.uuid,
       });
     } else {
-      let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-        job.pipeline_uuid,
-        job.project_uuid,
-        job.uuid
-      );
-
-      makeRequest("GET", pipelineJSONEndpoint).then((response) => {
-        let result = JSON.parse(response);
-        if (result.success) {
-          let pipeline = JSON.parse(result["pipeline_json"]);
-
-          orchest.loadView(JobView, {
-            pipeline: pipeline,
-            job: job,
-            parameterizedSteps: JSON.parse(job.strategy_json),
-          });
-        } else {
-          console.warn("Could not load pipeline.json");
-          console.log(result);
-        }
+      orchest.loadView(JobView, {
+        job_uuid: job.uuid,
       });
     }
   }
@@ -350,7 +322,12 @@ class JobList extends React.Component {
                   selectable={true}
                   onRowClick={this.onRowClick.bind(this)}
                   rows={this.jobListToTableData(this.state.jobs)}
-                  headers={["Job", "Pipeline", "Date created", "Status"]}
+                  headers={[
+                    "Job",
+                    "Pipeline",
+                    "Date created",
+                    "Creation status",
+                  ]}
                 />
               </Fragment>
             );

@@ -3,36 +3,40 @@ import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCRadioReact from "../lib/mdc-components/MDCRadioReact";
-import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import ParameterEditor from "../components/ParameterEditor";
+import CronScheduleInput from "../components/CronScheduleInput";
 import DateTimeInput from "../components/DateTimeInput";
 import JobsView from "./JobsView";
 import SearchableTable from "../components/SearchableTable";
 import { makeRequest, PromiseManager, RefManager } from "../lib/utils/all";
 import ParamTree from "../components/ParamTree";
 import { makeCancelable } from "../lib/utils/all";
-import cronstrue from "cronstrue";
-import cron from "cron-validate";
+
 import {
   checkGate,
   getPipelineJSONEndpoint,
   requestBuild,
 } from "../utils/webserver-utils";
+import JobView from "./JobView";
 
 class CreateJobView extends React.Component {
+  /*
+    The CreateJobView can create jobs and edit cron jobs (one-off jobs are immutable).
+  */
+
   constructor(props) {
     super(props);
 
     this.state = {
       selectedTabIndex: 0,
-      parameterizedSteps: undefined,
       generatedPipelineRuns: [],
       generatedPipelineRunRows: [],
       selectedIndices: [],
       scheduleOption: "now",
-      pipeline: undefined,
       runJobLoading: false,
-      cronString: "* * * * *",
+      pipeline: undefined,
+      cronString: undefined,
+      parameterizedSteps: undefined,
     };
 
     this.promiseManager = new PromiseManager();
@@ -43,14 +47,39 @@ class CreateJobView extends React.Component {
     this.promiseManager.cancelCancelablePromises();
   }
 
+  fetchJob() {
+    let fetchJobPromise = makeCancelable(
+      makeRequest("GET", `/store/jobs/${this.props.job_uuid}`),
+      this.promiseManager
+    );
+
+    fetchJobPromise.promise.then((response) => {
+      try {
+        let job = JSON.parse(response);
+
+        this.state.job = job;
+
+        this.setState({
+          job: job,
+          cronString: job.schedule === null ? "* * * * *" : job.schedule,
+          scheduleOption: job.draft ? "now" : "cron",
+        });
+
+        this.fetchPipeline();
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  }
+
   fetchPipeline() {
     let fetchPipelinePromise = makeCancelable(
       makeRequest(
         "GET",
         getPipelineJSONEndpoint(
-          this.props.job.pipeline_uuid,
-          this.props.job.project_uuid,
-          this.props.job.uuid
+          this.state.job.pipeline_uuid,
+          this.state.job.project_uuid,
+          this.state.job.uuid
         )
       ),
       this.promiseManager
@@ -117,7 +146,7 @@ class CreateJobView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchPipeline();
+    this.fetchJob();
   }
 
   onParameterChange() {
@@ -207,14 +236,14 @@ class CreateJobView extends React.Component {
     let validation = this.validateJobConfig();
 
     if (validation.pass === true) {
-      checkGate(this.props.job.project_uuid)
+      checkGate(this.state.job.project_uuid)
         .then(() => {
           this.runJob();
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
             requestBuild(
-              this.props.job.project_uuid,
+              this.state.job.project_uuid,
               result.data,
               "CreateJob"
             ).catch((e) => {});
@@ -253,19 +282,15 @@ class CreateJobView extends React.Component {
     // Jobs should always have eviction enabled.
     pipelineDefinition.settings.auto_eviction = true;
 
-    // TODO: instead of bouncing three requests
-    // (orchest-api, orchest-webserver, orchest-webserver)
-    // perhaps wrap this into one larger request that goes straight
-    // to orchest-webserver (more ACID? - no partial success)
     let jobParameters = this.generateJobParameters(
       this.state.generatedPipelineRuns,
       this.state.selectedIndices
     );
 
     let apiJobData = {
-      job_uuid: this.props.job.uuid,
+      job_uuid: this.state.job.uuid,
       pipeline_uuid: this.state.pipeline.uuid,
-      project_uuid: this.props.job.project_uuid,
+      project_uuid: this.state.job.project_uuid,
 
       pipeline_definition: pipelineDefinition,
       pipeline_run_spec: {
@@ -280,53 +305,48 @@ class CreateJobView extends React.Component {
     makeRequest("POST", "/catch/api-proxy/api/jobs/", {
       type: "json",
       content: apiJobData,
-    })
-      .then((response) => {
-        let apiResult = JSON.parse(response);
-
-        let jobData = {
-          pipeline_uuid: this.state.pipeline.uuid,
-          pipeline_name: this.state.pipeline.name,
-          name: this.props.job.name,
-          strategy_json: JSON.stringify(this.state.parameterizedSteps),
-          draft: false,
-        };
-
-        let webserverPromises = [];
-
-        let storeJobPromise = makeRequest(
-          "PUT",
-          "/store/jobs/" + this.props.job.uuid,
-          {
-            type: "json",
-            content: jobData,
-          }
+    }).catch((response) => {
+      try {
+        let data = JSON.parse(response.body);
+        orchest.alert(
+          "Error",
+          "There was a problem submitting your job. " + data.message
         );
-        webserverPromises.push(storeJobPromise);
+      } catch {
+        orchest.alert(
+          "Error",
+          "There was a problem submitting your job. Unknown error."
+        );
+      }
+    });
 
-        storeJobPromise.catch((e) => {
-          console.log(e);
-        });
+    // Update orchest-webserver store
+    let jobData = {
+      pipeline_uuid: this.state.pipeline.uuid,
+      pipeline_name: this.state.pipeline.name,
+      name: this.state.job.name,
+      strategy_json: JSON.stringify(this.state.parameterizedSteps),
+      draft: false,
+      schedule: cronSchedule,
+    };
 
-        Promise.all(webserverPromises).then(() => {
-          orchest.loadView(JobsView, {
-            project_uuid: this.props.job.project_uuid,
-          });
+    let storeJobPromise = makeRequest(
+      "PUT",
+      "/store/jobs/" + this.state.job.uuid,
+      {
+        type: "json",
+        content: jobData,
+      }
+    );
+
+    storeJobPromise
+      .then(() => {
+        orchest.loadView(JobsView, {
+          project_uuid: this.state.job.project_uuid,
         });
       })
-      .catch((response) => {
-        try {
-          let data = JSON.parse(response.body);
-          orchest.alert(
-            "Error",
-            "There was a problem submitting your job. " + data.message
-          );
-        } catch {
-          orchest.alert(
-            "Error",
-            "There was a problem submitting your job. Unknown error."
-          );
-        }
+      .catch((e) => {
+        console.log(e);
       });
   }
 
@@ -357,9 +377,56 @@ class CreateJobView extends React.Component {
     return parameters;
   }
 
+  putJobChanges() {
+    let jobParameters = this.generateJobParameters(
+      this.state.generatedPipelineRuns,
+      this.state.selectedIndices
+    );
+
+    let cronSchedule = this.state.cronString;
+
+    let putJobRequest = makeCancelable(
+      makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
+        type: "json",
+        content: {
+          cron_schedule: cronSchedule,
+          parameters: jobParameters,
+        },
+      }),
+      this.promiseManager
+    );
+
+    putJobRequest.promise.catch((error) => {
+      console.error(error);
+    });
+
+    let putJobStoreRequest = makeCancelable(
+      makeRequest("PUT", `/store/jobs/${this.state.job.uuid}`, {
+        type: "json",
+        content: {
+          strategy_json: JSON.stringify(this.state.parameterizedSteps),
+          schedule: cronSchedule,
+        },
+      }),
+      this.promiseManager
+    );
+
+    putJobStoreRequest.promise.catch((error) => {
+      console.error(error);
+    });
+
+    Promise.all([putJobRequest.promise, putJobStoreRequest.promise]).then(
+      () => {
+        orchest.loadView(JobView, {
+          job_uuid: this.state.job.uuid,
+        });
+      }
+    );
+  }
+
   cancel() {
     orchest.loadView(JobsView, {
-      project_uuid: this.props.job.project_uuid,
+      project_uuid: this.state.job.project_uuid,
     });
   }
 
@@ -403,7 +470,7 @@ class CreateJobView extends React.Component {
 
   setCronSchedule(cronString) {
     this.setState({
-      cronString,
+      cronString: cronString,
       scheduleOption: "cron",
     });
   }
@@ -436,119 +503,79 @@ class CreateJobView extends React.Component {
   render() {
     let rootView = undefined;
 
-    if (this.state.pipeline) {
+    if (this.state.job && this.state.pipeline) {
       let tabView = undefined;
 
       switch (this.state.selectedTabIndex) {
         case 0:
           tabView = (
-            <ParameterEditor
-              onParameterChange={this.onParameterChange.bind(this)}
-              parameterizedSteps={this.state.parameterizedSteps}
-            />
+            <div className="tab-view">
+              <ParameterEditor
+                onParameterChange={this.onParameterChange.bind(this)}
+                parameterizedSteps={this.state.parameterizedSteps}
+              />
+            </div>
           );
           break;
         case 1:
           tabView = (
             <div className="tab-view">
-              <div>
-                <div className="push-down">
-                  <MDCRadioReact
-                    label="Now"
-                    value="now"
-                    name="time"
-                    checked={this.state.scheduleOption === "now"}
-                    onChange={(e) => {
-                      this.setState({ scheduleOption: e.target.value });
-                    }}
-                  />
-                </div>
-                <div className="push-down">
-                  <MDCRadioReact
-                    label="Scheduled"
-                    value="scheduled"
-                    name="time"
-                    checked={this.state.scheduleOption === "scheduled"}
-                    onChange={(e) => {
-                      this.setState({ scheduleOption: e.target.value });
-                    }}
-                  />
-                </div>
+              {this.state.job.draft && (
                 <div>
-                  <DateTimeInput
-                    disabled={this.state.scheduleOption !== "scheduled"}
-                    ref={this.refManager.nrefs.scheduledDateTime}
-                    onFocus={() =>
-                      this.setState({ scheduleOption: "scheduled" })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="push-down">
-                <MDCRadioReact
-                  label="Cron job"
-                  value="cron"
-                  name="time"
-                  checked={this.state.scheduleOption === "cron"}
-                  onChange={(e) => {
-                    this.setState({ scheduleOption: e.target.value });
-                  }}
-                />
-              </div>
-              <div>
-                <div className="push-down seperated">
-                  <MDCButtonReact
-                    disabled={this.state.scheduleOption !== "cron"}
-                    onClick={this.setCronSchedule.bind(this, "0 * * * *")}
-                    label="Hourly"
-                  />
-                  <MDCButtonReact
-                    disabled={this.state.scheduleOption !== "cron"}
-                    onClick={this.setCronSchedule.bind(this, "0 0 * * *")}
-                    label="Daily"
-                  />
-                  <MDCButtonReact
-                    disabled={this.state.scheduleOption !== "cron"}
-                    onClick={this.setCronSchedule.bind(this, "0 0 * * 0")}
-                    label="Weekly"
-                  />
-                  <MDCButtonReact
-                    disabled={this.state.scheduleOption !== "cron"}
-                    onClick={this.setCronSchedule.bind(this, "0 0 1 * *")}
-                    label="Monthly"
-                  />
-                </div>
-                <MDCTextFieldReact
-                  disabled={this.state.scheduleOption !== "cron"}
-                  label="Cron expression"
-                  onChange={(value) => {
-                    this.setCronSchedule(value);
-                  }}
-                  classNames={["push-down"]}
-                  value={this.state.cronString}
-                />
-                <div
-                  className={
-                    this.state.scheduleOption !== "cron" ? "disabled-text" : ""
-                  }
-                >
-                  {(() => {
-                    try {
-                      let cronResult = cron(this.state.cronString);
-                      if (cronResult.isValid()) {
-                        return cronstrue.toString(this.state.cronString);
+                  <div className="push-down">
+                    <MDCRadioReact
+                      label="Now"
+                      value="now"
+                      name="time"
+                      checked={this.state.scheduleOption === "now"}
+                      onChange={(e) => {
+                        this.setState({ scheduleOption: e.target.value });
+                      }}
+                    />
+                  </div>
+                  <div className="push-down">
+                    <MDCRadioReact
+                      label="Scheduled"
+                      value="scheduled"
+                      name="time"
+                      checked={this.state.scheduleOption === "scheduled"}
+                      onChange={(e) => {
+                        this.setState({ scheduleOption: e.target.value });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <DateTimeInput
+                      disabled={this.state.scheduleOption !== "scheduled"}
+                      ref={this.refManager.nrefs.scheduledDateTime}
+                      onFocus={() =>
+                        this.setState({ scheduleOption: "scheduled" })
                       }
-                    } catch (err) {
-                      console.warn(err);
-                    }
-                    return (
-                      <div className="warning">
-                        <i className="material-icons">warning</i> Invalid cron
-                        string.
-                      </div>
-                    );
-                  })()}
+                    />
+                  </div>
                 </div>
+              )}
+
+              {this.state.job.draft && (
+                <div className="push-down">
+                  <MDCRadioReact
+                    label="Cron job"
+                    value="cron"
+                    name="time"
+                    checked={this.state.scheduleOption === "cron"}
+                    onChange={(e) => {
+                      this.setState({ scheduleOption: e.target.value });
+                    }}
+                  />
+                </div>
+              )}
+
+              <div>
+                <CronScheduleInput
+                  cronString={this.state.cronString}
+                  onChange={this.setCronSchedule.bind(this)}
+                  disabled={this.state.scheduleOption !== "cron"}
+                />
               </div>
             </div>
           );
@@ -576,7 +603,7 @@ class CreateJobView extends React.Component {
           <div className="columns top-labels">
             <div className="column">
               <label>Job</label>
-              <h3>{this.props.job.name}</h3>
+              <h3>{this.state.job.name}</h3>
             </div>
             <div className="column">
               <label>Pipeline</label>
@@ -607,13 +634,23 @@ class CreateJobView extends React.Component {
           <div className="tab-view">{tabView}</div>
 
           <div className="buttons">
-            <MDCButtonReact
-              disabled={this.state.runJobLoading}
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              onClick={this.attemptRunJob.bind(this)}
-              icon="play_arrow"
-              label="Run job"
-            />
+            {this.state.job.draft && (
+              <MDCButtonReact
+                disabled={this.state.runJobLoading}
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                onClick={this.attemptRunJob.bind(this)}
+                icon="play_arrow"
+                label="Run job"
+              />
+            )}
+            {!this.state.job.draft && (
+              <MDCButtonReact
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                onClick={this.putJobChanges.bind(this)}
+                icon="save"
+                label="Update job"
+              />
+            )}
             <MDCButtonReact
               onClick={this.cancel.bind(this)}
               label="Cancel"

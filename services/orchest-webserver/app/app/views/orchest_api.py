@@ -293,6 +293,25 @@ def register_orchest_api_views(app, db):
 
             return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["DELETE"])
+    def catch_api_proxy_job_delete(job_uuid):
+
+        resp = requests.delete(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/%s" % (job_uuid),
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["PUT"])
+    def catch_api_proxy_job_put(job_uuid):
+
+        resp = requests.put(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/%s" % (job_uuid),
+            json=request.json,
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])
     def catch_api_proxy_job_runs_single(job_uuid, run_uuid):
 

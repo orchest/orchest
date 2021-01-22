@@ -177,7 +177,7 @@ class Job(Resource):
                 job.next_scheduled_time = next_scheduled_time
 
             if parameters is not None:
-                job["parameters"] = parameters
+                job.parameters = parameters
 
             db.session.commit()
         except Exception as e:
@@ -592,9 +592,6 @@ class AbortJob(TwoPhaseFunction):
         for run in job.pipeline_runs:
             if run.status in ["PENDING", "STARTED"]:
                 run_uuids.append(run.run_uuid)
-
-        if len(run_uuids) == 0:
-            return False
 
         # Set the state of each run and related steps to ABORTED. Note
         # that the status of steps that have already been completed will

@@ -39,6 +39,7 @@ class JobSchema(ma.Schema):
             "pipeline_name",
             "pipeline_path",
             "created",
+            "schedule",
             "strategy_json",
             "draft",
         )

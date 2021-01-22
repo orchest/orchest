@@ -21,7 +21,7 @@ class ParameterEditor extends React.Component {
 
   render() {
     return (
-      <div className="parameter-editor tab-view">
+      <div className="parameter-editor">
         <div className="columns">
           <div className="column">
             <ParamTree
@@ -90,18 +90,23 @@ class ParameterEditor extends React.Component {
                 this.props.readOnly === true
               ) {
                 return (
-                  <CodeMirror
-                    value={
-                      this.state.parameterizedSteps[
-                        this.state.activeParameter.uuid
-                      ].parameters[this.state.activeParameter.key]
-                    }
-                    options={{
-                      mode: "application/json",
-                      theme: "jupyter",
-                      lineNumbers: true,
-                    }}
-                  />
+                  <>
+                    <CodeMirror
+                      value={
+                        this.state.parameterizedSteps[
+                          this.state.activeParameter.uuid
+                        ].parameters[this.state.activeParameter.key]
+                      }
+                      options={{
+                        mode: "application/json",
+                        theme: "jupyter",
+                        lineNumbers: true,
+                      }}
+                    />
+                    <p className="push-up">
+                      <i>Read only</i>
+                    </p>
+                  </>
                 );
               }
             })()}

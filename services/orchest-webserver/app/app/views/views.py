@@ -238,16 +238,28 @@ def register_views(app, db):
         class JobResource(Resource):
             def put(self, job_uuid):
 
-                ex = Job.query.filter(Job.uuid == job_uuid).first()
+                job = Job.query.filter(Job.uuid == job_uuid).first()
 
-                if ex is None:
+                if job is None:
                     return "", 404
 
-                ex.name = request.json["name"]
-                ex.pipeline_uuid = request.json["pipeline_uuid"]
-                ex.pipeline_name = request.json["pipeline_name"]
-                ex.strategy_json = request.json["strategy_json"]
-                ex.draft = request.json["draft"]
+                if "name" in request.json:
+                    job.name = request.json["name"]
+
+                if "pipeline_uuid" in request.json:
+                    job.pipeline_uuid = request.json["pipeline_uuid"]
+
+                if "pipeline_name" in request.json:
+                    job.pipeline_name = request.json["pipeline_name"]
+
+                if "strategy_json" in request.json:
+                    job.strategy_json = request.json["strategy_json"]
+
+                if "draft" in request.json:
+                    job.draft = request.json["draft"]
+
+                if "schedule" in request.json:
+                    job.schedule = request.json["schedule"]
 
                 try:
                     db.session.commit()
@@ -255,15 +267,15 @@ def register_views(app, db):
                     db.session.rollback()
                     return {"message": "Failed update operation."}, 500
 
-                return job_schema.dump(ex)
+                return job_schema.dump(job)
 
             def get(self, job_uuid):
-                ex = Job.query.filter(Job.uuid == job_uuid).first()
+                job = Job.query.filter(Job.uuid == job_uuid).first()
 
-                if ex is None:
+                if job is None:
                     return "", 404
 
-                return job_schema.dump(ex)
+                return job_schema.dump(job)
 
             def delete(self, job_uuid):
 
@@ -286,7 +298,7 @@ def register_views(app, db):
 
                 try:
                     with TwoPhaseExecutor(db.session) as tpe:
-                        new_exp = CreateJob(tpe).transaction(
+                        new_job = CreateJob(tpe).transaction(
                             project_uuid,
                             pipeline_uuid,
                             pipeline_name,
@@ -297,7 +309,7 @@ def register_views(app, db):
                     msg = f"Error during job creation:{e}"
                     return {"message": msg}, 500
 
-                return job_schema.dump(new_exp)
+                return job_schema.dump(new_job)
 
         api.add_resource(JobsResource, "/store/jobs")
         api.add_resource(JobResource, "/store/jobs/<string:job_uuid>")

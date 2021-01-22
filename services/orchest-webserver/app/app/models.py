@@ -108,6 +108,7 @@ class Job(db.Model):
     created = db.Column(
         db.DateTime, nullable=False, server_default=text("timezone('utc', now())")
     )
+    schedule = db.Column(db.String(100), unique=False, nullable=True)
     strategy_json = db.Column(db.Text, nullable=False)
     draft = db.Column(db.Boolean())
 
