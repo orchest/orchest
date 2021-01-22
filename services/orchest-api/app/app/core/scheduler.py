@@ -41,8 +41,6 @@ from app.models import Job
 
 
 class Scheduler:
-    _first_iteration = True
-
     @classmethod
     def check_for_jobs_to_be_scheduled(cls, app):
 
@@ -56,8 +54,12 @@ class Scheduler:
                     load_only(
                         "job_uuid",
                         "schedule",
+                        "next_scheduled_time",
                     )
                 )
+                # This is to avoid errors in case two schedulers are
+                # running, which happens in dev mode.
+                .with_for_update()
                 # Filter out jobs that do not have to run anymore.
                 .filter(Job.next_scheduled_time.isnot(None))
                 # Jobs which have next_scheduled_time before now need to
@@ -67,32 +69,37 @@ class Scheduler:
                 # which is more "behind" gets scheduled first.
                 .order_by(desc(now - Job.next_scheduled_time)).all()
             )
+            logger.info(f"found {len(jobs_to_run)} jobs to run")
 
-            # While Orchest was offline, a recurring job could have
-            # missed N runs. We make it so that out of the N runs, only
-            # 1 will be scheduled again.
-            if Scheduler._first_iteration:
-                Scheduler._first_iteration = False
-                logger.info("Aggregating lost runs, if any exist.")
+            # Based on the type of Job (recurring or not) set the status
+            # and next_scheduled_time. Note that for recurring jobs the
+            # next scheduled time is computed starting from 'now', this
+            # assumes that the scheduler runs every N seconds where N <
+            # 60; otherwise some runs might be lost. If such assumption
+            # cannot be made, the first time the scheduler runs (after
+            # boot) the calculation must be made using 'now' to
+            # aggregate lost jobs into 1, while all other scheduler
+            # calls need to use the current value of next_scheduled_time
+            # as a base.
+            for job in jobs_to_run:
+                if job.schedule is not None:
+                    job.next_scheduled_time = croniter(job.schedule, now).get_next(
+                        datetime
+                    )
+                else:
+                    # One time jobs are not rescheduled again.
+                    job.next_scheduled_time = None
 
-                for job in jobs_to_run:
-                    # Only consider recurring jobs.
-                    if job.schedule is not None:
+            # Transform jobs from ORM objects to uuids since each we
+            # are committing the transaction, making the jobs
+            # potentially stale.
+            jobs_to_run = [job.job_uuid for job in jobs_to_run]
 
-                        # Set the next_scheduled_time to be the time of
-                        # the last run that was missed, which would be
-                        # the first schedule going backwards from now.
-                        job.next_scheduled_time = croniter(job.schedule, now).get_prev(
-                            datetime
-                        )
-
-                db.session.commit()
+            db.session.commit()
 
             # Separate logic at the job level so that errors in one job
-            # do not hinder other jobs. Transform jobs from ORM objects
-            # to uuids since each TwoPhaseExecutor will commit the
-            # transaction, making the jobs potentially stale.
-            for job_uuid in [job.job_uuid for job in jobs_to_run]:
+            # do not hinder other jobs.
+            for job_uuid in jobs_to_run:
                 try:
                     logger.info(f"Scheduling job {job_uuid}.")
                     with TwoPhaseExecutor(db.session) as tpe:

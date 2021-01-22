@@ -394,21 +394,10 @@ class RunJob(TwoPhaseFunction):
             self.collateral_kwargs["tasks_to_launch"] = []
             self.collateral_kwargs["run_config"] = dict()
 
-        # Based on the type of Job (recurring or not) set the status
-        # and next_scheduled_time.
-        if job.schedule is None:
-            job.next_scheduled_time = None
-
-            # The status of jobs that run once is initially set to
-            # PENDING, thus we need to update that.
-            if job.status == "PENDING":
-                job.status = "STARTED"
-        else:
-            # Else we need to decide what's the next scheduled time,
-            # based on the cron schedule and this scheduled time.
-            job.next_scheduled_time = croniter(
-                job.schedule, job.next_scheduled_time
-            ).get_next(datetime)
+        # The status of jobs that run once is initially set to PENDING,
+        # thus we need to update that.
+        if job.status == "PENDING":
+            job.status = "STARTED"
 
         # To be later used by the collateral effect function.
         tasks_to_launch = []
