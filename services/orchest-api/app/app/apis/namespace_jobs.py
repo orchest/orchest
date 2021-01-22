@@ -576,7 +576,8 @@ class AbortJob(TwoPhaseFunction):
         self.collateral_kwargs["run_uuids"] = run_uuids
 
         job = (
-            models.Job.query.with_for_update()
+            models.Job.query.options(joinedload(models.Job.pipeline_runs))
+            .with_for_update()
             .filter_by(job_uuid=job_uuid)
             .one_or_none()
         )
@@ -593,9 +594,6 @@ class AbortJob(TwoPhaseFunction):
         for run in job.pipeline_runs:
             if run.status in ["PENDING", "STARTED"]:
                 run_uuids.append(run.run_uuid)
-
-        if len(run_uuids) == 0:
-            return False
 
         # Set the state of each run and related steps to ABORTED. Note
         # that the status of steps that have already been completed will
