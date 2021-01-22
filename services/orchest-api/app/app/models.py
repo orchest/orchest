@@ -174,6 +174,15 @@ class Job(BaseModel):
         ),
     )
 
+    # The status of a job can be PENDING, STARTED, SUCCESS, ABORTED.
+    # One time jobs start as PENDING, and become STARTED once they are
+    # run and their pipeline runs are added to the queue. Once they are
+    # completed, their status will be SUCCESS, if they are aborted,
+    # their status will be set to ABORTED.
+    # Recurring jobs, characterized by having a schedule, start as
+    # STARTED, and can only move to the ABORTED state in case they get
+    # cancelled, which implies that the job will not be scheduled
+    # anymore.
     status = db.Column(
         db.String(15),
         unique=False,
