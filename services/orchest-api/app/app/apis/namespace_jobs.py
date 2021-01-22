@@ -413,6 +413,11 @@ class RunJob(TwoPhaseFunction):
         # To be later used by the collateral effect function.
         tasks_to_launch = []
 
+        # The number of pipeline runs of a job, across all job runs.
+        pipeline_run_index = models.NonInteractivePipelineRun.query.filter_by(
+            job_uuid=job_uuid
+        ).count()
+
         # run_index is the index of the run within the runs of this job
         # scheduling/execution.
         for run_index, run_parameters in enumerate(job.parameters):
@@ -436,13 +441,16 @@ class RunJob(TwoPhaseFunction):
             non_interactive_run = {
                 "job_uuid": job.job_uuid,
                 "run_uuid": task_id,
-                "pipeline_run_id": run_index,
                 "pipeline_uuid": job.pipeline_uuid,
                 "project_uuid": job.project_uuid,
                 "status": "PENDING",
                 "parameters": run_parameters,
-                "job_schedule_number": job.total_scheduled_executions,
+                "job_run_index": job.total_scheduled_executions,
+                "job_run_pipeline_run_index": run_index,
+                "pipeline_run_index": pipeline_run_index,
             }
+            pipeline_run_index += 1
+
             db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
             # Need to flush because otherwise the bulk insertion of
             # pipeline steps will lead to foreign key errors.

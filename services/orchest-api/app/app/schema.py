@@ -220,11 +220,14 @@ non_interactive_run = pipeline_run.inherit(
     "NonInteractiveRun",
     {
         "job_uuid": fields.String(required=True, description="UUID for job"),
-        "job_schedule_number": fields.Integer(
-            required=True, description="To watch job schedule it belongs"
+        "job_run_index": fields.Integer(
+            required=True, description="To what job run it belongs"
         ),
-        "pipeline_run_id": fields.Integer(
-            required=True, description="Respective run ID in job"
+        "job_run_pipeline_run_index": fields.Integer(
+            required=True, description="Index within the job run"
+        ),
+        "pipeline_run_index": fields.Integer(
+            required=True, description="Index across all runs for the same job"
         ),
         "parameters": fields.Raw(required=True, description="Parameters of the run"),
     },

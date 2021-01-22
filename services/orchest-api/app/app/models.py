@@ -172,8 +172,8 @@ class Job(BaseModel):
         # When querying a job and its runs the runs will be sorted by
         # job schedule number and the index of the pipeline in that job.
         order_by=(
-            "[NonInteractivePipelineRun.job_schedule_number, "
-            "NonInteractivePipelineRun.pipeline_run_id]"
+            "[NonInteractivePipelineRun.job_run_index, "
+            "NonInteractivePipelineRun.job_run_pipeline_run_index]"
         ),
     )
 
@@ -291,18 +291,21 @@ class NonInteractivePipelineRun(PipelineRun):
 
     # To what batch of non interactive runs of a job it belongs. The
     # first time a job runs will produce batch 1, then batch 2, etc.
-    job_schedule_number = db.Column(
+    job_run_index = db.Column(
         db.Integer,
-        unique=False,
         nullable=False,
         server_default=text("0"),
     )
 
     # This run_id is used to identify the pipeline run within the
     # job and maintain a consistent ordering.
-    pipeline_run_id = db.Column(
+    job_run_pipeline_run_index = db.Column(
         db.Integer,
-        unique=False,
+    )
+
+    # The pipeline run number across all job runs of a job.
+    pipeline_run_index = db.Column(
+        db.Integer,
     )
 
     # Parameters with which it was run, so that the history is kept.
@@ -320,14 +323,19 @@ class NonInteractivePipelineRun(PipelineRun):
     }
 
 
+UniqueConstraint(
+    NonInteractivePipelineRun.job_uuid,
+    NonInteractivePipelineRun.pipeline_run_index,
+)
+
 # Each job execution can be seen as a batch of runs, identified through
-# the job_schedule_number, each pipeline run id, which is essentially
+# the job_run_index, each pipeline run id, which is essentially
 # the index of the run in this job, must be unique at the level of the
 # batch of runs.
 UniqueConstraint(
     NonInteractivePipelineRun.job_uuid,
-    NonInteractivePipelineRun.job_schedule_number,
-    NonInteractivePipelineRun.pipeline_run_id,
+    NonInteractivePipelineRun.job_run_index,
+    NonInteractivePipelineRun.job_run_pipeline_run_index,
 )
 
 
