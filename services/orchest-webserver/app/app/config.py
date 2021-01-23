@@ -13,6 +13,7 @@ class Config:
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     USER_DIR = os.path.join("/userdir")
+    PROJECTS_DIR = os.path.join(USER_DIR, "projects")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
     STATIC_DIR = os.path.join(dir_path, "..", "static")
