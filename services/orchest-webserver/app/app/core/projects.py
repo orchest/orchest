@@ -59,8 +59,7 @@ class CreateProject(TwoPhaseFunction):
             FileExistsError:
             NotADirectoryError:
         """
-        projects_dir = os.path.join(current_app.config["USER_DIR"], "projects")
-        full_project_path = os.path.join(projects_dir, project_path)
+        full_project_path = os.path.join(current_app.config["PROJECTS_DIR"], project_path)
         # exist_ok=True is there so that this function can be used both
         # when initializing a project that was discovered through the
         # filesystem or initializing a project from scratch.
@@ -141,10 +140,16 @@ class DeleteProject(TwoPhaseFunction):
         """Remove a project from the fs and the orchest-api"""
 
         # Delete the project directory.
-        projects_dir = os.path.join(current_app.config["USER_DIR"], "projects")
-        project_path = project_uuid_to_path(project_uuid)
-        full_project_path = os.path.join(projects_dir, project_path)
-        shutil.rmtree(full_project_path)
+        try:
+            project_path = project_uuid_to_path(project_uuid)
+            full_project_path = os.path.join(current_app.config["PROJECTS_DIR"], project_path)
+            shutil.rmtree(full_project_path)
+        except FileNotFoundError:
+            # If the `full_project_path` is not found,
+            # it means that the user has already performed the deletion operation.
+            # So we need to catch and then ignore this error,
+            # otherwise the DB deletion operation will not continue.
+            pass
 
         # Issue project deletion to the orchest-api.
         url = (
