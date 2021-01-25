@@ -402,10 +402,23 @@ class RunJob(TwoPhaseFunction):
         # To be later used by the collateral effect function.
         tasks_to_launch = []
 
-        # The number of pipeline runs of a job, across all job runs.
-        pipeline_run_index = models.NonInteractivePipelineRun.query.filter_by(
-            job_uuid=job_uuid
-        ).count()
+        # The number of pipeline runs of a job, across all job runs. We
+        # could use 'count' but 'max' is safer, if for any reason a
+        # pipeline run is not there, e.g. if pipeline runs 0 and 2 are
+        # there, but not 1, 'count' would keep returning 2, and no runs
+        # could be launched anymore because of the (job_uuid,
+        # pipeline_run_index) constraint.
+        pipeline_run_index = (
+            db.session.query(
+                func.max(models.NonInteractivePipelineRun.pipeline_run_index)
+            )
+            .filter_by(job_uuid=job_uuid)
+            .one()
+        )[0]
+        if pipeline_run_index is None:
+            pipeline_run_index = 0
+        else:
+            pipeline_run_index += 1
 
         # run_index is the index of the run within the runs of this job
         # scheduling/execution.
