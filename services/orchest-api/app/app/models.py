@@ -213,15 +213,16 @@ class Job(BaseModel):
     )
 
     strategy_json = db.Column(
-        db.Text,
+        JSONB,
         nullable=False,
-        server_default=text("'{}'"),
+        server_default="{}",
     )
 
     created_time = db.Column(
         db.DateTime,
         unique=False,
         nullable=False,
+        index=True,
         # For migrating users.
         server_default=text("timezone('utc', now())"),
     )

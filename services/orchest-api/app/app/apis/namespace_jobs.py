@@ -626,7 +626,7 @@ class UpdateJob(TwoPhaseFunction):
         cron_schedule: str,
         parameters: str,
         next_scheduled_time: str,
-        strategy_json: str,
+        strategy_json: Dict[str, Any],
         confirm_draft,
     ):
         job = models.Job.query.with_for_update().filter_by(job_uuid=job_uuid).one()
