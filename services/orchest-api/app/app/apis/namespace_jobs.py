@@ -145,12 +145,19 @@ class Job(Resource):
 
         cron_schedule = job_update.get("cron_schedule", None)
         parameters = job_update.get("parameters", None)
+        next_scheduled_time = job_update.get("next_scheduled_time", None)
+        strategy_json = job_update.get("strategy_json", None)
         confirm_draft = "confirm_draft" in job_update
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 UpdateJob(tpe).transaction(
-                    job_uuid, cron_schedule, parameters, confirm_draft
+                    job_uuid,
+                    cron_schedule,
+                    parameters,
+                    next_scheduled_time,
+                    strategy_json,
+                    confirm_draft,
                 )
         except Exception as e:
             current_app.logger.error(e)
@@ -613,11 +620,19 @@ class AbortJob(TwoPhaseFunction):
 class UpdateJob(TwoPhaseFunction):
     """Update a job."""
 
-    def _transaction(self, job_uuid, cron_schedule, parameters, confirm_draft):
+    def _transaction(
+        self,
+        job_uuid: str,
+        cron_schedule: str,
+        parameters: str,
+        next_scheduled_time: str,
+        strategy_json: str,
+        confirm_draft,
+    ):
         job = models.Job.query.with_for_update().filter_by(job_uuid=job_uuid).one()
 
         if cron_schedule is not None:
-            if job.schedule is None:
+            if job.schedule is None and job.status != "DRAFT":
                 raise ValueError(
                     (
                         "Failed update operation. Cannot set the schedule of a "
@@ -640,7 +655,7 @@ class UpdateJob(TwoPhaseFunction):
             job.next_scheduled_time = next_scheduled_time
 
         if parameters is not None:
-            if job.schedule is None:
+            if job.schedule is None and job.status != "DRAFT":
                 raise ValueError(
                     (
                         "Failed update operation. Cannot update the parameters of "
@@ -648,6 +663,33 @@ class UpdateJob(TwoPhaseFunction):
                     )
                 )
             job.parameters = parameters
+
+        if next_scheduled_time is not None:
+            if job.status != "DRAFT":
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot set the next scheduled "
+                        "time of a job which is not a draft."
+                    )
+                )
+            if job.schedule is not None:
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot set the next scheduled "
+                        "time of a cron job."
+                    )
+                )
+            job.next_scheduled_time = datetime.fromisoformat(next_scheduled_time)
+
+        if strategy_json is not None:
+            if job.schedule is None and job.status != "DRAFT":
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot set the strategy json"
+                        "of a job which is not a draft nor a cron job."
+                    )
+                )
+            job.strategy_json = strategy_json
 
         if confirm_draft:
             if job.status != "DRAFT":
