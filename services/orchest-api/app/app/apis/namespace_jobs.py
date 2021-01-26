@@ -8,7 +8,7 @@ from croniter import croniter
 from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
-from sqlalchemy import func
+from sqlalchemy import desc, func
 from sqlalchemy.orm import joinedload
 
 import app.models as models
@@ -34,12 +34,11 @@ class JobList(Resource):
         completed.
 
         """
+        jobs = models.Job.query
         if "project_uuid" in request.args:
-            jobs = models.Job.query.filter_by(
-                project_uuid=request.args["project_uuid"]
-            ).all()
-        else:
-            jobs = models.Job.query.all()
+            jobs = jobs.filter_by(project_uuid=request.args["project_uuid"])
+
+        jobs = jobs.order_by(desc(models.Job.created_time)).all()
         jobs = [job.__dict__ for job in jobs]
 
         return {"jobs": jobs}
