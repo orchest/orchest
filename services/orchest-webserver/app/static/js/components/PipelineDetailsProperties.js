@@ -378,6 +378,7 @@ class PipelineDetailsProperties extends React.Component {
               } else {
                 return (
                   <ProjectFilePicker
+                    key={this.props.saveHash}
                     cwd="/"
                     value={this.state.step.file_path}
                     project_uuid={this.props.project_uuid}
