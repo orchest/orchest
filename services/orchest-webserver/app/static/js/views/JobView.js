@@ -12,7 +12,7 @@ import {
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import ParamTree from "../components/ParamTree";
 import PipelineView from "./PipelineView";
-import CreateJobView from "./CreateJobView";
+import EditJobView from "./EditJobView";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 
@@ -227,7 +227,7 @@ class JobView extends React.Component {
   }
 
   editJob() {
-    orchest.loadView(CreateJobView, {
+    orchest.loadView(EditJobView, {
       job_uuid: this.state.job.job_uuid,
     });
   }

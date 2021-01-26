@@ -141,13 +141,14 @@ class Job(Resource):
         are launched. Only recurring ongoing jobs can be updated.
 
         """
+
         job_update = request.get_json()
 
-        cron_schedule = job_update.get("cron_schedule", None)
+        confirm_draft = "confirm_draft" in job_update
+        strategy_json = job_update.get("strategy_json", None)
         parameters = job_update.get("parameters", None)
         next_scheduled_time = job_update.get("next_scheduled_time", None)
-        strategy_json = job_update.get("strategy_json", None)
-        confirm_draft = "confirm_draft" in job_update
+        cron_schedule = job_update.get("cron_schedule", None)
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:

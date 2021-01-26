@@ -5,7 +5,7 @@ import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleR
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
-import CreateJobView from "../views/CreateJobView";
+import EditJobView from "../views/EditJobView";
 import {
   makeRequest,
   PromiseManager,
@@ -178,12 +178,11 @@ class JobList extends React.Component {
           uuids: [],
         },
         parameters: [],
-        pipeline_definition: [],
       },
     }).then((response) => {
       let job = JSON.parse(response);
 
-      orchest.loadView(CreateJobView, {
+      orchest.loadView(EditJobView, {
         job_uuid: job.job_uuid,
       });
     });
@@ -201,8 +200,8 @@ class JobList extends React.Component {
   onRowClick(row, idx, event) {
     let job = this.state.jobs[idx];
 
-    if (job.draft === true) {
-      orchest.loadView(CreateJobView, {
+    if (job.status === "DRAFT") {
+      orchest.loadView(EditJobView, {
         job_uuid: job.job_uuid,
       });
     } else {
@@ -222,7 +221,7 @@ class JobList extends React.Component {
         new Date(
           jobs[x].created_time.replace(/T/, " ").replace(/\..+/, "") + " GMT"
         ).toLocaleString(),
-        jobs[x].draft ? "Draft" : "Submitted",
+        jobs[x].status,
       ]);
     }
     return rows;
@@ -332,12 +331,7 @@ class JobList extends React.Component {
                   selectable={true}
                   onRowClick={this.onRowClick.bind(this)}
                   rows={this.jobListToTableData(this.state.jobs)}
-                  headers={[
-                    "Job",
-                    "Pipeline",
-                    "Date created",
-                    "Creation status",
-                  ]}
+                  headers={["Job", "Pipeline", "Date created", "Status"]}
                 />
               </Fragment>
             );

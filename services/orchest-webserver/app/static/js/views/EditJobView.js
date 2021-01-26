@@ -19,11 +19,7 @@ import {
 } from "../utils/webserver-utils";
 import JobView from "./JobView";
 
-class CreateJobView extends React.Component {
-  /*
-    The CreateJobView can create jobs and edit cron jobs (one-off jobs are immutable).
-  */
-
+class EditJobView extends React.Component {
   constructor(props) {
     super(props);
 
@@ -62,7 +58,7 @@ class CreateJobView extends React.Component {
         this.setState({
           job: job,
           cronString: job.schedule === null ? "* * * * *" : job.schedule,
-          scheduleOption: job.draft ? "now" : "cron",
+          scheduleOption: job.schedule === null ? "now" : "cron",
         });
 
         this.fetchPipeline();
@@ -259,87 +255,46 @@ class CreateJobView extends React.Component {
       runJobLoading: true,
     });
 
-    let formValueScheduledStart;
-    let cronSchedule;
+    let jobPUTData = {
+      confirm_draft: true,
+      strategy_json: JSON.stringify(this.state.parameterizedSteps),
+      parameters: this.generateJobParameters(
+        this.state.generatedPipelineRuns,
+        this.state.selectedIndices
+      ),
+    };
 
     if (this.state.scheduleOption === "scheduled") {
-      formValueScheduledStart = this.refManager.refs.scheduledDateTime.getISOString();
+      let formValueScheduledStart = this.refManager.refs.scheduledDateTime.getISOString();
 
       // API doesn't accept ISO date strings with 'Z' suffix
+      // Instead, endpoint assumes its passed a UTC datetime string.
       if (formValueScheduledStart[formValueScheduledStart.length - 1] === "Z") {
         formValueScheduledStart = formValueScheduledStart.slice(
           0,
           formValueScheduledStart.length - 1
         );
       }
+
+      jobPUTData.next_scheduled_time = formValueScheduledStart;
     } else if (this.state.scheduleOption === "cron") {
-      cronSchedule = this.state.cronString;
+      jobPUTData.cron_schedule = this.state.cronString;
     }
     // Else: both entries are undefined, the run is considered to be
     // started ASAP.
 
-    let pipelineDefinition = JSON.parse(JSON.stringify(this.state.pipeline));
-    // Jobs should always have eviction enabled.
-    pipelineDefinition.settings.auto_eviction = true;
-
-    let jobParameters = this.generateJobParameters(
-      this.state.generatedPipelineRuns,
-      this.state.selectedIndices
-    );
-
-    let apiJobData = {
-      job_uuid: this.state.job.job_uuid,
-      pipeline_uuid: this.state.pipeline.uuid,
-      project_uuid: this.state.job.project_uuid,
-
-      pipeline_definition: pipelineDefinition,
-      pipeline_run_spec: {
-        run_type: "full",
-        uuids: [],
-      },
-      parameters: jobParameters,
-      scheduled_start: formValueScheduledStart,
-      cron_schedule: cronSchedule,
-    };
-
-    makeRequest("POST", "/catch/api-proxy/api/jobs/", {
-      type: "json",
-      content: apiJobData,
-    }).catch((response) => {
-      try {
-        let data = JSON.parse(response.body);
-        orchest.alert(
-          "Error",
-          "There was a problem submitting your job. " + data.message
-        );
-      } catch {
-        orchest.alert(
-          "Error",
-          "There was a problem submitting your job. Unknown error."
-        );
-      }
-    });
-
-    // Update orchest-webserver store
-    let jobData = {
-      pipeline_uuid: this.state.pipeline.uuid,
-      pipeline_name: this.state.pipeline.name,
-      name: this.state.job.name,
-      strategy_json: JSON.stringify(this.state.parameterizedSteps),
-      draft: false,
-      schedule: cronSchedule,
-    };
-
-    let storeJobPromise = makeRequest(
+    // Update orchest-api through PUT.
+    // Note: confirm_draft will trigger the start the job.
+    let putJobPromise = makeRequest(
       "PUT",
       "/catch/api-proxy/api/jobs/" + this.state.job.job_uuid,
       {
         type: "json",
-        content: jobData,
+        content: jobPUTData,
       }
     );
 
-    storeJobPromise
+    putJobPromise
       .then(() => {
         orchest.loadView(JobsView, {
           project_uuid: this.state.job.project_uuid,
@@ -528,7 +483,7 @@ class CreateJobView extends React.Component {
         case 1:
           tabView = (
             <div className="tab-view">
-              {this.state.job.draft && (
+              {this.state.job.status === "DRAFT" && (
                 <div>
                   <div className="push-down">
                     <MDCRadioReact
@@ -564,7 +519,7 @@ class CreateJobView extends React.Component {
                 </div>
               )}
 
-              {this.state.job.draft && (
+              {this.state.job.status === "DRAFT" && (
                 <div className="push-down">
                   <MDCRadioReact
                     label="Cron job"
@@ -642,7 +597,7 @@ class CreateJobView extends React.Component {
           <div className="tab-view">{tabView}</div>
 
           <div className="buttons">
-            {this.state.job.draft && (
+            {this.state.job.status === "DRAFT" && (
               <MDCButtonReact
                 disabled={this.state.runJobLoading}
                 classNames={["mdc-button--raised", "themed-secondary"]}
@@ -651,7 +606,7 @@ class CreateJobView extends React.Component {
                 label="Run job"
               />
             )}
-            {!this.state.job.draft && (
+            {!this.state.job.status === "DRAFT" && (
               <MDCButtonReact
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 onClick={this.putJobChanges.bind(this)}
@@ -675,4 +630,4 @@ class CreateJobView extends React.Component {
   }
 }
 
-export default CreateJobView;
+export default EditJobView;

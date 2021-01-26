@@ -143,6 +143,10 @@ def register_orchest_api_views(app, db):
             "pipeline_path": pipeline_path,
         }
 
+        json_obj["pipeline_definition"] = get_pipeline_json(
+            json_obj["pipeline_uuid"], json_obj["project_uuid"]
+        )
+
         job_uuid = str(uuid.uuid4())
         json_obj["job_uuid"] = job_uuid
         create_job_directory(
@@ -378,15 +382,18 @@ def register_orchest_api_views(app, db):
             if resp.status_code == 200:
                 pipeline_uuid = data["pipeline_uuid"]
                 project_uuid = data["project_uuid"]
+
                 # Tell the orchest-api that the job does not exist
                 # anymore, will be stopped if necessary then cleaned up
                 # from the orchest-api db.
-                url = (
+                resp = requests.delete(
                     f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
                     f"jobs/cleanup/{job_uuid}"
                 )
-                current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
+
                 remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
+                return resp.content, resp.status_code, resp.headers.items()
+
             elif resp.status_code == 404:
                 raise ValueError(f"Job {job_uuid} does not exist.")
             else:
