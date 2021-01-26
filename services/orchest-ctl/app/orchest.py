@@ -241,8 +241,7 @@ class DockerWrapper:
         return asyncio.run(self._get_containers(state=state, network=network))
 
     async def _remove_containers(self, container_ids: Iterable[str]):
-        # TODO: Probably faster to use gather() here.
-        for id_ in container_ids:
+        async def remove_container(id_: str) -> None:
             container = self.aclient.containers.container(id_)
 
             # If the container is running, kill it before removing it
@@ -250,6 +249,15 @@ class DockerWrapper:
             # container.
             await container.delete(force=True, v=True)
 
+            try:
+                # Block until the container is deleted.
+                await container.wait(condition="removed")
+            except aiodocker.exceptions.DockerError:
+                # The container was removed so fast that the wait
+                # condition was unable to find the container.
+                pass
+
+        await asyncio.gather(*[remove_container(id_) for id_ in container_ids])
         await self.close_aclient()
 
     def remove_containers(self, container_ids: Iterable[str]):
