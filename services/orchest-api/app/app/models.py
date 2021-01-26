@@ -222,6 +222,7 @@ class Job(BaseModel):
         db.DateTime,
         unique=False,
         nullable=False,
+        index=True,
         # For migrating users.
         server_default=text("timezone('utc', now())"),
     )
