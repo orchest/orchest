@@ -1,8 +1,8 @@
 """Extend Job and NonInteractiveRun for scheduling
 
-Revision ID: f9c43d459939
+Revision ID: 1cbf2e36f7fa
 Revises: 96f304f85ee5
-Create Date: 2021-01-26 14:14:05.628814
+Create Date: 2021-01-26 14:55:09.133729
 
 """
 import sqlalchemy as sa
@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "f9c43d459939"
+revision = "1cbf2e36f7fa"
 down_revision = "96f304f85ee5"
 branch_labels = None
 depends_on = None
@@ -90,7 +90,10 @@ def upgrade():
     op.add_column(
         "jobs",
         sa.Column(
-            "strategy_json", sa.Text(), server_default=sa.text("'{}'"), nullable=False
+            "strategy_json",
+            postgresql.JSONB(astext_type=sa.Text()),
+            server_default="{}",
+            nullable=False,
         ),
     )
     op.add_column(
@@ -111,9 +114,9 @@ def upgrade():
         ["next_scheduled_time"],
         unique=False,
     )
-    op.drop_column("jobs", "completed_pipeline_runs")
-    op.drop_column("jobs", "total_number_of_pipeline_runs")
     op.drop_column("jobs", "scheduled_start")
+    op.drop_column("jobs", "total_number_of_pipeline_runs")
+    op.drop_column("jobs", "completed_pipeline_runs")
     op.add_column(
         "pipeline_runs",
         sa.Column(
@@ -176,10 +179,11 @@ def downgrade():
     op.add_column(
         "jobs",
         sa.Column(
-            "scheduled_start",
-            postgresql.TIMESTAMP(),
+            "completed_pipeline_runs",
+            sa.INTEGER(),
+            server_default=sa.text("0"),
             autoincrement=False,
-            nullable=False,
+            nullable=True,
         ),
     )
     op.add_column(
@@ -194,11 +198,10 @@ def downgrade():
     op.add_column(
         "jobs",
         sa.Column(
-            "completed_pipeline_runs",
-            sa.INTEGER(),
-            server_default=sa.text("0"),
+            "scheduled_start",
+            postgresql.TIMESTAMP(),
             autoincrement=False,
-            nullable=True,
+            nullable=False,
         ),
     )
     op.drop_index(op.f("ix_jobs_next_scheduled_time"), table_name="jobs")
@@ -214,4 +217,7 @@ def downgrade():
     op.drop_column("jobs", "next_scheduled_time")
     op.drop_column("jobs", "job_name")
     op.drop_column("jobs", "created_time")
+    op.drop_constraint(
+        op.f("uq_environment_build_build_uuid"), "environment_build", type_="unique"
+    )
     # ### end Alembic commands ###

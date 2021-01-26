@@ -213,9 +213,9 @@ class Job(BaseModel):
     )
 
     strategy_json = db.Column(
-        db.Text,
+        JSONB,
         nullable=False,
-        server_default=text("'{}'"),
+        server_default="{}",
     )
 
     created_time = db.Column(
