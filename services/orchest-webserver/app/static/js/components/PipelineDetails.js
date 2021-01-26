@@ -131,6 +131,7 @@ class PipelineDetails extends React.Component {
             connections={this.props.connections}
             step={this.props.step}
             onChange={this.props.onChange}
+            saveHash={this.props.saveHash}
           />
         );
         break;

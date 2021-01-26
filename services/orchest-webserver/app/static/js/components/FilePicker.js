@@ -14,6 +14,10 @@ class FilePicker extends React.Component {
     this.refManager = new RefManager();
   }
 
+  componentWillUnmount() {
+    clearTimeout(this.blurTimeout);
+  }
+
   onChangeValue(value) {
     if (this.props.onChangeValue) {
       this.props.onChangeValue(value);
@@ -152,7 +156,9 @@ class FilePicker extends React.Component {
   }
 
   onBlurTextField(e) {
-    setTimeout(() => {
+    clearTimeout(this.blurTimeout);
+
+    this.blurTimeout = setTimeout(() => {
       if (document.activeElement !== this.refManager.refs.fileMenu) {
         this.setState({
           focused: false,

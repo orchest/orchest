@@ -281,6 +281,9 @@ class PipelineView extends React.Component {
         running: false,
         working: false,
       },
+      // The save hash is used to propagate a save's side-effects
+      // to components.
+      saveHash: "",
     };
 
     if (this.props.pipelineRun) {
@@ -416,6 +419,7 @@ class PipelineView extends React.Component {
 
         this.setState({
           unsavedChanges: false,
+          saveHash: uuidv4(),
         });
       }
     } else {
@@ -2122,23 +2126,24 @@ class PipelineView extends React.Component {
           if (this.state.openedStep) {
             return (
               <PipelineDetails
-                sio={this.sio}
-                readOnly={this.props.readOnly}
                 onSave={this.onSaveDetails.bind(this)}
                 onNameUpdate={this.stepNameUpdate.bind(this)}
                 onDelete={this.onDetailsDelete.bind(this)}
                 onClose={this.onCloseDetails.bind(this)}
                 onOpenFilePreviewView={this.onOpenFilePreviewView.bind(this)}
                 onOpenNotebook={this.onOpenNotebook.bind(this)}
+                onChangeView={this.onDetailsChangeView.bind(this)}
                 connections={connections_list}
                 defaultViewIndex={this.state.defaultDetailViewIndex}
-                onChangeView={this.onDetailsChangeView.bind(this)}
                 pipeline={this.state.pipelineJson}
                 project_uuid={this.props.project_uuid}
                 pipelineRun={this.props.pipelineRun}
+                sio={this.sio}
+                readOnly={this.props.readOnly}
                 step={JSON.parse(
                   JSON.stringify(this.state.steps[this.state.openedStep])
                 )}
+                saveHash={this.state.saveHash}
               />
             );
           }
