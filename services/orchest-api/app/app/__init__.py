@@ -160,6 +160,10 @@ def init_logging():
                 "level": "INFO",
                 "handlers": ["console-minimal"],
             },
+            "gunicorn": {
+                "handlers": ["console"],
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
             "orchest-lib": {
                 "handlers": ["console"],
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),

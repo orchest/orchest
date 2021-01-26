@@ -353,9 +353,8 @@ def register_views(app, db):
     def discoverFSDeletedProjects():
         """Cleanup projects that were deleted from the filesystem."""
 
-        projects_dir = os.path.join(app.config["USER_DIR"], "projects")
         project_paths = [
-            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
+            entry.name for entry in os.scandir(app.config["PROJECTS_DIR"]) if entry.is_dir()
         ]
 
         fs_removed_projects = Project.query.filter(
@@ -385,10 +384,9 @@ def register_views(app, db):
 
         # Detect new projects by detecting directories that were not
         # registered in the db as projects.
-        projects_dir = os.path.join(app.config["USER_DIR"], "projects")
         existing_project_paths = [project.path for project in Project.query.all()]
         project_paths = [
-            entry.name for entry in os.scandir(projects_dir) if entry.is_dir()
+            entry.name for entry in os.scandir(app.config["PROJECTS_DIR"]) if entry.is_dir()
         ]
         new_project_paths = set(project_paths) - set(existing_project_paths)
 

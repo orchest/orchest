@@ -6,14 +6,6 @@ import pytest
 from app import orchest, utils
 
 
-class MockDockerWrapper:
-    pass
-
-
-class MockResourceManager:
-    pass
-
-
 @pytest.mark.parametrize(
     ("installed_images", "expected_stdout", "install_orchest"),
     [

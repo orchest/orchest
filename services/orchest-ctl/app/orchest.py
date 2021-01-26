@@ -446,12 +446,12 @@ class OrchestApp:
 
     # postgres -> orchest-webserver, orchest-api, auth-server
     # rabbitmq -> celery-worker
+    # ... -> nginx-proxy (otherwise user gets error 500)
     on_start_images: List[Set[str]] = [
         set(
             [
                 "postgres:13.1",
                 "orchest/file-manager:latest",
-                "orchest/nginx-proxy:latest",
                 "rabbitmq:3",
             ]
         ),
@@ -461,6 +461,11 @@ class OrchestApp:
                 "orchest/orchest-webserver:latest",
                 "orchest/celery-worker:latest",
                 "orchest/auth-server:latest",
+            ]
+        ),
+        set(
+            [
+                "orchest/nginx-proxy:latest",
             ]
         ),
     ]
