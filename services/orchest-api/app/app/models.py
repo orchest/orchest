@@ -188,8 +188,8 @@ class Job(BaseModel):
         # When querying a job and its runs the runs will be sorted by
         # job schedule number and the index of the pipeline in that job.
         order_by=(
-            "[NonInteractivePipelineRun.job_run_index, "
-            "NonInteractivePipelineRun.job_run_pipeline_run_index]"
+            "[desc(NonInteractivePipelineRun.job_run_index), "
+            "desc(NonInteractivePipelineRun.job_run_pipeline_run_index)]"
         ),
     )
 
