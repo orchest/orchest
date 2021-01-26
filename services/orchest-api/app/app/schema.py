@@ -287,6 +287,7 @@ job_spec = Model(
             required=True,
             description="List of run parameters.",
         ),
+        "strategy_json": fields.Raw(required=False, description="Strategy json."),
     },
 )
 

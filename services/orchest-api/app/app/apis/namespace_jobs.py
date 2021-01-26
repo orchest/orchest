@@ -96,6 +96,7 @@ class JobList(Resource):
                 "total_scheduled_executions": 0,
                 "next_scheduled_time": next_scheduled_time,
                 "status": "DRAFT",
+                "strategy_json": post_data.get("strategy_json", {}),
                 "created_time": datetime.now(timezone.utc),
             }
             db.session.add(models.Job(**job))
