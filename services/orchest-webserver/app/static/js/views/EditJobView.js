@@ -257,7 +257,7 @@ class EditJobView extends React.Component {
 
     let jobPUTData = {
       confirm_draft: true,
-      strategy_json: JSON.stringify(this.state.parameterizedSteps),
+      strategy_json: this.state.parameterizedSteps,
       parameters: this.generateJobParameters(
         this.state.generatedPipelineRuns,
         this.state.selectedIndices
@@ -305,6 +305,46 @@ class EditJobView extends React.Component {
       });
   }
 
+  putJobChanges() {
+    /* This function should only be called
+     *  for jobs with a cron schedule. As those
+     *  are the only ones that are allowed to be changed
+     *  when they are not a draft.
+     */
+
+    let jobParameters = this.generateJobParameters(
+      this.state.generatedPipelineRuns,
+      this.state.selectedIndices
+    );
+
+    let cronSchedule = this.state.cronString;
+
+    let putJobRequest = makeCancelable(
+      makeRequest(
+        "PUT",
+        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`,
+        {
+          type: "json",
+          content: {
+            cron_schedule: cronSchedule,
+            parameters: jobParameters,
+          },
+        }
+      ),
+      this.promiseManager
+    );
+
+    putJobRequest.promise
+      .then(() => {
+        orchest.loadView(JobView, {
+          job_uuid: this.state.job.job_uuid,
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
   generateJobParameters(generatedPipelineRuns, selectedIndices) {
     let parameters = [];
 
@@ -330,61 +370,6 @@ class EditJobView extends React.Component {
     }
 
     return parameters;
-  }
-
-  putJobChanges() {
-    let jobParameters = this.generateJobParameters(
-      this.state.generatedPipelineRuns,
-      this.state.selectedIndices
-    );
-
-    let cronSchedule = this.state.cronString;
-
-    let putJobRequest = makeCancelable(
-      makeRequest(
-        "PUT",
-        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`,
-        {
-          type: "json",
-          content: {
-            cron_schedule: cronSchedule,
-            parameters: jobParameters,
-          },
-        }
-      ),
-      this.promiseManager
-    );
-
-    putJobRequest.promise.catch((error) => {
-      console.error(error);
-    });
-
-    let putJobStoreRequest = makeCancelable(
-      makeRequest(
-        "PUT",
-        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`,
-        {
-          type: "json",
-          content: {
-            strategy_json: JSON.stringify(this.state.parameterizedSteps),
-            schedule: cronSchedule,
-          },
-        }
-      ),
-      this.promiseManager
-    );
-
-    putJobStoreRequest.promise.catch((error) => {
-      console.error(error);
-    });
-
-    Promise.all([putJobRequest.promise, putJobStoreRequest.promise]).then(
-      () => {
-        orchest.loadView(JobView, {
-          job_uuid: this.state.job.job_uuid,
-        });
-      }
-    );
   }
 
   cancel() {
