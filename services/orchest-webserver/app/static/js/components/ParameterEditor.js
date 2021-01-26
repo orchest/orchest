@@ -13,6 +13,14 @@ class ParameterEditor extends React.Component {
     };
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.parameterizedSteps !== this.props.parameterizedSteps) {
+      this.setState({
+        parameterizedSteps: this.props.parameterizedSteps,
+      });
+    }
+  }
+
   editParameter(key, uuid) {
     this.setState({
       activeParameter: { key: key, uuid: uuid },

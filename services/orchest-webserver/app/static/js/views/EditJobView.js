@@ -32,7 +32,7 @@ class EditJobView extends React.Component {
       runJobLoading: false,
       pipeline: undefined,
       cronString: undefined,
-      parameterizedSteps: undefined,
+      parameterizedSteps: {},
     };
 
     this.promiseManager = new PromiseManager();
@@ -61,6 +61,12 @@ class EditJobView extends React.Component {
           scheduleOption: job.schedule === null ? "now" : "cron",
         });
 
+        if (job.status !== "DRAFT") {
+          this.setState({
+            parameterizedSteps: job.strategy_json,
+          });
+        }
+
         this.fetchPipeline();
       } catch (error) {
         console.error(error);
@@ -88,8 +94,13 @@ class EditJobView extends React.Component {
 
         this.setState({
           pipeline: pipeline,
-          parameterizedSteps: this.generateParameterizedSteps(pipeline),
         });
+
+        if (this.state.job.status === "DRAFT") {
+          this.setState({
+            parameterizedSteps: this.generateParameterizedSteps(pipeline),
+          });
+        }
 
         this.onParameterChange();
       } else {
@@ -328,6 +339,7 @@ class EditJobView extends React.Component {
           content: {
             cron_schedule: cronSchedule,
             parameters: jobParameters,
+            strategy_json: this.state.parameterizedSteps,
           },
         }
       ),
@@ -551,7 +563,7 @@ class EditJobView extends React.Component {
           <div className="columns top-labels">
             <div className="column">
               <label>Job</label>
-              <h3>{this.state.job.name}</h3>
+              <h3>{this.state.job.job_name}</h3>
             </div>
             <div className="column">
               <label>Pipeline</label>
@@ -591,7 +603,7 @@ class EditJobView extends React.Component {
                 label="Run job"
               />
             )}
-            {!this.state.job.status === "DRAFT" && (
+            {this.state.job.status !== "DRAFT" && (
               <MDCButtonReact
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 onClick={this.putJobChanges.bind(this)}

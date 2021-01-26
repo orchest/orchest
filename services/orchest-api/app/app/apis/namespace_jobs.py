@@ -647,12 +647,11 @@ class UpdateJob(TwoPhaseFunction):
 
             # Check when is the next time the job should be scheduled
             # starting from now.
-            next_scheduled_time = croniter(
+            job.schedule = cron_schedule
+
+            job.next_scheduled_time = croniter(
                 cron_schedule, datetime.now(timezone.utc)
             ).get_next(datetime)
-
-            job.schedule = cron_schedule
-            job.next_scheduled_time = next_scheduled_time
 
         if parameters is not None:
             if job.schedule is None and job.status != "DRAFT":

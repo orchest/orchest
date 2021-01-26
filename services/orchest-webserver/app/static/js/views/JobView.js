@@ -147,7 +147,7 @@ class JobView extends React.Component {
 
     for (let x = 0; x < pipelineRuns.length; x++) {
       rows.push([
-        pipelineRuns[x].pipeline_run_id,
+        pipelineRuns[x].pipeline_run_index,
         this.formatPipelineParams(pipelineRuns[x].parameters),
         pipelineRuns[x].status,
       ]);
@@ -299,7 +299,7 @@ class JobView extends React.Component {
               <div className="pipeline-runs push-up">
                 <SearchableTable
                   selectable={false}
-                  headers={["Parameters"]}
+                  headers={["Run specification"]}
                   rows={this.generatedParametersToTableData(
                     this.state.jobGeneratedParameters
                   )}
@@ -316,7 +316,7 @@ class JobView extends React.Component {
             <div>
               <div className="column">
                 <label>Job</label>
-                <h3>{this.state.job.name}</h3>
+                <h3>{this.state.job.job_name}</h3>
               </div>
               <div className="column">
                 <label>Pipeline</label>

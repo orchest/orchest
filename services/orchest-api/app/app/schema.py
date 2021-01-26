@@ -325,7 +325,7 @@ job = Model(
             required=True, description="Name of the pipeline."
         ),
         "job_name": fields.String(required=True, description="Name of the job."),
-        "strategy_json": fields.String(required=True, description="Strategy json"),
+        "strategy_json": fields.Raw(required=True, description="Strategy json"),
     },
 )
 
