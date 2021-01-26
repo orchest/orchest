@@ -181,8 +181,19 @@ job_update = Model(
         ),
         "parameters": fields.List(
             fields.Raw(description="Parameters of the job, one for each run."),
-            required=True,
+            required=False,
             description="List of run parameters.",
+        ),
+        "next_scheduled_time": fields.String(
+            required=False,
+            description=(
+                "Time at which the job is scheduled to start. Assumed to be UTC."
+            ),
+        ),
+        "strategy_json": fields.Raw(required=False, description="Strategy json."),
+        "confirm_draft": fields.Arbitrary(
+            required=False,
+            description="If there, the draft is confirmed. Value does not matter.",
         ),
     },
 )
@@ -261,7 +272,7 @@ job_spec = Model(
                 'Specification of the pipeline runs, e.g. "full",' ' "incoming" etc',
             ),
         ),
-        "scheduled_start": fields.String(
+        "next_scheduled_time": fields.String(
             required=False,
             description=(
                 "Time at which the job is scheduled to start. Assumed to be UTC."
@@ -325,7 +336,7 @@ job = Model(
             required=True, description="Name of the pipeline."
         ),
         "job_name": fields.String(required=True, description="Name of the job."),
-        "strategy_json": fields.String(required=True, description="Strategy json"),
+        "strategy_json": fields.Raw(required=True, description="Strategy json."),
     },
 )
 

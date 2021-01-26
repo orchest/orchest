@@ -143,11 +143,11 @@ class Job(Resource):
 
         job_update = request.get_json()
 
-        confirm_draft = "confirm_draft" in job_update
-        strategy_json = job_update.get("strategy_json", None)
+        cron_schedule = job_update.get("cron_schedule", None)
         parameters = job_update.get("parameters", None)
         next_scheduled_time = job_update.get("next_scheduled_time", None)
-        cron_schedule = job_update.get("cron_schedule", None)
+        strategy_json = job_update.get("strategy_json", None)
+        confirm_draft = "confirm_draft" in job_update
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
