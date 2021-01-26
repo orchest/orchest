@@ -69,7 +69,10 @@ class JobList extends React.Component {
     }
 
     let fetchListPromise = makeCancelable(
-      makeRequest("GET", `/store/jobs?project_uuid=${this.props.project_uuid}`),
+      makeRequest(
+        "GET",
+        `/catch/api-proxy/api/jobs/?project_uuid=${this.props.project_uuid}`
+      ),
       this.promiseManager
     );
 
@@ -78,7 +81,7 @@ class JobList extends React.Component {
         let result = JSON.parse(response);
 
         this.setState({
-          jobs: result,
+          jobs: result["jobs"],
           jobsSearchMask: new Array(result.length).fill(1),
         });
       })
@@ -121,7 +124,8 @@ class JobList extends React.Component {
             // take care of aborting it if necessary
             makeRequest(
               "DELETE",
-              "/store/jobs/" + this.state.jobs[selectedRows[x]].uuid
+              "/catch/api-proxy/api/jobs/cleanup/" +
+                this.state.jobs[selectedRows[x]].job_uuid
             )
           );
         }
@@ -161,20 +165,26 @@ class JobList extends React.Component {
       createModelLoading: true,
     });
 
-    makeRequest("POST", "/store/jobs/new", {
+    makeRequest("POST", "/catch/api-proxy/api/jobs/", {
       type: "json",
       content: {
         pipeline_uuid: pipeline_uuid,
         pipeline_name: pipelineName,
         project_uuid: this.props.project_uuid,
-        name: this.refManager.refs.formJobName.mdc.value,
+        job_name: this.refManager.refs.formJobName.mdc.value,
         draft: true,
+        pipeline_run_spec: {
+          run_type: "full",
+          uuids: [],
+        },
+        parameters: [],
+        pipeline_definition: [],
       },
     }).then((response) => {
       let job = JSON.parse(response);
 
       orchest.loadView(CreateJobView, {
-        job_uuid: job.uuid,
+        job_uuid: job.job_uuid,
       });
     });
   }
@@ -193,11 +203,11 @@ class JobList extends React.Component {
 
     if (job.draft === true) {
       orchest.loadView(CreateJobView, {
-        job_uuid: job.uuid,
+        job_uuid: job.job_uuid,
       });
     } else {
       orchest.loadView(JobView, {
-        job_uuid: job.uuid,
+        job_uuid: job.job_uuid,
       });
     }
   }
@@ -207,10 +217,10 @@ class JobList extends React.Component {
     for (let x = 0; x < jobs.length; x++) {
       // keep only jobs that are related to a project!
       rows.push([
-        jobs[x].name,
+        jobs[x].job_name,
         jobs[x].pipeline_name,
         new Date(
-          jobs[x].created.replace(/T/, " ").replace(/\..+/, "") + " GMT"
+          jobs[x].created_time.replace(/T/, " ").replace(/\..+/, "") + " GMT"
         ).toLocaleString(),
         jobs[x].draft ? "Draft" : "Submitted",
       ]);

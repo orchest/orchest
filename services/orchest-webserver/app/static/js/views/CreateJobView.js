@@ -49,7 +49,7 @@ class CreateJobView extends React.Component {
 
   fetchJob() {
     let fetchJobPromise = makeCancelable(
-      makeRequest("GET", `/store/jobs/${this.props.job_uuid}`),
+      makeRequest("GET", `/catch/api-proxy/api/jobs/${this.props.job_uuid}`),
       this.promiseManager
     );
 
@@ -79,7 +79,7 @@ class CreateJobView extends React.Component {
         getPipelineJSONEndpoint(
           this.state.job.pipeline_uuid,
           this.state.job.project_uuid,
-          this.state.job.uuid
+          this.state.job.job_uuid
         )
       ),
       this.promiseManager
@@ -288,7 +288,7 @@ class CreateJobView extends React.Component {
     );
 
     let apiJobData = {
-      job_uuid: this.state.job.uuid,
+      job_uuid: this.state.job.job_uuid,
       pipeline_uuid: this.state.pipeline.uuid,
       project_uuid: this.state.job.project_uuid,
 
@@ -332,7 +332,7 @@ class CreateJobView extends React.Component {
 
     let storeJobPromise = makeRequest(
       "PUT",
-      "/store/jobs/" + this.state.job.uuid,
+      "/catch/api-proxy/api/jobs/" + this.state.job.job_uuid,
       {
         type: "json",
         content: jobData,
@@ -386,13 +386,17 @@ class CreateJobView extends React.Component {
     let cronSchedule = this.state.cronString;
 
     let putJobRequest = makeCancelable(
-      makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
-        type: "json",
-        content: {
-          cron_schedule: cronSchedule,
-          parameters: jobParameters,
-        },
-      }),
+      makeRequest(
+        "PUT",
+        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`,
+        {
+          type: "json",
+          content: {
+            cron_schedule: cronSchedule,
+            parameters: jobParameters,
+          },
+        }
+      ),
       this.promiseManager
     );
 
@@ -401,13 +405,17 @@ class CreateJobView extends React.Component {
     });
 
     let putJobStoreRequest = makeCancelable(
-      makeRequest("PUT", `/store/jobs/${this.state.job.uuid}`, {
-        type: "json",
-        content: {
-          strategy_json: JSON.stringify(this.state.parameterizedSteps),
-          schedule: cronSchedule,
-        },
-      }),
+      makeRequest(
+        "PUT",
+        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`,
+        {
+          type: "json",
+          content: {
+            strategy_json: JSON.stringify(this.state.parameterizedSteps),
+            schedule: cronSchedule,
+          },
+        }
+      ),
       this.promiseManager
     );
 
@@ -418,7 +426,7 @@ class CreateJobView extends React.Component {
     Promise.all([putJobRequest.promise, putJobStoreRequest.promise]).then(
       () => {
         orchest.loadView(JobView, {
-          job_uuid: this.state.job.uuid,
+          job_uuid: this.state.job.job_uuid,
         });
       }
     );

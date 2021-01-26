@@ -92,6 +92,22 @@ class InteractiveSession(BaseModel):
 class Job(BaseModel):
     __tablename__ = "jobs"
 
+    job_name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating users.
+        server_default=text("'job'"),
+    )
+
+    pipeline_name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating users.
+        server_default=text("''"),
+    )
+
     job_uuid = db.Column(db.String(36), primary_key=True)
     project_uuid = db.Column(
         db.String(36),
@@ -177,21 +193,37 @@ class Job(BaseModel):
         ),
     )
 
-    # The status of a job can be PENDING, STARTED, SUCCESS, ABORTED.
-    # One time jobs start as PENDING, and become STARTED once they are
-    # run and their pipeline runs are added to the queue. Once they are
-    # completed, their status will be SUCCESS, if they are aborted,
-    # their status will be set to ABORTED.
-    # Recurring jobs, characterized by having a schedule, start as
-    # STARTED, and can only move to the ABORTED state in case they get
-    # cancelled, which implies that the job will not be scheduled
-    # anymore.
+    # The status of a job can be DRAFT, PENDING, STARTED, SUCCESS,
+    # ABORTED. Jobs start as DRAFT, this indicates that the job has
+    # been created but that has not been started by the user. Once a
+    # job is started by the user, what happens depends on the type of
+    # job. One time jobs become PENDING, and become STARTED once they
+    # are run by the scheduler and their pipeline runs are added to the
+    # queue. Once they are completed, their status will be SUCCESS, if
+    # they are aborted, their status will be set to ABORTED. Recurring
+    # jobs, characterized by having a schedule, become STARTED, and can
+    # only move to the ABORTED state in case they get cancelled, which
+    # implies that the job will not be scheduled anymore.
     status = db.Column(
         db.String(15),
         unique=False,
         nullable=False,
         # Pre-existing Jobs of migrating users will be set to SUCCESS.
         server_default=text("'SUCCESS'"),
+    )
+
+    strategy_json = db.Column(
+        db.Text,
+        nullable=False,
+        server_default=text("'{}'"),
+    )
+
+    created_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=False,
+        # For migrating users.
+        server_default=text("timezone('utc', now())"),
     )
 
     def __repr__(self):

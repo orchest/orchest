@@ -316,8 +316,16 @@ job = Model(
         "status": fields.String(
             required=True,
             description="Status of the job.",
-            enum=["PENDING", "STARTED", "SUCCESS", "ABORTED"],
+            enum=["DRAFT", "PENDING", "STARTED", "SUCCESS", "ABORTED"],
         ),
+        "created_time": fields.String(
+            required=True, description="Time at which the job was created"
+        ),
+        "pipeline_name": fields.String(
+            required=True, description="Name of the pipeline."
+        ),
+        "job_name": fields.String(required=True, description="Name of the job."),
+        "strategy_json": fields.String(required=True, description="Strategy json"),
     },
 )
 

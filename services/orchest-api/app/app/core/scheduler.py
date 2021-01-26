@@ -60,6 +60,8 @@ class Scheduler:
                 # This is to avoid errors in case two schedulers are
                 # running, which happens in dev mode.
                 .with_for_update()
+                # Ignore drafts.
+                .filter(Job.status != "DRAFT")
                 # Filter out jobs that do not have to run anymore.
                 .filter(Job.next_scheduled_time.isnot(None))
                 # Jobs which have next_scheduled_time before now need to

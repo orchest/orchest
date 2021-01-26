@@ -9,15 +9,15 @@ from flask.globals import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
 from app.connections import db
-from app.core.jobs import DeleteJob
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
 from app.kernel_manager import populate_kernels
-from app.models import BackgroundTask, Job, Pipeline, Project
+from app.models import BackgroundTask, Pipeline, Project
 from app.utils import (
     find_pipelines_in_dir,
     get_environments,
     populate_default_environments,
     project_uuid_to_path,
+    remove_project_jobs_directories,
 )
 from app.views.orchest_api import api_proxy_environment_builds
 
@@ -128,10 +128,6 @@ class DeleteProject(TwoPhaseFunction):
     def _transaction(self, project_uuid: str):
         """Remove a project from the db"""
 
-        jobs = Job.query.filter(Job.project_uuid == project_uuid).all()
-        for ex in jobs:
-            DeleteJob(self.tpe).transaction(ex.uuid)
-
         Project.query.filter_by(uuid=project_uuid).update({"status": "DELETING"})
 
         # To be used by the collateral effect.
@@ -146,6 +142,9 @@ class DeleteProject(TwoPhaseFunction):
         full_project_path = os.path.join(projects_dir, project_path)
         shutil.rmtree(full_project_path)
 
+        # Remove jobs directories related to project.
+        remove_project_jobs_directories(project_uuid)
+
         # Issue project deletion to the orchest-api.
         url = (
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/projects/"
@@ -153,7 +152,7 @@ class DeleteProject(TwoPhaseFunction):
         )
         current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
-        # Will delete cascade pipeline, job, pipeline run.
+        # Will delete cascade pipeline, pipeline run.
         Project.query.filter_by(uuid=project_uuid).delete()
         db.session.commit()
 

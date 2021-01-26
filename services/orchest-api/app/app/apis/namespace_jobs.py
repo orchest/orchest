@@ -34,7 +34,12 @@ class JobList(Resource):
         completed.
 
         """
-        jobs = models.Job.query.all()
+        if "project_uuid" in request.args:
+            jobs = models.Job.query.filter_by(
+                project_uuid=request.args["project_uuid"]
+            ).all()
+        else:
+            jobs = models.Job.query.all()
         jobs = [job.__dict__ for job in jobs]
 
         return {"jobs": jobs}
@@ -54,7 +59,6 @@ class JobList(Resource):
 
             scheduled_start = post_data.get("scheduled_start", None)
             cron_schedule = post_data.get("cron_schedule", None)
-            status = "PENDING"
 
             # To be scheduled ASAP and to be run once.
             if cron_schedule is None and scheduled_start is None:
@@ -77,34 +81,26 @@ class JobList(Resource):
                     cron_schedule, datetime.now(timezone.utc)
                 ).get_next(datetime)
 
-                # A cronjob is considered to be started as soon as it is
-                # in the database and can be looked at by the scheduler.
-                status = "STARTED"
-
             else:
                 raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
             job = {
                 "job_uuid": post_data["job_uuid"],
+                "job_name": post_data["job_name"],
                 "project_uuid": post_data["project_uuid"],
                 "pipeline_uuid": post_data["pipeline_uuid"],
+                "pipeline_name": post_data["pipeline_name"],
                 "schedule": cron_schedule,
                 "parameters": post_data["parameters"],
                 "pipeline_definition": post_data["pipeline_definition"],
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
                 "next_scheduled_time": next_scheduled_time,
-                "status": status,
+                "status": "DRAFT",
+                "created_time": datetime.now(timezone.utc),
             }
             db.session.add(models.Job(**job))
             db.session.commit()
-
-            # The endpoint takes care of scheduling the Job if it needs
-            # to be scheduled asap. This way the scheduler can run less
-            # often while the job is still scheduled asap.
-            if cron_schedule is None and scheduled_start is None:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    RunJob(tpe).transaction(post_data["job_uuid"])
 
         except Exception as e:
             db.session.rollback()
@@ -149,34 +145,17 @@ class Job(Resource):
 
         cron_schedule = job_update.get("cron_schedule", None)
         parameters = job_update.get("parameters", None)
+        confirm_draft = "confirm_draft" in job_update
 
         try:
-            job = models.Job.query.filter_by(job_uuid=job_uuid).one()
-
-            if job.schedule is None or job.status != "STARTED":
-                return {"message": "Failed update operation."}, 500
-
-            if cron_schedule is not None:
-                if not croniter.is_valid(cron_schedule):
-                    raise ValueError(f"Invalid cron schedule: {cron_schedule}")
-
-                # Check when is the next time the job should be
-                # scheduled starting from now.
-                next_scheduled_time = croniter(
-                    cron_schedule, datetime.now(timezone.utc)
-                ).get_next(datetime)
-
-                job.schedule = cron_schedule
-                job.next_scheduled_time = next_scheduled_time
-
-            if parameters is not None:
-                job.parameters = parameters
-
-            db.session.commit()
+            with TwoPhaseExecutor(db.session) as tpe:
+                UpdateJob(tpe).transaction(
+                    job_uuid, cron_schedule, parameters, confirm_draft
+                )
         except Exception as e:
             current_app.logger.error(e)
             db.session.rollback()
-            return {"message": "Failed update operation."}, 500
+            return {"message": str(e)}, 500
 
         return {"message": "Job was updated successfully"}, 200
 
@@ -628,6 +607,71 @@ class AbortJob(TwoPhaseFunction):
             res.abort()
 
     def _revert(self):
+        pass
+
+
+class UpdateJob(TwoPhaseFunction):
+    """Update a job."""
+
+    def _transaction(self, job_uuid, cron_schedule, parameters, confirm_draft):
+        job = models.Job.query.with_for_update().filter_by(job_uuid=job_uuid).one()
+
+        if cron_schedule is not None:
+            if job.schedule is None:
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot set the schedule of a "
+                        "job which is not a cron job already."
+                    )
+                )
+
+            if not croniter.is_valid(cron_schedule):
+                raise ValueError(
+                    f"Failed update operation. Invalid cron schedule: {cron_schedule}"
+                )
+
+            # Check when is the next time the job should be scheduled
+            # starting from now.
+            next_scheduled_time = croniter(
+                cron_schedule, datetime.now(timezone.utc)
+            ).get_next(datetime)
+
+            job.schedule = cron_schedule
+            job.next_scheduled_time = next_scheduled_time
+
+        if parameters is not None:
+            if job.schedule is None:
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot update the parameters of "
+                        "a job which is not a cron job."
+                    )
+                )
+            job.parameters = parameters
+
+        if confirm_draft:
+            if job.status != "DRAFT":
+                raise ValueError("Failed update operation. The job is not a draft.")
+
+            if job.schedule is None:
+                job.status = "PENDING"
+
+                # One time job that needs to run right now. The
+                # scheduler will not pick it up because it does not have
+                # a next_scheduled_time.
+                if job.next_scheduled_time is None:
+                    RunJob(self.tpe).transaction(job.job_uuid)
+
+                # One time jobs that are set to run at a given date will
+                # now be picked up by the scheduler, since they are not
+                # a draft anymore.
+
+            # Cron jobs are consired STARTED the moment the scheduler
+            # can decide or not about running them.
+            else:
+                job.status = "STARTED"
+
+    def _collateral(self):
         pass
 
 

@@ -3,6 +3,7 @@ import os
 import uuid
 
 import docker
+import requests
 import sqlalchemy
 from flask import json as flask_json
 from flask import jsonify, render_template, request
@@ -14,7 +15,6 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app.analytics import send_anonymized_pipeline_definition
-from app.core.jobs import CreateJob, DeleteJob
 from app.core.pipelines import CreatePipeline, DeletePipeline
 from app.core.projects import (
     CreateProject,
@@ -23,12 +23,11 @@ from app.core.projects import (
     SyncProjectPipelinesDBState,
 )
 from app.kernel_manager import populate_kernels
-from app.models import DataSource, Environment, Job, Pipeline, Project
+from app.models import DataSource, Environment, Pipeline, Project
 from app.schemas import (
     BackgroundTaskSchema,
     DataSourceSchema,
     EnvironmentSchema,
-    JobSchema,
     PipelineSchema,
     ProjectSchema,
 )
@@ -73,9 +72,6 @@ def register_views(app, db):
 
     environment_schema = EnvironmentSchema()
     environments_schema = EnvironmentSchema(many=True)
-
-    job_schema = JobSchema()
-    jobs_schema = JobSchema(many=True)
 
     background_task_schema = BackgroundTaskSchema()
 
@@ -222,100 +218,7 @@ def register_views(app, db):
         api.add_resource(DataSourcesResource, "/store/datasources")
         api.add_resource(DataSourceResource, "/store/datasources/<string:name>")
 
-    def register_jobs(db, api):
-        class JobsResource(Resource):
-            def get(self):
-
-                job_query = Job.query
-
-                project_uuid = request.args.get("project_uuid")
-                if project_uuid is not None:
-                    job_query = job_query.filter(Job.project_uuid == project_uuid)
-
-                jobs = job_query.all()
-                return jobs_schema.dump(jobs)
-
-        class JobResource(Resource):
-            def put(self, job_uuid):
-
-                job = Job.query.filter(Job.uuid == job_uuid).first()
-
-                if job is None:
-                    return "", 404
-
-                if "name" in request.json:
-                    job.name = request.json["name"]
-
-                if "pipeline_uuid" in request.json:
-                    job.pipeline_uuid = request.json["pipeline_uuid"]
-
-                if "pipeline_name" in request.json:
-                    job.pipeline_name = request.json["pipeline_name"]
-
-                if "strategy_json" in request.json:
-                    job.strategy_json = request.json["strategy_json"]
-
-                if "draft" in request.json:
-                    job.draft = request.json["draft"]
-
-                if "schedule" in request.json:
-                    job.schedule = request.json["schedule"]
-
-                try:
-                    db.session.commit()
-                except Exception:
-                    db.session.rollback()
-                    return {"message": "Failed update operation."}, 500
-
-                return job_schema.dump(job)
-
-            def get(self, job_uuid):
-                job = Job.query.filter(Job.uuid == job_uuid).first()
-
-                if job is None:
-                    return "", 404
-
-                return job_schema.dump(job)
-
-            def delete(self, job_uuid):
-
-                try:
-                    with TwoPhaseExecutor(db.session) as tpe:
-                        DeleteJob(tpe).transaction(job_uuid)
-                except Exception as e:
-                    msg = f"Error during job deletion:{e}"
-                    return {"message": msg}, 500
-
-                return jsonify({"message": "Job termination was successful."})
-
-            def post(self, job_uuid):
-
-                project_uuid = request.json["project_uuid"]
-                pipeline_uuid = request.json["pipeline_uuid"]
-                pipeline_name = request.json["pipeline_name"]
-                job_name = request.json["name"]
-                draft = request.json["draft"]
-
-                try:
-                    with TwoPhaseExecutor(db.session) as tpe:
-                        new_job = CreateJob(tpe).transaction(
-                            project_uuid,
-                            pipeline_uuid,
-                            pipeline_name,
-                            job_name,
-                            draft,
-                        )
-                except Exception as e:
-                    msg = f"Error during job creation:{e}"
-                    return {"message": msg}, 500
-
-                return job_schema.dump(new_job)
-
-        api.add_resource(JobsResource, "/store/jobs")
-        api.add_resource(JobResource, "/store/jobs/<string:job_uuid>")
-
     register_datasources(db, api)
-    register_jobs(db, api)
     register_environments(db, api)
 
     def return_404(reason=""):
@@ -533,10 +436,18 @@ def register_views(app, db):
             project["pipeline_count"] = Pipeline.query.filter(
                 Pipeline.project_uuid == project["uuid"]
             ).count()
-            project["job_count"] = Job.query.filter(
-                Job.project_uuid == project["uuid"]
-            ).count()
             project["environment_count"] = len(get_environments(project["uuid"]))
+
+            resp = requests.get(
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/jobs/',
+                params={"project_uuid": project["uuid"]},
+            )
+            data = resp.json()
+            if resp.status_code != 200:
+                job_count = 0
+            else:
+                job_count = len(data.get("jobs", []))
+            project["job_count"] = job_count
 
         return jsonify(projects)
 

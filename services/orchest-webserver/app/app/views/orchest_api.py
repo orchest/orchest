@@ -1,14 +1,17 @@
+import uuid
+
 import requests
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 
 from app.analytics import send_pipeline_run
-from app.models import Job
 from app.utils import (
+    create_job_directory,
     get_environments,
     get_pipeline_json,
     get_project_directory,
     pipeline_uuid_to_path,
     project_uuid_to_path,
+    remove_job_directory,
 )
 
 
@@ -129,15 +132,22 @@ def register_orchest_api_views(app, db):
 
         json_obj = request.json
 
+        pipeline_path = pipeline_uuid_to_path(
+            json_obj["pipeline_uuid"], json_obj["project_uuid"]
+        )
         json_obj["pipeline_run_spec"]["run_config"] = {
             "host_user_dir": app.config["HOST_USER_DIR"],
             "project_dir": get_project_directory(
                 json_obj["project_uuid"], host_path=True
             ),
-            "pipeline_path": Job.query.filter(Job.uuid == json_obj["job_uuid"])
-            .first()
-            .pipeline_path,
+            "pipeline_path": pipeline_path,
         }
+
+        job_uuid = str(uuid.uuid4())
+        json_obj["job_uuid"] = job_uuid
+        create_job_directory(
+            job_uuid, json_obj["pipeline_uuid"], json_obj["project_uuid"]
+        )
 
         # Analytics call
         send_pipeline_run(
@@ -323,7 +333,7 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["GET"])
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["get"])
     def catch_api_proxy_jobs_get(job_uuid):
 
         resp = requests.get(
@@ -331,3 +341,59 @@ def register_orchest_api_views(app, db):
         )
 
         return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/api/jobs/", methods=["get"])
+    def catch_api_proxy_jobs_get_all():
+
+        current_app.logger.warning("got rqes")
+        params = {}
+        if "project_uuid" in request.args:
+            params = {"project_uuid": request.args["project_uuid"]}
+        current_app.logger.warning(params)
+
+        resp = requests.get(
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/', params
+        )
+        current_app.logger.warning(resp)
+        current_app.logger.warning("end rqes")
+        current_app.logger.warning("resp.content")
+
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/api/jobs/cleanup/<job_uuid>", methods=["delete"])
+    def catch_api_proxy_jobs_cleanup(job_uuid):
+        try:
+            # Get data before issuing deletion to the orchest-api. This
+            # is needed to retrieve the job pipeline uuid and project
+            # uuid. TODO: if the caller of the job knows about those
+            # ids, we could avoid making a request to the orchest-api.
+            resp = requests.get(
+                (
+                    f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api'
+                    f"/jobs/{job_uuid}"
+                )
+            )
+            data = resp.json()
+
+            if resp.status_code == 200:
+                pipeline_uuid = data["pipeline_uuid"]
+                project_uuid = data["project_uuid"]
+                # Tell the orchest-api that the job does not exist
+                # anymore, will be stopped if necessary then cleaned up
+                # from the orchest-api db.
+                url = (
+                    f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
+                    f"jobs/cleanup/{job_uuid}"
+                )
+                current_app.config["SCHEDULER"].add_job(requests.delete, args=[url])
+                remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
+            elif resp.status_code == 404:
+                raise ValueError(f"Job {job_uuid} does not exist.")
+            else:
+                raise Exception(f"{data}, {resp.status_code}")
+
+        except Exception as e:
+            msg = f"Error during job deletion:{e}"
+            return {"message": msg}, 500
+
+        return jsonify({"message": "Job deletion was successful."})

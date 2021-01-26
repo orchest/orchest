@@ -30,9 +30,6 @@ class Project(db.Model):
     )
 
     __table_args__ = (UniqueConstraint("uuid", "path"),)
-    jobs = db.relationship(
-        "Job", lazy="joined", passive_deletes=False, cascade="all, delete"
-    )
 
 
 class Pipeline(db.Model):
@@ -92,25 +89,6 @@ class Environment(db.Model):
 
     def __repr__(self):
         return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"
-
-
-class Job(db.Model):
-    __tablename__ = "jobs"
-
-    name = db.Column(db.String(255), unique=False, nullable=False)
-    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
-    pipeline_uuid = db.Column(db.String(255), unique=False, nullable=False)
-    project_uuid = db.Column(
-        db.ForeignKey("project.uuid", ondelete="CASCADE"), unique=False, nullable=False
-    )
-    pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
-    pipeline_path = db.Column(db.String(255), unique=False, nullable=False)
-    created = db.Column(
-        db.DateTime, nullable=False, server_default=text("timezone('utc', now())")
-    )
-    schedule = db.Column(db.String(100), unique=False, nullable=True)
-    strategy_json = db.Column(db.Text, nullable=False)
-    draft = db.Column(db.Boolean())
 
 
 class BackgroundTask(db.Model):

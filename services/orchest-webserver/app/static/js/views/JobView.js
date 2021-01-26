@@ -43,7 +43,7 @@ class JobView extends React.Component {
   }
 
   fetchJob() {
-    makeRequest("GET", `/store/jobs/${this.props.job_uuid}`).then(
+    makeRequest("GET", `/catch/api-proxy/api/jobs/${this.props.job_uuid}`).then(
       (response) => {
         try {
           let job = JSON.parse(response);
@@ -51,7 +51,7 @@ class JobView extends React.Component {
           this.state.job = job;
           this.setState({
             job,
-            parameterizedSteps: JSON.parse(job.strategy_json),
+            parameterizedSteps: job.strategy_json,
           });
 
           this.fetchPipeline();
@@ -67,7 +67,7 @@ class JobView extends React.Component {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       this.state.job.pipeline_uuid,
       this.state.job.project_uuid,
-      this.state.job.uuid
+      this.state.job.job_uuid
     );
 
     makeRequest("GET", pipelineJSONEndpoint).then((response) => {
@@ -91,7 +91,10 @@ class JobView extends React.Component {
 
   fetchPipelineRuns() {
     let fetchRunsPromise = makeCancelable(
-      makeRequest("GET", "/catch/api-proxy/api/jobs/" + this.state.job.uuid),
+      makeRequest(
+        "GET",
+        "/catch/api-proxy/api/jobs/" + this.state.job.job_uuid
+      ),
       this.promiseManager
     );
 
@@ -183,7 +186,10 @@ class JobView extends React.Component {
 
   cancelJob() {
     let deleteJobRequest = makeCancelable(
-      makeRequest("DELETE", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`),
+      makeRequest(
+        "DELETE",
+        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`
+      ),
       this.promiseManager
     );
     deleteJobRequest.promise
@@ -222,7 +228,7 @@ class JobView extends React.Component {
 
   editJob() {
     orchest.loadView(CreateJobView, {
-      job_uuid: this.state.job.uuid,
+      job_uuid: this.state.job.job_uuid,
     });
   }
 
