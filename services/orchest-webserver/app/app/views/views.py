@@ -341,7 +341,7 @@ def register_views(app, db):
             try:
                 with TwoPhaseExecutor(db.session) as tpe:
                     task = ImportGitProject(tpe).transaction(
-                        request.json["url"], request.json.get("name")
+                        request.json["url"], request.json.get("project_name")
                     )
             except Exception as e:
                 return jsonify({"message": str(e)}), 500
@@ -354,7 +354,9 @@ def register_views(app, db):
         """Cleanup projects that were deleted from the filesystem."""
 
         project_paths = [
-            entry.name for entry in os.scandir(app.config["PROJECTS_DIR"]) if entry.is_dir()
+            entry.name
+            for entry in os.scandir(app.config["PROJECTS_DIR"])
+            if entry.is_dir()
         ]
 
         fs_removed_projects = Project.query.filter(
@@ -386,7 +388,9 @@ def register_views(app, db):
         # registered in the db as projects.
         existing_project_paths = [project.path for project in Project.query.all()]
         project_paths = [
-            entry.name for entry in os.scandir(app.config["PROJECTS_DIR"]) if entry.is_dir()
+            entry.name
+            for entry in os.scandir(app.config["PROJECTS_DIR"])
+            if entry.is_dir()
         ]
         new_project_paths = set(project_paths) - set(existing_project_paths)
 

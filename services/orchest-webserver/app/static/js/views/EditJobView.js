@@ -81,7 +81,7 @@ class EditJobView extends React.Component {
         getPipelineJSONEndpoint(
           this.state.job.pipeline_uuid,
           this.state.job.project_uuid,
-          this.state.job.job_uuid
+          this.state.job.uuid
         )
       ),
       this.promiseManager
@@ -298,7 +298,7 @@ class EditJobView extends React.Component {
     // Note: confirm_draft will trigger the start the job.
     let putJobPromise = makeRequest(
       "PUT",
-      "/catch/api-proxy/api/jobs/" + this.state.job.job_uuid,
+      "/catch/api-proxy/api/jobs/" + this.state.job.uuid,
       {
         type: "json",
         content: jobPUTData,
@@ -331,25 +331,21 @@ class EditJobView extends React.Component {
     let cronSchedule = this.state.cronString;
 
     let putJobRequest = makeCancelable(
-      makeRequest(
-        "PUT",
-        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`,
-        {
-          type: "json",
-          content: {
-            cron_schedule: cronSchedule,
-            parameters: jobParameters,
-            strategy_json: this.state.parameterizedSteps,
-          },
-        }
-      ),
+      makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
+        type: "json",
+        content: {
+          cron_schedule: cronSchedule,
+          parameters: jobParameters,
+          strategy_json: this.state.parameterizedSteps,
+        },
+      }),
       this.promiseManager
     );
 
     putJobRequest.promise
       .then(() => {
         orchest.loadView(JobView, {
-          job_uuid: this.state.job.job_uuid,
+          job_uuid: this.state.job.uuid,
         });
       })
       .catch((error) => {
@@ -563,7 +559,7 @@ class EditJobView extends React.Component {
           <div className="columns top-labels">
             <div className="column">
               <label>Job</label>
-              <h3>{this.state.job.job_name}</h3>
+              <h3>{this.state.job.name}</h3>
             </div>
             <div className="column">
               <label>Pipeline</label>

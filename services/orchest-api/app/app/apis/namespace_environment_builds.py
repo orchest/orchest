@@ -120,7 +120,7 @@ class EnvironmentBuild(Resource):
         status_update = request.get_json()
 
         filter_by = {
-            "build_uuid": environment_build_uuid,
+            "uuid": environment_build_uuid,
         }
         try:
             update_status_db(
@@ -239,7 +239,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         ).all()
 
         for build in already_running_builds:
-            AbortEnvironmentBuild(self.tpe).transaction(build.build_uuid)
+            AbortEnvironmentBuild(self.tpe).transaction(build.uuid)
 
         # We specify the task id beforehand so that we can commit to the
         # db before actually launching the task, since the task might
@@ -255,7 +255,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         # task.forget()
 
         environment_build = {
-            "build_uuid": task_id,
+            "uuid": task_id,
             "project_uuid": build_request["project_uuid"],
             "environment_uuid": build_request["environment_uuid"],
             "project_path": build_request["project_path"],
@@ -291,7 +291,7 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
     def _transaction(self, environment_build_uuid: str):
 
         filter_by = {
-            "build_uuid": environment_build_uuid,
+            "uuid": environment_build_uuid,
         }
         status_update = {"status": "ABORTED"}
         # Will return true if any row is affected, meaning that the
@@ -336,7 +336,7 @@ class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
         )
 
         if len(env_builds) > 0 and env_builds[0].status in ["PENDING", "STARTED"]:
-            AbortEnvironmentBuild(self.tpe).transaction(env_builds[0].build_uuid)
+            AbortEnvironmentBuild(self.tpe).transaction(env_builds[0].uuid)
 
         for build in env_builds:
             db.session.delete(build)

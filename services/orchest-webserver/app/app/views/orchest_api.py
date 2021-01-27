@@ -151,7 +151,7 @@ def register_orchest_api_views(app, db):
         json_obj["pipeline_definition"]["settings"]["auto_eviction"] = True
 
         job_uuid = str(uuid.uuid4())
-        json_obj["job_uuid"] = job_uuid
+        json_obj["uuid"] = job_uuid
         create_job_directory(
             job_uuid, json_obj["pipeline_uuid"], json_obj["project_uuid"]
         )

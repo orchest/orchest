@@ -280,7 +280,7 @@ class ProjectsView extends React.Component {
       let data = JSON.parse(response);
 
       this.backgroundTaskPoller.startPollingBackgroundTask(
-        data.task_uuid,
+        data.uuid,
         (result) => {
           this.setState({
             importResult: result,

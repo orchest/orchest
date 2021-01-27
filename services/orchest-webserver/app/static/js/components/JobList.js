@@ -125,7 +125,7 @@ class JobList extends React.Component {
             makeRequest(
               "DELETE",
               "/catch/api-proxy/api/jobs/cleanup/" +
-                this.state.jobs[selectedRows[x]].job_uuid
+                this.state.jobs[selectedRows[x]].uuid
             )
           );
         }
@@ -171,7 +171,7 @@ class JobList extends React.Component {
         pipeline_uuid: pipeline_uuid,
         pipeline_name: pipelineName,
         project_uuid: this.props.project_uuid,
-        job_name: this.refManager.refs.formJobName.mdc.value,
+        name: this.refManager.refs.formJobName.mdc.value,
         draft: true,
         pipeline_run_spec: {
           run_type: "full",
@@ -183,7 +183,7 @@ class JobList extends React.Component {
       let job = JSON.parse(response);
 
       orchest.loadView(EditJobView, {
-        job_uuid: job.job_uuid,
+        job_uuid: job.uuid,
       });
     });
   }
@@ -202,11 +202,11 @@ class JobList extends React.Component {
 
     if (job.status === "DRAFT") {
       orchest.loadView(EditJobView, {
-        job_uuid: job.job_uuid,
+        job_uuid: job.uuid,
       });
     } else {
       orchest.loadView(JobView, {
-        job_uuid: job.job_uuid,
+        job_uuid: job.uuid,
       });
     }
   }
@@ -216,7 +216,7 @@ class JobList extends React.Component {
     for (let x = 0; x < jobs.length; x++) {
       // keep only jobs that are related to a project!
       rows.push([
-        jobs[x].job_name,
+        jobs[x].name,
         jobs[x].pipeline_name,
         new Date(
           jobs[x].created_time.replace(/T/, " ").replace(/\..+/, "") + " GMT"

@@ -31,4 +31,4 @@ class EnvironmentSchema(ma.Schema):
 
 class BackgroundTaskSchema(ma.Schema):
     class Meta:
-        fields = ("task_uuid", "task_type", "status", "code", "result")
+        fields = ("uuid", "task_type", "status", "code", "result")

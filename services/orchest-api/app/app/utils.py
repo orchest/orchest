@@ -339,7 +339,7 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
     # Make sure the returned jobs are unique.
     uuid_to_job = dict()
     for job in active_runs_jobs + future_jobs:
-        uuid_to_job[job.job_uuid] = job
+        uuid_to_job[job.uuid] = job
 
     return [job for job in uuid_to_job.values()]
 

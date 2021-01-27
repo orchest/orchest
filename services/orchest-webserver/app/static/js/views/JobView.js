@@ -67,7 +67,7 @@ class JobView extends React.Component {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       this.state.job.pipeline_uuid,
       this.state.job.project_uuid,
-      this.state.job.job_uuid
+      this.state.job.uuid
     );
 
     makeRequest("GET", pipelineJSONEndpoint).then((response) => {
@@ -91,10 +91,7 @@ class JobView extends React.Component {
 
   fetchPipelineRuns() {
     let fetchRunsPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        "/catch/api-proxy/api/jobs/" + this.state.job.job_uuid
-      ),
+      makeRequest("GET", "/catch/api-proxy/api/jobs/" + this.state.job.uuid),
       this.promiseManager
     );
 
@@ -186,10 +183,7 @@ class JobView extends React.Component {
 
   cancelJob() {
     let deleteJobRequest = makeCancelable(
-      makeRequest(
-        "DELETE",
-        `/catch/api-proxy/api/jobs/${this.state.job.job_uuid}`
-      ),
+      makeRequest("DELETE", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`),
       this.promiseManager
     );
     deleteJobRequest.promise
@@ -228,7 +222,7 @@ class JobView extends React.Component {
 
   editJob() {
     orchest.loadView(EditJobView, {
-      job_uuid: this.state.job.job_uuid,
+      job_uuid: this.state.job.uuid,
     });
   }
 
@@ -316,7 +310,7 @@ class JobView extends React.Component {
             <div>
               <div className="column">
                 <label>Job</label>
-                <h3>{this.state.job.job_name}</h3>
+                <h3>{this.state.job.name}</h3>
               </div>
               <div className="column">
                 <label>Pipeline</label>

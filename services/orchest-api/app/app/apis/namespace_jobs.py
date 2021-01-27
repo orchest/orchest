@@ -84,8 +84,8 @@ class JobList(Resource):
                 raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
             job = {
-                "job_uuid": post_data["job_uuid"],
-                "job_name": post_data["job_name"],
+                "uuid": post_data["uuid"],
+                "name": post_data["name"],
                 "project_uuid": post_data["project_uuid"],
                 "pipeline_uuid": post_data["pipeline_uuid"],
                 "pipeline_name": post_data["pipeline_name"],
@@ -121,7 +121,7 @@ class Job(Resource):
         job = (
             # joinedload is to also fetch pipeline_runs.
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
-            .filter_by(job_uuid=job_uuid)
+            .filter_by(uuid=job_uuid)
             .one_or_none()
         )
         if job is None:
@@ -205,7 +205,7 @@ class PipelineRun(Resource):
     def get(self, job_uuid, run_uuid):
         """Fetch a pipeline run of a job given their ids."""
         non_interactive_run = models.NonInteractivePipelineRun.query.filter_by(
-            run_uuid=run_uuid,
+            uuid=run_uuid,
         ).one_or_none()
         if non_interactive_run is None:
             abort(404, "Given job has no run with given run_uuid")
@@ -221,7 +221,7 @@ class PipelineRun(Resource):
 
             filter_by = {
                 "job_uuid": job_uuid,
-                "run_uuid": run_uuid,
+                "uuid": run_uuid,
             }
 
             update_status_db(
@@ -239,7 +239,7 @@ class PipelineRun(Resource):
                         models.Job.schedule,
                         func.jsonb_array_length(models.Job.parameters),
                     )
-                    .filter_by(job_uuid=job_uuid)
+                    .filter_by(uuid=job_uuid)
                     .one()
                 )
 
@@ -266,7 +266,7 @@ class PipelineRun(Resource):
                     )
 
                     if completed_runs == job[1]:
-                        models.Job.query.filter_by(job_uuid=job_uuid).update(
+                        models.Job.query.filter_by(uuid=job_uuid).update(
                             {"status": "SUCCESS"}
                         )
 
@@ -371,7 +371,7 @@ class RunJob(TwoPhaseFunction):
             # https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.with_for_update
             # https://www.postgresql.org/docs/9.0/sql-select.html#SQL-FOR-UPDATE-SHARE
             .with_for_update()
-            .filter_by(job_uuid=job_uuid)
+            .filter_by(uuid=job_uuid)
             .one()
         )
         # In case the job gets aborted while the scheduler attempts to
@@ -428,8 +428,8 @@ class RunJob(TwoPhaseFunction):
             tasks_to_launch.append((task_id, pipeline))
 
             non_interactive_run = {
-                "job_uuid": job.job_uuid,
-                "run_uuid": task_id,
+                "job_uuid": job.uuid,
+                "uuid": task_id,
                 "pipeline_uuid": job.pipeline_uuid,
                 "project_uuid": job.project_uuid,
                 "status": "PENDING",
@@ -518,7 +518,7 @@ class RunJob(TwoPhaseFunction):
         for task_id, pipeline in tasks_to_launch:
             run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
             celery_job_kwargs = {
-                "job_uuid": job["job_uuid"],
+                "job_uuid": job["uuid"],
                 "project_uuid": job["project_uuid"],
                 "pipeline_definition": pipeline.to_dict(),
                 "run_config": run_config,
@@ -549,7 +549,7 @@ class RunJob(TwoPhaseFunction):
         ).update({"status": "FAILURE"}, synchronize_session=False)
 
         models.NonInteractivePipelineRun.query.filter(
-            models.PipelineRun.run_uuid.in_(self.collateral_kwargs["tasks_to_launch"])
+            models.PipelineRun.uuid.in_(self.collateral_kwargs["tasks_to_launch"])
         ).update({"status": "FAILURE"}, synchronize_session=False)
         db.session.commit()
 
@@ -566,7 +566,7 @@ class AbortJob(TwoPhaseFunction):
 
         job = (
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
-            .filter_by(job_uuid=job_uuid)
+            .filter_by(uuid=job_uuid)
             .one_or_none()
         )
         if job is None:
@@ -581,13 +581,13 @@ class AbortJob(TwoPhaseFunction):
         # are the celery task uuid as well.
         for run in job.pipeline_runs:
             if run.status in ["PENDING", "STARTED"]:
-                run_uuids.append(run.run_uuid)
+                run_uuids.append(run.uuid)
 
         # Set the state of each run and related steps to ABORTED. Note
         # that the status of steps that have already been completed will
         # not be modified.
         for run_uuid in run_uuids:
-            filter_by = {"run_uuid": run_uuid}
+            filter_by = {"uuid": run_uuid}
             status_update = {"status": "ABORTED"}
 
             update_status_db(
@@ -595,6 +595,8 @@ class AbortJob(TwoPhaseFunction):
                 model=models.NonInteractivePipelineRun,
                 filter_by=filter_by,
             )
+
+            filter_by = {"run_uuid": run_uuid}
 
             update_status_db(
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
@@ -630,7 +632,7 @@ class UpdateJob(TwoPhaseFunction):
         strategy_json: Dict[str, Any],
         confirm_draft,
     ):
-        job = models.Job.query.with_for_update().filter_by(job_uuid=job_uuid).one()
+        job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
 
         if cron_schedule is not None:
             if job.schedule is None and job.status != "DRAFT":
@@ -702,7 +704,7 @@ class UpdateJob(TwoPhaseFunction):
                 # scheduler will not pick it up because it does not have
                 # a next_scheduled_time.
                 if job.next_scheduled_time is None:
-                    RunJob(self.tpe).transaction(job.job_uuid)
+                    RunJob(self.tpe).transaction(job.uuid)
 
                 # One time jobs that are set to run at a given date will
                 # now be picked up by the scheduler, since they are not
@@ -721,7 +723,7 @@ class DeleteJob(TwoPhaseFunction):
     """Delete a job."""
 
     def _transaction(self, job_uuid):
-        job = models.Job.query.filter_by(job_uuid=job_uuid).one_or_none()
+        job = models.Job.query.filter_by(uuid=job_uuid).one_or_none()
         if job is None:
             return False
 

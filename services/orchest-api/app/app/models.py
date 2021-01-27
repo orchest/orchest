@@ -37,7 +37,7 @@ class EnvironmentBuild(BaseModel):
     __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
-    build_uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
+    uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
     project_uuid = db.Column(db.String(36), nullable=False, index=True)
     environment_uuid = db.Column(db.String(36), nullable=False, index=True)
     project_path = db.Column(db.String(4096), nullable=False, index=True)
@@ -47,7 +47,7 @@ class EnvironmentBuild(BaseModel):
     status = db.Column(db.String(15), unique=False, nullable=True)
 
     def __repr__(self):
-        return f"<EnvironmentBuildTask: {self.build_uuid}>"
+        return f"<EnvironmentBuildTask: {self.uuid}>"
 
 
 class InteractiveSession(BaseModel):
@@ -92,7 +92,7 @@ class InteractiveSession(BaseModel):
 class Job(BaseModel):
     __tablename__ = "jobs"
 
-    job_name = db.Column(
+    name = db.Column(
         db.String(255),
         unique=False,
         nullable=False,
@@ -108,7 +108,7 @@ class Job(BaseModel):
         server_default=text("''"),
     )
 
-    job_uuid = db.Column(db.String(36), primary_key=True)
+    uuid = db.Column(db.String(36), primary_key=True)
     project_uuid = db.Column(
         db.String(36),
     )
@@ -228,7 +228,7 @@ class Job(BaseModel):
     )
 
     def __repr__(self):
-        return f"<Job: {self.job_uuid}>"
+        return f"<Job: {self.uuid}>"
 
 
 class PipelineRun(BaseModel):
@@ -242,7 +242,7 @@ class PipelineRun(BaseModel):
         unique=False,
         nullable=False,
     )
-    run_uuid = db.Column(db.String(36), primary_key=True)
+    uuid = db.Column(db.String(36), primary_key=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
@@ -269,7 +269,7 @@ class PipelineRun(BaseModel):
     }
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: {self.run_uuid}>"
+        return f"<{self.__class__.__name__}: {self.uuid}>"
 
 
 class PipelineRunStep(BaseModel):
@@ -277,7 +277,7 @@ class PipelineRunStep(BaseModel):
 
     run_uuid = db.Column(
         db.String(36),
-        db.ForeignKey("pipeline_runs.run_uuid", ondelete="CASCADE"),
+        db.ForeignKey("pipeline_runs.uuid", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -319,7 +319,7 @@ class NonInteractivePipelineRun(PipelineRun):
     # TODO: verify why the job_uuid should be part of the
     # primary key
     job_uuid = db.Column(
-        db.String(36), db.ForeignKey("jobs.job_uuid", ondelete="CASCADE"), index=True
+        db.String(36), db.ForeignKey("jobs.uuid", ondelete="CASCADE"), index=True
     )
 
     # To what batch of non interactive runs of a job it belongs. The
@@ -401,7 +401,7 @@ class PipelineRunImageMapping(BaseModel):
     )
 
     run_uuid = db.Column(
-        db.ForeignKey(PipelineRun.run_uuid, ondelete="CASCADE"),
+        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
         unique=False,
         nullable=False,
         index=True,

@@ -57,7 +57,7 @@ class DeleteProject(TwoPhaseFunction):
             .all()
         )
         for run in interactive_runs:
-            AbortPipelineRun(self.tpe).transaction(run.run_uuid)
+            AbortPipelineRun(self.tpe).transaction(run.uuid)
             # Will delete cascade interactive run pipeline step,
             # interactive run image mapping.
             db.session.delete(run)
@@ -87,11 +87,11 @@ class DeleteProject(TwoPhaseFunction):
             models.Job.query.filter_by(
                 project_uuid=project_uuid,
             )
-            .with_entities(models.Job.job_uuid)
+            .with_entities(models.Job.uuid)
             .all()
         )
         for job in jobs:
-            DeleteJob(job.job_uuid)
+            DeleteJob(job.uuid)
 
         # Remove images related to the project.
         DeleteProjectEnvironmentImages(self.tpe).transaction(project_uuid)

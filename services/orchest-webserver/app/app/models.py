@@ -96,7 +96,7 @@ class BackgroundTask(db.Model):
 
     __tablename__ = "background_tasks"
 
-    task_uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
+    uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
     # see background_task_executor types
     task_type = db.Column(db.String(50), unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=False)
@@ -104,4 +104,4 @@ class BackgroundTask(db.Model):
     result = db.Column(db.String(), unique=False, nullable=True)
 
     def __repr__(self):
-        return f"<BackgroundTask: {self.task_uuid}>"
+        return f"<BackgroundTask: {self.uuid}>"

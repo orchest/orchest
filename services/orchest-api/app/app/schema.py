@@ -116,7 +116,7 @@ pipeline_run_pipeline_step = Model(
 pipeline_run = Model(
     "Run",
     {
-        "run_uuid": fields.String(required=True, description="UUID of run"),
+        "uuid": fields.String(required=True, description="UUID of run"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of the run"),
@@ -247,7 +247,7 @@ non_interactive_run = pipeline_run.inherit(
 job_spec = Model(
     "Jobspecification",
     {
-        "job_uuid": fields.String(required=True, description="UUID for job"),
+        "uuid": fields.String(required=True, description="UUID for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "pipeline_definitions": fields.List(
@@ -294,7 +294,7 @@ job_spec = Model(
 job = Model(
     "Job",
     {
-        "job_uuid": fields.String(required=True, description="UUID for job"),
+        "uuid": fields.String(required=True, description="UUID for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "total_scheduled_executions": fields.Integer(
@@ -336,7 +336,7 @@ job = Model(
         "pipeline_name": fields.String(
             required=True, description="Name of the pipeline."
         ),
-        "job_name": fields.String(required=True, description="Name of the job."),
+        "name": fields.String(required=True, description="Name of the job."),
         "strategy_json": fields.Raw(required=True, description="Strategy json."),
     },
 )
@@ -351,7 +351,7 @@ jobs = Model(
 environment_build = Model(
     "EnvironmentBuild",
     {
-        "build_uuid": fields.String(
+        "uuid": fields.String(
             required=True, description="UUID of the environment build"
         ),
         "project_uuid": fields.String(required=True, description="UUID of the project"),

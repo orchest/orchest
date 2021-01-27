@@ -57,7 +57,7 @@ class DeletePipeline(TwoPhaseFunction):
             .all()
         )
         for run in interactive_runs:
-            AbortPipelineRun(self.tpe).transaction(run.run_uuid)
+            AbortPipelineRun(self.tpe).transaction(run.uuid)
 
             # Will delete cascade: run pipeline step, interactive run
             # image mapping,

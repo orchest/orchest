@@ -76,9 +76,7 @@ class Run(Resource):
     @api.marshal_with(schema.interactive_run, code=200)
     def get(self, run_uuid):
         """Fetches an interactive pipeline run given its UUID."""
-        run = models.InteractivePipelineRun.query.filter_by(
-            run_uuid=run_uuid
-        ).one_or_none()
+        run = models.InteractivePipelineRun.query.filter_by(uuid=run_uuid).one_or_none()
         if run is None:
             abort(404, description="Run not found.")
         return run.__dict__
@@ -88,7 +86,7 @@ class Run(Resource):
     def put(self, run_uuid):
         """Sets the status of a pipeline run."""
 
-        filter_by = {"run_uuid": run_uuid}
+        filter_by = {"uuid": run_uuid}
         status_update = request.get_json()
         try:
             update_status_db(
@@ -174,7 +172,7 @@ class AbortPipelineRun(TwoPhaseFunction):
 
         # If the run is not abortable return false, abortion failed.
         # Set the state and return.
-        filter_by = {"run_uuid": run_uuid}
+        filter_by = {"uuid": run_uuid}
         status_update = {"status": "ABORTED"}
 
         # _can_abort is set to True if any row was affected, that is,
@@ -186,6 +184,7 @@ class AbortPipelineRun(TwoPhaseFunction):
         # Do not attempt to update the status of the steps if the status
         # of the pipeline could not be updated.
         if can_abort:
+            filter_by = {"run_uuid": run_uuid}
             update_status_db(
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
@@ -222,7 +221,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         # way we do not have to configure a backend (where the default
         # of "rpc://" does not give the results we would want).
         run = {
-            "run_uuid": task_id,
+            "uuid": task_id,
             "pipeline_uuid": pipeline.properties["uuid"],
             "project_uuid": project_uuid,
             "status": "PENDING",
@@ -311,7 +310,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
 
     def _revert(self):
         models.InteractivePipelineRun.query.filter_by(
-            run_uuid=self.collateral_kwargs["task_id"]
+            uuid=self.collateral_kwargs["task_id"]
         ).update({"status": "FAILURE"})
         models.PipelineRunStep.query.filter_by(
             run_uuid=self.collateral_kwargs["task_id"]

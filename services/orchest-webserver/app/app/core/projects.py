@@ -59,7 +59,9 @@ class CreateProject(TwoPhaseFunction):
             FileExistsError:
             NotADirectoryError:
         """
-        full_project_path = os.path.join(current_app.config["PROJECTS_DIR"], project_path)
+        full_project_path = os.path.join(
+            current_app.config["PROJECTS_DIR"], project_path
+        )
         # exist_ok=True is there so that this function can be used both
         # when initializing a project that was discovered through the
         # filesystem or initializing a project from scratch.
@@ -138,13 +140,15 @@ class DeleteProject(TwoPhaseFunction):
         # Delete the project directory.
         try:
             project_path = project_uuid_to_path(project_uuid)
-            full_project_path = os.path.join(current_app.config["PROJECTS_DIR"], project_path)
+            full_project_path = os.path.join(
+                current_app.config["PROJECTS_DIR"], project_path
+            )
             shutil.rmtree(full_project_path)
         except FileNotFoundError:
-            # If the `full_project_path` is not found,
-            # it means that the user has already performed the deletion operation.
-            # So we need to catch and then ignore this error,
-            # otherwise the DB deletion operation will not continue.
+            # If the `full_project_path` is not found, it means that the
+            # user has already performed the deletion operation. So we
+            # need to catch and then ignore this error, otherwise the DB
+            # deletion operation will not continue.
             pass
 
         # Remove jobs directories related to project.
@@ -227,7 +231,7 @@ class ImportGitProject(TwoPhaseFunction):
     def _transaction(self, url: str, project_name: Optional[str] = None):
         n_uuid = str(uuid.uuid4())
         new_task = BackgroundTask(
-            task_uuid=n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
+            uuid=n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
         )
         db.session.add(new_task)
 
@@ -261,9 +265,7 @@ class ImportGitProject(TwoPhaseFunction):
         )
 
     def _revert(self):
-        BackgroundTask.query.filter_by(
-            task_uuid=self.collateral_kwargs["n_uuid"]
-        ).delete()
+        BackgroundTask.query.filter_by(uuid=self.collateral_kwargs["n_uuid"]).delete()
 
 
 # Need to have these two functions here because of circular imports.

@@ -52,7 +52,7 @@ class Scheduler:
             jobs_to_run = (
                 Job.query.options(
                     load_only(
-                        "job_uuid",
+                        "uuid",
                         "schedule",
                         "next_scheduled_time",
                     )
@@ -95,7 +95,7 @@ class Scheduler:
             # Transform jobs from ORM objects to uuids since each we
             # are committing the transaction, making the jobs
             # potentially stale.
-            jobs_to_run = [job.job_uuid for job in jobs_to_run]
+            jobs_to_run = [job.uuid for job in jobs_to_run]
 
             db.session.commit()
 

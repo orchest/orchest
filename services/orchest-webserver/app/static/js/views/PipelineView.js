@@ -288,7 +288,7 @@ class PipelineView extends React.Component {
 
     if (this.props.pipelineRun) {
       try {
-        this.state.runUUID = this.props.pipelineRun.run_uuid;
+        this.state.runUUID = this.props.pipelineRun.uuid;
         this.state.runStatusEndpoint =
           "/catch/api-proxy/api/jobs/" + this.props.pipelineRun.job_uuid + "/";
         this.pollPipelineStepStatuses();
@@ -345,7 +345,7 @@ class PipelineView extends React.Component {
         // started_time DESC. So we can just retrieve the first run.
         if (data["runs"].length > 0) {
           let run = data["runs"][0];
-          this.state.runUUID = run.run_uuid;
+          this.state.runUUID = run.uuid;
           this.pollPipelineStepStatuses();
           this.startStatusInterval();
         }
@@ -1072,7 +1072,7 @@ class PipelineView extends React.Component {
       this.props.pipeline_uuid,
       this.props.project_uuid,
       this.props.pipelineRun && this.props.pipelineRun.job_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.run_uuid
+      this.props.pipelineRun && this.props.pipelineRun.uuid
     );
 
     let fetchPipelinePromise = makeCancelable(
@@ -1628,7 +1628,7 @@ class PipelineView extends React.Component {
         this.parseRunStatuses(result);
 
         this.setState({
-          runUUID: result.run_uuid,
+          runUUID: result.uuid,
         });
 
         this.startStatusInterval();
