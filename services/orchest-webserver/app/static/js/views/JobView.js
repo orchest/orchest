@@ -13,7 +13,10 @@ import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import ParamTree from "../components/ParamTree";
 import PipelineView from "./PipelineView";
 import EditJobView from "./EditJobView";
-import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
+import {
+  formatServerDateTime,
+  getPipelineJSONEndpoint,
+} from "../utils/webserver-utils";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 
 class JobView extends React.Component {
@@ -309,7 +312,7 @@ class JobView extends React.Component {
           <div className="columns top-labels">
             <div>
               <div className="column">
-                <label>Job</label>
+                <label>Name</label>
                 <h3>{this.state.job.name}</h3>
               </div>
               <div className="column">
@@ -320,7 +323,7 @@ class JobView extends React.Component {
             </div>
             <div className="push-up">
               <div className="column">
-                <label>Job status</label>
+                <label>Status</label>
                 <h3>{this.state.jobStatus}</h3>
               </div>
               <div className="column">
@@ -335,6 +338,19 @@ class JobView extends React.Component {
                     <i>{cronstrue.toString(this.state.job.schedule)}</i>
                   </p>
                 )}
+              </div>
+              <div className="clear"></div>
+            </div>
+            <div className="push-up">
+              <div className="column">
+                <label>Created at</label>
+                <h3>{formatServerDateTime(this.state.job.created_time)}</h3>
+              </div>
+              <div className="column">
+                <label>Scheduled at</label>
+                <h3>
+                  {formatServerDateTime(this.state.job.last_scheduled_time)}
+                </h3>
               </div>
               <div className="clear"></div>
             </div>
