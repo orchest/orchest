@@ -310,6 +310,10 @@ job = Model(
             required=True,
             description="Next time at which the job is scheduled to start.",
         ),
+        "last_scheduled_time": fields.String(
+            required=True,
+            description="Last time at which the job was scheduled.",
+        ),
         "parameters": fields.List(
             fields.Raw(description="Parameters of the job, one for each run."),
             description="List of run parameters.",
