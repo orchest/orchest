@@ -361,7 +361,13 @@ class JobView extends React.Component {
             selectedIndex={this.state.selectedTabIndex}
             ref={this.refManager.nrefs.tabBar}
             items={[
-              "Pipeline runs (" + this.state.pipelineRuns.length + ")",
+              "Pipeline runs (" +
+                this.state.pipelineRuns.filter(({ status }) =>
+                  ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
+                ).length +
+                "/" +
+                +this.state.pipelineRuns.length +
+                ")",
               "Parameters",
             ]}
             icons={["list", "tune"]}
