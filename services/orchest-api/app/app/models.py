@@ -33,7 +33,7 @@ class EnvironmentBuild(BaseModel):
 
     """
 
-    __tablename__ = "environment_build"
+    __tablename__ = "environment_builds"
     __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length

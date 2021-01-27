@@ -11,7 +11,7 @@ def str_uuid4():
 
 
 class Project(db.Model):
-    __tablename__ = "project"
+    __tablename__ = "projects"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
     path = db.Column(db.String(255), nullable=False, unique=True)
@@ -33,11 +33,11 @@ class Project(db.Model):
 
 
 class Pipeline(db.Model):
-    __tablename__ = "pipeline"
+    __tablename__ = "pipelines"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
     project_uuid = db.Column(
-        db.ForeignKey("project.uuid", ondelete="CASCADE"), primary_key=True
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"), primary_key=True
     )
     path = db.Column(db.String(255), nullable=False)
 
