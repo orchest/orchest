@@ -12,10 +12,10 @@ import {
   makeCancelable,
   RefManager,
 } from "../lib/utils/all";
-import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import JobView from "../views/JobView";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
+import { formatServerDateTime } from "../utils/webserver-utils";
 
 class JobList extends React.Component {
   constructor(props) {
@@ -218,9 +218,7 @@ class JobList extends React.Component {
       rows.push([
         jobs[x].name,
         jobs[x].pipeline_name,
-        new Date(
-          jobs[x].created_time.replace(/T/, " ").replace(/\..+/, "") + " GMT"
-        ).toLocaleString(),
+        formatServerDateTime(jobs[x].created_time),
         jobs[x].status,
       ]);
     }

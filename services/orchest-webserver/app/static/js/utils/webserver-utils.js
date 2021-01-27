@@ -166,6 +166,12 @@ export function getScrollLineHeight() {
   return fontSize ? window.parseInt(fontSize) : undefined;
 }
 
+export function formatServerDateTime(dateTimeString) {
+  return new Date(
+    dateTimeString.replace(/T/, " ").replace(/\..+/, "") + " GMT"
+  ).toLocaleString();
+}
+
 export function getPipelineJSONEndpoint(
   pipeline_uuid,
   project_uuid,
