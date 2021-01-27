@@ -706,6 +706,8 @@ class UpdateJob(TwoPhaseFunction):
                 if job.next_scheduled_time is None:
                     job.last_scheduled_time = datetime.now(timezone.utc)
                     RunJob(self.tpe).transaction(job.uuid)
+                else:
+                    job.last_scheduled_time = job.next_scheduled_time
 
                 # One time jobs that are set to run at a given date will
                 # now be picked up by the scheduler, since they are not
@@ -714,6 +716,7 @@ class UpdateJob(TwoPhaseFunction):
             # Cron jobs are consired STARTED the moment the scheduler
             # can decide or not about running them.
             else:
+                job.last_scheduled_time = job.next_scheduled_time
                 job.status = "STARTED"
 
     def _collateral(self):
