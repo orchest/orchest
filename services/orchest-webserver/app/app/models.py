@@ -41,8 +41,6 @@ class Pipeline(db.Model):
     )
     path = db.Column(db.String(255), nullable=False)
 
-    __table_args__ = (UniqueConstraint("uuid", "project_uuid"),)
-
 
 class DataSource(db.Model):
     __tablename__ = "datasources"

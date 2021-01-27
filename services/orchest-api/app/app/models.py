@@ -37,7 +37,7 @@ class EnvironmentBuild(BaseModel):
     __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
-    uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
+    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
     project_uuid = db.Column(db.String(36), nullable=False, index=True)
     environment_uuid = db.Column(db.String(36), nullable=False, index=True)
     project_path = db.Column(db.String(4096), nullable=False, index=True)
