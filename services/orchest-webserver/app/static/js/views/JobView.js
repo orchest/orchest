@@ -103,6 +103,7 @@ class JobView extends React.Component {
         let result = JSON.parse(response);
 
         this.setState({
+          job: result,
           pipelineRuns: result.pipeline_runs,
           jobStatus: result.status,
           jobGeneratedParameters: result.parameters,
