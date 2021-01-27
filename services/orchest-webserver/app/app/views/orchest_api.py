@@ -352,7 +352,6 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/api/jobs/", methods=["get"])
     def catch_api_proxy_jobs_get_all():
 
-        current_app.logger.warning("got rqes")
         params = {}
         if "project_uuid" in request.args:
             params = {"project_uuid": request.args["project_uuid"]}
@@ -361,9 +360,6 @@ def register_orchest_api_views(app, db):
         resp = requests.get(
             f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/', params
         )
-        current_app.logger.warning(resp)
-        current_app.logger.warning("end rqes")
-        current_app.logger.warning("resp.content")
 
         return resp.content, resp.status_code, resp.headers.items()
 
