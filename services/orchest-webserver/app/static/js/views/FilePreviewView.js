@@ -84,7 +84,7 @@ class FilePreviewView extends React.Component {
             this.props.pipeline_uuid,
             this.props.project_uuid,
             this.props.pipelineRun.job_uuid,
-            this.props.pipelineRun.run_uuid
+            this.props.pipelineRun.uuid
           )
         : getPipelineJSONEndpoint(
             this.props.pipeline_uuid,

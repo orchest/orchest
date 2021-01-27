@@ -170,7 +170,7 @@ export function getPipelineJSONEndpoint(
   pipeline_uuid,
   project_uuid,
   job_uuid,
-  run_uuid
+  pipeline_run_uuid
 ) {
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
@@ -178,8 +178,8 @@ export function getPipelineJSONEndpoint(
     pipelineURL += `?job_uuid=${job_uuid}`;
   }
 
-  if (run_uuid !== undefined) {
-    pipelineURL += `&pipeline_run_uuid=${run_uuid}`;
+  if (pipeline_run_uuid !== undefined) {
+    pipelineURL += `&pipeline_run_uuid=${pipeline_run_uuid}`;
   }
   return pipelineURL;
 }
