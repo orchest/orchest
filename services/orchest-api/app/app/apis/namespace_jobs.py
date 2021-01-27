@@ -704,6 +704,7 @@ class UpdateJob(TwoPhaseFunction):
                 # scheduler will not pick it up because it does not have
                 # a next_scheduled_time.
                 if job.next_scheduled_time is None:
+                    job.last_scheduled_time = datetime.now(timezone.utc)
                     RunJob(self.tpe).transaction(job.uuid)
 
                 # One time jobs that are set to run at a given date will

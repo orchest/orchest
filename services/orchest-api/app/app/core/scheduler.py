@@ -84,6 +84,9 @@ class Scheduler:
             # calls need to use the current value of next_scheduled_time
             # as a base.
             for job in jobs_to_run:
+                # So that we maintain correctness even if the scheduler
+                # runs past the minute the job was scheduled for.
+                job.last_scheduled_time = job.next_scheduled_time
                 if job.schedule is not None:
                     job.next_scheduled_time = croniter(job.schedule, now).get_next(
                         datetime

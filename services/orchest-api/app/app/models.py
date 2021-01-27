@@ -154,6 +154,9 @@ class Job(BaseModel):
     # So that we can efficiently look for jobs to run.
     next_scheduled_time = db.Column(TIMESTAMP(timezone=True), index=True)
 
+    # So that we can show the user the last time it was scheduled/run.
+    last_scheduled_time = db.Column(TIMESTAMP(timezone=True), index=True)
+
     # So that we can "stamp" every non interactive run with the
     # execution number it belongs to, e.g. the first time a job runs it
     # will be batch 1, then 2, etc.
