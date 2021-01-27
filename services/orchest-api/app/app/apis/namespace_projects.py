@@ -91,7 +91,7 @@ class DeleteProject(TwoPhaseFunction):
             .all()
         )
         for job in jobs:
-            DeleteJob(job.uuid)
+            DeleteJob(self.tpe).transaction(job.uuid)
 
         # Remove images related to the project.
         DeleteProjectEnvironmentImages(self.tpe).transaction(project_uuid)
