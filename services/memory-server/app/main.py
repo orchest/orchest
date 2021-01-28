@@ -7,9 +7,8 @@ from typing import Tuple
 
 import config
 import pyarrow as pa
+import utils
 from manager import start_manager
-
-from _orchest.internals import config as _config
 
 
 def get_command_line_args():
@@ -19,7 +18,7 @@ def get_command_line_args():
         "--memory",
         type=int,
         required=False,
-        default=config.STORE_MEMORY,
+        default=None,
         help="amount of memory for plasma store",
     )
     parser.add_argument(
@@ -33,9 +32,7 @@ def get_command_line_args():
         "-p",
         "--pipeline_fname",
         required=False,
-        default=os.path.join(
-            _config.PROJECT_DIR, os.environ.get("ORCHEST_PIPELINE_PATH", "")
-        ),
+        default=config.PIPELINE_FNAME,
         help="file containing pipeline definition",
     )
 
@@ -45,7 +42,8 @@ def get_command_line_args():
 
 @contextlib.contextmanager
 def start_plasma_store(
-    memory: int, store_socket_name: str = "/tmp/plasma.sock"
+    memory: int,
+    store_socket_name: str = "/tmp/plasma.sock",
 ) -> Tuple[str, subprocess.Popen]:
     """Starts a plasma store in a subprocess.
 
@@ -59,6 +57,7 @@ def start_plasma_store(
     """
     try:
         executable = os.path.join(pa.__path__[0], "plasma-store-server")
+
         command = [executable, "-s", store_socket_name, "-m", str(memory)]
 
         proc = subprocess.Popen(command)
@@ -81,8 +80,13 @@ def start_plasma_store(
 def main():
     args = get_command_line_args()
 
+    memory = args.memory
+    if memory is None:
+        memory = utils.get_store_memory_size(args.pipeline_fname)
+
     with start_plasma_store(
-        memory=args.memory, store_socket_name=args.store_socket_name
+        memory=memory,
+        store_socket_name=args.store_socket_name,
     ) as (store_socket_name, _):
 
         # Set flexible permissions to make the socket writeable to all

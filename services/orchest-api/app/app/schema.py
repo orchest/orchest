@@ -57,9 +57,6 @@ pipeline = Model(
         "host_userdir": fields.String(
             required=True, description="Host path to userdir"
         ),
-        "settings": fields.Raw(
-            required=True, description="Settings from the pipeline definition"
-        ),
     },
 )
 
