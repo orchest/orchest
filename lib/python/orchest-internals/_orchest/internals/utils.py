@@ -76,7 +76,7 @@ def get_environment_capabilities(environment_uuid, project_uuid):
         logging.error(
             (
                 "Failed to get environment for environment_uuid[%s]"
-                + " and project_uuid[%s]. Error: %s (%s)"
+                " and project_uuid[%s]. Error: %s (%s)"
             )
             % (environment_uuid, project_uuid, e, type(e))
         )
