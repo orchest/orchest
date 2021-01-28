@@ -5,7 +5,6 @@ from app.analytics import send_pipeline_run
 from app.models import Job, PipelineRun
 from app.utils import (
     get_environments,
-    get_pipeline_json,
     get_project_directory,
     pipeline_uuid_to_path,
     project_uuid_to_path,
@@ -169,11 +168,6 @@ def register_orchest_api_views(app, db):
         )
 
         json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
-
-        pipeline_json = get_pipeline_json(
-            json_obj["pipeline_uuid"], json_obj["project_uuid"]
-        )
-        json_obj["settings"] = pipeline_json.get("settings", {})
 
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",

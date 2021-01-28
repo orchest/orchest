@@ -49,7 +49,6 @@ class SessionList(Resource):
                     post_data["pipeline_path"],
                     post_data["project_dir"],
                     post_data["host_userdir"],
-                    post_data["settings"]["data_passing_memory_size"],
                 )
         except Exception as e:
             return {"message": str(e)}, 500
@@ -132,7 +131,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
         pipeline_path: str,
         project_dir: str,
         host_userdir: str,
-        data_passing_memory_size: str,
     ):
         interactive_session = {
             "project_uuid": project_uuid,
@@ -146,7 +144,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
         self.collateral_kwargs["pipeline_path"] = pipeline_path
         self.collateral_kwargs["project_dir"] = project_dir
         self.collateral_kwargs["host_userdir"] = host_userdir
-        self.collateral_kwargs["data_passing_memory_size"] = data_passing_memory_size
 
     def _collateral(
         self,
@@ -155,7 +152,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
         pipeline_path: str,
         project_dir: str,
         host_userdir: str,
-        data_passing_memory_size: str,
     ):
         session = InteractiveSession(docker_client, network="orchest")
         session.launch(
@@ -163,7 +159,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
             project_uuid,
             pipeline_path,
             project_dir,
-            data_passing_memory_size,
             host_userdir,
         )
 

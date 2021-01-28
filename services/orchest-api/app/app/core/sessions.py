@@ -125,7 +125,6 @@ class Session:
         project_uuid: str,
         pipeline_path: str,
         project_dir: str,
-        data_passing_memory_size: int,
         host_userdir: Optional[str] = None,
     ) -> None:
         """Launches pre-configured resources.
@@ -142,7 +141,6 @@ class Session:
                 project_dir).
             project_dir: Path to project directory.
             host_userdir: Path to the userdir on the host
-            data_passing_memory_size: Size for the "memory-server".
 
         """
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
@@ -153,7 +151,6 @@ class Session:
             project_dir,
             host_userdir,
             self.network,
-            data_passing_memory_size,
         )
         for resource in self._resources:
             container = self.client.containers.run(**container_specs[resource])
@@ -292,7 +289,6 @@ class InteractiveSession(Session):
         project_uuid: str,
         pipeline_path: str,
         project_dir: str,
-        data_passing_memory_size: int,
         host_userdir: str,
     ) -> None:
         """Launches the interactive session.
@@ -309,7 +305,6 @@ class InteractiveSession(Session):
             project_uuid,
             pipeline_path,
             project_dir,
-            data_passing_memory_size,
             host_userdir,
         )
 
@@ -404,7 +399,6 @@ class NonInteractiveSession(Session):
         project_uuid: str,
         pipeline_path: str,
         project_dir: str,
-        data_passing_memory_size: int,
     ) -> None:
         """
 
@@ -427,9 +421,7 @@ class NonInteractiveSession(Session):
         if uuid is None:
             uuid = self._session_uuid
 
-        return super().launch(
-            uuid, project_uuid, pipeline_path, project_dir, data_passing_memory_size
-        )
+        return super().launch(uuid, project_uuid, pipeline_path, project_dir)
 
 
 @contextmanager
@@ -439,7 +431,6 @@ def launch_noninteractive_session(
     project_uuid: str,
     pipeline_path: str,
     project_dir: str,
-    data_passing_memory_size: int,
 ) -> NonInteractiveSession:
     """Launches a non-interactive session for a particular pipeline.
 
@@ -450,7 +441,6 @@ def launch_noninteractive_session(
         project_dir: Path to the `project_dir`, which has to be
             mounted into the containers so that the user can interact
             with the files.
-        data_passing_memory_size: Size for the "memory-server".
 
     Yields:
         A Session object that has already launched its resources.
@@ -462,7 +452,6 @@ def launch_noninteractive_session(
         project_uuid,
         pipeline_path,
         project_dir,
-        data_passing_memory_size,
     )
     try:
         yield session
@@ -540,7 +529,6 @@ def _get_container_specs(
     project_dir: str,
     host_userdir: str,
     network: str,
-    data_passing_memory_size: int,
 ) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
 
@@ -557,7 +545,6 @@ def _get_container_specs(
         host_userdir: Path to the userdir on the host
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
-        data_passing_memory_size: Size for the "memory-server".
 
     Returns:
         Mapping from container name to container specification for the
@@ -573,7 +560,6 @@ def _get_container_specs(
     container_specs = {}
     mounts = _get_mounts(uuid, project_uuid, project_dir, host_userdir)
 
-    # TODO: remove data_passing_memory_size
     container_specs["memory-server"] = {
         "image": "orchest/memory-server:latest",
         "detach": True,
