@@ -8,7 +8,7 @@ TODO:
 
 """
 from sqlalchemy import Index, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 
 from app.connections import db
 
@@ -33,11 +33,11 @@ class EnvironmentBuild(BaseModel):
 
     """
 
-    __tablename__ = "environment_build"
+    __tablename__ = "environment_builds"
     __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
-    build_uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
+    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
     project_uuid = db.Column(db.String(36), nullable=False, index=True)
     environment_uuid = db.Column(db.String(36), nullable=False, index=True)
     project_path = db.Column(db.String(4096), nullable=False, index=True)
@@ -47,7 +47,7 @@ class EnvironmentBuild(BaseModel):
     status = db.Column(db.String(15), unique=False, nullable=True)
 
     def __repr__(self):
-        return f"<EnvironmentBuildTask: {self.build_uuid}>"
+        return f"<EnvironmentBuildTask: {self.uuid}>"
 
 
 class InteractiveSession(BaseModel):
@@ -92,25 +92,83 @@ class InteractiveSession(BaseModel):
 class Job(BaseModel):
     __tablename__ = "jobs"
 
-    job_uuid = db.Column(db.String(36), primary_key=True)
+    name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating users.
+        server_default=text("'job'"),
+    )
+
+    pipeline_name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating users.
+        server_default=text("''"),
+    )
+
+    uuid = db.Column(db.String(36), primary_key=True)
     project_uuid = db.Column(
         db.String(36),
     )
     pipeline_uuid = db.Column(db.String(36), primary_key=False)
-    total_number_of_pipeline_runs = db.Column(
-        db.Integer,
-        unique=False,
+
+    # Jobs that are to be schedule once (right now) or once in the
+    # future will have no schedule (null).
+    schedule = db.Column(db.String(100), nullable=True)
+
+    # A list of dictionaries. The length of the list is the number of
+    # non interactive runs that will be run, one for each parameters
+    # dictinary. A parameter dictionary maps step uuids to a dictionary,
+    # containing the parameters of that step for that particular run.
+    # [{ <step_uuid>: {"a": 1}, ...}, ...GG]
+    parameters = db.Column(
+        JSONB,
         nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid. Note that the entries will be stored as a list
+        # of dicts.
+        server_default="[]",
     )
-    scheduled_start = db.Column(db.DateTime, nullable=False)
-    completed_pipeline_runs = db.Column(
+
+    # Note that this column also contains the parameters that were
+    # stored within the pipeline definition file. These are not the job
+    # parameters, but the original ones.
+    pipeline_definition = db.Column(
+        JSONB,
+        nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid.
+        server_default="{}",
+    )
+
+    pipeline_run_spec = db.Column(
+        JSONB,
+        nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid.
+        server_default="{}",
+    )
+
+    # So that we can efficiently look for jobs to run.
+    next_scheduled_time = db.Column(TIMESTAMP(timezone=True), index=True)
+
+    # So that we can show the user the last time it was scheduled/run.
+    last_scheduled_time = db.Column(TIMESTAMP(timezone=True), index=True)
+
+    # So that we can "stamp" every non interactive run with the
+    # execution number it belongs to, e.g. the first time a job runs it
+    # will be batch 1, then 2, etc.
+    total_scheduled_executions = db.Column(
         db.Integer,
         unique=False,
         server_default=text("0"),
     )
+
     pipeline_runs = db.relationship(
         "NonInteractivePipelineRun",
-        lazy="joined",
+        lazy="select",
         # let the db take care of cascading deletions
         # https://docs.sqlalchemy.org/en/13/orm/relationship_api.html#sqlalchemy.orm.relationship.params.passive_deletes
         # A value of True indicates that unloaded child items should not
@@ -130,10 +188,50 @@ class Job(BaseModel):
         # Essentially, the specified behaviour in the FK column
         # and the one specified in the relationship must match.
         cascade="all, delete",
+        # When querying a job and its runs the runs will be sorted by
+        # job schedule number and the index of the pipeline in that job.
+        order_by=(
+            "[desc(NonInteractivePipelineRun.job_run_index), "
+            "desc(NonInteractivePipelineRun.job_run_pipeline_run_index)]"
+        ),
+    )
+
+    # The status of a job can be DRAFT, PENDING, STARTED, SUCCESS,
+    # ABORTED. Jobs start as DRAFT, this indicates that the job has
+    # been created but that has not been started by the user. Once a
+    # job is started by the user, what happens depends on the type of
+    # job. One time jobs become PENDING, and become STARTED once they
+    # are run by the scheduler and their pipeline runs are added to the
+    # queue. Once they are completed, their status will be SUCCESS, if
+    # they are aborted, their status will be set to ABORTED. Recurring
+    # jobs, characterized by having a schedule, become STARTED, and can
+    # only move to the ABORTED state in case they get cancelled, which
+    # implies that the job will not be scheduled anymore.
+    status = db.Column(
+        db.String(15),
+        unique=False,
+        nullable=False,
+        # Pre-existing Jobs of migrating users will be set to SUCCESS.
+        server_default=text("'SUCCESS'"),
+    )
+
+    strategy_json = db.Column(
+        JSONB,
+        nullable=False,
+        server_default="{}",
+    )
+
+    created_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=False,
+        index=True,
+        # For migrating users.
+        server_default=text("timezone('utc', now())"),
     )
 
     def __repr__(self):
-        return f"<Job: {self.job_uuid}>"
+        return f"<Job: {self.uuid}>"
 
 
 class PipelineRun(BaseModel):
@@ -147,7 +245,7 @@ class PipelineRun(BaseModel):
         unique=False,
         nullable=False,
     )
-    run_uuid = db.Column(db.String(36), primary_key=True)
+    uuid = db.Column(db.String(36), primary_key=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
@@ -174,7 +272,7 @@ class PipelineRun(BaseModel):
     }
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: {self.run_uuid}>"
+        return f"<{self.__class__.__name__}: {self.uuid}>"
 
 
 class PipelineRunStep(BaseModel):
@@ -182,7 +280,7 @@ class PipelineRunStep(BaseModel):
 
     run_uuid = db.Column(
         db.String(36),
-        db.ForeignKey("pipeline_runs.run_uuid", ondelete="CASCADE"),
+        db.ForeignKey("pipeline_runs.uuid", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -224,20 +322,57 @@ class NonInteractivePipelineRun(PipelineRun):
     # TODO: verify why the job_uuid should be part of the
     # primary key
     job_uuid = db.Column(
-        db.String(36),
-        db.ForeignKey("jobs.job_uuid", ondelete="CASCADE"),
+        db.String(36), db.ForeignKey("jobs.uuid", ondelete="CASCADE"), index=True
     )
+
+    # To what batch of non interactive runs of a job it belongs. The
+    # first time a job runs will produce batch 1, then batch 2, etc.
+    job_run_index = db.Column(
+        db.Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+
     # This run_id is used to identify the pipeline run within the
     # job and maintain a consistent ordering.
-    pipeline_run_id = db.Column(
+    job_run_pipeline_run_index = db.Column(
         db.Integer,
-        unique=False,
+    )
+
+    # The pipeline run number across all job runs of a job.
+    pipeline_run_index = db.Column(
+        db.Integer,
+    )
+
+    # Parameters with which it was run, so that the history is kept.
+    parameters = db.Column(
+        JSONB,
+        nullable=False,
+        # This way migrated entries that did not have this column will
+        # still be valid.
+        server_default="{}",
     )
 
     # related to inheriting from PipelineRun
     __mapper_args__ = {
         "polymorphic_identity": "NonInteractivePipelineRun",
     }
+
+
+UniqueConstraint(
+    NonInteractivePipelineRun.job_uuid,
+    NonInteractivePipelineRun.pipeline_run_index,
+)
+
+# Each job execution can be seen as a batch of runs, identified through
+# the job_run_index, each pipeline run id, which is essentially
+# the index of the run in this job, must be unique at the level of the
+# batch of runs.
+UniqueConstraint(
+    NonInteractivePipelineRun.job_uuid,
+    NonInteractivePipelineRun.job_run_index,
+    NonInteractivePipelineRun.job_run_pipeline_run_index,
+)
 
 
 class InteractivePipelineRun(PipelineRun):
@@ -269,7 +404,7 @@ class PipelineRunImageMapping(BaseModel):
     )
 
     run_uuid = db.Column(
-        db.ForeignKey(PipelineRun.run_uuid, ondelete="CASCADE"),
+        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
         unique=False,
         nullable=False,
         index=True,

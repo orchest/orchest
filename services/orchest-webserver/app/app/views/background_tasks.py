@@ -11,9 +11,7 @@ def register_background_tasks_view(app, db):
 
     class BackgroundTaskResource(Resource):
         def get(self, task_uuid):
-            task = BackgroundTask.query.filter(
-                BackgroundTask.task_uuid == task_uuid
-            ).first()
+            task = BackgroundTask.query.filter(BackgroundTask.uuid == task_uuid).first()
 
             if task is None:
                 return "", 404
@@ -22,9 +20,7 @@ def register_background_tasks_view(app, db):
 
         def put(self, task_uuid):
 
-            task = BackgroundTask.query.filter(
-                BackgroundTask.task_uuid == task_uuid
-            ).first()
+            task = BackgroundTask.query.filter(BackgroundTask.uuid == task_uuid).first()
             if task is None:
                 return "", 404
 

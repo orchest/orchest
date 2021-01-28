@@ -1,4 +1,5 @@
 import React from "react";
+import cronstrue from "cronstrue";
 import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
 import ParameterEditor from "../components/ParameterEditor";
 import SearchableTable from "../components/SearchableTable";
@@ -11,6 +12,12 @@ import {
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import ParamTree from "../components/ParamTree";
 import PipelineView from "./PipelineView";
+import EditJobView from "./EditJobView";
+import {
+  formatServerDateTime,
+  getPipelineJSONEndpoint,
+} from "../utils/webserver-utils";
+import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 
 class JobView extends React.Component {
   constructor(props) {
@@ -18,9 +25,7 @@ class JobView extends React.Component {
 
     this.state = {
       selectedTabIndex: 0,
-      parameterizedSteps: this.props.parameterizedSteps,
       selectedIndices: [0, 0],
-      pipelineRuns: [],
       refreshing: false,
     };
 
@@ -38,39 +43,59 @@ class JobView extends React.Component {
     });
   }
 
-  componentDidMount() {
-    this.fetchPipelineRuns();
-  }
+  fetchJob() {
+    makeRequest("GET", `/catch/api-proxy/api/jobs/${this.props.job_uuid}`).then(
+      (response) => {
+        try {
+          let job = JSON.parse(response);
 
-  fetchPipelineRuns() {
-    let fetchRunsPromise = makeCancelable(
-      makeRequest("GET", "/catch/api-proxy/api/jobs/" + this.props.job.uuid),
-      this.promiseManager
-    );
+          this.setState({
+            job: job,
+            refreshing: false,
+          });
 
-    fetchRunsPromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
-
-        this.setState({
-          pipelineRuns: result.pipeline_runs,
-          refreshing: false,
-        });
-      })
-      .catch((e) => {
-        if (!e.isCanceled) {
+          this.fetchPipeline();
+        } catch (error) {
           this.setState({
             refreshing: false,
           });
+          console.error("Failed to fetch job.", error);
         }
-      });
+      }
+    );
+  }
+
+  fetchPipeline() {
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+      this.state.job.pipeline_uuid,
+      this.state.job.project_uuid,
+      this.state.job.uuid
+    );
+
+    makeRequest("GET", pipelineJSONEndpoint).then((response) => {
+      let result = JSON.parse(response);
+      if (result.success) {
+        let pipeline = JSON.parse(result["pipeline_json"]);
+
+        this.setState({
+          pipeline: pipeline,
+        });
+      } else {
+        console.warn("Could not load pipeline.json");
+        console.log(result);
+      }
+    });
+  }
+
+  componentDidMount() {
+    this.fetchJob();
   }
 
   reload() {
     this.setState({
       refreshing: true,
     });
-    this.fetchPipelineRuns();
+    this.fetchJob();
   }
 
   onPipelineRunsSelectionChanged(selectedIndices) {
@@ -79,15 +104,14 @@ class JobView extends React.Component {
     });
   }
 
-  formatPipelineParamJSON(paramJSON) {
+  formatPipelineParams(parameters) {
     let keyValuePairs = [];
 
-    for (let key in paramJSON) {
-      let splitKey = key.split("#");
-      let paramName = splitKey.slice(1).join("#");
-      keyValuePairs.push(paramName + ": " + paramJSON[key]);
+    for (let stepUUID in parameters) {
+      for (let parameter in parameters[stepUUID]) {
+        keyValuePairs.push(parameter + ": " + parameters[stepUUID][parameter]);
+      }
     }
-
     return keyValuePairs.join(", ");
   }
 
@@ -96,8 +120,8 @@ class JobView extends React.Component {
 
     for (let x = 0; x < pipelineRuns.length; x++) {
       rows.push([
-        pipelineRuns[x].pipeline_run_id,
-        this.formatPipelineParamJSON(pipelineRuns[x].parameters),
+        pipelineRuns[x].pipeline_run_index,
+        this.formatPipelineParams(pipelineRuns[x].parameters),
         pipelineRuns[x].status,
       ]);
     }
@@ -106,13 +130,11 @@ class JobView extends React.Component {
   }
 
   parameterValueOverride(parameterizedSteps, parameters) {
-    for (let key in parameters) {
-      let splitKey = key.split("#");
-      let stepUUID = splitKey[0];
-      let paramKey = splitKey.slice(1).join("#");
-      let paramValue = parameters[key];
-
-      parameterizedSteps[stepUUID]["parameters"][paramKey] = paramValue;
+    for (let stepUUID in parameters) {
+      for (let parameter in parameters[stepUUID]) {
+        parameterizedSteps[stepUUID]["parameters"][parameter] =
+          parameters[stepUUID][parameter];
+      }
     }
 
     return parameterizedSteps;
@@ -135,6 +157,54 @@ class JobView extends React.Component {
     });
   }
 
+  cancelJob() {
+    let deleteJobRequest = makeCancelable(
+      makeRequest("DELETE", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`),
+      this.promiseManager
+    );
+    deleteJobRequest.promise
+      .then(() => {
+        let job = this.state.job;
+        job.status = "ABORTED";
+
+        this.setState({
+          job: job,
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
+  generatedParametersToTableData(jobGeneratedParameters) {
+    let rows = [];
+
+    for (let idx in jobGeneratedParameters) {
+      let params = jobGeneratedParameters[idx];
+
+      let pipelineRunRow = [];
+
+      for (let fullParam in params) {
+        for (let paramKey in params[fullParam]) {
+          pipelineRunRow.push(paramKey + ": " + params[fullParam][paramKey]);
+        }
+      }
+      if (pipelineRunRow.length > 0) {
+        rows.push([pipelineRunRow.join(", ")]);
+      } else {
+        rows.push(["-"]);
+      }
+    }
+
+    return rows;
+  }
+
+  editJob() {
+    orchest.loadView(EditJobView, {
+      job_uuid: this.state.job.uuid,
+    });
+  }
+
   detailRows(pipelineRuns) {
     let detailElements = [];
 
@@ -142,7 +212,7 @@ class JobView extends React.Component {
     for (let x = 0; x < pipelineRuns.length; x++) {
       let pipelineRun = pipelineRuns[x];
       let parameterizedSteps = JSON.parse(
-        JSON.stringify(this.props.parameterizedSteps)
+        JSON.stringify(this.state.job.strategy_json)
       );
 
       parameterizedSteps = this.parameterValueOverride(
@@ -167,70 +237,154 @@ class JobView extends React.Component {
   }
 
   render() {
-    let tabView = undefined;
+    let rootView;
 
-    switch (this.state.selectedTabIndex) {
-      case 0:
-        tabView = (
-          <div className="pipeline-tab-view existing-pipeline-runs">
-            <SearchableTable
-              rows={this.pipelineRunsToTableData(this.state.pipelineRuns)}
-              detailRows={this.detailRows(this.state.pipelineRuns)}
-              headers={["ID", "Parameters", "Status"]}
-              selectedIndices={this.state.selectedIndices}
-              onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(
-                this
-              )}
-            />
+    if (!this.state.pipeline || !this.state.job) {
+      rootView = <MDCLinearProgressReact />;
+    } else {
+      let tabView = undefined;
 
+      switch (this.state.selectedTabIndex) {
+        case 0:
+          tabView = (
+            <div className="pipeline-tab-view existing-pipeline-runs">
+              <SearchableTable
+                rows={this.pipelineRunsToTableData(
+                  this.state.job.pipeline_runs
+                )}
+                detailRows={this.detailRows(this.state.job.pipeline_runs)}
+                headers={["ID", "Parameters", "Status"]}
+                selectedIndices={this.state.selectedIndices}
+                onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(
+                  this
+                )}
+              />
+            </div>
+          );
+
+          break;
+        case 1:
+          tabView = (
+            <div className="pipeline-tab-view">
+              <ParameterEditor
+                readOnly
+                parameterizedSteps={this.state.job.strategy_json}
+              />
+
+              <div className="pipeline-runs push-up">
+                <SearchableTable
+                  selectable={false}
+                  headers={["Run specification"]}
+                  rows={this.generatedParametersToTableData(
+                    this.state.job.parameters
+                  )}
+                />
+              </div>
+            </div>
+          );
+          break;
+      }
+
+      rootView = (
+        <div className="view-page job-view">
+          <div className="columns top-labels">
+            <div>
+              <div className="column">
+                <label>Name</label>
+                <h3>{this.state.job.name}</h3>
+              </div>
+              <div className="column">
+                <label>Pipeline</label>
+                <h3>{this.state.pipeline.name}</h3>
+              </div>
+              <div className="clear"></div>
+            </div>
+            <div className="push-up">
+              <div className="column">
+                <label>Status</label>
+                <h3>{this.state.job.status}</h3>
+              </div>
+              <div className="column">
+                <label>Schedule</label>
+                <h3>
+                  {this.state.job.schedule === null
+                    ? "Run once"
+                    : this.state.job.schedule}
+                </h3>
+                {this.state.job.schedule !== null && (
+                  <p>
+                    <i>{cronstrue.toString(this.state.job.schedule)}</i>
+                  </p>
+                )}
+              </div>
+              <div className="clear"></div>
+            </div>
+            <div className="push-up">
+              <div className="column">
+                <label>Created at</label>
+                <h3>{formatServerDateTime(this.state.job.created_time)}</h3>
+              </div>
+              <div className="column">
+                <label>Scheduled at</label>
+                <h3>
+                  {formatServerDateTime(this.state.job.last_scheduled_time)}
+                </h3>
+              </div>
+              <div className="clear"></div>
+            </div>
+          </div>
+
+          <MDCTabBarReact
+            selectedIndex={this.state.selectedTabIndex}
+            ref={this.refManager.nrefs.tabBar}
+            items={[
+              "Pipeline runs (" +
+                this.state.job.pipeline_runs.filter(({ status }) =>
+                  ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
+                ).length +
+                "/" +
+                +this.state.job.pipeline_runs.length +
+                ")",
+              "Parameters",
+            ]}
+            icons={["list", "tune"]}
+            onChange={this.onSelectSubview.bind(this)}
+          />
+
+          <div className="tab-view">{tabView}</div>
+
+          <div className="seperated">
             <MDCButtonReact
               disabled={this.state.refreshing}
               label="Refresh"
               icon="refresh"
               onClick={this.reload.bind(this)}
             />
-          </div>
-        );
 
-        break;
-      case 1:
-        tabView = (
-          <ParameterEditor
-            readOnly
-            parameterizedSteps={this.state.parameterizedSteps}
-          />
-        );
-        break;
+            {this.state.job.schedule !== null &&
+              ["STARTED", "PENDING"].includes(this.state.job.status) && (
+                <MDCButtonReact
+                  classNames={["mdc-button--raised", "themed-secondary"]}
+                  onClick={this.editJob.bind(this)}
+                  icon="tune"
+                  label="Edit"
+                />
+              )}
+
+            {["STARTED", "PENDING"].includes(this.state.job.status) && (
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                label="Cancel job"
+                icon="close"
+                onClick={this.cancelJob.bind(this)}
+              />
+            )}
+          </div>
+        </div>
+      );
     }
 
-    return (
-      <div className="view-page job-view">
-        <div className="columns top-labels">
-          <div className="column">
-            <label>Job</label>
-            <h3>{this.props.job.name}</h3>
-          </div>
-          <div className="column">
-            <label>Pipeline</label>
-            <h3>{this.props.pipeline.name}</h3>
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <MDCTabBarReact
-          selectedIndex={this.state.selectedTabIndex}
-          ref={this.refManager.nrefs.tabBar}
-          items={[
-            "Pipeline runs (" + this.state.pipelineRuns.length + ")",
-            "Parameters",
-          ]}
-          icons={["list", "tune"]}
-          onChange={this.onSelectSubview.bind(this)}
-        />
-
-        <div className="tab-view">{tabView}</div>
-      </div>
-    );
+    return <div className="view-page job-view">{rootView}</div>;
   }
 }
 

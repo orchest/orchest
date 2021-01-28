@@ -290,6 +290,15 @@ aside.mdc-drawer {
   text-align: center;
 }
 
+.seperated {
+  > :last-child {
+    margin-right: 0;
+  }
+  > * {
+    margin-right: $generalPadding;
+  }
+}
+
 .push-down {
   margin-bottom: $generalPadding;
 }
@@ -601,14 +610,10 @@ h2.header {
   .mdc-tab-bar {
     margin-top: $generalPadding;
   }
-
-  .parameter-editor {
-  }
 }
 
-.json-warning {
+.warning {
   color: orangered;
-  padding: 20px 0;
 
   .material-icons {
     float: left;
@@ -707,6 +712,10 @@ button.themed-secondary {
   &:disabled {
     background: rgba(0, 0, 0, 0.12);
   }
+}
+
+.disabled-text {
+  color: rgba(0, 0, 0, 0.37);
 }
 
 .fullwidth {

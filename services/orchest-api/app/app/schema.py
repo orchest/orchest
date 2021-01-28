@@ -113,7 +113,7 @@ pipeline_run_pipeline_step = Model(
 pipeline_run = Model(
     "Run",
     {
-        "run_uuid": fields.String(required=True, description="UUID of run"),
+        "uuid": fields.String(required=True, description="UUID of run"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of the run"),
@@ -169,6 +169,32 @@ status_update = Model(
     },
 )
 
+job_update = Model(
+    "JobUpdate",
+    {
+        "cron_schedule": fields.String(
+            required=False,
+            description="Cron string for recurrent scheduling of the job.",
+        ),
+        "parameters": fields.List(
+            fields.Raw(description="Parameters of the job, one for each run."),
+            required=False,
+            description="List of run parameters.",
+        ),
+        "next_scheduled_time": fields.String(
+            required=False,
+            description=(
+                "Time at which the job is scheduled to start. Assumed to be UTC."
+            ),
+        ),
+        "strategy_json": fields.Raw(required=False, description="Strategy json."),
+        "confirm_draft": fields.Arbitrary(
+            required=False,
+            description="If there, the draft is confirmed. Value does not matter.",
+        ),
+    },
+)
+
 # Namespace: Jobs.
 non_interactive_run_config = pipeline_run_config.inherit(
     "NonInteractiveRunConfig",
@@ -202,16 +228,23 @@ non_interactive_run = pipeline_run.inherit(
     "NonInteractiveRun",
     {
         "job_uuid": fields.String(required=True, description="UUID for job"),
-        "pipeline_run_id": fields.Integer(
-            required=True, description="Respective run ID in job"
+        "job_run_index": fields.Integer(
+            required=True, description="To what job run it belongs"
         ),
+        "job_run_pipeline_run_index": fields.Integer(
+            required=True, description="Index within the job run"
+        ),
+        "pipeline_run_index": fields.Integer(
+            required=True, description="Index across all runs for the same job"
+        ),
+        "parameters": fields.Raw(required=True, description="Parameters of the run"),
     },
 )
 
 job_spec = Model(
     "Jobspecification",
     {
-        "job_uuid": fields.String(required=True, description="UUID for job"),
+        "uuid": fields.String(required=True, description="UUID for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "pipeline_definitions": fields.List(
@@ -236,36 +269,76 @@ job_spec = Model(
                 'Specification of the pipeline runs, e.g. "full",' ' "incoming" etc',
             ),
         ),
-        "scheduled_start": fields.String(
-            required=True,
-            description="Time at which the job is scheduled to start",
+        "next_scheduled_time": fields.String(
+            required=False,
+            description=(
+                "Time at which the job is scheduled to start. Assumed to be UTC."
+            ),
         ),
+        "cron_schedule": fields.String(
+            required=False,
+            description="Cron string for recurrent scheduling of the job.",
+        ),
+        "parameters": fields.List(
+            fields.Raw(description="Parameters of the job, one for each run."),
+            required=True,
+            description="List of run parameters.",
+        ),
+        "strategy_json": fields.Raw(required=False, description="Strategy json."),
     },
 )
 
 job = Model(
     "Job",
     {
-        "job_uuid": fields.String(required=True, description="UUID for job"),
+        "uuid": fields.String(required=True, description="UUID for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "total_number_of_pipeline_runs": fields.Integer(
+        "total_scheduled_executions": fields.Integer(
             required=True,
-            description="Total number of pipeline runs part of the job",
+            description="Total number of times the job was run.",
         ),
+        "pipeline_definition": fields.Raw(description="Pipeline definition"),
         "pipeline_runs": fields.List(
             fields.Nested(non_interactive_run),
             description="Collection of pipeline runs part of the job",
         ),
-        "scheduled_start": fields.String(
+        "next_scheduled_time": fields.String(
             required=True,
-            description="Time at which the job is scheduled to start",
+            description="Next time at which the job is scheduled to start.",
         ),
-        "completed_pipeline_runs": fields.Integer(
+        "last_scheduled_time": fields.String(
             required=True,
-            default=0,
-            description="Number of completed pipeline runs part of the job",
+            description="Last time at which the job was scheduled.",
         ),
+        "parameters": fields.List(
+            fields.Raw(description="Parameters of the job, one for each run."),
+            description="List of run parameters.",
+        ),
+        "schedule": fields.String(
+            required=True,
+            description="Cron string for recurrent scheduling of the job.",
+        ),
+        "pipeline_run_spec": fields.Nested(
+            non_interactive_run_spec,
+            required=True,
+            description=(
+                'Specification of the pipeline runs, e.g. "full",' ' "incoming" etc',
+            ),
+        ),
+        "status": fields.String(
+            required=True,
+            description="Status of the job.",
+            enum=["DRAFT", "PENDING", "STARTED", "SUCCESS", "ABORTED"],
+        ),
+        "created_time": fields.String(
+            required=True, description="Time at which the job was created"
+        ),
+        "pipeline_name": fields.String(
+            required=True, description="Name of the pipeline."
+        ),
+        "name": fields.String(required=True, description="Name of the job."),
+        "strategy_json": fields.Raw(required=True, description="Strategy json."),
     },
 )
 
@@ -279,7 +352,7 @@ jobs = Model(
 environment_build = Model(
     "EnvironmentBuild",
     {
-        "build_uuid": fields.String(
+        "uuid": fields.String(
             required=True, description="UUID of the environment build"
         ),
         "project_uuid": fields.String(required=True, description="UUID of the project"),

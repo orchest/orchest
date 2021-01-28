@@ -6,21 +6,25 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
+import logging
 import os
 from logging.config import dictConfig
 from pprint import pformat
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request
 from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
 
+from _orchest.internals.utils import is_werkzeug_parent
 from app.apis import blueprint as api
 from app.connections import db
+from app.core.scheduler import Scheduler
 from app.models import InteractivePipelineRun, InteractiveSession
 
 
-def create_app(config_class=None, use_db=True):
+def create_app(config_class=None, use_db=True, be_scheduler=False):
     """Create the Flask app and return it.
 
     Args:
@@ -31,6 +35,10 @@ def create_app(config_class=None, use_db=True):
             already. The reason to differentiate instancing the app
             through this argument is that the celery worker does not
             need to connect to the db that "belongs" to the orchest-api.
+        be_scheduler: If true, a background thread will act as a job
+            scheduler, according to the logic in core/scheduler. While
+            Orchest runs, only a single process should be acting as
+            scheduler.
 
     Returns:
         Flask.app
@@ -58,9 +66,15 @@ def create_app(config_class=None, use_db=True):
         Migrate().init_app(app, db)
 
         with app.app_context():
-            # Upgrade to the latest revision. This also takes care of
-            # bringing an "empty" db (no tables) on par.
-            upgrade()
+
+            # Alembic does not support calling upgrade() concurrently
+            if not is_werkzeug_parent():
+                # Upgrade to the latest revision. This also takes
+                # care of bringing an "empty" db (no tables) on par.
+                try:
+                    upgrade()
+                except Exception as e:
+                    logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
 
             # In case of an ungraceful shutdown, these entities could be
             # in an invalid state, so they are deleted, since for sure
@@ -80,6 +94,31 @@ def create_app(config_class=None, use_db=True):
                 db.session.commit()
             except FileExistsError:
                 pass
+
+    if be_scheduler:
+        # Create a scheduler and have the scheduling logic running
+        # periodically.
+        scheduler = BackgroundScheduler(
+            job_defaults={
+                # Infinite amount of grace time, so that if a task
+                # cannot be instantly executed (e.g. if the webserver is
+                # busy) then it will eventually be.
+                "misfire_grace_time": 2 ** 31,
+                "coalesce": False,
+                # So that the same job can be in the queue an infinite
+                # amount of times, e.g. for concurrent requests issuing
+                # the same tasks.
+                "max_instances": 2 ** 31,
+            }
+        )
+        app.config["SCHEDULER"] = scheduler
+        scheduler.start()
+        scheduler.add_job(
+            Scheduler.check_for_jobs_to_be_scheduled,
+            "interval",
+            seconds=app.config["SCHEDULER_INTERVAL"],
+            args=[app],
+        )
 
     # Register blueprints.
     app.register_blueprint(api, url_prefix="/api")
@@ -114,6 +153,10 @@ def init_logging():
                 "formatter": "minimal",
             },
         },
+        "root": {
+            "handlers": ["console"],
+            "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+        },
         "loggers": {
             __name__: {
                 "handlers": ["console"],
@@ -134,6 +177,10 @@ def init_logging():
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
             "orchest-lib": {
+                "handlers": ["console"],
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
+            "job-scheduler": {
                 "handlers": ["console"],
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },

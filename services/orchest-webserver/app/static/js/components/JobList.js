@@ -5,17 +5,17 @@ import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleR
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
-import CreateJobView from "../views/CreateJobView";
+import EditJobView from "../views/EditJobView";
 import {
   makeRequest,
   PromiseManager,
   makeCancelable,
   RefManager,
 } from "../lib/utils/all";
-import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import JobView from "../views/JobView";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
+import { formatServerDateTime } from "../utils/webserver-utils";
 
 class JobList extends React.Component {
   constructor(props) {
@@ -69,7 +69,10 @@ class JobList extends React.Component {
     }
 
     let fetchListPromise = makeCancelable(
-      makeRequest("GET", `/store/jobs?project_uuid=${this.props.project_uuid}`),
+      makeRequest(
+        "GET",
+        `/catch/api-proxy/api/jobs/?project_uuid=${this.props.project_uuid}`
+      ),
       this.promiseManager
     );
 
@@ -78,7 +81,7 @@ class JobList extends React.Component {
         let result = JSON.parse(response);
 
         this.setState({
-          jobs: result,
+          jobs: result["jobs"],
           jobsSearchMask: new Array(result.length).fill(1),
         });
       })
@@ -90,9 +93,13 @@ class JobList extends React.Component {
   componentWillUnmount() {}
 
   onCreateClick() {
-    this.setState({
-      createModal: true,
-    });
+    if (this.state.pipelines !== undefined && this.state.pipelines.length > 0) {
+      this.setState({
+        createModal: true,
+      });
+    } else {
+      orchest.alert("Error", "Could not find any pipelines for this project.");
+    }
   }
 
   onDeleteClick() {
@@ -117,7 +124,8 @@ class JobList extends React.Component {
             // take care of aborting it if necessary
             makeRequest(
               "DELETE",
-              "/store/jobs/" + this.state.jobs[selectedRows[x]].uuid
+              "/catch/api-proxy/api/jobs/cleanup/" +
+                this.state.jobs[selectedRows[x]].uuid
             )
           );
         }
@@ -157,7 +165,7 @@ class JobList extends React.Component {
       createModelLoading: true,
     });
 
-    makeRequest("POST", "/store/jobs/new", {
+    makeRequest("POST", "/catch/api-proxy/api/jobs/", {
       type: "json",
       content: {
         pipeline_uuid: pipeline_uuid,
@@ -165,17 +173,17 @@ class JobList extends React.Component {
         project_uuid: this.props.project_uuid,
         name: this.refManager.refs.formJobName.mdc.value,
         draft: true,
+        pipeline_run_spec: {
+          run_type: "full",
+          uuids: [],
+        },
+        parameters: [],
       },
     }).then((response) => {
       let job = JSON.parse(response);
 
-      orchest.loadView(CreateJobView, {
-        job: {
-          name: job.name,
-          pipeline_uuid: pipeline_uuid,
-          project_uuid: this.props.project_uuid,
-          uuid: job.uuid,
-        },
+      orchest.loadView(EditJobView, {
+        job_uuid: job.uuid,
       });
     });
   }
@@ -192,36 +200,13 @@ class JobList extends React.Component {
   onRowClick(row, idx, event) {
     let job = this.state.jobs[idx];
 
-    if (job.draft === true) {
-      orchest.loadView(CreateJobView, {
-        job: {
-          name: job.name,
-          pipeline_uuid: job.pipeline_uuid,
-          project_uuid: job.project_uuid,
-          uuid: job.uuid,
-        },
+    if (job.status === "DRAFT") {
+      orchest.loadView(EditJobView, {
+        job_uuid: job.uuid,
       });
     } else {
-      let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-        job.pipeline_uuid,
-        job.project_uuid,
-        job.uuid
-      );
-
-      makeRequest("GET", pipelineJSONEndpoint).then((response) => {
-        let result = JSON.parse(response);
-        if (result.success) {
-          let pipeline = JSON.parse(result["pipeline_json"]);
-
-          orchest.loadView(JobView, {
-            pipeline: pipeline,
-            job: job,
-            parameterizedSteps: JSON.parse(job.strategy_json),
-          });
-        } else {
-          console.warn("Could not load pipeline.json");
-          console.log(result);
-        }
+      orchest.loadView(JobView, {
+        job_uuid: job.uuid,
       });
     }
   }
@@ -233,10 +218,8 @@ class JobList extends React.Component {
       rows.push([
         jobs[x].name,
         jobs[x].pipeline_name,
-        new Date(
-          jobs[x].created.replace(/T/, " ").replace(/\..+/, "") + " GMT"
-        ).toLocaleString(),
-        jobs[x].draft ? "Draft" : "Submitted",
+        formatServerDateTime(jobs[x].created_time),
+        jobs[x].status,
       ]);
     }
     return rows;
@@ -263,6 +246,10 @@ class JobList extends React.Component {
               <Fragment>
                 {(() => {
                   if (this.state.createModal) {
+                    let pipelineOptions = this.generatePipelineOptions(
+                      this.state.pipelines
+                    );
+
                     return (
                       <MDCDialogReact
                         title="Create a new job"
@@ -281,9 +268,8 @@ class JobList extends React.Component {
                                 ref={this.refManager.nrefs.formPipeline}
                                 label="Pipeline"
                                 classNames={["fullwidth"]}
-                                options={this.generatePipelineOptions(
-                                  this.state.pipelines
-                                )}
+                                value={pipelineOptions[0][0]}
+                                options={pipelineOptions}
                               />
 
                               {(() => {

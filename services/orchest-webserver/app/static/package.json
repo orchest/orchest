@@ -10,6 +10,8 @@
   "license": "AGPL-3.0-only",
   "dependencies": {
     "codemirror": "^5.55.0",
+    "cron-validate": "^1.4.2",
+    "cronstrue": "^1.108.0",
     "jquery": "^3.5.1",
     "material-components-web": "^4.0.0",
     "react": "^16.13.1",

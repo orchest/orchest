@@ -13,7 +13,7 @@ import FileManagerView from "./views/FileManagerView";
 import DataSourceEditView from "./views/DataSourceEditView";
 import JobsView from "./views/JobsView";
 import PipelinesView from "./views/PipelinesView";
-import CreateJobView from "./views/CreateJobView";
+import EditJobView from "./views/EditJobView";
 import HeaderButtons from "./components/HeaderButtons";
 import React from "react";
 import ReactDOM from "react-dom";
@@ -56,7 +56,7 @@ function Orchest() {
     PipelinesView,
     JobsView,
     JobView,
-    CreateJobView,
+    EditJobView,
     ManageUsersView,
   };
 
@@ -178,17 +178,17 @@ function Orchest() {
 
   let dialogs = ReactDOM.render(<Dialogs />, this.dialogHolder);
 
-  this.alert = function (title, content) {
+  this.alert = function (title, content, onClose) {
     // Analytics call
     this.sendEvent("alert show", { title: title, content: content });
 
-    dialogs.alert(title, content);
+    dialogs.alert(title, content, onClose);
   };
-  this.confirm = function (title, content, cb) {
+  this.confirm = function (title, content, onConfirm, onCancel) {
     // Analytics call
     this.sendEvent("confirm show", { title: title, content: content });
 
-    dialogs.confirm(title, content, cb);
+    dialogs.confirm(title, content, onConfirm, onCancel);
   };
 }
 

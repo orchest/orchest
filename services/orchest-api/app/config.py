@@ -12,6 +12,10 @@ class Config:
     ORCHEST_API_ADDRESS = "http://orchest-api:80/api"
     ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:5000"
 
+    # How often to run the scheduling logic when the process is running
+    # as scheduler, in seconds.
+    SCHEDULER_INTERVAL = 10
+
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
     # NOTE: Flask will not configure lowercase variables. Therefore the

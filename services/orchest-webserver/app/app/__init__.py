@@ -9,6 +9,7 @@ Additinal note:
 
 import base64
 import contextlib
+import logging
 import os
 import subprocess
 from logging.config import dictConfig
@@ -22,6 +23,7 @@ from flask_migrate import Migrate, upgrade
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
+from _orchest.internals.utils import is_werkzeug_parent
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
@@ -61,19 +63,6 @@ def initialize_default_datasources(db, app):
 
             db.session.add(ds)
             db.session.commit()
-
-
-def process_start_gate():
-    # When Flask is running in dev mode, only start processes once the
-    # main process is running in 'reloading' mode. Signified by
-    # WERKZEUG_RUN_MAIN=true.
-
-    if os.environ.get("FLASK_ENV") != "development":
-        return True
-    elif os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        return True
-    else:
-        return False
 
 
 @contextlib.contextmanager
@@ -138,10 +127,17 @@ def create_app():
     Migrate().init_app(app, db)
 
     with app.app_context():
-        # Upgrade to the latest revision. This also takes care of
-        # bringing an "empty" db (no tables) on par.
-        upgrade()
-        initialize_default_datasources(db, app)
+
+        # Alembic does not support calling upgrade() concurrently
+        if not is_werkzeug_parent():
+            # Upgrade to the latest revision. This also takes care of
+            # bringing an "empty" db (no tables) on par.
+            try:
+                upgrade()
+            except Exception as e:
+                logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
+
+            initialize_default_datasources(db, app)
 
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:
@@ -173,7 +169,7 @@ def create_app():
 
     processes = []
 
-    if process_start_gate():
+    if not is_werkzeug_parent():
 
         file_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -216,6 +212,10 @@ def init_logging():
                 "class": "logging.StreamHandler",
                 "formatter": "minimal",
             },
+        },
+        "root": {
+            "handlers": ["console"],
+            "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
         },
         "loggers": {
             # NOTE: this is the name of the Flask app, since we use

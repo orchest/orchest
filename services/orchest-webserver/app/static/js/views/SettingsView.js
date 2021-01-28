@@ -162,7 +162,7 @@ class SettingsView extends React.Component {
                         JSON.parse(this.state.config);
                       } catch {
                         return (
-                          <div className="json-warning">
+                          <div className="warning push-up">
                             <i className="material-icons">warning</i> Your input
                             is not valid JSON.
                           </div>

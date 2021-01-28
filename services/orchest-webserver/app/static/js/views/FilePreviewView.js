@@ -84,7 +84,7 @@ class FilePreviewView extends React.Component {
             this.props.pipeline_uuid,
             this.props.project_uuid,
             this.props.pipelineRun.job_uuid,
-            this.props.pipelineRun.run_uuid
+            this.props.pipelineRun.uuid
           )
         : getPipelineJSONEndpoint(
             this.props.pipeline_uuid,
@@ -152,7 +152,7 @@ class FilePreviewView extends React.Component {
 
       let fileURL = `/async/file-viewer/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`;
       if (this.props.pipelineRun) {
-        fileURL += "?pipeline_run_uuid=" + this.props.pipelineRun.run_uuid;
+        fileURL += "?pipeline_run_uuid=" + this.props.pipelineRun.uuid;
         fileURL += "&job_uuid=" + this.props.pipelineRun.job_uuid;
       }
 

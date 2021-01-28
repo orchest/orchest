@@ -74,7 +74,10 @@ def get_environment_capabilities(environment_uuid, project_uuid):
         response.raise_for_status()
     except Exception as e:
         logging.error(
-            "Failed to get environment for environment_uuid[%s] and project_uuid[%s]. Error: %s (%s)"
+            (
+                "Failed to get environment for environment_uuid[%s]"
+                " and project_uuid[%s]. Error: %s (%s)"
+            )
             % (environment_uuid, project_uuid, e, type(e))
         )
         return capabilities
@@ -121,7 +124,8 @@ def get_orchest_mounts(project_dir, host_project_dir, mount_form="docker-sdk"):
             if datasource["source_type"] != "host-directory":
                 continue
 
-            # the default (host) /userdata/data should be mounted in /data
+            # the default (host) /userdata/data should be mounted
+            # in /data
             if datasource["connection_details"]["absolute_host_path"].endswith(
                 "/userdir/data"
             ):
@@ -156,6 +160,18 @@ def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
         except Exception as e:
             logging.debug("Failed to call docker_client.images.list(): %s" % e)
             return None
+
+
+def is_werkzeug_parent():
+    # When Flask is running in dev mode, Werkzeug
+    # starts a parent and child process to support hot reloading.
+
+    # For code that needs to run non-concurrently we use this gate
+    # to avoid concurrent exection.
+    if os.environ.get("FLASK_ENV") != "development":
+        return False
+    elif os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        return True
 
 
 def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):

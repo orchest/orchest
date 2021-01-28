@@ -27,6 +27,7 @@ import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import io from "socket.io-client";
 import SessionToggleButton from "../components/SessionToggleButton";
 import FilePreviewView from "./FilePreviewView";
+import JobView from "./JobView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -281,11 +282,14 @@ class PipelineView extends React.Component {
         running: false,
         working: false,
       },
+      // The save hash is used to propagate a save's side-effects
+      // to components.
+      saveHash: "",
     };
 
     if (this.props.pipelineRun) {
       try {
-        this.state.runUUID = this.props.pipelineRun.run_uuid;
+        this.state.runUUID = this.props.pipelineRun.uuid;
         this.state.runStatusEndpoint =
           "/catch/api-proxy/api/jobs/" + this.props.pipelineRun.job_uuid + "/";
         this.pollPipelineStepStatuses();
@@ -342,7 +346,7 @@ class PipelineView extends React.Component {
         // started_time DESC. So we can just retrieve the first run.
         if (data["runs"].length > 0) {
           let run = data["runs"][0];
-          this.state.runUUID = run.run_uuid;
+          this.state.runUUID = run.uuid;
           this.pollPipelineStepStatuses();
           this.startStatusInterval();
         }
@@ -416,6 +420,7 @@ class PipelineView extends React.Component {
 
         this.setState({
           unsavedChanges: false,
+          saveHash: uuidv4(),
         });
       }
     } else {
@@ -1068,7 +1073,7 @@ class PipelineView extends React.Component {
       this.props.pipeline_uuid,
       this.props.project_uuid,
       this.props.pipelineRun && this.props.pipelineRun.job_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.run_uuid
+      this.props.pipelineRun && this.props.pipelineRun.uuid
     );
 
     let fetchPipelinePromise = makeCancelable(
@@ -1076,25 +1081,48 @@ class PipelineView extends React.Component {
       this.promiseManager
     );
 
-    fetchPipelinePromise.promise.then((response) => {
-      let result = JSON.parse(response);
-      if (result.success) {
-        this.decodeJSON(JSON.parse(result["pipeline_json"]));
+    fetchPipelinePromise.promise
+      .then((response) => {
+        let result = JSON.parse(response);
+        if (result.success) {
+          this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
-        orchest.headerBarComponent.setPipeline(
-          this.state.pipelineJson,
-          this.props.project_uuid,
-          this.props.pipelineRun && this.props.pipelineRun.job_uuid
-        );
+          orchest.headerBarComponent.setPipeline(
+            this.state.pipelineJson,
+            this.props.project_uuid,
+            this.props.pipelineRun && this.props.pipelineRun.job_uuid
+          );
 
-        orchest.headerBarComponent.updateCurrentView("pipeline");
+          orchest.headerBarComponent.updateCurrentView("pipeline");
 
-        this.initializePipeline();
-      } else {
-        console.warn("Could not load pipeline.json");
-        console.log(result);
-      }
-    });
+          this.initializePipeline();
+        } else {
+          console.error("Could not load pipeline.json");
+          console.error(result);
+        }
+      })
+      .catch(() => {
+        if (this.props.pipelineRun) {
+          // This case is hit when a user tries to load a pipeline that belongs
+          // to a run that has not started yet. The project files are only
+          // copied when the run starts. Before start, the pipeline.json thus
+          // cannot be found. Alert the user about missing pipeline and return
+          // to JobView.
+
+          orchest.alert(
+            "Error",
+            "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+            () => {
+              orchest.loadView(JobView, {
+                job_uuid: this.props.pipelineRun.job_uuid,
+              });
+            }
+          );
+        } else {
+          console.error("Could not load pipeline.json");
+          console.error(result);
+        }
+      });
   }
 
   updateJupyterInstance() {
@@ -1624,7 +1652,7 @@ class PipelineView extends React.Component {
         this.parseRunStatuses(result);
 
         this.setState({
-          runUUID: result.run_uuid,
+          runUUID: result.uuid,
         });
 
         this.startStatusInterval();
@@ -2122,23 +2150,24 @@ class PipelineView extends React.Component {
           if (this.state.openedStep) {
             return (
               <PipelineDetails
-                sio={this.sio}
-                readOnly={this.props.readOnly}
                 onSave={this.onSaveDetails.bind(this)}
                 onNameUpdate={this.stepNameUpdate.bind(this)}
                 onDelete={this.onDetailsDelete.bind(this)}
                 onClose={this.onCloseDetails.bind(this)}
                 onOpenFilePreviewView={this.onOpenFilePreviewView.bind(this)}
                 onOpenNotebook={this.onOpenNotebook.bind(this)}
+                onChangeView={this.onDetailsChangeView.bind(this)}
                 connections={connections_list}
                 defaultViewIndex={this.state.defaultDetailViewIndex}
-                onChangeView={this.onDetailsChangeView.bind(this)}
                 pipeline={this.state.pipelineJson}
                 project_uuid={this.props.project_uuid}
                 pipelineRun={this.props.pipelineRun}
+                sio={this.sio}
+                readOnly={this.props.readOnly}
                 step={JSON.parse(
                   JSON.stringify(this.state.steps[this.state.openedStep])
                 )}
+                saveHash={this.state.saveHash}
               />
             );
           }

@@ -378,6 +378,7 @@ class PipelineDetailsProperties extends React.Component {
               } else {
                 return (
                   <ProjectFilePicker
+                    key={this.props.saveHash}
                     cwd="/"
                     value={this.state.step.file_path}
                     project_uuid={this.props.project_uuid}
@@ -434,7 +435,7 @@ class PipelineDetailsProperties extends React.Component {
               JSON.parse(this.state.editableParameters);
             } catch {
               return (
-                <div className="json-warning">
+                <div className="warning push-up push-down">
                   <i className="material-icons">warning</i> Your input is not
                   valid JSON.
                 </div>

@@ -97,7 +97,7 @@ class PipelineDetailsLogs extends React.Component {
     };
 
     if (this.props.pipelineRun) {
-      data["pipeline_run_uuid"] = this.props.pipelineRun.run_uuid;
+      data["pipeline_run_uuid"] = this.props.pipelineRun.uuid;
       data["job_uuid"] = this.props.pipelineRun.job_uuid;
     }
 

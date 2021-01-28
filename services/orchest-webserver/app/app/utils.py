@@ -9,7 +9,7 @@ from flask import current_app
 
 from _orchest.internals import config as _config
 from app.config import CONFIG_CLASS as StaticConfig
-from app.models import Environment, Job, Pipeline, Project
+from app.models import Environment, Pipeline, Project
 from app.schemas import EnvironmentSchema
 
 
@@ -327,11 +327,20 @@ def pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid=None):
         else:
             return None
     else:
-        job = Job.query.filter(Job.uuid == job_uuid).first()
+        resp = requests.get(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/jobs/{job_uuid}',
+        )
+        data = resp.json()
 
-        if job is not None:
-            return job.pipeline_path
+        if resp.status_code == 200:
+            # Return None if neither is not found.
+            return (
+                data.get("pipeline_run_spec", {})
+                .get("run_config", {})
+                .get("pipeline_path")
+            )
         else:
+            current_app.logger.warning(data)
             return None
 
 
@@ -441,6 +450,16 @@ def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
     # directories.
     remove_dir_if_empty(job_pipeline_path)
     remove_dir_if_empty(job_project_path)
+
+
+def remove_project_jobs_directories(project_uuid):
+
+    project_jobs_path = os.path.join(
+        current_app.config["USER_DIR"], "jobs", project_uuid
+    )
+
+    if os.path.isdir(project_jobs_path):
+        shutil.rmtree(project_jobs_path, ignore_errors=True)
 
 
 def generate_ipynb_from_template(step, project_uuid):

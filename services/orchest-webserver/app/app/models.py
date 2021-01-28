@@ -11,7 +11,7 @@ def str_uuid4():
 
 
 class Project(db.Model):
-    __tablename__ = "project"
+    __tablename__ = "projects"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
     path = db.Column(db.String(255), nullable=False, unique=True)
@@ -30,21 +30,16 @@ class Project(db.Model):
     )
 
     __table_args__ = (UniqueConstraint("uuid", "path"),)
-    jobs = db.relationship(
-        "Job", lazy="joined", passive_deletes=False, cascade="all, delete"
-    )
 
 
 class Pipeline(db.Model):
-    __tablename__ = "pipeline"
+    __tablename__ = "pipelines"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
     project_uuid = db.Column(
-        db.ForeignKey("project.uuid", ondelete="CASCADE"), primary_key=True
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"), primary_key=True
     )
     path = db.Column(db.String(255), nullable=False)
-
-    __table_args__ = (UniqueConstraint("uuid", "project_uuid"),)
 
 
 class DataSource(db.Model):
@@ -94,43 +89,12 @@ class Environment(db.Model):
         return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"
 
 
-class Job(db.Model):
-    __tablename__ = "jobs"
-
-    name = db.Column(db.String(255), unique=False, nullable=False)
-    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
-    pipeline_uuid = db.Column(db.String(255), unique=False, nullable=False)
-    project_uuid = db.Column(
-        db.ForeignKey("project.uuid", ondelete="CASCADE"), unique=False, nullable=False
-    )
-    pipeline_name = db.Column(db.String(255), unique=False, nullable=False)
-    pipeline_path = db.Column(db.String(255), unique=False, nullable=False)
-    created = db.Column(
-        db.DateTime, nullable=False, server_default=text("timezone('utc', now())")
-    )
-    strategy_json = db.Column(db.Text, nullable=False)
-    draft = db.Column(db.Boolean())
-
-    pipeline_runs = db.relationship(
-        "PipelineRun", lazy="joined", passive_deletes=False, cascade="all, delete"
-    )
-
-
-class PipelineRun(db.Model):
-    __tablename__ = "pipelineruns"
-
-    uuid = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
-    id = db.Column(db.Integer(), unique=False)
-    job = db.Column(db.ForeignKey("jobs.uuid", ondelete="CASCADE"))
-    parameter_json = db.Column(db.JSON, nullable=False)
-
-
 class BackgroundTask(db.Model):
     """BackgroundTasks, models all tasks to be run in the background."""
 
     __tablename__ = "background_tasks"
 
-    task_uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
+    uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
     # see background_task_executor types
     task_type = db.Column(db.String(50), unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=False)
@@ -138,4 +102,4 @@ class BackgroundTask(db.Model):
     result = db.Column(db.String(), unique=False, nullable=True)
 
     def __repr__(self):
-        return f"<BackgroundTask: {self.task_uuid}>"
+        return f"<BackgroundTask: {self.uuid}>"

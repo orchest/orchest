@@ -29,21 +29,6 @@ class EnvironmentSchema(ma.Schema):
         )
 
 
-class JobSchema(ma.Schema):
-    class Meta:
-        fields = (
-            "name",
-            "uuid",
-            "pipeline_uuid",
-            "project_uuid",
-            "pipeline_name",
-            "pipeline_path",
-            "created",
-            "strategy_json",
-            "draft",
-        )
-
-
 class BackgroundTaskSchema(ma.Schema):
     class Meta:
-        fields = ("task_uuid", "task_type", "status", "code", "result")
+        fields = ("uuid", "task_type", "status", "code", "result")

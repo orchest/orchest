@@ -289,7 +289,7 @@ class EnvironmentEditView extends React.Component {
     ) {
       makeRequest(
         "DELETE",
-        `/catch/api-proxy/api/environment-builds/${this.state.environmentBuild.build_uuid}`
+        `/catch/api-proxy/api/environment-builds/${this.state.environmentBuild.uuid}`
       )
         .then(() => {
           // immediately fetch latest status

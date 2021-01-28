@@ -153,12 +153,12 @@ class DeleteImage(TwoPhaseFunction):
         # Stop all interactive runs making use of the env.
         int_runs = interactive_runs_using_environment(project_uuid, environment_uuid)
         for run in int_runs:
-            AbortPipelineRun(self.tpe).transaction(run.run_uuid)
+            AbortPipelineRun(self.tpe).transaction(run.uuid)
 
         # Stop all jobs making use of the environment.
-        exps = jobs_using_environment(project_uuid, environment_uuid)
-        for exp in exps:
-            AbortJob(self.tpe).transaction(exp.job_uuid)
+        jobs = jobs_using_environment(project_uuid, environment_uuid)
+        for job in jobs:
+            AbortJob(self.tpe).transaction(job.uuid)
 
         # Cleanup references to the builds and dangling images
         # of this environment.
