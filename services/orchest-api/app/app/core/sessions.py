@@ -495,21 +495,43 @@ def _get_mounts(
                 'kernelspec': Mount,
                 'docker_sock': Mount,
                 'project_dir': Mount,
+                'temp_volume': Mount,
+
+                # Used for persisting user configurations.
+                'jupyterlab': {
+                    'lab': Mount,
+                    'user_settings': Mount,
+                },
             }
 
     """
     mounts = {}
 
-    # The `host_userdir` is only passed for interactive runs as those
-    # are the only ones that use kernels.
+    # The `host_userdir` is only passed for interactive runs.
     if host_userdir is not None:
         source_kernelspecs = os.path.join(
             host_userdir, _config.KERNELSPECS_PATH.format(project_uuid=project_uuid)
         )
-
         mounts["kernelspec"] = Mount(
             target="/usr/local/share/jupyter/kernels",
             source=source_kernelspecs,
+            type="bind",
+        )
+
+        # User configurations of the JupyterLab IDE.
+        mounts["jupyterlab"] = {}
+        mounts["jupyterlab"]["lab"] = Mount(  # extensions
+            target="/usr/local/share/jupyter/lab",
+            source=os.path.join(
+                host_userdir, ".orchest/user-configurations/jupyterlab/lab"
+            ),
+            type="bind",
+        )
+        mounts["jupyterlab"]["user-settings"] = Mount(  # settings
+            target="/root/.jupyter/lab/user-settings",
+            source=os.path.join(
+                host_userdir, ".orchest/user-configurations/jupyterlab/user-settings"
+            ),
             type="bind",
         )
 
@@ -562,7 +584,7 @@ def _get_container_specs(
     Returns:
         Mapping from container name to container specification for the
         run method. The return dict looks as follows:
-            mounts = {
+            container_specs = {
                 'memory-server': spec dict,
                 'jupyter-EG': spec dict,
                 'jupyter-server': spec dict,
@@ -651,7 +673,11 @@ def _get_container_specs(
     container_specs["jupyter-server"] = {
         "image": "orchest/jupyter-server:latest",  # TODO: make not static.
         "detach": True,
-        "mounts": [mounts["project_dir"]],
+        "mounts": [
+            mounts["project_dir"],
+            mounts["jupyterlab"]["lab"],
+            mounts["jupyterlab"]["user-settings"],
+        ],
         "name": jupyter_hostname,
         "network": network,
         "group_add": [os.environ.get("ORCHEST_HOST_GID")],
