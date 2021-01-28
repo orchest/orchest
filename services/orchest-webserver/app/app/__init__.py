@@ -137,7 +137,7 @@ def create_app():
             except Exception as e:
                 logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
 
-        initialize_default_datasources(db, app)
+            initialize_default_datasources(db, app)
 
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:
