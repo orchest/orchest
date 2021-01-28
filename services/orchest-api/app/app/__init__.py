@@ -6,6 +6,7 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
+import logging
 import os
 from logging.config import dictConfig
 from pprint import pformat
@@ -16,6 +17,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
 
+from _orchest.internals.utils import is_werkzeug_parent
 from app.apis import blueprint as api
 from app.connections import db
 from app.core.scheduler import Scheduler
@@ -64,9 +66,15 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
         Migrate().init_app(app, db)
 
         with app.app_context():
-            # Upgrade to the latest revision. This also takes care of
-            # bringing an "empty" db (no tables) on par.
-            upgrade()
+
+            # Alembic does not support calling upgrade() concurrently
+            if not is_werkzeug_parent():
+                # Upgrade to the latest revision. This also takes
+                # care of bringing an "empty" db (no tables) on par.
+                try:
+                    upgrade()
+                except Exception as e:
+                    logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
 
             # In case of an ungraceful shutdown, these entities could be
             # in an invalid state, so they are deleted, since for sure
@@ -144,6 +152,10 @@ def init_logging():
                 "class": "logging.StreamHandler",
                 "formatter": "minimal",
             },
+        },
+        "root": {
+            "handlers": ["console"],
+            "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
         },
         "loggers": {
             __name__: {

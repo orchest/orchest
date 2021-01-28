@@ -73,6 +73,10 @@ def init_logging():
                 "formatter": "minimal",
             },
         },
+        "root": {
+            "handlers": ["console"],
+            "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+        },
         "loggers": {
             __name__: {
                 "handlers": ["console"],
