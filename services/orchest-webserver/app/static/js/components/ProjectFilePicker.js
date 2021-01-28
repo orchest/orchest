@@ -239,6 +239,11 @@ class ProjectFilePicker extends React.Component {
       });
   }
 
+  onFocus() {
+    // fetch on focus
+    this.fetchDirectoryDetails();
+  }
+
   allowedExtensionsMarkup() {
     return ALLOWED_STEP_EXTENSIONS.map((el, index) => {
       return (
@@ -326,6 +331,7 @@ class ProjectFilePicker extends React.Component {
             ref={this.refManager.nrefs.filePicker}
             tree={this.state.tree}
             cwd={this.state.cwd}
+            onFocus={this.onFocus.bind(this)}
             value={this.props.value}
             icon={this.state.selectedFileExists ? "check" : "warning"}
             iconTitle={

@@ -80,6 +80,9 @@ class Jupyter {
   }
 
   navigateTo(filePath) {
+    if (!filePath) {
+      return;
+    }
     if (
       this.iframe.src.indexOf(this.baseAddress) !== -1 &&
       this.iframe.contentWindow._orchest_docmanager !== undefined

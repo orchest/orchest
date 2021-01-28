@@ -153,6 +153,9 @@ class FilePicker extends React.Component {
     this.setState({
       focused: true,
     });
+    if (this.props.onFocus) {
+      this.props.onFocus();
+    }
   }
 
   onBlurTextField(e) {
