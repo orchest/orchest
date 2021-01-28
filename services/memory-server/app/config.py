@@ -1,7 +1,5 @@
 import os
 
-import utils
-
 from _orchest.internals import config as _config
 
 # Default location where the socket is created.
@@ -11,5 +9,3 @@ STORE_SOCKET_NAME = os.path.join(_config.MEMORY_SERVER_SOCK_PATH, "plasma.sock")
 PIPELINE_FNAME = os.path.join(
     _config.PROJECT_DIR, os.environ.get("ORCHEST_PIPELINE_PATH", "")
 )
-
-STORE_MEMORY = utils.get_store_memory_size(PIPELINE_FNAME)
