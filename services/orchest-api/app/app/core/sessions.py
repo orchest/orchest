@@ -569,7 +569,8 @@ def _get_container_specs(
         "network": network,
         # Set a ridiculous shm size and let plasma determine how much
         # it wants to consume (according to the setting in the pipeline
-        # definition).
+        # definition). Mounting `/dev/shm` directly is not supported on
+        # Mac.
         "shm_size": "1000G",
         "environment": [
             f"ORCHEST_PIPELINE_PATH={pipeline_path}",

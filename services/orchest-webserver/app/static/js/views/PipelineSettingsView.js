@@ -214,6 +214,12 @@ class PipelineSettingsView extends React.Component {
                     )}
 
                     <h3>Data passing</h3>
+                    <p className="push-up">
+                      <i>
+                        For these changing to take effect you have to restart
+                        the memory-server (see button below).
+                      </i>
+                    </p>
 
                     <MDCCheckboxReact
                       value={this.state.pipelineJson.settings.auto_eviction}
@@ -224,12 +230,8 @@ class PipelineSettingsView extends React.Component {
 
                     <p className="push-down">
                       Change the size of the memory server for data passing. For
-                      units use KB, MB, or GB. E.g.{" "}
+                      units use KB, MB, or GB, e.g.{" "}
                       <span className="code">1GB</span>.{" "}
-                      <i>
-                        Changing this setting requires you to restart the
-                        session.
-                      </i>
                     </p>
                     <MDCTextFieldReact
                       ref={
@@ -255,12 +257,12 @@ class PipelineSettingsView extends React.Component {
                 <h3 className="push-up push-down">Actions</h3>
 
                 <p className="push-down">
-                  Clear the memory of the pipeline to allow additional data to
-                  be passed between pipeline steps.
+                  Restarting the memory-server also clears the memory to allow
+                  additional data to be passed between pipeline steps.
                 </p>
                 <MDCButtonReact
                   disabled={this.state.restartingMemoryServer}
-                  label="Clear memory"
+                  label="Restart memory-server"
                   icon="memory"
                   classNames={["mdc-button--raised"]}
                   onClick={this.restartMemoryServer.bind(this)}
