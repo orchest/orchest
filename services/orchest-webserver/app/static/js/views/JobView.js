@@ -26,9 +26,7 @@ class JobView extends React.Component {
     this.state = {
       selectedTabIndex: 0,
       selectedIndices: [0, 0],
-      pipelineRuns: [],
       refreshing: false,
-      parameterizedSteps: undefined,
     };
 
     this.promiseManager = new PromiseManager();
@@ -51,15 +49,16 @@ class JobView extends React.Component {
         try {
           let job = JSON.parse(response);
 
-          this.state.job = job;
           this.setState({
-            job,
-            parameterizedSteps: job.strategy_json,
+            job: job,
+            refreshing: false,
           });
 
           this.fetchPipeline();
-          this.fetchPipelineRuns();
         } catch (error) {
+          this.setState({
+            refreshing: false,
+          });
           console.error("Failed to fetch job.", error);
         }
       }
@@ -92,38 +91,11 @@ class JobView extends React.Component {
     this.fetchJob();
   }
 
-  fetchPipelineRuns() {
-    let fetchRunsPromise = makeCancelable(
-      makeRequest("GET", "/catch/api-proxy/api/jobs/" + this.state.job.uuid),
-      this.promiseManager
-    );
-
-    fetchRunsPromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
-
-        this.setState({
-          job: result,
-          pipelineRuns: result.pipeline_runs,
-          jobStatus: result.status,
-          jobGeneratedParameters: result.parameters,
-          refreshing: false,
-        });
-      })
-      .catch((e) => {
-        if (!e.isCanceled) {
-          this.setState({
-            refreshing: false,
-          });
-        }
-      });
-  }
-
   reload() {
     this.setState({
       refreshing: true,
     });
-    this.fetchPipelineRuns();
+    this.fetchJob();
   }
 
   onPipelineRunsSelectionChanged(selectedIndices) {
@@ -192,8 +164,11 @@ class JobView extends React.Component {
     );
     deleteJobRequest.promise
       .then(() => {
+        let job = this.state.job;
+        job.status = "ABORTED";
+
         this.setState({
-          jobStatus: "ABORTED",
+          job: job,
         });
       })
       .catch((error) => {
@@ -237,7 +212,7 @@ class JobView extends React.Component {
     for (let x = 0; x < pipelineRuns.length; x++) {
       let pipelineRun = pipelineRuns[x];
       let parameterizedSteps = JSON.parse(
-        JSON.stringify(this.state.parameterizedSteps)
+        JSON.stringify(this.state.job.strategy_json)
       );
 
       parameterizedSteps = this.parameterValueOverride(
@@ -264,7 +239,7 @@ class JobView extends React.Component {
   render() {
     let rootView;
 
-    if (!this.state.pipeline || !this.state.pipelineRuns || !this.state.job) {
+    if (!this.state.pipeline || !this.state.job) {
       rootView = <MDCLinearProgressReact />;
     } else {
       let tabView = undefined;
@@ -274,8 +249,10 @@ class JobView extends React.Component {
           tabView = (
             <div className="pipeline-tab-view existing-pipeline-runs">
               <SearchableTable
-                rows={this.pipelineRunsToTableData(this.state.pipelineRuns)}
-                detailRows={this.detailRows(this.state.pipelineRuns)}
+                rows={this.pipelineRunsToTableData(
+                  this.state.job.pipeline_runs
+                )}
+                detailRows={this.detailRows(this.state.job.pipeline_runs)}
                 headers={["ID", "Parameters", "Status"]}
                 selectedIndices={this.state.selectedIndices}
                 onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(
@@ -291,7 +268,7 @@ class JobView extends React.Component {
             <div className="pipeline-tab-view">
               <ParameterEditor
                 readOnly
-                parameterizedSteps={this.state.parameterizedSteps}
+                parameterizedSteps={this.state.job.strategy_json}
               />
 
               <div className="pipeline-runs push-up">
@@ -299,7 +276,7 @@ class JobView extends React.Component {
                   selectable={false}
                   headers={["Run specification"]}
                   rows={this.generatedParametersToTableData(
-                    this.state.jobGeneratedParameters
+                    this.state.job.parameters
                   )}
                 />
               </div>
@@ -325,7 +302,7 @@ class JobView extends React.Component {
             <div className="push-up">
               <div className="column">
                 <label>Status</label>
-                <h3>{this.state.jobStatus}</h3>
+                <h3>{this.state.job.status}</h3>
               </div>
               <div className="column">
                 <label>Schedule</label>
@@ -362,11 +339,11 @@ class JobView extends React.Component {
             ref={this.refManager.nrefs.tabBar}
             items={[
               "Pipeline runs (" +
-                this.state.pipelineRuns.filter(({ status }) =>
+                this.state.job.pipeline_runs.filter(({ status }) =>
                   ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
                 ).length +
                 "/" +
-                +this.state.pipelineRuns.length +
+                +this.state.job.pipeline_runs.length +
                 ")",
               "Parameters",
             ]}
@@ -385,7 +362,7 @@ class JobView extends React.Component {
             />
 
             {this.state.job.schedule !== null &&
-              ["STARTED", "PENDING"].includes(this.state.jobStatus) && (
+              ["STARTED", "PENDING"].includes(this.state.job.status) && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={this.editJob.bind(this)}
@@ -394,7 +371,7 @@ class JobView extends React.Component {
                 />
               )}
 
-            {["STARTED", "PENDING"].includes(this.state.jobStatus) && (
+            {["STARTED", "PENDING"].includes(this.state.job.status) && (
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
                 label="Cancel job"
