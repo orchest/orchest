@@ -9,8 +9,6 @@ import config
 import pyarrow as pa
 from manager import start_manager
 
-from _orchest.internals import config as _config
-
 
 def get_command_line_args():
     parser = argparse.ArgumentParser(description="Start plasma store and manager.")
@@ -33,9 +31,7 @@ def get_command_line_args():
         "-p",
         "--pipeline_fname",
         required=False,
-        default=os.path.join(
-            _config.PROJECT_DIR, os.environ.get("ORCHEST_PIPELINE_PATH", "")
-        ),
+        default=config.PIPELINE_FNAME,
         help="file containing pipeline definition",
     )
 

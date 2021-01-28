@@ -573,18 +573,7 @@ def _get_container_specs(
     container_specs = {}
     mounts = _get_mounts(uuid, project_uuid, project_dir, host_userdir)
 
-    # Determine the shm size for the Docker container to be able to
-    # allow Plasma to use the requested memory size for data passing.
-    # NOTE: The `shm_size` is passed to the Plasma store as well using
-    # the `ORCHEST_MEMORY_SIZE` ENV variable, this leads to minor
-    # overallocation for the store.
-    # TODO: Fix `shm_size` passing to the memory-server once we know the
-    # exact conversion between shm-size of Docker and the size of the
-    # store.
-    data_passing_memory_size_int = utils.parse_string_memory_size(
-        data_passing_memory_size
-    )
-    shm_size = utils.calculate_shm_size(data_passing_memory_size_int)
+    # TODO: remove data_passing_memory_size
     container_specs["memory-server"] = {
         "image": "orchest/memory-server:latest",
         "detach": True,
@@ -592,10 +581,12 @@ def _get_container_specs(
         # TODO: name not unique... and uuid cannot be used.
         "name": f"memory-server-{project_uuid}-{uuid}",
         "network": network,
-        "shm_size": shm_size,
+        # Set a ridiculous shm size and let plasma determine how much
+        # it wants to consume (according to the setting in the pipeline
+        # definition).
+        "shm_size": "1000G",
         "environment": [
             f"ORCHEST_PIPELINE_PATH={pipeline_path}",
-            f"ORCHEST_MEMORY_SIZE={data_passing_memory_size_int}",
         ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
