@@ -35,6 +35,7 @@ collateral phase, and cannot do otherwise.
 """
 
 import logging
+import traceback
 from abc import ABC, abstractmethod
 
 # See the logging config that is setup by the orchest-api, webserver,
@@ -60,10 +61,11 @@ class TwoPhaseExecutor(object):
                 # that were not comitted yet.
                 self.session.rollback()
 
-    def __exit__(self, exc_type, exc_val, traceback):
+    def __exit__(self, exc_type, exc_val, tb):
 
         if exc_type is not None:
-            logger.error(f"Error during transactional phase: {exc_val}")
+            logger.error(f"Error during transactional phase: {exc_val} [{exc_type}]")
+            logger.error("".join(traceback.format_tb(tb)))
             # Rollback the transaction if any exception was raised
             # during the execution of the first phase.
             self.session.rollback()

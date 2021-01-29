@@ -243,7 +243,10 @@ def register_views(app, db):
             "ORCHEST_WEB_URLS",
         ]
 
-        front_end_config_internal = ["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"]
+        front_end_config_internal = [
+            "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE",
+            "PIPELINE_PARAMETERS_RESERVED_KEY",
+        ]
 
         return render_template(
             "index.html",
