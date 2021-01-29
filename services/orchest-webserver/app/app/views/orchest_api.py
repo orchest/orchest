@@ -7,6 +7,7 @@ from app.analytics import send_pipeline_run
 from app.utils import (
     create_job_directory,
     get_environments,
+    get_pipeline_json,
     get_project_directory,
     pipeline_uuid_to_path,
     project_uuid_to_path,
