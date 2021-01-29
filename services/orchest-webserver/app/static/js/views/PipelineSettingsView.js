@@ -263,8 +263,8 @@ class PipelineSettingsView extends React.Component {
 
                     <p className="push-up">
                       <i>
-                        For these changing to take effect you have to restart
-                        the memory-server (see button below).
+                        For these changes to take effect you have to restart the
+                        memory-server (see button below).
                       </i>
                     </p>
 
