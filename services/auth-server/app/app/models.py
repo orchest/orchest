@@ -40,7 +40,9 @@ class Token(db.Model):
 
     token = db.Column(db.String(255))
 
-    user = db.Column(db.String(36), db.ForeignKey("users.uuid"), primary_key=True)
+    user = db.Column(
+        db.String(36), db.ForeignKey("users.uuid", ondelete="CASCADE"), primary_key=True
+    )
 
     created = db.Column(
         db.DateTime,
