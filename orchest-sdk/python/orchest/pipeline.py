@@ -142,5 +142,13 @@ class Pipeline:
     def get_params(self) -> Dict[str, Any]:
         return self.properties.get("parameters", {})
 
+    def update_params(self, params) -> None:
+        try:
+            self.properties["parameters"].update(params)
+        except KeyError:
+            self.properties["parameters"] = params
+
+        return
+
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"

@@ -420,7 +420,9 @@ class RunJob(TwoPhaseFunction):
 
             # Set the steps parameters in the pipeline definition.
             for step_uuid, step_parameters in run_parameters.items():
-                pipeline_def["steps"][step_uuid]["parameters"] = step_parameters
+                # One of the entries is not actually a step_uuid.
+                if step_uuid != _config.PIPELINE_PARAMETERS_RESERVED_KEY:
+                    pipeline_def["steps"][step_uuid]["parameters"] = step_parameters
 
             # Instantiate a pipeline object given the specs, definition
             # and parameters.
