@@ -302,11 +302,13 @@ class PipelineSettingsView extends React.Component {
                       classNames={["push-down", "push-up"]}
                     />
 
-                    <p className="push-down">
-                      Change the size of the memory server for data passing. For
-                      units use KB, MB, or GB, e.g.{" "}
-                      <span className="code">1GB</span>.{" "}
-                    </p>
+                    {!this.props.readOnly && (
+                      <p className="push-down">
+                        Change the size of the memory server for data passing.
+                        For units use KB, MB, or GB, e.g.{" "}
+                        <span className="code">1GB</span>.{" "}
+                      </p>
+                    )}
                     <MDCTextFieldReact
                       ref={
                         this.refManager.nrefs
