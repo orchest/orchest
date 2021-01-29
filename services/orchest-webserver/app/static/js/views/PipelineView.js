@@ -497,6 +497,8 @@ class PipelineView extends React.Component {
     orchest.loadView(PipelineSettingsView, {
       project_uuid: this.props.project_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
+      readOnly: this.props.readOnly,
+      pipelineRun: this.props.pipelineRun,
     });
   }
 
@@ -2114,15 +2116,18 @@ class PipelineView extends React.Component {
               // maintain the look and feel of actually using a <button>
               // tag but make it "disabled" through the inline styling
               return (
-                <div
-                  className={"pipeline-actions"}
-                  style={{ pointerEvents: "none", cursor: "default" }}
-                >
+                <div className={"pipeline-actions"}>
                   <MDCButtonReact
                     classNames={"mdc-button--outlined"}
                     label={"Read only"}
                     disabled={true}
                     icon={"visibility"}
+                  />
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    onClick={this.openSettings.bind(this)}
+                    label={"Settings"}
+                    icon="tune"
                   />
                 </div>
               );
