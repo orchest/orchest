@@ -12,6 +12,7 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import joinedload
 
 import app.models as models
+from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
@@ -411,6 +412,11 @@ class RunJob(TwoPhaseFunction):
         # scheduling/execution.
         for run_index, run_parameters in enumerate(job.parameters):
             pipeline_def = copy.deepcopy(job.pipeline_definition)
+
+            # Set the pipeline parameters:
+            pipeline_def["parameters"] = run_parameters.get(
+                _config.PIPELINE_PARAMETERS_RESERVED_KEY, {}
+            )
 
             # Set the steps parameters in the pipeline definition.
             for step_uuid, step_parameters in run_parameters.items():
