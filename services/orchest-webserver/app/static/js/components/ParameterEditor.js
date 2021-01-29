@@ -8,22 +8,22 @@ class ParameterEditor extends React.Component {
     super(props);
 
     this.state = {
-      parameterizedSteps: this.props.parameterizedSteps,
+      strategyJSON: this.props.strategyJSON,
       activeParameter: undefined,
     };
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.parameterizedSteps !== this.props.parameterizedSteps) {
+    if (prevProps.strategyJSON !== this.props.strategyJSON) {
       this.setState({
-        parameterizedSteps: this.props.parameterizedSteps,
+        strategyJSON: this.props.strategyJSON,
       });
     }
   }
 
-  editParameter(key, uuid) {
+  editParameter(key, strategyJSONKey) {
     this.setState({
-      activeParameter: { key: key, uuid: uuid },
+      activeParameter: { key: key, strategyJSONKey: strategyJSONKey },
     });
   }
 
@@ -33,7 +33,7 @@ class ParameterEditor extends React.Component {
         <div className="columns">
           <div className="column">
             <ParamTree
-              parameterizedSteps={this.state.parameterizedSteps}
+              strategyJSON={this.state.strategyJSON}
               editParameter={this.editParameter.bind(this)}
             />
           </div>
@@ -47,8 +47,8 @@ class ParameterEditor extends React.Component {
                   <Fragment>
                     <CodeMirror
                       value={
-                        this.state.parameterizedSteps[
-                          this.state.activeParameter.uuid
+                        this.state.strategyJSON[
+                          this.state.activeParameter.strategyJSONKey
                         ].parameters[this.state.activeParameter.key]
                       }
                       options={{
@@ -57,12 +57,12 @@ class ParameterEditor extends React.Component {
                         lineNumbers: true,
                       }}
                       onBeforeChange={(editor, data, value) => {
-                        this.state.parameterizedSteps[
-                          this.state.activeParameter.uuid
+                        this.state.strategyJSON[
+                          this.state.activeParameter.strategyJSONKey
                         ].parameters[this.state.activeParameter.key] = value;
 
                         this.setState({
-                          parameterizedSteps: this.state.parameterizedSteps,
+                          strategyJSON: this.state.strategyJSON,
                         });
 
                         // only call onParameterChange if valid JSON Array
@@ -78,8 +78,8 @@ class ParameterEditor extends React.Component {
                     {(() => {
                       try {
                         JSON.parse(
-                          this.state.parameterizedSteps[
-                            this.state.activeParameter.uuid
+                          this.state.strategyJSON[
+                            this.state.activeParameter.strategyJSONKey
                           ].parameters[this.state.activeParameter.key]
                         );
                       } catch {
@@ -101,8 +101,8 @@ class ParameterEditor extends React.Component {
                   <>
                     <CodeMirror
                       value={
-                        this.state.parameterizedSteps[
-                          this.state.activeParameter.uuid
+                        this.state.strategyJSON[
+                          this.state.activeParameter.strategyJSONKey
                         ].parameters[this.state.activeParameter.key]
                       }
                       options={{

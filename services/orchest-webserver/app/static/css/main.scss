@@ -466,6 +466,10 @@ button.text-button {
     padding: $generalPadding 0;
   }
 
+  .CodeMirror {
+    height: 150px;
+  }
+
   form {
     div.mdc-text-field {
       width: 100%;

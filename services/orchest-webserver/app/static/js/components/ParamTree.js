@@ -8,20 +8,18 @@ class ParamTree extends React.Component {
       : value;
   }
 
-  onEditParameter(parameterKey, stepUUID) {
+  onEditParameter(parameterKey, key) {
     if (this.props.editParameter) {
-      this.props.editParameter(parameterKey, stepUUID);
+      this.props.editParameter(parameterKey, key);
     }
   }
 
-  generateParameterStep(parameterizedStep) {
+  generateParameterElement(stepStrategy) {
     let elements = [];
 
-    elements.push(
-      <b key={parameterizedStep.uuid}>{parameterizedStep.title}</b>
-    );
+    elements.push(<b key={stepStrategy.key}>{stepStrategy.title}</b>);
 
-    for (let parameterKey in parameterizedStep.parameters) {
+    for (let parameterKey in stepStrategy.parameters) {
       let parameterValueClasses = ["parameter-value"];
 
       if (this.props.editParameter) {
@@ -30,7 +28,7 @@ class ParamTree extends React.Component {
 
       elements.push(
         <div
-          key={parameterKey + "-" + parameterizedStep.uuid}
+          key={parameterKey + "-" + stepStrategy.key}
           className="parameter-row"
         >
           <div className="parameter-key">{parameterKey}:</div>
@@ -39,12 +37,10 @@ class ParamTree extends React.Component {
             onClick={this.onEditParameter.bind(
               this,
               parameterKey,
-              parameterizedStep.uuid
+              stepStrategy.key
             )}
           >
-            {this.truncateParameterValue(
-              parameterizedStep.parameters[parameterKey]
-            )}
+            {this.truncateParameterValue(stepStrategy.parameters[parameterKey])}
           </div>
         </div>
       );
@@ -53,24 +49,31 @@ class ParamTree extends React.Component {
     return elements;
   }
 
-  generateParameterTree(parameterizedSteps) {
+  generateParameterTree(strategyJSON) {
     let elements = [];
 
-    for (const stepUUID in parameterizedSteps) {
+    // first list pipeline parameters
+    let pipelineParameterization =
+      strategyJSON[orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]];
+    if (pipelineParameterization) {
+      elements.concat(this.generateParameterElement(pipelineParameterization));
+    }
+
+    for (const stepUUID in strategyJSON) {
       elements = elements.concat(
-        this.generateParameterStep(parameterizedSteps[stepUUID])
+        this.generateParameterElement(strategyJSON[stepUUID])
       );
     }
 
     return elements;
   }
   render() {
-    let treeView = this.generateParameterTree(this.props.parameterizedSteps);
+    let treeView = this.generateParameterTree(this.props.strategyJSON);
 
     return (
       <div className="parameter-tree">
         {(() => {
-          if (Object.keys(this.props.parameterizedSteps).length == 0) {
+          if (Object.keys(this.props.strategyJSON).length == 0) {
             return (
               <p>This pipeline doesn't define any parameters on its steps.</p>
             );
