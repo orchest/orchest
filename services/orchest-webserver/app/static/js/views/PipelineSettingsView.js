@@ -10,12 +10,15 @@ import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import { Controlled as CodeMirror } from "react-codemirror2";
+require("codemirror/mode/javascript/javascript");
 
 class PipelineSettingsView extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      inputParameters: JSON.stringify({}),
       restartingMemoryServer: false,
       unsavedChanges: false,
       pipeline_path: undefined,
@@ -60,6 +63,7 @@ class PipelineSettingsView extends React.Component {
           pipelineJson.settings.data_passing_memory_size = "1GB";
         }
 
+        this.state.inputParameters = JSON.stringify(pipelineJson.parameters);
         this.setState({ pipelineJson: pipelineJson });
       } else {
         console.warn("Could not load pipeline.json");
@@ -98,6 +102,22 @@ class PipelineSettingsView extends React.Component {
     this.setState({
       unsavedChanges: true,
     });
+  }
+
+  onChangePipelineParameters(editor, data, value) {
+    this.state.inputParameters = value;
+    this.setState({
+      inputParamaters: value,
+    });
+
+    try {
+      this.state.pipelineJson.parameters = JSON.parse(value);
+      this.setState({
+        unsavedChanges: true,
+      });
+    } catch (err) {
+      // console.log("JSON did not parse")
+    }
   }
 
   onChangeDataPassingMemorySize(value) {
@@ -205,7 +225,6 @@ class PipelineSettingsView extends React.Component {
                       label="Pipeline name"
                       classNames={["push-down"]}
                     />
-
                     {this.state.pipeline_path && (
                       <p className="push-down">
                         Pipeline path:{" "}
@@ -213,7 +232,35 @@ class PipelineSettingsView extends React.Component {
                       </p>
                     )}
 
-                    <h3>Data passing</h3>
+                    <h3 className="push-down">Pipeline Parameters</h3>
+
+                    <CodeMirror
+                      value={this.state.inputParameters}
+                      options={{
+                        mode: "application/json",
+                        theme: "jupyter",
+                        lineNumbers: true,
+                        readOnly: false,
+                      }}
+                      onBeforeChange={this.onChangePipelineParameters.bind(
+                        this
+                      )}
+                    />
+                    {(() => {
+                      try {
+                        JSON.parse(this.state.inputParameters);
+                      } catch {
+                        return (
+                          <div className="warning push-up push-down">
+                            <i className="material-icons">warning</i> Your input
+                            is not valid JSON.
+                          </div>
+                        );
+                      }
+                    })()}
+
+                    <h3 className="push-up">Data passing</h3>
+
                     <p className="push-up">
                       <i>
                         For these changing to take effect you have to restart

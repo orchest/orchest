@@ -5,7 +5,7 @@ e.g. ``pipeline.orchest``.
 
 """
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from orchest.config import Config
 from orchest.error import StepUUIDResolveError
@@ -13,11 +13,12 @@ from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
 
-def get_params() -> Dict[str, Any]:
+def get_params() -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Gets the parameters of the current step.
 
     Returns:
-        The parameters of the current step.
+        A tuple of two elements, where the first is the parameters of
+        the current step, the second is the parameters of the pipeline.
     """
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
@@ -31,10 +32,10 @@ def get_params() -> Dict[str, Any]:
     step = pipeline.get_step_by_uuid(step_uuid)
     params = step.get_params()
 
-    return params
+    return params, pipeline.get_params()
 
 
-def update_params(params: Dict[str, Any]) -> None:
+def update_step_params(params: Dict[str, Any]) -> None:
     """Updates the parameters of the current step.
 
     Additionally, you can set new parameters by giving parameters that

@@ -4,6 +4,7 @@
     "settings": {
         "auto_eviction": true
     },
+    "parameters": {},
     "steps": {
         "uuid-1______________": {
             "title": "step-1",

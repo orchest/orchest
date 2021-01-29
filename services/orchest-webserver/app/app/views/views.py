@@ -663,7 +663,15 @@ def register_views(app, db):
                 )
             else:
                 with open(pipeline_json_path) as json_file:
-                    return jsonify({"success": True, "pipeline_json": json_file.read()})
+                    pipeline_json = json.load(json_file)
+                    # Take care of old pipelines with no defined params.
+                    if "parameters" not in pipeline_json:
+                        pipeline_json["parameters"] = {}
+                    # json.dumps because the front end expects it as a
+                    # string.
+                    return jsonify(
+                        {"success": True, "pipeline_json": json.dumps(pipeline_json)}
+                    )
 
             return ""
 

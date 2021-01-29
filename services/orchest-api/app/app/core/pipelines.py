@@ -34,6 +34,7 @@ class PipelineDefinition(TypedDict):
     name: str
     uuid: str
     steps: Dict[str, PipelineStepProperties]
+    parameters: Dict[str, Any]
 
 
 def construct_pipeline(
@@ -526,6 +527,7 @@ class Pipeline:
             "name": description["name"],
             "uuid": description["uuid"],
             "settings": description["settings"],
+            "parameters": description.get("parameters", {}),
         }
         return cls(list(steps.values()), properties)
 
@@ -546,6 +548,9 @@ class Pipeline:
 
         """
         return set([step.properties["environment"] for step in self.steps])
+
+    def get_params(self) -> Dict[str, Any]:
+        return self.properties.get("parameters", {})
 
     @property
     def sentinel(self) -> PipelineStep:
