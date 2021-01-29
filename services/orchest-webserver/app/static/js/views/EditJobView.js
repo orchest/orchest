@@ -378,7 +378,7 @@ class EditJobView extends React.Component {
           let stepUUID = keySplit[0];
           let parameterKey = keySplit.slice(1).join("#");
 
-          if (selectedRunParameters.stepUUID === undefined)
+          if (selectedRunParameters[stepUUID] === undefined)
             selectedRunParameters[stepUUID] = {};
 
           selectedRunParameters[stepUUID][parameterKey] = runParameters[key];
