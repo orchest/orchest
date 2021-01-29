@@ -1437,30 +1437,34 @@ class PipelineView extends React.Component {
         this.promiseManager
       );
 
-      pollPromise.promise.then((response) => {
-        let result = JSON.parse(response);
+      pollPromise.promise
+        .then((response) => {
+          let result = JSON.parse(response);
 
-        this.parseRunStatuses(result);
+          this.parseRunStatuses(result);
 
-        if (["PENDING", "STARTED"].indexOf(result.status) !== -1) {
-          this.setState({
-            pipelineRunning: true,
-          });
-        }
+          if (["PENDING", "STARTED"].indexOf(result.status) !== -1) {
+            this.setState({
+              pipelineRunning: true,
+            });
+          }
 
-        if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
-          // make sure stale opened files are reloaded in active
-          // Jupyter instance
+          if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
+            // make sure stale opened files are reloaded in active
+            // Jupyter instance
 
-          orchest.jupyter.reloadFilesFromDisk();
+            orchest.jupyter.reloadFilesFromDisk();
 
-          this.setState({
-            pipelineRunning: false,
-            waitingOnCancel: false,
-          });
-          clearInterval(this.pipelineStepStatusPollingInterval);
-        }
-      });
+            this.setState({
+              pipelineRunning: false,
+              waitingOnCancel: false,
+            });
+            clearInterval(this.pipelineStepStatusPollingInterval);
+          }
+        })
+        .catch((error) => {
+          console.warn(error);
+        });
     }
   }
 
