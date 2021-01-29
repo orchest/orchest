@@ -42,6 +42,16 @@ class SettingsView extends React.Component {
 
   getConfig() {
     makeRequest("GET", "/async/user-config").then((data) => {
+      try {
+        let configJSON = JSON.parse(data);
+
+        this.setState({
+          configJSON,
+        });
+      } catch (error) {
+        console.warn("Received invalid JSON config from the server.");
+      }
+
       this.setState({
         config: data,
       });
@@ -54,18 +64,36 @@ class SettingsView extends React.Component {
 
   saveConfig(config) {
     let formData = new FormData();
-    formData.append("config", config);
 
-    this.setState({
-      configChangesPending: false,
-    });
+    try {
+      let configJSON = JSON.parse(config);
+      formData.append("config", config);
 
-    makeRequest("POST", "/async/user-config", {
-      type: "FormData",
-      content: formData,
-    }).catch((e) => {
-      console.error(e);
-    });
+      let authWasEnabled = this.state.configJSON.AUTH_ENABLED;
+
+      this.setState({
+        configJSON,
+        configChangesPending: false,
+      });
+
+      makeRequest("POST", "/async/user-config", {
+        type: "FormData",
+        content: formData,
+      })
+        .catch((e) => {
+          console.error(e);
+        })
+        .then(() => {
+          // refresh the page when auth gets enabled in the config
+          if (configJSON.AUTH_ENABLED && !authWasEnabled) {
+            location.reload();
+          }
+        });
+    } catch (error) {
+      console.error(error);
+      console.error("Tried to save config which is invalid JSON.");
+      console.error(config);
+    }
   }
 
   checkOrchestStatus() {
@@ -175,7 +203,7 @@ class SettingsView extends React.Component {
                       label="Save"
                       icon="save"
                       disabled={!this.state.configChangesPending}
-                      onClick={this.saveConfig.bind(this, [this.state.config])}
+                      onClick={this.saveConfig.bind(this, this.state.config)}
                     />
                   </div>
                 );
