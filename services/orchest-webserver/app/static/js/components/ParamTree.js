@@ -72,7 +72,7 @@ class ParamTree extends React.Component {
         {(() => {
           if (Object.keys(this.props.parameterizedSteps).length == 0) {
             return (
-              <p>This pipeline does't define any parameters on its steps.</p>
+              <p>This pipeline doesn't define any parameters on its steps.</p>
             );
           }
         })()}
