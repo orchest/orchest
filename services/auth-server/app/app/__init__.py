@@ -82,8 +82,6 @@ def init_logging():
             # ``__name__``. Using ``__name__`` is required for the app
             # to function correctly. See:
             # https://blog.miguelgrinberg.com/post/why-do-we-pass-name-to-the-flask-class
-            # TODO: use Flask logger without it triggering the root
-            # logger.
             __name__: {
                 "handlers": ["console"],
                 "propagate": False,
