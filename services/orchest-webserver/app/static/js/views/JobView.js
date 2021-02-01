@@ -228,7 +228,10 @@ class JobView extends React.Component {
 
       detailElements.push(
         <div className="pipeline-run-detail">
-          <ParamTree strategyJSON={strategyJSON} />
+          <ParamTree
+            strategyJSON={strategyJSON}
+            pipelineName={this.state.pipeline.name}
+          />
           <MDCButtonReact
             label="View pipeline"
             classNames={["mdc-button--raised", "themed-secondary"]}
@@ -274,6 +277,7 @@ class JobView extends React.Component {
             <div className="pipeline-tab-view">
               <ParameterEditor
                 readOnly
+                pipelineName={this.state.pipeline.name}
                 strategyJSON={this.state.job.strategy_json}
               />
 

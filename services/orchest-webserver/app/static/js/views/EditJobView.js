@@ -133,7 +133,7 @@ class EditJobView extends React.Component {
       strategyJSON[orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]] = {
         key: orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"],
         parameters: this.generateParameterLists(pipeline.parameters),
-        title: "Pipeline: " + pipeline.name,
+        title: pipeline.name,
       };
     }
 
@@ -220,7 +220,9 @@ class EditJobView extends React.Component {
 
       for (let fullParam in params) {
         let paramName = fullParam.split("#").slice(1).join("");
-        pipelineRunRow.push(paramName + ": " + params[fullParam]);
+        pipelineRunRow.push(
+          paramName + ": " + JSON.stringify(params[fullParam])
+        );
       }
       if (pipelineRunRow.length > 0) {
         generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
@@ -454,7 +456,10 @@ class EditJobView extends React.Component {
 
       detailElements.push(
         <div className="pipeline-run-detail">
-          <ParamTree strategyJSON={strategyJSON} />
+          <ParamTree
+            pipelineName={this.state.pipeline.name}
+            strategyJSON={strategyJSON}
+          />
         </div>
       );
     }
@@ -473,6 +478,7 @@ class EditJobView extends React.Component {
           tabView = (
             <div className="tab-view">
               <ParameterEditor
+                pipelineName={this.state.pipeline.name}
                 onParameterChange={this.onParameterChange.bind(this)}
                 strategyJSON={this.state.strategyJSON}
               />

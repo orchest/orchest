@@ -20,10 +20,16 @@ class ParamTree extends React.Component {
     }
   }
 
-  generateParameterElement(stepStrategy) {
+  generateParameterElement(stepStrategy, includeTitle) {
     let elements = [];
 
-    elements.push(<b key={stepStrategy.key}>{stepStrategy.title}</b>);
+    if (includeTitle === undefined) {
+      includeTitle = true;
+    }
+
+    if (includeTitle) {
+      elements.push(<b key={stepStrategy.key}>{stepStrategy.title}</b>);
+    }
 
     for (let parameterKey in stepStrategy.parameters) {
       let parameterValueClasses = ["parameter-value"];
@@ -56,25 +62,36 @@ class ParamTree extends React.Component {
   }
 
   generateParameterTree(strategyJSON) {
-    let elements = [];
+    let pipelineParameterElement;
+    let stepParameterElements = [];
 
     // first list pipeline parameters
     let pipelineParameterization =
       strategyJSON[orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]];
     if (pipelineParameterization) {
-      elements.concat(this.generateParameterElement(pipelineParameterization));
+      pipelineParameterElement = this.generateParameterElement(
+        pipelineParameterization,
+        false
+      );
     }
 
     for (const stepUUID in strategyJSON) {
-      elements = elements.concat(
+      if (stepUUID == orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]) {
+        continue;
+      }
+
+      stepParameterElements = stepParameterElements.concat(
         this.generateParameterElement(strategyJSON[stepUUID])
       );
     }
 
-    return elements;
+    return [pipelineParameterElement, stepParameterElements];
   }
   render() {
-    let treeView = this.generateParameterTree(this.props.strategyJSON);
+    let [
+      pipelineParameterElement,
+      stepParameterElements,
+    ] = this.generateParameterTree(this.props.strategyJSON);
 
     return (
       <div className="parameter-tree">
@@ -85,7 +102,20 @@ class ParamTree extends React.Component {
             );
           }
         })()}
-        {treeView}
+
+        {pipelineParameterElement !== undefined && (
+          <>
+            <h3>Pipeline: {this.props.pipelineName}</h3>
+            {pipelineParameterElement}
+          </>
+        )}
+
+        {stepParameterElements.length > 0 && (
+          <>
+            <h3 className="push-up">Steps</h3>
+            <div className="step-params">{stepParameterElements}</div>
+          </>
+        )}
       </div>
     );
   }

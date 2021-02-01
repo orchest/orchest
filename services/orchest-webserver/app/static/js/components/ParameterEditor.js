@@ -33,6 +33,7 @@ class ParameterEditor extends React.Component {
         <div className="columns">
           <div className="column">
             <ParamTree
+              pipelineName={this.props.pipelineName}
               strategyJSON={this.state.strategyJSON}
               editParameter={this.editParameter.bind(this)}
             />
