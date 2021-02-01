@@ -19,7 +19,7 @@ class PipelineSettingsView extends React.Component {
     super(props);
 
     this.state = {
-      inputParameters: JSON.stringify({}),
+      inputParameters: JSON.stringify({}, null, 2),
       restartingMemoryServer: false,
       unsavedChanges: false,
       pipeline_path: undefined,
@@ -67,8 +67,11 @@ class PipelineSettingsView extends React.Component {
         if (pipelineJson.settings.data_passing_memory_size === undefined) {
           pipelineJson.settings.data_passing_memory_size = "1GB";
         }
-
-        this.state.inputParameters = JSON.stringify(pipelineJson.parameters);
+        this.state.inputParameters = JSON.stringify(
+          pipelineJson.parameters,
+          null,
+          2
+        );
         this.setState({ pipelineJson: pipelineJson });
       } else {
         console.warn("Could not load pipeline.json");
