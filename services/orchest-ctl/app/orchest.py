@@ -750,7 +750,8 @@ class OrchestApp:
         # manually.
         if mode == "web":
             utils.echo("Update completed.")
-            self.restart()
+            container_config = spec.get_container_config("reg")
+            self.restart(container_config)
             return
 
         # Let the user know they need to restart the application for the
