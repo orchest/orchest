@@ -71,7 +71,9 @@ class Scheduler:
                 # which is more "behind" gets scheduled first.
                 .order_by(desc(now - Job.next_scheduled_time)).all()
             )
-            logger.info(f"found {len(jobs_to_run)} jobs to run")
+
+            if jobs_to_run:
+                logger.info(f"found {len(jobs_to_run)} jobs to run")
 
             # Based on the type of Job (recurring or not) set the status
             # and next_scheduled_time. Note that for recurring jobs the
