@@ -162,10 +162,9 @@ def init_logging():
             # ``__name__``. Using ``__name__`` is required for the app
             # to function correctly. See:
             # https://blog.miguelgrinberg.com/post/why-do-we-pass-name-to-the-flask-class
-            # TODO: use Flask logger without it triggering the root
-            # logger.
             __name__: {
-                "handlers": [],
+                "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
             "alembic": {
@@ -184,16 +183,19 @@ def init_logging():
             },
             "orchest-lib": {
                 "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
             "job-scheduler": {
                 "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
-            # "sqlalchemy.engine": {
-            #     "handlers": ["console"],
-            #     "level": "DEBUG",
-            # },
+            "apscheduler": {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": "WARNING",
+            },
         },
     }
 

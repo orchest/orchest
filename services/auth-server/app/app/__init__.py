@@ -85,7 +85,8 @@ def init_logging():
             # TODO: use Flask logger without it triggering the root
             # logger.
             __name__: {
-                "handlers": [],
+                "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
             "alembic": {
@@ -104,12 +105,9 @@ def init_logging():
             },
             "orchest-lib": {
                 "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
-            # "sqlalchemy.engine": {
-            #     "handlers": ["console"],
-            #     "level": "DEBUG",
-            # },
         },
     }
 
