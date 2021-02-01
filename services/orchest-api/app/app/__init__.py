@@ -95,7 +95,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
             except FileExistsError:
                 pass
 
-    if be_scheduler:
+    if be_scheduler and not is_werkzeug_parent():
         # Create a scheduler and have the scheduling logic running
         # periodically.
         scheduler = BackgroundScheduler(
