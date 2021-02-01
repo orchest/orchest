@@ -23,6 +23,7 @@ from flask_migrate import Migrate, upgrade
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
+from _orchest.internals import config as _config
 from _orchest.internals.utils import is_werkzeug_parent
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
@@ -213,6 +214,13 @@ def init_logging():
                 "class": "logging.StreamHandler",
                 "formatter": "minimal",
             },
+            "webserver-file-log": {
+                "level": "INFO",
+                "formatter": "verbose",
+                "class": "logging.FileHandler",
+                "filename": _config.WEBSERVER_LOGS,
+                "mode": "a",
+            },
         },
         "root": {
             "handlers": ["console"],
@@ -245,8 +253,9 @@ def init_logging():
                 "handlers": ["console-minimal"],
             },
             "gunicorn": {
-                "handlers": ["console"],
+                "handlers": ["webserver-file-log"],
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "propagate": False,
             },
             "orchest-lib": {
                 "handlers": ["console"],
