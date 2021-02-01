@@ -1,7 +1,13 @@
-import React, { Fragment } from "react";
+import React from "react";
+import _ from "lodash";
 
 class ParamTree extends React.Component {
   truncateParameterValue(value) {
+    // stringify non string values
+    if (!_.isString(value)) {
+      value = JSON.stringify(value);
+    }
+
     let maxLength = 50;
     return value.length > maxLength
       ? value.substring(0, maxLength - 1) + "…"

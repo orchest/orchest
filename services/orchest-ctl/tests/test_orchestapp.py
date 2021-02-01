@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app import orchest, utils
+from app import orchest, spec, utils
 
 
 @pytest.mark.parametrize(
@@ -126,6 +126,7 @@ def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch):
 )
 def test_update(installed_images, update_exit_code, mode, expected_stdout, capsys):
     utils.update_git_repo = MagicMock(return_value=update_exit_code)
+    spec.get_container_config = MagicMock(return_value=None)
 
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_images = MagicMock(return_value=installed_images)
