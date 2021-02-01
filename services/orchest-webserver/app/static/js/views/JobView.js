@@ -110,7 +110,9 @@ class JobView extends React.Component {
     for (let strategyJSONKey in parameters) {
       for (let parameter in parameters[strategyJSONKey]) {
         keyValuePairs.push(
-          parameter + ": " + parameters[strategyJSONKey][parameter]
+          parameter +
+            ": " +
+            JSON.stringify(parameters[strategyJSONKey][parameter])
         );
       }
     }
@@ -188,7 +190,9 @@ class JobView extends React.Component {
 
       for (let fullParam in params) {
         for (let paramKey in params[fullParam]) {
-          pipelineRunRow.push(paramKey + ": " + params[fullParam][paramKey]);
+          pipelineRunRow.push(
+            paramKey + ": " + JSON.stringify(params[fullParam][paramKey])
+          );
         }
       }
       if (pipelineRunRow.length > 0) {
