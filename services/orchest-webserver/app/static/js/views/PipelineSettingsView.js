@@ -6,16 +6,20 @@ import {
   makeCancelable,
   RefManager,
 } from "../lib/utils/all";
+import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import { Controlled as CodeMirror } from "react-codemirror2";
+require("codemirror/mode/javascript/javascript");
 
 class PipelineSettingsView extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      inputParameters: JSON.stringify({}, null, 2),
       restartingMemoryServer: false,
       unsavedChanges: false,
       pipeline_path: undefined,
@@ -35,11 +39,15 @@ class PipelineSettingsView extends React.Component {
   }
 
   fetchPipeline() {
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+      this.props.pipeline_uuid,
+      this.props.project_uuid,
+      this.props.pipelineRun && this.props.pipelineRun.job_uuid,
+      this.props.pipelineRun && this.props.pipelineRun.uuid
+    );
+
     let pipelinePromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`
-      ),
+      makeRequest("GET", pipelineJSONEndpoint),
       this.promiseManager
     );
 
@@ -59,7 +67,11 @@ class PipelineSettingsView extends React.Component {
         if (pipelineJson.settings.data_passing_memory_size === undefined) {
           pipelineJson.settings.data_passing_memory_size = "1GB";
         }
-
+        this.state.inputParameters = JSON.stringify(
+          pipelineJson.parameters,
+          null,
+          2
+        );
         this.setState({ pipelineJson: pipelineJson });
       } else {
         console.warn("Could not load pipeline.json");
@@ -69,27 +81,46 @@ class PipelineSettingsView extends React.Component {
   }
 
   fetchPipelinePath() {
-    // get pipeline path
-    let fetchPipelinePathPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`
-      ),
-      this.promiseManager
-    );
+    if (!this.props.pipelineRun) {
+      // get pipeline path
+      let fetchPipelinePathPromise = makeCancelable(
+        makeRequest(
+          "GET",
+          `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+        ),
+        this.promiseManager
+      );
 
-    fetchPipelinePathPromise.promise.then((response) => {
-      let pipeline = JSON.parse(response);
-      this.setState({
-        pipeline_path: pipeline.path,
+      fetchPipelinePathPromise.promise.then((response) => {
+        let pipeline = JSON.parse(response);
+        this.setState({
+          pipeline_path: pipeline.path,
+        });
       });
-    });
+    } else {
+      let fetchPipelinePathPromise = makeCancelable(
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/jobs/${this.props.pipelineRun.job_uuid}`
+        ),
+        this.promiseManager
+      );
+
+      fetchPipelinePathPromise.promise.then((response) => {
+        let job = JSON.parse(response);
+        this.setState({
+          pipeline_path: job.pipeline_run_spec.run_config.pipeline_path,
+        });
+      });
+    }
   }
 
   closeSettings() {
     orchest.loadView(PipelineView, {
-      project_uuid: this.props.project_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
+      project_uuid: this.props.project_uuid,
+      readOnly: this.props.readOnly,
+      pipelineRun: this.props.pipelineRun,
     });
   }
 
@@ -98,6 +129,22 @@ class PipelineSettingsView extends React.Component {
     this.setState({
       unsavedChanges: true,
     });
+  }
+
+  onChangePipelineParameters(editor, data, value) {
+    this.state.inputParameters = value;
+    this.setState({
+      inputParamaters: value,
+    });
+
+    try {
+      this.state.pipelineJson.parameters = JSON.parse(value);
+      this.setState({
+        unsavedChanges: true,
+      });
+    } catch (err) {
+      // console.log("JSON did not parse")
+    }
   }
 
   onChangeDataPassingMemorySize(value) {
@@ -203,9 +250,9 @@ class PipelineSettingsView extends React.Component {
                       value={this.state.pipelineJson.name}
                       onChange={this.onChangeName.bind(this)}
                       label="Pipeline name"
+                      disabled={this.props.readOnly === true}
                       classNames={["push-down"]}
                     />
-
                     {this.state.pipeline_path && (
                       <p className="push-down">
                         Pipeline path:{" "}
@@ -213,26 +260,58 @@ class PipelineSettingsView extends React.Component {
                       </p>
                     )}
 
-                    <h3>Data passing</h3>
-                    <p className="push-up">
-                      <i>
-                        For these changes to take effect you have to restart the
-                        memory-server (see button below).
-                      </i>
-                    </p>
+                    <h3 className="push-down">Pipeline Parameters</h3>
+
+                    <CodeMirror
+                      value={this.state.inputParameters}
+                      options={{
+                        mode: "application/json",
+                        theme: "jupyter",
+                        lineNumbers: true,
+                        readOnly: this.props.readOnly === true,
+                      }}
+                      onBeforeChange={this.onChangePipelineParameters.bind(
+                        this
+                      )}
+                    />
+                    {(() => {
+                      try {
+                        JSON.parse(this.state.inputParameters);
+                      } catch {
+                        return (
+                          <div className="warning push-up push-down">
+                            <i className="material-icons">warning</i> Your input
+                            is not valid JSON.
+                          </div>
+                        );
+                      }
+                    })()}
+
+                    <h3 className="push-up">Data passing</h3>
+                    {!this.props.readOnly && (
+                      <p className="push-up">
+                        <i>
+                          For these changes to take effect you have to restart
+                          the memory-server (see button below).
+                        </i>
+                      </p>
+                    )}
 
                     <MDCCheckboxReact
                       value={this.state.pipelineJson.settings.auto_eviction}
                       onChange={this.onChangeEviction.bind(this)}
                       label="Automatic memory eviction"
+                      disabled={this.props.readOnly === true}
                       classNames={["push-down", "push-up"]}
                     />
 
-                    <p className="push-down">
-                      Change the size of the memory server for data passing. For
-                      units use KB, MB, or GB, e.g.{" "}
-                      <span className="code">1GB</span>.{" "}
-                    </p>
+                    {!this.props.readOnly && (
+                      <p className="push-down">
+                        Change the size of the memory server for data passing.
+                        For units use KB, MB, or GB, e.g.{" "}
+                        <span className="code">1GB</span>.{" "}
+                      </p>
+                    )}
                     <MDCTextFieldReact
                       ref={
                         this.refManager.nrefs
@@ -244,35 +323,44 @@ class PipelineSettingsView extends React.Component {
                       }
                       onChange={this.onChangeDataPassingMemorySize.bind(this)}
                       label="Data passing memory size"
+                      disabled={this.props.readOnly === true}
                     />
                   </div>
 
-                  <MDCButtonReact
-                    label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                    classNames={["mdc-button--raised"]}
-                    onClick={this.saveGeneralForm.bind(this)}
-                  />
+                  {!this.props.readOnly && (
+                    <MDCButtonReact
+                      label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
+                      classNames={["mdc-button--raised"]}
+                      onClick={this.saveGeneralForm.bind(this)}
+                    />
+                  )}
                 </form>
 
-                <h3 className="push-up push-down">Actions</h3>
+                {!this.props.readOnly && (
+                  <>
+                    <h3 className="push-up push-down">Actions</h3>
 
-                <p className="push-down">
-                  Restarting the memory-server also clears the memory to allow
-                  additional data to be passed between pipeline steps.
-                </p>
-                <MDCButtonReact
-                  disabled={this.state.restartingMemoryServer}
-                  label="Restart memory-server"
-                  icon="memory"
-                  classNames={["mdc-button--raised"]}
-                  onClick={this.restartMemoryServer.bind(this)}
-                />
+                    <p className="push-down">
+                      Restarting the memory-server also clears the memory to
+                      allow additional data to be passed between pipeline steps.
+                    </p>
+                    <MDCButtonReact
+                      disabled={this.state.restartingMemoryServer}
+                      label="Restart memory-server"
+                      icon="memory"
+                      classNames={["mdc-button--raised"]}
+                      onClick={this.restartMemoryServer.bind(this)}
+                    />
 
-                {(() => {
-                  if (this.state.restartingMemoryServer) {
-                    return <p className="push-up">Restarting in progress...</p>;
-                  }
-                })()}
+                    {(() => {
+                      if (this.state.restartingMemoryServer) {
+                        return (
+                          <p className="push-up">Restarting in progress...</p>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
               </div>
             );
           } else {

@@ -15,7 +15,7 @@ from app.utils import get_pipeline_directory, get_pipeline_path
 class CreatePipeline(TwoPhaseFunction):
     def _transaction(self, project_uuid: str, pipeline_name: str, pipeline_path: str):
 
-        # Reject creation if a pipeline which this path exists already.
+        # Reject creation if a pipeline with this path exists already.
         if (
             Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
             .filter(Pipeline.path == pipeline_path)
@@ -54,6 +54,7 @@ class CreatePipeline(TwoPhaseFunction):
                 "data_passing_memory_size": "1GB",
             },
             "steps": {},
+            "parameters": {},
         }
 
         with open(pipeline_json_path, "w") as pipeline_json_file:
@@ -166,6 +167,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
             pipeline_json_path = get_pipeline_path(
                 None, project_uuid, pipeline_path=pipeline_path
             )
+
             with open(pipeline_json_path, "w") as json_file:
                 pipeline_json["uuid"] = pipeline_uuid
                 json.dump(pipeline_json, json_file, indent=4, sort_keys=True)

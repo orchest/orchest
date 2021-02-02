@@ -95,7 +95,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
             except FileExistsError:
                 pass
 
-    if be_scheduler:
+    if be_scheduler and not is_werkzeug_parent():
         # Create a scheduler and have the scheduling logic running
         # periodically.
         scheduler = BackgroundScheduler(
@@ -158,8 +158,13 @@ def init_logging():
             "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
         },
         "loggers": {
+            # NOTE: this is the name of the Flask app, since we use
+            # ``__name__``. Using ``__name__`` is required for the app
+            # to function correctly. See:
+            # https://blog.miguelgrinberg.com/post/why-do-we-pass-name-to-the-flask-class
             __name__: {
                 "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
             "alembic": {
@@ -178,16 +183,19 @@ def init_logging():
             },
             "orchest-lib": {
                 "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
             "job-scheduler": {
                 "handlers": ["console"],
+                "propagate": False,
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
             },
-            # "sqlalchemy.engine": {
-            #     "handlers": ["console"],
-            #     "level": "DEBUG",
-            # },
+            "apscheduler": {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": "WARNING",
+            },
         },
     }
 

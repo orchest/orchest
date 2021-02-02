@@ -497,6 +497,8 @@ class PipelineView extends React.Component {
     orchest.loadView(PipelineSettingsView, {
       project_uuid: this.props.project_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
+      readOnly: this.props.readOnly,
+      pipelineRun: this.props.pipelineRun,
     });
   }
 
@@ -1435,30 +1437,34 @@ class PipelineView extends React.Component {
         this.promiseManager
       );
 
-      pollPromise.promise.then((response) => {
-        let result = JSON.parse(response);
+      pollPromise.promise
+        .then((response) => {
+          let result = JSON.parse(response);
 
-        this.parseRunStatuses(result);
+          this.parseRunStatuses(result);
 
-        if (["PENDING", "STARTED"].indexOf(result.status) !== -1) {
-          this.setState({
-            pipelineRunning: true,
-          });
-        }
+          if (["PENDING", "STARTED"].indexOf(result.status) !== -1) {
+            this.setState({
+              pipelineRunning: true,
+            });
+          }
 
-        if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
-          // make sure stale opened files are reloaded in active
-          // Jupyter instance
+          if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
+            // make sure stale opened files are reloaded in active
+            // Jupyter instance
 
-          orchest.jupyter.reloadFilesFromDisk();
+            orchest.jupyter.reloadFilesFromDisk();
 
-          this.setState({
-            pipelineRunning: false,
-            waitingOnCancel: false,
-          });
-          clearInterval(this.pipelineStepStatusPollingInterval);
-        }
-      });
+            this.setState({
+              pipelineRunning: false,
+              waitingOnCancel: false,
+            });
+            clearInterval(this.pipelineStepStatusPollingInterval);
+          }
+        })
+        .catch((error) => {
+          console.warn(error);
+        });
     }
   }
 
@@ -2114,15 +2120,18 @@ class PipelineView extends React.Component {
               // maintain the look and feel of actually using a <button>
               // tag but make it "disabled" through the inline styling
               return (
-                <div
-                  className={"pipeline-actions"}
-                  style={{ pointerEvents: "none", cursor: "default" }}
-                >
+                <div className={"pipeline-actions"}>
                   <MDCButtonReact
                     classNames={"mdc-button--outlined"}
                     label={"Read only"}
                     disabled={true}
                     icon={"visibility"}
+                  />
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    onClick={this.openSettings.bind(this)}
+                    label={"Settings"}
+                    icon="tune"
                   />
                 </div>
               );

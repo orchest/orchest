@@ -107,9 +107,13 @@ class JobView extends React.Component {
   formatPipelineParams(parameters) {
     let keyValuePairs = [];
 
-    for (let stepUUID in parameters) {
-      for (let parameter in parameters[stepUUID]) {
-        keyValuePairs.push(parameter + ": " + parameters[stepUUID][parameter]);
+    for (let strategyJSONKey in parameters) {
+      for (let parameter in parameters[strategyJSONKey]) {
+        keyValuePairs.push(
+          parameter +
+            ": " +
+            JSON.stringify(parameters[strategyJSONKey][parameter])
+        );
       }
     }
     return keyValuePairs.join(", ");
@@ -129,15 +133,15 @@ class JobView extends React.Component {
     return rows;
   }
 
-  parameterValueOverride(parameterizedSteps, parameters) {
-    for (let stepUUID in parameters) {
-      for (let parameter in parameters[stepUUID]) {
-        parameterizedSteps[stepUUID]["parameters"][parameter] =
-          parameters[stepUUID][parameter];
+  parameterValueOverride(strategyJSON, parameters) {
+    for (let strategyJSONKey in parameters) {
+      for (let parameter in parameters[strategyJSONKey]) {
+        strategyJSON[strategyJSONKey]["parameters"][parameter] =
+          parameters[strategyJSONKey][parameter];
       }
     }
 
-    return parameterizedSteps;
+    return strategyJSON;
   }
 
   onDetailPipelineView(pipelineRun) {
@@ -186,7 +190,9 @@ class JobView extends React.Component {
 
       for (let fullParam in params) {
         for (let paramKey in params[fullParam]) {
-          pipelineRunRow.push(paramKey + ": " + params[fullParam][paramKey]);
+          pipelineRunRow.push(
+            paramKey + ": " + JSON.stringify(params[fullParam][paramKey])
+          );
         }
       }
       if (pipelineRunRow.length > 0) {
@@ -211,18 +217,21 @@ class JobView extends React.Component {
     // override values in fields through param fields
     for (let x = 0; x < pipelineRuns.length; x++) {
       let pipelineRun = pipelineRuns[x];
-      let parameterizedSteps = JSON.parse(
+      let strategyJSON = JSON.parse(
         JSON.stringify(this.state.job.strategy_json)
       );
 
-      parameterizedSteps = this.parameterValueOverride(
-        parameterizedSteps,
+      strategyJSON = this.parameterValueOverride(
+        strategyJSON,
         pipelineRun.parameters
       );
 
       detailElements.push(
         <div className="pipeline-run-detail">
-          <ParamTree parameterizedSteps={parameterizedSteps} />
+          <ParamTree
+            strategyJSON={strategyJSON}
+            pipelineName={this.state.pipeline.name}
+          />
           <MDCButtonReact
             label="View pipeline"
             classNames={["mdc-button--raised", "themed-secondary"]}
@@ -268,7 +277,8 @@ class JobView extends React.Component {
             <div className="pipeline-tab-view">
               <ParameterEditor
                 readOnly
-                parameterizedSteps={this.state.job.strategy_json}
+                pipelineName={this.state.pipeline.name}
+                strategyJSON={this.state.job.strategy_json}
               />
 
               <div className="pipeline-runs push-up">

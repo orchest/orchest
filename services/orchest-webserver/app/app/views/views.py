@@ -243,7 +243,10 @@ def register_views(app, db):
             "ORCHEST_WEB_URLS",
         ]
 
-        front_end_config_internal = ["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"]
+        front_end_config_internal = [
+            "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE",
+            "PIPELINE_PARAMETERS_RESERVED_KEY",
+        ]
 
         return render_template(
             "index.html",
@@ -663,7 +666,15 @@ def register_views(app, db):
                 )
             else:
                 with open(pipeline_json_path) as json_file:
-                    return jsonify({"success": True, "pipeline_json": json_file.read()})
+                    pipeline_json = json.load(json_file)
+                    # Take care of old pipelines with no defined params.
+                    if "parameters" not in pipeline_json:
+                        pipeline_json["parameters"] = {}
+                    # json.dumps because the front end expects it as a
+                    # string.
+                    return jsonify(
+                        {"success": True, "pipeline_json": json.dumps(pipeline_json)}
+                    )
 
             return ""
 

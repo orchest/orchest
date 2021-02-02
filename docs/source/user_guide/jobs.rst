@@ -11,7 +11,17 @@ Run a job
 -----------------
 
 Before we get into jobs, it is good to first cover the notion of parameterizing your pipeline
-steps.
+and your pipeline steps.
+
+You can access your pipeline parameters through the pipeline settings:
+
+1. Open a pipeline via the *Pipelines* option in the left menu pane.
+2. Click on *SETTINGS* in the top right corner.
+3. Towards the top you will find the *Pipeline Parameters* section. 
+4. Input some JSON like :code:`{"my-param": <param-value>}`.
+5. Make sure to press the black *Save* button towards the top of your screen.
+
+To access the parameters of the steps of a pipeline:
 
 1. Open a pipeline via the *Pipelines* option in the left menu pane.
 2. Click on a pipeline step to open its *Properties*.
@@ -23,7 +33,7 @@ You can now access the value of those parameters (and even update them) from wit
 the respective pipeline step.  See the :ref:`parameters section <sdk-quickstart-parameters>` to get
 started on using parameters inside your scripts.
 
-Now that we have covered how to parameterize your pipeline (steps) we will introduce jobs.
+Now that we have covered how to parameterize your pipeline we will introduce jobs.
 With jobs you get to try out all your modeling ideas by iterating over different parameter
 values. For now you can think of it as a `grid search
 <https://scikit-learn.org/stable/modules/grid_search.html>`_. To start a job

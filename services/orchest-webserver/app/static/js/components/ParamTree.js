@@ -1,27 +1,37 @@
-import React, { Fragment } from "react";
+import React from "react";
+import _ from "lodash";
 
 class ParamTree extends React.Component {
   truncateParameterValue(value) {
+    // stringify non string values
+    if (!_.isString(value)) {
+      value = JSON.stringify(value);
+    }
+
     let maxLength = 50;
     return value.length > maxLength
       ? value.substring(0, maxLength - 1) + "…"
       : value;
   }
 
-  onEditParameter(parameterKey, stepUUID) {
+  onEditParameter(parameterKey, key) {
     if (this.props.editParameter) {
-      this.props.editParameter(parameterKey, stepUUID);
+      this.props.editParameter(parameterKey, key);
     }
   }
 
-  generateParameterStep(parameterizedStep) {
+  generateParameterElement(stepStrategy, includeTitle) {
     let elements = [];
 
-    elements.push(
-      <b key={parameterizedStep.uuid}>{parameterizedStep.title}</b>
-    );
+    if (includeTitle === undefined) {
+      includeTitle = true;
+    }
 
-    for (let parameterKey in parameterizedStep.parameters) {
+    if (includeTitle) {
+      elements.push(<b key={stepStrategy.key}>{stepStrategy.title}</b>);
+    }
+
+    for (let parameterKey in stepStrategy.parameters) {
       let parameterValueClasses = ["parameter-value"];
 
       if (this.props.editParameter) {
@@ -30,7 +40,7 @@ class ParamTree extends React.Component {
 
       elements.push(
         <div
-          key={parameterKey + "-" + parameterizedStep.uuid}
+          key={parameterKey + "-" + stepStrategy.key}
           className="parameter-row"
         >
           <div className="parameter-key">{parameterKey}:</div>
@@ -39,12 +49,10 @@ class ParamTree extends React.Component {
             onClick={this.onEditParameter.bind(
               this,
               parameterKey,
-              parameterizedStep.uuid
+              stepStrategy.key
             )}
           >
-            {this.truncateParameterValue(
-              parameterizedStep.parameters[parameterKey]
-            )}
+            {this.truncateParameterValue(stepStrategy.parameters[parameterKey])}
           </div>
         </div>
       );
@@ -53,30 +61,61 @@ class ParamTree extends React.Component {
     return elements;
   }
 
-  generateParameterTree(parameterizedSteps) {
-    let elements = [];
+  generateParameterTree(strategyJSON) {
+    let pipelineParameterElement;
+    let stepParameterElements = [];
 
-    for (const stepUUID in parameterizedSteps) {
-      elements = elements.concat(
-        this.generateParameterStep(parameterizedSteps[stepUUID])
+    // first list pipeline parameters
+    let pipelineParameterization =
+      strategyJSON[orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]];
+    if (pipelineParameterization) {
+      pipelineParameterElement = this.generateParameterElement(
+        pipelineParameterization,
+        false
       );
     }
 
-    return elements;
+    for (const stepUUID in strategyJSON) {
+      if (stepUUID == orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]) {
+        continue;
+      }
+
+      stepParameterElements = stepParameterElements.concat(
+        this.generateParameterElement(strategyJSON[stepUUID])
+      );
+    }
+
+    return [pipelineParameterElement, stepParameterElements];
   }
   render() {
-    let treeView = this.generateParameterTree(this.props.parameterizedSteps);
+    let [
+      pipelineParameterElement,
+      stepParameterElements,
+    ] = this.generateParameterTree(this.props.strategyJSON);
 
     return (
       <div className="parameter-tree">
         {(() => {
-          if (Object.keys(this.props.parameterizedSteps).length == 0) {
+          if (Object.keys(this.props.strategyJSON).length == 0) {
             return (
               <p>This pipeline doesn't define any parameters on its steps.</p>
             );
           }
         })()}
-        {treeView}
+
+        {pipelineParameterElement !== undefined && (
+          <>
+            <h3>Pipeline: {this.props.pipelineName}</h3>
+            {pipelineParameterElement}
+          </>
+        )}
+
+        {stepParameterElements.length > 0 && (
+          <>
+            <h3 className="push-up">Steps</h3>
+            <div className="step-params">{stepParameterElements}</div>
+          </>
+        )}
       </div>
     );
   }

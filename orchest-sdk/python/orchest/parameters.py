@@ -5,7 +5,7 @@ e.g. ``pipeline.orchest``.
 
 """
 import json
-from typing import Any, Dict
+from typing import Optional, Tuple
 
 from orchest.config import Config
 from orchest.error import StepUUIDResolveError
@@ -13,11 +13,12 @@ from orchest.pipeline import Pipeline
 from orchest.utils import get_step_uuid
 
 
-def get_params() -> Dict[str, Any]:
-    """Gets the parameters of the current step.
+def get_params() -> Tuple[dict, dict]:
+    """Gets the parameters of the current step and the pipeline.
 
     Returns:
-        The parameters of the current step.
+        A tuple of two elements, where the first is the parameters of
+        the current step, the second is the parameters of the pipeline.
     """
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
@@ -31,34 +32,55 @@ def get_params() -> Dict[str, Any]:
     step = pipeline.get_step_by_uuid(step_uuid)
     params = step.get_params()
 
-    return params
+    return params, pipeline.get_params()
 
 
-def update_params(params: Dict[str, Any]) -> None:
-    """Updates the parameters of the current step.
+def update_params(
+    step_params: Optional[dict] = None, pipeline_params: Optional[dict] = None
+) -> None:
+    """Updates the parameters of the current step and of the pipeline.
 
     Additionally, you can set new parameters by giving parameters that
-    do not yet exist in the current parameters of the pipeline step.
+    do not yet exist in the current parameters, either of the step or of
+    the pipeline.
 
     Internally the updating is done by calling the ``dict.update``
     method. This further explains the behavior of this method.
 
     Args:
-        params: The parameters to update. Either updating their values
-            or adding new parameter keys.
+        step_params: The step parameters to update. Either updating
+            their values or adding new parameter keys.
+        pipeline_params: The pipeline parameters to update. Either
+            updating their values or adding new parameter keys.
+
+    Warning:
+        Updating the parameters of a pipeline can lead to race
+        conditions, since different steps could be updating them at
+        the same time. Making sure that the correct behaviour takes
+        place, when it comes to pipeline parameters, is responsibility
+        of the user, e.g. by making a pipeline where no steps that
+        modify the pipeline parameters can run in parallel, or by using
+        external forms of locking. Updating the parameters of a single
+        step is perfectly safe.
+
 
     """
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
 
     pipeline = Pipeline.from_json(pipeline_definition)
-    try:
-        step_uuid = get_step_uuid(pipeline)
-    except StepUUIDResolveError:
-        raise StepUUIDResolveError("Parameters could not be identified.")
 
-    step = pipeline.get_step_by_uuid(step_uuid)
-    step.update_params(params)
+    if pipeline_params is not None:
+        pipeline.update_params(pipeline_params)
+
+    if step_params is not None:
+        try:
+            step_uuid = get_step_uuid(pipeline)
+        except StepUUIDResolveError:
+            raise StepUUIDResolveError("Parameters could not be identified.")
+
+        step = pipeline.get_step_by_uuid(step_uuid)
+        step.update_params(step_params)
 
     with open(Config.PIPELINE_DEFINITION_PATH, "w") as f:
         json.dump(pipeline.to_dict(), f, indent=4, sort_keys=True)

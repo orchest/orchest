@@ -75,14 +75,15 @@ Parameters
 
    import orchest
 
-   # Get the parameters of the current step.
-   params = orchest.get_params()  # e.g. params = {"vegetable": "carrot"}
+   # Get the parameters of the current step and the pipeline.
+   step_params, pipeline_params = orchest.get_params()  # e.g. ({"vegetable": "carrot"}, {})
 
-   # Add a new parameter and update the step's parameters. The
-   # parameters now also become visible through the properties pane in
-   # the UI when clicking on a pipeline step.
-   params["fruit"] = "apple"
-   orchest.update_params(params)
+   # Update both the step parameters and the pipeline parameters. The
+   # updated parameters will be visible in the GUI, in the properties
+   # pane of the step and in the pipeline settings respectively.
+   step_params_update["fruit"] = "apple"
+   pipeline_params_update["eating_rate"] = 0.2 
+   orchest.update_params(step_params_update, pipeline_params_update)
 
 .. note::
    Parameters are at the core of :ref:`jobs <jobs>`, giving a handle to try out

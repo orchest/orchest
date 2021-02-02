@@ -466,6 +466,10 @@ button.text-button {
     padding: $generalPadding 0;
   }
 
+  .CodeMirror {
+    height: 150px;
+  }
+
   form {
     div.mdc-text-field {
       width: 100%;
@@ -633,12 +637,19 @@ h2.header {
     }
   }
 
+  h3 {
+    margin-bottom: 10px;
+  }
+
+  .step-params {
+    .parameter-key {
+      margin-left: 20px;
+    }
+  }
+
   .parameter-key,
   .parameter-value {
     display: inline-block;
-  }
-  .parameter-key {
-    margin-left: 20px;
   }
 
   .parameter-row {

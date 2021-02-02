@@ -2,6 +2,7 @@
     "name": "pipeline-name",
     "uuid": "pipeline-uuid",
     "settings": {},
+    "parameters": {},
     "steps": {
         "uuid-1": {
             "incoming_connections": [],

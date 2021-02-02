@@ -32,7 +32,7 @@ class EditJobView extends React.Component {
       runJobLoading: false,
       pipeline: undefined,
       cronString: undefined,
-      parameterizedSteps: {},
+      strategyJSON: {},
     };
 
     this.promiseManager = new PromiseManager();
@@ -63,7 +63,7 @@ class EditJobView extends React.Component {
 
         if (job.status !== "DRAFT") {
           this.setState({
-            parameterizedSteps: job.strategy_json,
+            strategyJSON: job.strategy_json,
           });
         }
 
@@ -98,7 +98,7 @@ class EditJobView extends React.Component {
 
         if (this.state.job.status === "DRAFT") {
           this.setState({
-            parameterizedSteps: this.generateParameterizedSteps(pipeline),
+            strategyJSON: this.generateStrategyJson(pipeline),
           });
         }
 
@@ -110,40 +110,51 @@ class EditJobView extends React.Component {
     });
   }
 
-  generateParameterizedSteps(pipeline) {
-    let parameterizedSteps = {};
+  generateParameterLists(parameters) {
+    let parameterLists = {};
+
+    for (const paramKey in parameters) {
+      // Note: the list of parameters for each key will always be
+      // a string in the 'strategyJSON' data structure. This
+      // facilitates preserving user added indendation.
+
+      // Validity of the user string as JSON is checked client
+      // side (for now).
+      parameterLists[paramKey] = JSON.stringify([parameters[paramKey]]);
+    }
+
+    return parameterLists;
+  }
+
+  generateStrategyJson(pipeline) {
+    let strategyJSON = {};
+
+    if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
+      strategyJSON[orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]] = {
+        key: orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"],
+        parameters: this.generateParameterLists(pipeline.parameters),
+        title: pipeline.name,
+      };
+    }
+
     for (const stepUUID in pipeline.steps) {
-      let parameterizedStep = JSON.parse(
-        JSON.stringify(pipeline.steps[stepUUID])
-      );
+      let stepStrategy = JSON.parse(JSON.stringify(pipeline.steps[stepUUID]));
 
       if (
-        parameterizedStep.parameters &&
-        Object.keys(parameterizedStep.parameters).length > 0
+        stepStrategy.parameters &&
+        Object.keys(stepStrategy.parameters).length > 0
       ) {
-        for (const paramKey in parameterizedStep.parameters) {
-          // Note: the list of parameters for each key will always be
-          // a string in the 'parameterizedSteps' data structure. This
-          // facilitates preserving user added indendation.
-
-          // Validity of the user string as JSON is checked client
-          // side (for now).
-          parameterizedStep.parameters[paramKey] = JSON.stringify([
-            parameterizedStep.parameters[paramKey],
-          ]);
-        }
-
         // selectively persist only required fields for use in parameter
         // related React components
-        parameterizedSteps[stepUUID] = {
-          uuid: stepUUID,
-          parameters: parameterizedStep.parameters,
-          title: parameterizedStep.title,
+        strategyJSON[stepUUID] = {
+          key: stepUUID,
+          parameters: this.generateParameterLists(stepStrategy.parameters),
+          title: stepStrategy.title,
         };
       }
     }
 
-    return parameterizedSteps;
+    return strategyJSON;
   }
 
   onSelectSubview(index) {
@@ -157,16 +168,16 @@ class EditJobView extends React.Component {
   }
 
   onParameterChange() {
-    // flatten and JSONify parameterizedSteps to prep data structure for algo
+    // flatten and JSONify strategyJSON to prep data structure for algo
     let flatParameters = {};
 
-    for (const stepUUID in this.state.parameterizedSteps) {
-      for (const paramKey in this.state.parameterizedSteps[stepUUID]
+    for (const strategyJSONKey in this.state.strategyJSON) {
+      for (const paramKey in this.state.strategyJSON[strategyJSONKey]
         .parameters) {
-        let fullParam = stepUUID + "#" + paramKey;
+        let fullParam = strategyJSONKey + "#" + paramKey;
 
         flatParameters[fullParam] = JSON.parse(
-          this.state.parameterizedSteps[stepUUID].parameters[paramKey]
+          this.state.strategyJSON[strategyJSONKey].parameters[paramKey]
         );
       }
     }
@@ -209,7 +220,9 @@ class EditJobView extends React.Component {
 
       for (let fullParam in params) {
         let paramName = fullParam.split("#").slice(1).join("");
-        pipelineRunRow.push(paramName + ": " + params[fullParam]);
+        pipelineRunRow.push(
+          paramName + ": " + JSON.stringify(params[fullParam])
+        );
       }
       if (pipelineRunRow.length > 0) {
         generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
@@ -268,7 +281,7 @@ class EditJobView extends React.Component {
 
     let jobPUTData = {
       confirm_draft: true,
-      strategy_json: this.state.parameterizedSteps,
+      strategy_json: this.state.strategyJSON,
       parameters: this.generateJobParameters(
         this.state.generatedPipelineRuns,
         this.state.selectedIndices
@@ -336,7 +349,7 @@ class EditJobView extends React.Component {
         content: {
           cron_schedule: cronSchedule,
           parameters: jobParameters,
-          strategy_json: this.state.parameterizedSteps,
+          strategy_json: this.state.strategyJSON,
         },
       }),
       this.promiseManager
@@ -367,7 +380,7 @@ class EditJobView extends React.Component {
           let stepUUID = keySplit[0];
           let parameterKey = keySplit.slice(1).join("#");
 
-          if (selectedRunParameters.stepUUID === undefined)
+          if (selectedRunParameters[stepUUID] === undefined)
             selectedRunParameters[stepUUID] = {};
 
           selectedRunParameters[stepUUID][parameterKey] = runParameters[key];
@@ -411,17 +424,17 @@ class EditJobView extends React.Component {
     });
   }
 
-  parameterValueOverride(parameterizedSteps, parameters) {
+  parameterValueOverride(strategyJSON, parameters) {
     for (let key in parameters) {
       let splitKey = key.split("#");
-      let stepUUID = splitKey[0];
+      let strategyJSONKey = splitKey[0];
       let paramKey = splitKey.slice(1).join("#");
       let paramValue = parameters[key];
 
-      parameterizedSteps[stepUUID]["parameters"][paramKey] = paramValue;
+      strategyJSON[strategyJSONKey]["parameters"][paramKey] = paramValue;
     }
 
-    return parameterizedSteps;
+    return strategyJSON;
   }
 
   setCronSchedule(cronString) {
@@ -437,18 +450,16 @@ class EditJobView extends React.Component {
     // override values in fields through param fields
     for (let x = 0; x < pipelineParameters.length; x++) {
       let parameters = pipelineParameters[x];
-      let parameterizedSteps = JSON.parse(
-        JSON.stringify(this.state.parameterizedSteps)
-      );
+      let strategyJSON = JSON.parse(JSON.stringify(this.state.strategyJSON));
 
-      parameterizedSteps = this.parameterValueOverride(
-        parameterizedSteps,
-        parameters
-      );
+      strategyJSON = this.parameterValueOverride(strategyJSON, parameters);
 
       detailElements.push(
         <div className="pipeline-run-detail">
-          <ParamTree parameterizedSteps={parameterizedSteps} />
+          <ParamTree
+            pipelineName={this.state.pipeline.name}
+            strategyJSON={strategyJSON}
+          />
         </div>
       );
     }
@@ -467,8 +478,9 @@ class EditJobView extends React.Component {
           tabView = (
             <div className="tab-view">
               <ParameterEditor
+                pipelineName={this.state.pipeline.name}
                 onParameterChange={this.onParameterChange.bind(this)}
-                parameterizedSteps={this.state.parameterizedSteps}
+                strategyJSON={this.state.strategyJSON}
               />
             </div>
           );

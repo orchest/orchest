@@ -24,6 +24,7 @@ class PipelineDefinition(TypedDict):
     name: str
     uuid: str
     steps: Dict[str, PipelineStepProperties]
+    parameters: Dict[str, Any]
 
 
 class PipelineStep:
@@ -110,6 +111,7 @@ class Pipeline:
             "name": description["name"],
             "uuid": description["uuid"],
             "settings": description.get("settings"),
+            "parameters": description.get("parameters", {}),
         }
         return cls(list(steps.values()), properties)
 
@@ -136,6 +138,17 @@ class Pipeline:
         raise error.StepUUIDResolveError(
             "Step does not exist in the pipeline with UUID: {uuid}."
         )
+
+    def get_params(self) -> Dict[str, Any]:
+        return self.properties.get("parameters", {})
+
+    def update_params(self, params) -> None:
+        try:
+            self.properties["parameters"].update(params)
+        except KeyError:
+            self.properties["parameters"] = params
+
+        return
 
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"
