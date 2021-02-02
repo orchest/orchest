@@ -477,6 +477,7 @@ c.ServerApp.allow_origin = "*"
 ## The content manager class to use.
 #  Default: 'jupyter_server.services.contents.largefilemanager.LargeFileManager'
 # c.ServerApp.contents_manager_class = 'jupyter_server.services.contents.largefilemanager.LargeFileManager'
+c.ContentsManager.allow_hidden = True
 
 ## Extra keyword arguments to pass to `set_secure_cookie`. See tornado's
 #  set_secure_cookie docs for details.
