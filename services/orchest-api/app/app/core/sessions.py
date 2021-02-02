@@ -523,6 +523,11 @@ def _get_mounts(
             ),
             type="bind",
         )
+    else:
+        # For non-interactive runs, make sure that the same set of keys
+        # is available in the mounts dictionary.
+        mounts["kernelspec"] = None
+        mounts["jupyterlab"] = {}
 
     # By mounting the docker sock it becomes possible for containers
     # to be spawned from inside another container.
@@ -653,8 +658,8 @@ def _get_container_specs(
         "detach": True,
         "mounts": [
             mounts["project_dir"],
-            mounts["jupyterlab"]["lab"],
-            mounts["jupyterlab"]["user-settings"],
+            mounts["jupyterlab"].get("lab"),
+            mounts["jupyterlab"].get("user-settings"),
         ],
         "name": jupyter_hostname,
         "network": network,
