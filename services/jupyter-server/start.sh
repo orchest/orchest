@@ -72,9 +72,4 @@ cp -rfT "$build_path/extensions" "$userdir_path/extensions"
 # from the build. Otherwise JupyterLab cannot start as part of Orchest.
 rm -rf "$userdir_path/static" && cp -r "$build_path/static" "$userdir_path/static"
 
-# Trigger rebuild in background. When the user refreshes JupyterLab
-# once the build it finished, the extensions are installed.
-# (jupyter lab build --dev-build=False --LabBuildApp.app_dir="$userdir_path" \
-#     && jupyter lab clean --LabCleanApp.app_dir="$userdir_path") &
-
 jupyter lab --LabApp.app_dir="$userdir_path" "$@"
