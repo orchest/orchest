@@ -104,17 +104,17 @@ class ParamTree extends React.Component {
         })()}
 
         {pipelineParameterElement !== undefined && (
-          <>
+          <div className="param-block">
             <h3>Pipeline: {this.props.pipelineName}</h3>
             {pipelineParameterElement}
-          </>
+          </div>
         )}
 
         {stepParameterElements.length > 0 && (
-          <>
-            <h3 className="push-up">Steps</h3>
+          <div className="param-block">
+            <h3>Steps</h3>
             <div className="step-params">{stepParameterElements}</div>
-          </>
+          </div>
         )}
       </div>
     );

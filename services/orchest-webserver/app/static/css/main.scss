@@ -637,6 +637,14 @@ h2.header {
     }
   }
 
+  .param-block {
+    margin-bottom: 20px;
+
+    &:last-of-type {
+      margin-bottom: 0;
+    }
+  }
+
   h3 {
     margin-bottom: 10px;
   }
