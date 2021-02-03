@@ -229,6 +229,7 @@ class PipelineStepRunner:
 
         orchest_mounts = get_orchest_mounts(
             project_dir=_config.PROJECT_DIR,
+            host_user_dir=run_config["host_user_dir"],
             host_project_dir=run_config["project_dir"],
             mount_form="docker-engine",
         )

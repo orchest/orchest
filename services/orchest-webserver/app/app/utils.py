@@ -340,7 +340,6 @@ def pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid=None):
                 .get("pipeline_path")
             )
         else:
-            current_app.logger.warning(data)
             return None
 
 

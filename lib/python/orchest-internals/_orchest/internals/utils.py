@@ -90,7 +90,9 @@ def get_environment_capabilities(environment_uuid, project_uuid):
     return capabilities
 
 
-def get_orchest_mounts(project_dir, host_project_dir, mount_form="docker-sdk"):
+def get_orchest_mounts(
+    project_dir, host_user_dir, host_project_dir, mount_form="docker-sdk"
+):
     """
     Prepare all mounts that are needed to run Orchest.
 
@@ -110,39 +112,20 @@ def get_orchest_mounts(project_dir, host_project_dir, mount_form="docker-sdk"):
     else:
         mounts = [project_dir_mount]
 
-    # Mounts for datasources.
-    try:
-        response = requests.get("http://orchest-webserver/store/datasources")
-        response.raise_for_status()
+    # Mount the /userdir/data directory.
+    target_path = "/data"
+    source = os.path.join(host_user_dir, "data")
 
-    except Exception as e:
-        print(e)
+    mount = get_mount(
+        source=source,
+        target=target_path,
+        form=mount_form,
+    )
 
+    if mount_form == "docker-sdk":
+        mounts[source] = mount[source]
     else:
-        datasources = response.json()
-        for datasource in datasources:
-            if datasource["source_type"] != "host-directory":
-                continue
-
-            # the default (host) /userdata/data should be mounted
-            # in /data
-            if datasource["connection_details"]["absolute_host_path"].endswith(
-                "/userdir/data"
-            ):
-                target_path = "/data"
-            else:
-                target_path = "/mounts/%s" % datasource["name"]
-
-            source = datasource["connection_details"]["absolute_host_path"]
-            mount = get_mount(
-                source=source,
-                target=target_path,
-                form=mount_form,
-            )
-            if mount_form == "docker-sdk":
-                mounts[source] = mount[source]
-            else:
-                mounts.append(mount)
+        mounts.append(mount)
 
     return mounts
 

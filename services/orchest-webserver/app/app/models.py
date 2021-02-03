@@ -49,20 +49,6 @@ class Pipeline(BaseModel):
     path = db.Column(db.String(255), nullable=False)
 
 
-class DataSource(BaseModel):
-    __tablename__ = "datasources"
-
-    name = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
-    source_type = db.Column(db.String(100), nullable=False)
-    connection_details = db.Column(db.JSON, nullable=False)
-    created = db.Column(
-        db.DateTime, nullable=False, server_default=text("timezone('utc', now())")
-    )
-
-    def __repr__(self):
-        return f"<DataSource {self.name}:{self.source_type}>"
-
-
 # This class is only serialized on disk, it's never stored in the
 # database. The properties are stored in properties.json in the
 # <project>/.orchest/environments/<environment_uuid>/. directory.

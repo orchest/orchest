@@ -234,10 +234,6 @@ def start_non_interactive_pipeline_run(
     # of a step.
     host_base_user_dir = os.path.split(run_config["host_user_dir"])[0]
 
-    # It gets passed to the run of the pipeline, however, it is never
-    # used. Thus we delete it to not cause confusion.
-    del run_config["host_user_dir"]
-
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
     run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])

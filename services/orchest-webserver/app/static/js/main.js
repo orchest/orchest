@@ -8,9 +8,7 @@ import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import HelpView from "./views/HelpView";
 import ManageUsersView from "./views/ManageUsersView";
-import DataSourcesView from "./views/DataSourcesView";
 import FileManagerView from "./views/FileManagerView";
-import DataSourceEditView from "./views/DataSourceEditView";
 import JobsView from "./views/JobsView";
 import PipelinesView from "./views/PipelinesView";
 import EditJobView from "./views/EditJobView";
@@ -45,10 +43,8 @@ function Orchest() {
 
   this.viewComponents = {
     ProjectsView,
-    DataSourcesView,
     FileManagerView,
     EnvironmentsView,
-    DataSourceEditView,
     PipelineView,
     SettingsView,
     HelpView,

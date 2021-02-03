@@ -89,29 +89,6 @@ Parameters
    Parameters are at the core of :ref:`jobs <jobs>`, giving a handle to try out
    different modeling ideas based on a set of variable inputs.
 
-
-.. _sdk-quickstart-data-sources:
-
-Data sources
-~~~~~~~~~~~~
-Before you can interact with data sources from within your scripts, you have to configure one
-through the *Data sources* option in the left menu pane. For more see
-:ref:`data sources <data sources>`.
-
-.. code-block:: python
-
-   import orchest
-   import pandas as pd
-
-   # Note that the "example-mysql-db" is created in the UI first under
-   # "Data sources" in the left hand panel.
-   mysql = orchest.get_datasource("example-mysql-db")
-
-   # Use a connection object to execute an SQL query.
-   with mysql.connect() as conn:
-      df = pd.read_sql("SELECT * FROM users", conn)
-
-
 API
 ---
 
@@ -127,11 +104,3 @@ orchest.parameters
 
 .. automodule:: orchest.parameters
     :members:
-
-
-orchest.datasources
-~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: orchest.datasources
-    :members:
-    :inherited-members:

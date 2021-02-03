@@ -59,12 +59,6 @@ class OrchestNetworkError(Error):
     pass
 
 
-class OrchestInternalDataSourceError(Error):
-    """It is not allowed to request internal data sources."""
-
-    pass
-
-
 class StepUUIDResolveError(Error):
     """Step UUID could not be resolved."""
 

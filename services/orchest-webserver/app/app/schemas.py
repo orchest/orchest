@@ -15,11 +15,6 @@ class PipelineSchema(ma.Schema):
         fields = ("uuid", "path", "env_variables")
 
 
-class DataSourceSchema(ma.Schema):
-    class Meta:
-        fields = ("name", "source_type", "connection_details")
-
-
 class EnvironmentSchema(ma.Schema):
     class Meta:
         fields = (

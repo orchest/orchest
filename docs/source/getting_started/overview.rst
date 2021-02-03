@@ -12,7 +12,6 @@ With Orchest you get to:
 * :ref:`Skip certain cells when executing a notebook top-to-bottom <skip cells>`.
 * :ref:`Parametrize your data science pipelines to try out different modeling ideas
   <parametrize pipelines>`.
-* :ref:`Integrate commonly used data sources <integrate data sources>`.
 * :ref:`Easily define your custom runtime environment <custom runtime environment>`.
 * :ref:`Version your pipelines through git <version through git>`.
 
@@ -57,14 +56,6 @@ Parametrize your data science pipelines
 ---------------------------------------
 .. figure:: ../img/overview/parametrize.png
    :width: 300
-   :align: center
-
-.. _integrate data sources:
-
-Integrate commonly used data sources
-------------------------------------
-.. figure:: ../img/overview/data-sources.png
-   :width: 250
    :align: center
 
 .. _custom runtime environment:
