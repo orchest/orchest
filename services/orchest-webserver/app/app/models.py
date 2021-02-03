@@ -10,7 +10,14 @@ def str_uuid4():
     return str(uuid.uuid4())
 
 
-class Project(db.Model):
+class BaseModel(db.Model):
+    __abstract__ = True
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+
+class Project(BaseModel):
     __tablename__ = "projects"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
@@ -32,7 +39,7 @@ class Project(db.Model):
     __table_args__ = (UniqueConstraint("uuid", "path"),)
 
 
-class Pipeline(db.Model):
+class Pipeline(BaseModel):
     __tablename__ = "pipelines"
 
     uuid = db.Column(db.String(255), nullable=False, primary_key=True)
@@ -42,7 +49,7 @@ class Pipeline(db.Model):
     path = db.Column(db.String(255), nullable=False)
 
 
-class DataSource(db.Model):
+class DataSource(BaseModel):
     __tablename__ = "datasources"
 
     name = db.Column(db.String(255), unique=True, nullable=False, primary_key=True)
@@ -62,7 +69,7 @@ class DataSource(db.Model):
 # to avoid unknowingly querying a table that will always be empty, the
 # table is deleted
 # see __init__ at around line 120, after the db is initialized
-class Environment(db.Model):
+class Environment(BaseModel):
     __tablename__ = "environments"
 
     uuid = db.Column(
@@ -89,7 +96,7 @@ class Environment(db.Model):
         return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"
 
 
-class BackgroundTask(db.Model):
+class BackgroundTask(BaseModel):
     """BackgroundTasks, models all tasks to be run in the background."""
 
     __tablename__ = "background_tasks"

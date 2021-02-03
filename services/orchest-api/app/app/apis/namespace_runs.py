@@ -17,7 +17,12 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
-from app.utils import lock_environment_images_for_run, register_schema, update_status_db
+from app.utils import (
+    get_proj_pip_env_variables,
+    lock_environment_images_for_run,
+    register_schema,
+    update_status_db,
+)
 
 api = Namespace("runs", description="Manages interactive pipeline runs")
 api = register_schema(api)
@@ -60,7 +65,7 @@ class RunList(Resource):
                 run = CreateInteractiveRun(tpe).transaction(
                     post_data["project_uuid"],
                     post_data["run_config"],
-                    pipeline=construct_pipeline(**post_data),
+                    construct_pipeline(**post_data),
                 )
         except Exception as e:
             return {"message": str(e)}, 500
@@ -210,7 +215,10 @@ class AbortPipelineRun(TwoPhaseFunction):
 
 class CreateInteractiveRun(TwoPhaseFunction):
     def _transaction(
-        self, project_uuid: str, run_config: Dict[str, Any], pipeline: Pipeline
+        self,
+        project_uuid: str,
+        run_config: Dict[str, Any],
+        pipeline: Pipeline,
     ):
         # specify the task_id beforehand to avoid race conditions
         # between the task and its presence in the db
@@ -225,6 +233,9 @@ class CreateInteractiveRun(TwoPhaseFunction):
             "pipeline_uuid": pipeline.properties["uuid"],
             "project_uuid": project_uuid,
             "status": "PENDING",
+            "env_variables": get_proj_pip_env_variables(
+                project_uuid, pipeline.properties["uuid"]
+            ),
         }
         db.session.add(models.InteractivePipelineRun(**run))
         # need to flush because otherwise the bulk insertion of pipeline
@@ -254,7 +265,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["pipeline"] = pipeline
         self.collateral_kwargs["run_config"] = run_config
-        self.collateral_kwargs["run"] = run
+        self.collateral_kwargs["env_variables"] = run["env_variables"]
         return run
 
     def _collateral(
@@ -263,6 +274,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         task_id: str,
         pipeline: Pipeline,
         run_config: Dict[str, Any],
+        env_variables: Dict[str, Any],
         **kwargs,
     ):
         # Get docker ids of images to use and make it so that the images
@@ -286,6 +298,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         celery = make_celery(current_app)
         run_config = run_config
         run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
+        run_config["user_env_variables"] = env_variables
         celery_job_kwargs = {
             "pipeline_definition": pipeline.to_dict(),
             "project_uuid": project_uuid,

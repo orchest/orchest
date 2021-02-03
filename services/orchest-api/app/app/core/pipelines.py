@@ -248,11 +248,19 @@ class PipelineStepRunner:
         # directory will be my/project/path/.
         working_dir = os.path.split(run_config["pipeline_path"])[0]
 
+        user_env_variables = [
+            f"{key}={value}" for key, value in run_config["user_env_variables"].items()
+        ]
+
         config = {
             "Image": run_config["env_uuid_docker_id_mappings"][
                 self.properties["environment"]
             ],
-            "Env": [
+            # Note that the order of concatenation matters, so that
+            # there is no risk that the user overwrites internal
+            # variables accidentally.
+            "Env": user_env_variables
+            + [
                 f'ORCHEST_STEP_UUID={self.properties["uuid"]}',
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
                 f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',

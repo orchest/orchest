@@ -57,6 +57,13 @@ class CreatePipeline(TwoPhaseFunction):
             "parameters": {},
         }
 
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
+            json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
+        )
+        if resp.status_code != 201:
+            raise Exception("Orchest-api pipeline creation failed.")
+
         with open(pipeline_json_path, "w") as pipeline_json_file:
             json.dump(pipeline_json, pipeline_json_file, indent=4, sort_keys=True)
 
@@ -163,6 +170,13 @@ class AddPipelineFromFS(TwoPhaseFunction):
         pipeline_path: str,
         pipeline_json: str,
     ):
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
+            json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
+        )
+        if resp.status_code != 201:
+            raise Exception("Orchest-api pipeline creation failed.")
+
         if new_uuid:
             pipeline_json_path = get_pipeline_path(
                 None, project_uuid, pipeline_path=pipeline_path

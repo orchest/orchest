@@ -414,3 +414,26 @@ def remove_if_dangling(img) -> bool:
             time.sleep(1)
             tries -= 1
     return False
+
+
+def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[str, str]:
+    """
+
+    Args:
+        project_uuid:
+        pipeline_uuid:
+
+    Returns:
+        Environment variables resulting from the merge of the project
+        and pipeline environment variables, giving priority to pipeline
+        variables, e.g. they override project variables.
+    """
+    project_env_vars = (
+        models.Project.query.filter_by(uuid=project_uuid).one().env_variables
+    )
+    pipeline_env_vars = (
+        models.Pipeline.query.filter_by(project_uuid=project_uuid, uuid=pipeline_uuid)
+        .one()
+        .env_variables
+    )
+    return {**project_env_vars, **pipeline_env_vars}

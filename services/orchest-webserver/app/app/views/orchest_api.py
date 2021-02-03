@@ -396,5 +396,3 @@ def register_orchest_api_views(app, db):
         except Exception as e:
             msg = f"Error during job deletion:{e}"
             return {"message": msg}, 500
-
-        return jsonify({"message": "Job deletion was successful."})

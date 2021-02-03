@@ -28,7 +28,6 @@ from app.schemas import (
     BackgroundTaskSchema,
     DataSourceSchema,
     EnvironmentSchema,
-    PipelineSchema,
     ProjectSchema,
 )
 from app.utils import (
@@ -64,8 +63,6 @@ def register_views(app, db):
         pass
 
     projects_schema = ProjectSchema(many=True)
-
-    pipeline_schema = PipelineSchema()
 
     datasource_schema = DataSourceSchema()
     datasources_schema = DataSourceSchema(many=True)
@@ -411,6 +408,50 @@ def register_views(app, db):
                     )
                 )
 
+    @app.route("/async/projects/<project_uuid>", methods=["GET"])
+    def project_get(project_uuid):
+        project = Project.query.filter(Project.uuid == project_uuid).first()
+
+        if project is None:
+            return jsonify({"message": "Project doesn't exist."}), 404
+
+        resp = requests.get(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/projects/{project_uuid}",
+            )
+        )
+        if resp.status_code == 404:
+            return (
+                jsonify({"message": "Project doesn't exist in the orchest-api."}),
+                404,
+            )
+        elif resp.status_code != 200:
+            return (
+                jsonify({"message": "Orchest-api project retrieval failed."}),
+                resp.status_code,
+            )
+        else:
+            # Merge the project data coming from the orchest-api.
+            project = {**project.as_dict(), **resp.json()}
+            return jsonify(project)
+
+    @app.route("/async/projects/<project_uuid>", methods=["PUT"])
+    def project_put(project_uuid):
+
+        # While this seems suited to be in the orchest_api.py module,
+        # I've left it here because some project data lives in the web
+        # server as well, and this PUT request might eventually update
+        # that.
+        resp = requests.put(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/projects/{project_uuid}"
+            ),
+            json=request.json,
+        )
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/async/projects", methods=["GET"])
     def projects_get():
 
@@ -501,8 +542,43 @@ def register_views(app, db):
 
         if pipeline is None:
             return jsonify({"message": "Pipeline doesn't exist."}), 404
+
+        resp = requests.get(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/pipelines/{project_uuid}/{pipeline_uuid}",
+            )
+        )
+        if resp.status_code == 404:
+            return (
+                jsonify({"message": "Pipeline doesn't exist in the orchest-api."}),
+                404,
+            )
+        elif resp.status_code != 200:
+            return (
+                jsonify({"message": "Orchest-api pipeline retrieval failed."}),
+                resp.status_code,
+            )
         else:
-            return jsonify(pipeline_schema.dump(pipeline))
+            # Merge the pipeline data coming from the orchest-api.
+            pipeline = {**pipeline.as_dict(), **resp.json()}
+            return jsonify(pipeline)
+
+    @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["PUT"])
+    def pipeline_put(project_uuid, pipeline_uuid):
+
+        # While this seems suited to be in the orchest_api.py module,
+        # I've left it here because some pipeline data lives in the web
+        # server as well, and this PUT request might eventually update
+        # that.
+        resp = requests.put(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/pipelines/{project_uuid}/{pipeline_uuid}"
+            ),
+            json=request.json,
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
     def pipelines_get(project_uuid):
