@@ -11,42 +11,57 @@ from app.utils import write_config
 
 # Analytics related functions
 def send_anonymized_pipeline_definition(app, pipeline):
-    """We send the anonymized pipeline definition to understand the typical
-    structure of pipelines created in Orchest. This teaches how to further
-    improve Orchest's core features.
-    """
+    """Sends anonymized pings of an anonymized pipeline definition.
 
-    # Remove potentially sensitive fields
+    We send the anonymized pipeline definition to understand the
+    typical structure of pipelines created in Orchest. This teaches how
+    to further improve Orchest's core features.
+
+    What we track and why. Additional metrics are constructed of the
+    removed fields:
+        * step_count: The number of steps the pipeline contains. This
+          teaches us how large typical pipelines can get.
+        * step_parameters_count: The cumsum of the number of parameters
+          of all steps. For analysis of the parameters usability.
+        * pipeline_parameters_count: The sum of the number of parameters
+          at the pipeline level. For analysis of the parameters
+          usability.
+        * environment_count: Number of unique environments used. Teaches
+          us whether users build different environments for every step
+          or just use one environment.
+        * definition: An anonymized version of the pipeline definition.
+          This way we can later extract new metrics.
+
+    """
+    # Make a copy so that we can remove potentially sensitive fields.
     pipeline = copy.deepcopy(pipeline)
 
-    # Statistics
-    environments = set()
-    # The step count helps us understand how large typical pipelines get.
-    step_count = len(pipeline.get("steps", []))
+    # Statistics construction.
+    pipeline.pop("name")
+    pipeline_parameters_count = len(pipeline.pop("parameters", {}))
 
-    pipeline.pop("name", None)
     steps = pipeline.get("steps", {})
+    step_count = len(steps)
 
+    environments = set()
+    step_parameters_count = 0
     for _, step in steps.items():
-        step.pop("title", None)
-        step.pop("parameters", None)
-        step.pop("file_path", None)
+        step.pop("title")
+        step.pop("file_path")
+        step_parameters_count += len(step.pop("parameters", {}))
 
-        # Capture environments for count
         env = step.get("environment", "")
-        if len(env) > 0:
+        if len(env):
             environments.add(env)
-
-    # The environment count helps us understand how many environments are
-    # typically used within a single pipeline.
-    environment_count = len(environments)
 
     send_event(
         app,
         "pipeline save",
         {
             "step_count": step_count,
-            "environment_count": environment_count,
+            "step_parameters_count": step_parameters_count,
+            "pipeline_parameters_count": pipeline_parameters_count,
+            "environment_count": len(environments),
             "definition": pipeline,
         },
     )
@@ -104,8 +119,8 @@ def send_event(app, event, properties):
 
 def analytics_ping(app):
     """
-    Note: telemetry can be disabled by including TELEMETRY_DISABLED in your user
-    # config.json.
+    Note: telemetry can be disabled by including TELEMETRY_DISABLED in
+    your user config.json.
     """
     try:
         properties = {"active": check_active(app)}
