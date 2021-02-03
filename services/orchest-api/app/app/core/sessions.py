@@ -523,6 +523,12 @@ def _get_mounts(
             ),
             type="bind",
         )
+
+        mounts["jupyterlab"]["data"] = Mount(  # data directory
+            target="/data",
+            source=os.path.join(host_userdir, "data"),
+            type="bind",
+        )
     else:
         # For non-interactive runs, make sure that the same set of keys
         # is available in the mounts dictionary.
@@ -660,6 +666,7 @@ def _get_container_specs(
             mounts["project_dir"],
             mounts["jupyterlab"].get("lab"),
             mounts["jupyterlab"].get("user-settings"),
+            mounts["jupyterlab"].get("data"),
         ],
         "name": jupyter_hostname,
         "network": network,

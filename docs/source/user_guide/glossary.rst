@@ -8,6 +8,8 @@ Pipeline definition
 
     * Every pipeline definition in a project is shown in the Orchest UI under *Pipelines*.
     * The JSON inside the file uniquely defines the :ref:`pipeline <pipeline>`.
+    * A full `JSON Schema <https://json-schema.org/>`_ definition can be found in the
+      :ref:`implementation details <pipeline-json-schema>`.
 
 .. _pipeline step:
 
