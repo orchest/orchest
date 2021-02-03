@@ -229,10 +229,14 @@ class ProjectsView extends React.Component {
   }
 
   validProjectName(projectName) {
-    if (projectName.indexOf("/") !== -1) {
+    if (projectName.match("[^A-Za-z0-9_.-]")) {
       return {
         valid: false,
-        reason: "Project name cannot contain '/' character.",
+        reason:
+          "A project name has to be a valid git repository name and" +
+          " thus can only contain alphabetic characters, numbers and" +
+          " the special characters: '_.-'. The regex would be" +
+          " [A-Za-z0-9_.-].",
       };
     }
     return { valid: true };

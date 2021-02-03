@@ -18,6 +18,9 @@ Overview of the different paths inside the ``userdir/``.
    │               └── snapshot
    │                   └── <complete-copy-of-myproject>
    ├── .orchest
+   │   ├── user-configurations
+   │   │   └── jupyterlab
+   │   │       └── <various configuration files>
    │   ├── database
    │   │   └── data
    │   │       └── <postgres data store>
@@ -43,6 +46,134 @@ Overview of the different paths inside the ``userdir/``.
            │   │       └── setup_script.sh
            │   └── .gitignore
            └── preprocessing.ipynb
+
+
+.. _pipeline-json-schema:
+
+Pipeline definition JSON
+------------------------
+
+The full `JSON Schema <https://json-schema.org/>`_ definition of :ref:`pipelines <pipeline
+definition>` in Orchest can be found below.
+
+You can see an example and interactive validator `here <https://www.jsonschemavalidator.net/s/Gn040Vfy>`_.
+
+.. code-block:: json
+
+  {
+    "$id": "http://orchest.io/schemas/pipeline/1.0.0.json",
+    "$schema": "http://json-schema.org/schema#",
+    "definitions": {
+      "parameter": {
+        "propertyNames": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "uuidv4": {
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        "type": "string"
+      }
+    },
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "parameters": {
+        "$ref": "#/definitions/parameter"
+      },
+      "settings": {
+        "properties": {
+          "auto_eviction": {
+            "type": "boolean"
+          },
+          "data_passing_memory_size": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "steps": {
+        "additionalProperties": false,
+        "patternProperties": {
+          "": {
+            "properties": {
+              "environment": {
+                "$ref": "#/definitions/uuidv4",
+                "required": true
+              },
+              "file_path": {
+                "required": true,
+                "type": "string"
+              },
+              "incoming_connections": {
+                "items": {
+                  "$ref": "#/definitions/uuidv4"
+                },
+                "required": true,
+                "type": "array"
+              },
+              "kernel": {
+                "properties": {
+                  "display_name": {
+                    "required": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "required": true,
+                    "type": "string"
+                  }
+                }
+              },
+              "meta_data": {
+                "properties": {
+                  "hidden": {
+                    "type": "boolean"
+                  },
+                  "position": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  }
+                }
+              },
+              "parameters": {
+                "$ref": "#/definitions/parameter",
+                "required": true
+              },
+              "title": {
+                "required": true,
+                "type": "string"
+              },
+              "uuid": {
+                "$ref": "#/definitions/uuidv4",
+                "required": true
+              }
+            },
+            "type": "object"
+          }
+        },
+        "propertyNames": {
+          "$ref": "#/definitions/uuidv4"
+        },
+        "type": "object"
+      },
+      "uuid": {
+        "$ref": "#/definitions/uuidv4"
+      },
+      "version": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "settings",
+      "steps",
+      "version"
+    ],
+    "type": "object"
+  }
 
 
 ENV variables
