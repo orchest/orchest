@@ -354,9 +354,7 @@ class DockerWrapper:
         # Calling the lower level API as the following command gave
         # incorrect exit codes:
         # exit_code, _ = container.exec_run(cmd)
-        resp = container.client.api.exec_create(
-            container.id, "pg_isready --username postgres"
-        )
+        resp = container.client.api.exec_create(container.id, cmd)
         _ = container.client.api.exec_start(resp["Id"])
         exit_code = container.client.api.exec_inspect(resp["Id"])["ExitCode"]
 
@@ -607,7 +605,7 @@ class OrchestApp:
                 utils.wait_for_zero_exitcode(
                     self.docker_client,
                     stdouts["orchest-database"]["id"],
-                    "pg_isready -- username postgres",
+                    "pg_isready --username postgres",
                 )
 
         # Get the port on which Orchest is running.
