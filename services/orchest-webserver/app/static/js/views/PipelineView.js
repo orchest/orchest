@@ -2030,6 +2030,25 @@ class PipelineView extends React.Component {
       );
     }
 
+    // Check if there is an incoming step (that is not part of the
+    // selection).
+    // This is checked to conditionally render the
+    // 'Run incoming steps' button.
+    let selectedStepsHasIncoming = false;
+    for (let x = 0; x < this.state.selectedSteps.length; x++) {
+      let step = this.state.steps[this.state.selectedSteps[x]];
+      for (let i = 0; i < step.incoming_connections.length; i++) {
+        let incomingStepUUID = step.incoming_connections[i];
+        if (this.state.selectedSteps.indexOf(incomingStepUUID) < 0) {
+          selectedStepsHasIncoming = true;
+          break;
+        }
+      }
+      if (selectedStepsHasIncoming) {
+        break;
+      }
+    }
+
     return (
       <div className="pipeline-view">
         <div className="pane pipeline-view-pane">
@@ -2056,11 +2075,16 @@ class PipelineView extends React.Component {
                         onClick={this.runSelectedSteps.bind(this)}
                         label="Run selected steps"
                       />
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        onClick={this.onRunIncoming.bind(this)}
-                        label="Run incoming steps"
-                      />
+                      {selectedStepsHasIncoming && (
+                        <MDCButtonReact
+                          classNames={[
+                            "mdc-button--raised",
+                            "themed-secondary",
+                          ]}
+                          onClick={this.onRunIncoming.bind(this)}
+                          label="Run incoming steps"
+                        />
+                      )}
                     </div>
                   );
                 }
