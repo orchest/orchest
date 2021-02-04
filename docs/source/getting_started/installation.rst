@@ -22,8 +22,10 @@ first.
    ./orchest install
 
    # The previous command will only install language dependencies for
-   # Python. To specify other dependencies you can, for example, use:
+   # Python. Orchest supports Python, R, and Julia.
+   # To specify other dependencies you can, for example, use:
    # ./orchest install --lang=all
+   # Valid options for the lang flag are: python, r, julia, all, none
 
    # Verify the installation.
    ./orchest --help

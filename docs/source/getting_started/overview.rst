@@ -5,6 +5,8 @@ Overview
 
 With Orchest you get to:
 
+* :ref:`Easily define your custom runtime environment <custom runtime environment>`.
+* :ref:`Integrate commonly used data sources <integrate data sources>`.
 * :ref:`Visually construct pipelines <visually construct>`.
 * :ref:`Write code using JupyterLab <edit with jupyterlab>`.
 * :ref:`Write code using any other editor of choice <edit with vim>`.
@@ -12,8 +14,6 @@ With Orchest you get to:
 * :ref:`Skip certain cells when executing a notebook top-to-bottom <skip cells>`.
 * :ref:`Parametrize your data science pipelines to try out different modeling ideas
   <parametrize pipelines>`.
-* :ref:`Integrate commonly used data sources <integrate data sources>`.
-* :ref:`Easily define your custom runtime environment <custom runtime environment>`.
 * :ref:`Version your pipelines through git <version through git>`.
 
 .. _visually construct:
