@@ -321,7 +321,7 @@ def register_views(app, db):
         resp = requests.get(
             (
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
-                f"/api/projects/{project_uuid}",
+                f"/api/projects/{project_uuid}"
             )
         )
         if resp.status_code == 404:
@@ -449,7 +449,7 @@ def register_views(app, db):
         resp = requests.get(
             (
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
-                f"/api/pipelines/{project_uuid}/{pipeline_uuid}",
+                f"/api/pipelines/{project_uuid}/{pipeline_uuid}"
             )
         )
         if resp.status_code == 404:
