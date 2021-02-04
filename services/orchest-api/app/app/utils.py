@@ -7,6 +7,7 @@ from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
 from sqlalchemy import and_, or_
+from sqlalchemy.orm import undefer
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -429,10 +430,14 @@ def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[st
         variables, e.g. they override project variables.
     """
     project_env_vars = (
-        models.Project.query.filter_by(uuid=project_uuid).one().env_variables
+        models.Project.query.options(undefer(models.Project.env_variables))
+        .filter_by(uuid=project_uuid)
+        .one()
+        .env_variables
     )
     pipeline_env_vars = (
-        models.Pipeline.query.filter_by(project_uuid=project_uuid, uuid=pipeline_uuid)
+        models.Pipeline.query.options(undefer(models.Pipeline.env_variables))
+        .filter_by(project_uuid=project_uuid, uuid=pipeline_uuid)
         .one()
         .env_variables
     )

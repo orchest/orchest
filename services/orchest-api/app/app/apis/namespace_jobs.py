@@ -9,7 +9,7 @@ from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -128,8 +128,13 @@ class Job(Resource):
     def get(self, job_uuid):
         """Fetches a job given its UUID."""
         job = (
+            models.Job.query.options(undefer(models.Job.env_variables))
             # joinedload is to also fetch pipeline_runs.
-            models.Job.query.options(joinedload(models.Job.pipeline_runs))
+            .options(
+                joinedload(models.Job.pipeline_runs).undefer(
+                    models.NonInteractivePipelineRun.env_variables
+                )
+            )
             .filter_by(uuid=job_uuid)
             .one_or_none()
         )

@@ -9,6 +9,7 @@ TODO:
 """
 from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.orm import deferred
 
 from app.connections import db
 
@@ -26,7 +27,7 @@ class Project(BaseModel):
     __tablename__ = "projects"
 
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)
-    env_variables = db.Column(JSONB, nullable=False, server_default="{}")
+    env_variables = deferred(db.Column(JSONB, nullable=False, server_default="{}"))
 
     # Note that all relationships are lazy=select.
     pipelines = db.relationship(
@@ -55,7 +56,7 @@ class Pipeline(BaseModel):
         primary_key=True,
     )
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)
-    env_variables = db.Column(JSONB, nullable=False, server_default="{}")
+    env_variables = deferred(db.Column(JSONB, nullable=False, server_default="{}"))
 
     # Note that all relationships are lazy=select.
     interactive_sessions = db.relationship(
@@ -291,10 +292,12 @@ class Job(BaseModel):
         server_default="{}",
     )
 
-    env_variables = db.Column(
-        JSONB,
-        nullable=False,
-        server_default="{}",
+    env_variables = deferred(
+        db.Column(
+            JSONB,
+            nullable=False,
+            server_default="{}",
+        )
     )
 
     created_time = db.Column(
@@ -349,12 +352,6 @@ class PipelineRun(BaseModel):
         lazy="joined",
         passive_deletes=True,
         cascade="all, delete",
-    )
-
-    env_variables = db.Column(
-        JSONB,
-        nullable=False,
-        server_default="{}",
     )
 
     # related to inheritance, the "type" column will be used to
@@ -450,6 +447,14 @@ class NonInteractivePipelineRun(PipelineRun):
         # This way migrated entries that did not have this column will
         # still be valid.
         server_default="{}",
+    )
+
+    env_variables = deferred(
+        db.Column(
+            JSONB,
+            nullable=False,
+            server_default="{}",
+        )
     )
 
     # related to inheriting from PipelineRun

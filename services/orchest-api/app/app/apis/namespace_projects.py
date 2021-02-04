@@ -6,6 +6,7 @@ project, a good amount of other models depend on such a concept.
 from flask import abort, request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource
+from sqlalchemy.orm import undefer
 
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
@@ -55,7 +56,11 @@ class Project(Resource):
     @api.marshal_with(schema.project, code=200)
     def get(self, project_uuid):
         """Fetches a project given its uuid."""
-        project = models.Project.query.filter_by(uuid=project_uuid).one_or_none()
+        project = (
+            models.Project.query.options(undefer(models.Project.env_variables))
+            .filter_by(uuid=project_uuid)
+            .one_or_none()
+        )
         if project is None:
             abort(404, "Project not found.")
         return project

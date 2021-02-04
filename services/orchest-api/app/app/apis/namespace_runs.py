@@ -233,9 +233,6 @@ class CreateInteractiveRun(TwoPhaseFunction):
             "pipeline_uuid": pipeline.properties["uuid"],
             "project_uuid": project_uuid,
             "status": "PENDING",
-            "env_variables": get_proj_pip_env_variables(
-                project_uuid, pipeline.properties["uuid"]
-            ),
         }
         db.session.add(models.InteractivePipelineRun(**run))
         # need to flush because otherwise the bulk insertion of pipeline
@@ -265,7 +262,9 @@ class CreateInteractiveRun(TwoPhaseFunction):
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["pipeline"] = pipeline
         self.collateral_kwargs["run_config"] = run_config
-        self.collateral_kwargs["env_variables"] = run["env_variables"]
+        self.collateral_kwargs["env_variables"] = get_proj_pip_env_variables(
+            project_uuid, pipeline.properties["uuid"]
+        )
         return run
 
     def _collateral(

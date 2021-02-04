@@ -6,6 +6,7 @@ pipeline, a good amount of other models depend on such a concept.
 from flask import abort, request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource
+from sqlalchemy.orm import undefer
 
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
@@ -54,9 +55,11 @@ class Pipeline(Resource):
     @api.marshal_with(schema.pipeline, code=200)
     def get(self, project_uuid, pipeline_uuid):
         """Fetches a pipeline given the project and pipeline uuid."""
-        pipeline = models.Pipeline.query.filter_by(
-            project_uuid=project_uuid, uuid=pipeline_uuid
-        ).one_or_none()
+        pipeline = (
+            models.Pipeline.query.options(undefer(models.Pipeline.env_variables))
+            .filter_by(project_uuid=project_uuid, uuid=pipeline_uuid)
+            .one_or_none()
+        )
         if pipeline is None:
             abort(404, "Pipeline not found.")
         return pipeline
