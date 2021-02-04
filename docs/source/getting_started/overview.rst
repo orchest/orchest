@@ -58,6 +58,14 @@ Parametrize your data science pipelines
    :width: 300
    :align: center
 
+.. _env variables:
+
+Define environment variables at the project or pipeline level
+--------------------------------------------------------------
+.. figure:: ../img/overview/parametrize.png
+   :width: 300
+   :align: center
+
 .. _custom runtime environment:
 
 Easily define your custom runtime environment
