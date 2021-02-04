@@ -260,7 +260,7 @@ class PipelineSettingsView extends React.Component {
                       </p>
                     )}
 
-                    <h3 className="push-down">Pipeline Parameters</h3>
+                    <h3 className="push-down">Pipeline parameters</h3>
 
                     <CodeMirror
                       value={this.state.inputParameters}

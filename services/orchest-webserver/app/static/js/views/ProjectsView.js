@@ -459,14 +459,14 @@ class ProjectsView extends React.Component {
                     onClick={this.onCreateClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
-                    icon="delete"
-                    tooltipText="Delete project"
-                    onClick={this.onDeleteClick.bind(this)}
-                  />
-                  <MDCIconButtonToggleReact
                     icon="input"
                     tooltipText="Import project"
                     onClick={this.onImport.bind(this)}
+                  />
+                  <MDCIconButtonToggleReact
+                    icon="delete"
+                    tooltipText="Delete project"
+                    onClick={this.onDeleteClick.bind(this)}
                   />
                 </div>
 
