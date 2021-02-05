@@ -10,6 +10,7 @@ import {
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
   envVariablesDictToArray,
+  OverflowListener,
 } from "../utils/webserver-utils";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
@@ -32,6 +33,7 @@ class PipelineSettingsView extends React.Component {
       pipeline_path: undefined,
     };
 
+    this.overflowListener = new OverflowListener();
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
   }
@@ -43,6 +45,15 @@ class PipelineSettingsView extends React.Component {
   componentDidMount() {
     this.fetchPipeline();
     this.fetchPipelinePath();
+    this.attachResizeListener();
+  }
+
+  componentDidUpdate() {
+    this.attachResizeListener();
+  }
+
+  attachResizeListener() {
+    this.overflowListener.attach();
   }
 
   onSelectSubview(index) {
@@ -307,7 +318,7 @@ class PipelineSettingsView extends React.Component {
       switch (this.state.selectedTabIndex) {
         case 0:
           tabView = (
-            <div className="tab-view push-up">
+            <div className="push-up">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -448,7 +459,7 @@ class PipelineSettingsView extends React.Component {
       }
 
       rootView = (
-        <div>
+        <div className="pipeline-settings">
           <h2>Pipeline settings</h2>
 
           <MDCTabBarReact
@@ -459,7 +470,7 @@ class PipelineSettingsView extends React.Component {
             onChange={this.onSelectSubview.bind(this)}
           />
 
-          <div className="tab-view">{tabView}</div>
+          <div className="tab-view trigger-overflow">{tabView}</div>
 
           <div className="top-buttons">
             <MDCButtonReact
@@ -469,7 +480,7 @@ class PipelineSettingsView extends React.Component {
             />
           </div>
           {!this.props.readOnly && (
-            <div className="bottom-buttons">
+            <div className="bottom-buttons observe-overflow">
               <MDCButtonReact
                 label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                 classNames={["mdc-button--raised", "themed-secondary"]}

@@ -134,6 +134,28 @@ a.button {
   }
 }
 
+.project-settings-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .project-settings {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+.pipeline-settings {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .tab-view {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
 .projects-view {
   .mdc-data-table {
     .mdc-button {
@@ -462,10 +484,16 @@ button.text-button {
 }
 
 .bottom-buttons {
-  position: absolute;
-  bottom: $generalPadding;
-  left: $generalPadding;
-  z-index: 99;
+  background: #fff;
+  width: 100%;
+  margin-left: -$generalPadding;
+  padding-left: $generalPadding;
+  padding-right: $generalPadding;
+  box-sizing: content-box;
+
+  &.overflowing {
+    box-shadow: 0px -9px 8px rgb(0 0 0 / 5%);
+  }
 
   button {
     margin-right: $generalPadding;
@@ -483,7 +511,6 @@ button.text-button {
   }
 
   .top-labels {
-    padding: $generalPadding 0;
     font-size: 14px;
 
     h3 {
@@ -492,13 +519,12 @@ button.text-button {
   }
 
   .project-settings {
-    padding: $generalPadding 0;
     flex: 1;
     overflow: auto;
   }
 }
 
-.view-pipeline-settings {
+.pipeline-settings-view {
   .tab-content {
     padding: $generalPadding 0;
   }
@@ -508,13 +534,10 @@ button.text-button {
   }
 
   .CodeMirror {
-    height: 150px;
+    height: auto;
   }
 
   form {
-    div.mdc-text-field {
-      width: 100%;
-    }
     button {
       margin-top: $generalPadding;
     }

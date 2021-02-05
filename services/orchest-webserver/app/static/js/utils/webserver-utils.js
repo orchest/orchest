@@ -101,6 +101,30 @@ export function requestBuild(
   });
 }
 
+export class OverflowListener {
+  constructor() {}
+
+  attach() {
+    // check if ResizeObserver is defined
+    if (window.ResizeObserver) {
+      // trigger-overflow only supports a single element on the page
+      let triggerOverflow = $(".trigger-overflow").first()[0];
+      if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
+        new ResizeObserver(() => {
+          if (triggerOverflow) {
+            if ($(triggerOverflow).overflowing()) {
+              $(".observe-overflow").addClass("overflowing");
+            } else {
+              $(".observe-overflow").removeClass("overflowing");
+            }
+          }
+        }).observe(triggerOverflow);
+        this.triggerOverflow = triggerOverflow;
+      }
+    }
+  }
+}
+
 export class BackgroundTaskPoller {
   constructor() {
     this.END_STATUSES = ["SUCCESS", "FAILURE"];

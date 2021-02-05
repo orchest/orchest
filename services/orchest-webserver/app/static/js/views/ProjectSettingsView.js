@@ -1,12 +1,13 @@
 import React from "react";
 import ProjectsView from "./ProjectsView";
-import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
+import { makeRequest, makeCancelable, PromiseManager } from "../lib/utils/all";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import EnvVarList from "../components/EnvVarList";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
+  OverflowListener,
 } from "../utils/webserver-utils";
 
 class ProjectSettingsView extends React.Component {
@@ -18,6 +19,8 @@ class ProjectSettingsView extends React.Component {
     };
 
     this.promiseManager = new PromiseManager();
+    this.overflowListener = new OverflowListener();
+
     this.handleChange = this.handleChange.bind(this);
     this.onDelete = this.onDelete.bind(this);
   }
@@ -28,6 +31,15 @@ class ProjectSettingsView extends React.Component {
 
   componentDidMount() {
     this.fetchSettings();
+    this.attachResizeListener();
+  }
+
+  componentDidUpdate() {
+    this.attachResizeListener();
+  }
+
+  attachResizeListener() {
+    this.overflowListener.attach();
   }
 
   fetchSettings() {
@@ -110,18 +122,18 @@ class ProjectSettingsView extends React.Component {
   render() {
     return (
       <div className={"view-page view-project-settings"}>
-        <h2>Project settings</h2>
-
-        {(() => {
-          if (this.state.envVariables) {
-            return (
-              <div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                  }}
-                >
-                  <div className="project-settings">
+        <form
+          className="project-settings-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+        >
+          <h2>Project settings</h2>
+          {(() => {
+            if (this.state.envVariables) {
+              return (
+                <>
+                  <div className="project-settings trigger-overflow">
                     <div className="push-down top-labels">
                       <label>Project</label>
                       <h3>{this.state.projectName}</h3>
@@ -139,7 +151,7 @@ class ProjectSettingsView extends React.Component {
                       onAdd={this.addEnvPair.bind(this)}
                     />
                   </div>
-                  <div className="bottom-buttons">
+                  <div className="bottom-buttons observe-overflow">
                     <MDCButtonReact
                       label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                       classNames={["mdc-button--raised", "themed-secondary"]}
@@ -147,21 +159,21 @@ class ProjectSettingsView extends React.Component {
                       icon="save"
                     />
                   </div>
-                </form>
-              </div>
-            );
-          } else {
-            return <MDCLinearProgressReact />;
-          }
-        })()}
+                </>
+              );
+            } else {
+              return <MDCLinearProgressReact />;
+            }
+          })()}
 
-        <div className="top-buttons">
-          <MDCButtonReact
-            classNames={["close-button"]}
-            icon="close"
-            onClick={this.closeSettings.bind(this)}
-          />
-        </div>
+          <div className="top-buttons">
+            <MDCButtonReact
+              classNames={["close-button"]}
+              icon="close"
+              onClick={this.closeSettings.bind(this)}
+            />
+          </div>
+        </form>
       </div>
     );
   }
