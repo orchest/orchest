@@ -69,10 +69,10 @@ Parametrize your data science pipelines
 
 .. _env variables:
 
-Define environment variables at the project or pipeline level
---------------------------------------------------------------
-.. figure:: ../img/overview/parametrize.png
-   :width: 300
+Define environment variables
+----------------------------
+.. figure:: ../img/overview/environment-variables.png
+   :width: 400
    :align: center
 
 .. _version through git:
