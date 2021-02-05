@@ -4,6 +4,7 @@ import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import EnvVarList from "../components/EnvVarList";
+import { envVariablesArrayToDict } from "../utils/webserver-utils";
 
 class ProjectSettingsView extends React.Component {
   constructor(props) {
@@ -40,6 +41,7 @@ class ProjectSettingsView extends React.Component {
       Object.keys(tmp).map((name, idx) => {
         envVariables[idx] = { name: name, value: tmp[name] };
       });
+      envVariables.sort((a, b) => a["name"].localeCompare(b["name"]));
 
       this.setState({
         envVariables: envVariables,
@@ -55,28 +57,10 @@ class ProjectSettingsView extends React.Component {
   saveGeneralForm(e) {
     e.preventDefault();
 
-    // Make into object again and check for duplicate keys.
-    const envVariables = {};
-    const seen = new Set();
-    for (const pair of this.state.envVariables) {
-      if (!pair) {
-        continue;
-      } else if (!pair["name"] || !pair["value"]) {
-        orchest.alert(
-          "Error",
-          "Environment variables must have a name and value."
-        );
-        break;
-      } else if (seen.has(pair["name"])) {
-        orchest.alert(
-          "Error",
-          "You have defined environment variables with the same name."
-        );
-        break;
-      } else {
-        envVariables[pair["name"]] = pair["value"];
-        seen.add(pair["name"]);
-      }
+    let envVariables = envVariablesArrayToDict(this.state.envVariables);
+    // Do not go through if env variables are not correctly defined.
+    if (envVariables === undefined) {
+      return;
     }
 
     // perform PUT to update

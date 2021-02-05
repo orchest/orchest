@@ -18,6 +18,7 @@ import {
   getPipelineJSONEndpoint,
 } from "../utils/webserver-utils";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import EnvVarList from "../components/EnvVarList";
 
 class JobView extends React.Component {
   constructor(props) {
@@ -49,9 +50,17 @@ class JobView extends React.Component {
         try {
           let job = JSON.parse(response);
 
+          let tmp = job["env_variables"];
+          let envVariables = new Array(tmp.length).fill(null);
+          Object.keys(tmp).map((name, idx) => {
+            envVariables[idx] = { name: name, value: tmp[name] };
+          });
+          envVariables.sort((a, b) => a["name"].localeCompare(b["name"]));
+
           this.setState({
             job: job,
             refreshing: false,
+            envVariables: envVariables,
           });
 
           this.fetchPipeline();
@@ -293,6 +302,14 @@ class JobView extends React.Component {
             </div>
           );
           break;
+
+        case 2:
+          tabView = (
+            <div className="pipeline-tab-view">
+              <EnvVarList value={this.state.envVariables} readOnly={true} />
+            </div>
+          );
+          break;
       }
 
       rootView = (
@@ -356,8 +373,9 @@ class JobView extends React.Component {
                 +this.state.job.pipeline_runs.length +
                 ")",
               "Parameters",
+              "Environment variables",
             ]}
-            icons={["list", "tune"]}
+            icons={["list", "tune", "view_comfy"]}
             onChange={this.onSelectSubview.bind(this)}
           />
 

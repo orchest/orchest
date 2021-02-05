@@ -249,3 +249,30 @@ export function setWithRetry(value, setter, getter, retries, delay, interval) {
     return interval;
   }
 }
+
+// Will return undefined if the envVariables are ill defined.
+export function envVariablesArrayToDict(envVariables) {
+  const result = {};
+  const seen = new Set();
+  for (const pair of envVariables) {
+    if (!pair) {
+      continue;
+    } else if (!pair["name"] || !pair["value"]) {
+      orchest.alert(
+        "Error",
+        "Environment variables must have a name and value."
+      );
+      return undefined;
+    } else if (seen.has(pair["name"])) {
+      orchest.alert(
+        "Error",
+        "You have defined environment variables with the same name."
+      );
+      return undefined;
+    } else {
+      result[pair["name"]] = pair["value"];
+      seen.add(pair["name"]);
+    }
+  }
+  return result;
+}
