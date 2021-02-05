@@ -6,8 +6,13 @@ Environment variables
 Defining environment variables can be useful when you want to avoid persisting sensible data in your
 versioning system. These environment variables will be injected in your pipeline steps, and can be
 retrieved using the native way of your language of choice, e.g. ``os.environ["MY_VAR"]`` in python.
-It is possible to define environment variables at the project, pipeline or job level, moreover, keep
-in mind that environment variables are strings, and will be stored and injected as as such.
+It is possible to define environment variables at the project, pipeline or job level.
+
+
+.. note::
+   Keep in mind that environment variables are strings, and will be stored and injected as as such.
+   For example the values ``postgres`` and ``"postgres"`` (as specified in the UI) will be injected
+   as ``postgres`` and ``"postgres"`` respectively.
 
 .. warning::
    Environment variables are persisted within Orchest. Make sure only authorized people have access
