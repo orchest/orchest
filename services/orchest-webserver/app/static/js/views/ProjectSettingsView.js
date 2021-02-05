@@ -142,11 +142,9 @@ class ProjectSettingsView extends React.Component {
                   }}
                 >
                   <div>
-                    <div className="columns top-labels">
-                      <div className="column push-down">
-                        <label>Project</label>
-                        <h3>{this.state.projectName}</h3>
-                      </div>
+                    <div className="push-down top-labels">
+                      <label>Project</label>
+                      <h3>{this.state.projectName}</h3>
                     </div>
 
                     <h3 className="push-down">Project environment variables</h3>
