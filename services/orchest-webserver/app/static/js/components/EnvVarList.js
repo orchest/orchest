@@ -15,7 +15,7 @@ class EnvVarList extends React.Component {
       }
 
       return (
-        <ul key={idx}>
+        <li key={idx}>
           <MDCTextFieldReact
             value={pair["name"]}
             onChange={(e) => this.props.onChange(e, idx, "name")}
@@ -37,13 +37,13 @@ class EnvVarList extends React.Component {
               onClick={() => this.props.onDelete(idx)}
             />
           )}
-        </ul>
+        </li>
       );
     });
 
     return (
       <div className="environment-variables-list">
-        <ol>{envVarList}</ol>
+        <ul>{envVarList}</ul>
         <MDCButtonReact
           icon="add"
           classNames={["mdc-button--raised push-down"]}

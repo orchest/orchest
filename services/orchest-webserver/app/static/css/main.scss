@@ -477,6 +477,12 @@ button.text-button {
   }
 }
 
+.view-project-settings {
+  ul {
+    list-style-type: none;
+  }
+}
+
 .view-pipeline-settings {
   .tab-content {
     padding: $generalPadding 0;
