@@ -3,8 +3,7 @@
 Despite the fact that the orchest api has no model related to a
 project, a good amount of other models depend on such a concept.
 """
-from flask import abort, request
-from flask.globals import current_app
+from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
 from sqlalchemy.orm import undefer
 

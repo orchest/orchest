@@ -5,9 +5,9 @@ import uuid
 import docker
 import requests
 import sqlalchemy
+from flask import current_app
 from flask import json as flask_json
 from flask import jsonify, render_template, request
-from flask.globals import current_app
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 
