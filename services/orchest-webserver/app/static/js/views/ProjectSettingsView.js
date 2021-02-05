@@ -156,16 +156,15 @@ class ProjectSettingsView extends React.Component {
                       }
                       onDelete={(idx) => this.onDelete(idx)}
                       readOnly={false}
+                      onAdd={this.addEnvPair.bind(this)}
                     />
-                    <MDCButtonReact
-                      icon="add"
-                      classNames={["mdc-button--raised push-right"]}
-                      onClick={this.addEnvPair.bind(this)}
-                    />
+                  </div>
+                  <div className="bottom-buttons">
                     <MDCButtonReact
                       label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                      classNames={["mdc-button--raised"]}
+                      classNames={["mdc-button--raised", "themed-secondary"]}
                       onClick={this.saveGeneralForm.bind(this)}
+                      icon="save"
                     />
                   </div>
                 </form>

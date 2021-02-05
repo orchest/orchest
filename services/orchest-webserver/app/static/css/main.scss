@@ -461,6 +461,22 @@ button.text-button {
   }
 }
 
+.bottom-buttons {
+  position: absolute;
+  bottom: $generalPadding;
+  left: $generalPadding;
+  z-index: 99;
+
+  button {
+    margin-right: $generalPadding;
+    margin-top: $generalPadding;
+
+    &:last-of-type {
+      margin-right: 0;
+    }
+  }
+}
+
 .view-pipeline-settings {
   .tab-content {
     padding: $generalPadding 0;

@@ -1,4 +1,5 @@
 import React from "react";
+import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 
@@ -27,7 +28,7 @@ class EnvVarList extends React.Component {
             onChange={(e) => this.props.onChange(e, idx, "value")}
             label="Value"
             disabled={this.props.readOnly === true}
-            classNames={["column push-down"]}
+            classNames={["column push-down push-right"]}
           />
           {!this.props.readOnly && (
             <MDCIconButtonToggleReact
@@ -43,6 +44,11 @@ class EnvVarList extends React.Component {
     return (
       <div className="environment-variables-list">
         <ol>{envVarList}</ol>
+        <MDCButtonReact
+          icon="add"
+          classNames={["mdc-button--raised push-down"]}
+          onClick={this.props.onAdd}
+        />
       </div>
     );
   }
