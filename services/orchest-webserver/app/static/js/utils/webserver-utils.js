@@ -276,3 +276,14 @@ export function envVariablesArrayToDict(envVariables) {
   }
   return result;
 }
+
+// Sorted by key.
+export function envVariablesDictToArray(envVariables) {
+  let result = new Array(envVariables.length).fill(null);
+  Object.keys(envVariables).map((name, idx) => {
+    result[idx] = { name: name, value: envVariables[name] };
+  });
+  result.sort((a, b) => a["name"].localeCompare(b["name"]));
+
+  return result;
+}

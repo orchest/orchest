@@ -18,6 +18,7 @@ import {
   getPipelineJSONEndpoint,
   requestBuild,
   envVariablesArrayToDict,
+  envVariablesDictToArray,
 } from "../utils/webserver-utils";
 import JobView from "./JobView";
 
@@ -57,18 +58,11 @@ class EditJobView extends React.Component {
 
         this.state.job = job;
 
-        let tmp = job["env_variables"];
-        let envVariables = new Array(tmp.length).fill(null);
-        Object.keys(tmp).map((name, idx) => {
-          envVariables[idx] = { name: name, value: tmp[name] };
-        });
-        envVariables.sort((a, b) => a["name"].localeCompare(b["name"]));
-
         this.setState({
           job: job,
           cronString: job.schedule === null ? "* * * * *" : job.schedule,
           scheduleOption: job.schedule === null ? "now" : "cron",
-          envVariables: envVariables,
+          envVariables: envVariablesDictToArray(job["env_variables"]),
         });
 
         if (job.status !== "DRAFT") {
@@ -247,15 +241,6 @@ class EditJobView extends React.Component {
       generatedPipelineRuns: pipelineRuns,
       generatedPipelineRunRows: generatedPipelineRuns,
       selectedIndices: selectedIndices,
-    });
-  }
-
-  onEnvironmentVariableChange(value, idx, type) {
-    const envVariables = this.state.envVariables.slice();
-    envVariables[idx][type] = value;
-
-    this.setState({
-      envVariables: envVariables,
     });
   }
 

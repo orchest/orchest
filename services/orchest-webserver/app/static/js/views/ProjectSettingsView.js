@@ -4,7 +4,10 @@ import { makeRequest, PromiseManager, makeCancelable } from "../lib/utils/all";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import EnvVarList from "../components/EnvVarList";
-import { envVariablesArrayToDict } from "../utils/webserver-utils";
+import {
+  envVariablesArrayToDict,
+  envVariablesDictToArray,
+} from "../utils/webserver-utils";
 
 class ProjectSettingsView extends React.Component {
   constructor(props) {
@@ -36,15 +39,8 @@ class ProjectSettingsView extends React.Component {
     projectPromise.promise.then((response) => {
       let result = JSON.parse(response);
 
-      const tmp = result["env_variables"];
-      const envVariables = new Array(tmp.length).fill(null);
-      Object.keys(tmp).map((name, idx) => {
-        envVariables[idx] = { name: name, value: tmp[name] };
-      });
-      envVariables.sort((a, b) => a["name"].localeCompare(b["name"]));
-
       this.setState({
-        envVariables: envVariables,
+        envVariables: envVariablesDictToArray(result["env_variables"]),
         projectName: result["path"],
       });
     });

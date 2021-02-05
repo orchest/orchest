@@ -16,6 +16,7 @@ import EditJobView from "./EditJobView";
 import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
+  envVariablesDictToArray,
 } from "../utils/webserver-utils";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import EnvVarList from "../components/EnvVarList";
@@ -50,17 +51,10 @@ class JobView extends React.Component {
         try {
           let job = JSON.parse(response);
 
-          let tmp = job["env_variables"];
-          let envVariables = new Array(tmp.length).fill(null);
-          Object.keys(tmp).map((name, idx) => {
-            envVariables[idx] = { name: name, value: tmp[name] };
-          });
-          envVariables.sort((a, b) => a["name"].localeCompare(b["name"]));
-
           this.setState({
             job: job,
             refreshing: false,
-            envVariables: envVariables,
+            envVariables: envVariablesDictToArray(job["env_variables"]),
           });
 
           this.fetchPipeline();
