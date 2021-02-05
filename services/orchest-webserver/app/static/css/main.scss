@@ -1126,6 +1126,10 @@ span.code {
     z-index: 12;
     width: 0;
 
+    .CodeMirror {
+      height: 100%;
+    }
+
     .overflowable {
       padding: 0 $generalPadding;
     }
