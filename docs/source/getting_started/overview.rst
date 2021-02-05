@@ -13,8 +13,7 @@ With Orchest you get to:
 * :ref:`Skip certain cells when executing a notebook top-to-bottom <skip cells>`.
 * :ref:`Parametrize your data science pipelines to try out different modeling ideas
   <parametrize pipelines>`.
-* :ref:`Define environment variables at the project or pipeline level
-  <env variables>`.
+* :ref:`Define environment variables <env variables>`.
 * :ref:`Version your pipelines through git <version through git>`.
 
 .. _custom runtime environment:

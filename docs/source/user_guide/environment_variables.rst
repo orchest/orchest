@@ -4,7 +4,7 @@ Environment variables
 =====================
 
 Defining environment variables can be useful when you want to avoid
-persiting sensible data in your versioning system. These environment
+persisting sensible data in your versioning system. These environment
 variables will be injected in your pipeline steps, and can be retrieved
 using the native way of your language of choice, e.g. ``os.environ["MY_VAR"]``
 in python. It is possible to define environment variables at the project, pipeline or job level,
