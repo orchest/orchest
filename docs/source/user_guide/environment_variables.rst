@@ -59,10 +59,10 @@ pipeline run of the given pipeline. You can edit those variables (or add new one
 the job, moreover, cron jobs can have their environment variables edited after they have started.
 Every pipeline run belonging to the job will have these environment variables set.
 
-Environment variables for interactive runs
-------------------------------------------
+Environment variables inside Notebooks
+--------------------------------------
 
-Environment variables will also be available in kernels that are launched in JupyterLab. To 
-refresh the environment variables for kernels a restart of the session is required. As per usual 
-the environment variables defined at the pipeline level override the project defined environment 
+Environment variables will also be available in kernels that are launched in JupyterLab. To
+refresh the environment variables for kernels a restart of the session is required. As per usual
+the environment variables defined at the pipeline level override the project defined environment
 variables (of the same name).
