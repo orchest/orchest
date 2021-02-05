@@ -44,11 +44,13 @@ class EnvVarList extends React.Component {
     return (
       <div className="environment-variables-list">
         <ul>{envVarList}</ul>
-        <MDCButtonReact
-          icon="add"
-          classNames={["mdc-button--raised push-down"]}
-          onClick={this.props.onAdd}
-        />
+        {!this.props.readOnly && (
+          <MDCButtonReact
+            icon="add"
+            classNames={["mdc-button--raised push-down"]}
+            onClick={this.props.onAdd}
+          />
+        )}
       </div>
     );
   }
