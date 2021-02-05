@@ -406,7 +406,7 @@ class PipelineSettingsView extends React.Component {
                     disabled={this.state.restartingMemoryServer}
                     label="Restart memory-server"
                     icon="memory"
-                    classNames={["mdc-button--raised"]}
+                    classNames={["mdc-button--raised push-down"]}
                     onClick={this.restartMemoryServer.bind(this)}
                   />
 
@@ -425,6 +425,10 @@ class PipelineSettingsView extends React.Component {
         case 1:
           tabView = (
             <div className="push-up">
+              <p className="push-down">
+                Pipeline environment variables take precedence over project
+                environment variables.
+              </p>
               <EnvVarList
                 value={this.state.envVariables}
                 onAdd={this.addEnvVariablePair.bind(this)}

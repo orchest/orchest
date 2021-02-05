@@ -521,6 +521,16 @@ button.text-button {
   }
 }
 
+.environment-variables-list {
+  ul {
+    list-style-type: none;
+  }
+
+  div.mdc-text-field {
+    width: 40%;
+  }
+}
+
 h2.header {
   padding: $generalPadding;
   background: #f5f5f5;
