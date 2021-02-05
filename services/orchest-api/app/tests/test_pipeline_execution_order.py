@@ -2,7 +2,7 @@ import asyncio
 import json
 
 import pytest
-from aiodocker.containers import DockerContainer, DockerContainers
+from aiodocker.containers import DockerContainers
 
 from _orchest.internals import config as _config
 from app.core import pipelines
@@ -131,6 +131,8 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         "project_uuid": "",
         "run_endpoint": None,
         "env_uuid_docker_id_mappings": MockEnvUUIDDockerIDMapping(),
+        "host_user_dir": "",
+        "user_env_variables": {},
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
