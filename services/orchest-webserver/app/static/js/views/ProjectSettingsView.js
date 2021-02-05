@@ -141,7 +141,7 @@ class ProjectSettingsView extends React.Component {
                     e.preventDefault();
                   }}
                 >
-                  <div>
+                  <div className="project-settings">
                     <div className="push-down top-labels">
                       <label>Project</label>
                       <h3>{this.state.projectName}</h3>
