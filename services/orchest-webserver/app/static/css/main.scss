@@ -490,6 +490,12 @@ button.text-button {
       font-size: 21px;
     }
   }
+
+  .project-settings {
+    padding: $generalPadding 0;
+    flex: 1;
+    overflow: auto;
+  }
 }
 
 .view-pipeline-settings {
