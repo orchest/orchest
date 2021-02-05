@@ -503,6 +503,10 @@ button.text-button {
     padding: $generalPadding 0;
   }
 
+  ul {
+    list-style-type: none;
+  }
+
   .CodeMirror {
     height: 150px;
   }
