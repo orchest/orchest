@@ -402,21 +402,25 @@ class PipelineSettingsView extends React.Component {
                     Restarting the memory-server also clears the memory to allow
                     additional data to be passed between pipeline steps.
                   </p>
-                  <MDCButtonReact
-                    disabled={this.state.restartingMemoryServer}
-                    label="Restart memory-server"
-                    icon="memory"
-                    classNames={["mdc-button--raised push-down"]}
-                    onClick={this.restartMemoryServer.bind(this)}
-                  />
+                  <div className="push-down">
+                    {(() => {
+                      if (this.state.restartingMemoryServer) {
+                        return (
+                          <p className="push-p push-down">
+                            Restarting in progress...
+                          </p>
+                        );
+                      }
+                    })()}
 
-                  {(() => {
-                    if (this.state.restartingMemoryServer) {
-                      return (
-                        <p className="push-up">Restarting in progress...</p>
-                      );
-                    }
-                  })()}
+                    <MDCButtonReact
+                      disabled={this.state.restartingMemoryServer}
+                      label="Restart memory-server"
+                      icon="memory"
+                      classNames={["mdc-button--raised push-down"]}
+                      onClick={this.restartMemoryServer.bind(this)}
+                    />
+                  </div>
                 </>
               )}
             </div>
@@ -444,7 +448,7 @@ class PipelineSettingsView extends React.Component {
       }
 
       rootView = (
-        <div className={"view-page view-pipeline-settings"}>
+        <div>
           <h2>Pipeline settings</h2>
 
           <MDCTabBarReact
