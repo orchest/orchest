@@ -481,6 +481,15 @@ button.text-button {
   ul {
     list-style-type: none;
   }
+
+  .top-labels {
+    padding: $generalPadding 0;
+    font-size: 14px;
+
+    h3 {
+      font-size: 21px;
+    }
+  }
 }
 
 .view-pipeline-settings {
