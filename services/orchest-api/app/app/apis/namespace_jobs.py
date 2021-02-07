@@ -220,9 +220,15 @@ class PipelineRun(Resource):
     @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, job_uuid, run_uuid):
         """Fetch a pipeline run of a job given their ids."""
-        non_interactive_run = models.NonInteractivePipelineRun.query.filter_by(
-            uuid=run_uuid,
-        ).one_or_none()
+        non_interactive_run = (
+            models.NonInteractivePipelineRun.query.options(
+                undefer(models.NonInteractivePipelineRun.env_variables)
+            )
+            .filter_by(
+                uuid=run_uuid,
+            )
+            .one_or_none()
+        )
         if non_interactive_run is None:
             abort(404, "Given job has no run with given run_uuid")
         return non_interactive_run.__dict__

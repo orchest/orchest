@@ -622,7 +622,15 @@ def _get_container_specs(
 
     # Get user configured environment variables for EG,
     # to pass to Jupyter kernels.
-    env_variables = utils.get_proj_pip_env_variables(project_uuid, uuid)
+    try:
+        env_variables = utils.get_proj_pip_env_variables(project_uuid, uuid)
+    except Exception:
+        # TODO: refactor _get_container_specs to be split up
+        # in noninteractive and interactive container_specs.
+        # In Celery no app context is available so user
+        # defined environment variables cannot be retrieved.
+        env_variables = {}
+
     user_defined_env_vars = [f"{key}={value}" for key, value in env_variables.items()]
 
     process_env_whitelist = (
