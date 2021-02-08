@@ -5,7 +5,7 @@ Jobs
 
 .. tip::
    For reproducibility Orchest makes a full snapshot by copying the project directory. So make sure
-   to put data in ``/data`` or a data source, otherwise it will be included in the snapshot.
+   to put data in ``/data``, otherwise it will be included in the snapshot.
 
 Run a job
 -----------------

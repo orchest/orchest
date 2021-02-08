@@ -570,7 +570,7 @@ def _get_container_specs(
 
     Args:
         uuid: Some UUID to identify the session with. For interactive
-            runs using the pipeline UUID is recommended, for non-
+            runs using the pipeline UUID is required, for non-
             interactive runs we recommend using the pipeline run UUID.
         project_uuid: UUID of the project.
         project_dir: Project directory w.r.t. the host. Needed to
@@ -620,6 +620,28 @@ def _get_container_specs(
         pipeline_uuid=uuid[: _config.TRUNCATED_UUID_LENGTH],
     )
 
+    # Get user configured environment variables for EG,
+    # to pass to Jupyter kernels.
+    try:
+        env_variables = utils.get_proj_pip_env_variables(project_uuid, uuid)
+    except Exception:
+        # TODO: refactor _get_container_specs to be split up
+        # in noninteractive and interactive container_specs.
+        # In Celery no app context is available so user
+        # defined environment variables cannot be retrieved.
+        env_variables = {}
+
+    user_defined_env_vars = [f"{key}={value}" for key, value in env_variables.items()]
+
+    process_env_whitelist = (
+        "EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,"
+        "ORCHEST_PIPELINE_PATH,"
+        "ORCHEST_PROJECT_UUID,"
+        "ORCHEST_HOST_PROJECT_DIR,"
+        "ORCHEST_HOST_GID,"
+    )
+    process_env_whitelist += ",".join([key for key in env_variables.keys()])
+
     container_specs["jupyter-EG"] = {
         "image": "orchest/jupyter-enterprise-gateway",  # TODO: make not static.
         "detach": True,
@@ -634,19 +656,14 @@ def _get_container_specs(
             'EG_UNAUTHORIZED_USERS=["dummy"]',
             'EG_UID_BLACKLIST=["-1"]',
             "EG_ALLOW_ORIGIN=*",
-            (
-                "EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,"
-                "ORCHEST_PIPELINE_PATH,"
-                "ORCHEST_PROJECT_UUID,"
-                "ORCHEST_HOST_PROJECT_DIR,"
-                "ORCHEST_HOST_GID"
-            ),
+            process_env_whitelist,
             f"ORCHEST_PIPELINE_UUID={uuid}",
             f"ORCHEST_PIPELINE_PATH={pipeline_path}",
             f"ORCHEST_PROJECT_UUID={project_uuid}",
             f"ORCHEST_HOST_PROJECT_DIR={project_dir}",
             f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
-        ],
+        ]
+        + user_defined_env_vars,
         "user": "root",
         "network": network,
         # Labels are used to have a way of keeping track of the

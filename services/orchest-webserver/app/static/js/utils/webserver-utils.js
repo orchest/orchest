@@ -101,6 +101,30 @@ export function requestBuild(
   });
 }
 
+export class OverflowListener {
+  constructor() {}
+
+  attach() {
+    // check if ResizeObserver is defined
+    if (window.ResizeObserver) {
+      // trigger-overflow only supports a single element on the page
+      let triggerOverflow = $(".trigger-overflow").first()[0];
+      if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
+        new ResizeObserver(() => {
+          if (triggerOverflow) {
+            if ($(triggerOverflow).overflowing()) {
+              $(".observe-overflow").addClass("overflowing");
+            } else {
+              $(".observe-overflow").removeClass("overflowing");
+            }
+          }
+        }).observe(triggerOverflow);
+        this.triggerOverflow = triggerOverflow;
+      }
+    }
+  }
+}
+
 export class BackgroundTaskPoller {
   constructor() {
     this.END_STATUSES = ["SUCCESS", "FAILURE"];
@@ -248,4 +272,42 @@ export function setWithRetry(value, setter, getter, retries, delay, interval) {
 
     return interval;
   }
+}
+
+// Will return undefined if the envVariables are ill defined.
+export function envVariablesArrayToDict(envVariables) {
+  const result = {};
+  const seen = new Set();
+  for (const pair of envVariables) {
+    if (!pair) {
+      continue;
+    } else if (!pair["name"] || !pair["value"]) {
+      orchest.alert(
+        "Error",
+        "Environment variables must have a name and value."
+      );
+      return undefined;
+    } else if (seen.has(pair["name"])) {
+      orchest.alert(
+        "Error",
+        "You have defined environment variables with the same name."
+      );
+      return undefined;
+    } else {
+      result[pair["name"]] = pair["value"];
+      seen.add(pair["name"]);
+    }
+  }
+  return result;
+}
+
+// Sorted by key.
+export function envVariablesDictToArray(envVariables) {
+  let result = new Array(envVariables.length).fill(null);
+  Object.keys(envVariables).map((name, idx) => {
+    result[idx] = { name: name, value: envVariables[name] };
+  });
+  result.sort((a, b) => a["name"].localeCompare(b["name"]));
+
+  return result;
 }

@@ -75,6 +75,7 @@ class PipelineDetails extends React.Component {
     }
   }
 
+  // TODO: refactor to use OverflowListener
   overflowChecks() {
     $(".overflowable").each(function () {
       if ($(this).overflowing()) {

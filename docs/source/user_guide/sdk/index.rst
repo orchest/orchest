@@ -6,8 +6,7 @@ Orchest SDK
 Convenience wrapper to interact with Orchest. Through code the Orchest SDK, lets you:
 
 * Pass data between pipeline steps.
-* Interact with data sources.
-* Use and update the parametrized values of pipeline steps.
+* Access and update the parameters of a pipeline or its steps.
 
 .. note::
    The Orchest SDK comes pre-installed when using Orchest.

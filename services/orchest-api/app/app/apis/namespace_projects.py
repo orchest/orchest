@@ -3,10 +3,13 @@
 Despite the fact that the orchest api has no model related to a
 project, a good amount of other models depend on such a concept.
 """
+from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
+from sqlalchemy.orm import undefer
 
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from app import schema
 from app.apis.namespace_environment_images import DeleteProjectEnvironmentImages
 from app.apis.namespace_jobs import DeleteJob
 from app.apis.namespace_runs import AbortPipelineRun
@@ -18,9 +21,64 @@ api = Namespace("projects", description="Managing Projects")
 api = register_schema(api)
 
 
+@api.route("/")
+class ProjectList(Resource):
+    @api.doc("get_projects")
+    @api.marshal_with(schema.projects)
+    def get(self):
+        """Get all projects."""
+
+        projects = models.Project.query.all()
+        return {"projects": [proj.__dict__ for proj in projects]}, 200
+
+    @api.doc("create_project")
+    @api.expect(schema.project)
+    @api.marshal_with(schema.project)
+    def post(self):
+        """Create a new project."""
+        try:
+            project = request.get_json()
+            project["env_variables"] = project.get("env_variables", {})
+            db.session.add(models.Project(**project))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(e)
+            return {"message": "Project creation failed."}, 500
+        return project, 201
+
+
 @api.route("/<string:project_uuid>")
-@api.param("project_uuid", "UUID of the project")
+@api.param("project_uuid", "uuid of the project")
 class Project(Resource):
+    @api.doc("get_project")
+    @api.marshal_with(schema.project, code=200)
+    def get(self, project_uuid):
+        """Fetches a project given its uuid."""
+        project = (
+            models.Project.query.options(undefer(models.Project.env_variables))
+            .filter_by(uuid=project_uuid)
+            .one_or_none()
+        )
+        if project is None:
+            abort(404, "Project not found.")
+        return project
+
+    @api.expect(schema.project_update)
+    @api.doc("update_project")
+    def put(self, project_uuid):
+        """Update a project."""
+
+        try:
+            models.Project.query.filter_by(uuid=project_uuid).update(request.get_json())
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(e)
+            return {"message": "Failed update operation."}, 500
+
+        return {"message": "Project was updated successfully."}, 200
+
     @api.doc("delete_project")
     @api.response(200, "Project deleted")
     def delete(self, project_uuid):
@@ -95,6 +153,8 @@ class DeleteProject(TwoPhaseFunction):
 
         # Remove images related to the project.
         DeleteProjectEnvironmentImages(self.tpe).transaction(project_uuid)
+
+        models.Project.query.filter_by(uuid=project_uuid).delete()
 
     def _collateral(self):
         pass

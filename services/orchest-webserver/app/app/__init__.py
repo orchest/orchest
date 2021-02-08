@@ -28,42 +28,12 @@ from _orchest.internals.utils import is_werkzeug_parent
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
-from app.models import DataSource
 from app.socketio_server import register_socketio_broadcast
 from app.utils import get_repo_tag, get_user_conf
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
 from app.views.views import register_views
-
-
-def initialize_default_datasources(db, app):
-    # pre-populate the datasources
-    datasource_names = [datasource.name for datasource in DataSource.query.all()]
-
-    for datasource in app.config["DEFAULT_DATASOURCES"]:
-        if datasource["name"] not in datasource_names:
-
-            connection_details = datasource["connection_details"]
-
-            # subtitute $HOST_USER_DIR in absolute_host_path
-            if "absolute_host_path" in connection_details:
-                if "$HOST_USER_DIR" in connection_details["absolute_host_path"]:
-                    absolute_host_path = connection_details["absolute_host_path"]
-                    connection_details[
-                        "absolute_host_path"
-                    ] = absolute_host_path.replace(
-                        "$HOST_USER_DIR", app.config["HOST_USER_DIR"]
-                    )
-
-            ds = DataSource(
-                name=datasource["name"],
-                connection_details=connection_details,
-                source_type=datasource["source_type"],
-            )
-
-            db.session.add(ds)
-            db.session.commit()
 
 
 @contextlib.contextmanager
@@ -137,8 +107,6 @@ def create_app():
                 upgrade()
             except Exception as e:
                 logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
-
-            initialize_default_datasources(db, app)
 
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:

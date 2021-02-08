@@ -1,12 +1,17 @@
 import $ from "jquery";
 
-$.fn.overflowing = function (options, callback) {
+$.fn.overflowing = function () {
+  let overflowed = false;
+
   this.each(function () {
     let el = $(this)[0];
+
     if (el.offsetHeight < el.scrollHeight || el.offsetWidth < el.scrollWidth) {
-      return true;
+      overflowed = true;
     } else {
-      return false;
+      overflowed = false;
     }
   });
+
+  return overflowed;
 };

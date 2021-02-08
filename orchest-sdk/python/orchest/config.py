@@ -19,8 +19,9 @@ class Config:
 
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
-    # '/project-dir' as project root is hardcoded because code sharing with the
-    # internal config library is not possible due to the license difference.
+    # '/project-dir' as project root is hardcoded because code sharing
+    # with the internal config library is not possible due to the
+    # license difference.
     STEP_DATA_DIR = (
         "/project-dir/.orchest/pipelines/" + PIPELINE_UUID + "/data/{step_uuid}"
     )
@@ -49,9 +50,6 @@ class Config:
     # Reserved key of the aggregated unnamed outputs list in the
     # dictionary returned by ``get_inputs()``.
     _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed"
-
-    # For datasources.py
-    INTERNAL_DATASOURCES = ["_default"]
 
     @classmethod
     def get_step_data_dir(cls, step_uuid):

@@ -7,8 +7,9 @@ TODO:
     * Possibly add `pipeline_uuid` to the primary key.
 
 """
-from sqlalchemy import Index, UniqueConstraint, text
+from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.orm import deferred
 
 from app.connections import db
 
@@ -20,6 +21,53 @@ class BaseModel(db.Model):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+
+class Project(BaseModel):
+    __tablename__ = "projects"
+
+    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
+    env_variables = deferred(db.Column(JSONB, nullable=False, server_default="{}"))
+
+    # Note that all relationships are lazy=select.
+    pipelines = db.relationship(
+        "Pipeline", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+    environment_builds = db.relationship(
+        "EnvironmentBuild", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+    interactive_sessions = db.relationship(
+        "InteractiveSession", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+    jobs = db.relationship(
+        "Job", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+    pipeline_runs = db.relationship(
+        "PipelineRun", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+
+
+class Pipeline(BaseModel):
+    __tablename__ = "pipelines"
+
+    project_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
+    env_variables = deferred(db.Column(JSONB, nullable=False, server_default="{}"))
+
+    # Note that all relationships are lazy=select.
+    interactive_sessions = db.relationship(
+        "InteractiveSession", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+    jobs = db.relationship(
+        "Job", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+    pipeline_runs = db.relationship(
+        "PipelineRun", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
 
 
 class EnvironmentBuild(BaseModel):
@@ -38,7 +86,12 @@ class EnvironmentBuild(BaseModel):
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)
-    project_uuid = db.Column(db.String(36), nullable=False, index=True)
+    project_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
+        primary_key=True,
+        index=True,
+    )
     environment_uuid = db.Column(db.String(36), nullable=False, index=True)
     project_path = db.Column(db.String(4096), nullable=False, index=True)
     requested_time = db.Column(db.DateTime, unique=False, nullable=False)
@@ -52,15 +105,21 @@ class EnvironmentBuild(BaseModel):
 
 class InteractiveSession(BaseModel):
     __tablename__ = "interactive_sessions"
+    __table_args__ = (
+        Index(
+            "ix_interactive_sessions_project_uuid_pipeline_uuid",
+            "project_uuid",
+            "pipeline_uuid",
+        ),
+    )
 
     project_uuid = db.Column(
         db.String(36),
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
         primary_key=True,
+        index=True,
     )
-    pipeline_uuid = db.Column(
-        db.String(36),
-        primary_key=True,
-    )
+    pipeline_uuid = db.Column(db.String(36), primary_key=True, index=True)
     status = db.Column(
         db.String(10),
         primary_key=False,
@@ -89,8 +148,17 @@ class InteractiveSession(BaseModel):
         return f"<Launch {self.pipeline_uuid}>"
 
 
+ForeignKeyConstraint(
+    [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
+    [Pipeline.project_uuid, Pipeline.uuid],
+)
+
+
 class Job(BaseModel):
     __tablename__ = "jobs"
+    __table_args__ = (
+        Index("ix_jobs_project_uuid_pipeline_uuid", "project_uuid", "pipeline_uuid"),
+    )
 
     name = db.Column(
         db.String(255),
@@ -111,8 +179,11 @@ class Job(BaseModel):
     uuid = db.Column(db.String(36), primary_key=True)
     project_uuid = db.Column(
         db.String(36),
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
-    pipeline_uuid = db.Column(db.String(36), primary_key=False)
+    pipeline_uuid = db.Column(db.String(36), index=True, nullable=False)
 
     # Jobs that are to be schedule once (right now) or once in the
     # future will have no schedule (null).
@@ -221,6 +292,14 @@ class Job(BaseModel):
         server_default="{}",
     )
 
+    env_variables = deferred(
+        db.Column(
+            JSONB,
+            nullable=False,
+            server_default="{}",
+        )
+    )
+
     created_time = db.Column(
         db.DateTime,
         unique=False,
@@ -234,17 +313,28 @@ class Job(BaseModel):
         return f"<Job: {self.uuid}>"
 
 
+ForeignKeyConstraint(
+    [Job.project_uuid, Job.pipeline_uuid], [Pipeline.project_uuid, Pipeline.uuid]
+)
+
+
 class PipelineRun(BaseModel):
     __tablename__ = "pipeline_runs"
+    __table_args__ = (
+        Index(
+            "ix_pipeline_runs_project_uuid_pipeline_uuid",
+            "project_uuid",
+            "pipeline_uuid",
+        ),
+    )
 
     project_uuid = db.Column(
         db.String(36),
-    )
-    pipeline_uuid = db.Column(
-        db.String(36),
-        unique=False,
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
+        index=True,
         nullable=False,
     )
+    pipeline_uuid = db.Column(db.String(36), index=True, unique=False, nullable=False)
     uuid = db.Column(db.String(36), primary_key=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
@@ -273,6 +363,12 @@ class PipelineRun(BaseModel):
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: {self.uuid}>"
+
+
+ForeignKeyConstraint(
+    [PipelineRun.project_uuid, PipelineRun.pipeline_uuid],
+    [Pipeline.project_uuid, Pipeline.uuid],
+)
 
 
 class PipelineRunStep(BaseModel):
@@ -351,6 +447,14 @@ class NonInteractivePipelineRun(PipelineRun):
         # This way migrated entries that did not have this column will
         # still be valid.
         server_default="{}",
+    )
+
+    env_variables = deferred(
+        db.Column(
+            JSONB,
+            nullable=False,
+            server_default="{}",
+        )
     )
 
     # related to inheriting from PipelineRun

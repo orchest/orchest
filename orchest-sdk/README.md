@@ -7,6 +7,5 @@ using the SDK:
 
 - Data passing between pipeline steps. It manages the target and source of the data, leaving the
   user only with the decision what data to pass. The target and source of the data are inferred
-  through the defined pipeline definition in Orchest (the `pipeline.json` file).
-- Interacting with data sources, such as your regular MySQL databases but also Amazon S3 buckets.
-- Using the parametrized values of pipeline steps and updating them.
+  through the defined pipeline definition in Orchest (the `pipeline.orchest` file).
+- Accessing and updating the parameters of a pipeline or its steps.

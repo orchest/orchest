@@ -6,7 +6,6 @@ Overview
 With Orchest you get to:
 
 * :ref:`Easily define your custom runtime environment <custom runtime environment>`.
-* :ref:`Integrate commonly used data sources <integrate data sources>`.
 * :ref:`Visually construct pipelines <visually construct>`.
 * :ref:`Write code using JupyterLab <edit with jupyterlab>`.
 * :ref:`Write code using any other editor of choice <edit with vim>`.
@@ -14,7 +13,16 @@ With Orchest you get to:
 * :ref:`Skip certain cells when executing a notebook top-to-bottom <skip cells>`.
 * :ref:`Parametrize your data science pipelines to try out different modeling ideas
   <parametrize pipelines>`.
+* :ref:`Define environment variables <env variables>`.
 * :ref:`Version your pipelines through git <version through git>`.
+
+.. _custom runtime environment:
+
+Easily define your custom runtime environment
+---------------------------------------------
+.. figure:: ../img/overview/custom-runtime-environment.png
+   :width: 500
+   :align: center
 
 .. _visually construct:
 
@@ -59,20 +67,12 @@ Parametrize your data science pipelines
    :width: 300
    :align: center
 
-.. _integrate data sources:
+.. _env variables:
 
-Integrate commonly used data sources
-------------------------------------
-.. figure:: ../img/overview/data-sources.png
-   :width: 250
-   :align: center
-
-.. _custom runtime environment:
-
-Easily define your custom runtime environment
----------------------------------------------
-.. figure:: ../img/overview/custom-runtime-environment.png
-   :width: 500
+Define environment variables
+----------------------------
+.. figure:: ../img/overview/environment-variables.png
+   :width: 400
    :align: center
 
 .. _version through git:

@@ -115,6 +115,8 @@ Unfortunately, ``nvidia-docker`` does not support GPU enabled images on macOS (s
 
       ./orchest update --lang=python --gpu
 
+.. _cloud installation:
+
 Run Orchest on the cloud
 ------------------------
 Running Orchest on a cloud hosted VM (such as EC2) does not require a special installation. Simply follow the

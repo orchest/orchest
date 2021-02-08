@@ -10,7 +10,8 @@ from _orchest.internals.utils import get_device_requests, get_orchest_mounts
 
 urllib3.disable_warnings()
 
-# Set env to False if the container should be left around for debug purposes, etc.
+# Set env to False if the container should be left around for debug
+# purposes, etc.
 remove_container = bool(os.getenv("EG_REMOVE_CONTAINER", "True").lower() == "true")
 swarm_mode = bool(os.getenv("EG_DOCKER_MODE", "swarm").lower() == "swarm")
 
@@ -36,10 +37,12 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     # Container name is composed of KERNEL_USERNAME and KERNEL_ID
     container_name = os.environ.get("KERNEL_USERNAME", "") + "-" + kernel_id
 
-    # Determine network. If EG_DOCKER_NETWORK has not been propagated, fall back to 'bridge'...
+    # Determine network. If EG_DOCKER_NETWORK has not been propagated,
+    # fall back to 'bridge'...
     docker_network = os.environ.get("EG_DOCKER_NETWORK", "bridge")
 
-    # Build labels - these will be modelled similar to kubernetes: kernel_id, component, app, ...
+    # Build labels - these will be modelled similar to kubernetes:
+    # kernel_id, component, app, ...
     labels = dict()
     labels["kernel_id"] = kernel_id
     labels["component"] = "kernel"
@@ -50,12 +53,12 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     param_env["EG_RESPONSE_ADDRESS"] = response_addr
     param_env["KERNEL_SPARK_CONTEXT_INIT_MODE"] = spark_context_init_mode
 
-    # Since the environment is specific to the kernel (per env stanza of kernelspec, KERNEL_ and ENV_WHITELIST)
-    # just add the env here.
+    # Since the environment is specific to the kernel (per env stanza of
+    # kernelspec, KERNEL_ and ENV_WHITELIST) just add the env here.
     param_env.update(os.environ)
-    param_env.pop(
-        "PATH"
-    )  # Let the image PATH be used.  Since this is relative to images, we're probably safe.
+    param_env.pop("PATH")
+    # Let the image PATH be used. Since this is relative to images,
+    # we're probably safe.
 
     # setup common args
     kwargs = dict()
@@ -65,8 +68,9 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     client = DockerClient.from_env()
     print("Started Jupyter kernel in normal docker mode")
 
-    # Note: seems to me that the kernels don't need to be mounted on a container that runs a single kernel
-    # mount the kernel working directory from EG to kernel container
+    # Note: seems to me that the kernels don't need to be mounted on a
+    # container that runs a single kernel mount the kernel working
+    # directory from EG to kernel container
 
     # finish args setup
     kwargs["hostname"] = container_name
@@ -81,6 +85,9 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     # print("container args: {}".format(kwargs))  # useful for debug
     orchest_mounts = get_orchest_mounts(
         project_dir=_config.PROJECT_DIR,
+        host_user_dir=os.path.join(
+            param_env.get("ORCHEST_HOST_PROJECT_DIR"), os.pardir, os.pardir, "data"
+        ),
         host_project_dir=param_env.get("ORCHEST_HOST_PROJECT_DIR"),
     )
     volume_source, volume_spec = get_volume_mount(
@@ -96,7 +103,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         extracted_environment_uuid, param_env.get("ORCHEST_PROJECT_UUID")
     )
 
-    kernel_container = client.containers.run(
+    client.containers.run(
         image_name, volumes=orchest_mounts, device_requests=device_requests, **kwargs
     )
 
@@ -104,9 +111,9 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
 if __name__ == "__main__":
     """
     Usage: launch_docker_kernel
-                [--RemoteProcessProxy.kernel-id <kernel_id>]
-                [--RemoteProcessProxy.response-address <response_addr>]
-                [--RemoteProcessProxy.spark-context-initialization-mode <mode>]
+        [--RemoteProcessProxy.kernel-id <kernel_id>]
+        [--RemoteProcessProxy.response-address <response_addr>]
+        [--RemoteProcessProxy.spark-context-initialization-mode <mode>]
     """
 
     parser = argparse.ArgumentParser()
