@@ -2,8 +2,8 @@ Quickstart
 ==========
 
 .. tip::
-   You can also follow the quickstart by watching our `YouTube video
-   <https://www.youtube.com/watch?v=j0nySMu1-DQ>`_! 💪
+   Have a look at our `YouTube video <https://www.youtube.com/watch?v=j0nySMu1-DQ>`_ for a quick
+   walkthrough of Orchest! 💪
 
 This quickstart will follow an example explaining how to build data science pipelines in Orchest and
 touching upon some core principles that will be helpful when you get to building your own pipelines.
@@ -75,7 +75,7 @@ JupyterLab* (making sure you have the step selected) and paste in the following 
    import orchest
    import pandas as pd
    from sklearn import datasets
-   
+
    # Explicitly cache the data in the "/data" directory since the
    # kernel is running in a Docker container, which are stateless.
    # The "/data" directory is a special directory managed by Orchest
@@ -83,11 +83,11 @@ JupyterLab* (making sure you have the step selected) and paste in the following 
    # even projects.
    print("Dowloading California housing data...")
    data = datasets.fetch_california_housing(data_home="/data")
-   
+
    # Convert the data into a DataFrame.
    df_data = pd.DataFrame(data["data"], columns=data["feature_names"])
    df_target = pd.DataFrame(data["target"], columns=["MedHouseVal"])
-   
+
    # Output the housing data so the next steps can retrieve it.
    print("Outputting converted housing data...")
    orchest.output((df_data, df_target), name="data")
@@ -132,7 +132,7 @@ pipeline steps.
    :align: center
 
 You can get the code for this pipeline step from the ``explore-data.ipynb`` `file in the GitHub
-repository <https://github.com/orchest/quickstart/blob/main/explore-data.ipynb>`_. 
+repository <https://github.com/orchest/quickstart/blob/main/explore-data.ipynb>`_.
 
 Maybe you already noticed the imports in the previous step:
 
