@@ -120,6 +120,14 @@ def status():
 
 
 @typer_app.command()
+def debug_dump():
+    """
+    Create a debug dump of Orchest.
+    """
+    app.debug_dump()
+
+
+@typer_app.command()
 def install(
     language: Language = typer.Option(
         Language.python,

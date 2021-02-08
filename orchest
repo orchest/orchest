@@ -44,6 +44,7 @@ $SUDO_PREFIX docker run \
     --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${DIR}":/orchest-host \
+    -v "${HOST_CONFIG_DIR}":/config \
     -e HOST_CONFIG_DIR="${HOST_CONFIG_DIR}" \
     -e HOST_REPO_DIR="${DIR}" \
     -e HOST_USER_DIR="${HOST_USER_DIR}" \

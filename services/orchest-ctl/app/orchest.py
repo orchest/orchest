@@ -10,8 +10,11 @@ TODO:
 
 """
 import asyncio
+import io
+import json
 import logging
 import os
+import tarfile
 from functools import reduce
 from typing import Any, Dict, Iterable, List, Literal, Optional, Set, Tuple, Union
 
@@ -360,6 +363,31 @@ class DockerWrapper:
 
         return exit_code
 
+    def get_container(self, id_or_name: str):
+        return self.sclient.containers.get(id_or_name)
+
+    def copy_container_file(self, container, from_path: str, to_path: str):
+        """Copy a file from an existing container to a destination.
+
+        Args:
+            container:
+            from:
+            to:
+
+        """
+        # Get bytes from container.
+        data, stat = container.get_archive(from_path)
+        filelike = io.BytesIO(b"".join(b for b in data))
+
+        # Untar so that we can write it as a "normal" file
+        tar = tarfile.open(fileobj=filelike)
+        file = tar.extractfile(stat["name"])
+
+        with open(to_path, "wb") as dest_file:
+            dest_file.write(file.read())
+        filelike.close()
+        tar.close()
+
 
 class OrchestResourceManager:
     orchest_images: List[str] = ORCHEST_IMAGES["all"]
@@ -475,6 +503,19 @@ class OrchestApp:
             ]
         ),
     ]
+
+    health_check_command = {
+        # Works locally, doesn't work here.
+        # "orchest/nginx-proxy:latest": 'service --status-all |
+        # grep openresty',
+        "orchest/orchest-api:latest": "wget localhost/api --spider",
+        "orchest/orchest-webserver:latest": "wget localhost --spider",
+        "orchest/auth-server:latest": "wget localhost/auth --spider",
+        "orchest/celery-worker:latest": "celery inspect ping -A app.core.tasks",
+        "orchest/file-manager:latest": "wget localhost --spider",
+        "postgres:13.1": "pg_isready --username postgres",
+        "rabbitmq:3": "rabbitmqctl node_health_check",
+    }
 
     def __init__(self):
         self.resource_manager = OrchestResourceManager()
@@ -676,9 +717,11 @@ class OrchestApp:
 
     def status(self):
 
-        _, running_containers = self.resource_manager.get_containers(state="running")
+        _, running_containers_names = self.resource_manager.get_containers(
+            state="running"
+        )
 
-        if not self.is_running(running_containers):
+        if not self.is_running(running_containers_names):
             utils.echo("Orchest is not running.")
             return
 
@@ -688,15 +731,253 @@ class OrchestApp:
             lambda x, y: x.union(y), self.on_start_images, set()
         )
 
-        if valid_set - set(running_containers):
+        if valid_set - set(running_containers_names):
             utils.echo("Orchest is running, but has reached an invalid state. Run:")
             utils.echo("\torchest restart")
             logger.warning(
                 "Orchest has reached an invalid state. Running containers:\n"
-                + "\n".join(running_containers)
+                + "\n".join(running_containers_names)
             )
         else:
             utils.echo("Orchest is running.")
+            for container, exit_code in self.healt_check().items():
+                if exit_code != 0:
+                    utils.echo(f"{container} is not ready ({exit_code}).")
+
+    def health_check(self):
+        """
+
+        Returns:
+            Dict mapping container names to health check exit codes.
+        """
+        (
+            running_containers_ids,
+            running_containers_names,
+        ) = self.resource_manager.get_containers(state="running")
+
+        exit_codes = {}
+        # Run health checks for containers that do have one.
+        for id, container in zip(running_containers_ids, running_containers_names):
+            hcheck = self.health_check_command.get(container)
+            if hcheck is None:
+                continue
+            exit_codes[container] = self.docker_client.exec_run(id, hcheck)
+        return exit_codes
+
+    def database_debug_dump(
+        self, path: str, dbs=["auth_server", "orchest_api", "orchest_webserver"]
+    ):
+        """Get database schema, revision version, rows per table(s)."""
+
+        container = self.docker_client.get_container("orchest-database")
+
+        db_debug_dump_directory = os.path.join(path, "database")
+        if not os.path.exists(db_debug_dump_directory):
+            os.mkdir(db_debug_dump_directory)
+
+        for db in dbs:
+
+            # Schema of the db.
+            filename = f"{db}_schema.sql"
+            container.exec_run(
+                (f"pg_dump --user postgres -d {db}" f" --schema-only -f {filename}")
+            )
+            self.docker_client.copy_container_file(
+                container, filename, os.path.join(db_debug_dump_directory, filename)
+            )
+
+            # Alembic version.
+            filename = f"{db}_alembic_version.sql"
+            cmd = (
+                f'psql --user postgres -d {db} -c "SELECT * '
+                f'FROM alembic_version;" -o {filename}'
+            )
+            container.exec_run(cmd)
+            self.docker_client.copy_container_file(
+                container, filename, os.path.join(db_debug_dump_directory, filename)
+            )
+
+            # Row counts of each table in the db.
+            filename = f"{db}_counts.sql"
+            cmd = (
+                f'psql --user postgres -d {db} -c "'
+                """
+                select table_schema, table_name,
+                    (xpath('/row/cnt/text()', xml_count))[1]::text::int as row_count
+                from (
+                    select table_name, table_schema,
+                    query_to_xml(format('select count(*) as cnt from %I.%I',
+                    table_schema, table_name), false, true, '') as xml_count
+                from information_schema.tables
+                where table_schema = 'public') t
+                """
+                f'" -o {filename}'
+            )
+            container.exec_run(cmd)
+            self.docker_client.copy_container_file(
+                container, filename, os.path.join(db_debug_dump_directory, filename)
+            )
+
+    def celery_debug_dump(self, path: str):
+        """Worker logs and output of celery inspect commands."""
+
+        container = self.docker_client.get_container("celery-worker")
+        cel_debug_dump_directory = os.path.join(path, "celery")
+
+        if not os.path.exists(cel_debug_dump_directory):
+            os.mkdir(cel_debug_dump_directory)
+
+        for worker in [
+            "celery_env_builds",
+            "celery_interactive",
+            "celery_jobs",
+        ]:
+            self.docker_client.copy_container_file(
+                container,
+                f"/orchest/services/orchest-api/app/{worker}.log",
+                os.path.join(cel_debug_dump_directory, f"{worker}.log"),
+            )
+
+        cmd_template = "celery inspect -A app.core.tasks {name} > {name}.txt"
+        for inspect_command in [
+            "active",
+            "active_queues",
+            "conf",
+            "revoked",
+            "report",
+            "reserved",
+            "scheduled",
+            "stats",
+        ]:
+            cmd = cmd_template.format(name=inspect_command)
+            # Necessary work around to avoid errors of the python docker
+            # SDK.
+            cmd = ["/bin/sh", "-c", cmd]
+            container.exec_run(cmd)
+            self.docker_client.copy_container_file(
+                container,
+                f"/orchest/services/orchest-api/app/{inspect_command}.txt",
+                os.path.join(cel_debug_dump_directory, f"{inspect_command}.txt"),
+            )
+
+    def websever_debug_dump(self, path):
+        """Get the webserver log file."""
+
+        container = self.docker_client.get_container("orchest-webserver")
+
+        web_debug_dump_directory = os.path.join(path, "webserver")
+        if not os.path.exists(web_debug_dump_directory):
+            os.mkdir(web_debug_dump_directory)
+
+        self.docker_client.copy_container_file(
+            container,
+            "/orchest/services/orchest-webserver/app/orchest-webserver.log",
+            os.path.join(web_debug_dump_directory, "orchest-webserver.log"),
+        )
+
+    def containers_logs_dump(self, path):
+        """Get the logs of every Orchest container, except steps."""
+
+        containers_logs = os.path.join(path, "containers-logs")
+        if not os.path.exists(containers_logs):
+            os.mkdir(containers_logs)
+
+        ids, names = self.resource_manager.get_containers(state="all")
+
+        orchest_set: Set[str] = reduce(
+            lambda x, y: x.union(y), self.on_start_images, set()
+        )
+        session_containers = {
+            "orchest/jupyter-server:latest",
+            "orchest/jupyter-enterprise-gateway",
+            "orchest/memory-server:latest",
+        }
+
+        for id, name in zip(ids, names):
+            if name in orchest_set:
+                file_name = f"{name}.txt"
+            elif name in session_containers:
+                file_name = f"{name}-{id}.txt"
+            # Do not pickup containers that are running user pipeline
+            # steps, to avoid the risk of getting user data through its
+            # logs.
+            else:
+                continue
+
+            # Else orchest/<something> won't work as a file name in
+            # os.path.join.
+            file_name = file_name.replace("orchest/", "")
+            container = self.docker_client.get_container(id)
+            logs = container.logs()
+
+            with open(os.path.join(containers_logs, file_name), "wb") as file:
+                file.write(logs)
+
+    def containers_version_dump(self, path):
+        """Get the version of Orchest containers"""
+
+        with open(os.path.join(path, "containers_version.txt"), "w") as file:
+            for name, version in self.containers_version().items():
+                file.write(f"{name:<44}: {version}\n")
+
+    def orchest_config_dump(self, path):
+        """Get the Orchest config file, with telemetry UUID removed"""
+
+        # Copy the config
+        with open("/config/config.json") as input_json_file:
+            config = json.load(input_json_file)
+            # Removed for privacy.
+            del config["TELEMETRY_UUID"]
+
+            with open(os.path.join(path, "config.json"), "w") as output_json_file:
+                json.dump(config, output_json_file)
+
+    def health_check_dump(self, path):
+        with open(os.path.join(path, "health_check.txt"), "w") as file:
+            for container, exit_code in self.health_check().items():
+                file.write(f"{container:<44}: {exit_code}\n")
+
+    def running_containers_dump(self, path):
+        """Get which Orchest containers are running"""
+
+        _, running_containers_names = self.resource_manager.get_containers(
+            state="running"
+        )
+        with open(os.path.join(path, "running_containers.txt"), "w") as file:
+            for name in running_containers_names:
+                file.write(f"{name}\n")
+
+    def debug_dump(self):
+
+        debug_dump_directory = "/orchest-host/debug-dump"
+        if not os.path.exists(debug_dump_directory):
+            os.mkdir(debug_dump_directory)
+        elif os.path.isfile(debug_dump_directory):
+            utils.echo("Expected debug-dump to be a directory, whereas it is a file.")
+            return
+
+        errors = []
+        for name, func in [
+            ("config", self.orchest_config_dump),
+            ("containers version", self.containers_version_dump),
+            ("containers logs", self.containers_logs_dump),
+            ("running containers", self.running_containers_dump),
+            ("health check", self.health_check_dump),
+            ("database", self.database_debug_dump),
+            ("celery", self.celery_debug_dump),
+            ("webserver", self.websever_debug_dump),
+        ]:
+            try:
+                func(debug_dump_directory)
+            except Exception as e:
+                errors.append((name, e))
+
+        with open(os.path.join(debug_dump_directory, "errors.txt"), "w") as file:
+            file.write(
+                "This is a log of errors that happened during the dump, if any.\n"
+            )
+            for name, exc in errors:
+                file.write(f"{name}: {exc}\n")
 
     def update(self, mode=None):
         """Update Orchest.
@@ -758,6 +1039,20 @@ class OrchestApp:
         utils.echo("Don't forget to restart Orchest for the changes to take effect:")
         utils.echo("\torchest restart")
 
+    def containers_version(self):
+        pulled_images = self.resource_manager.get_images(orchest_owned=True)
+        configs = {}
+        for img in pulled_images:
+            configs[img] = {
+                "Image": img,
+                "Entrypoint": ["printenv", "ORCHEST_VERSION"],
+            }
+
+        stdouts = self.docker_client.run_containers(configs, detach=False)
+        for img in stdouts.keys():
+            stdouts[img] = stdouts[img]["stdout"][0].rstrip()
+        return stdouts
+
     def version(self, ext=False):
         """Returns the version of Orchest.
 
@@ -782,12 +1077,9 @@ class OrchestApp:
                 "Entrypoint": ["printenv", "ORCHEST_VERSION"],
             }
 
-        stdouts = self.docker_client.run_containers(configs, detach=False)
+        stdouts = self.containers_version()
         stdout_values = set()
-        for img, info in stdouts.items():
-            stdout = info["stdout"]
-            # stdout = ['v0.4.1-58-g3f4bc64\n']
-            stdout = stdout[0].rstrip()
+        for img, stdout in stdouts.items():
             stdout_values.add(stdout)
             utils.echo(f"{img:<44}: {stdout}")
 
