@@ -39,6 +39,7 @@ from app.utils import (
     get_user_conf,
     get_user_conf_raw,
     pipeline_set_notebook_kernels,
+    project_entity_counts,
     save_user_conf_raw,
     serialize_environment_to_disk,
 )
@@ -336,7 +337,9 @@ def register_views(app, db):
             )
         else:
             # Merge the project data coming from the orchest-api.
-            project = {**project.as_dict(), **resp.json()}
+            counts = project_entity_counts(project_uuid)
+            project = {**project.as_dict(), **resp.json(), **counts}
+
             return jsonify(project)
 
     @app.route("/async/projects/<project_uuid>", methods=["PUT"])
@@ -382,21 +385,8 @@ def register_views(app, db):
                     )
                 )
 
-            project["pipeline_count"] = Pipeline.query.filter(
-                Pipeline.project_uuid == project["uuid"]
-            ).count()
-            project["environment_count"] = len(get_environments(project["uuid"]))
-
-            resp = requests.get(
-                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/jobs/',
-                params={"project_uuid": project["uuid"]},
-            )
-            data = resp.json()
-            if resp.status_code != 200:
-                job_count = 0
-            else:
-                job_count = len(data.get("jobs", []))
-            project["job_count"] = job_count
+            counts = project_entity_counts(project["uuid"])
+            project.update(counts)
 
         return jsonify(projects)
 

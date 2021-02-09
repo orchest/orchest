@@ -9,6 +9,9 @@ import {
   envVariablesDictToArray,
   OverflowListener,
 } from "../utils/webserver-utils";
+import PipelinesView from "./PipelinesView";
+import JobsView from "./JobsView";
+import EnvironmentsView from "./EnvironmentsView";
 
 class ProjectSettingsView extends React.Component {
   constructor(props) {
@@ -53,6 +56,9 @@ class ProjectSettingsView extends React.Component {
 
       this.setState({
         envVariables: envVariablesDictToArray(result["env_variables"]),
+        pipeline_count: result["pipeline_count"],
+        job_count: result["job_count"],
+        environment_count: result["environment_count"],
         projectName: result["path"],
       });
     });
@@ -119,6 +125,12 @@ class ProjectSettingsView extends React.Component {
     });
   }
 
+  onClickProjectEntity(view, projectUUID, e) {
+    e.preventDefault();
+    orchest.browserConfig.set("selected_project_uuid", projectUUID);
+    orchest.loadView(view);
+  }
+
   render() {
     return (
       <div className={"view-page view-project-settings"}>
@@ -134,9 +146,64 @@ class ProjectSettingsView extends React.Component {
               return (
                 <>
                   <div className="project-settings trigger-overflow">
-                    <div className="push-down top-labels">
-                      <label>Project</label>
-                      <h3>{this.state.projectName}</h3>
+                    <div className="columns four push-down top-labels">
+                      <div className="column">
+                        <label>Project</label>
+                        <h3>{this.state.projectName}</h3>
+                      </div>
+                      <div className="column">
+                        <br />
+                        <h3>
+                          <a
+                            onClick={this.onClickProjectEntity.bind(
+                              this,
+                              PipelinesView,
+                              this.props.project_uuid
+                            )}
+                          >
+                            {this.state.pipeline_count +
+                              " " +
+                              (this.state.pipeline_count == 1
+                                ? "pipeline"
+                                : "pipelines")}
+                          </a>
+                        </h3>
+                      </div>
+                      <div className="column">
+                        <br />
+                        <h3>
+                          <a
+                            onClick={this.onClickProjectEntity.bind(
+                              this,
+                              JobsView,
+                              this.props.project_uuid
+                            )}
+                          >
+                            {this.state.job_count +
+                              " " +
+                              (this.state.job_count == 1 ? "job" : "jobs")}
+                          </a>
+                        </h3>
+                      </div>
+                      <div className="column">
+                        <br />
+                        <h3>
+                          <a
+                            onClick={this.onClickProjectEntity.bind(
+                              this,
+                              EnvironmentsView,
+                              this.props.project_uuid
+                            )}
+                          >
+                            {this.state.environment_count +
+                              " " +
+                              (this.state.environment_count == 1
+                                ? "environment"
+                                : "environments")}
+                          </a>
+                        </h3>
+                      </div>
+                      <div className="clear"></div>
                     </div>
 
                     <h3 className="push-down">Project environment variables</h3>
