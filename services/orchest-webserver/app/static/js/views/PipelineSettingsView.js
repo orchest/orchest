@@ -500,6 +500,12 @@ class PipelineSettingsView extends React.Component {
                         }
                         onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
                       />
+                      <p>
+                        <i>
+                          Note: restarting the session is required to update
+                          environment variables in Jupyter kernels.
+                        </i>
+                      </p>
                     </>
                   );
                 }
