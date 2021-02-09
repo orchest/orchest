@@ -83,8 +83,9 @@ The software in this repository is licensed as follows:
 
 ## We love your feedback
 
-We would love to hear what you think and potentially add features based on your ideas. Come chat
-with us on [our Slack Channel](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
+We would love to hear what you think and add features based on your ideas. Come chat
+with us on [our Slack Channel](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
+or open an [issue on GitHub](https://github.com/orchest/orchest/issues).
 
 ## Contributing
 
