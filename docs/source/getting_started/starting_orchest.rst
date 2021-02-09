@@ -5,10 +5,10 @@ Orchest can be started using:
 
 .. code-block:: bash
 
-    # Make sure to be in the root-level orchest directly.
+    # Make sure you are in the root-level orchest directory.
     ./orchest start
 
-To show the help output, run ``./orchest --help``, example output:
+To show the help output, run ``./orchest --help``:
 
 .. code-block:: text
 

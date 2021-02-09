@@ -161,10 +161,10 @@ to import the pipeline. You can also build the pipeline from scratch yourself!
    A successful pipeline run of the final pipeline.
 
 .. note::
-   The interactive session does not shut down automatically and thus the resources will keep running
-   when editing another pipeline, you can shut down the session manually by clicking on the shut
-   down button. Of course all resources are shut down when you shut down Orchest
-   with ``./orchest stop``.
+   The :ref:`interactive session <interactive session>` does not shut down automatically and thus the
+   resources will keep running when editing another pipeline, you can shut down the session manually
+   by clicking on the shut down button. Of course all resources are shut down when you shut down
+   Orchest with ``./orchest stop``.
 
 .. Closing notes
 .. ~~~~~~~~~~~~~

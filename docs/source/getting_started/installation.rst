@@ -95,7 +95,7 @@ nvidia-container-runtime``.
 **Windows WSL 2** (supported)
 
 For WSL 2 follow the `CUDA on WSL User Guide
-<https://docs.nvidia.com/cuda/wsl-user-guide/index.html>`_ provided by NVIDIA. 
+<https://docs.nvidia.com/cuda/wsl-user-guide/index.html>`_ provided by NVIDIA.
 
 Please note that the "Docker Desktop WSL 2 backend" (meaning, you've installed Docker not
 directly in the WSL 2 environment but on the Windows host itself) does not
@@ -108,12 +108,11 @@ Unfortunately, ``nvidia-docker`` does not support GPU enabled images on macOS (s
 ``nvidia-docker``).
 
 .. note::
-   Make sure you have installed our GPU images for the programming language you want to use. This
-   can be done using the ``--gpu`` flag on installation and update.
+   Make sure you have installed our GPU images for the programming language you want to use.
 
    .. code-block:: bash
 
-      ./orchest update --lang=python --gpu
+      ./orchest install --lang=python --gpu
 
 .. _cloud installation:
 

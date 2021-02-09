@@ -1,12 +1,12 @@
 Contributing
 ============
 
-We would love to hear your feedback to prioritize the right features. You can connect with us
-through our 
+Awesome that you are willing to contribute! Feel free to pick up any of the issues on `GitHub
+<https://github.com/orchest/orchest/issues>`_ or create a custom pull request 💪.
+
+If you need any help or would like our perspective, then don't hesitate and reach out to us on our
 `Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_!
 
-Feel free to pick up any of the issues on `GitHub <https://github.com/orchest/orchest/issues>`_ or
-create a custom pull request 💪.
 
 Contributor License Agreement
 -----------------------------
