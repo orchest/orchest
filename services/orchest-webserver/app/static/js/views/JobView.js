@@ -119,6 +119,11 @@ class JobView extends React.Component {
         );
       }
     }
+
+    if (keyValuePairs.length == 0) {
+      return <i>Parameterless run</i>;
+    }
+
     return keyValuePairs.join(", ");
   }
 
