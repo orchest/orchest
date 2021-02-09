@@ -335,7 +335,7 @@ class PipelineSettingsView extends React.Component {
     if (
       this.state.pipelineJson &&
       this.state.envVariables &&
-      (!this.props.readOnly || this.state.projectEnvVariables)
+      (this.props.readOnly || this.state.projectEnvVariables)
     ) {
       let tabView = undefined;
 
