@@ -137,3 +137,7 @@ dmypy.json
 
 # Mac files
 .DS_Store
+
+# Orchest debug dump directory/file
+debug-dump
+debug-dump.tar.gz

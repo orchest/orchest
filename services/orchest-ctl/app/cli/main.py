@@ -112,19 +112,31 @@ def stop():
 
 
 @typer_app.command()
-def status():
+def status(
+    ext: bool = typer.Option(
+        False,
+        "--ext",
+        show_default=False,
+        help="Get extensive status information.",
+    ),
+):
     """
-    Get status of Orchest.
+    Get Orchest version.
     """
-    app.status()
+    app.status(ext=ext)
 
 
 @typer_app.command()
-def debug_dump():
+def debug(
+    compress: bool = typer.Option(
+        False, "--compress", show_default=True, help="Compress the output directory"
+    ),
+):
     """
-    Create a debug dump of Orchest.
+    Create a debug dump, saved in the working directory as "debug-dump".
+
     """
-    app.debug_dump()
+    app.debug(compress)
 
 
 @typer_app.command()
