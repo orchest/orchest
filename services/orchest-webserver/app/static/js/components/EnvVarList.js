@@ -45,7 +45,7 @@ class EnvVarList extends React.Component {
       <div className="environment-variables-list">
         {(!this.props.value || this.props.value.length == 0) && (
           <p className="push-down">
-            No environment variables have been defined.
+            <i>No environment variables have been defined.</i>
           </p>
         )}
         <ul>{envVarList}</ul>

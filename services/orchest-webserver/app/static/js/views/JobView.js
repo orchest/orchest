@@ -201,7 +201,7 @@ class JobView extends React.Component {
       if (pipelineRunRow.length > 0) {
         rows.push([pipelineRunRow.join(", ")]);
       } else {
-        rows.push(["-"]);
+        rows.push([<i>Parameterless run</i>]);
       }
     }
 

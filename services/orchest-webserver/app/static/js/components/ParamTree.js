@@ -98,7 +98,9 @@ class ParamTree extends React.Component {
         {(() => {
           if (Object.keys(this.props.strategyJSON).length == 0) {
             return (
-              <p>This pipeline doesn't define any parameters on its steps.</p>
+              <p>
+                <i>This pipeline doesn't define any parameters on its steps.</i>
+              </p>
             );
           }
         })()}

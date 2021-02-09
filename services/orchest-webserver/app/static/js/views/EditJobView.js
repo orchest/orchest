@@ -231,7 +231,7 @@ class EditJobView extends React.Component {
       if (pipelineRunRow.length > 0) {
         generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
       } else {
-        generatedPipelineRuns.push(["-"]);
+        generatedPipelineRuns.push([<i>Parameterless run</i>]);
       }
     }
 
@@ -623,7 +623,7 @@ class EditJobView extends React.Component {
             <div className="pipeline-tab-view pipeline-runs">
               <SearchableTable
                 selectable={true}
-                headers={["Parameters"]}
+                headers={["Run specification"]}
                 detailRows={this.detailRows(this.state.generatedPipelineRuns)}
                 rows={this.state.generatedPipelineRunRows}
                 selectedIndices={this.state.selectedIndices}
