@@ -44,7 +44,7 @@ class PipelineSettingsView extends React.Component {
 
   componentDidMount() {
     this.fetchPipeline();
-    this.fetchPipelinePath();
+    this.fetchPipelineMetadata();
     this.attachResizeListener();
   }
 
@@ -104,10 +104,10 @@ class PipelineSettingsView extends React.Component {
     });
   }
 
-  fetchPipelinePath() {
+  fetchPipelineMetadata() {
     if (!this.props.pipelineRun) {
       // get pipeline path
-      let fetchPipelinePathPromise = makeCancelable(
+      let cancelableRequest = makeCancelable(
         makeRequest(
           "GET",
           `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`
@@ -115,7 +115,7 @@ class PipelineSettingsView extends React.Component {
         this.promiseManager
       );
 
-      fetchPipelinePathPromise.promise.then((response) => {
+      cancelableRequest.promise.then((response) => {
         let pipeline = JSON.parse(response);
 
         this.setState({
@@ -123,8 +123,28 @@ class PipelineSettingsView extends React.Component {
           envVariables: envVariablesDictToArray(pipeline["env_variables"]),
         });
       });
+
+      // get project environment variables
+      let cancelableProjectRequest = makeCancelable(
+        makeRequest("GET", `/async/projects/${this.props.project_uuid}`),
+        this.promiseManager
+      );
+
+      cancelableProjectRequest.promise
+        .then((response) => {
+          let project = JSON.parse(response);
+
+          this.setState({
+            projectEnvVariables: envVariablesDictToArray(
+              project["env_variables"]
+            ),
+          });
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     } else {
-      let fetchPipelinePathPromise = makeCancelable(
+      let cancelableRequest = makeCancelable(
         makeRequest(
           "GET",
           `/catch/api-proxy/api/jobs/${this.props.pipelineRun.job_uuid}`
@@ -132,7 +152,7 @@ class PipelineSettingsView extends React.Component {
         this.promiseManager
       );
 
-      fetchPipelinePathPromise.promise.then((response) => {
+      cancelableRequest.promise.then((response) => {
         let job = JSON.parse(response);
 
         this.setState({
@@ -312,7 +332,11 @@ class PipelineSettingsView extends React.Component {
   render() {
     let rootView = undefined;
 
-    if (this.state.pipelineJson && this.state.envVariables) {
+    if (
+      this.state.pipelineJson &&
+      this.state.envVariables &&
+      (!this.props.readOnly || this.state.projectEnvVariables)
+    ) {
       let tabView = undefined;
 
       switch (this.state.selectedTabIndex) {
@@ -440,19 +464,46 @@ class PipelineSettingsView extends React.Component {
         case 1:
           tabView = (
             <div className="push-up">
-              <p className="push-down">
-                Pipeline environment variables take precedence over project
-                environment variables.
-              </p>
-              <EnvVarList
-                value={this.state.envVariables}
-                onAdd={this.addEnvVariablePair.bind(this)}
-                onChange={(e, idx, type) =>
-                  this.onEnvVariablesChange(e, idx, type)
+              {(() => {
+                if (this.props.readOnly) {
+                  return (
+                    <>
+                      <EnvVarList
+                        value={this.state.envVariables}
+                        readOnly={true}
+                      />
+                    </>
+                  );
+                } else {
+                  return (
+                    <>
+                      <h3 className="push-down">
+                        Project environment variables
+                      </h3>
+                      <EnvVarList
+                        value={this.state.projectEnvVariables}
+                        readOnly={true}
+                      />
+
+                      <h3 className="push-down">
+                        Pipeline environment variables
+                      </h3>
+                      <p className="push-down">
+                        Pipeline environment variables take precedence over
+                        project environment variables.
+                      </p>
+                      <EnvVarList
+                        value={this.state.envVariables}
+                        onAdd={this.addEnvVariablePair.bind(this)}
+                        onChange={(e, idx, type) =>
+                          this.onEnvVariablesChange(e, idx, type)
+                        }
+                        onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
+                      />
+                    </>
+                  );
                 }
-                onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
-                readOnly={this.props.readOnly === true}
-              />
+              })()}
             </div>
           );
           break;

@@ -541,6 +541,9 @@ class EditJobView extends React.Component {
         case 1:
           tabView = (
             <div className="tab-view">
+              <p className="push-down">
+                Override any project or pipeline environment variables here.
+              </p>
               <EnvVarList
                 value={this.state.envVariables}
                 onAdd={this.addEnvVariablePair.bind(this)}

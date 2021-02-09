@@ -303,7 +303,7 @@ export function envVariablesArrayToDict(envVariables) {
 
 // Sorted by key.
 export function envVariablesDictToArray(envVariables) {
-  let result = new Array(envVariables.length).fill(null);
+  let result = new Array(Object.keys(envVariables).length).fill(null);
   Object.keys(envVariables).map((name, idx) => {
     result[idx] = { name: name, value: envVariables[name] };
   });
