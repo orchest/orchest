@@ -147,6 +147,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             "Image": "orchest/orchest-api:latest",
             "Env": [
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
+                "PYTHONUNBUFFERED=TRUE",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
@@ -164,6 +165,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 f'HOST_CONFIG_DIR={env["HOST_CONFIG_DIR"]}',
                 f'HOST_REPO_DIR={env["HOST_REPO_DIR"]}',
                 f'HOST_OS={env["HOST_OS"]}',
+                "PYTHONUNBUFFERED=TRUE",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
@@ -206,6 +208,9 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
         },
         "auth-server": {
             "Image": "orchest/auth-server:latest",
+            "Env": [
+                "PYTHONUNBUFFERED=TRUE",
+            ],
             "HostConfig": {
                 "Binds": [
                     f'{env["HOST_USER_DIR"]}:/userdir',
