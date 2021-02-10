@@ -315,41 +315,6 @@ class DockerWrapper:
     def get_container(self, id_or_name: str):
         return self.sclient.containers.get(id_or_name)
 
-    def exec_run(self, container_id: str, cmd: Union[str, List[Any]]) -> int:
-        """Returns the exit code of running a cmd inside a container.
-
-        Making this function async (rough idea):
-        ```python
-        container = self.aclient.containers.container(container_id)
-
-        # If the container is running, kill it before removing it
-        # and remove anonymous volumes associated with the
-        # container.
-        exec = await container.exec(...)
-
-        https://github.com/aio-libs/aiodocker/blob/master/aiodocker/execs.py#L69
-        exec.start(...)
-
-        # Not sure whether start has to be called before inspect
-        https://github.com/aio-libs/aiodocker/blob/master/aiodocker/execs.py#L34
-        res = exec.inspect(...)
-
-        https://docs.docker.com/engine/api/v1.41/#operation/ExecInspect
-        res["ExitCode"]
-        ```
-        """
-        container = docker.models.containers.Container(
-            attrs={"Id": container_id}, client=self.sclient
-        )
-        # Calling the lower level API as the following command gave
-        # incorrect exit codes:
-        # exit_code, _ = container.exec_run(cmd)
-        resp = container.client.api.exec_create(container.id, cmd)
-        _ = container.client.api.exec_start(resp["Id"])
-        exit_code = container.client.api.exec_inspect(resp["Id"])["ExitCode"]
-
-        return exit_code
-
     async def _exec_run(self, container_id: str, cmd) -> int:
         """Returns the exit code of running a cmd inside a container."""
 

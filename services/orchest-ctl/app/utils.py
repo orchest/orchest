@@ -88,8 +88,8 @@ def wait_for_zero_exitcode(
     # This will likely take a maximum of 4 tries.
     exit_code = 1
     while exit_code != 0:
-        exit_code = docker_client.exec_run(container_id, cmd)
-        time.sleep(0.5)
+        exit_code = docker_client.exec_runs([(container_id, cmd)])[0]
+        time.sleep(0.25)
 
 
 def do_proxy_certs_exist_on_host() -> bool:

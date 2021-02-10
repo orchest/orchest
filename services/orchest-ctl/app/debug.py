@@ -357,11 +357,9 @@ def debug_dump(compress: bool):
         for name, exc in errors:
             file.write(f"{name}: {exc}\n")
 
-    output_path = "/orchest-host/debug-dump"
     if compress:
         os.system(f"tar -zcf {debug_dump_path}.tar.gz -C {debug_dump_path} .")
         debug_dump_path = f"{debug_dump_path}.tar.gz"
-        output_path = f"{output_path}.tar.gz"
-        os.system(f"cp {debug_dump_path} {output_path}")
+        os.system(f"cp {debug_dump_path} /orchest-host/debug-dump.tar.gz")
     else:
-        os.system(f"cp -r {debug_dump_path} /orchest-host/")
+        os.system(f"cp -r {debug_dump_path} /orchest-host/debug-dump")
