@@ -340,8 +340,32 @@ def pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid=None):
                 .get("pipeline_path")
             )
         else:
-            current_app.logger.warning(data)
             return None
+
+
+def project_entity_counts(project_uuid):
+
+    counts = {}
+
+    counts["pipeline_count"] = Pipeline.query.filter(
+        Pipeline.project_uuid == project_uuid
+    ).count()
+
+    counts["environment_count"] = len(get_environments(project_uuid))
+
+    resp = requests.get(
+        f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/jobs/',
+        params={"project_uuid": project_uuid},
+    )
+    data = resp.json()
+    if resp.status_code != 200:
+        job_count = 0
+    else:
+        job_count = len(data.get("jobs", []))
+
+    counts["job_count"] = job_count
+
+    return counts
 
 
 def project_uuid_to_path(project_uuid):

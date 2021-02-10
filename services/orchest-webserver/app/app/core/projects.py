@@ -103,6 +103,13 @@ class CreateProject(TwoPhaseFunction):
         # environments of its own.
         populate_kernels(current_app, db, project_uuid)
 
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/projects/',
+            json={"uuid": project_uuid},
+        )
+        if resp.status_code != 201:
+            raise Exception("Orchest-api project creation failed.")
+
         # Build environments on project creation.
         build_environments_for_project(project_uuid)
 

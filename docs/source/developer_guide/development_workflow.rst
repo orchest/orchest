@@ -4,7 +4,8 @@ Development workflow
 Prerequisites
 -------------
 
-* Docker
+* Docker: https://docs.docker.com/get-docker/
+* pre-commit: https://pre-commit.com/#installation
 
 Building
 --------
@@ -19,8 +20,8 @@ Since Orchest is a fully containerized application you will first have to build 
 
 Incremental development
 -----------------------
-Orchest support incremental development by starting Orchest in ``dev`` mode. This allows you to make
-code changes that are instantly reflected, without having to build the containers again.
+Orchest supports incremental development by starting Orchest in ``dev`` mode. This allows you to
+make code changes that are instantly reflected, without having to build the containers again.
 
 .. code-block:: bash
 
@@ -32,25 +33,27 @@ code changes that are instantly reflected, without having to build the container
 
 .. note::
    ``dev`` mode is supported for the following services: ``orchest-webserver``, ``auth-server``,
-   ``file-manager`` and ``orchest-api``. For all other services you will have to run the build
-   script again to rebuild the container (``scripts/build_container.sh -i <service-name>``).
+   ``file-manager`` and ``orchest-api``. For changes to other services you will have to run the
+   build script again to rebuild the container (``scripts/build_container.sh -i <service-name>``)
+   and restart Orchest (``./orchest restart --mode=dev``) to make sure the newly build container is
+   used.
 
 In ``dev`` mode the repository code from the filesystem is mounted (and thus adhering to branches)
 to the appropriate paths in the Docker containers. This allows for active code changes being
 reflected inside the application. In ``dev`` mode the Flask applications are run in development
-mode. 
+mode.
 
 
 Before committing
 -----------------
+
 Install all development dependencies using:
 
 .. code-block:: bash
 
-   # https://pre-commit.com/
    pre-commit install
 
-Run lints and tests with:
+Run formatters, linters and tests with:
 
 .. code-block:: bash
 

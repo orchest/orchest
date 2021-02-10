@@ -134,6 +134,28 @@ a.button {
   }
 }
 
+.project-settings-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .project-settings {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+.pipeline-settings {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .tab-view {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
 .projects-view {
   .mdc-data-table {
     .mdc-button {
@@ -461,22 +483,78 @@ button.text-button {
   }
 }
 
-.view-pipeline-settings {
+.bottom-buttons {
+  background: #fff;
+  width: 100%;
+  margin-left: -$generalPadding;
+  padding-left: $generalPadding;
+  padding-right: $generalPadding;
+  box-sizing: content-box;
+
+  &.overflowing {
+    box-shadow: 0px -9px 8px rgb(0 0 0 / 5%);
+  }
+
+  button {
+    margin-right: $generalPadding;
+    margin-top: $generalPadding;
+
+    &:last-of-type {
+      margin-right: 0;
+    }
+  }
+}
+
+.view-project-settings {
+  ul {
+    list-style-type: none;
+  }
+
+  .top-labels {
+    font-size: 14px;
+
+    a {
+      font-size: 16px;
+    }
+
+    h3 {
+      font-size: 21px;
+    }
+  }
+
+  .project-settings {
+    flex: 1;
+    overflow: auto;
+  }
+}
+
+.pipeline-settings-view {
   .tab-content {
     padding: $generalPadding 0;
   }
 
+  ul {
+    list-style-type: none;
+  }
+
   .CodeMirror {
-    height: 150px;
+    height: auto;
   }
 
   form {
-    div.mdc-text-field {
-      width: 100%;
-    }
     button {
       margin-top: $generalPadding;
     }
+  }
+}
+
+.environment-variables-list {
+  ul {
+    list-style-type: none;
+  }
+
+  div.mdc-text-field {
+    width: 40%;
   }
 }
 
@@ -711,6 +789,21 @@ h2.header {
     width: 50%;
     float: left;
   }
+  &.three {
+    .column {
+      width: 33.33%;
+    }
+  }
+  &.four {
+    .column {
+      width: 25%;
+    }
+  }
+}
+
+a {
+  color: $mdc-theme-secondary;
+  cursor: pointer;
 }
 
 .console-output {
@@ -1074,6 +1167,10 @@ span.code {
     border-left: 1px solid $borderColor;
     z-index: 12;
     width: 0;
+
+    .CodeMirror {
+      height: 100%;
+    }
 
     .overflowable {
       padding: 0 $generalPadding;

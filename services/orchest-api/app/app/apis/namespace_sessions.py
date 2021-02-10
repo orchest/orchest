@@ -35,7 +35,7 @@ class SessionList(Resource):
         return {"sessions": [session.as_dict() for session in sessions]}, 200
 
     @api.doc("launch_session")
-    @api.expect(schema.pipeline)
+    @api.expect(schema.pipeline_spec)
     @api.marshal_with(schema.session, code=201, description="Session launched.")
     def post(self):
         """Launches an interactive session."""

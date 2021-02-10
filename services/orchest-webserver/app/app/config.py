@@ -19,7 +19,6 @@ class Config:
     STATIC_DIR = os.path.join(dir_path, "..", "static")
 
     DEFAULT_ENVIRONMENTS = _config.DEFAULT_ENVIRONMENTS
-    DEFAULT_DATASOURCES = _config.DEFAULT_DATASOURCES
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
     POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
@@ -29,7 +28,10 @@ class Config:
     #  is up
     ORCHEST_WEB_URLS = {
         "readthedocs": "https://orchest.readthedocs.io/en/stable",
-        "slack": "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
+        "slack": (
+            "https://join.slack.com/t/orchest/shared_invite/"
+            "zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w"
+        ),
         "github": "https://github.com/orchest/orchest",
         "website": "https://www.orchest.io",
     }

@@ -16,8 +16,10 @@ import EditJobView from "./EditJobView";
 import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
+  envVariablesDictToArray,
 } from "../utils/webserver-utils";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import EnvVarList from "../components/EnvVarList";
 
 class JobView extends React.Component {
   constructor(props) {
@@ -52,6 +54,7 @@ class JobView extends React.Component {
           this.setState({
             job: job,
             refreshing: false,
+            envVariables: envVariablesDictToArray(job["env_variables"]),
           });
 
           this.fetchPipeline();
@@ -116,6 +119,11 @@ class JobView extends React.Component {
         );
       }
     }
+
+    if (keyValuePairs.length == 0) {
+      return <i>Parameterless run</i>;
+    }
+
     return keyValuePairs.join(", ");
   }
 
@@ -198,7 +206,7 @@ class JobView extends React.Component {
       if (pipelineRunRow.length > 0) {
         rows.push([pipelineRunRow.join(", ")]);
       } else {
-        rows.push(["-"]);
+        rows.push([<i>Parameterless run</i>]);
       }
     }
 
@@ -293,6 +301,14 @@ class JobView extends React.Component {
             </div>
           );
           break;
+
+        case 2:
+          tabView = (
+            <div className="pipeline-tab-view">
+              <EnvVarList value={this.state.envVariables} readOnly={true} />
+            </div>
+          );
+          break;
       }
 
       rootView = (
@@ -337,7 +353,9 @@ class JobView extends React.Component {
               <div className="column">
                 <label>Scheduled at</label>
                 <h3>
-                  {formatServerDateTime(this.state.job.last_scheduled_time)}
+                  {this.state.job.next_scheduled_time
+                    ? formatServerDateTime(this.state.job.next_scheduled_time)
+                    : formatServerDateTime(this.state.job.last_scheduled_time)}
                 </h3>
               </div>
               <div className="clear"></div>
@@ -356,8 +374,9 @@ class JobView extends React.Component {
                 +this.state.job.pipeline_runs.length +
                 ")",
               "Parameters",
+              "Environment variables",
             ]}
-            icons={["list", "tune"]}
+            icons={["list", "tune", "view_comfy"]}
             onChange={this.onSelectSubview.bind(this)}
           />
 

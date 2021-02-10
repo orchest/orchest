@@ -11,11 +11,14 @@ import SearchableTable from "../components/SearchableTable";
 import { makeRequest, PromiseManager, RefManager } from "../lib/utils/all";
 import ParamTree from "../components/ParamTree";
 import { makeCancelable } from "../lib/utils/all";
+import EnvVarList from "../components/EnvVarList";
 
 import {
   checkGate,
   getPipelineJSONEndpoint,
   requestBuild,
+  envVariablesArrayToDict,
+  envVariablesDictToArray,
 } from "../utils/webserver-utils";
 import JobView from "./JobView";
 
@@ -59,6 +62,7 @@ class EditJobView extends React.Component {
           job: job,
           cronString: job.schedule === null ? "* * * * *" : job.schedule,
           scheduleOption: job.schedule === null ? "now" : "cron",
+          envVariables: envVariablesDictToArray(job["env_variables"]),
         });
 
         if (job.status !== "DRAFT") {
@@ -227,7 +231,7 @@ class EditJobView extends React.Component {
       if (pipelineRunRow.length > 0) {
         generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
       } else {
-        generatedPipelineRuns.push(["-"]);
+        generatedPipelineRuns.push([<i>Parameterless run</i>]);
       }
     }
 
@@ -279,6 +283,16 @@ class EditJobView extends React.Component {
       runJobLoading: true,
     });
 
+    let envVariables = envVariablesArrayToDict(this.state.envVariables);
+    // Do not go through if env variables are not correctly defined.
+    if (envVariables === undefined) {
+      this.setState({
+        runJobLoading: false,
+      });
+      this.onSelectSubview(1);
+      return;
+    }
+
     let jobPUTData = {
       confirm_draft: true,
       strategy_json: this.state.strategyJSON,
@@ -286,6 +300,7 @@ class EditJobView extends React.Component {
         this.state.generatedPipelineRuns,
         this.state.selectedIndices
       ),
+      env_variables: envVariables,
     };
 
     if (this.state.scheduleOption === "scheduled") {
@@ -342,6 +357,12 @@ class EditJobView extends React.Component {
     );
 
     let cronSchedule = this.state.cronString;
+    let envVariables = envVariablesArrayToDict(this.state.envVariables);
+    // Do not go through if env variables are not correctly defined.
+    if (envVariables === undefined) {
+      this.onSelectSubview(1);
+      return;
+    }
 
     let putJobRequest = makeCancelable(
       makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
@@ -350,6 +371,7 @@ class EditJobView extends React.Component {
           cron_schedule: cronSchedule,
           parameters: jobParameters,
           strategy_json: this.state.strategyJSON,
+          env_variables: envVariables,
         },
       }),
       this.promiseManager
@@ -444,6 +466,37 @@ class EditJobView extends React.Component {
     });
   }
 
+  addEnvVariablePair(e) {
+    e.preventDefault();
+
+    const envVariables = this.state.envVariables.slice();
+    this.setState({
+      envVariables: envVariables.concat([
+        {
+          name: null,
+          value: null,
+        },
+      ]),
+    });
+  }
+
+  onEnvVariablesChange(value, idx, type) {
+    const envVariables = this.state.envVariables.slice();
+    envVariables[idx][type] = value;
+
+    this.setState({
+      envVariables: envVariables,
+    });
+  }
+
+  onEnvVariablesDeletion(idx) {
+    const envVariables = this.state.envVariables.slice();
+    envVariables.splice(idx, 1);
+    this.setState({
+      envVariables: envVariables,
+    });
+  }
+
   detailRows(pipelineParameters) {
     let detailElements = [];
 
@@ -486,6 +539,23 @@ class EditJobView extends React.Component {
           );
           break;
         case 1:
+          tabView = (
+            <div className="tab-view">
+              <p className="push-down">
+                Override any project or pipeline environment variables here.
+              </p>
+              <EnvVarList
+                value={this.state.envVariables}
+                onAdd={this.addEnvVariablePair.bind(this)}
+                onChange={(e, idx, type) =>
+                  this.onEnvVariablesChange(e, idx, type)
+                }
+                onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
+              />
+            </div>
+          );
+          break;
+        case 2:
           tabView = (
             <div className="tab-view">
               {this.state.job.status === "DRAFT" && (
@@ -548,12 +618,12 @@ class EditJobView extends React.Component {
             </div>
           );
           break;
-        case 2:
+        case 3:
           tabView = (
             <div className="pipeline-tab-view pipeline-runs">
               <SearchableTable
                 selectable={true}
-                headers={["Parameters"]}
+                headers={["Run specification"]}
                 detailRows={this.detailRows(this.state.generatedPipelineRuns)}
                 rows={this.state.generatedPipelineRunRows}
                 selectedIndices={this.state.selectedIndices}
@@ -585,6 +655,7 @@ class EditJobView extends React.Component {
             ref={this.refManager.nrefs.tabBar}
             items={[
               "Parameters",
+              "Environment variables",
               "Scheduling",
               "Pipeline runs (" +
                 this.state.selectedIndices.reduce(
@@ -595,7 +666,7 @@ class EditJobView extends React.Component {
                 this.state.generatedPipelineRuns.length +
                 ")",
             ]}
-            icons={["tune", "schedule", "list"]}
+            icons={["tune", "view_comfy", "schedule", "list"]}
             onChange={this.onSelectSubview.bind(this)}
           />
 

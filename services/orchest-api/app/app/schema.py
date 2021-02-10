@@ -43,8 +43,57 @@ sessions = Model(
     },
 )
 
+project = Model(
+    "Project",
+    {
+        "uuid": fields.String(required=True, description="UUID of project"),
+        "env_variables": fields.Raw(
+            required=False, description="Environment variables of the project"
+        ),
+    },
+)
+
+project_update = Model(
+    "ProjectUpdate",
+    {
+        "env_variables": fields.Raw(
+            required=False, description="Environment variables of the project"
+        ),
+    },
+)
+
+projects = Model(
+    "Projects",
+    {"projects": fields.List(fields.Nested(project), description="All projects")},
+)
+
 pipeline = Model(
     "Pipeline",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "uuid": fields.String(required=True, description="UUID of pipeline"),
+        "env_variables": fields.Raw(
+            required=False, description="Environment variables of the pipeline"
+        ),
+    },
+)
+
+pipeline_update = Model(
+    "PipelineUpdate",
+    {
+        "env_variables": fields.Raw(
+            required=False, description="Environment variables of the pipeline"
+        ),
+    },
+)
+
+pipelines = Model(
+    "Pipelines",
+    {"pipelines": fields.List(fields.Nested(pipeline), description="All pipelines")},
+)
+
+pipeline_spec = Model(
+    "PipelineSpec",
     {
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
@@ -127,6 +176,9 @@ pipeline_run = Model(
             fields.Nested(pipeline_run_pipeline_step),
             description="Status of each pipeline step",
         ),
+        "env_variables": fields.Raw(
+            required=True, description="Environment variables of the run"
+        ),
     },
 )
 
@@ -191,6 +243,9 @@ job_update = Model(
         "confirm_draft": fields.Arbitrary(
             required=False,
             description="If there, the draft is confirmed. Value does not matter.",
+        ),
+        "env_variables": fields.Raw(
+            required=True, description="Environment variables of the job"
         ),
     },
 )
@@ -339,6 +394,9 @@ job = Model(
         ),
         "name": fields.String(required=True, description="Name of the job."),
         "strategy_json": fields.Raw(required=True, description="Strategy json."),
+        "env_variables": fields.Raw(
+            required=True, description="Environment variables of the job"
+        ),
     },
 )
 

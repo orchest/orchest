@@ -5,10 +5,10 @@ import uuid
 import docker
 import requests
 import sqlalchemy
+from flask import current_app
 from flask import json as flask_json
 from flask import jsonify, render_template, request
-from flask.globals import current_app
-from flask_restful import Api, HTTPException, Resource
+from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 
 from _orchest.internals import config as _config
@@ -23,14 +23,8 @@ from app.core.projects import (
     SyncProjectPipelinesDBState,
 )
 from app.kernel_manager import populate_kernels
-from app.models import DataSource, Environment, Pipeline, Project
-from app.schemas import (
-    BackgroundTaskSchema,
-    DataSourceSchema,
-    EnvironmentSchema,
-    PipelineSchema,
-    ProjectSchema,
-)
+from app.models import Environment, Pipeline, Project
+from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
 from app.utils import (
     create_pipeline_files,
     delete_environment,
@@ -45,30 +39,18 @@ from app.utils import (
     get_user_conf,
     get_user_conf_raw,
     pipeline_set_notebook_kernels,
+    project_entity_counts,
     save_user_conf_raw,
     serialize_environment_to_disk,
 )
 
 
 def register_views(app, db):
-    errors = {
-        "DataSourceNameInUse": {
-            "message": "A data source with this name already exists.",
-            "status": 409,
-        },
-    }
+    errors = {}
 
     api = Api(app, errors=errors)
 
-    class DataSourceNameInUse(HTTPException):
-        pass
-
     projects_schema = ProjectSchema(many=True)
-
-    pipeline_schema = PipelineSchema()
-
-    datasource_schema = DataSourceSchema()
-    datasources_schema = DataSourceSchema(many=True)
 
     environment_schema = EnvironmentSchema()
     environments_schema = EnvironmentSchema(many=True)
@@ -138,87 +120,6 @@ def register_views(app, db):
             "/store/environments/<string:project_uuid>/<string:environment_uuid>",
         )
 
-    def register_datasources(db, api):
-        class DataSourcesResource(Resource):
-            def get(self):
-
-                show_internal = True
-                if request.args.get("show_internal") == "false":
-                    show_internal = False
-
-                if show_internal:
-                    datasources = DataSource.query.all()
-                else:
-                    datasources = DataSource.query.filter(
-                        ~DataSource.name.like("\_%", escape="\\")
-                    ).all()
-
-                return datasources_schema.dump(datasources)
-
-        class DataSourceResource(Resource):
-            def put(self, name):
-                ds = DataSource.query.filter(DataSource.name == name).first()
-
-                if ds is None:
-                    return "", 404
-
-                ds.name = request.json["name"]
-                ds.source_type = request.json["source_type"]
-                ds.connection_details = request.json["connection_details"]
-                try:
-                    db.session.commit()
-                except Exception:
-                    db.session.rollback()
-                    return {"message": "Failed update operation."}, 500
-
-                return datasource_schema.dump(ds)
-
-            def get(self, name):
-                ds = DataSource.query.filter(DataSource.name == name).first()
-
-                if ds is None:
-                    return "", 404
-
-                return datasource_schema.dump(ds)
-
-            def delete(self, name):
-                ds = DataSource.query.filter(DataSource.name == name).first()
-
-                if ds is None:
-                    return "", 404
-
-                db.session.delete(ds)
-                try:
-                    db.session.commit()
-                except Exception:
-                    db.session.rollback()
-                    return {"message": "Failed to delete data source."}, 500
-
-                return jsonify({"message": "Data source deletion was successful."})
-
-            def post(self, name):
-                if DataSource.query.filter(DataSource.name == name).count() > 0:
-                    raise DataSourceNameInUse()
-
-                new_ds = DataSource(
-                    name=name,
-                    source_type=request.json["source_type"],
-                    connection_details=request.json["connection_details"],
-                )
-
-                db.session.add(new_ds)
-                try:
-                    db.session.commit()
-                except Exception:
-                    db.session.rollback()
-                    return {"message": "Failed to create data source."}, 500
-
-                return datasource_schema.dump(new_ds)
-
-        api.add_resource(DataSourcesResource, "/store/datasources")
-        api.add_resource(DataSourceResource, "/store/datasources/<string:name>")
-
-    register_datasources(db, api)
     register_environments(db, api)
 
     def return_404(reason=""):
@@ -411,6 +312,52 @@ def register_views(app, db):
                     )
                 )
 
+    @app.route("/async/projects/<project_uuid>", methods=["GET"])
+    def project_get(project_uuid):
+        project = Project.query.filter(Project.uuid == project_uuid).first()
+
+        if project is None:
+            return jsonify({"message": "Project doesn't exist."}), 404
+
+        resp = requests.get(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/projects/{project_uuid}"
+            )
+        )
+        if resp.status_code == 404:
+            return (
+                jsonify({"message": "Project doesn't exist in the orchest-api."}),
+                404,
+            )
+        elif resp.status_code != 200:
+            return (
+                jsonify({"message": "Orchest-api project retrieval failed."}),
+                resp.status_code,
+            )
+        else:
+            # Merge the project data coming from the orchest-api.
+            counts = project_entity_counts(project_uuid)
+            project = {**project.as_dict(), **resp.json(), **counts}
+
+            return jsonify(project)
+
+    @app.route("/async/projects/<project_uuid>", methods=["PUT"])
+    def project_put(project_uuid):
+
+        # While this seems suited to be in the orchest_api.py module,
+        # I've left it here because some project data lives in the web
+        # server as well, and this PUT request might eventually update
+        # that.
+        resp = requests.put(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/projects/{project_uuid}"
+            ),
+            json=request.json,
+        )
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/async/projects", methods=["GET"])
     def projects_get():
 
@@ -438,21 +385,8 @@ def register_views(app, db):
                     )
                 )
 
-            project["pipeline_count"] = Pipeline.query.filter(
-                Pipeline.project_uuid == project["uuid"]
-            ).count()
-            project["environment_count"] = len(get_environments(project["uuid"]))
-
-            resp = requests.get(
-                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/jobs/',
-                params={"project_uuid": project["uuid"]},
-            )
-            data = resp.json()
-            if resp.status_code != 200:
-                job_count = 0
-            else:
-                job_count = len(data.get("jobs", []))
-            project["job_count"] = job_count
+            counts = project_entity_counts(project["uuid"])
+            project.update(counts)
 
         return jsonify(projects)
 
@@ -501,8 +435,43 @@ def register_views(app, db):
 
         if pipeline is None:
             return jsonify({"message": "Pipeline doesn't exist."}), 404
+
+        resp = requests.get(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/pipelines/{project_uuid}/{pipeline_uuid}"
+            )
+        )
+        if resp.status_code == 404:
+            return (
+                jsonify({"message": "Pipeline doesn't exist in the orchest-api."}),
+                404,
+            )
+        elif resp.status_code != 200:
+            return (
+                jsonify({"message": "Orchest-api pipeline retrieval failed."}),
+                resp.status_code,
+            )
         else:
-            return jsonify(pipeline_schema.dump(pipeline))
+            # Merge the pipeline data coming from the orchest-api.
+            pipeline = {**pipeline.as_dict(), **resp.json()}
+            return jsonify(pipeline)
+
+    @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["PUT"])
+    def pipeline_put(project_uuid, pipeline_uuid):
+
+        # While this seems suited to be in the orchest_api.py module,
+        # I've left it here because some pipeline data lives in the web
+        # server as well, and this PUT request might eventually update
+        # that.
+        resp = requests.put(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/pipelines/{project_uuid}/{pipeline_uuid}"
+            ),
+            json=request.json,
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
     def pipelines_get(project_uuid):

@@ -75,13 +75,6 @@ DEFAULT_ENVIRONMENTS = [
     },
 ]
 
-DEFAULT_DATASOURCES = [
-    {
-        "name": "_default",
-        "connection_details": {"absolute_host_path": "$HOST_USER_DIR/data"},
-        "source_type": "host-directory",
-    }
-]
 
 # memory-server
 MEMORY_SERVER_SOCK_PATH = TEMP_DIRECTORY_PATH

@@ -248,6 +248,7 @@ def register_orchest_api_views(app, db):
             # add image mapping
             # TODO: replace with dynamic mapping instead of hardcoded
             json_obj["run_config"] = {
+                "host_user_dir": app.config["HOST_USER_DIR"],
                 "project_dir": get_project_directory(
                     json_obj["project_uuid"], host_path=True
                 ),
@@ -350,7 +351,6 @@ def register_orchest_api_views(app, db):
         params = {}
         if "project_uuid" in request.args:
             params = {"project_uuid": request.args["project_uuid"]}
-        current_app.logger.warning(params)
 
         resp = requests.get(
             f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/', params
@@ -396,5 +396,3 @@ def register_orchest_api_views(app, db):
         except Exception as e:
             msg = f"Error during job deletion:{e}"
             return {"message": msg}, 500
-
-        return jsonify({"message": "Job deletion was successful."})

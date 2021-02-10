@@ -6,12 +6,19 @@ import {
   makeCancelable,
   RefManager,
 } from "../lib/utils/all";
-import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
+import {
+  getPipelineJSONEndpoint,
+  envVariablesArrayToDict,
+  envVariablesDictToArray,
+  OverflowListener,
+} from "../utils/webserver-utils";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import EnvVarList from "../components/EnvVarList";
+import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
 require("codemirror/mode/javascript/javascript");
 
 class PipelineSettingsView extends React.Component {
@@ -19,12 +26,14 @@ class PipelineSettingsView extends React.Component {
     super(props);
 
     this.state = {
+      selectedTabIndex: 0,
       inputParameters: JSON.stringify({}, null, 2),
       restartingMemoryServer: false,
       unsavedChanges: false,
       pipeline_path: undefined,
     };
 
+    this.overflowListener = new OverflowListener();
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
   }
@@ -35,7 +44,22 @@ class PipelineSettingsView extends React.Component {
 
   componentDidMount() {
     this.fetchPipeline();
-    this.fetchPipelinePath();
+    this.fetchPipelineMetadata();
+    this.attachResizeListener();
+  }
+
+  componentDidUpdate() {
+    this.attachResizeListener();
+  }
+
+  attachResizeListener() {
+    this.overflowListener.attach();
+  }
+
+  onSelectSubview(index) {
+    this.setState({
+      selectedTabIndex: index,
+    });
   }
 
   fetchPipeline() {
@@ -80,10 +104,10 @@ class PipelineSettingsView extends React.Component {
     });
   }
 
-  fetchPipelinePath() {
+  fetchPipelineMetadata() {
     if (!this.props.pipelineRun) {
       // get pipeline path
-      let fetchPipelinePathPromise = makeCancelable(
+      let cancelableRequest = makeCancelable(
         makeRequest(
           "GET",
           `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`
@@ -91,14 +115,36 @@ class PipelineSettingsView extends React.Component {
         this.promiseManager
       );
 
-      fetchPipelinePathPromise.promise.then((response) => {
+      cancelableRequest.promise.then((response) => {
         let pipeline = JSON.parse(response);
+
         this.setState({
           pipeline_path: pipeline.path,
+          envVariables: envVariablesDictToArray(pipeline["env_variables"]),
         });
       });
+
+      // get project environment variables
+      let cancelableProjectRequest = makeCancelable(
+        makeRequest("GET", `/async/projects/${this.props.project_uuid}`),
+        this.promiseManager
+      );
+
+      cancelableProjectRequest.promise
+        .then((response) => {
+          let project = JSON.parse(response);
+
+          this.setState({
+            projectEnvVariables: envVariablesDictToArray(
+              project["env_variables"]
+            ),
+          });
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     } else {
-      let fetchPipelinePathPromise = makeCancelable(
+      let cancelableRequest = makeCancelable(
         makeRequest(
           "GET",
           `/catch/api-proxy/api/jobs/${this.props.pipelineRun.job_uuid}`
@@ -106,10 +152,12 @@ class PipelineSettingsView extends React.Component {
         this.promiseManager
       );
 
-      fetchPipelinePathPromise.promise.then((response) => {
+      cancelableRequest.promise.then((response) => {
         let job = JSON.parse(response);
+
         this.setState({
           pipeline_path: job.pipeline_run_spec.run_config.pipeline_path,
+          envVariables: envVariablesDictToArray(job["env_variables"]),
         });
       });
     }
@@ -166,8 +214,48 @@ class PipelineSettingsView extends React.Component {
     });
   }
 
+  addEnvVariablePair(e) {
+    e.preventDefault();
+
+    const envVariables = this.state.envVariables.slice();
+    this.setState({
+      envVariables: envVariables.concat([
+        {
+          name: null,
+          value: null,
+        },
+      ]),
+    });
+  }
+
+  onEnvVariablesChange(value, idx, type) {
+    const envVariables = this.state.envVariables.slice();
+    envVariables[idx][type] = value;
+
+    this.setState({
+      envVariables: envVariables,
+      unsavedChanges: true,
+    });
+  }
+
+  onEnvVariablesDeletion(idx) {
+    const envVariables = this.state.envVariables.slice();
+    envVariables.splice(idx, 1);
+    this.setState({
+      envVariables: envVariables,
+      unsavedChanges: true,
+    });
+  }
+
   saveGeneralForm(e) {
     e.preventDefault();
+
+    let envVariables = envVariablesArrayToDict(this.state.envVariables);
+    // Do not go through if env variables are not correctly defined.
+    if (envVariables === undefined) {
+      this.onSelectSubview(1);
+      return;
+    }
 
     let formData = new FormData();
     formData.append("pipeline_json", JSON.stringify(this.state.pipelineJson));
@@ -186,6 +274,17 @@ class PipelineSettingsView extends React.Component {
       .catch((response) => {
         console.error(response);
       });
+
+    makeRequest(
+      "PUT",
+      `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+      {
+        type: "json",
+        content: { env_variables: envVariables },
+      }
+    ).catch((response) => {
+      console.error(response);
+    });
   }
 
   restartMemoryServer() {
@@ -231,152 +330,229 @@ class PipelineSettingsView extends React.Component {
   }
 
   render() {
-    return (
-      <div className={"view-page view-pipeline-settings"}>
-        <h2>Pipeline settings</h2>
+    let rootView = undefined;
 
-        {(() => {
-          if (this.state.pipelineJson) {
-            return (
-              <div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                  }}
-                >
-                  <div>
-                    <MDCTextFieldReact
-                      ref={this.refManager.nrefs.pipelineNameTextField}
-                      value={this.state.pipelineJson.name}
-                      onChange={this.onChangeName.bind(this)}
-                      label="Pipeline name"
-                      disabled={this.props.readOnly === true}
-                      classNames={["push-down"]}
-                    />
-                    {this.state.pipeline_path && (
-                      <p className="push-down">
-                        Pipeline path:{" "}
-                        <span className="code">{this.state.pipeline_path}</span>
-                      </p>
-                    )}
+    if (
+      this.state.pipelineJson &&
+      this.state.envVariables &&
+      (this.props.readOnly || this.state.projectEnvVariables)
+    ) {
+      let tabView = undefined;
 
-                    <h3 className="push-down">Pipeline Parameters</h3>
+      switch (this.state.selectedTabIndex) {
+        case 0:
+          tabView = (
+            <div className="push-up">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                }}
+              >
+                <div>
+                  <MDCTextFieldReact
+                    ref={this.refManager.nrefs.pipelineNameTextField}
+                    value={this.state.pipelineJson.name}
+                    onChange={this.onChangeName.bind(this)}
+                    label="Pipeline name"
+                    disabled={this.props.readOnly === true}
+                    classNames={["push-down"]}
+                  />
+                  {this.state.pipeline_path && (
+                    <p className="push-down">
+                      Pipeline path:{" "}
+                      <span className="code">{this.state.pipeline_path}</span>
+                    </p>
+                  )}
 
-                    <CodeMirror
-                      value={this.state.inputParameters}
-                      options={{
-                        mode: "application/json",
-                        theme: "jupyter",
-                        lineNumbers: true,
-                        readOnly: this.props.readOnly === true,
-                      }}
-                      onBeforeChange={this.onChangePipelineParameters.bind(
-                        this
-                      )}
-                    />
+                  <h3 className="push-down">Pipeline parameters</h3>
+
+                  <CodeMirror
+                    value={this.state.inputParameters}
+                    options={{
+                      mode: "application/json",
+                      theme: "jupyter",
+                      lineNumbers: true,
+                      readOnly: this.props.readOnly === true,
+                    }}
+                    onBeforeChange={this.onChangePipelineParameters.bind(this)}
+                  />
+                  {(() => {
+                    try {
+                      JSON.parse(this.state.inputParameters);
+                    } catch {
+                      return (
+                        <div className="warning push-up push-down">
+                          <i className="material-icons">warning</i> Your input
+                          is not valid JSON.
+                        </div>
+                      );
+                    }
+                  })()}
+
+                  <h3 className="push-up">Data passing</h3>
+                  {!this.props.readOnly && (
+                    <p className="push-up">
+                      <i>
+                        For these changes to take effect you have to restart the
+                        memory-server (see button below).
+                      </i>
+                    </p>
+                  )}
+
+                  <MDCCheckboxReact
+                    value={this.state.pipelineJson.settings.auto_eviction}
+                    onChange={this.onChangeEviction.bind(this)}
+                    label="Automatic memory eviction"
+                    disabled={this.props.readOnly === true}
+                    classNames={["push-down", "push-up"]}
+                  />
+
+                  {!this.props.readOnly && (
+                    <p className="push-down">
+                      Change the size of the memory server for data passing. For
+                      units use KB, MB, or GB, e.g.{" "}
+                      <span className="code">1GB</span>.{" "}
+                    </p>
+                  )}
+                  <MDCTextFieldReact
+                    ref={
+                      this.refManager.nrefs
+                        .pipelineSettingDataPassingMemorySizeTextField
+                    }
+                    value={
+                      this.state.pipelineJson.settings.data_passing_memory_size
+                    }
+                    onChange={this.onChangeDataPassingMemorySize.bind(this)}
+                    label="Data passing memory size"
+                    disabled={this.props.readOnly === true}
+                  />
+                </div>
+              </form>
+
+              {!this.props.readOnly && (
+                <>
+                  <h3 className="push-up push-down">Actions</h3>
+
+                  <p className="push-down">
+                    Restarting the memory-server also clears the memory to allow
+                    additional data to be passed between pipeline steps.
+                  </p>
+                  <div className="push-down">
                     {(() => {
-                      try {
-                        JSON.parse(this.state.inputParameters);
-                      } catch {
+                      if (this.state.restartingMemoryServer) {
                         return (
-                          <div className="warning push-up push-down">
-                            <i className="material-icons">warning</i> Your input
-                            is not valid JSON.
-                          </div>
+                          <p className="push-p push-down">
+                            Restarting in progress...
+                          </p>
                         );
                       }
                     })()}
 
-                    <h3 className="push-up">Data passing</h3>
-                    {!this.props.readOnly && (
-                      <p className="push-up">
-                        <i>
-                          For these changes to take effect you have to restart
-                          the memory-server (see button below).
-                        </i>
-                      </p>
-                    )}
-
-                    <MDCCheckboxReact
-                      value={this.state.pipelineJson.settings.auto_eviction}
-                      onChange={this.onChangeEviction.bind(this)}
-                      label="Automatic memory eviction"
-                      disabled={this.props.readOnly === true}
-                      classNames={["push-down", "push-up"]}
-                    />
-
-                    {!this.props.readOnly && (
-                      <p className="push-down">
-                        Change the size of the memory server for data passing.
-                        For units use KB, MB, or GB, e.g.{" "}
-                        <span className="code">1GB</span>.{" "}
-                      </p>
-                    )}
-                    <MDCTextFieldReact
-                      ref={
-                        this.refManager.nrefs
-                          .pipelineSettingDataPassingMemorySizeTextField
-                      }
-                      value={
-                        this.state.pipelineJson.settings
-                          .data_passing_memory_size
-                      }
-                      onChange={this.onChangeDataPassingMemorySize.bind(this)}
-                      label="Data passing memory size"
-                      disabled={this.props.readOnly === true}
-                    />
-                  </div>
-
-                  {!this.props.readOnly && (
-                    <MDCButtonReact
-                      label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.saveGeneralForm.bind(this)}
-                    />
-                  )}
-                </form>
-
-                {!this.props.readOnly && (
-                  <>
-                    <h3 className="push-up push-down">Actions</h3>
-
-                    <p className="push-down">
-                      Restarting the memory-server also clears the memory to
-                      allow additional data to be passed between pipeline steps.
-                    </p>
                     <MDCButtonReact
                       disabled={this.state.restartingMemoryServer}
                       label="Restart memory-server"
                       icon="memory"
-                      classNames={["mdc-button--raised"]}
+                      classNames={["mdc-button--raised push-down"]}
                       onClick={this.restartMemoryServer.bind(this)}
                     />
+                  </div>
+                </>
+              )}
+            </div>
+          );
+          break;
+        case 1:
+          tabView = (
+            <div className="push-up">
+              {(() => {
+                if (this.props.readOnly) {
+                  return (
+                    <>
+                      <EnvVarList
+                        value={this.state.envVariables}
+                        readOnly={true}
+                      />
+                    </>
+                  );
+                } else {
+                  return (
+                    <>
+                      <h3 className="push-down">
+                        Project environment variables
+                      </h3>
+                      <EnvVarList
+                        value={this.state.projectEnvVariables}
+                        readOnly={true}
+                      />
 
-                    {(() => {
-                      if (this.state.restartingMemoryServer) {
-                        return (
-                          <p className="push-up">Restarting in progress...</p>
-                        );
-                      }
-                    })()}
-                  </>
-                )}
-              </div>
-            );
-          } else {
-            return <MDCLinearProgressReact />;
-          }
-        })()}
+                      <h3 className="push-down">
+                        Pipeline environment variables
+                      </h3>
+                      <p className="push-down">
+                        Pipeline environment variables take precedence over
+                        project environment variables.
+                      </p>
+                      <EnvVarList
+                        value={this.state.envVariables}
+                        onAdd={this.addEnvVariablePair.bind(this)}
+                        onChange={(e, idx, type) =>
+                          this.onEnvVariablesChange(e, idx, type)
+                        }
+                        onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
+                      />
+                      <p>
+                        <i>
+                          Note: restarting the session is required to update
+                          environment variables in Jupyter kernels.
+                        </i>
+                      </p>
+                    </>
+                  );
+                }
+              })()}
+            </div>
+          );
+          break;
+      }
 
-        <div className="top-buttons">
-          <MDCButtonReact
-            classNames={["close-button"]}
-            icon="close"
-            onClick={this.closeSettings.bind(this)}
+      rootView = (
+        <div className="pipeline-settings">
+          <h2>Pipeline settings</h2>
+
+          <MDCTabBarReact
+            selectedIndex={this.state.selectedTabIndex}
+            ref={this.refManager.nrefs.tabBar}
+            items={["Configuration", "Environment variables"]}
+            icons={["list", "view_comfy"]}
+            onChange={this.onSelectSubview.bind(this)}
           />
+
+          <div className="tab-view trigger-overflow">{tabView}</div>
+
+          <div className="top-buttons">
+            <MDCButtonReact
+              classNames={["close-button"]}
+              icon="close"
+              onClick={this.closeSettings.bind(this)}
+            />
+          </div>
+          {!this.props.readOnly && (
+            <div className="bottom-buttons observe-overflow">
+              <MDCButtonReact
+                label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                onClick={this.saveGeneralForm.bind(this)}
+                icon="save"
+              />
+            </div>
+          )}
         </div>
-      </div>
-    );
+      );
+    } else {
+      rootView = <MDCLinearProgressReact />;
+    }
+
+    return <div className="view-page pipeline-settings-view">{rootView}</div>;
   }
 }
 

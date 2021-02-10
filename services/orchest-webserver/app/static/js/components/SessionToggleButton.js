@@ -269,11 +269,21 @@ class SessionToggleButton extends React.Component {
   }
 
   render() {
+    let label = "Start session";
+
+    if (this.state.running && this.state.working) {
+      label = "Session stopping...";
+    } else if (!this.state.running && this.state.working) {
+      label = "Session starting...";
+    } else if (this.state.running && !this.state.working) {
+      label = "Stop session";
+    }
+
     return (
       <MDCButtonReact
         onClick={this.toggleSession.bind(this)}
         classNames={this.getPowerButtonClasses()}
-        label="Session"
+        label={label}
         icon={this.state.working ? "hourglass_empty" : "power_settings_new"}
       />
     );

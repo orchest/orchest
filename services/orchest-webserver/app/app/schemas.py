@@ -2,18 +2,17 @@ from app.connections import ma
 
 
 class ProjectSchema(ma.Schema):
+    # Note that env_variables is not part of the model, it's obtained by
+    # querying the orchest-api.
     class Meta:
-        fields = ("uuid", "path")
+        fields = ("uuid", "path", "env_variables")
 
 
 class PipelineSchema(ma.Schema):
+    # Note that env_variables is not part of the model, it's obtained by
+    # querying the orchest-api.
     class Meta:
-        fields = ("uuid", "path")
-
-
-class DataSourceSchema(ma.Schema):
-    class Meta:
-        fields = ("name", "source_type", "connection_details")
+        fields = ("uuid", "path", "env_variables")
 
 
 class EnvironmentSchema(ma.Schema):

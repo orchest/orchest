@@ -9,7 +9,7 @@ from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -18,7 +18,12 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
-from app.utils import lock_environment_images_for_run, register_schema, update_status_db
+from app.utils import (
+    get_proj_pip_env_variables,
+    lock_environment_images_for_run,
+    register_schema,
+    update_status_db,
+)
 
 api = Namespace("jobs", description="Managing jobs")
 api = register_schema(api)
@@ -92,6 +97,9 @@ class JobList(Resource):
                 "pipeline_name": post_data["pipeline_name"],
                 "schedule": cron_schedule,
                 "parameters": post_data["parameters"],
+                "env_variables": get_proj_pip_env_variables(
+                    post_data["project_uuid"], post_data["pipeline_uuid"]
+                ),
                 "pipeline_definition": post_data["pipeline_definition"],
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
@@ -120,8 +128,13 @@ class Job(Resource):
     def get(self, job_uuid):
         """Fetches a job given its UUID."""
         job = (
+            models.Job.query.options(undefer(models.Job.env_variables))
             # joinedload is to also fetch pipeline_runs.
-            models.Job.query.options(joinedload(models.Job.pipeline_runs))
+            .options(
+                joinedload(models.Job.pipeline_runs).undefer(
+                    models.NonInteractivePipelineRun.env_variables
+                )
+            )
             .filter_by(uuid=job_uuid)
             .one_or_none()
         )
@@ -147,6 +160,7 @@ class Job(Resource):
 
         cron_schedule = job_update.get("cron_schedule", None)
         parameters = job_update.get("parameters", None)
+        env_variables = job_update.get("env_variables", None)
         next_scheduled_time = job_update.get("next_scheduled_time", None)
         strategy_json = job_update.get("strategy_json", None)
         confirm_draft = "confirm_draft" in job_update
@@ -157,6 +171,7 @@ class Job(Resource):
                     job_uuid,
                     cron_schedule,
                     parameters,
+                    env_variables,
                     next_scheduled_time,
                     strategy_json,
                     confirm_draft,
@@ -205,9 +220,15 @@ class PipelineRun(Resource):
     @api.marshal_with(schema.non_interactive_run, code=200)
     def get(self, job_uuid, run_uuid):
         """Fetch a pipeline run of a job given their ids."""
-        non_interactive_run = models.NonInteractivePipelineRun.query.filter_by(
-            uuid=run_uuid,
-        ).one_or_none()
+        non_interactive_run = (
+            models.NonInteractivePipelineRun.query.options(
+                undefer(models.NonInteractivePipelineRun.env_variables)
+            )
+            .filter_by(
+                uuid=run_uuid,
+            )
+            .one_or_none()
+        )
         if non_interactive_run is None:
             abort(404, "Given job has no run with given run_uuid")
         return non_interactive_run.__dict__
@@ -445,6 +466,7 @@ class RunJob(TwoPhaseFunction):
                 "job_run_index": job.total_scheduled_executions,
                 "job_run_pipeline_run_index": run_index,
                 "pipeline_run_index": pipeline_run_index,
+                "env_variables": job.env_variables,
             }
             pipeline_run_index += 1
 
@@ -475,12 +497,10 @@ class RunJob(TwoPhaseFunction):
         job.total_scheduled_executions += 1
         self.collateral_kwargs["job"] = job.as_dict()
         self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
-        self.collateral_kwargs["run_config"] = job.pipeline_run_spec["run_config"]
 
     def _collateral(
         self,
         job: Dict[str, Any],
-        run_config: Dict[str, Any],
         tasks_to_launch: Tuple[str, Pipeline],
     ):
         # Safety check in case the job has no runs.
@@ -523,8 +543,11 @@ class RunJob(TwoPhaseFunction):
 
         # Launch each task through celery.
         celery = make_celery(current_app)
+        run_config = job["pipeline_run_spec"]["run_config"]
+        run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
+        run_config["user_env_variables"] = job["env_variables"]
+
         for task_id, pipeline in tasks_to_launch:
-            run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
             celery_job_kwargs = {
                 "job_uuid": job["uuid"],
                 "project_uuid": job["project_uuid"],
@@ -571,6 +594,7 @@ class AbortJob(TwoPhaseFunction):
         # Assign asap since the function will return if there is nothing
         # to do.
         self.collateral_kwargs["run_uuids"] = run_uuids
+        self.collateral_kwargs["job_uuid"] = job_uuid
 
         job = (
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
@@ -605,6 +629,7 @@ class AbortJob(TwoPhaseFunction):
             )
 
             filter_by = {"run_uuid": run_uuid}
+            status_update = {"status": "ABORTED"}
 
             update_status_db(
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
@@ -612,7 +637,7 @@ class AbortJob(TwoPhaseFunction):
 
         return True
 
-    def _collateral(self, run_uuids: List[str]):
+    def _collateral(self, run_uuids: List[str], **kwargs):
         # Aborts and revokes all pipeline runs and waits for a reply for
         # 1.0s.
         celery = make_celery(current_app)
@@ -635,7 +660,8 @@ class UpdateJob(TwoPhaseFunction):
         self,
         job_uuid: str,
         cron_schedule: str,
-        parameters: str,
+        parameters: Dict[str, Any],
+        env_variables: Dict[str, str],
         next_scheduled_time: str,
         strategy_json: Dict[str, Any],
         confirm_draft,
@@ -673,6 +699,16 @@ class UpdateJob(TwoPhaseFunction):
                     )
                 )
             job.parameters = parameters
+
+        if env_variables is not None:
+            if job.schedule is None and job.status != "DRAFT":
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot update the env variables of "
+                        "a job which is not a cron job."
+                    )
+                )
+            job.env_variables = env_variables
 
         if next_scheduled_time is not None:
             if job.status != "DRAFT":
@@ -739,7 +775,7 @@ class DeleteJob(TwoPhaseFunction):
         if job is None:
             return False
 
-        # Abort the job, won't to anything if the job is
+        # Abort the job, won't do anything if the job is
         # not running.
         AbortJob(self.tpe).transaction(job_uuid)
 

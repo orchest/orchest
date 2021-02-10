@@ -7,6 +7,7 @@ import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import JobsView from "./JobsView";
 import PipelinesView from "./PipelinesView";
+import ProjectSettingsView from "./ProjectSettingsView";
 import EnvironmentsView from "./EnvironmentsView";
 
 import {
@@ -114,10 +115,16 @@ class ProjectsView extends React.Component {
     });
   }
 
+  openSettings(project) {
+    orchest.loadView(ProjectSettingsView, {
+      project_uuid: project.uuid,
+    });
+  }
+
   onClickListItem(row, idx, e) {
     if ($(e.target).parents(".mdc-button").length === 0) {
       let project = this.state.projects[idx];
-      this.onClickProjectEntity(PipelinesView, project, e);
+      this.openSettings(project);
     }
   }
 
@@ -459,14 +466,14 @@ class ProjectsView extends React.Component {
                     onClick={this.onCreateClick.bind(this)}
                   />
                   <MDCIconButtonToggleReact
-                    icon="delete"
-                    tooltipText="Delete project"
-                    onClick={this.onDeleteClick.bind(this)}
-                  />
-                  <MDCIconButtonToggleReact
                     icon="input"
                     tooltipText="Import project"
                     onClick={this.onImport.bind(this)}
+                  />
+                  <MDCIconButtonToggleReact
+                    icon="delete"
+                    tooltipText="Delete project"
+                    onClick={this.onDeleteClick.bind(this)}
                   />
                 </div>
 
