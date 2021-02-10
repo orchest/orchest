@@ -1,7 +1,7 @@
 import json
 import os
 from functools import reduce
-from typing import Set
+from typing import List, Set
 
 from docker.errors import NotFound
 
@@ -24,7 +24,7 @@ health_check_command = {
 }
 
 
-def health_check():
+def health_check() -> None:
     """
 
     Returns:
@@ -52,8 +52,8 @@ def health_check():
 
 
 def database_debug_dump(
-    path: str, dbs=["auth_server", "orchest_api", "orchest_webserver"]
-):
+    path: str, dbs: List[str] = ["auth_server", "orchest_api", "orchest_webserver"]
+) -> None:
     """Get database schema, revision version, rows per table(s)."""
 
     docker_wrapper = DockerWrapper()
@@ -139,7 +139,7 @@ def database_debug_dump(
     docker_wrapper.copy_files_from_containers(files_to_copy)
 
 
-def celery_debug_dump(path: str):
+def celery_debug_dump(path: str, ext: bool = False) -> None:
     """Worker logs and output of celery inspect commands."""
 
     docker_wrapper = DockerWrapper()
@@ -172,20 +172,28 @@ def celery_debug_dump(path: str):
     files_to_copy = []
 
     if container.status == "running":
-        # Run inspection commands and get the result.
-        cmd_template = "celery inspect -A app.core.tasks {name} > {name}.txt"
-        cmds = []
 
-        for inspect_command in [
-            "active",
+        inspect_commands = [
             "active_queues",
             "conf",
             "revoked",
             "report",
-            "reserved",
-            "scheduled",
             "stats",
-        ]:
+        ]
+
+        if ext:
+            inspect_commands.extend(
+                [
+                    "active",
+                    "reserved",
+                    "scheduled",
+                ]
+            )
+
+        cmd_template = "celery inspect -A app.core.tasks {name} > {name}.txt"
+        cmds = []
+        # Run inspection commands and get the result.
+        for inspect_command in inspect_commands:
             cmd = cmd_template.format(name=inspect_command)
             # Necessary work around to avoid errors of the python docker
             # SDK.
@@ -205,24 +213,25 @@ def celery_debug_dump(path: str):
             files_to_copy[i] for i, exit_code in enumerate(exit_codes) if exit_code == 0
         ]
 
-    # Add log files to the files to copy.
-    for worker in [
-        "celery_env_builds",
-        "celery_interactive",
-        "celery_jobs",
-    ]:
-        files_to_copy.append(
-            (
-                container.id,
-                f"/orchest/services/orchest-api/app/{worker}.log",
-                os.path.join(cel_debug_dump_directory, f"{worker}.log"),
+    if ext:
+        # Add log files to the files to copy.
+        for worker in [
+            "celery_env_builds",
+            "celery_interactive",
+            "celery_jobs",
+        ]:
+            files_to_copy.append(
+                (
+                    container.id,
+                    f"/orchest/services/orchest-api/app/{worker}.log",
+                    os.path.join(cel_debug_dump_directory, f"{worker}.log"),
+                )
             )
-        )
 
     docker_wrapper.copy_files_from_containers(files_to_copy)
 
 
-def websever_debug_dump(path):
+def websever_debug_dump(path: str) -> None:
     """Get the webserver log file."""
 
     docker_wrapper = DockerWrapper()
@@ -253,7 +262,7 @@ def websever_debug_dump(path):
     )
 
 
-def containers_logs_dump(path):
+def containers_logs_dump(path: str, ext=False) -> None:
     """Get the logs of every Orchest container, except steps."""
 
     containers_logs = os.path.join(path, "containers-logs")
@@ -270,14 +279,21 @@ def containers_logs_dump(path):
         "orchest/memory-server:latest",
     }
 
+    # Only log these containers if in ext mode, since they coud log user
+    # data in case of error, even in production mode.
+    ext_names = {"postgres:13.1"}
+
     for id, name in zip(ids, names):
+
+        if not ext and name in ext_names:
+            continue
+
         if name in orchest_set:
             file_name = f"{name}.txt"
         elif name in session_containers:
             file_name = f"{name}-{id}.txt"
-        # Do not pickup containers that are running user pipeline
-        # steps, to avoid the risk of getting user data through its
-        # logs.
+        # Do not pickup containers that are running user pipeline steps
+        # , to avoid the risk of getting user data through its logs.
         else:
             continue
 
@@ -291,7 +307,7 @@ def containers_logs_dump(path):
             file.write(logs)
 
 
-def containers_version_dump(path):
+def containers_version_dump(path: str) -> None:
     """Get the version of Orchest containers"""
 
     with open(os.path.join(path, "containers_version.txt"), "w") as file:
@@ -299,7 +315,7 @@ def containers_version_dump(path):
             file.write(f"{name:<44}: {version}\n")
 
 
-def orchest_config_dump(path):
+def orchest_config_dump(path: str) -> None:
     """Get the Orchest config file, with telemetry UUID removed"""
 
     # Copy the config
@@ -312,13 +328,13 @@ def orchest_config_dump(path):
             json.dump(config, output_json_file)
 
 
-def health_check_dump(path):
+def health_check_dump(path: str) -> None:
     with open(os.path.join(path, "health_check.txt"), "w") as file:
         for container, exit_code in health_check().items():
             file.write(f"{container:<44}: {exit_code}\n")
 
 
-def running_containers_dump(path):
+def running_containers_dump(path: str) -> None:
     """Get which Orchest containers are running"""
 
     _, running_containers_names = OrchestResourceManager().get_containers(
@@ -329,25 +345,25 @@ def running_containers_dump(path):
             file.write(f"{name}\n")
 
 
-def debug_dump(compress: bool):
+def debug_dump(ext: bool, compress: bool) -> None:
 
     debug_dump_path = "/tmp/debug-dump"
     os.mkdir(debug_dump_path)
 
     errors = []
-    for name, func in [
-        ("configuration", orchest_config_dump),
-        ("containers version", containers_version_dump),
-        ("containers logs", containers_logs_dump),
-        ("running containers", running_containers_dump),
-        ("health check", health_check_dump),
-        ("database", database_debug_dump),
-        ("celery", celery_debug_dump),
-        ("webserver", websever_debug_dump),
+    for name, func, args in [
+        ("configuration", orchest_config_dump, (debug_dump_path,)),
+        ("containers version", containers_version_dump, (debug_dump_path,)),
+        ("containers logs", containers_logs_dump, (debug_dump_path, ext)),
+        ("running containers", running_containers_dump, (debug_dump_path,)),
+        ("health check", health_check_dump, (debug_dump_path,)),
+        ("database", database_debug_dump, (debug_dump_path,)),
+        ("celery", celery_debug_dump, (debug_dump_path, ext)),
+        ("webserver", websever_debug_dump, (debug_dump_path,)),
     ]:
         try:
             utils.echo(f"Generating debug data: {name}.")
-            func(debug_dump_path)
+            func(*args)
         except Exception as e:
             utils.echo(f"\tError during generation of debug data: {name}.")
             errors.append((name, e))

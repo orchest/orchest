@@ -348,8 +348,8 @@ class OrchestApp:
             utils.echo("\torchest update")
             utils.echo("To get all containers on the same version again.")
 
-    def debug(self, compress: bool):
-        debug_dump(compress)
+    def debug(self, ext: bool, compress: bool):
+        debug_dump(ext, compress)
 
 
 # TODO: Could potentially make this into set as well.

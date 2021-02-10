@@ -129,14 +129,27 @@ def status(
 @typer_app.command()
 def debug(
     compress: bool = typer.Option(
-        False, "--compress", show_default=True, help="Compress the output directory"
+        False, "--compress", show_default=False, help="Compress the output directory."
+    ),
+    ext: bool = typer.Option(
+        False,
+        "--ext",
+        show_default=False,
+        help="""Get extensive debug information. Nota that some user data might
+        be involuntarily included, depending on the circumstances, e.g. depending
+        on the current state of Orchest and/or one of its services in case of an
+        error.""",
     ),
 ):
     """
     Create a debug dump, saved in the working directory as "debug-dump".
 
+    Note that if Orchest was/has been running in dev mode there is the
+    possibility of some user data getting into the dump, e.g. because
+    of a DEBUG log level.
+
     """
-    app.debug(compress)
+    app.debug(ext, compress)
 
 
 @typer_app.command()
