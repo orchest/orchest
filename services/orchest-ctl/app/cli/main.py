@@ -135,7 +135,7 @@ def debug(
         False,
         "--ext",
         show_default=False,
-        help="""Get extensive debug information. Nota that some user data might
+        help="""Get extensive debug information. Note that some user data might
         be involuntarily included, depending on the circumstances, e.g. depending
         on the current state of Orchest and/or one of its services in case of an
         error.""",
