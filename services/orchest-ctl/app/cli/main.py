@@ -121,7 +121,7 @@ def status(
     ),
 ):
     """
-    Get Orchest version.
+    Get status of Orchest.
     """
     app.status(ext=ext)
 
@@ -135,18 +135,20 @@ def debug(
         False,
         "--ext",
         show_default=False,
-        help="""Get extensive debug information. Note that some user data might
-        be involuntarily included, depending on the circumstances, e.g. depending
-        on the current state of Orchest and/or one of its services in case of an
-        error.""",
+        help="Get extensive debug information.",
     ),
 ):
     """
-    Create a debug dump, saved in the working directory as "debug-dump".
+    Create a debug dump.
 
-    Note that if Orchest was/has been running in dev mode there is the
-    possibility of some user data getting into the dump, e.g. because
-    of a DEBUG log level.
+    The dump is saved in the working directory as 'debug-dump'.
+
+    Note: if Orchest was/has been running in dev mode, then there is the
+    possibility of some user data getting into the dump due to the log
+    level being set to DEBUG.
+
+    Note: running with the '--ext' flag could include sensitive user
+    data.
 
     """
     app.debug(ext, compress)
