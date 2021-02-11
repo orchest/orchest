@@ -242,8 +242,7 @@ def websever_debug_dump(resource_manager: OrchestResourceManager, path: str) -> 
         utils.echo(
             (
                 "\tCould not find the orchest-webserver container. "
-                "That means that it is not running nor stopped, e.g. it "
-                "has never been run or it was removed when stopping Orchest."
+                "That means that it is not running nor stopped."
             )
         )
         return
