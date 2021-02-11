@@ -21,6 +21,7 @@ To show the help output, run ``./orchest --help``, example output:
       --help         Show this message and exit.
 
     Commands:
+      debug    Create a debug dump.
       install  Install Orchest.
       restart  Restart Orchest.
       start    Start Orchest.
