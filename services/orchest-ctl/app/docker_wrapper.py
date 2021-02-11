@@ -8,7 +8,7 @@ from docker.client import DockerClient
 from tqdm.asyncio import tqdm
 
 from app import utils
-from app.config import WRAP_LINES
+from app.config import DOCKER_NETWORK, ORCHEST_IMAGES, WRAP_LINES
 
 logger = logging.getLogger(__name__)
 
@@ -331,7 +331,7 @@ class DockerWrapper:
 
         return exit_code
 
-    async def _exec_runs(self, cmds):
+    async def _exec_runs(self, cmds) -> List[int]:
         res = await asyncio.gather(*[self._exec_run(id, cmd) for id, cmd in cmds])
         await self.close_aclient()
         return res
@@ -351,7 +351,7 @@ class DockerWrapper:
 
     async def _copy_file_from_container(
         self, container_id: str, from_path: str, to_path: str
-    ):
+    ) -> None:
         container = self.aclient.containers.container(container_id)
 
         tar_file = await container.get_archive(from_path)
@@ -362,7 +362,9 @@ class DockerWrapper:
             dest_file.write(file.read())
         tar_file.close()
 
-    async def _copy_file_from_containers(self, files: List[Tuple[str, str, str]]):
+    async def _copy_file_from_containers(
+        self, files: List[Tuple[str, str, str]]
+    ) -> None:
         await asyncio.gather(
             *[
                 self._copy_file_from_container(id, from_path, to_path)
@@ -371,7 +373,7 @@ class DockerWrapper:
         )
         await self.close_aclient()
 
-    def copy_files_from_containers(self, files: List[Tuple[str, str, str]]):
+    def copy_files_from_containers(self, files: List[Tuple[str, str, str]]) -> None:
         """AI is creating summary for copy_files_from_containers
 
         Args:
@@ -381,3 +383,94 @@ class DockerWrapper:
             path in the fs (to copy to).
         """
         asyncio.run(self._copy_file_from_containers(files))
+
+
+class OrchestResourceManager:
+    orchest_images: List[str] = ORCHEST_IMAGES["all"]
+    network: str = DOCKER_NETWORK
+
+    def __init__(self):
+        self.docker_client = DockerWrapper()
+
+    def install_network(self) -> None:
+        """Installs the Orchest Docker network."""
+        # Don't install the network again if it is already installed
+        # because that will create the another network with the same
+        # name but with another ID. Thereby, breaking Orchest.
+        try:
+            is_installed = self.docker_client.is_network_installed(self.network)
+        except docker.errors.APIError:
+            # TODO: reraise the error but with a helpful message that
+            # helps the user fix the issue.
+            raise
+
+        if not is_installed:
+            # We only want to print this message to the user once. The
+            # best bet is that if the Orchest network has not yet been
+            # installed, then most likely the user has not seen this
+            # message before.
+            utils.echo(
+                "Orchest sends anonymized telemetry to analytics.orchest.io."
+                " To disable it, please refer to:",
+                wrap=WRAP_LINES,
+            )
+            utils.echo(
+                "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration"  # noqa: E501, W505
+            )
+
+            self.docker_client.install_network(self.network)
+
+    def get_images(self, orchest_owned: bool = False) -> List[str]:
+        """Returns all pulled images associated to Orchest.
+
+        Args:
+            orchest_owned: If True only returns the images owned by the
+                Orchest organization, e.g. excluding "rabbitmq".
+
+        """
+        check_images = self.orchest_images
+        if orchest_owned:
+            check_images = [
+                img for img in self.orchest_images if img.startswith("orchest")
+            ]
+
+        exists = self.docker_client.do_images_exist(check_images)
+
+        # TODO: could make it into set as well as order is not important
+        #       here.
+        return [img for i, img in enumerate(check_images) if exists[i]]
+
+    # TODO: this function might be a bit strange if it
+    #       returns img names.
+    def get_containers(
+        self,
+        state: Literal["all", "running", "exited"] = "running",
+    ) -> Tuple[List[str], List[Optional[str]]]:
+        """
+
+        Args:
+            state: The state of the container to be in in order for it
+                to be returned.
+        """
+        return self.docker_client.get_containers(state=state, network=self.network)
+
+    def get_env_build_imgs(self):
+        return self.docker_client.list_image_ids(label="_orchest_project_uuid")
+
+    def remove_env_build_imgs(self):
+        env_build_imgs = self.get_env_build_imgs()
+        self.docker_client.remove_images(env_build_imgs, force=True)
+
+    def containers_version(self):
+        pulled_images = self.get_images(orchest_owned=True)
+        configs = {}
+        for img in pulled_images:
+            configs[img] = {
+                "Image": img,
+                "Entrypoint": ["printenv", "ORCHEST_VERSION"],
+            }
+
+        stdouts = self.docker_client.run_containers(configs, detach=False)
+        for img in stdouts.keys():
+            stdouts[img] = stdouts[img]["stdout"][0].rstrip()
+        return stdouts

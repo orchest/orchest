@@ -7,13 +7,9 @@ from docker.errors import NotFound
 
 from app import utils
 from app.config import _on_start_images
-from app.docker_wrapper import DockerWrapper
-from app.orchest_resource_manager import OrchestResourceManager
+from app.docker_wrapper import OrchestResourceManager
 
 health_check_command = {
-    # Works locally, doesn't work here.
-    # "orchest/nginx-proxy:latest": 'service --status-all |
-    # grep openresty',
     "orchest/orchest-api:latest": "wget localhost/api --spider",
     "orchest/orchest-webserver:latest": "wget localhost --spider",
     "orchest/auth-server:latest": "wget localhost/auth --spider",
@@ -24,7 +20,7 @@ health_check_command = {
 }
 
 
-def health_check() -> None:
+def health_check(resource_manager: OrchestResourceManager) -> None:
     """
 
     Returns:
@@ -33,7 +29,7 @@ def health_check() -> None:
     (
         running_containers_ids,
         running_containers_names,
-    ) = OrchestResourceManager().get_containers(state="running")
+    ) = resource_manager.get_containers(state="running")
 
     cmds = []
 
@@ -43,7 +39,7 @@ def health_check() -> None:
         if hcheck is not None:
             cmds.append([id, hcheck])
 
-    exit_codes = DockerWrapper().exec_runs(cmds)
+    exit_codes = resource_manager.docker_client.exec_runs(cmds)
     container_to_code = {}
     for container, code in zip(running_containers_names, exit_codes):
         container_to_code[container] = code
@@ -52,11 +48,13 @@ def health_check() -> None:
 
 
 def database_debug_dump(
-    path: str, dbs: List[str] = ["auth_server", "orchest_api", "orchest_webserver"]
+    resource_manager: OrchestResourceManager,
+    path: str,
+    dbs: List[str] = ["auth_server", "orchest_api", "orchest_webserver"],
 ) -> None:
     """Get database schema, revision version, rows per table(s)."""
 
-    docker_wrapper = DockerWrapper()
+    docker_wrapper = resource_manager.docker_client
 
     try:
         container = docker_wrapper.get_container("orchest-database")
@@ -139,10 +137,12 @@ def database_debug_dump(
     docker_wrapper.copy_files_from_containers(files_to_copy)
 
 
-def celery_debug_dump(path: str, ext: bool = False) -> None:
+def celery_debug_dump(
+    resource_manager: OrchestResourceManager, path: str, ext: bool = False
+) -> None:
     """Worker logs and output of celery inspect commands."""
 
-    docker_wrapper = DockerWrapper()
+    docker_wrapper = resource_manager.docker_client
 
     try:
         container = docker_wrapper.get_container("celery-worker")
@@ -157,8 +157,7 @@ def celery_debug_dump(path: str, ext: bool = False) -> None:
         utils.echo(
             (
                 "\tCould not find the celery-worker container. "
-                "That means that it is not running nor stopped, e.g. it "
-                "has never been run or it was removed when stopping Orchest."
+                "That means that it is not running nor stopped."
             )
         )
         return
@@ -231,10 +230,10 @@ def celery_debug_dump(path: str, ext: bool = False) -> None:
     docker_wrapper.copy_files_from_containers(files_to_copy)
 
 
-def websever_debug_dump(path: str) -> None:
+def websever_debug_dump(resource_manager: OrchestResourceManager, path: str) -> None:
     """Get the webserver log file."""
 
-    docker_wrapper = DockerWrapper()
+    docker_wrapper = resource_manager.docker_client
     try:
         container_id = docker_wrapper.get_container("orchest-webserver").id
     except NotFound:
@@ -262,14 +261,16 @@ def websever_debug_dump(path: str) -> None:
     )
 
 
-def containers_logs_dump(path: str, ext=False) -> None:
+def containers_logs_dump(
+    resource_manager: OrchestResourceManager, path: str, ext=False
+) -> None:
     """Get the logs of every Orchest container, except steps."""
 
     containers_logs = os.path.join(path, "containers-logs")
     if not os.path.exists(containers_logs):
         os.mkdir(containers_logs)
 
-    docker_wrapper = DockerWrapper()
+    docker_wrapper = resource_manager.docker_client
     ids, names = docker_wrapper.get_containers(state="all", network="orchest")
 
     orchest_set: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
@@ -307,11 +308,13 @@ def containers_logs_dump(path: str, ext=False) -> None:
             file.write(logs)
 
 
-def containers_version_dump(path: str) -> None:
+def containers_version_dump(
+    resource_manager: OrchestResourceManager, path: str
+) -> None:
     """Get the version of Orchest containers"""
 
     with open(os.path.join(path, "containers_version.txt"), "w") as file:
-        for name, version in OrchestResourceManager().containers_version().items():
+        for name, version in resource_manager.containers_version().items():
             file.write(f"{name:<44}: {version}\n")
 
 
@@ -328,18 +331,18 @@ def orchest_config_dump(path: str) -> None:
             json.dump(config, output_json_file)
 
 
-def health_check_dump(path: str) -> None:
+def health_check_dump(resource_manager: OrchestResourceManager, path: str) -> None:
     with open(os.path.join(path, "health_check.txt"), "w") as file:
-        for container, exit_code in health_check().items():
+        for container, exit_code in health_check(resource_manager).items():
             file.write(f"{container:<44}: {exit_code}\n")
 
 
-def running_containers_dump(path: str) -> None:
+def running_containers_dump(
+    resource_manager: OrchestResourceManager, path: str
+) -> None:
     """Get which Orchest containers are running"""
 
-    _, running_containers_names = OrchestResourceManager().get_containers(
-        state="running"
-    )
+    _, running_containers_names = resource_manager.get_containers(state="running")
     with open(os.path.join(path, "running_containers.txt"), "w") as file:
         for name in running_containers_names:
             file.write(f"{name}\n")
@@ -350,16 +353,52 @@ def debug_dump(ext: bool, compress: bool) -> None:
     debug_dump_path = "/tmp/debug-dump"
     os.mkdir(debug_dump_path)
 
+    rmanager = OrchestResourceManager()
     errors = []
     for name, func, args in [
         ("configuration", orchest_config_dump, (debug_dump_path,)),
-        ("containers version", containers_version_dump, (debug_dump_path,)),
-        ("containers logs", containers_logs_dump, (debug_dump_path, ext)),
-        ("running containers", running_containers_dump, (debug_dump_path,)),
-        ("health check", health_check_dump, (debug_dump_path,)),
-        ("database", database_debug_dump, (debug_dump_path,)),
-        ("celery", celery_debug_dump, (debug_dump_path, ext)),
-        ("webserver", websever_debug_dump, (debug_dump_path,)),
+        (
+            "containers version",
+            containers_version_dump,
+            (
+                rmanager,
+                debug_dump_path,
+            ),
+        ),
+        ("containers logs", containers_logs_dump, (rmanager, debug_dump_path, ext)),
+        (
+            "running containers",
+            running_containers_dump,
+            (
+                rmanager,
+                debug_dump_path,
+            ),
+        ),
+        (
+            "health check",
+            health_check_dump,
+            (
+                rmanager,
+                debug_dump_path,
+            ),
+        ),
+        (
+            "database",
+            database_debug_dump,
+            (
+                rmanager,
+                debug_dump_path,
+            ),
+        ),
+        ("celery", celery_debug_dump, (rmanager, debug_dump_path, ext)),
+        (
+            "webserver",
+            websever_debug_dump,
+            (
+                rmanager,
+                debug_dump_path,
+            ),
+        ),
     ]:
         try:
             utils.echo(f"Generating debug data: {name}.")

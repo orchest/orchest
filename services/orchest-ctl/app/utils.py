@@ -85,7 +85,7 @@ def wait_for_zero_exitcode(
     `container_id`.
 
     """
-    # This will likely take a maximum of 4 tries.
+    # This will likely take a maximum of 10 tries.
     exit_code = 1
     while exit_code != 0:
         exit_code = docker_client.exec_runs([(container_id, cmd)])[0]

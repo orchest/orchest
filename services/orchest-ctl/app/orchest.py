@@ -17,8 +17,7 @@ from typing import List, Optional, Set, Tuple
 from app import spec, utils
 from app.config import ORCHEST_IMAGES, WRAP_LINES, _on_start_images
 from app.debug import debug_dump, health_check
-from app.docker_wrapper import DockerWrapper
-from app.orchest_resource_manager import OrchestResourceManager
+from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +247,7 @@ class OrchestApp:
             if ext:
                 utils.echo("Performing extensive status checks...")
                 no_issues = True
-                for container, exit_code in health_check().items():
+                for container, exit_code in health_check(self.resource_manager).items():
                     if exit_code != 0:
                         no_issues = False
                         utils.echo(f"{container} is not ready ({exit_code}).")
