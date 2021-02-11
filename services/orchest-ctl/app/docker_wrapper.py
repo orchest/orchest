@@ -341,8 +341,8 @@ class DockerWrapper:
 
         Args:
             cmds: A list of pairs where, for each pair, the first
-            element is the container id, while the second element is the
-            command to run.
+                element is the container id, while the second element is
+                the command to run.
 
         Returns:
             List of exit codes of the commands that have been run.
@@ -378,9 +378,9 @@ class DockerWrapper:
 
         Args:
             files: A list of triples where, for each triple, the first
-            element is the container id, the second element is a path
-            in the container (to copy from) and the third element is a
-            path in the fs (to copy to).
+                element is the container id, the second element is a
+                path in the container (to copy from) and the third
+                element is a path in the fs (to copy to).
         """
         asyncio.run(self._copy_file_from_containers(files))
 
