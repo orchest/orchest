@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from functools import reduce
 from typing import List, Set
@@ -18,6 +19,8 @@ health_check_command = {
     "postgres:13.1": "pg_isready --username postgres",
     "rabbitmq:3": "rabbitmqctl node_health_check",
 }
+
+logger = logging.getLogger(__name__)
 
 
 def health_check(resource_manager: OrchestResourceManager) -> None:
@@ -63,11 +66,11 @@ def database_debug_dump(
         container_id = container.id
 
         if container.status != "running":
-            utils.echo("\tThe orchest-database is not running.")
+            logging.warning("\tThe orchest-database is not running.")
             return
 
     except NotFound:
-        utils.echo("\tThe orchest-database is not running.")
+        logging.warning("\tThe orchest-database is not running.")
         return
 
     db_debug_dump_directory = os.path.join(path, "database")
@@ -149,14 +152,14 @@ def celery_debug_dump(
     try:
         container = docker_wrapper.get_container("celery-worker")
         if container.status != "running":
-            utils.echo(
+            logging.warning(
                 (
                     "\tThe celery-worker container is not running, the debug "
                     "data will be incomplete."
                 )
             )
     except NotFound:
-        utils.echo(
+        logging.warning(
             (
                 "\tCould not find the celery-worker container. "
                 "That means that it is not running nor stopped."
@@ -239,7 +242,7 @@ def websever_debug_dump(resource_manager: OrchestResourceManager, path: str) -> 
     try:
         container_id = docker_wrapper.get_container("orchest-webserver").id
     except NotFound:
-        utils.echo(
+        logging.warning(
             (
                 "\tCould not find the orchest-webserver container. "
                 "That means that it is not running nor stopped."
