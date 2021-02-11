@@ -8,6 +8,7 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
+  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 import JobsView from "./JobsView";
@@ -132,6 +133,7 @@ class ProjectSettingsView extends React.Component {
   }
 
   render() {
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
     return (
       <div className={"view-page view-project-settings"}>
         <form

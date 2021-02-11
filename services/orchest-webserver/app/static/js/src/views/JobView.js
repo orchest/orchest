@@ -162,7 +162,8 @@ class JobView extends React.Component {
     }
 
     orchest.loadView(PipelineView, {
-      pipelineRun: pipelineRun,
+      job_uuid: pipelineRun.job_uuid,
+      run_uuid: pipelineRun.uuid,
       pipeline_uuid: pipelineRun.pipeline_uuid,
       project_uuid: pipelineRun.project_uuid,
       readOnly: true,

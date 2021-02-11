@@ -11,6 +11,7 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
+  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
@@ -19,7 +20,7 @@ import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact
 import { Controlled as CodeMirror } from "react-codemirror2";
 import EnvVarList from "../components/EnvVarList";
 import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
-require("codemirror/mode/javascript/javascript");
+import "codemirror/mode/javascript/javascript";
 
 class PipelineSettingsView extends React.Component {
   constructor(props) {
@@ -66,8 +67,8 @@ class PipelineSettingsView extends React.Component {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       this.props.pipeline_uuid,
       this.props.project_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.job_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.uuid
+      this.props.job_uuid,
+      this.props.run_uuid
     );
 
     let pipelinePromise = makeCancelable(
@@ -105,7 +106,7 @@ class PipelineSettingsView extends React.Component {
   }
 
   fetchPipelineMetadata() {
-    if (!this.props.pipelineRun) {
+    if (!this.props.job_uuid) {
       // get pipeline path
       let cancelableRequest = makeCancelable(
         makeRequest(
@@ -145,10 +146,7 @@ class PipelineSettingsView extends React.Component {
         });
     } else {
       let cancelableRequest = makeCancelable(
-        makeRequest(
-          "GET",
-          `/catch/api-proxy/api/jobs/${this.props.pipelineRun.job_uuid}`
-        ),
+        makeRequest("GET", `/catch/api-proxy/api/jobs/${this.props.job_uuid}`),
         this.promiseManager
       );
 
@@ -168,7 +166,8 @@ class PipelineSettingsView extends React.Component {
       pipeline_uuid: this.props.pipeline_uuid,
       project_uuid: this.props.project_uuid,
       readOnly: this.props.readOnly,
-      pipelineRun: this.props.pipelineRun,
+      job_uuid: this.props.job_uuid,
+      run_uuid: this.props.run_uuid,
     });
   }
 
@@ -331,6 +330,7 @@ class PipelineSettingsView extends React.Component {
 
   render() {
     let rootView = undefined;
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
 
     if (
       this.state.pipelineJson &&

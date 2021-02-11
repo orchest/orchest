@@ -1,6 +1,6 @@
 import React from "react";
 import EnvironmentList from "../components/EnvironmentList";
-import ProjectBasedView from "./ProjectBasedView";
+import ProjectBasedView from "../components/ProjectBasedView";
 
 class EnvironmentsView extends React.Component {
   render() {

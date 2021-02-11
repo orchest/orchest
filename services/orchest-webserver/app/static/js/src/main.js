@@ -4,26 +4,24 @@ import { MDCDrawer } from "@material/drawer";
 import $ from "jquery";
 window.$ = $;
 
-import ProjectsView from "./views/ProjectsView";
-import SettingsView from "./views/SettingsView";
-import HelpView from "./views/HelpView";
-import ManageUsersView from "./views/ManageUsersView";
-import FileManagerView from "./views/FileManagerView";
-import JobsView from "./views/JobsView";
-import PipelinesView from "./views/PipelinesView";
-import EditJobView from "./views/EditJobView";
+import "./utils/overflowing";
+import Dialogs from "./components/Dialogs";
 import HeaderButtons from "./components/HeaderButtons";
+import Jupyter from "./jupyter/Jupyter";
+import PipelineSettingsView from "./views/PipelineSettingsView";
+import PipelineView from "./views/PipelineView";
 import React from "react";
 import ReactDOM from "react-dom";
-import PipelineView from "./views/PipelineView";
-import Jupyter from "./jupyter/Jupyter";
-import "./utils/overflowing";
-import JobView from "./views/JobView";
-import PipelineSettingsView from "./views/PipelineSettingsView";
-import Dialogs from "./components/Dialogs";
-import EnvironmentsView from "./views/EnvironmentsView";
-import UpdateView from "./views/UpdateView";
+
 import { PersistentLocalConfig, makeRequest } from "./lib/utils/all";
+import {
+  nameToComponent,
+  componentName,
+  generateRoute,
+  decodeRoute,
+  viewNameToURIPathComponent,
+} from "./utils/webserver-utils";
+import ProjectsView from "./views/ProjectsView";
 
 function Orchest() {
   // load server side config populated by flask template
@@ -41,31 +39,20 @@ function Orchest() {
 
   this.browserConfig = new PersistentLocalConfig("orchest");
 
-  this.viewComponents = {
-    ProjectsView,
-    FileManagerView,
-    EnvironmentsView,
-    PipelineView,
-    SettingsView,
-    HelpView,
-    UpdateView,
-    PipelinesView,
-    JobsView,
-    JobView,
-    EditJobView,
-    ManageUsersView,
-  };
-
-  this.componentName = function (TagName) {
-    for (let viewName of Object.keys(orchest.viewComponents)) {
-      if (orchest.viewComponents[viewName] === TagName) {
-        return viewName;
-      }
-    }
-  };
-
   const drawer = MDCDrawer.attachTo(document.getElementById("main-drawer"));
 
+  function setDrawerSelectedIndex(drawer, viewName) {
+    for (let x = 0; x < drawer.list.listElements.length; x++) {
+      let listElement = drawer.list.listElements[x];
+      let elementViewName = listElement.attributes.getNamedItem(
+        "data-react-view"
+      ).value;
+
+      if (viewName === elementViewName) {
+        drawer.list.selectedIndex = x;
+      }
+    }
+  }
   // mount titlebar component
   this.headerBar = document.querySelector(".header-bar-interactive");
   this.headerBarComponent = ReactDOM.render(<HeaderButtons />, this.headerBar);
@@ -83,7 +70,9 @@ function Orchest() {
       let viewName = listElement.attributes.getNamedItem("data-react-view")
         .value;
 
-      this.loadView(this.viewComponents[viewName]);
+      this.loadView(nameToComponent(viewName), undefined, () => {
+        setDrawerSelectedIndex(drawer, this.activeView);
+      });
     }
   });
 
@@ -99,8 +88,10 @@ function Orchest() {
     }
   };
 
-  this.loadView = function (TagName, dynamicProps) {
-    let viewName = this.componentName(TagName);
+  this.activeView = undefined;
+  this._loadView = function (TagName, dynamicProps) {
+    let viewName = componentName(TagName);
+    this.activeView = viewName;
 
     // Analytics call
     this.sendEvent("view load", { name: viewName });
@@ -110,7 +101,6 @@ function Orchest() {
 
     if (this.jupyter) {
       this.jupyter.hide();
-
       if (TagName !== PipelineView && TagName !== PipelineSettingsView) {
         this.headerBarComponent.clearPipeline();
       }
@@ -128,7 +118,70 @@ function Orchest() {
     ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
   };
 
+  this.unsavedChanges = false;
+  this.loadView = function (TagName, dynamicProps, onCancelled) {
+    let conditionalBody = () => {
+      // This public loadView sets the state through the
+      // history API.
+
+      let [pathname, search] = generateRoute(TagName, dynamicProps);
+
+      // Because pushState objects need to be serialized,
+      // we need to store the string representation of the TagName.
+      window.history.pushState(
+        {
+          viewName: componentName(TagName),
+          dynamicProps,
+        },
+        /* `title` argument for pushState was deprecated, 
+        document.title should be used instead. */
+        "",
+        pathname + search
+      );
+
+      this._loadView(TagName, dynamicProps);
+    };
+
+    if (!this.unsavedChanges) {
+      conditionalBody();
+    } else {
+      this.confirm(
+        "Warning",
+        "There are unsaved changes. Are you sure you want to navigate away?",
+        () => {
+          this.unsavedChanges = false;
+          conditionalBody();
+        },
+        onCancelled
+      );
+    }
+  };
+
+  window.onpopstate = (event) => {
+    this._loadView(
+      nameToComponent(event.state.viewName),
+      event.state.dynamicProps
+    );
+  };
+
   this.initializeFirstView = function () {
+    // handle default
+    if (location.pathname == "/") {
+      this.loadDefaultView();
+    }
+    try {
+      let [TagName, dynamicProps] = decodeRoute(
+        location.pathname,
+        location.search
+      );
+      this._loadView(TagName, dynamicProps);
+    } catch (error) {
+      this.loadDefaultView();
+    }
+  };
+
+  this.loadDefaultView = function () {
+    // if request view doesn't load, load default route
     this.loadView(ProjectsView);
   };
 
@@ -171,7 +224,7 @@ function Orchest() {
   this.dialogHolder = document.querySelector(".dialogs");
 
   // avoid anchor link clicking default behavior
-  $("a[href='#']").click((e) => {
+  $("a[href='#']").on("click", (e) => {
     e.preventDefault();
   });
 

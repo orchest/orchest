@@ -141,7 +141,8 @@ class PipelineDetails extends React.Component {
           <PipelineDetailsLogs
             sio={this.props.sio}
             project_uuid={this.props.project_uuid}
-            pipelineRun={this.props.pipelineRun}
+            job_uuid={this.props.job_uuid}
+            run_uuid={this.props.run_uuid}
             step={this.props.step}
             pipeline={this.props.pipeline}
           />

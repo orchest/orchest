@@ -15,9 +15,9 @@ import {
   getPipelineStepChildren,
   setWithRetry,
 } from "../utils/webserver-utils";
-require("codemirror/mode/python/python");
-require("codemirror/mode/shell/shell");
-require("codemirror/mode/r/r");
+import "codemirror/mode/python/python";
+import "codemirror/mode/shell/shell";
+import "codemirror/mode/r/r";
 
 class FilePreviewView extends React.Component {
   componentWillUnmount() {
@@ -33,7 +33,8 @@ class FilePreviewView extends React.Component {
       pipeline_uuid: this.props.pipeline_uuid,
       project_uuid: this.props.project_uuid,
       readOnly: this.props.readOnly,
-      pipelineRun: this.props.pipelineRun,
+      job_uuid: this.props.job_uuid,
+      run_uuid: this.props.run_uuid,
     });
   }
 
@@ -79,12 +80,12 @@ class FilePreviewView extends React.Component {
         fileDescription: undefined,
       });
 
-      let pipelineURL = this.props.pipelineRun
+      let pipelineURL = this.props.job_uuid
         ? getPipelineJSONEndpoint(
             this.props.pipeline_uuid,
             this.props.project_uuid,
-            this.props.pipelineRun.job_uuid,
-            this.props.pipelineRun.uuid
+            this.props.job_uuid,
+            this.props.run_uuid
           )
         : getPipelineJSONEndpoint(
             this.props.pipeline_uuid,
@@ -151,9 +152,9 @@ class FilePreviewView extends React.Component {
       });
 
       let fileURL = `/async/file-viewer/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`;
-      if (this.props.pipelineRun) {
-        fileURL += "?pipeline_run_uuid=" + this.props.pipelineRun.uuid;
-        fileURL += "&job_uuid=" + this.props.pipelineRun.job_uuid;
+      if (this.props.run_uuid) {
+        fileURL += "?pipeline_run_uuid=" + this.props.run_uuid;
+        fileURL += "&job_uuid=" + this.props.job_uuid;
       }
 
       let fetchFilePromise = makeCancelable(

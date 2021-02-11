@@ -1,5 +1,5 @@
 import React from "react";
-import ProjectSelector from "../components/ProjectSelector";
+import ProjectSelector from "./ProjectSelector";
 
 class ProjectBasedView extends React.Component {
   constructor(props) {

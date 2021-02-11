@@ -19,6 +19,7 @@ import {
   requestBuild,
   envVariablesArrayToDict,
   envVariablesDictToArray,
+  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 import JobView from "./JobView";
 
@@ -36,6 +37,7 @@ class EditJobView extends React.Component {
       pipeline: undefined,
       cronString: undefined,
       strategyJSON: {},
+      unsavedChanges: true,
     };
 
     this.promiseManager = new PromiseManager();
@@ -281,6 +283,7 @@ class EditJobView extends React.Component {
   runJob() {
     this.setState({
       runJobLoading: true,
+      unsavedChanges: false,
     });
 
     let envVariables = envVariablesArrayToDict(this.state.envVariables);
@@ -363,6 +366,11 @@ class EditJobView extends React.Component {
       this.onSelectSubview(1);
       return;
     }
+
+    // saving changes
+    this.setState({
+      unsavedChanges: false,
+    });
 
     let putJobRequest = makeCancelable(
       makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
@@ -521,6 +529,8 @@ class EditJobView extends React.Component {
   }
 
   render() {
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
+
     let rootView = undefined;
 
     if (this.state.job && this.state.pipeline) {

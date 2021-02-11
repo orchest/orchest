@@ -117,7 +117,7 @@ class EnvironmentList extends React.Component {
     let environment = this.state.environments[idx];
     orchest.loadView(EnvironmentEditView, {
       project_uuid: this.props.project_uuid,
-      environment: environment,
+      environment_uuid: environment.uuid,
     });
   }
 

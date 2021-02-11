@@ -18,6 +18,7 @@ import {
   requestBuild,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
+  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -287,11 +288,11 @@ class PipelineView extends React.Component {
       saveHash: "",
     };
 
-    if (this.props.pipelineRun) {
+    if (this.props.run_uuid && this.props.job_uuid) {
       try {
-        this.state.runUUID = this.props.pipelineRun.uuid;
+        this.state.runUUID = this.props.run_uuid;
         this.state.runStatusEndpoint =
-          "/catch/api-proxy/api/jobs/" + this.props.pipelineRun.job_uuid + "/";
+          "/catch/api-proxy/api/jobs/" + this.props.job_uuid + "/";
         this.pollPipelineStepStatuses();
         this.startStatusInterval();
       } catch (e) {
@@ -498,7 +499,8 @@ class PipelineView extends React.Component {
       project_uuid: this.props.project_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
       readOnly: this.props.readOnly,
-      pipelineRun: this.props.pipelineRun,
+      job_uuid: this.props.job_uuid,
+      run_uuid: this.props.run_uuid,
     });
   }
 
@@ -1074,8 +1076,8 @@ class PipelineView extends React.Component {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       this.props.pipeline_uuid,
       this.props.project_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.job_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.uuid
+      this.props.job_uuid,
+      this.props.run_uuid
     );
 
     let fetchPipelinePromise = makeCancelable(
@@ -1092,7 +1094,7 @@ class PipelineView extends React.Component {
           orchest.headerBarComponent.setPipeline(
             this.state.pipelineJson,
             this.props.project_uuid,
-            this.props.pipelineRun && this.props.pipelineRun.job_uuid
+            this.props.job_uuid
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");
@@ -1104,7 +1106,7 @@ class PipelineView extends React.Component {
         }
       })
       .catch(() => {
-        if (this.props.pipelineRun) {
+        if (this.props.job_uuid) {
           // This case is hit when a user tries to load a pipeline that belongs
           // to a run that has not started yet. The project files are only
           // copied when the run starts. Before start, the pipeline.json thus
@@ -1116,7 +1118,7 @@ class PipelineView extends React.Component {
             "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
             () => {
               orchest.loadView(JobView, {
-                job_uuid: this.props.pipelineRun.job_uuid,
+                job_uuid: this.props.job_uuid,
               });
             }
           );
@@ -1378,7 +1380,8 @@ class PipelineView extends React.Component {
       orchest.loadView(FilePreviewView, {
         project_uuid: this.props.project_uuid,
         pipeline_uuid: this.props.pipeline_uuid,
-        pipelineRun: this.props.pipelineRun,
+        job_uuid: this.props.job_uuid,
+        run_uuid: this.props.run_uuid,
         step_uuid: step_uuid,
         readOnly: this.props.readOnly,
       });
@@ -1975,6 +1978,8 @@ class PipelineView extends React.Component {
   }
 
   render() {
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
+
     let pipelineSteps = [];
 
     for (let uuid in this.state.steps) {
@@ -2194,7 +2199,8 @@ class PipelineView extends React.Component {
                 defaultViewIndex={this.state.defaultDetailViewIndex}
                 pipeline={this.state.pipelineJson}
                 project_uuid={this.props.project_uuid}
-                pipelineRun={this.props.pipelineRun}
+                job_uuid={this.props.job_uuid}
+                run_uuid={this.props.run_uuid}
                 sio={this.sio}
                 readOnly={this.props.readOnly}
                 step={JSON.parse(

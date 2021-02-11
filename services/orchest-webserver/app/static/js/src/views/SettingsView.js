@@ -1,11 +1,12 @@
 import React, { Fragment } from "react";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 import { makeRequest, checkHeartbeat } from "../lib/utils/all";
 import UpdateView from "./UpdateView";
 import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";
-require("codemirror/mode/javascript/javascript");
+import "codemirror/mode/javascript/javascript";
 
 class SettingsView extends React.Component {
   constructor(props) {
@@ -16,7 +17,7 @@ class SettingsView extends React.Component {
       restarting: false,
       config: undefined,
       version: undefined,
-      configChangesPending: false,
+      unsavedChanges: false,
     };
   }
 
@@ -73,7 +74,7 @@ class SettingsView extends React.Component {
 
       this.setState({
         configJSON,
-        configChangesPending: false,
+        unsavedChanges: false,
       });
 
       makeRequest("POST", "/async/user-config", {
@@ -154,6 +155,8 @@ class SettingsView extends React.Component {
   }
 
   render() {
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
+
     return (
       <div className={"view-page"}>
         <h2>Global settings</h2>
@@ -180,7 +183,7 @@ class SettingsView extends React.Component {
                       onBeforeChange={(editor, data, value) => {
                         this.setState({
                           config: value,
-                          configChangesPending: this.state.config != value,
+                          unsavedChanges: this.state.config != value,
                         });
                       }}
                     />
@@ -199,10 +202,13 @@ class SettingsView extends React.Component {
                     })()}
 
                     <MDCButtonReact
-                      classNames={["push-up"]}
-                      label="Save"
+                      classNames={[
+                        "push-up",
+                        "mdc-button--raised",
+                        "themed-secondary",
+                      ]}
+                      label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                       icon="save"
-                      disabled={!this.state.configChangesPending}
                       onClick={this.saveConfig.bind(this, this.state.config)}
                     />
                   </div>

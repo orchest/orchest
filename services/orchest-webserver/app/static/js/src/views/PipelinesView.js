@@ -1,6 +1,6 @@
 import React from "react";
 import PipelineList from "../components/PipelineList";
-import ProjectBasedView from "./ProjectBasedView";
+import ProjectBasedView from "../components/ProjectBasedView";
 
 class PipelinesView extends React.Component {
   render() {

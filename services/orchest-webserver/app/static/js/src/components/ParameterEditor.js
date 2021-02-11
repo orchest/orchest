@@ -1,7 +1,7 @@
 import React, { Fragment } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import ParamTree from "./ParamTree";
-require("codemirror/mode/javascript/javascript");
+import "codemirror/mode/javascript/javascript";
 
 class ParameterEditor extends React.Component {
   constructor(props) {

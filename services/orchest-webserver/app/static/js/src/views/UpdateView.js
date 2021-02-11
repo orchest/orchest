@@ -1,8 +1,6 @@
 import React, { Fragment } from "react";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
-import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
-import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import {
   checkHeartbeat,
   makeCancelable,
@@ -114,7 +112,7 @@ class UpdateView extends React.Component {
           if (this.state.updateOutput.length > 0) {
             elements.push(
               <div key="1" className="console-output">
-                {this.state.updateOutput}
+                {this.state.updateOutput.split("\n").reverse().join("\n")}
               </div>
             );
           }

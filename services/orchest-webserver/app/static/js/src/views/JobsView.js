@@ -1,6 +1,6 @@
 import React from "react";
 import JobList from "../components/JobList";
-import ProjectBasedView from "./ProjectBasedView";
+import ProjectBasedView from "../components/ProjectBasedView";
 
 class JobsView extends React.Component {
   render() {
