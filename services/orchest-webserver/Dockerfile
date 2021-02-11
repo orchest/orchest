@@ -4,8 +4,8 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 # Refresh SSL certificates
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
 
-# Install nodejs for jupyterextension install support
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+# Install nodejs
+RUN curl -sL https://deb.nodesource.com/setup_15.x | bash - && apt-get install -y nodejs
 
 # Install the Python requirements before the JS compiling, because
 # changes in the front-end often include JS changes meaning that its
@@ -20,13 +20,12 @@ RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 
 # Static application files.
 COPY ./app/static ./app/static
-COPY ./lib/javascript/ ./app/static/js/lib/
+COPY ./lib/javascript ./app/static/js/src/lib
 
 # Compile front-end code with npx and compile style.
 WORKDIR /orchest/services/orchest-webserver/app/static
-RUN npm install && \
-    ./compile-js.sh && ./compile-sass.sh && \
-    rm -rf node_modules/
+RUN npm install --quiet; ./compile-js.sh & ./compile-sass.sh & wait && \
+  rm -rf node_modules/
 
 # Application files.
 WORKDIR /orchest/services/orchest-webserver/

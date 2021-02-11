@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "esbuild js/src/main.js --bundle --loader:.js=jsx --preserve-symlinks --outfile=js/dist/main.bundle.js --define:process.env.NODE_ENV=\\\"production\\\" --define:global=window --minify --sourcemap --target=chrome58,firefox57,safari11,edge16",
+    "build-sass": "node-sass css/main.scss --include-path=node_modules/ css/dist/main.css",
+    "watch": "npm-watch"
+  },
+  "watch": {
+    "build": "js/src/**/*.js"
   },
   "author": "R. Lamers",
   "license": "AGPL-3.0-only",
@@ -14,11 +19,8 @@
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.9.6",
-    "@babel/preset-env": "^7.9.6",
-    "@babel/preset-react": "^7.9.4",
-    "babel-loader": "^8.1.0",
-    "webpack": "^5.10.0",
-    "webpack-cli": "^4.2.0"
+    "esbuild": "^0.8.44",
+    "node-sass": "^5.0.0",
+    "npm-watch": "^0.7.0"
   }
 }

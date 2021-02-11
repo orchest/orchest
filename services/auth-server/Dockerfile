@@ -5,7 +5,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
 
 # Install nodejs for jupyterextension install support
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_15.x | bash - && apt-get install -y nodejs
 
 # Get all Python requirements in place and install them.
 COPY ./requirements.txt /orchest/services/auth-server/
@@ -19,9 +19,8 @@ COPY ./lib/javascript/ app/static/js/src/lib/
 
 # Compile front-end code with npx and compile style
 WORKDIR /orchest/services/auth-server/app/static
-RUN npm install
-RUN ./compile-js.sh && ./compile-sass.sh \
-  && rm -rf node_modules/
+RUN npm install --quiet; ./compile-js.sh & ./compile-sass.sh & wait && \
+  rm -rf node_modules/
 
 # Application files.
 WORKDIR /orchest/services/auth-server
