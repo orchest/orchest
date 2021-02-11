@@ -145,6 +145,9 @@ def debug(
     reporting a bug, it is best to: stop Orchest, start Orchest again,
     reproduce the bug, then use this command.
 
+    The command does not need Orchest to be running when called, but
+    will produce a less inclusive dump if that is not the case.
+
     Note: if Orchest was/has been running in dev mode, then there is the
     possibility of some user data getting into the dump due to the log
     level being set to DEBUG.
