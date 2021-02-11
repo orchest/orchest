@@ -141,7 +141,9 @@ def debug(
     """
     Create a debug dump.
 
-    The dump is saved in the working directory as 'debug-dump'.
+    The dump is saved in the working directory as 'debug-dump'. When
+    reporting a bug, it is best to: stop Orchest, start Orchest again,
+    reproduce the bug, then use this command.
 
     Note: if Orchest was/has been running in dev mode, then there is the
     possibility of some user data getting into the dump due to the log
