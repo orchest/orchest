@@ -13,7 +13,7 @@ from app.error import ENVVariableNotFoundError
 logger = logging.getLogger(__name__)
 
 
-def echo(*args, wrap=0, **kwargs):
+def echo(*args, wrap=WRAP_LINES, **kwargs):
     """Wraps typer.echo to natively support line wrapping."""
     if wrap:
         message = kwargs.get("message")
@@ -72,7 +72,6 @@ def fix_userdir_permissions() -> None:
                 "Could not set gid permissions on your userdir/. This is an extra"
                 " check to make sure files created in Orchest are also read and"
                 " writable directly on your host.",
-                wrap=WRAP_LINES,
             )
 
 
@@ -85,11 +84,11 @@ def wait_for_zero_exitcode(
     `container_id`.
 
     """
-    # This will likely take a maximum of 4 tries.
+    # This will likely take a maximum of 10 tries.
     exit_code = 1
     while exit_code != 0:
-        exit_code = docker_client.exec_run(container_id, cmd)
-        time.sleep(0.5)
+        exit_code = docker_client.exec_runs([(container_id, cmd)])[0]
+        time.sleep(0.25)
 
 
 def do_proxy_certs_exist_on_host() -> bool:

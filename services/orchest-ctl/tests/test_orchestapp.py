@@ -55,13 +55,13 @@ def test_install(installed_images, expected_stdout, install_orchest, capsys):
     ],
     ids=["running", "partially-running", "not-running"],
 )
-def test_status(running_containers, expected_stdout, capsys):
+def test_status(running_containers, expected_stdout, capsys, monkeypatch):
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_containers = MagicMock(return_value=(None, running_containers))
 
     app = orchest.OrchestApp()
     app.resource_manager = resource_manager
-    app.on_start_images = ["A", "B"]
+    monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
 
     app.status()
 
@@ -97,9 +97,9 @@ def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch):
 
     docker_client = orchest.DockerWrapper()
     docker_client.run_containers = MagicMock(return_value=exec_stdout)
+    resource_manager.docker_client = docker_client
 
     app = orchest.OrchestApp()
-    app.docker_client = docker_client
     app.resource_manager = resource_manager
 
     app.version(ext=extensive)
@@ -259,7 +259,7 @@ def test_start(
     utils.wait_for_zero_exitcode = MagicMock(return_value=None)
 
     app = orchest.OrchestApp()
-    app.on_start_images = ["A", "B"]
+    monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
     app.resource_manager = resource_manager
     app.docker_client = docker_client
 
