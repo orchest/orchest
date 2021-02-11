@@ -10,11 +10,11 @@ from app.config import _on_start_images
 from app.docker_wrapper import OrchestResourceManager
 
 health_check_command = {
-    "orchest/orchest-api:latest": "wget localhost/api --spider",
-    "orchest/orchest-webserver:latest": "wget localhost --spider",
-    "orchest/auth-server:latest": "wget localhost/auth --spider",
+    "orchest/orchest-api:latest": "wget localhost/api -T 2 -t 2 --spider",
+    "orchest/orchest-webserver:latest": "wget localhost -T 2 -t 2 --spider",
+    "orchest/auth-server:latest": "wget localhost/auth -T 2 -t 2 --spider",
     "orchest/celery-worker:latest": "celery inspect ping -A app.core.tasks",
-    "orchest/file-manager:latest": "wget localhost --spider",
+    "orchest/file-manager:latest": "wget localhost -T 2 -t 2 --spider",
     "postgres:13.1": "pg_isready --username postgres",
     "rabbitmq:3": "rabbitmqctl node_health_check",
 }
