@@ -31,6 +31,7 @@ def health_check(resource_manager: OrchestResourceManager) -> None:
         running_containers_names,
     ) = resource_manager.get_containers(state="running")
 
+    check_names = []
     cmds = []
 
     # Run health checks for containers that do have one.
@@ -38,10 +39,11 @@ def health_check(resource_manager: OrchestResourceManager) -> None:
         hcheck = health_check_command.get(container)
         if hcheck is not None:
             cmds.append([id, hcheck])
+            check_names.append(container)
 
     exit_codes = resource_manager.docker_client.exec_runs(cmds)
     container_to_code = {}
-    for container, code in zip(running_containers_names, exit_codes):
+    for container, code in zip(check_names, exit_codes):
         container_to_code[container] = code
 
     return container_to_code
