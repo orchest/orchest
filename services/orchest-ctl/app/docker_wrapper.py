@@ -412,7 +412,6 @@ class OrchestResourceManager:
             utils.echo(
                 "Orchest sends anonymized telemetry to analytics.orchest.io."
                 " To disable it, please refer to:",
-                wrap=WRAP_LINES,
             )
             utils.echo(
                 "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration"  # noqa: E501, W505

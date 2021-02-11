@@ -13,7 +13,7 @@ from app.error import ENVVariableNotFoundError
 logger = logging.getLogger(__name__)
 
 
-def echo(*args, wrap=0, **kwargs):
+def echo(*args, wrap=WRAP_LINES, **kwargs):
     """Wraps typer.echo to natively support line wrapping."""
     if wrap:
         message = kwargs.get("message")
@@ -72,7 +72,6 @@ def fix_userdir_permissions() -> None:
                 "Could not set gid permissions on your userdir/. This is an extra"
                 " check to make sure files created in Orchest are also read and"
                 " writable directly on your host.",
-                wrap=WRAP_LINES,
             )
 
 

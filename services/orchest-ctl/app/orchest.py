@@ -15,7 +15,7 @@ from functools import reduce
 from typing import List, Optional, Set, Tuple
 
 from app import spec, utils
-from app.config import ORCHEST_IMAGES, WRAP_LINES, _on_start_images
+from app.config import ORCHEST_IMAGES, _on_start_images
 from app.debug import debug_dump, health_check
 from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
@@ -67,7 +67,6 @@ class OrchestApp:
             utils.echo(
                 "after the installation is finished to ensure that all images are"
                 " running the same version of Orchest.",
-                wrap=WRAP_LINES,
             )
 
         utils.echo("Installing Orchest...")
@@ -121,7 +120,6 @@ class OrchestApp:
             utils.echo(
                 "Orchest seems to be partially running. Before attempting to start"
                 " Orchest, shut the application down first:",
-                wrap=WRAP_LINES,
             )
             utils.echo("\torchest stop")
             return
@@ -286,7 +284,6 @@ class OrchestApp:
                 "It seems like you have unstaged changes in the 'orchest'"
                 " repository. Please commit or stash them as 'orchest update'"
                 " pulls the newest changes to the 'userdir/' using a rebase.",
-                wrap=WRAP_LINES,
             )
             logger.error("Failed update due to unstaged changes.")
             return
@@ -342,7 +339,6 @@ class OrchestApp:
             utils.echo(
                 "Not all containers are running on the same version of Orchest, which"
                 " can lead to the application crashing. You can fix this by running:",
-                wrap=WRAP_LINES,
             )
             utils.echo("\torchest update")
             utils.echo("To get all containers on the same version again.")
