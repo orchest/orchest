@@ -417,4 +417,9 @@ def debug_dump(ext: bool, compress: bool) -> None:
         debug_dump_path = f"{debug_dump_path}.tar.gz"
         os.system(f"cp {debug_dump_path} /orchest-host/debug-dump.tar.gz")
     else:
-        os.system(f"cp -r {debug_dump_path} /orchest-host/debug-dump")
+        # This is to account for the behaviour of cp when it comes to
+        # already exising directory. Otherwise, if "t" already exists,
+        # the data we want to copy will become a subdirectory of "t",
+        # instead of overwriting its files.
+        t = "/orchest-host/debug-dump/"
+        os.system(f"mkdir -p {t} && cp -r {debug_dump_path}/* {t}")
