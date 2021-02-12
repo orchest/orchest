@@ -235,7 +235,7 @@ def celery_debug_dump(
     docker_wrapper.copy_files_from_containers(files_to_copy)
 
 
-def websever_debug_dump(resource_manager: OrchestResourceManager, path: str) -> None:
+def webserver_debug_dump(resource_manager: OrchestResourceManager, path: str) -> None:
     """Get the webserver log file."""
 
     docker_wrapper = resource_manager.docker_client
@@ -397,7 +397,7 @@ def debug_dump(ext: bool, compress: bool) -> None:
         ("celery", celery_debug_dump, (rmanager, debug_dump_path, ext)),
         (
             "webserver",
-            websever_debug_dump,
+            webserver_debug_dump,
             (
                 rmanager,
                 debug_dump_path,
