@@ -412,9 +412,10 @@ export function decodeRoute(pathname, search) {
 
 export function propsToQueryArgs(dynamicProps) {
   // note: only string based query args are supported
-  if (!dynamicProps) {
+  if (!dynamicProps || Object.keys(dynamicProps).length == 0) {
     return "";
   }
+
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(dynamicProps)) {
     searchParams.append(key, JSON.stringify(value));

@@ -158,10 +158,12 @@ function Orchest() {
   };
 
   window.onpopstate = (event) => {
-    this._loadView(
-      nameToComponent(event.state.viewName),
-      event.state.dynamicProps
-    );
+    if (event.state !== null) {
+      this._loadView(
+        nameToComponent(event.state.viewName),
+        event.state.dynamicProps
+      );
+    }
   };
 
   this.initializeFirstView = function () {
@@ -174,7 +176,7 @@ function Orchest() {
         location.pathname,
         location.search
       );
-      this._loadView(TagName, dynamicProps);
+      this.loadView(TagName, dynamicProps);
     } catch (error) {
       this.loadDefaultView();
     }
