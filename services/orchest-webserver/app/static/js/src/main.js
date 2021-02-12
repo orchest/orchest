@@ -19,9 +19,9 @@ import {
   componentName,
   generateRoute,
   decodeRoute,
-  viewNameToURIPathComponent,
 } from "./utils/webserver-utils";
 import ProjectsView from "./views/ProjectsView";
+import JupyterLabView from "./views/JupyterLabView";
 
 function Orchest() {
   // load server side config populated by flask template
@@ -53,6 +53,10 @@ function Orchest() {
       }
     }
   }
+
+  // create Jupyter manager
+  this.jupyter = new Jupyter($(".persistent-view.jupyter"));
+
   // mount titlebar component
   this.headerBar = document.querySelector(".header-bar-interactive");
   this.headerBarComponent = ReactDOM.render(<HeaderButtons />, this.headerBar);
@@ -96,10 +100,10 @@ function Orchest() {
     // Analytics call
     this.sendEvent("view load", { name: viewName });
 
-    // make sure reactRoot is not hidden
-    $(this.reactRoot).removeClass("hidden");
+    if (TagName !== JupyterLabView) {
+      // make sure reactRoot is not hidden
+      $(this.reactRoot).removeClass("hidden");
 
-    if (this.jupyter) {
       this.jupyter.hide();
       if (TagName !== PipelineView && TagName !== PipelineSettingsView) {
         this.headerBarComponent.clearPipeline();
@@ -159,10 +163,25 @@ function Orchest() {
 
   window.onpopstate = (event) => {
     if (event.state !== null) {
-      this._loadView(
-        nameToComponent(event.state.viewName),
-        event.state.dynamicProps
-      );
+      let conditionalBody = () => {
+        this._loadView(
+          nameToComponent(event.state.viewName),
+          event.state.dynamicProps
+        );
+      };
+
+      if (!this.unsavedChanges) {
+        conditionalBody();
+      } else {
+        this.confirm(
+          "Warning",
+          "There are unsaved changes. Are you sure you want to navigate away?",
+          () => {
+            this.unsavedChanges = false;
+            conditionalBody();
+          }
+        );
+      }
     }
   };
 
@@ -213,16 +232,6 @@ function Orchest() {
 
   // to embed an <iframe> in the main application as a first class citizen (with state) there needs to be a
   // persistent element on the page. It will only be created when the JupyterLab UI is first requested.
-
-  this.jupyter = new Jupyter($(".persistent-view.jupyter"));
-
-  this.showJupyter = function () {
-    this.jupyter.show();
-
-    // hide reactDOM
-    $(this.reactRoot).addClass("hidden");
-  };
-
   this.dialogHolder = document.querySelector(".dialogs");
 
   // avoid anchor link clicking default behavior

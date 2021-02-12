@@ -29,6 +29,7 @@ import io from "socket.io-client";
 import SessionToggleButton from "../components/SessionToggleButton";
 import FilePreviewView from "./FilePreviewView";
 import JobView from "./JobView";
+import JupyterLabView from "./JupyterLabView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -1357,8 +1358,10 @@ class PipelineView extends React.Component {
           ).slice(1)
         );
 
-        orchest.showJupyter();
-        orchest.headerBarComponent.updateCurrentView("jupyter");
+        orchest.loadView(JupyterLabView, {
+          pipeline_uuid: this.props.pipeline_uuid,
+          project_uuid: this.props.project_uuid,
+        });
       })
       .catch((error) => {
         console.log(error);

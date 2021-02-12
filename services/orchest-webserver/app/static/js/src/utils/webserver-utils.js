@@ -10,6 +10,7 @@ import FilePreviewView from "../views/FilePreviewView";
 import HelpView from "../views/HelpView";
 import JobsView from "../views/JobsView";
 import JobView from "../views/JobView";
+import JupyterLabView from "../views/JupyterLabView";
 import ManageUsersView from "../views/ManageUsersView";
 import PipelineSettingsView from "../views/PipelineSettingsView";
 import PipelinesView from "../views/PipelinesView";
@@ -32,6 +33,7 @@ function getComponentObject() {
     HelpView,
     JobsView,
     JobView,
+    JupyterLabView,
     ManageUsersView,
     PipelineSettingsView,
     PipelinesView,

@@ -1,7 +1,7 @@
 import React from "react";
 import PipelineView from "../views/PipelineView";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
-import { makeRequest } from "../lib/utils/all";
+import JupyterLabView from "../views/JupyterLabView";
 
 class HeaderButtons extends React.Component {
   constructor(props) {
@@ -25,7 +25,10 @@ class HeaderButtons extends React.Component {
 
   showJupyter() {
     this.updateCurrentView("jupyter");
-    orchest.showJupyter();
+    orchest.loadView(JupyterLabView, {
+      pipeline_uuid: this.state.pipeline.uuid,
+      project_uuid: this.state.project_uuid,
+    });
   }
 
   updateCurrentView(view) {

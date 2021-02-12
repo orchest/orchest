@@ -1,5 +1,3 @@
-import { setWithRetry } from "../utils/webserver-utils";
-
 class Jupyter {
   constructor(jupyterHolderJEl) {
     this.jupyterHolder = jupyterHolderJEl;
@@ -20,6 +18,7 @@ class Jupyter {
   }
 
   show() {
+    // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
 
     if (this.reloadOnShow) {
@@ -28,7 +27,9 @@ class Jupyter {
     }
 
     // make sure the baseAddress has loaded
-    if (this.iframe.src.indexOf(this.baseAddress) === -1) {
+    if (
+      this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
+    ) {
       this.setJupyterAddress(this.baseAddress);
     }
   }
@@ -37,11 +38,11 @@ class Jupyter {
   }
 
   unload() {
-    this.iframe.src = "about:blank";
+    this.iframe.contentWindow.location.replace("about:blank");
   }
 
   setJupyterAddress(url) {
-    this.iframe.src = url;
+    this.iframe.contentWindow.location.replace(url);
   }
 
   reloadFilesFromDisk() {
@@ -84,7 +85,8 @@ class Jupyter {
       return;
     }
     if (
-      this.iframe.src.indexOf(this.baseAddress) !== -1 &&
+      this.iframe.contentWindow.location.href.indexOf(this.baseAddress) !==
+        -1 &&
       this.iframe.contentWindow._orchest_docmanager !== undefined
     ) {
       this.iframe.contentWindow._orchest_docmanager.openOrReveal(filePath);

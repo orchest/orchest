@@ -12,7 +12,10 @@ class FileManagerView extends React.Component {
   render() {
     return (
       <div className={"view-page no-padding"}>
-        <iframe className={"borderless fullsize"} src="/file-manager"></iframe>
+        <iframe
+          className={"borderless fullsize"}
+          src="/container-file-manager"
+        ></iframe>
       </div>
     );
   }
