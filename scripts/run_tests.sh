@@ -71,6 +71,19 @@ VENVS_DIR=$DIR/../.venvs
 mkdir -p $VENVS_DIR
 
 
+ORCHEST_TEST_DATABASE_HOST="orchest-test-database"
+export ORCHEST_TEST_DATABASE_PORT=1337
+docker run \
+    --name "${ORCHEST_TEST_DATABASE_HOST}" \
+    -p "${ORCHEST_TEST_DATABASE_PORT}:5432" \
+    --rm -d -e "POSTGRES_HOST_AUTH_METHOD=trust" postgres:13.1 > /dev/null 2>&1
+
+function on_exit {
+    docker container stop "${ORCHEST_TEST_DATABASE_HOST}" > /dev/null 2>&1
+}
+
+trap on_exit EXIT
+
 for SERVICE in ${SERVICES[@]}
 do
     VENV="$VENVS_DIR/$SERVICE"
@@ -137,3 +150,4 @@ do
     fi
     echo
 done
+
