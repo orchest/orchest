@@ -9,6 +9,7 @@ setuptools.setup(
         "docker",
         "aiodocker @ git+https://github.com/yannickperrenet/aiodocker.git",
         "tqdm==4.53.0",
+        "orchest-internals @ file://localhost/orchest/lib/python/orchest-internals",
     ],
     entry_points="""
         [console_scripts]

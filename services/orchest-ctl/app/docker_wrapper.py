@@ -7,8 +7,9 @@ import docker
 from docker.client import DockerClient
 from tqdm.asyncio import tqdm
 
+from _orchest.internals import config as _config
 from app import utils
-from app.config import DOCKER_NETWORK, ORCHEST_IMAGES, WRAP_LINES
+from app.config import ORCHEST_IMAGES, WRAP_LINES
 
 logger = logging.getLogger(__name__)
 
@@ -387,7 +388,7 @@ class DockerWrapper:
 
 class OrchestResourceManager:
     orchest_images: List[str] = ORCHEST_IMAGES["all"]
-    network: str = DOCKER_NETWORK
+    network: str = _config.DOCKER_NETWORK
 
     def __init__(self):
         self.docker_client = DockerWrapper()

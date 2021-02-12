@@ -9,6 +9,8 @@ RUN apt-get update && \
 
 COPY ./ /orchest/services/orchest-ctl/
 
+COPY ./lib /orchest/lib
+
 WORKDIR /orchest/services/orchest-ctl
 
 # Change user when installing packages to remove cache warnings.

@@ -290,10 +290,7 @@ class PipelineStepRunner:
                 working_dir,
                 self.properties["file_path"],
             ],
-            "NetworkingConfig": {
-                # TODO: should not be hardcoded.
-                "EndpointsConfig": {"orchest": {}}
-            },
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
             # NOTE: the `'tests-uuid'` key is only used for tests and
             # gets ignored by the `docker_client`.
             "tests-uuid": self.properties["uuid"],

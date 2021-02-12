@@ -57,6 +57,4 @@ ORCHEST_IMAGES = {
     ],
 }
 
-DOCKER_NETWORK = "orchest"
-
 WRAP_LINES = 72

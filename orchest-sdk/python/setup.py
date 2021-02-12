@@ -26,10 +26,11 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ricklamers/orchest-pypi",
-    # py_modules=['orchest'],
     project_urls={
-        "Documentation": "https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html",
-        "Source Code": "https://github.com/orchest/orchest/tree/master/orchest-sdk",
+        "Documentation": (
+            "https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html"
+        ),
+        "Source Code": ("https://github.com/orchest/orchest/tree/master/orchest-sdk"),
     },
     classifiers=[
         "Development Status :: 1 - Planning",

@@ -6,6 +6,7 @@ from typing import List, Set
 
 from docker.errors import NotFound
 
+from _orchest.internals import config as _config
 from app import utils
 from app.config import _on_start_images
 from app.docker_wrapper import OrchestResourceManager
@@ -275,7 +276,9 @@ def containers_logs_dump(
         os.mkdir(containers_logs)
 
     docker_wrapper = resource_manager.docker_client
-    ids, names = docker_wrapper.get_containers(state="all", network="orchest")
+    ids, names = docker_wrapper.get_containers(
+        state="all", network=_config.DOCKER_NETWORK
+    )
 
     orchest_set: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
     session_containers = {
@@ -419,11 +422,18 @@ def debug_dump(ext: bool, compress: bool) -> None:
     if compress:
         os.system(f"tar -zcf {debug_dump_path}.tar.gz -C {debug_dump_path} .")
         debug_dump_path = f"{debug_dump_path}.tar.gz"
-        os.system(f"cp {debug_dump_path} /orchest-host/debug-dump.tar.gz")
+
+        # relative to orchest repo directory
+        host_path = "debug-dump.tar.gz"
+        os.system(f"cp {debug_dump_path} /orchest-host/{host_path}")
+
     else:
         # This is to account for the behaviour of cp when it comes to
         # already exising directory. Otherwise, if "t" already exists,
         # the data we want to copy will become a subdirectory of "t",
         # instead of overwriting its files.
-        t = "/orchest-host/debug-dump/"
+        host_path = "debug-dump/"
+        t = "/orchest-host/" + host_path
         os.system(f"mkdir -p {t} && cp -r {debug_dump_path}/* {t}")
+
+    utils.echo(f"Complete! Wrote debug dump to: ./{host_path}")

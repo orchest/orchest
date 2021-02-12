@@ -75,6 +75,7 @@ DEFAULT_ENVIRONMENTS = [
     },
 ]
 
+DOCKER_NETWORK = "orchest"
 
 # memory-server
 MEMORY_SERVER_SOCK_PATH = TEMP_DIRECTORY_PATH
