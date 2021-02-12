@@ -446,7 +446,7 @@ def launch_noninteractive_session(
         A Session object that has already launched its resources.
 
     """
-    session = NonInteractiveSession(docker_client, network="orchest")
+    session = NonInteractiveSession(docker_client, network=_config.DOCKER_NETWORK)
     session.launch(
         pipeline_uuid,
         project_uuid,

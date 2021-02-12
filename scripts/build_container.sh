@@ -69,6 +69,7 @@ LIB_IMAGES=(
     "base-kernel-py-gpu"
     "base-kernel-r"
     "base-kernel-julia"
+    "orchest-ctl"
     "orchest-api"
     "orchest-webserver"
     "memory-server"

@@ -112,11 +112,51 @@ def stop():
 
 
 @typer_app.command()
-def status():
+def status(
+    ext: bool = typer.Option(
+        False,
+        "--ext",
+        show_default=False,
+        help="Get extensive status information.",
+    ),
+):
     """
     Get status of Orchest.
     """
-    app.status()
+    app.status(ext=ext)
+
+
+@typer_app.command()
+def debug(
+    compress: bool = typer.Option(
+        False, "--compress", show_default=False, help="Compress the output directory."
+    ),
+    ext: bool = typer.Option(
+        False,
+        "--ext",
+        show_default=False,
+        help="Get extensive debug information.",
+    ),
+):
+    """
+    Create a debug dump.
+
+    The dump is saved in the working directory as 'debug-dump'. When
+    reporting a bug, it is best to: stop Orchest, start Orchest again,
+    reproduce the bug, then use this command.
+
+    The command does not need Orchest to be running when called, but
+    will produce a less inclusive dump if that is not the case.
+
+    Note: if Orchest was/has been running in dev mode, then there is the
+    possibility of some user data getting into the dump due to the log
+    level being set to DEBUG.
+
+    Note: running with the '--ext' flag could include sensitive user
+    data.
+
+    """
+    app.debug(ext, compress)
 
 
 @typer_app.command()
