@@ -5,23 +5,73 @@ import uuid
 import pytest
 from config import CONFIG_CLASS
 from sqlalchemy_utils import drop_database
+from tests.test_utils import (
+    EnvironmentBuild,
+    InteractiveRun,
+    InteractiveSession,
+    Job,
+    Pipeline,
+    Project,
+)
 
+import app.core.sessions
+from _orchest.internals.test_utils import AbortableAsyncResultMock, CeleryMock, uuid4
 from app import create_app
+from app.apis import (
+    namespace_environment_builds,
+    namespace_environment_images,
+    namespace_jobs,
+    namespace_runs,
+)
 from app.connections import db
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture()
+def celery(monkeypatch):
+    celery = CeleryMock()
+    for module in [namespace_environment_builds, namespace_runs, namespace_jobs]:
+        monkeypatch.setattr(module, "make_celery", lambda *args, **kwargs: celery)
+    return celery
+
+
+@pytest.fixture()
+def abortable_async_res(monkeypatch):
+
+    aresult = AbortableAsyncResultMock("uuid")
+    for module in [namespace_environment_builds, namespace_runs, namespace_jobs]:
+        monkeypatch.setattr(
+            module, "AbortableAsyncResult", lambda *args, **kwargs: aresult
+        )
+    return aresult
+
+
+@pytest.fixture()
+def monkeypatch_image_utils(monkeypatch):
+    monkeypatch.setattr(
+        namespace_environment_images, "remove_if_dangling", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        namespace_environment_images,
+        "docker_images_list_safe",
+        lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        namespace_environment_images,
+        "docker_images_rm_safe",
+        lambda *args, **kwargs: None,
+    )
+
+
+@pytest.fixture(scope="module")
 def test_app():
-    print("APP")
 
     config = copy.deepcopy(CONFIG_CLASS)
 
     # Setup the DB URI.
-    db_host = os.environ.get("ORCHEST_TEST_DATABASE_HOST", "localhost")
-    db_port = os.environ.get("ORCHEST_TEST_DATABASE_PORT", "1337")
+    db_host = os.environ.get("ORCHEST_TEST_DATABASE_HOST")
+    db_port = os.environ.get("ORCHEST_TEST_DATABASE_PORT", "5432")
     # Postgres does not accept "-" as part of a name.
     db_name = str(uuid.uuid4()).replace("-", "_")
-    db_name = "test_db"
     SQLALCHEMY_DATABASE_URI = f"postgresql://postgres@{db_host}:{db_port}/{db_name}"
     config.SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI
 
@@ -34,7 +84,6 @@ def test_app():
 
 @pytest.fixture()
 def client(test_app):
-    print("CLIENT")
     with test_app.test_client() as client:
         yield client
 
@@ -51,20 +100,55 @@ def client(test_app):
 
 
 @pytest.fixture()
-def uuid4():
-    yield lambda: str(uuid.uuid4())
-
-
-class Project:
-    def __init__(self, client, uuid4, env_variables=None):
-        self.uuid = uuid4()
-        project = {"uuid": self.uuid, "env_variables": env_variables}
-        if env_variables is None:
-            project["env_variables"] = {}
-
-        client.post("/api/projects/", json=project)
+def project(client):
+    return Project(client, uuid4())
 
 
 @pytest.fixture()
-def project(client, uuid4):
-    yield Project(client, uuid4)
+def pipeline(client, project):
+    return Pipeline(client, project, uuid4())
+
+
+@pytest.fixture()
+def monkeypatch_interactive_session(monkeypatch):
+    monkeypatch.setattr(
+        app.core.sessions.InteractiveSession, "launch", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        app.core.sessions.InteractiveSession,
+        "get_containers_IP",
+        lambda *args, **kwargs: app.core.sessions.IP("ip1", "ip2"),
+    )
+
+
+@pytest.fixture()
+def interactive_session(client, pipeline, monkeypatch_interactive_session, monkeypatch):
+    return InteractiveSession(client, pipeline)
+
+
+@pytest.fixture()
+def interactive_run(client, pipeline, celery, monkeypatch):
+    monkeypatch.setattr(
+        namespace_runs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
+    )
+    return InteractiveRun(client, pipeline)
+
+
+@pytest.fixture()
+def job(client, pipeline):
+    return Job(client, pipeline)
+
+
+@pytest.fixture()
+def environment_build(client, celery, project):
+    return EnvironmentBuild(client, project)
+
+
+@pytest.fixture()
+def monkeypatch_lock_environment_images(monkeypatch):
+    monkeypatch.setattr(
+        namespace_runs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
+    )
+    monkeypatch.setattr(
+        namespace_jobs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
+    )

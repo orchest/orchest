@@ -41,7 +41,9 @@ class EnvironmentBuildList(Resource):
     @api.doc("start_environment_builds")
     @api.expect(schema.environment_build_requests)
     @api.marshal_with(
-        schema.environment_builds, code=201, description="Queued environment builds"
+        schema.environment_builds_request_result,
+        code=201,
+        description="Queued environment builds",
     )
     def post(self):
         """Queues a list of environment builds.
@@ -108,10 +110,12 @@ class EnvironmentBuild(Resource):
     @api.marshal_with(schema.environment_build, code=200)
     def get(self, environment_build_uuid):
         """Fetch an environment build given its uuid."""
-        env_build = models.EnvironmentBuild.query.get_or_404(
-            ident=environment_build_uuid, description="EnvironmentBuild not found"
-        )
-        return env_build.as_dict()
+        env_build = models.EnvironmentBuild.query.filter_by(
+            uuid=environment_build_uuid
+        ).one_or_none()
+        if env_build:
+            return env_build.as_dict()
+        abort(404, "EnvironmentBuild not found.")
 
     @api.doc("set_environment_build_status")
     @api.expect(schema.status_update)
@@ -285,6 +289,12 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
             kwargs=celery_job_kwargs,
             task_id=task_id,
         )
+
+    def _revert(self):
+        models.EnvironmentBuild.query.filter_by(
+            uuid=self.collateral_kwargs["task_id"]
+        ).update({"status": "FAILURE"})
+        db.session.commit()
 
 
 class AbortEnvironmentBuild(TwoPhaseFunction):

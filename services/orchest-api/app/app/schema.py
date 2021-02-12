@@ -395,7 +395,7 @@ job = Model(
         "name": fields.String(required=True, description="Name of the job."),
         "strategy_json": fields.Raw(required=True, description="Strategy json."),
         "env_variables": fields.Raw(
-            required=True, description="Environment variables of the job"
+            required=False, description="Environment variables of the job"
         ),
     },
 )
@@ -459,6 +459,16 @@ environment_build_requests = Model(
 )
 
 environment_builds = Model(
+    "EnvironmentBuilds",
+    {
+        "environment_builds": fields.List(
+            fields.Nested(environment_build),
+            description="Collection of environment_builds",
+        ),
+    },
+)
+
+environment_builds_request_result = Model(
     "EnvironmentBuilds",
     {
         "environment_builds": fields.List(

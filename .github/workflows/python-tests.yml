@@ -13,6 +13,19 @@ jobs:
   pythontests:
     runs-on: ubuntu-latest
 
+    services:
+      orchest-test-database:
+        image: postgres:13.1
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+
     strategy:
       matrix:
         service:
@@ -36,3 +49,5 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           bash ./scripts/run_tests.sh -s ${{ matrix.service }} --no-venv
+        env:
+          ORCHEST_TEST_DATABASE_HOST: localhost

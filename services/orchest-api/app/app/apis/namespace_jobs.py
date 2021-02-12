@@ -572,15 +572,20 @@ class RunJob(TwoPhaseFunction):
             res.forget()
 
     def _revert(self):
+        job = self.collateral_kwargs["job"]
+        # Jobs that run only once are considered as entirely failed.
+        if job["schedule"] is None:
+            models.Job.query.filter_by(uuid=job["uuid"]).update({"status": "FAILURE"})
+
+        tasks_ids = [task[0] for task in self.collateral_kwargs["tasks_to_launch"]]
+
         # Set the status to FAILURE for runs and their steps.
         models.PipelineRunStep.query.filter(
-            models.PipelineRunStep.run_uuid.in_(
-                self.collateral_kwargs["tasks_to_launch"]
-            )
+            models.PipelineRunStep.run_uuid.in_(tasks_ids)
         ).update({"status": "FAILURE"}, synchronize_session=False)
 
         models.NonInteractivePipelineRun.query.filter(
-            models.PipelineRun.uuid.in_(self.collateral_kwargs["tasks_to_launch"])
+            models.PipelineRun.uuid.in_(tasks_ids)
         ).update({"status": "FAILURE"}, synchronize_session=False)
         db.session.commit()
 
@@ -603,6 +608,10 @@ class AbortJob(TwoPhaseFunction):
         )
         if job is None:
             return False
+
+        # No op if the job is already in an end state.
+        if job.status in ["SUCCESS", "FAILURE", "ABORTED"]:
+            return
 
         job.status = "ABORTED"
         # This way a recurring job or a job which is scheduled to run
@@ -775,8 +784,7 @@ class DeleteJob(TwoPhaseFunction):
         if job is None:
             return False
 
-        # Abort the job, won't do anything if the job is
-        # not running.
+        # Abort the job, won't do anything if the job is not running.
         AbortJob(self.tpe).transaction(job_uuid)
 
         # Deletes cascade to: job -> non interactive run

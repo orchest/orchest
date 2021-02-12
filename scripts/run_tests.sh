@@ -70,19 +70,53 @@ fi
 VENVS_DIR=$DIR/../.venvs
 mkdir -p $VENVS_DIR
 
+function setup_local_test_db() {
+    export ORCHEST_TEST_DATABASE_HOST="localhost"
+    set +e
 
-ORCHEST_TEST_DATABASE_HOST="orchest-test-database"
-export ORCHEST_TEST_DATABASE_PORT=1337
-docker run \
-    --name "${ORCHEST_TEST_DATABASE_HOST}" \
-    -p "${ORCHEST_TEST_DATABASE_PORT}:5432" \
-    --rm -d -e "POSTGRES_HOST_AUTH_METHOD=trust" postgres:13.1 > /dev/null 2>&1
+    # Note that we use -p 0:5432 to use a random free port on the
+    # localhost, to avoid issues if there is already an instance of
+    # postgres running locally.
+    docker run \
+        --name "orchest-test-database" \
+        -p "0:5432" \
+        --rm -d -e "POSTGRES_HOST_AUTH_METHOD=trust" postgres:13.1 > /dev/null 
 
-function on_exit {
-    docker container stop "${ORCHEST_TEST_DATABASE_HOST}" > /dev/null 2>&1
+    function on_exit {
+        docker container stop "orchest-test-database" > /dev/null 2>&1
+    }
+
+    trap on_exit EXIT
+
+    # Retrieve the exposed port.
+    export ORCHEST_TEST_DATABASE_PORT=$(docker inspect \
+        -f '{{ (index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort }}' \
+        orchest-test-database)
+
+    # Wait for the db to be online.
+    db_ready=-1
+    for i in {1..10}
+    do
+        docker exec orchest-test-database pg_isready --user postgres > /dev/null 2>&1
+        db_ready=$?
+        if [ $db_ready == 0 ]; then
+            break;
+        fi
+        sleep 0.2
+    done
+    if [ $db_ready != 0 ]; then
+        echo "Test database is not ready."
+        exit $db_ready
+    fi
+
+    set -e
 }
 
-trap on_exit EXIT
+if [[ -z "${ORCHEST_TEST_DATABASE_HOST}" ]]; then
+    echo "Setting up local test database."
+    setup_local_test_db
+fi
+
 
 for SERVICE in ${SERVICES[@]}
 do

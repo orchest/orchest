@@ -1,4 +1,7 @@
+from typing import Dict
+
 from flask import request
+from flask.globals import current_app
 from flask_restx import Namespace, Resource
 
 import app.models as models
@@ -51,6 +54,7 @@ class SessionList(Resource):
                     post_data["host_userdir"],
                 )
         except Exception as e:
+            current_app.logger.error(e)
             return {"message": str(e)}, 500
 
         isess = models.InteractiveSession.query.filter_by(
@@ -201,32 +205,45 @@ class StopInteractiveSession(TwoPhaseFunction):
         if session is None:
             self.collateral_kwargs["project_uuid"] = None
             self.collateral_kwargs["pipeline_uuid"] = None
+            self.collateral_kwargs["container_ids"] = None
+            self.collateral_kwargs["notebook_server_info"] = None
             return False
         else:
             session.status = "STOPPING"
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
+
+            # This data is kept here instead of querying again in the
+            # collateral phase because when deleting a project the
+            # project deletion (in the transactional phase) will cascade
+            # delete the session, so the collateral phase would not be
+            # able to find the session by querying the db.
+            self.collateral_kwargs["container_ids"] = session.container_ids
+            self.collateral_kwargs[
+                "notebook_server_info"
+            ] = session.notebook_server_info
+
         return True
 
-    def _collateral(self, project_uuid: str, pipeline_uuid: str):
+    def _collateral(
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+        container_ids: Dict[str, str],
+        notebook_server_info: Dict[str, str] = None,
+    ):
         # Could be none when the _transaction call sets them to None
         # because there is no session to shutdown. This is a way that
         # the _transaction function effectively tells the _collateral
         # function to not be run.
-        if not project_uuid or not pipeline_uuid:
-            return
-
-        session = models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).one_or_none()
-        if session is None:
+        if project_uuid is None or pipeline_uuid is None:
             return
 
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,
-            container_IDs=session.container_ids,
+            container_IDs=container_ids,
             network="orchest",
-            notebook_server_info=session.notebook_server_info,
+            notebook_server_info=notebook_server_info,
         )
 
         # TODO: error handling?
@@ -238,5 +255,20 @@ class StopInteractiveSession(TwoPhaseFunction):
         # session at the same time.
         session_obj.shutdown()
 
+        # Deletion happens here and not in the transactional phase
+        # because this way we can show the session STOPPING to the user.
+        models.InteractiveSession.query.filter_by(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+        ).delete()
+        db.session.commit()
+
+    def _revert(self):
+        # Make sure that the session is deleted in any case, because
+        # otherwise the user will not be able to have an active session
+        # for the given pipeline.
+        session = models.InteractiveSession.query.filter_by(
+            project_uuid=self.collateral_kwargs["project_uuid"],
+            pipeline_uuid=self.collateral_kwargs["pipeline_uuid"],
+        ).one()
         db.session.delete(session)
         db.session.commit()
