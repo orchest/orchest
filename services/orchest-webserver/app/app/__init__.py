@@ -28,6 +28,8 @@ from _orchest.internals.utils import is_werkzeug_parent
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
+from app.kernel_manager import populate_kernels
+from app.models import Project
 from app.socketio_server import register_socketio_broadcast
 from app.utils import get_repo_tag, get_user_conf
 from app.views.analytics import register_analytics_views
@@ -107,6 +109,19 @@ def create_app():
                 upgrade()
             except Exception as e:
                 logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
+
+            # On startup all kernels are freshed. This is because
+            # updating Orchest might make the kernels in the
+            # userdir/.orchest/kernels directory invalid.
+            projs = Project.query.all()
+            for proj in projs:
+                try:
+                    populate_kernels(app, db, proj.uuid)
+                except Exception as e:
+                    logging.error(
+                        "Failed to populate kernels on startup for project %s: %s [%s]"
+                        % (proj.uuid, e, type(e))
+                    )
 
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:
