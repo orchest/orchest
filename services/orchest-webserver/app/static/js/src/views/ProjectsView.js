@@ -117,7 +117,9 @@ class ProjectsView extends React.Component {
 
   openSettings(project) {
     orchest.loadView(ProjectSettingsView, {
-      project_uuid: project.uuid,
+      queryArgs: {
+        project_uuid: project.uuid,
+      },
     });
   }
 
@@ -186,8 +188,6 @@ class ProjectsView extends React.Component {
 
     this.refManager.refs.createProjectNameTextField.focus();
   }
-
-  componentDidUpdate(prevProps, prevState, snapshot) {}
 
   onSubmitModal() {
     let projectName = this.refManager.refs.createProjectNameTextField.mdc.value;

@@ -50,7 +50,10 @@ class EditJobView extends React.Component {
 
   fetchJob() {
     let fetchJobPromise = makeCancelable(
-      makeRequest("GET", `/catch/api-proxy/api/jobs/${this.props.job_uuid}`),
+      makeRequest(
+        "GET",
+        `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
+      ),
       this.promiseManager
     );
 
@@ -339,7 +342,9 @@ class EditJobView extends React.Component {
     putJobPromise
       .then(() => {
         orchest.loadView(JobsView, {
-          project_uuid: this.state.job.project_uuid,
+          queryArgs: {
+            project_uuid: this.state.job.project_uuid,
+          },
         });
       })
       .catch((e) => {
@@ -388,7 +393,9 @@ class EditJobView extends React.Component {
     putJobRequest.promise
       .then(() => {
         orchest.loadView(JobView, {
-          job_uuid: this.state.job.uuid,
+          queryArgs: {
+            job_uuid: this.state.job.uuid,
+          },
         });
       })
       .catch((error) => {
@@ -425,7 +432,9 @@ class EditJobView extends React.Component {
 
   cancel() {
     orchest.loadView(JobsView, {
-      project_uuid: this.state.job.project_uuid,
+      queryArgs: {
+        project_uuid: this.state.job.project_uuid,
+      },
     });
   }
 

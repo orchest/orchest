@@ -90,13 +90,15 @@ class PipelineList extends React.Component {
   openPipeline(pipeline, readOnly) {
     // load pipeline view
     let props = {
-      pipeline_uuid: pipeline.uuid,
-      project_uuid: this.props.project_uuid,
-      pipeline_path: pipeline.path,
+      queryArgs: {
+        pipeline_uuid: pipeline.uuid,
+        project_uuid: this.props.project_uuid,
+        pipeline_path: pipeline.path,
+      },
     };
 
     if (readOnly) {
-      props.readOnly = true;
+      props.queryArgs.read_only = "true";
     }
 
     orchest.loadView(PipelineView, props);

@@ -18,16 +18,20 @@ class HeaderButtons extends React.Component {
   showPipeline() {
     this.updateCurrentView("pipeline");
     orchest.loadView(PipelineView, {
-      pipeline_uuid: this.state.pipeline.uuid,
-      project_uuid: this.state.project_uuid,
+      queryArgs: {
+        pipeline_uuid: this.state.pipeline.uuid,
+        project_uuid: this.state.project_uuid,
+      },
     });
   }
 
   showJupyter() {
     this.updateCurrentView("jupyter");
     orchest.loadView(JupyterLabView, {
-      pipeline_uuid: this.state.pipeline.uuid,
-      project_uuid: this.state.project_uuid,
+      queryArgs: {
+        pipeline_uuid: this.state.pipeline.uuid,
+        project_uuid: this.state.project_uuid,
+      },
     });
   }
 

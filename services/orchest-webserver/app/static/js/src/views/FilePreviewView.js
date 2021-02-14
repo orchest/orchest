@@ -30,11 +30,13 @@ class FilePreviewView extends React.Component {
 
   loadPipelineView() {
     orchest.loadView(PipelineView, {
-      pipeline_uuid: this.props.pipeline_uuid,
-      project_uuid: this.props.project_uuid,
-      readOnly: this.props.readOnly,
-      job_uuid: this.props.job_uuid,
-      run_uuid: this.props.run_uuid,
+      queryArgs: {
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        project_uuid: this.props.queryArgs.project_uuid,
+        read_only: this.props.queryArgs.read_only,
+        job_uuid: this.props.queryArgs.job_uuid,
+        run_uuid: this.props.queryArgs.run_uuid,
+      },
     });
   }
 
@@ -66,8 +68,8 @@ class FilePreviewView extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (
-      this.props.step_uuid !== prevProps.step_uuid ||
-      this.props.pipeline_uuid !== prevProps.pipeline_uuid
+      this.props.queryArgs.step_uuid !== prevProps.queryArgs.step_uuid ||
+      this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
     ) {
       this.fetchAll();
     }
@@ -80,16 +82,16 @@ class FilePreviewView extends React.Component {
         fileDescription: undefined,
       });
 
-      let pipelineURL = this.props.job_uuid
+      let pipelineURL = this.props.queryArgs.job_uuid
         ? getPipelineJSONEndpoint(
-            this.props.pipeline_uuid,
-            this.props.project_uuid,
-            this.props.job_uuid,
-            this.props.run_uuid
+            this.props.queryArgs.pipeline_uuid,
+            this.props.queryArgs.project_uuid,
+            this.props.queryArgs.job_uuid,
+            this.props.queryArgs.run_uuid
           )
         : getPipelineJSONEndpoint(
-            this.props.pipeline_uuid,
-            this.props.project_uuid
+            this.props.queryArgs.pipeline_uuid,
+            this.props.queryArgs.project_uuid
           );
 
       let fetchPipelinePromise = makeCancelable(
@@ -103,11 +105,11 @@ class FilePreviewView extends React.Component {
 
           this.setState({
             parentSteps: getPipelineStepParents(
-              this.props.step_uuid,
+              this.props.queryArgs.step_uuid,
               pipelineJSON
             ),
             childSteps: getPipelineStepChildren(
-              this.props.step_uuid,
+              this.props.queryArgs.step_uuid,
               pipelineJSON
             ),
           });
@@ -151,10 +153,10 @@ class FilePreviewView extends React.Component {
         fileDescription: undefined,
       });
 
-      let fileURL = `/async/file-viewer/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`;
-      if (this.props.run_uuid) {
-        fileURL += "?pipeline_run_uuid=" + this.props.run_uuid;
-        fileURL += "&job_uuid=" + this.props.job_uuid;
+      let fileURL = `/async/file-viewer/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}/${this.props.queryArgs.step_uuid}`;
+      if (this.props.queryArgs.run_uuid) {
+        fileURL += "?pipeline_run_uuid=" + this.props.queryArgs.run_uuid;
+        fileURL += "&job_uuid=" + this.props.queryArgs.job_uuid;
       }
 
       let fetchFilePromise = makeCancelable(
@@ -178,7 +180,7 @@ class FilePreviewView extends React.Component {
 
   stepNavigate(stepUUID) {
     let propClone = JSON.parse(JSON.stringify(this.props));
-    propClone.step_uuid = stepUUID;
+    propClone.queryArgs.step_uuid = stepUUID;
 
     orchest.loadView(FilePreviewView, propClone);
   }

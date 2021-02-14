@@ -48,7 +48,10 @@ class ProjectSettingsView extends React.Component {
 
   fetchSettings() {
     let projectPromise = makeCancelable(
-      makeRequest("GET", "/async/projects/" + this.props.project_uuid),
+      makeRequest(
+        "GET",
+        "/async/projects/" + this.props.queryArgs.project_uuid
+      ),
       this.promiseManager
     );
 
@@ -79,7 +82,7 @@ class ProjectSettingsView extends React.Component {
     }
 
     // perform PUT to update
-    makeRequest("PUT", "/async/projects/" + this.props.project_uuid, {
+    makeRequest("PUT", "/async/projects/" + this.props.queryArgs.project_uuid, {
       type: "json",
       content: { env_variables: envVariables },
     })
@@ -160,7 +163,7 @@ class ProjectSettingsView extends React.Component {
                             onClick={this.onClickProjectEntity.bind(
                               this,
                               PipelinesView,
-                              this.props.project_uuid
+                              this.props.queryArgs.project_uuid
                             )}
                           >
                             {this.state.pipeline_count +
@@ -178,7 +181,7 @@ class ProjectSettingsView extends React.Component {
                             onClick={this.onClickProjectEntity.bind(
                               this,
                               JobsView,
-                              this.props.project_uuid
+                              this.props.queryArgs.project_uuid
                             )}
                           >
                             {this.state.job_count +
@@ -194,7 +197,7 @@ class ProjectSettingsView extends React.Component {
                             onClick={this.onClickProjectEntity.bind(
                               this,
                               EnvironmentsView,
-                              this.props.project_uuid
+                              this.props.queryArgs.project_uuid
                             )}
                           >
                             {this.state.environment_count +

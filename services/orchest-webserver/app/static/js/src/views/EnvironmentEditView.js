@@ -47,7 +47,7 @@ class EnvironmentEditView extends React.Component {
             uuid: "new",
             name: orchest.config.ENVIRONMENT_DEFAULTS.name,
             gpu_support: orchest.config.ENVIRONMENT_DEFAULTS.gpu_support,
-            project_uuid: this.props.project_uuid,
+            project_uuid: this.props.queryArgs.project_uuid,
             base_image: orchest.config.ENVIRONMENT_DEFAULTS.base_image,
             language: orchest.config.ENVIRONMENT_DEFAULTS.language,
             setup_script: orchest.config.ENVIRONMENT_DEFAULTS.setup_script,
@@ -60,7 +60,7 @@ class EnvironmentEditView extends React.Component {
   }
 
   fetchEnvironment() {
-    let endpoint = `/store/environments/${this.props.project_uuid}/${this.props.environment_uuid}`;
+    let endpoint = `/store/environments/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.environment_uuid}`;
 
     let cancelableRequest = makeCancelable(
       makeRequest("GET", endpoint),
@@ -148,7 +148,9 @@ class EnvironmentEditView extends React.Component {
 
   returnToEnvironments() {
     orchest.loadView(EnvironmentsView, {
-      project_uuid: this.props.project_uuid,
+      queryArgs: {
+        project_uuid: this.props.queryArgs.project_uuid,
+      },
     });
   }
 
@@ -361,7 +363,7 @@ class EnvironmentEditView extends React.Component {
     let environmentBuildRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.project_uuid}/${this.props.environment_uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.environment_uuid}`
       ),
       this.promiseManager
     );

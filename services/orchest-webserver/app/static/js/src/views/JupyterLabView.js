@@ -9,8 +9,10 @@ class JupyterLabView extends React.Component {
   componentDidMount() {
     if (orchest.jupyter.baseAddress == "") {
       orchest.loadView(PipelineView, {
-        pipeline_uuid: this.props.pipeline_uuid,
-        project_uuid: this.props.project_uuid,
+        queryArgs: {
+          pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+          project_uuid: this.props.queryArgs.project_uuid,
+        },
       });
     } else {
       orchest.headerBarComponent.updateCurrentView("jupyter");

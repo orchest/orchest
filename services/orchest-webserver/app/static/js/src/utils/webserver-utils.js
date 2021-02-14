@@ -132,7 +132,11 @@ export function requestBuild(
             });
 
           // show environments view
-          orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
+          orchest.loadView(EnvironmentsView, {
+            queryArgs: {
+              project_uuid: project_uuid,
+            },
+          });
           reject();
         },
         () => {
@@ -148,7 +152,11 @@ export function requestBuild(
             : ""),
         () => {
           // show environments view
-          orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
+          orchest.loadView(EnvironmentsView, {
+            queryArgs: {
+              project_uuid: project_uuid,
+            },
+          });
           reject();
         },
         () => {
@@ -394,7 +402,9 @@ export function viewNameToURIPathComponent(viewName) {
 
 export function generateRoute(TagName, dynamicProps) {
   // returns: [pathname, search]
-  let search = propsToQueryArgs(dynamicProps);
+  let search = queryArgPropsToQueryArgs(
+    dynamicProps ? dynamicProps.queryArgs : {}
+  );
   let pathname = "/" + viewNameToURIPathComponent(componentName(TagName));
   return [pathname, search];
 }
@@ -407,35 +417,37 @@ export function decodeRoute(pathname, search) {
     URIPathComponentToViewName(pathname.split("/")[1])
   );
 
-  let dynamicProps = queryArgsToProps(search);
+  let queryArgProps = queryArgsToQueryArgProps(search);
 
-  return [TagName, dynamicProps];
+  return [TagName, { queryArgs: queryArgProps }];
 }
 
-export function propsToQueryArgs(dynamicProps) {
+export function queryArgPropsToQueryArgs(queryArgProps) {
   // note: only string based query args are supported
-  if (!dynamicProps || Object.keys(dynamicProps).length == 0) {
+  if (!queryArgProps || Object.keys(queryArgProps).length == 0) {
     return "";
   }
 
   const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(dynamicProps)) {
-    searchParams.append(key, JSON.stringify(value));
+  for (const [key, value] of Object.entries(queryArgProps)) {
+    if (value !== undefined) {
+      searchParams.append(key, String(value));
+    }
   }
   return "?" + searchParams.toString();
 }
 
-export function queryArgsToProps(search) {
+export function queryArgsToQueryArgProps(search) {
   // note: only string based query args are supported
   // note: search includes '?' prefix
   let searchParams = new URLSearchParams(search);
-  let dynamicProps = {};
+  let queryArgProps = {};
 
   for (let [key, value] of searchParams.entries()) {
-    dynamicProps[key] = JSON.parse(value);
+    queryArgProps[key] = value;
   }
 
-  return dynamicProps;
+  return queryArgProps;
 }
 
 /*
