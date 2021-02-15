@@ -348,6 +348,23 @@ export function setWithRetry(value, setter, getter, retries, delay, interval) {
   }
 }
 
+export function tryUntilTrue(action, retries, delay, interval) {
+  let hasWorked = false;
+
+  setWithRetry(
+    true,
+    () => {
+      hasWorked = action();
+    },
+    () => {
+      return hasWorked;
+    },
+    retries,
+    delay,
+    interval
+  );
+}
+
 // Will return undefined if the envVariables are ill defined.
 export function envVariablesArrayToDict(envVariables) {
   const result = {};

@@ -1364,15 +1364,12 @@ class PipelineView extends React.Component {
           },
         });
 
-        // avoid JupyterLab rendering glitch by clearing event queue
-        setTimeout(() => {
-          orchest.jupyter.navigateTo(
-            relativeToAbsolutePath(
-              this.state.steps[this.state.openedStep].file_path,
-              cwd
-            ).slice(1)
-          );
-        }, 300);
+        orchest.jupyter.navigateTo(
+          relativeToAbsolutePath(
+            this.state.steps[this.state.openedStep].file_path,
+            cwd
+          ).slice(1)
+        );
       })
       .catch((error) => {
         console.log(error);
