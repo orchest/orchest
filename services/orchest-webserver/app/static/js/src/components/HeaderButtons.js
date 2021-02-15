@@ -19,7 +19,7 @@ class HeaderButtons extends React.Component {
     this.updateCurrentView("pipeline");
     orchest.loadView(PipelineView, {
       queryArgs: {
-        pipeline_uuid: this.state.pipeline.uuid,
+        pipeline_uuid: this.state.pipeline_uuid,
         project_uuid: this.state.project_uuid,
       },
     });
@@ -29,7 +29,7 @@ class HeaderButtons extends React.Component {
     this.updateCurrentView("jupyter");
     orchest.loadView(JupyterLabView, {
       queryArgs: {
-        pipeline_uuid: this.state.pipeline.uuid,
+        pipeline_uuid: this.state.pipeline_uuid,
         project_uuid: this.state.project_uuid,
       },
     });
@@ -49,22 +49,25 @@ class HeaderButtons extends React.Component {
 
   clearPipeline() {
     this.setState({
-      pipeline: undefined,
+      pipeline_uuid: undefined,
+      project_uuid: undefined,
+      pipelineName: undefined,
     });
   }
 
-  setPipeline(pipelineJson, project_uuid, job_uuid) {
+  setPipeline(pipeline_uuid, project_uuid, pipelineName) {
     this.setState({
-      pipeline: pipelineJson,
+      pipeline_uuid: pipeline_uuid,
       project_uuid: project_uuid,
+      pipelineName: pipelineName,
     });
   }
 
   render() {
-    if (this.state.pipeline) {
+    if (this.state.pipelineName) {
       return (
         <div>
-          <span className="pipeline-name">{this.state.pipeline.name}</span>
+          <span className="pipeline-name">{this.state.pipelineName}</span>
           {this.state.viewShowing == "jupyter" && (
             <MDCButtonReact
               classNames={["mdc-button--raised"]}

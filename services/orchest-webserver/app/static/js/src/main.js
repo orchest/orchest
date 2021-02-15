@@ -100,14 +100,12 @@ function Orchest() {
     // Analytics call
     this.sendEvent("view load", { name: viewName });
 
-    if (TagName !== JupyterLabView) {
-      // make sure reactRoot is not hidden
-      $(this.reactRoot).removeClass("hidden");
-
-      this.jupyter.hide();
-      if (TagName !== PipelineView && TagName !== PipelineSettingsView) {
-        this.headerBarComponent.clearPipeline();
-      }
+    if (
+      TagName !== PipelineView &&
+      TagName !== PipelineSettingsView &&
+      TagName !== JupyterLabView
+    ) {
+      this.headerBarComponent.clearPipeline();
     }
 
     // select menu if menu tag is selected

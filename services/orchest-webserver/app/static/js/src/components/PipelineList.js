@@ -1,6 +1,5 @@
 import React, { Fragment } from "react";
 
-import PipelineView from "../views/PipelineView";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import {
   makeRequest,
@@ -15,6 +14,7 @@ import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCDataTableReact from "../lib/mdc-components/MDCDataTableReact";
 import SessionToggleButton from "./SessionToggleButton";
+import JupyterLabView from "../views/JupyterLabView";
 
 class PipelineList extends React.Component {
   componentWillUnmount() {}
@@ -93,7 +93,6 @@ class PipelineList extends React.Component {
       queryArgs: {
         pipeline_uuid: pipeline.uuid,
         project_uuid: this.props.project_uuid,
-        pipeline_path: pipeline.path,
       },
     };
 
@@ -101,7 +100,7 @@ class PipelineList extends React.Component {
       props.queryArgs.read_only = "true";
     }
 
-    orchest.loadView(PipelineView, props);
+    orchest.loadView(JupyterLabView, props);
   }
 
   onClickListItem(row, idx, e) {

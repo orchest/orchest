@@ -1097,9 +1097,9 @@ class PipelineView extends React.Component {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
           orchest.headerBarComponent.setPipeline(
-            this.state.pipelineJson,
+            this.props.queryArgs.pipeline_uuid,
             this.props.queryArgs.project_uuid,
-            this.props.queryArgs.job_uuid
+            this.state.pipelineJson.name
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");
