@@ -1357,19 +1357,22 @@ class PipelineView extends React.Component {
         // relativeToAbsolutePath expects trailing / for directories
         let cwd = JSON.parse(response)["cwd"] + "/";
 
-        orchest.jupyter.navigateTo(
-          relativeToAbsolutePath(
-            this.state.steps[this.state.openedStep].file_path,
-            cwd
-          ).slice(1)
-        );
-
         orchest.loadView(JupyterLabView, {
           queryArgs: {
             pipeline_uuid: this.props.queryArgs.pipeline_uuid,
             project_uuid: this.props.queryArgs.project_uuid,
           },
         });
+
+        // avoid JupyterLab rendering glitch by clearing event queue
+        setTimeout(() => {
+          orchest.jupyter.navigateTo(
+            relativeToAbsolutePath(
+              this.state.steps[this.state.openedStep].file_path,
+              cwd
+            ).slice(1)
+          );
+        }, 300);
       })
       .catch((error) => {
         console.log(error);
