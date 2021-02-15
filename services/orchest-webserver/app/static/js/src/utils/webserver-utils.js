@@ -104,12 +104,22 @@ export function requestBuild(
     }
 
     if (environmentsToBeBuilt.length > 0) {
+      let messageSuffix = "";
+      switch (requestedFromView) {
+        case "Pipeline":
+          messageSuffix =
+            " You can cancel to open the pipeline in read-only mode.";
+          break;
+        case "JupyterLab":
+          messageSuffix =
+            " To start JupyterLab all environments in the project need to be built.";
+          break;
+      }
+
       orchest.confirm(
         "Build",
         `Not all environments of this project have been built. Would you like to build them?` +
-          (requestedFromView == "Pipeline"
-            ? " You can cancel to open the pipeline in read-only mode."
-            : ""),
+          messageSuffix,
         () => {
           let environment_build_requests = [];
 
@@ -137,7 +147,7 @@ export function requestBuild(
               project_uuid: project_uuid,
             },
           });
-          reject();
+          resolve();
         },
         () => {
           reject();
@@ -147,9 +157,7 @@ export function requestBuild(
       orchest.confirm(
         "Build",
         `Some environments of this project are still building. Would you like to check their status?` +
-          (requestedFromView == "Pipeline"
-            ? " You can cancel to open the pipeline in read-only mode."
-            : ""),
+          messageSuffix,
         () => {
           // show environments view
           orchest.loadView(EnvironmentsView, {
@@ -157,7 +165,7 @@ export function requestBuild(
               project_uuid: project_uuid,
             },
           });
-          reject();
+          resolve();
         },
         () => {
           reject();

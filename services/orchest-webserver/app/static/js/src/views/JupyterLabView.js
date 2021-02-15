@@ -8,7 +8,10 @@ import {
   makeRequest,
 } from "../lib/utils/all";
 
+import { requestBuild, checkGate } from "../utils/webserver-utils";
+
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
+import PipelinesView from "./PipelinesView";
 
 class JupyterLabView extends React.Component {
   constructor(props) {
@@ -19,6 +22,7 @@ class JupyterLabView extends React.Component {
         working: false,
         running: false,
       },
+      environmentCheckCompleted: false,
     };
 
     this.refManager = new RefManager();
@@ -26,7 +30,29 @@ class JupyterLabView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchPipeline();
+    this.checkEnvironmentGate();
+  }
+
+  checkEnvironmentGate() {
+    checkGate(this.props.queryArgs.project_uuid)
+      .then(() => {
+        this.setState({
+          environmentCheckCompleted: true,
+        });
+        this.fetchPipeline();
+      })
+      .catch((result) => {
+        if (result.reason === "gate-failed") {
+          requestBuild(
+            this.props.queryArgs.project_uuid,
+            result.data,
+            "JupyterLab"
+          ).catch((e) => {
+            // back to pipelines view
+            orchest.loadView(PipelinesView);
+          });
+        }
+      });
   }
 
   componentWillUnmount() {
@@ -58,6 +84,11 @@ class JupyterLabView extends React.Component {
           );
 
           orchest.headerBarComponent.updateCurrentView("jupyter");
+
+          // start session if session is not running
+          if (!this.state.backend.running) {
+            this.refManager.refs.sessionToggleButton.toggleSession();
+          }
         } else {
           console.error("Could not load pipeline.json");
           console.error(result);
@@ -96,12 +127,6 @@ class JupyterLabView extends React.Component {
     orchest.jupyter.updateJupyterInstance(baseAddress);
   }
 
-  onSessionFetch(session_details) {
-    if (session_details === undefined) {
-      this.refManager.refs.sessionToggleButton.toggleSession();
-    }
-  }
-
   onSessionShutdown() {
     // restart session - this view always attempts
     // to start the session
@@ -125,11 +150,10 @@ class JupyterLabView extends React.Component {
             pipeline_uuid={this.props.queryArgs.pipeline_uuid}
             project_uuid={this.props.queryArgs.project_uuid}
             onSessionStateChange={this.onSessionStateChange.bind(this)}
-            onSessionFetch={this.onSessionFetch.bind(this)}
             onSessionShutdown={this.onSessionShutdown.bind(this)}
           />
         </div>
-        {!this.state.backend.running && (
+        {!this.state.backend.running && this.state.environmentCheckCompleted && (
           <div className="lab-loader">
             <div>
               <h2>Setting up JupyterLab…</h2>

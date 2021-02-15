@@ -39,7 +39,7 @@ class EnvironmentEditView extends React.Component {
       subviewIndex: 0,
       baseImages: [...DEFAULT_BASE_IMAGES],
       newEnvironment: props.environment_uuid === undefined,
-      unsavedChanges: false,
+      unsavedChanges: !props.environment_build,
       ignoreIncomingLogs: false,
       environmentBuild: undefined,
       environment: !props.environment_uuid
@@ -85,9 +85,11 @@ class EnvironmentEditView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchEnvironment();
-    this.environmentBuildRequest();
-    this.environmentBuildPolling();
+    if (this.props.environment_uuid) {
+      this.fetchEnvironment();
+      this.environmentBuildRequest();
+      this.environmentBuildPolling();
+    }
   }
 
   save() {
@@ -121,6 +123,9 @@ class EnvironmentEditView extends React.Component {
               newEnvironment: false,
               unsavedChanges: false,
             });
+
+            // start polling after save
+            this.environmentBuildPolling();
 
             resolve();
           })
@@ -363,7 +368,7 @@ class EnvironmentEditView extends React.Component {
     let environmentBuildRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.environment_uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.state.environment.uuid}`
       ),
       this.promiseManager
     );
@@ -399,15 +404,6 @@ class EnvironmentEditView extends React.Component {
                 subview = (
                   <Fragment>
                     <div className="environment-properties">
-                      {(() => {
-                        if (this.state.environment.uuid !== "new") {
-                          return (
-                            <div className="environment-notice subtle">
-                              Environment UUID: {this.state.environment.uuid}
-                            </div>
-                          );
-                        }
-                      })()}
                       <MDCTextFieldReact
                         classNames={["fullwidth", "push-down"]}
                         label="Environment name"
@@ -587,24 +583,26 @@ class EnvironmentEditView extends React.Component {
                   })()}
 
                   {(() => {
-                    if (!this.state.building) {
-                      return (
-                        <MDCButtonReact
-                          classNames={["mdc-button--raised"]}
-                          onClick={this.build.bind(this)}
-                          label="Build"
-                          icon="memory"
-                        />
-                      );
-                    } else {
-                      return (
-                        <MDCButtonReact
-                          classNames={["mdc-button--raised"]}
-                          onClick={this.cancelBuild.bind(this)}
-                          label="Cancel build"
-                          icon="memory"
-                        />
-                      );
+                    if (this.state.environment.uuid != "new") {
+                      if (!this.state.building) {
+                        return (
+                          <MDCButtonReact
+                            classNames={["mdc-button--raised"]}
+                            onClick={this.build.bind(this)}
+                            label="Build"
+                            icon="memory"
+                          />
+                        );
+                      } else {
+                        return (
+                          <MDCButtonReact
+                            classNames={["mdc-button--raised"]}
+                            onClick={this.cancelBuild.bind(this)}
+                            label="Cancel build"
+                            icon="memory"
+                          />
+                        );
+                      }
                     }
                   })()}
                 </div>
