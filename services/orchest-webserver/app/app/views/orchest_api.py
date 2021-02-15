@@ -171,8 +171,31 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/sessions/", methods=["GET"])
+    def catch_api_proxy_sessions_get():
+
+        resp = requests.get(
+            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route(
+        "/catch/api-proxy/api/sessions/<project_uuid>/<pipeline_uuid>",
+        methods=["DELETE"],
+    )
+    def catch_api_proxy_sessions_delete(project_uuid, pipeline_uuid):
+
+        resp = requests.delete(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
-    def catch_api_proxy_sessions():
+    def catch_api_proxy_sessions_post():
 
         json_obj = request.json
 
