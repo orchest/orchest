@@ -79,7 +79,7 @@ class EnvironmentEditView extends React.Component {
               : [...DEFAULT_BASE_IMAGES],
         });
 
-        this.environmentBuildPolling();
+        this.environmentBuildPolling(true);
       })
       .catch((error) => {
         console.error(error);
@@ -125,7 +125,7 @@ class EnvironmentEditView extends React.Component {
             });
 
             // start polling after save
-            this.environmentBuildPolling();
+            this.environmentBuildPolling(true);
 
             resolve();
           })
@@ -275,7 +275,7 @@ class EnvironmentEditView extends React.Component {
 
     // reinitialize polling - to increase frequency during build
     this.state.building = true;
-    this.environmentBuildPolling();
+    this.environmentBuildPolling(true);
 
     this.setState({
       building: true,
@@ -350,6 +350,9 @@ class EnvironmentEditView extends React.Component {
 
   updateBuildStatus(environmentBuild) {
     if (this.CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1) {
+      this.state.building = true;
+      this.environmentBuildPolling();
+
       this.setState({
         building: true,
       });
@@ -381,8 +384,10 @@ class EnvironmentEditView extends React.Component {
       .catch((error) => {});
   }
 
-  environmentBuildPolling() {
-    this.environmentBuildRequest();
+  environmentBuildPolling(triggerDirectly) {
+    if (triggerDirectly) {
+      this.environmentBuildRequest();
+    }
 
     clearInterval(this.environmentBuildInterval);
     this.environmentBuildInterval = setInterval(
