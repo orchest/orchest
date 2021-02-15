@@ -103,19 +103,19 @@ export function requestBuild(
       }
     }
 
-    if (environmentsToBeBuilt.length > 0) {
-      let messageSuffix = "";
-      switch (requestedFromView) {
-        case "Pipeline":
-          messageSuffix =
-            " You can cancel to open the pipeline in read-only mode.";
-          break;
-        case "JupyterLab":
-          messageSuffix =
-            " To start JupyterLab all environments in the project need to be built.";
-          break;
-      }
+    let messageSuffix = "";
+    switch (requestedFromView) {
+      case "Pipeline":
+        messageSuffix =
+          " You can cancel to open the pipeline in read-only mode.";
+        break;
+      case "JupyterLab":
+        messageSuffix =
+          " To start JupyterLab all environments in the project need to be built.";
+        break;
+    }
 
+    if (environmentsToBeBuilt.length > 0) {
       orchest.confirm(
         "Build",
         `Not all environments of this project have been built. Would you like to build them?` +

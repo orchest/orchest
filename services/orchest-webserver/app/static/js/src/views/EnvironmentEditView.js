@@ -38,11 +38,11 @@ class EnvironmentEditView extends React.Component {
     this.state = {
       subviewIndex: 0,
       baseImages: [...DEFAULT_BASE_IMAGES],
-      newEnvironment: props.environment_uuid === undefined,
-      unsavedChanges: !props.environment_build,
+      newEnvironment: props.queryArgs.environment_uuid === undefined,
+      unsavedChanges: !props.queryArgs.environment_uuid,
       ignoreIncomingLogs: false,
       environmentBuild: undefined,
-      environment: !props.environment_uuid
+      environment: !props.queryArgs.environment_uuid
         ? {
             uuid: "new",
             name: orchest.config.ENVIRONMENT_DEFAULTS.name,
@@ -78,6 +78,8 @@ class EnvironmentEditView extends React.Component {
               ? DEFAULT_BASE_IMAGES.concat(environment.base_image)
               : [...DEFAULT_BASE_IMAGES],
         });
+
+        this.environmentBuildPolling();
       })
       .catch((error) => {
         console.error(error);
@@ -85,10 +87,8 @@ class EnvironmentEditView extends React.Component {
   }
 
   componentDidMount() {
-    if (this.props.environment_uuid) {
+    if (this.props.queryArgs.environment_uuid) {
       this.fetchEnvironment();
-      this.environmentBuildRequest();
-      this.environmentBuildPolling();
     }
   }
 
@@ -382,6 +382,8 @@ class EnvironmentEditView extends React.Component {
   }
 
   environmentBuildPolling() {
+    this.environmentBuildRequest();
+
     clearInterval(this.environmentBuildInterval);
     this.environmentBuildInterval = setInterval(
       this.environmentBuildRequest.bind(this),

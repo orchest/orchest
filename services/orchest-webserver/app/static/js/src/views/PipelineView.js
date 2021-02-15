@@ -310,7 +310,7 @@ class PipelineView extends React.Component {
           .catch((result) => {
             if (result.reason === "gate-failed") {
               requestBuild(
-                props.project_uuid,
+                props.queryArgs.project_uuid,
                 result.data,
                 "Pipeline"
               ).catch((e) => {});
