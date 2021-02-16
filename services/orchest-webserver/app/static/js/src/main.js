@@ -20,6 +20,7 @@ import {
   generateRoute,
   decodeRoute,
   getViewDrawerParentViewName,
+  pascalCaseToCapitalized,
 } from "./utils/webserver-utils";
 import ProjectsView from "./views/ProjectsView";
 import JupyterLabView from "./views/JupyterLabView";
@@ -129,9 +130,10 @@ function Orchest() {
 
       // Because pushState objects need to be serialized,
       // we need to store the string representation of the TagName.
+      let viewName = componentName(TagName);
       window.history.pushState(
         {
-          viewName: componentName(TagName),
+          viewName,
           dynamicProps,
         },
         /* `title` argument for pushState was deprecated, 
@@ -139,6 +141,9 @@ function Orchest() {
         "",
         pathname + search
       );
+
+      window.document.title =
+        pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
 
       this._loadView(TagName, dynamicProps);
     };

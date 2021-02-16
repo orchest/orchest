@@ -506,6 +506,12 @@ export function queryArgsToQueryArgProps(search) {
   return queryArgProps;
 }
 
+export function pascalCaseToCapitalized(viewName) {
+  const regex = /([A-Z])/gm;
+  const subst = ` $1`;
+  return viewName.replace(regex, subst).trim();
+}
+
 /*
  End of routing functions.
 */
