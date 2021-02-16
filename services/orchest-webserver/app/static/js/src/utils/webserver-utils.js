@@ -45,6 +45,37 @@ function getComponentObject() {
   };
 }
 
+export function getViewDrawerParentViewName(viewName) {
+  /* This function describes the parent->child relation
+     between child views and root views listed
+     in the drawer menu.
+
+     This is used for example for selecting the right
+     drawer item when a child view is loaded.
+  */
+
+  let viewHierarchy = {
+    EditJobView: JobsView,
+    EnvironmentEditView: EnvironmentsView,
+    EnvironmentsView: EnvironmentsView,
+    FileManagerView: FileManagerView,
+    FilePreviewView: PipelinesView,
+    HelpView: HelpView,
+    JobsView: JobsView,
+    JobView: JobsView,
+    JupyterLabView: PipelinesView,
+    ManageUsersView: SettingsView,
+    PipelineSettingsView: PipelinesView,
+    PipelinesView: PipelinesView,
+    PipelineView: PipelinesView,
+    ProjectSettingsView: ProjectsView,
+    ProjectsView: ProjectsView,
+    SettingsView: SettingsView,
+    UpdateView: SettingsView,
+  };
+  return componentName(viewHierarchy[viewName]);
+}
+
 export function nameToComponent(viewName) {
   return getComponentObject()[viewName];
 }

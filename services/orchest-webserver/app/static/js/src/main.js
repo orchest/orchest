@@ -19,6 +19,7 @@ import {
   componentName,
   generateRoute,
   decodeRoute,
+  getViewDrawerParentViewName,
 } from "./utils/webserver-utils";
 import ProjectsView from "./views/ProjectsView";
 import JupyterLabView from "./views/JupyterLabView";
@@ -42,6 +43,9 @@ function Orchest() {
   const drawer = MDCDrawer.attachTo(document.getElementById("main-drawer"));
 
   function setDrawerSelectedIndex(drawer, viewName) {
+    // resolve mapped parent view
+    viewName = getViewDrawerParentViewName(viewName);
+
     for (let x = 0; x < drawer.list.listElements.length; x++) {
       let listElement = drawer.list.listElements[x];
       let elementViewName = listElement.attributes.getNamedItem(
@@ -49,6 +53,7 @@ function Orchest() {
       ).value;
 
       if (viewName === elementViewName) {
+        listElement.focus();
         drawer.list.selectedIndex = x;
       }
     }
@@ -109,13 +114,7 @@ function Orchest() {
     }
 
     // select menu if menu tag is selected
-    for (let listIndex in drawer.list.listElements) {
-      let listElement = drawer.list.listElements[listIndex];
-
-      if (listElement.getAttribute("data-react-view") === viewName) {
-        drawer.list.selectedIndex = parseInt(listIndex);
-      }
-    }
+    setDrawerSelectedIndex(this.drawer, viewName);
 
     ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
   };

@@ -32,7 +32,7 @@ class Jupyter {
     if (
       this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
     ) {
-      this.setJupyterAddress(this.baseAddress + "/lab/workspaces/main");
+      this.setJupyterAddress(this.baseAddress + "/lab");
     }
   }
 
@@ -148,12 +148,6 @@ class Jupyter {
 
   initializeJupyter() {
     this.iframe = document.createElement("iframe");
-
-    this.iframe.addEventListener("load", () => {
-      // disable pushState to avoid adding to Orchest navigation history
-      // by JupyterLab
-      this.iframe.contentWindow.history.pushState = () => {};
-    });
 
     $(this.iframe).attr("width", "100%");
     $(this.iframe).attr("height", "100%");
