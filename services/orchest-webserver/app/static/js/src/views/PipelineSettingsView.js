@@ -423,18 +423,21 @@ class PipelineSettingsView extends React.Component {
                       <span className="code">1GB</span>.{" "}
                     </p>
                   )}
-                  <MDCTextFieldReact
-                    ref={
-                      this.refManager.nrefs
-                        .pipelineSettingDataPassingMemorySizeTextField
-                    }
-                    value={
-                      this.state.pipelineJson.settings.data_passing_memory_size
-                    }
-                    onChange={this.onChangeDataPassingMemorySize.bind(this)}
-                    label="Data passing memory size"
-                    disabled={this.props.queryArgs.read_only === "true"}
-                  />
+
+                  <div>
+                    <MDCTextFieldReact
+                      ref={
+                        this.refManager.nrefs
+                          .pipelineSettingDataPassingMemorySizeTextField
+                      }
+                      value={
+                        this.state.pipelineJson.settings.data_passing_memory_size
+                      }
+                      onChange={this.onChangeDataPassingMemorySize.bind(this)}
+                      label="Data passing memory size"
+                      disabled={this.props.queryArgs.read_only === "true"}
+                    />
+                  </div>
                 </div>
               </form>
 
