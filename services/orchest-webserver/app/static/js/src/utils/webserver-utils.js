@@ -296,9 +296,7 @@ export function getScrollLineHeight() {
 }
 
 export function formatServerDateTime(dateTimeString) {
-  return new Date(
-    dateTimeString.replace(/T/, " ").replace(/\..+/, "") + " GMT"
-  ).toLocaleString();
+  return new Date(dateTimeString + "Z").toLocaleString();
 }
 
 export function getPipelineJSONEndpoint(

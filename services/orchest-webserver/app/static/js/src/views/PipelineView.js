@@ -1430,12 +1430,10 @@ class PipelineView extends React.Component {
       let finished_time = undefined;
 
       if (result.pipeline_steps[x].started_time) {
-        started_time = new Date(result.pipeline_steps[x].started_time + " GMT");
+        started_time = new Date(result.pipeline_steps[x].started_time + "Z");
       }
       if (result.pipeline_steps[x].finished_time) {
-        finished_time = new Date(
-          result.pipeline_steps[x].finished_time + " GMT"
-        );
+        finished_time = new Date(result.pipeline_steps[x].finished_time + "Z");
       }
 
       this.setStepExecutionState(result.pipeline_steps[x].step_uuid, {

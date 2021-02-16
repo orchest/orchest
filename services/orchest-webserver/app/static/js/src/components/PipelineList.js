@@ -15,6 +15,7 @@ import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCDataTableReact from "../lib/mdc-components/MDCDataTableReact";
 import SessionToggleButton from "./SessionToggleButton";
 import JupyterLabView from "../views/JupyterLabView";
+import PipelineView from "../views/PipelineView";
 
 class PipelineList extends React.Component {
   componentWillUnmount() {}
@@ -100,7 +101,7 @@ class PipelineList extends React.Component {
       props.queryArgs.read_only = "true";
     }
 
-    orchest.loadView(JupyterLabView, props);
+    orchest.loadView(PipelineView, props);
   }
 
   onClickListItem(row, idx, e) {
