@@ -34,6 +34,8 @@ class Jupyter {
     ) {
       this.setJupyterAddress(this.baseAddress + "/lab");
     }
+
+    this.fixJupyterRenderingGlitch();
   }
 
   hide() {
@@ -90,6 +92,18 @@ class Jupyter {
       );
     } catch {
       return false;
+    }
+  }
+
+  fixJupyterRenderingGlitch() {
+    if (
+      this.isJupyterShellShowing() &&
+      this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+        "#jp-main-content-panel"
+      ).clientWidth !=
+        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
+    ) {
+      this.iframe.contentWindow.location.reload();
     }
   }
 
