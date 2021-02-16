@@ -532,7 +532,7 @@ button.text-button {
   .top-labels {
     font-size: 14px;
 
-    a {
+    button.text-button {
       font-size: 16px;
     }
 
@@ -818,11 +818,6 @@ h2.header {
       width: 25%;
     }
   }
-}
-
-a {
-  color: $mdc-theme-secondary;
-  cursor: pointer;
 }
 
 .console-output {
