@@ -2,6 +2,7 @@ import React from "react";
 import AlertDialog from "./AlertDialog";
 import { uuidv4 } from "../lib/utils/all";
 import ConfirmDialog from "./ConfirmDialog";
+import BuildPendingDialog from "./BuildPendingDialog";
 
 class Dialogs extends React.Component {
   constructor(props) {
@@ -10,6 +11,34 @@ class Dialogs extends React.Component {
     this.state = {
       dialogs: [],
     };
+  }
+
+  requestBuild(
+    project_uuid,
+    environmentValidationData,
+    requestedFromView,
+    onBuildComplete,
+    onCancel
+  ) {
+    let uuid = uuidv4();
+    this.state.dialogs.push(
+      <BuildPendingDialog
+        key={uuid}
+        uuid={uuid}
+        project_uuid={project_uuid}
+        environmentValidationData={environmentValidationData}
+        requestedFromView={requestedFromView}
+        onBuildComplete={onBuildComplete}
+        onCancel={onCancel}
+        onClose={() => {
+          this.remove(uuid);
+        }}
+      />
+    );
+
+    this.setState({
+      dialogs: this.state.dialogs,
+    });
   }
 
   alert(title, content, onClose) {

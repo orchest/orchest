@@ -271,6 +271,27 @@ function Orchest() {
 
     dialogs.confirm(title, content, onConfirm, onCancel);
   };
+
+  this.requestBuild = function (
+    project_uuid,
+    environmentValidationData,
+    requestedFromView,
+    onBuildComplete,
+    onCancel
+  ) {
+    // Analytics call
+    this.sendEvent("build-request request", {
+      requestedFromView: requestedFromView,
+    });
+
+    dialogs.requestBuild(
+      project_uuid,
+      environmentValidationData,
+      requestedFromView,
+      onBuildComplete,
+      onCancel
+    );
+  };
 }
 
 window.orchest = new Orchest();

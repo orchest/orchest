@@ -15,7 +15,6 @@ import {
 
 import {
   checkGate,
-  requestBuild,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
   updateGlobalUnsavedChanges,
@@ -309,11 +308,20 @@ class PipelineView extends React.Component {
           })
           .catch((result) => {
             if (result.reason === "gate-failed") {
-              requestBuild(
+              orchest.requestBuild(
                 props.queryArgs.project_uuid,
                 result.data,
-                "Pipeline"
-              ).catch((e) => {});
+                "Pipeline",
+                () => {
+                  orchest.confirm(
+                    "Build",
+                    "All environments have been built. Would you like to open the pipeline editor in edit mode?",
+                    () => {
+                      this.loadViewInEdit();
+                    }
+                  );
+                }
+              );
             }
           });
       }

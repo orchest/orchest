@@ -16,7 +16,6 @@ import EnvVarList from "../components/EnvVarList";
 import {
   checkGate,
   getPipelineJSONEndpoint,
-  requestBuild,
   envVariablesArrayToDict,
   envVariablesDictToArray,
   updateGlobalUnsavedChanges,
@@ -271,11 +270,20 @@ class EditJobView extends React.Component {
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
-            requestBuild(
+            orchest.requestBuild(
               this.state.job.project_uuid,
               result.data,
-              "CreateJob"
-            ).catch((e) => {});
+              "CreateJob",
+              () => {
+                orchest.confirm(
+                  "Build",
+                  "All environments have been built. Would you like to run the job?",
+                  () => {
+                    this.attemptRunJob();
+                  }
+                );
+              }
+            );
           }
         });
     } else {

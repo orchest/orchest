@@ -8,7 +8,7 @@ import {
   makeRequest,
 } from "../lib/utils/all";
 
-import { requestBuild, checkGate } from "../utils/webserver-utils";
+import { checkGate } from "../utils/webserver-utils";
 
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
@@ -43,14 +43,29 @@ class JupyterLabView extends React.Component {
       })
       .catch((result) => {
         if (result.reason === "gate-failed") {
-          requestBuild(
+          orchest.requestBuild(
             this.props.queryArgs.project_uuid,
             result.data,
-            "JupyterLab"
-          ).catch((e) => {
-            // back to pipelines view
-            orchest.loadView(PipelinesView);
-          });
+            "JupyterLab",
+            () => {
+              orchest.confirm(
+                "Build",
+                "All environments have been built. Would you like to start JupyterLab?",
+                () => {
+                  // reload view
+                  orchest.loadView(JupyterLabView, this.props);
+                },
+                () => {
+                  // back to pipelines view
+                  orchest.loadView(PipelinesView);
+                }
+              );
+            },
+            () => {
+              // back to pipelines view
+              orchest.loadView(PipelinesView);
+            }
+          );
         }
       });
   }
@@ -134,7 +149,7 @@ class JupyterLabView extends React.Component {
   }
 
   render() {
-    if (this.state.backend.running) {
+    if (this.state.backend.running && this.state.environmentCheckCompleted) {
       $(orchest.reactRoot).addClass("hidden");
       orchest.jupyter.show();
     } else {
