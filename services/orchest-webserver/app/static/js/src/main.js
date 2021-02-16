@@ -55,6 +55,7 @@ function Orchest() {
 
       if (viewName === elementViewName) {
         listElement.focus();
+        listElement.blur();
         drawer.list.selectedIndex = x;
       }
     }
