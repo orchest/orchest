@@ -135,8 +135,8 @@ class JupyterLabView extends React.Component {
 
   render() {
     if (this.state.backend.running) {
-      orchest.jupyter.show();
       $(orchest.reactRoot).addClass("hidden");
+      orchest.jupyter.show();
     } else {
       orchest.jupyter.hide();
       $(orchest.reactRoot).removeClass("hidden");

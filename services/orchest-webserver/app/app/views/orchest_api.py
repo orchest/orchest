@@ -175,7 +175,10 @@ def register_orchest_api_views(app, db):
     def catch_api_proxy_sessions_get():
 
         resp = requests.get(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/sessions/?"
+            + request.query_string.decode(),
         )
 
         return resp.content, resp.status_code, resp.headers.items()
