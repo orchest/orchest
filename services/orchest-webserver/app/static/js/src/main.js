@@ -120,7 +120,22 @@ function Orchest() {
     ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
   };
 
-  this.unsavedChanges = false;
+  this.setUnsavedChanges = (unsavedChanges) => {
+    if (unsavedChanges) {
+      // Enable navigation prompt
+      window.onbeforeunload = function () {
+        return true;
+      };
+    } else {
+      // Remove navigation prompt
+      window.onbeforeunload = null;
+    }
+
+    this.unsavedChanges = unsavedChanges;
+  };
+
+  this.setUnsavedChanges(false);
+
   this.loadView = function (TagName, dynamicProps, onCancelled) {
     let conditionalBody = () => {
       // This public loadView sets the state through the
@@ -155,7 +170,7 @@ function Orchest() {
         "Warning",
         "There are unsaved changes. Are you sure you want to navigate away?",
         () => {
-          this.unsavedChanges = false;
+          this.setUnsavedChanges(false);
           conditionalBody();
         },
         onCancelled
@@ -179,7 +194,7 @@ function Orchest() {
           "Warning",
           "There are unsaved changes. Are you sure you want to navigate away?",
           () => {
-            this.unsavedChanges = false;
+            this.setUnsavedChanges(false);
             conditionalBody();
           }
         );

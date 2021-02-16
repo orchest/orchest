@@ -437,7 +437,7 @@ export function envVariablesDictToArray(envVariables) {
 export function updateGlobalUnsavedChanges(unsavedChanges) {
   // NOTE: perhaps a more granular unsaved changes
   // is necessary in the future
-  orchest.unsavedChanges = unsavedChanges;
+  orchest.setUnsavedChanges(unsavedChanges);
 }
 
 /*
