@@ -4,8 +4,8 @@ import os
 from collections.abc import Container
 from typing import Dict, Literal, Optional
 
+from _orchest.internals import config as _config
 from app import utils
-from app.config import DOCKER_NETWORK
 
 
 def inject_dict(self, other: dict, overwrite: bool = True) -> None:
@@ -156,7 +156,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_USER_DIR"]}:/userdir',
                 ],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "orchest-webserver": {
             "Image": "orchest/orchest-webserver:latest",
@@ -176,7 +176,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_REPO_DIR"]}:/orchest-host',
                 ],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "celery-worker": {
             "Image": "orchest/celery-worker:latest",
@@ -192,7 +192,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_USER_DIR"]}:/userdir',
                 ],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "rabbitmq-server": {
             "Image": "rabbitmq:3",
@@ -204,7 +204,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     + ":/var/lib/rabbitmq/mnesia",
                 ],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "auth-server": {
             "Image": "orchest/auth-server:latest",
@@ -217,7 +217,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_CONFIG_DIR"]}:/config',
                 ],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "file-manager": {
             "Image": "orchest/file-manager:latest",
@@ -227,7 +227,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     f'{env["HOST_USER_DIR"]}:/userdir',
                 ],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "nginx-proxy": {
             "Image": "orchest/nginx-proxy:latest",
@@ -240,7 +240,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 # Injected based on presence of certs on host.
                 "Binds": [],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "orchest-database": {
             "Image": "postgres:13.1",
@@ -254,7 +254,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                     + ":/userdir/.orchest/database",
                 ],
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
         "update-server": {
             "Image": "orchest/update-server:latest",
@@ -270,7 +270,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 ],
                 "AutoRemove": True,
             },
-            "NetworkingConfig": {"EndpointsConfig": {DOCKER_NETWORK: {}}},
+            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
     }
 

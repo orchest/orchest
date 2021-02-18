@@ -5,6 +5,7 @@ from flask.globals import current_app
 from flask_restx import Namespace, Resource
 
 import app.models as models
+from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.connections import db, docker_client
@@ -115,7 +116,7 @@ class Session(Resource):
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,
             container_IDs=session.container_ids,
-            network="orchest",
+            network=_config.DOCKER_NETWORK,
             notebook_server_info=session.notebook_server_info,
         )
 
@@ -157,7 +158,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
         project_dir: str,
         host_userdir: str,
     ):
-        session = InteractiveSession(docker_client, network="orchest")
+        session = InteractiveSession(docker_client, network=_config.DOCKER_NETWORK)
         session.launch(
             pipeline_uuid,
             project_uuid,
@@ -242,7 +243,7 @@ class StopInteractiveSession(TwoPhaseFunction):
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,
             container_IDs=container_ids,
-            network="orchest",
+            network=_config.DOCKER_NETWORK,
             notebook_server_info=notebook_server_info,
         )
 
