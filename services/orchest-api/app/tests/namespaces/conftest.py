@@ -28,6 +28,7 @@ from app.connections import db
 
 @pytest.fixture()
 def celery(monkeypatch):
+    """Mock celery and access added and revoked tasks."""
     celery = CeleryMock()
     for module in [namespace_environment_builds, namespace_runs, namespace_jobs]:
         monkeypatch.setattr(module, "make_celery", lambda *args, **kwargs: celery)
@@ -36,6 +37,7 @@ def celery(monkeypatch):
 
 @pytest.fixture()
 def abortable_async_res(monkeypatch):
+    """Mock an AbortableAsyncResult and access abort()."""
 
     aresult = AbortableAsyncResultMock("uuid")
     for module in [namespace_environment_builds, namespace_runs, namespace_jobs]:
@@ -64,6 +66,12 @@ def monkeypatch_image_utils(monkeypatch):
 
 @pytest.fixture(scope="module")
 def test_app():
+    """Setup a flask application with a working db.
+
+    Expects a postgres database service to be running. A new database
+    will be created with a random name. The database is dropped at the
+    end of scope of the fixture.
+    """
 
     config = copy.deepcopy(CONFIG_CLASS)
 
@@ -85,6 +93,12 @@ def test_app():
 
 @pytest.fixture()
 def client(test_app):
+    """Setup a flask test client.
+
+    Will delete all data in the db at the end of the scope of the
+    fixture.
+    """
+
     with test_app.test_client() as client:
         yield client
 
@@ -102,11 +116,13 @@ def client(test_app):
 
 @pytest.fixture()
 def project(client):
+    """Provides a project backed by an entry in the db."""
     return Project(client, uuid4())
 
 
 @pytest.fixture()
 def pipeline(client, project):
+    """Provides a pipeline backed by an entry in the db."""
     return Pipeline(client, project, uuid4())
 
 
@@ -124,11 +140,13 @@ def monkeypatch_interactive_session(monkeypatch):
 
 @pytest.fixture()
 def interactive_session(client, pipeline, monkeypatch_interactive_session, monkeypatch):
+    """Provides an interactive session backed by an entry in the db."""
     return InteractiveSession(client, pipeline)
 
 
 @pytest.fixture()
 def interactive_run(client, pipeline, celery, monkeypatch):
+    """Provides an interactive run backed by an entry in the db."""
     monkeypatch.setattr(
         namespace_runs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
     )
@@ -137,11 +155,13 @@ def interactive_run(client, pipeline, celery, monkeypatch):
 
 @pytest.fixture()
 def job(client, pipeline):
+    """Provides a job backed by an entry in the db."""
     return Job(client, pipeline)
 
 
 @pytest.fixture()
 def environment_build(client, celery, project):
+    """Provides an env build backed by an entry in the db."""
     return EnvironmentBuild(client, project)
 
 
