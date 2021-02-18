@@ -90,6 +90,7 @@ class BuildPendingDialog extends React.Component {
   onBuild() {
     this.setState({
       allowBuild: false,
+      showBuildStatus: true,
       building: true,
     });
 

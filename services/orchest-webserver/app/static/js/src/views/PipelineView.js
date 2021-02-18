@@ -335,6 +335,7 @@ class PipelineView extends React.Component {
     let newProps = {};
     Object.assign(newProps, this.props);
     newProps.queryArgs.read_only = "false";
+    newProps.key = uuidv4();
     // open in non-read only
     orchest.loadView(PipelineView, newProps);
   }

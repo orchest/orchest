@@ -465,6 +465,16 @@ environment_builds = Model(
             fields.Nested(environment_build),
             description="Collection of environment_builds",
         ),
+    },
+)
+
+environment_builds_requests_result = Model(
+    "EnvironmentBuildsPost",
+    {
+        "environment_builds": fields.List(
+            fields.Nested(environment_build),
+            description="Collection of environment_builds",
+        ),
         "failed_requests": fields.List(
             fields.Nested(environment_build_request),
             description="Collection of requests that could not be satisfied",

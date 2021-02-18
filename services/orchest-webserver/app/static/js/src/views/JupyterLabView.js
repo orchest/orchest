@@ -6,6 +6,7 @@ import {
   RefManager,
   makeCancelable,
   makeRequest,
+  uuidv4,
 } from "../lib/utils/all";
 
 import { checkGate } from "../utils/webserver-utils";
@@ -52,8 +53,11 @@ class JupyterLabView extends React.Component {
                 "Build",
                 "All environments have been built. Would you like to start JupyterLab?",
                 () => {
-                  // reload view
-                  orchest.loadView(JupyterLabView, this.props);
+                  // force view reload
+                  orchest.loadView(JupyterLabView, {
+                    ...this.props,
+                    key: uuidv4(),
+                  });
                 },
                 () => {
                   // back to pipelines view
