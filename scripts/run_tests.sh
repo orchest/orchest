@@ -112,10 +112,6 @@ function setup_local_test_db() {
     set -e
 }
 
-if [[ -z "${ORCHEST_TEST_DATABASE_HOST}" ]]; then
-    echo "Setting up local test database."
-    setup_local_test_db
-fi
 
 
 for SERVICE in ${SERVICES[@]}
@@ -140,6 +136,12 @@ do
         REQ_FILE=$REQ_DIR/requirements-dev.txt
     fi
     if [ $SERVICE == "orchest-api" ]; then
+
+        if [[ -z "${ORCHEST_TEST_DATABASE_HOST}" ]]; then
+            echo "Setting up local test database..."
+            setup_local_test_db
+        fi
+
         TEST_DIR=$DIR/../services/orchest-api/app
         REQ_DIR=$TEST_DIR/..
         REQ_FILE=$REQ_DIR/requirements-dev.txt
