@@ -219,6 +219,8 @@ class PipelineView extends React.Component {
     clearInterval(this.sessionPollingInterval);
 
     this.promiseManager.cancelCancelablePromises();
+
+    this._ismounted = false;
   }
 
   constructor(props) {
@@ -256,6 +258,7 @@ class PipelineView extends React.Component {
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
+    this._ismounted = true;
 
     this.pipelineStepStatusPollingInterval = undefined;
     this.sessionPollingInterval = undefined;
@@ -424,7 +427,7 @@ class PipelineView extends React.Component {
           `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
           { type: "FormData", content: formData }
         ).then(() => {
-          if (callback && typeof callback == "function") {
+          if (callback && typeof callback == "function" && this._ismounted) {
             callback();
           }
         });
@@ -1335,7 +1338,15 @@ class PipelineView extends React.Component {
     }
 
     delete this.state.steps[uuid];
+
+    // if step is in selectedSteps remove
+    let deletedStepIndex = this.state.selectedSteps.indexOf(uuid);
+    if (deletedStepIndex >= 0) {
+      this.state.selectedSteps.splice(deletedStepIndex, 1);
+    }
+
     this.setState({
+      selectedSteps: this.state.selectedSteps,
       steps: this.state.steps,
       unsavedChanges: true,
     });
@@ -1687,21 +1698,23 @@ class PipelineView extends React.Component {
         this.startStatusInterval();
       })
       .catch((response) => {
-        this.setState({
-          pipelineRunning: false,
-        });
+        if (!response.isCanceled) {
+          this.setState({
+            pipelineRunning: false,
+          });
 
-        try {
-          let data = JSON.parse(response.body);
-          orchest.alert(
-            "Error",
-            "Failed to start interactive run. " + data["message"]
-          );
-        } catch {
-          orchest.alert(
-            "Error",
-            "Failed to start interactive run. Unknown error."
-          );
+          try {
+            let data = JSON.parse(response.body);
+            orchest.alert(
+              "Error",
+              "Failed to start interactive run. " + data["message"]
+            );
+          } catch {
+            orchest.alert(
+              "Error",
+              "Failed to start interactive run. Unknown error."
+            );
+          }
         }
       });
   }

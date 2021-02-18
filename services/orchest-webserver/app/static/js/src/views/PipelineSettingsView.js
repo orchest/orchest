@@ -316,18 +316,20 @@ class PipelineSettingsView extends React.Component {
           });
         })
         .catch((response) => {
-          let errorMessage =
-            "Could not clear memory server, reason unknown. Please try again later.";
-          try {
-            errorMessage = JSON.parse(response.body)["message"];
-          } catch (error) {
-            console.error(error);
-          }
-          orchest.alert("Error", errorMessage);
+          if (!response.isCanceled) {
+            let errorMessage =
+              "Could not clear memory server, reason unknown. Please try again later.";
+            try {
+              errorMessage = JSON.parse(response.body)["message"];
+            } catch (error) {
+              console.error(error);
+            }
+            orchest.alert("Error", errorMessage);
 
-          this.setState({
-            restartingMemoryServer: false,
-          });
+            this.setState({
+              restartingMemoryServer: false,
+            });
+          }
         });
     } else {
       console.error(
@@ -431,7 +433,8 @@ class PipelineSettingsView extends React.Component {
                           .pipelineSettingDataPassingMemorySizeTextField
                       }
                       value={
-                        this.state.pipelineJson.settings.data_passing_memory_size
+                        this.state.pipelineJson.settings
+                          .data_passing_memory_size
                       }
                       onChange={this.onChangeDataPassingMemorySize.bind(this)}
                       label="Data passing memory size"
