@@ -5,11 +5,24 @@ import uuid
 import pytest
 from config import CONFIG_CLASS
 from sqlalchemy_utils import drop_database
+from tests.test_utils import (
+    EnvironmentBuild,
+    InteractiveRun,
+    InteractiveSession,
+    Job,
+    Pipeline,
+    Project,
+)
 
 import app.core.sessions
 from _orchest.internals.test_utils import AbortableAsyncResultMock, CeleryMock, uuid4
 from app import create_app
-from app.apis import namespace_environment_builds, namespace_jobs, namespace_runs
+from app.apis import (
+    namespace_environment_builds,
+    namespace_environment_images,
+    namespace_jobs,
+    namespace_runs,
+)
 from app.connections import db
 
 
@@ -32,6 +45,23 @@ def abortable_async_res(monkeypatch):
     return aresult
 
 
+@pytest.fixture()
+def monkeypatch_image_utils(monkeypatch):
+    monkeypatch.setattr(
+        namespace_environment_images, "remove_if_dangling", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        namespace_environment_images,
+        "docker_images_list_safe",
+        lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        namespace_environment_images,
+        "docker_images_rm_safe",
+        lambda *args, **kwargs: None,
+    )
+
+
 @pytest.fixture(scope="module")
 def test_app():
 
@@ -39,7 +69,7 @@ def test_app():
 
     # Setup the DB URI.
     db_host = os.environ.get("ORCHEST_TEST_DATABASE_HOST", "localhost")
-    db_port = os.environ.get("ORCHEST_TEST_DATABASE_PORT", "1337")
+    db_port = os.environ.get("ORCHEST_TEST_DATABASE_PORT", "5432")
     # Postgres does not accept "-" as part of a name.
     db_name = str(uuid.uuid4()).replace("-", "_")
     db_name = "test_db"
@@ -70,34 +100,9 @@ def client(test_app):
         db.session.commit()
 
 
-class Project:
-    def __init__(self, client, uuid, env_variables=None):
-        self.uuid = uuid
-        project = {"uuid": self.uuid, "env_variables": env_variables}
-        if env_variables is None:
-            project["env_variables"] = {}
-
-        client.post("/api/projects/", json=project)
-
-
 @pytest.fixture()
 def project(client):
     return Project(client, uuid4())
-
-
-class Pipeline:
-    def __init__(self, client, proj, uuid, env_variables=None):
-        self.project = proj
-        self.uuid = uuid
-        pipeline = {
-            "project_uuid": proj.uuid,
-            "uuid": self.uuid,
-            "env_variables": env_variables,
-        }
-        if env_variables is None:
-            pipeline["env_variables"] = {}
-
-        client.post("/api/pipelines/", json=pipeline)
 
 
 @pytest.fixture()
@@ -105,23 +110,8 @@ def pipeline(client, project):
     return Pipeline(client, project, uuid4())
 
 
-class InteractiveSession:
-    def __init__(self, client, pipeline):
-        self.project = pipeline.project
-        self.pipeline = pipeline
-
-        pipeline_spec = {
-            "project_uuid": pipeline.project.uuid,
-            "pipeline_uuid": pipeline.uuid,
-            "pipeline_path": "pip_path",
-            "project_dir": "project_dir",
-            "host_userdir": "host_userdir",
-        }
-        client.post("/api/sessions/", json=pipeline_spec)
-
-
 @pytest.fixture()
-def interactive_session(client, pipeline, monkeypatch):
+def monkeypatch_interactive_session(monkeypatch):
     monkeypatch.setattr(
         app.core.sessions.InteractiveSession, "launch", lambda *args, **kwargs: None
     )
@@ -130,36 +120,11 @@ def interactive_session(client, pipeline, monkeypatch):
         "get_containers_IP",
         lambda *args, **kwargs: app.core.sessions.IP("ip1", "ip2"),
     )
+
+
+@pytest.fixture()
+def interactive_session(client, pipeline, monkeypatch_interactive_session, monkeypatch):
     return InteractiveSession(client, pipeline)
-
-
-class InteractiveRun:
-    def __init__(self, client, pipeline):
-        self.project = pipeline.project
-        self.pipeline = pipeline
-        irun_spec = {
-            "pipeline_definition": {
-                "name": "pipeline-name",
-                "project_uuid": self.project.uuid,
-                "uuid": self.pipeline.uuid,
-                "settings": {},
-                "parameters": {},
-                "steps": {
-                    "uuid-1": {
-                        "incoming_connections": [],
-                        "name": "step-1",
-                        "uuid": "uuid-1",
-                        "file_path": "",
-                        "environment": 0.3,
-                    },
-                },
-            },
-            "uuids": [],
-            "project_uuid": self.project.uuid,
-            "run_type": "full",
-            "run_config": {},
-        }
-        self.uuid = client.post("/api/runs/", json=irun_spec).get_json()["uuid"]
 
 
 @pytest.fixture()
@@ -170,27 +135,21 @@ def interactive_run(client, pipeline, celery, monkeypatch):
     return InteractiveRun(client, pipeline)
 
 
-class Job:
-    def __init__(self, client, pipeline):
-        self.project = pipeline.project
-        self.pipeline = pipeline
-        job_spec = {
-            "uuid": uuid4(),
-            "name": "job-name",
-            "project_uuid": self.project.uuid,
-            "pipeline_uuid": self.pipeline.uuid,
-            "pipeline_name": "pipeline-name",
-            "cron_schedule": None,
-            "parameters": [{}],
-            "pipeline_definition": {},
-            "pipeline_run_spec": {},
-            "scheduled_start": None,
-            "strategy_json": {},
-        }
-
-        self.uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
-
-
 @pytest.fixture()
 def job(client, pipeline):
     return Job(client, pipeline)
+
+
+@pytest.fixture()
+def environment_build(client, celery, project):
+    return EnvironmentBuild(client, project)
+
+
+@pytest.fixture()
+def monkeypatch_lock_environment_images(monkeypatch):
+    monkeypatch.setattr(
+        namespace_runs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
+    )
+    monkeypatch.setattr(
+        namespace_jobs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
+    )

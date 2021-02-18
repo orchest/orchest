@@ -123,7 +123,7 @@ class Job:
     def __init__(self, client, pipeline):
         self.project = pipeline.project
         self.pipeline = pipeline
-        job_spec = create_job_spec(self.project.uuid, self.pipeline_uuid)
+        job_spec = create_job_spec(self.project.uuid, self.pipeline.uuid)
 
         self.uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
 
