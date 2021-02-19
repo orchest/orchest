@@ -1,4 +1,4 @@
-from _orchest.internals.test_utils import uuid4
+from _orchest.internals.test_utils import gen_uuid
 from app.apis import namespace_jobs
 from app.core.sessions import InteractiveSession
 
@@ -9,7 +9,7 @@ def test_projectlist_get_empty(client):
 
 
 def test_projectlist_post(client):
-    project = {"uuid": uuid4(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
 
     client.post("/api/projects/", json=project)
     data = client.get("/api/projects/").get_json()["projects"][0]
@@ -20,7 +20,7 @@ def test_projectlist_post(client):
 
 
 def test_projectlist_post_same_uuid(client):
-    project = {"uuid": uuid4(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
     resp1 = client.post("/api/projects/", json=project)
     resp2 = client.post("/api/projects/", json=project)
 
@@ -31,7 +31,7 @@ def test_projectlist_post_same_uuid(client):
 def test_projectlist_post_n(client):
     n = 5
     for _ in range(n):
-        project = {"uuid": uuid4(), "env_variables": {"a": [1]}}
+        project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
         client.post("/api/projects/", json=project)
 
     data = client.get("/api/projects/").get_json()["projects"]
@@ -39,7 +39,7 @@ def test_projectlist_post_n(client):
 
 
 def test_project_get(client):
-    project = {"uuid": uuid4(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
 
     client.post("/api/projects/", json=project)
     data = client.get(f'/api/projects/{project["uuid"]}').get_json()
@@ -49,12 +49,12 @@ def test_project_get(client):
 
 def test_project_get_non_existent(client):
 
-    resp = client.get(f"/api/projects/{uuid4()}")
+    resp = client.get(f"/api/projects/{gen_uuid()}")
     assert resp.status_code == 404
 
 
 def test_project_put(client):
-    project = {"uuid": uuid4(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
 
     client.post("/api/projects/", json=project)
     project["env_variables"] = {"b": {"x": 1}}
@@ -65,13 +65,13 @@ def test_project_put(client):
 
 
 def test_project_delete_non_existing(client):
-    resp = client.delete(f"/api/projects/{uuid4()}")
+    resp = client.delete(f"/api/projects/{gen_uuid()}")
 
     assert resp.status_code == 200
 
 
 def test_project_delete_existing(client, monkeypatch_image_utils):
-    project = {"uuid": uuid4()}
+    project = {"uuid": gen_uuid()}
     client.post("/api/projects/", json=project)
 
     resp = client.delete(f'/api/projects/{project["uuid"]}')

@@ -1,6 +1,6 @@
 from tests.test_utils import create_env_build_request
 
-from _orchest.internals.test_utils import CeleryMock, uuid4
+from _orchest.internals.test_utils import CeleryMock, gen_uuid
 from app.apis import namespace_environment_builds
 
 
@@ -29,7 +29,7 @@ def test_environmentbuildlist_post_same(client, celery, project):
     env = {
         "project_uuid": project.uuid,
         "project_path": "project_path",
-        "environment_uuid": uuid4(),
+        "environment_uuid": gen_uuid(),
     }
     req = {"environment_build_requests": [env, env]}
     data = client.post("/api/environment-builds/", json=req).get_json()

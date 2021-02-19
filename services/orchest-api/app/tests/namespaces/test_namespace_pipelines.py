@@ -1,4 +1,4 @@
-from _orchest.internals.test_utils import uuid4
+from _orchest.internals.test_utils import gen_uuid
 from app.core.sessions import InteractiveSession
 
 
@@ -10,7 +10,7 @@ def test_pipelinelist_get_empty(client):
 def test_pipelinelist_post(client, project):
     pipeline = {
         "project_uuid": project.uuid,
-        "uuid": uuid4(),
+        "uuid": gen_uuid(),
         "env_variables": {"a": [1]},
     }
     client.post("/api/pipelines/", json=pipeline)
@@ -23,7 +23,11 @@ def test_pipelinelist_post(client, project):
 
 
 def test_pipelinelist_post_no_project(client):
-    pipeline = {"project_uuid": uuid4(), "uuid": uuid4(), "env_variables": {"a": [1]}}
+    pipeline = {
+        "project_uuid": gen_uuid(),
+        "uuid": gen_uuid(),
+        "env_variables": {"a": [1]},
+    }
     resp = client.post("/api/pipelines/", json=pipeline)
 
     assert resp.status_code == 500
@@ -32,7 +36,7 @@ def test_pipelinelist_post_no_project(client):
 def test_pipelinelist_post_same_uuid(client, project):
     pipeline = {
         "project_uuid": project.uuid,
-        "uuid": uuid4(),
+        "uuid": gen_uuid(),
         "env_variables": {"a": [1]},
     }
 
@@ -48,7 +52,7 @@ def test_pipelinelist_post_n(client, project):
     for _ in range(n):
         pipeline = {
             "project_uuid": project.uuid,
-            "uuid": uuid4(),
+            "uuid": gen_uuid(),
             "env_variables": {"a": [1]},
         }
         client.post("/api/pipelines/", json=pipeline)
@@ -60,7 +64,7 @@ def test_pipelinelist_post_n(client, project):
 def test_pipeline_get(client, project):
     pipeline = {
         "project_uuid": project.uuid,
-        "uuid": uuid4(),
+        "uuid": gen_uuid(),
         "env_variables": {"a": [1]},
     }
     client.post("/api/pipelines/", json=pipeline)
@@ -72,14 +76,14 @@ def test_pipeline_get(client, project):
 
 def test_pipeline_get_non_existent(client):
 
-    resp = client.get(f"/api/pipelines/{uuid4()}")
+    resp = client.get(f"/api/pipelines/{gen_uuid()}")
     assert resp.status_code == 404
 
 
 def test_pipeline_put(client, project):
     pipeline = {
         "project_uuid": project.uuid,
-        "uuid": uuid4(),
+        "uuid": gen_uuid(),
         "env_variables": {"a": [1]},
     }
     client.post("/api/pipelines/", json=pipeline)
@@ -92,7 +96,7 @@ def test_pipeline_put(client, project):
 
 
 def test_pipeline_delete_non_existing(client):
-    resp = client.delete(f"/api/pipelines/{uuid4()}/{uuid4()}")
+    resp = client.delete(f"/api/pipelines/{gen_uuid()}/{gen_uuid()}")
 
     assert resp.status_code == 200
 
@@ -100,7 +104,7 @@ def test_pipeline_delete_non_existing(client):
 def test_delete_existing(client, project):
     pipeline = {
         "project_uuid": project.uuid,
-        "uuid": uuid4(),
+        "uuid": gen_uuid(),
         "env_variables": {"a": [1]},
     }
 

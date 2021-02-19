@@ -1,8 +1,11 @@
 import uuid
 
 
-def uuid4():
-    return str(uuid.uuid4())
+def gen_uuid(use_underscores=False):
+    res = str(uuid.uuid4())
+    if use_underscores:
+        res.replace("-", "_")
+    return res
 
 
 class CeleryMock:
@@ -29,7 +32,11 @@ class CeleryMock:
 
 class AbortableAsyncResultMock:
     def __init__(self, *args, **kwargs):
-        self.task_id = args[0]
+        if args:
+            self.task_id = args[0]
+        else:
+            self.task_id = kwargs["task_id"]
+
         self.aborted = False
 
     def abort(self):

@@ -1,6 +1,5 @@
 import copy
 import os
-import uuid
 
 import pytest
 from config import CONFIG_CLASS
@@ -15,7 +14,7 @@ from tests.test_utils import (
 )
 
 import app.core.sessions
-from _orchest.internals.test_utils import AbortableAsyncResultMock, CeleryMock, uuid4
+from _orchest.internals.test_utils import AbortableAsyncResultMock, CeleryMock, gen_uuid
 from app import create_app
 from app.apis import (
     namespace_environment_builds,
@@ -79,7 +78,7 @@ def test_app():
     db_host = os.environ.get("ORCHEST_TEST_DATABASE_HOST", "localhost")
     db_port = os.environ.get("ORCHEST_TEST_DATABASE_PORT", "5432")
     # Postgres does not accept "-" as part of a name.
-    db_name = str(uuid.uuid4()).replace("-", "_")
+    db_name = gen_uuid(use_underscores=True)
     db_name = "test_db"
     SQLALCHEMY_DATABASE_URI = f"postgresql://postgres@{db_host}:{db_port}/{db_name}"
     config.SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI
@@ -117,13 +116,13 @@ def client(test_app):
 @pytest.fixture()
 def project(client):
     """Provides a project backed by an entry in the db."""
-    return Project(client, uuid4())
+    return Project(client, gen_uuid())
 
 
 @pytest.fixture()
 def pipeline(client, project):
     """Provides a pipeline backed by an entry in the db."""
-    return Pipeline(client, project, uuid4())
+    return Pipeline(client, project, gen_uuid())
 
 
 @pytest.fixture()

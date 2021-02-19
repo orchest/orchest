@@ -1,4 +1,4 @@
-from _orchest.internals.test_utils import uuid4
+from _orchest.internals.test_utils import gen_uuid
 
 
 def create_env_build_request(project_uuid, n):
@@ -9,7 +9,7 @@ def create_env_build_request(project_uuid, n):
             {
                 "project_uuid": project_uuid,
                 "project_path": "project_path",
-                "environment_uuid": uuid4(),
+                "environment_uuid": gen_uuid(),
             }
         )
 
@@ -56,7 +56,7 @@ def create_job_spec(
         pipeline_run_spec = create_pipeline_run_spec(project_uuid, pipeline_uuid)
 
     job_spec = {
-        "uuid": uuid4(),
+        "uuid": gen_uuid(),
         "name": "job-name",
         "project_uuid": project_uuid,
         "pipeline_uuid": pipeline_uuid,

@@ -113,7 +113,7 @@ class EnvironmentBuild(Resource):
         env_build = models.EnvironmentBuild.query.filter_by(
             uuid=environment_build_uuid
         ).one_or_none()
-        if env_build:
+        if env_build is not None:
             return env_build.as_dict()
         abort(404, "EnvironmentBuild not found.")
 
