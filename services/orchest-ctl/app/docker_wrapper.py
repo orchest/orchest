@@ -414,7 +414,7 @@ class OrchestResourceManager:
             # installed, then most likely the user has not seen this
             # message before.
             utils.echo(
-                "Orchest sends anonymized telemetry to analytics.orchest.io."
+                "Orchest sends anonymized telemetry to analytics.orchestapp.com."
                 " To disable it, please refer to:",
             )
             utils.echo(
