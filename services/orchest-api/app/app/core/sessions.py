@@ -192,7 +192,7 @@ class Session:
             # command is issued by a project/pipeline/exp deletion
             # at the same time
             try:
-                container.stop()
+                container.kill()
                 container.remove()
             except (requests.exceptions.HTTPError, NotFound, APIError, ContainerError):
                 pass

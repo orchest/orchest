@@ -79,7 +79,6 @@ class FilePreviewView extends React.Component {
     return new Promise((resolve, reject) => {
       this.setState({
         loadingFile: true,
-        fileDescription: undefined,
       });
 
       let pipelineURL = this.props.queryArgs.job_uuid
@@ -149,10 +148,6 @@ class FilePreviewView extends React.Component {
 
   fetchFile() {
     return new Promise((resolve, reject) => {
-      this.setState({
-        fileDescription: undefined,
-      });
-
       let fileURL = `/async/file-viewer/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}/${this.props.queryArgs.step_uuid}`;
       if (this.props.queryArgs.run_uuid) {
         fileURL += "?pipeline_run_uuid=" + this.props.queryArgs.run_uuid;

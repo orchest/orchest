@@ -148,20 +148,35 @@ class PipelineSettingsView extends React.Component {
           console.error(error);
         });
     } else {
-      let cancelableRequest = makeCancelable(
+      let cancelableJobPromise = makeCancelable(
         makeRequest(
           "GET",
           `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
         ),
         this.promiseManager
       );
+      let cancelableRunPromise = makeCancelable(
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}/${this.props.queryArgs.run_uuid}`
+        ),
+        this.promiseManager
+      );
 
-      cancelableRequest.promise.then((response) => {
-        let job = JSON.parse(response);
-
+      Promise.all([
+        cancelableJobPromise.promise.then((response) => {
+          let job = JSON.parse(response);
+          return job.pipeline_run_spec.run_config.pipeline_path;
+        }),
+        cancelableRunPromise.promise.then((response) => {
+          let run = JSON.parse(response);
+          return envVariablesDictToArray(run["env_variables"]);
+        }),
+      ]).then((values) => {
+        let [pipeline_path, envVariables] = values;
         this.setState({
-          pipeline_path: job.pipeline_run_spec.run_config.pipeline_path,
-          envVariables: envVariablesDictToArray(job["env_variables"]),
+          pipeline_path: pipeline_path,
+          envVariables: envVariables,
         });
       });
     }
@@ -316,18 +331,20 @@ class PipelineSettingsView extends React.Component {
           });
         })
         .catch((response) => {
-          let errorMessage =
-            "Could not clear memory server, reason unknown. Please try again later.";
-          try {
-            errorMessage = JSON.parse(response.body)["message"];
-          } catch (error) {
-            console.error(error);
-          }
-          orchest.alert("Error", errorMessage);
+          if (!response.isCanceled) {
+            let errorMessage =
+              "Could not clear memory server, reason unknown. Please try again later.";
+            try {
+              errorMessage = JSON.parse(response.body)["message"];
+            } catch (error) {
+              console.error(error);
+            }
+            orchest.alert("Error", errorMessage);
 
-          this.setState({
-            restartingMemoryServer: false,
-          });
+            this.setState({
+              restartingMemoryServer: false,
+            });
+          }
         });
     } else {
       console.error(
@@ -423,18 +440,22 @@ class PipelineSettingsView extends React.Component {
                       <span className="code">1GB</span>.{" "}
                     </p>
                   )}
-                  <MDCTextFieldReact
-                    ref={
-                      this.refManager.nrefs
-                        .pipelineSettingDataPassingMemorySizeTextField
-                    }
-                    value={
-                      this.state.pipelineJson.settings.data_passing_memory_size
-                    }
-                    onChange={this.onChangeDataPassingMemorySize.bind(this)}
-                    label="Data passing memory size"
-                    disabled={this.props.queryArgs.read_only === "true"}
-                  />
+
+                  <div>
+                    <MDCTextFieldReact
+                      ref={
+                        this.refManager.nrefs
+                          .pipelineSettingDataPassingMemorySizeTextField
+                      }
+                      value={
+                        this.state.pipelineJson.settings
+                          .data_passing_memory_size
+                      }
+                      onChange={this.onChangeDataPassingMemorySize.bind(this)}
+                      label="Data passing memory size"
+                      disabled={this.props.queryArgs.read_only === "true"}
+                    />
+                  </div>
                 </div>
               </form>
 

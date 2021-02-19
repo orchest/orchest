@@ -98,6 +98,14 @@ class CreateProject(TwoPhaseFunction):
         elif not os.path.isdir(expected_env_dir):
             populate_default_environments(project_uuid)
 
+        # Initialize .git directory
+        expected_git_dir = os.path.join(full_project_path, ".git")
+
+        # If no git directory exists initialize git repo
+        if not os.path.exists(expected_git_dir):
+            p = subprocess.Popen(["git", "init"], cwd=full_project_path)
+            p.wait()
+
         # Refresh kernels after change in environments, given that
         # either we added the default environments or the project has
         # environments of its own.

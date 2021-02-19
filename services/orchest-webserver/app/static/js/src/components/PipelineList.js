@@ -1,6 +1,5 @@
 import React, { Fragment } from "react";
 
-import PipelineView from "../views/PipelineView";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import {
   makeRequest,
@@ -15,6 +14,8 @@ import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCDataTableReact from "../lib/mdc-components/MDCDataTableReact";
 import SessionToggleButton from "./SessionToggleButton";
+import JupyterLabView from "../views/JupyterLabView";
+import PipelineView from "../views/PipelineView";
 
 class PipelineList extends React.Component {
   componentWillUnmount() {}
@@ -93,7 +94,6 @@ class PipelineList extends React.Component {
       queryArgs: {
         pipeline_uuid: pipeline.uuid,
         project_uuid: this.props.project_uuid,
-        pipeline_path: pipeline.path,
       },
     };
 
@@ -188,13 +188,22 @@ class PipelineList extends React.Component {
       loading: true,
     });
 
-    makeRequest("POST", `/async/pipelines/create/${this.props.project_uuid}`, {
-      type: "json",
-      content: {
-        name: pipelineName,
-        pipeline_path: pipelinePath,
-      },
-    })
+    let createPipelinePromise = makeCancelable(
+      makeRequest(
+        "POST",
+        `/async/pipelines/create/${this.props.project_uuid}`,
+        {
+          type: "json",
+          content: {
+            name: pipelineName,
+            pipeline_path: pipelinePath,
+          },
+        }
+      ),
+      this.promiseManager
+    );
+
+    createPipelinePromise.promise
       .then((_) => {
         // reload list once creation succeeds
         this.fetchList(() => {
@@ -204,16 +213,24 @@ class PipelineList extends React.Component {
         });
       })
       .catch((response) => {
-        try {
-          let data = JSON.parse(response.body);
-          orchest.alert("Error", "Could not create pipeline. " + data.message);
-        } catch {
-          orchest.alert("Error", "Could not create pipeline. Reason unknown.");
-        }
+        if (!e.isCanceled) {
+          try {
+            let data = JSON.parse(response.body);
+            orchest.alert(
+              "Error",
+              "Could not create pipeline. " + data.message
+            );
+          } catch {
+            orchest.alert(
+              "Error",
+              "Could not create pipeline. Reason unknown."
+            );
+          }
 
-        this.setState({
-          loading: false,
-        });
+          this.setState({
+            loading: false,
+          });
+        }
       });
 
     this.setState({

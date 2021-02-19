@@ -40,7 +40,7 @@ class SessionToggleButton extends React.Component {
     let fetchSessionPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/api-proxy/api/sessions/?project_uuid=${this.props.project_uuid}&pipeline_uuid=${this.props.pipeline_uuid}`
+        `/catch/api-proxy/api/sessions/?project_uuid=${this.props.project_uuid}&pipeline_uuid=${this.props.pipeline_uuid}`
       ),
       this.promiseManager
     );
@@ -202,7 +202,7 @@ class SessionToggleButton extends React.Component {
       let deletePromise = makeCancelable(
         makeRequest(
           "DELETE",
-          `/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+          `/catch/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`
         ),
         this.promiseManager
       );

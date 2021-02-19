@@ -38,11 +38,11 @@ class EnvironmentEditView extends React.Component {
     this.state = {
       subviewIndex: 0,
       baseImages: [...DEFAULT_BASE_IMAGES],
-      newEnvironment: props.environment_uuid === undefined,
-      unsavedChanges: false,
+      newEnvironment: props.queryArgs.environment_uuid === undefined,
+      unsavedChanges: !props.queryArgs.environment_uuid,
       ignoreIncomingLogs: false,
       environmentBuild: undefined,
-      environment: !props.environment_uuid
+      environment: !props.queryArgs.environment_uuid
         ? {
             uuid: "new",
             name: orchest.config.ENVIRONMENT_DEFAULTS.name,
@@ -78,6 +78,8 @@ class EnvironmentEditView extends React.Component {
               ? DEFAULT_BASE_IMAGES.concat(environment.base_image)
               : [...DEFAULT_BASE_IMAGES],
         });
+
+        this.environmentBuildPolling(true);
       })
       .catch((error) => {
         console.error(error);
@@ -85,9 +87,9 @@ class EnvironmentEditView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchEnvironment();
-    this.environmentBuildRequest();
-    this.environmentBuildPolling();
+    if (this.props.queryArgs.environment_uuid) {
+      this.fetchEnvironment();
+    }
   }
 
   save() {
@@ -121,6 +123,9 @@ class EnvironmentEditView extends React.Component {
               newEnvironment: false,
               unsavedChanges: false,
             });
+
+            // start polling after save
+            this.environmentBuildPolling(true);
 
             resolve();
           })
@@ -270,7 +275,7 @@ class EnvironmentEditView extends React.Component {
 
     // reinitialize polling - to increase frequency during build
     this.state.building = true;
-    this.environmentBuildPolling();
+    this.environmentBuildPolling(true);
 
     this.setState({
       building: true,
@@ -345,6 +350,9 @@ class EnvironmentEditView extends React.Component {
 
   updateBuildStatus(environmentBuild) {
     if (this.CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1) {
+      this.state.building = true;
+      this.environmentBuildPolling();
+
       this.setState({
         building: true,
       });
@@ -363,20 +371,26 @@ class EnvironmentEditView extends React.Component {
     let environmentBuildRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.environment_uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.state.environment.uuid}`
       ),
       this.promiseManager
     );
 
     environmentBuildRequestPromise.promise
       .then((response) => {
-        let environmentBuild = JSON.parse(response);
-        this.updateEnvironmentBuildState(environmentBuild);
+        let environmentBuilds = JSON.parse(response)["environment_builds"];
+        if (environmentBuilds.length > 0) {
+          this.updateEnvironmentBuildState(environmentBuilds[0]);
+        }
       })
       .catch((error) => {});
   }
 
-  environmentBuildPolling() {
+  environmentBuildPolling(triggerDirectly) {
+    if (triggerDirectly) {
+      this.environmentBuildRequest();
+    }
+
     clearInterval(this.environmentBuildInterval);
     this.environmentBuildInterval = setInterval(
       this.environmentBuildRequest.bind(this),
@@ -399,15 +413,6 @@ class EnvironmentEditView extends React.Component {
                 subview = (
                   <Fragment>
                     <div className="environment-properties">
-                      {(() => {
-                        if (this.state.environment.uuid !== "new") {
-                          return (
-                            <div className="environment-notice subtle">
-                              Environment UUID: {this.state.environment.uuid}
-                            </div>
-                          );
-                        }
-                      })()}
                       <MDCTextFieldReact
                         classNames={["fullwidth", "push-down"]}
                         label="Environment name"
@@ -587,24 +592,26 @@ class EnvironmentEditView extends React.Component {
                   })()}
 
                   {(() => {
-                    if (!this.state.building) {
-                      return (
-                        <MDCButtonReact
-                          classNames={["mdc-button--raised"]}
-                          onClick={this.build.bind(this)}
-                          label="Build"
-                          icon="memory"
-                        />
-                      );
-                    } else {
-                      return (
-                        <MDCButtonReact
-                          classNames={["mdc-button--raised"]}
-                          onClick={this.cancelBuild.bind(this)}
-                          label="Cancel build"
-                          icon="memory"
-                        />
-                      );
+                    if (this.state.environment.uuid != "new") {
+                      if (!this.state.building) {
+                        return (
+                          <MDCButtonReact
+                            classNames={["mdc-button--raised"]}
+                            onClick={this.build.bind(this)}
+                            label="Build"
+                            icon="memory"
+                          />
+                        );
+                      } else {
+                        return (
+                          <MDCButtonReact
+                            classNames={["mdc-button--raised"]}
+                            onClick={this.cancelBuild.bind(this)}
+                            label="Cancel build"
+                            icon="memory"
+                          />
+                        );
+                      }
                     }
                   })()}
                 </div>

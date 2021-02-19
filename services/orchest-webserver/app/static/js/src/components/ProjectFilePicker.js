@@ -131,11 +131,13 @@ class ProjectFilePicker extends React.Component {
             selectedFileExists: true,
           });
         })
-        .catch(() => {
-          // rely on 404 behaviour for detecting file existence
-          this.setState({
-            selectedFileExists: false,
-          });
+        .catch((e) => {
+          if (!e.isCanceled) {
+            // rely on 404 behaviour for detecting file existence
+            this.setState({
+              selectedFileExists: false,
+            });
+          }
         });
     } else {
       // do indicate invalid value for these value

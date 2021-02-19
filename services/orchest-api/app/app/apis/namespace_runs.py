@@ -287,8 +287,10 @@ class CreateInteractiveRun(TwoPhaseFunction):
             )
         except errors.ImageNotFound as e:
             msg = (
-                "Pipeline was referencing environments for "
-                f"which an image does not exist, {e}"
+                "Pipeline references environments that do not exist in the"
+                f" project, the following environments do not exist: [{e}].\n\n"
+                "Please make sure all pipeline steps are assigned an"
+                " environment that exists in the project."
             )
             raise errors.ImageNotFound(msg)
 

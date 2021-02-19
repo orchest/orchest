@@ -152,7 +152,7 @@ class EnvironmentList extends React.Component {
           "Error",
           "Deleting environment '" +
             environmentName +
-            "' failed. Reason: " +
+            "' failed. " +
             errorMessage
         );
       });

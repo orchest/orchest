@@ -159,7 +159,8 @@ class ProjectSettingsView extends React.Component {
                       <div className="column">
                         <br />
                         <h3>
-                          <a
+                          <button
+                            className="text-button"
                             onClick={this.onClickProjectEntity.bind(
                               this,
                               PipelinesView,
@@ -171,13 +172,14 @@ class ProjectSettingsView extends React.Component {
                               (this.state.pipeline_count == 1
                                 ? "pipeline"
                                 : "pipelines")}
-                          </a>
+                          </button>
                         </h3>
                       </div>
                       <div className="column">
                         <br />
                         <h3>
-                          <a
+                          <button
+                            className="text-button"
                             onClick={this.onClickProjectEntity.bind(
                               this,
                               JobsView,
@@ -187,13 +189,14 @@ class ProjectSettingsView extends React.Component {
                             {this.state.job_count +
                               " " +
                               (this.state.job_count == 1 ? "job" : "jobs")}
-                          </a>
+                          </button>
                         </h3>
                       </div>
                       <div className="column">
                         <br />
                         <h3>
-                          <a
+                          <button
+                            className="text-button"
                             onClick={this.onClickProjectEntity.bind(
                               this,
                               EnvironmentsView,
@@ -205,7 +208,7 @@ class ProjectSettingsView extends React.Component {
                               (this.state.environment_count == 1
                                 ? "environment"
                                 : "environments")}
-                          </a>
+                          </button>
                         </h3>
                       </div>
                       <div className="clear"></div>

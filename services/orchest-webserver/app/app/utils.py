@@ -231,6 +231,15 @@ def populate_default_environments(project_uuid):
 # End of environments
 
 
+def get_environments_from_pipeline_json(pipeline_definition):
+    environment_uuids = set()
+
+    for _, step in enumerate(pipeline_definition["steps"]):
+        environment_uuids.add(pipeline_definition["steps"].get(step).get("environment"))
+
+    return environment_uuids
+
+
 def get_pipeline_json(pipeline_uuid, project_uuid):
     pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
 

@@ -37,7 +37,7 @@ class Config:
     }
 
     ENVIRONMENT_DEFAULTS = {
-        "name": "",
+        "name": "Python 3",
         "language": "python",
         "gpu_support": False,
         "base_image": DEFAULT_ENVIRONMENTS[0]["base_image"],

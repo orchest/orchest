@@ -124,7 +124,7 @@ class EnvironmentEditBuildTab extends React.Component {
                   <span className="build-label">Build started:</span>
                   {this.props.environmentBuild.started_time ? (
                     new Date(
-                      this.props.environmentBuild.started_time + " GMT"
+                      this.props.environmentBuild.started_time + "Z"
                     ).toLocaleString()
                   ) : (
                     <i>not yet started</i>
@@ -134,7 +134,7 @@ class EnvironmentEditBuildTab extends React.Component {
                   <span className="build-label">Build finished:</span>
                   {this.props.environmentBuild.finished_time ? (
                     new Date(
-                      this.props.environmentBuild.finished_time + " GMT"
+                      this.props.environmentBuild.finished_time + "Z"
                     ).toLocaleString()
                   ) : (
                     <i>not yet finished</i>
