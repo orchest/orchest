@@ -89,26 +89,6 @@ class JobList(Resource):
             else:
                 raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
-            # Make sure all environments still exist, that is, the
-            # pipeline is not refering non-existing environments.
-            pipeline_def = post_data["pipeline_definition"]
-            environment_uuids = set(
-                [step["environment"] for step in pipeline_def["steps"].values()]
-            )
-            env_uuids_missing_image = get_env_uuids_missing_image(
-                post_data["project_uuid"], environment_uuids
-            )
-            if env_uuids_missing_image:
-                env_uuids_missing_image = ", ".join(env_uuids_missing_image)
-                msg = (
-                    "Pipeline references environments that do not exist in the"
-                    f" project, the following environments do not exist:"
-                    f" [{env_uuids_missing_image}].\n Please make sure all"
-                    " pipeline steps are assigned an environment that exists"
-                    " in the project."
-                )
-                raise errors.ImageNotFound(msg)
-
             job = {
                 "uuid": post_data["uuid"],
                 "name": post_data["name"],
@@ -120,7 +100,7 @@ class JobList(Resource):
                 "env_variables": get_proj_pip_env_variables(
                     post_data["project_uuid"], post_data["pipeline_uuid"]
                 ),
-                "pipeline_definition": pipeline_def,
+                "pipeline_definition": post_data["pipeline_definition"],
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
                 "next_scheduled_time": next_scheduled_time,
@@ -760,6 +740,26 @@ class UpdateJob(TwoPhaseFunction):
         if confirm_draft:
             if job.status != "DRAFT":
                 raise ValueError("Failed update operation. The job is not a draft.")
+
+            # Make sure all environments still exist, that is, the
+            # pipeline is not referring non-existing environments.
+            pipeline_def = job.pipeline_definition
+            environment_uuids = set(
+                [step["environment"] for step in pipeline_def["steps"].values()]
+            )
+            env_uuids_missing_image = get_env_uuids_missing_image(
+                job.project_uuid, environment_uuids
+            )
+            if env_uuids_missing_image:
+                env_uuids_missing_image = ", ".join(env_uuids_missing_image)
+                msg = (
+                    "Pipeline references environments that do not exist in the"
+                    f" project. The following environments do not exist:"
+                    f" [{env_uuids_missing_image}].\n\n Please make sure all"
+                    " pipeline steps are assigned an environment that exists"
+                    " in the project."
+                )
+                raise errors.ImageNotFound(msg)
 
             if job.schedule is None:
                 job.status = "PENDING"
