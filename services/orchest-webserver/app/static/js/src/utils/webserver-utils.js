@@ -1,3 +1,4 @@
+import React, { Fragment } from "react";
 import { makeRequest } from "../lib/utils/all";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
@@ -208,6 +209,29 @@ export function getScrollLineHeight() {
 
 export function formatServerDateTime(dateTimeString) {
   return new Date(dateTimeString + "Z").toLocaleString();
+}
+
+export function newslines2breaks(lines) {
+  if (lines === "undefined") {
+    return [];
+  }
+
+  // subtitute newlines for line breaks
+  let linesArr = lines.split("\n");
+
+  let lineElements = linesArr.map((line, index) => {
+    if (index !== linesArr.length - 1) {
+      return (
+        <Fragment key={index}>
+          {line}
+          <br />
+        </Fragment>
+      );
+    } else {
+      return <Fragment key={index}>{line}</Fragment>;
+    }
+  });
+  return lineElements;
 }
 
 export function getPipelineJSONEndpoint(

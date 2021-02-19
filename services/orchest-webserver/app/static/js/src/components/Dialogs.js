@@ -1,6 +1,7 @@
 import React from "react";
 import AlertDialog from "./AlertDialog";
 import { uuidv4 } from "../lib/utils/all";
+import { newslines2breaks } from "../utils/webserver-utils";
 import ConfirmDialog from "./ConfirmDialog";
 import BuildPendingDialog from "./BuildPendingDialog";
 
@@ -43,6 +44,9 @@ class Dialogs extends React.Component {
 
   alert(title, content, onClose) {
     let uuid = uuidv4();
+
+    content = newslines2breaks(content);
+
     this.state.dialogs.push(
       <AlertDialog
         key={uuid}

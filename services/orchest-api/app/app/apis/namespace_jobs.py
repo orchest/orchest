@@ -103,7 +103,7 @@ class JobList(Resource):
                 msg = (
                     "Pipeline references environments that do not exist in the"
                     f" project, the following environments do not exist:"
-                    f" [{env_uuids_missing_image}].\n Please make sure all"
+                    f" [{env_uuids_missing_image}].\n\n Please make sure all"
                     " pipeline steps are assigned an environment that exists"
                     " in the project."
                 )
