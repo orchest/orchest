@@ -6,7 +6,6 @@ import requests
 from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import undefer
 
 import app.models as models
@@ -301,34 +300,11 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    # Jobs with PENDING or STARTED runs that are going to use or are
-    # using the environment.
-    active_runs_jobs = models.Job.query.filter(
-        # job related to this project
-        models.Job.project_uuid == project_uuid,
-        # keep project for which at least a run uses the environment
-        # and is or will make use of the environment (PENDING/STARTED)
-        models.Job.pipeline_runs.any(
-            and_(
-                models.NonInteractivePipelineRun.image_mappings.any(
-                    orchest_environment_uuid=env_uuid
-                ),
-                models.NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
-            )
-        ),
-    ).all()
-
-    # Jobs for which there are no active runs but that will eventually
-    # be scheduled (recurrent jobs or jobs scheduled in the future).
     future_jobs = models.Job.query.filter(
-        # job related to this project
         models.Job.project_uuid == project_uuid,
-        or_(
-            models.Job.schedule.isnot(None), models.Job.next_scheduled_time.isnot(None)
-        ),
+        models.Job.status.in_(["DRAFT", "PENDING", "STARTED"]),
     ).all()
 
-    # Only keep jobs that are making use of this environment.
     # TODO: do this at the db level using jsonb operators.
     future_jobs_using_env = []
     for job in future_jobs:
@@ -337,12 +313,7 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
         if env_uuid in envs:
             future_jobs_using_env.append(job)
 
-    # Make sure the returned jobs are unique.
-    uuid_to_job = dict()
-    for job in active_runs_jobs + future_jobs:
-        uuid_to_job[job.uuid] = job
-
-    return [job for job in uuid_to_job.values()]
+    return [future_jobs_using_env]
 
 
 def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
