@@ -41,7 +41,7 @@ class EnvironmentBuildList(Resource):
     @api.doc("start_environment_builds")
     @api.expect(schema.environment_build_requests)
     @api.marshal_with(
-        schema.environment_builds_request_result,
+        schema.environment_builds_requests_result,
         code=201,
         description="Queued environment builds",
     )
@@ -207,13 +207,15 @@ class ProjectMostRecentBuildsList(Resource):
 @api.param("environment_uuid", "UUID of the environment.")
 class ProjectEnvironmentMostRecentBuild(Resource):
     @api.doc("get_most_recent_build_by_proj_env")
-    @api.marshal_with(schema.environment_build, code=200)
+    @api.marshal_with(schema.environment_builds, code=200)
     def get(self, project_uuid, environment_uuid):
         """Get the most recent build for a project and environment pair.
 
         Only environments for which builds have already been requested
         are considered.
         """
+
+        environment_builds = []
 
         recent = (
             db.session.query(models.EnvironmentBuild)
@@ -222,8 +224,9 @@ class ProjectEnvironmentMostRecentBuild(Resource):
             .first()
         )
         if recent:
-            return recent.as_dict()
-        abort(404, "EnvironmentBuild not found.")
+            environment_builds.append(recent.as_dict())
+
+        return {"environment_builds": environment_builds}
 
 
 class CreateEnvironmentBuild(TwoPhaseFunction):

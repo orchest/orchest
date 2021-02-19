@@ -15,9 +15,12 @@ import {
   DEFAULT_BASE_IMAGES,
 } from "../lib/utils/all";
 
+import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
+
 import EnvironmentsView from "./EnvironmentsView";
 import EnvironmentEditBuildTab from "../components/EnvironmentEditBuildTab";
-require("codemirror/mode/shell/shell");
+import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
+import "codemirror/mode/shell/shell";
 
 class EnvironmentEditView extends React.Component {
   componentWillUnmount() {
@@ -34,37 +37,59 @@ class EnvironmentEditView extends React.Component {
 
     this.state = {
       subviewIndex: 0,
-      baseImages:
-        props.environment &&
-        DEFAULT_BASE_IMAGES.indexOf(props.environment.base_image) == -1
-          ? DEFAULT_BASE_IMAGES.concat(props.environment.base_image)
-          : [...DEFAULT_BASE_IMAGES],
-      newEnvironment: props.environment === undefined,
-      unsavedChanges: false,
+      baseImages: [...DEFAULT_BASE_IMAGES],
+      newEnvironment: props.queryArgs.environment_uuid === undefined,
+      unsavedChanges: !props.queryArgs.environment_uuid,
       ignoreIncomingLogs: false,
       environmentBuild: undefined,
-      environment: props.environment
-        ? props.environment
-        : {
+      environment: !props.queryArgs.environment_uuid
+        ? {
             uuid: "new",
             name: orchest.config.ENVIRONMENT_DEFAULTS.name,
             gpu_support: orchest.config.ENVIRONMENT_DEFAULTS.gpu_support,
-            project_uuid: this.props.project_uuid,
+            project_uuid: this.props.queryArgs.project_uuid,
             base_image: orchest.config.ENVIRONMENT_DEFAULTS.base_image,
             language: orchest.config.ENVIRONMENT_DEFAULTS.language,
             setup_script: orchest.config.ENVIRONMENT_DEFAULTS.setup_script,
-          },
+          }
+        : undefined,
     };
-
-    this.state.gpuDocsNotice = this.state.environment.gpu_support;
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
   }
 
+  fetchEnvironment() {
+    let endpoint = `/store/environments/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.environment_uuid}`;
+
+    let cancelableRequest = makeCancelable(
+      makeRequest("GET", endpoint),
+      this.promiseManager
+    );
+
+    cancelableRequest.promise
+      .then((response) => {
+        let environment = JSON.parse(response);
+
+        this.setState({
+          environment: environment,
+          baseImages:
+            DEFAULT_BASE_IMAGES.indexOf(environment.base_image) == -1
+              ? DEFAULT_BASE_IMAGES.concat(environment.base_image)
+              : [...DEFAULT_BASE_IMAGES],
+        });
+
+        this.environmentBuildPolling(true);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
   componentDidMount() {
-    this.environmentBuildRequest();
-    this.environmentBuildPolling();
+    if (this.props.queryArgs.environment_uuid) {
+      this.fetchEnvironment();
+    }
   }
 
   save() {
@@ -99,6 +124,9 @@ class EnvironmentEditView extends React.Component {
               unsavedChanges: false,
             });
 
+            // start polling after save
+            this.environmentBuildPolling(true);
+
             resolve();
           })
           .catch((error) => {
@@ -125,7 +153,9 @@ class EnvironmentEditView extends React.Component {
 
   returnToEnvironments() {
     orchest.loadView(EnvironmentsView, {
-      project_uuid: this.props.project_uuid,
+      queryArgs: {
+        project_uuid: this.props.queryArgs.project_uuid,
+      },
     });
   }
 
@@ -157,7 +187,7 @@ class EnvironmentEditView extends React.Component {
     this.state.environment.gpu_support = is_checked;
     this.setState({
       unsavedChanges: true,
-      gpuDocsNotice: is_checked,
+      environment: this.state.environment,
     });
   }
 
@@ -245,7 +275,7 @@ class EnvironmentEditView extends React.Component {
 
     // reinitialize polling - to increase frequency during build
     this.state.building = true;
-    this.environmentBuildPolling();
+    this.environmentBuildPolling(true);
 
     this.setState({
       building: true,
@@ -320,6 +350,9 @@ class EnvironmentEditView extends React.Component {
 
   updateBuildStatus(environmentBuild) {
     if (this.CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1) {
+      this.state.building = true;
+      this.environmentBuildPolling();
+
       this.setState({
         building: true,
       });
@@ -338,20 +371,26 @@ class EnvironmentEditView extends React.Component {
     let environmentBuildRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.state.environment.project_uuid}/${this.state.environment.uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.state.environment.uuid}`
       ),
       this.promiseManager
     );
 
     environmentBuildRequestPromise.promise
       .then((response) => {
-        let environmentBuild = JSON.parse(response);
-        this.updateEnvironmentBuildState(environmentBuild);
+        let environmentBuilds = JSON.parse(response)["environment_builds"];
+        if (environmentBuilds.length > 0) {
+          this.updateEnvironmentBuildState(environmentBuilds[0]);
+        }
       })
       .catch((error) => {});
   }
 
-  environmentBuildPolling() {
+  environmentBuildPolling(triggerDirectly) {
+    if (triggerDirectly) {
+      this.environmentBuildRequest();
+    }
+
     clearInterval(this.environmentBuildInterval);
     this.environmentBuildInterval = setInterval(
       this.environmentBuildRequest.bind(this),
@@ -362,217 +401,226 @@ class EnvironmentEditView extends React.Component {
   }
 
   render() {
-    let subview;
-
-    switch (this.state.subviewIndex) {
-      case 0:
-        subview = (
-          <Fragment>
-            <div className="environment-properties">
-              {(() => {
-                if (this.state.environment.uuid !== "new") {
-                  return (
-                    <div className="environment-notice subtle">
-                      Environment UUID: {this.state.environment.uuid}
-                    </div>
-                  );
-                }
-              })()}
-              <MDCTextFieldReact
-                classNames={["fullwidth", "push-down"]}
-                label="Environment name"
-                onChange={this.onChangeName.bind(this)}
-                value={this.state.environment.name}
-              />
-
-              <div className="select-button-columns">
-                <MDCSelectReact
-                  ref={this.refManager.nrefs.environmentName}
-                  classNames={["fullwidth"]}
-                  label="Base image"
-                  onChange={this.onChangeBaseImage.bind(this)}
-                  value={this.state.environment.base_image}
-                  options={this.state.baseImages.map((el) => [el])}
-                />
-                <MDCButtonReact
-                  icon="add"
-                  label="Custom image"
-                  onClick={this.onAddCustomBaseImage.bind(this)}
-                />
-                <div className="clear"></div>
-              </div>
-              <div className="form-helper-text push-down">
-                The base image will be the starting point from which the
-                environment will be built.
-              </div>
-
-              <MDCSelectReact
-                value="python"
-                label="Language"
-                classNames={["fullwidth"]}
-                ref={this.refManager.nrefs.environmentLanguage}
-                onChange={this.onChangeLanguage.bind(this)}
-                options={[
-                  ["python", LANGUAGE_MAP["python"]],
-                  ["r", LANGUAGE_MAP["r"]],
-                  ["julia", LANGUAGE_MAP["julia"]],
-                ]}
-                value={this.state.environment.language}
-              />
-              <div className="form-helper-text push-down">
-                The language determines for which kernel language this
-                environment can be used. This only affects pipeline steps that
-                point to a Notebook.
-              </div>
-
-              {(() => {
-                if (this.state.languageDocsNotice === true) {
-                  return (
-                    <div className="docs-notice push-down">
-                      Language explanation
-                    </div>
-                  );
-                }
-              })()}
-
-              <MDCCheckboxReact
-                onChange={this.onGPUChange.bind(this)}
-                label="GPU support"
-                classNames={["push-down"]}
-                value={this.state.environment.gpu_support}
-                ref={this.refManager.nrefs.environmentGPUSupport}
-              />
-
-              {(() => {
-                if (this.state.gpuDocsNotice === true) {
-                  return (
-                    <div className="docs-notice push-down">
-                      <p className="push-down">
-                        If enabled, the environment will request GPU
-                        capabilities when in use.
-                      </p>
-                      <p>
-                        Check out{" "}
-                        <a
-                          target="_blank"
-                          href={
-                            orchest.config.ORCHEST_WEB_URLS.readthedocs +
-                            "/getting_started/installation.html#gpu-support"
-                          }
-                        >
-                          the documentation
-                        </a>{" "}
-                        to make sure Orchest is properly configured for
-                        environments with GPU support. In particular, make sure
-                        the selected base image supports GPU pass through.
-                      </p>
-                    </div>
-                  );
-                }
-              })()}
-            </div>
-            <h3>Environment set-up script</h3>
-            <div className="form-helper-text push-down">
-              This will execute when you build the environment. Use it to
-              include your dependencies.
-            </div>
-            <div className="push-down">
-              <CodeMirror
-                value={this.state.environment.setup_script}
-                options={{
-                  mode: "application/x-sh",
-                  theme: "jupyter",
-                  lineNumbers: true,
-                  viewportMargin: Infinity,
-                }}
-                onBeforeChange={(editor, data, value) => {
-                  this.state.environment.setup_script = value;
-
-                  this.setState({
-                    environment: this.state.environment,
-                    unsavedChanges: true,
-                  });
-                }}
-              />
-            </div>
-          </Fragment>
-        );
-        break;
-      case 1:
-        subview = (
-          <EnvironmentEditBuildTab
-            onBuildStarted={this.onBuildStarted.bind(this)}
-            environment={this.state.environment}
-            ignoreIncomingLogs={this.state.ignoreIncomingLogs}
-            environmentBuild={this.state.environmentBuild}
-          />
-        );
-    }
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
 
     return (
       <div className={"view-page edit-environment"}>
         {(() => {
-          if (this.state.addCustomBaseImageDialog) {
-            return this.state.addCustomBaseImageDialog;
+          if (this.state.environment) {
+            let subview;
+            switch (this.state.subviewIndex) {
+              case 0:
+                subview = (
+                  <Fragment>
+                    <div className="environment-properties">
+                      <MDCTextFieldReact
+                        classNames={["fullwidth", "push-down"]}
+                        label="Environment name"
+                        onChange={this.onChangeName.bind(this)}
+                        value={this.state.environment.name}
+                      />
+
+                      <div className="select-button-columns">
+                        <MDCSelectReact
+                          ref={this.refManager.nrefs.environmentName}
+                          classNames={["fullwidth"]}
+                          label="Base image"
+                          onChange={this.onChangeBaseImage.bind(this)}
+                          value={this.state.environment.base_image}
+                          options={this.state.baseImages.map((el) => [el])}
+                        />
+                        <MDCButtonReact
+                          icon="add"
+                          label="Custom image"
+                          onClick={this.onAddCustomBaseImage.bind(this)}
+                        />
+                        <div className="clear"></div>
+                      </div>
+                      <div className="form-helper-text push-down">
+                        The base image will be the starting point from which the
+                        environment will be built.
+                      </div>
+
+                      <MDCSelectReact
+                        value="python"
+                        label="Language"
+                        classNames={["fullwidth"]}
+                        ref={this.refManager.nrefs.environmentLanguage}
+                        onChange={this.onChangeLanguage.bind(this)}
+                        options={[
+                          ["python", LANGUAGE_MAP["python"]],
+                          ["r", LANGUAGE_MAP["r"]],
+                          ["julia", LANGUAGE_MAP["julia"]],
+                        ]}
+                        value={this.state.environment.language}
+                      />
+                      <div className="form-helper-text push-down">
+                        The language determines for which kernel language this
+                        environment can be used. This only affects pipeline
+                        steps that point to a Notebook.
+                      </div>
+
+                      {(() => {
+                        if (this.state.languageDocsNotice === true) {
+                          return (
+                            <div className="docs-notice push-down">
+                              Language explanation
+                            </div>
+                          );
+                        }
+                      })()}
+
+                      <MDCCheckboxReact
+                        onChange={this.onGPUChange.bind(this)}
+                        label="GPU support"
+                        classNames={["push-down"]}
+                        value={this.state.environment.gpu_support}
+                        ref={this.refManager.nrefs.environmentGPUSupport}
+                      />
+
+                      {(() => {
+                        if (this.state.environment.gpu_support === true) {
+                          return (
+                            <div className="docs-notice push-down">
+                              <p className="push-down">
+                                If enabled, the environment will request GPU
+                                capabilities when in use.
+                              </p>
+                              <p>
+                                Check out{" "}
+                                <a
+                                  target="_blank"
+                                  href={
+                                    orchest.config.ORCHEST_WEB_URLS
+                                      .readthedocs +
+                                    "/getting_started/installation.html#gpu-support"
+                                  }
+                                >
+                                  the documentation
+                                </a>{" "}
+                                to make sure Orchest is properly configured for
+                                environments with GPU support. In particular,
+                                make sure the selected base image supports GPU
+                                pass through.
+                              </p>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                    <h3>Environment set-up script</h3>
+                    <div className="form-helper-text push-down">
+                      This will execute when you build the environment. Use it
+                      to include your dependencies.
+                    </div>
+                    <div className="push-down">
+                      <CodeMirror
+                        value={this.state.environment.setup_script}
+                        options={{
+                          mode: "application/x-sh",
+                          theme: "jupyter",
+                          lineNumbers: true,
+                          viewportMargin: Infinity,
+                        }}
+                        onBeforeChange={(editor, data, value) => {
+                          this.state.environment.setup_script = value;
+
+                          this.setState({
+                            environment: this.state.environment,
+                            unsavedChanges: true,
+                          });
+                        }}
+                      />
+                    </div>
+                  </Fragment>
+                );
+                break;
+              case 1:
+                subview = (
+                  <EnvironmentEditBuildTab
+                    onBuildStarted={this.onBuildStarted.bind(this)}
+                    environment={this.state.environment}
+                    ignoreIncomingLogs={this.state.ignoreIncomingLogs}
+                    environmentBuild={this.state.environmentBuild}
+                  />
+                );
+            }
+
+            return (
+              <>
+                {(() => {
+                  if (this.state.addCustomBaseImageDialog) {
+                    return this.state.addCustomBaseImageDialog;
+                  }
+                })()}
+
+                <div className="push-down">
+                  <MDCButtonReact
+                    label="Back to environments"
+                    icon="arrow_back"
+                    onClick={this.returnToEnvironments.bind(this)}
+                  />
+                </div>
+
+                <div className="push-down">
+                  <MDCTabBarReact
+                    ref={this.refManager.nrefs.tabBar}
+                    selectedIndex={this.state.subviewIndex}
+                    items={["Properties", "Build logs"]}
+                    icons={["tune", "view_headline"]}
+                    onChange={this.onSelectSubview.bind(this)}
+                  />
+                </div>
+
+                {subview}
+
+                <div className="multi-button">
+                  {(() => {
+                    if (this.state.subviewIndex == 0) {
+                      return (
+                        <MDCButtonReact
+                          classNames={[
+                            "mdc-button--raised",
+                            "themed-secondary",
+                          ]}
+                          onClick={this.onSave.bind(this)}
+                          label={this.state.unsavedChanges ? "Save*" : "Save"}
+                          icon="save"
+                        />
+                      );
+                    }
+                  })()}
+
+                  {(() => {
+                    if (this.state.environment.uuid != "new") {
+                      if (!this.state.building) {
+                        return (
+                          <MDCButtonReact
+                            classNames={["mdc-button--raised"]}
+                            onClick={this.build.bind(this)}
+                            label="Build"
+                            icon="memory"
+                          />
+                        );
+                      } else {
+                        return (
+                          <MDCButtonReact
+                            classNames={["mdc-button--raised"]}
+                            onClick={this.cancelBuild.bind(this)}
+                            label="Cancel build"
+                            icon="memory"
+                          />
+                        );
+                      }
+                    }
+                  })()}
+                </div>
+              </>
+            );
+          } else {
+            return <MDCLinearProgressReact />;
           }
         })()}
-
-        <div className="push-down">
-          <MDCButtonReact
-            label="Back to environments"
-            icon="arrow_back"
-            onClick={this.returnToEnvironments.bind(this)}
-          />
-        </div>
-
-        <div className="push-down">
-          <MDCTabBarReact
-            ref={this.refManager.nrefs.tabBar}
-            selectedIndex={this.state.subviewIndex}
-            items={["Properties", "Build logs"]}
-            icons={["tune", "view_headline"]}
-            onChange={this.onSelectSubview.bind(this)}
-          />
-        </div>
-
-        {subview}
-
-        <div className="multi-button">
-          {(() => {
-            if (this.state.subviewIndex == 0) {
-              return (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={this.onSave.bind(this)}
-                  label={this.state.unsavedChanges ? "Save*" : "Save"}
-                  icon="save"
-                />
-              );
-            }
-          })()}
-
-          {(() => {
-            if (!this.state.building) {
-              return (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={this.build.bind(this)}
-                  label="Build"
-                  icon="memory"
-                />
-              );
-            } else {
-              return (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={this.cancelBuild.bind(this)}
-                  label="Cancel build"
-                  icon="memory"
-                />
-              );
-            }
-          })()}
-        </div>
       </div>
     );
   }

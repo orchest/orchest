@@ -117,7 +117,9 @@ class ProjectsView extends React.Component {
 
   openSettings(project) {
     orchest.loadView(ProjectSettingsView, {
-      project_uuid: project.uuid,
+      queryArgs: {
+        project_uuid: project.uuid,
+      },
     });
   }
 
@@ -187,8 +189,6 @@ class ProjectsView extends React.Component {
     this.refManager.refs.createProjectNameTextField.focus();
   }
 
-  componentDidUpdate(prevProps, prevState, snapshot) {}
-
   onSubmitModal() {
     let projectName = this.refManager.refs.createProjectNameTextField.mdc.value;
 
@@ -221,10 +221,7 @@ class ProjectsView extends React.Component {
         try {
           let data = JSON.parse(response.body);
 
-          orchest.alert(
-            "Error",
-            "Could not create project. Reason " + data.message
-          );
+          orchest.alert("Error", "Could not create project. " + data.message);
         } catch {
           orchest.alert("Error", "Could not create project. Reason unknown.");
         }

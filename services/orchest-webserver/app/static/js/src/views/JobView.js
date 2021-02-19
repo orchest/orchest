@@ -46,26 +46,27 @@ class JobView extends React.Component {
   }
 
   fetchJob() {
-    makeRequest("GET", `/catch/api-proxy/api/jobs/${this.props.job_uuid}`).then(
-      (response) => {
-        try {
-          let job = JSON.parse(response);
+    makeRequest(
+      "GET",
+      `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
+    ).then((response) => {
+      try {
+        let job = JSON.parse(response);
 
-          this.setState({
-            job: job,
-            refreshing: false,
-            envVariables: envVariablesDictToArray(job["env_variables"]),
-          });
+        this.setState({
+          job: job,
+          refreshing: false,
+          envVariables: envVariablesDictToArray(job["env_variables"]),
+        });
 
-          this.fetchPipeline();
-        } catch (error) {
-          this.setState({
-            refreshing: false,
-          });
-          console.error("Failed to fetch job.", error);
-        }
+        this.fetchPipeline();
+      } catch (error) {
+        this.setState({
+          refreshing: false,
+        });
+        console.error("Failed to fetch job.", error);
       }
-    );
+    });
   }
 
   fetchPipeline() {
@@ -162,10 +163,13 @@ class JobView extends React.Component {
     }
 
     orchest.loadView(PipelineView, {
-      pipelineRun: pipelineRun,
-      pipeline_uuid: pipelineRun.pipeline_uuid,
-      project_uuid: pipelineRun.project_uuid,
-      readOnly: true,
+      queryArgs: {
+        job_uuid: pipelineRun.job_uuid,
+        run_uuid: pipelineRun.uuid,
+        pipeline_uuid: pipelineRun.pipeline_uuid,
+        project_uuid: pipelineRun.project_uuid,
+        read_only: "true",
+      },
     });
   }
 
@@ -215,7 +219,9 @@ class JobView extends React.Component {
 
   editJob() {
     orchest.loadView(EditJobView, {
-      job_uuid: this.state.job.uuid,
+      queryArgs: {
+        job_uuid: this.state.job.uuid,
+      },
     });
   }
 

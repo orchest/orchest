@@ -7,6 +7,7 @@ from app.analytics import send_pipeline_run
 from app.utils import (
     create_job_directory,
     get_environments,
+    get_environments_from_pipeline_json,
     get_pipeline_json,
     get_project_directory,
     pipeline_uuid_to_path,
@@ -147,6 +148,35 @@ def register_orchest_api_views(app, db):
             json_obj["pipeline_uuid"], json_obj["project_uuid"]
         )
 
+        # Validate whether the pipeline contains environments
+        # that do not exist in the project.
+        project_environments = get_environments(json_obj["project_uuid"])
+        project_environment_uuids = set(
+            [environment.uuid for environment in project_environments]
+        )
+        pipeline_environment_uuids = get_environments_from_pipeline_json(
+            json_obj["pipeline_definition"]
+        )
+
+        missing_environment_uuids = (
+            pipeline_environment_uuids - project_environment_uuids
+        )
+        if len(missing_environment_uuids) > 0:
+            missing_environment_uuids_str = ", ".join(missing_environment_uuids)
+            return (
+                jsonify(
+                    {
+                        "message": "The pipeline definition references environments "
+                        f"that do not exist in the project. "
+                        "The following environments do not exist:"
+                        f" [{missing_environment_uuids_str}].\n\n Please make sure all"
+                        " pipeline steps are assigned an environment that exists"
+                        " in the project."
+                    }
+                ),
+                500,
+            )
+
         # Jobs should always have eviction enabled.
         json_obj["pipeline_definition"]["settings"]["auto_eviction"] = True
 
@@ -171,8 +201,34 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/sessions/", methods=["GET"])
+    def catch_api_proxy_sessions_get():
+
+        resp = requests.get(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/sessions/?"
+            + request.query_string.decode(),
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route(
+        "/catch/api-proxy/api/sessions/<project_uuid>/<pipeline_uuid>",
+        methods=["DELETE"],
+    )
+    def catch_api_proxy_sessions_delete(project_uuid, pipeline_uuid):
+
+        resp = requests.delete(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
-    def catch_api_proxy_sessions():
+    def catch_api_proxy_sessions_post():
 
         json_obj = request.json
 

@@ -1,5 +1,95 @@
+import React, { Fragment } from "react";
 import { makeRequest } from "../lib/utils/all";
+import dashify from "dashify";
+import pascalcase from "pascalcase";
+
+import EditJobView from "../views/EditJobView";
+import EnvironmentEditView from "../views/EnvironmentEditView";
 import EnvironmentsView from "../views/EnvironmentsView";
+import FileManagerView from "../views/FileManagerView";
+import FilePreviewView from "../views/FilePreviewView";
+import HelpView from "../views/HelpView";
+import JobsView from "../views/JobsView";
+import JobView from "../views/JobView";
+import JupyterLabView from "../views/JupyterLabView";
+import ManageUsersView from "../views/ManageUsersView";
+import PipelineSettingsView from "../views/PipelineSettingsView";
+import PipelinesView from "../views/PipelinesView";
+import PipelineView from "../views/PipelineView";
+import ProjectSettingsView from "../views/ProjectSettingsView";
+import ProjectsView from "../views/ProjectsView";
+import SettingsView from "../views/SettingsView";
+import UpdateView from "../views/UpdateView";
+
+function getComponentObject() {
+  // This {str: Class} mapping is required for name
+  // resolution after Class name obfuscation performed
+  // by the JS minifier.
+  return {
+    EditJobView,
+    EnvironmentEditView,
+    EnvironmentsView,
+    FileManagerView,
+    FilePreviewView,
+    HelpView,
+    JobsView,
+    JobView,
+    JupyterLabView,
+    ManageUsersView,
+    PipelineSettingsView,
+    PipelinesView,
+    PipelineView,
+    ProjectSettingsView,
+    ProjectsView,
+    SettingsView,
+    UpdateView,
+  };
+}
+
+export function getViewDrawerParentViewName(viewName) {
+  /* This function describes the parent->child relation
+     between child views and root views listed
+     in the drawer menu.
+
+     This is used for example for selecting the right
+     drawer item when a child view is loaded.
+  */
+
+  let viewHierarchy = {
+    EditJobView: JobsView,
+    EnvironmentEditView: EnvironmentsView,
+    EnvironmentsView: EnvironmentsView,
+    FileManagerView: FileManagerView,
+    FilePreviewView: PipelinesView,
+    HelpView: HelpView,
+    JobsView: JobsView,
+    JobView: JobsView,
+    JupyterLabView: PipelinesView,
+    ManageUsersView: SettingsView,
+    PipelineSettingsView: PipelinesView,
+    PipelinesView: PipelinesView,
+    PipelineView: PipelinesView,
+    ProjectSettingsView: ProjectsView,
+    ProjectsView: ProjectsView,
+    SettingsView: SettingsView,
+    UpdateView: SettingsView,
+  };
+  return componentName(viewHierarchy[viewName]);
+}
+
+export function nameToComponent(viewName) {
+  return getComponentObject()[viewName];
+}
+
+export function componentName(TagName) {
+  let viewComponents = getComponentObject();
+  for (let viewName of Object.keys(viewComponents)) {
+    if (viewComponents[viewName] === TagName) {
+      return viewName;
+    }
+  }
+  console.error("Was not able to get componentName for TagName" + TagName);
+}
 
 export function checkGate(project_uuid) {
   return new Promise((resolve, reject) => {
@@ -25,79 +115,6 @@ export function checkGate(project_uuid) {
       .catch((error) => {
         reject({ reason: "request-failed", error: error });
       });
-  });
-}
-
-export function requestBuild(
-  project_uuid,
-  environmentValidationData,
-  requestedFromView
-) {
-  // NOTE: It is assumed requestBuild is only called after a pipeline gate check
-  // fails
-
-  return new Promise((resolve, reject) => {
-    let environmentsToBeBuilt = [];
-
-    for (let x = 0; x < environmentValidationData.actions.length; x++) {
-      if (environmentValidationData.actions[x] == "BUILD") {
-        environmentsToBeBuilt.push(environmentValidationData.fail[x]);
-      }
-    }
-
-    if (environmentsToBeBuilt.length > 0) {
-      orchest.confirm(
-        "Build",
-        `Not all environments of this project have been built. Would you like to build them?` +
-          (requestedFromView == "Pipeline"
-            ? " You can cancel to open the pipeline in read-only mode."
-            : ""),
-        () => {
-          let environment_build_requests = [];
-
-          for (let environmentUUID of environmentsToBeBuilt) {
-            environment_build_requests.push({
-              environment_uuid: environmentUUID,
-              project_uuid: project_uuid,
-            });
-          }
-
-          makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
-            type: "json",
-            content: {
-              environment_build_requests: environment_build_requests,
-            },
-          })
-            .then((_) => {})
-            .catch((error) => {
-              console.log(error);
-            });
-
-          // show environments view
-          orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
-          reject();
-        },
-        () => {
-          reject();
-        }
-      );
-    } else {
-      orchest.confirm(
-        "Build",
-        `Some environments of this project are still building. Would you like to check their status?` +
-          (requestedFromView == "Pipeline"
-            ? " You can cancel to open the pipeline in read-only mode."
-            : ""),
-        () => {
-          // show environments view
-          orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
-          reject();
-        },
-        () => {
-          reject();
-        }
-      );
-    }
   });
 }
 
@@ -191,9 +208,30 @@ export function getScrollLineHeight() {
 }
 
 export function formatServerDateTime(dateTimeString) {
-  return new Date(
-    dateTimeString.replace(/T/, " ").replace(/\..+/, "") + " GMT"
-  ).toLocaleString();
+  return new Date(dateTimeString + "Z").toLocaleString();
+}
+
+export function newslines2breaks(lines) {
+  if (lines === "undefined") {
+    return [];
+  }
+
+  // subtitute newlines for line breaks
+  let linesArr = lines.split("\n");
+
+  let lineElements = linesArr.map((line, index) => {
+    if (index !== linesArr.length - 1) {
+      return (
+        <Fragment key={index}>
+          {line}
+          <br />
+        </Fragment>
+      );
+    } else {
+      return <Fragment key={index}>{line}</Fragment>;
+    }
+  });
+  return lineElements;
 }
 
 export function getPipelineJSONEndpoint(
@@ -274,6 +312,23 @@ export function setWithRetry(value, setter, getter, retries, delay, interval) {
   }
 }
 
+export function tryUntilTrue(action, retries, delay, interval) {
+  let hasWorked = false;
+
+  setWithRetry(
+    true,
+    () => {
+      hasWorked = action();
+    },
+    () => {
+      return hasWorked;
+    },
+    retries,
+    delay,
+    interval
+  );
+}
+
 // Will return undefined if the envVariables are ill defined.
 export function envVariablesArrayToDict(envVariables) {
   const result = {};
@@ -311,3 +366,85 @@ export function envVariablesDictToArray(envVariables) {
 
   return result;
 }
+
+export function updateGlobalUnsavedChanges(unsavedChanges) {
+  // NOTE: perhaps a more granular unsaved changes
+  // is necessary in the future
+  orchest.setUnsavedChanges(unsavedChanges);
+}
+
+/*
+ Set of functions related to application routing.
+*/
+
+export function URIPathComponentToViewName(pathComponent) {
+  // pathComponent:
+  // e.g. /some-url/abd/?abc=12 --> just 'some-url' or 'abd'
+  return pascalcase(pathComponent) + "View";
+}
+
+export function viewNameToURIPathComponent(viewName) {
+  // strip 'View' at the end
+  viewName = viewName.slice(0, viewName.length - 4);
+  return dashify(viewName);
+}
+
+export function generateRoute(TagName, dynamicProps) {
+  // returns: [pathname, search]
+  let search = queryArgPropsToQueryArgs(
+    dynamicProps ? dynamicProps.queryArgs : {}
+  );
+  let pathname = "/" + viewNameToURIPathComponent(componentName(TagName));
+  return [pathname, search];
+}
+
+export function decodeRoute(pathname, search) {
+  // note: pathname includes '/' prefix
+  // note: search includes '?' prefix
+  // returns: [TagName, props]
+  let TagName = nameToComponent(
+    URIPathComponentToViewName(pathname.split("/")[1])
+  );
+
+  let queryArgProps = queryArgsToQueryArgProps(search);
+
+  return [TagName, { queryArgs: queryArgProps }];
+}
+
+export function queryArgPropsToQueryArgs(queryArgProps) {
+  // note: only string based query args are supported
+  if (!queryArgProps || Object.keys(queryArgProps).length == 0) {
+    return "";
+  }
+
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(queryArgProps)) {
+    if (value !== undefined) {
+      searchParams.append(key, String(value));
+    }
+  }
+  return "?" + searchParams.toString();
+}
+
+export function queryArgsToQueryArgProps(search) {
+  // note: only string based query args are supported
+  // note: search includes '?' prefix
+  let searchParams = new URLSearchParams(search);
+  let queryArgProps = {};
+
+  for (let [key, value] of searchParams.entries()) {
+    queryArgProps[key] = value;
+  }
+
+  return queryArgProps;
+}
+
+export function pascalCaseToCapitalized(viewName) {
+  const regex = /([A-Z])/gm;
+  const subst = ` $1`;
+  return viewName.replace(regex, subst).trim();
+}
+
+/*
+ End of routing functions.
+*/

@@ -11,7 +11,7 @@ import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import ProjectFilePicker from "../components/ProjectFilePicker";
 import { Controlled as CodeMirror } from "react-codemirror2";
-require("codemirror/mode/javascript/javascript");
+import "codemirror/mode/javascript/javascript";
 
 class ConnectionItem extends React.Component {
   componentDidMount() {}

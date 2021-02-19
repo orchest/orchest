@@ -15,9 +15,9 @@ import {
 
 import {
   checkGate,
-  requestBuild,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
+  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -28,6 +28,7 @@ import io from "socket.io-client";
 import SessionToggleButton from "../components/SessionToggleButton";
 import FilePreviewView from "./FilePreviewView";
 import JobView from "./JobView";
+import JupyterLabView from "./JupyterLabView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -218,6 +219,8 @@ class PipelineView extends React.Component {
     clearInterval(this.sessionPollingInterval);
 
     this.promiseManager.cancelCancelablePromises();
+
+    this._ismounted = false;
   }
 
   constructor(props) {
@@ -255,6 +258,7 @@ class PipelineView extends React.Component {
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
+    this._ismounted = true;
 
     this.pipelineStepStatusPollingInterval = undefined;
     this.sessionPollingInterval = undefined;
@@ -287,31 +291,34 @@ class PipelineView extends React.Component {
       saveHash: "",
     };
 
-    if (this.props.pipelineRun) {
+    if (this.props.queryArgs.run_uuid && this.props.queryArgs.job_uuid) {
       try {
-        this.state.runUUID = this.props.pipelineRun.uuid;
+        this.state.runUUID = this.props.queryArgs.run_uuid;
         this.state.runStatusEndpoint =
-          "/catch/api-proxy/api/jobs/" + this.props.pipelineRun.job_uuid + "/";
+          "/catch/api-proxy/api/jobs/" + this.props.queryArgs.job_uuid + "/";
         this.pollPipelineStepStatuses();
         this.startStatusInterval();
       } catch (e) {
         console.log("could not start pipeline status updates: " + e);
       }
     } else {
-      if (this.props.readOnly) {
+      if (this.props.queryArgs.read_only === "true") {
         // for non pipelineRun - read only check gate
-        let checkGatePromise = checkGate(this.props.project_uuid);
+        let checkGatePromise = checkGate(this.props.queryArgs.project_uuid);
         checkGatePromise
           .then(() => {
             this.loadViewInEdit();
           })
           .catch((result) => {
             if (result.reason === "gate-failed") {
-              requestBuild(
-                props.project_uuid,
+              orchest.requestBuild(
+                props.queryArgs.project_uuid,
                 result.data,
-                "Pipeline"
-              ).catch((e) => {});
+                "Pipeline",
+                () => {
+                  this.loadViewInEdit();
+                }
+              );
             }
           });
       }
@@ -324,7 +331,8 @@ class PipelineView extends React.Component {
   loadViewInEdit() {
     let newProps = {};
     Object.assign(newProps, this.props);
-    newProps.readOnly = false;
+    newProps.queryArgs.read_only = "false";
+    newProps.key = uuidv4();
     // open in non-read only
     orchest.loadView(PipelineView, newProps);
   }
@@ -333,7 +341,7 @@ class PipelineView extends React.Component {
     let pipelineRunsPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/runs/?project_uuid=${this.props.project_uuid}&pipeline_uuid=${this.props.pipeline_uuid}`
+        `/catch/api-proxy/api/runs/?project_uuid=${this.props.queryArgs.project_uuid}&pipeline_uuid=${this.props.queryArgs.pipeline_uuid}`
       ),
       this.promiseManager
     );
@@ -391,7 +399,7 @@ class PipelineView extends React.Component {
   }
 
   savePipeline(callback) {
-    if (!this.props.readOnly) {
+    if (this.props.queryArgs.read_only !== "true") {
       let pipelineJSON = this.encodeJSON();
 
       // validate pipelineJSON
@@ -410,10 +418,10 @@ class PipelineView extends React.Component {
         // perform POST to save
         makeRequest(
           "POST",
-          `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+          `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
           { type: "FormData", content: formData }
         ).then(() => {
-          if (callback && typeof callback == "function") {
+          if (callback && typeof callback == "function" && this._ismounted) {
             callback();
           }
         });
@@ -495,10 +503,13 @@ class PipelineView extends React.Component {
 
   openSettings() {
     orchest.loadView(PipelineSettingsView, {
-      project_uuid: this.props.project_uuid,
-      pipeline_uuid: this.props.pipeline_uuid,
-      readOnly: this.props.readOnly,
-      pipelineRun: this.props.pipelineRun,
+      queryArgs: {
+        project_uuid: this.props.queryArgs.project_uuid,
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        read_only: this.props.queryArgs.read_only,
+        job_uuid: this.props.queryArgs.job_uuid,
+        run_uuid: this.props.queryArgs.run_uuid,
+      },
     });
   }
 
@@ -1057,7 +1068,7 @@ class PipelineView extends React.Component {
     // initialize all listeners related to viewing/navigating the pipeline
     this.initializePipelineNavigationListeners();
 
-    if (this.props.readOnly !== true) {
+    if (this.props.queryArgs.read_only !== "true") {
       // initialize all listeners related to editing the pipeline
       this.initializePipelineEditListeners();
     }
@@ -1065,17 +1076,19 @@ class PipelineView extends React.Component {
 
   componentDidUpdate(prevProps, prevState, snapshot) {
     // fetch pipeline when uuid changed
-    if (this.props.pipeline_uuid !== prevProps.pipeline_uuid) {
+    if (
+      this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
+    ) {
       this.fetchPipelineAndInitialize();
     }
   }
 
   fetchPipelineAndInitialize() {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      this.props.pipeline_uuid,
-      this.props.project_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.job_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.uuid
+      this.props.queryArgs.pipeline_uuid,
+      this.props.queryArgs.project_uuid,
+      this.props.queryArgs.job_uuid,
+      this.props.queryArgs.run_uuid
     );
 
     let fetchPipelinePromise = makeCancelable(
@@ -1090,9 +1103,9 @@ class PipelineView extends React.Component {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
           orchest.headerBarComponent.setPipeline(
-            this.state.pipelineJson,
-            this.props.project_uuid,
-            this.props.pipelineRun && this.props.pipelineRun.job_uuid
+            this.props.queryArgs.pipeline_uuid,
+            this.props.queryArgs.project_uuid,
+            this.state.pipelineJson.name
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");
@@ -1104,7 +1117,7 @@ class PipelineView extends React.Component {
         }
       })
       .catch(() => {
-        if (this.props.pipelineRun) {
+        if (this.props.queryArgs.job_uuid) {
           // This case is hit when a user tries to load a pipeline that belongs
           // to a run that has not started yet. The project files are only
           // copied when the run starts. Before start, the pipeline.json thus
@@ -1116,7 +1129,9 @@ class PipelineView extends React.Component {
             "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
             () => {
               orchest.loadView(JobView, {
-                job_uuid: this.props.pipelineRun.job_uuid,
+                queryArgs: {
+                  job_uuid: this.props.queryArgs.job_uuid,
+                },
               });
             }
           );
@@ -1138,7 +1153,7 @@ class PipelineView extends React.Component {
   newStep() {
     this.deselectSteps();
 
-    let environmentsEndpoint = `/store/environments/${this.props.project_uuid}`;
+    let environmentsEndpoint = `/store/environments/${this.props.queryArgs.project_uuid}`;
     let fetchEnvironmentsPromise = makeCancelable(
       makeRequest("GET", environmentsEndpoint),
       this.promiseManager
@@ -1317,7 +1332,15 @@ class PipelineView extends React.Component {
     }
 
     delete this.state.steps[uuid];
+
+    // if step is in selectedSteps remove
+    let deletedStepIndex = this.state.selectedSteps.indexOf(uuid);
+    if (deletedStepIndex >= 0) {
+      this.state.selectedSteps.splice(deletedStepIndex, 1);
+    }
+
     this.setState({
+      selectedSteps: this.state.selectedSteps,
       steps: this.state.steps,
       unsavedChanges: true,
     });
@@ -1338,7 +1361,7 @@ class PipelineView extends React.Component {
     let cwdFetchPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/async/file-picker-tree/pipeline-cwd/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+        `/async/file-picker-tree/pipeline-cwd/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
       ),
       this.promiseManager
     );
@@ -1348,15 +1371,19 @@ class PipelineView extends React.Component {
         // relativeToAbsolutePath expects trailing / for directories
         let cwd = JSON.parse(response)["cwd"] + "/";
 
+        orchest.loadView(JupyterLabView, {
+          queryArgs: {
+            pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+            project_uuid: this.props.queryArgs.project_uuid,
+          },
+        });
+
         orchest.jupyter.navigateTo(
           relativeToAbsolutePath(
             this.state.steps[this.state.openedStep].file_path,
             cwd
           ).slice(1)
         );
-
-        orchest.showJupyter();
-        orchest.headerBarComponent.updateCurrentView("jupyter");
       })
       .catch((error) => {
         console.log(error);
@@ -1376,11 +1403,14 @@ class PipelineView extends React.Component {
   onOpenFilePreviewView(step_uuid) {
     this.saveBeforeAction(() => {
       orchest.loadView(FilePreviewView, {
-        project_uuid: this.props.project_uuid,
-        pipeline_uuid: this.props.pipeline_uuid,
-        pipelineRun: this.props.pipelineRun,
-        step_uuid: step_uuid,
-        readOnly: this.props.readOnly,
+        queryArgs: {
+          project_uuid: this.props.queryArgs.project_uuid,
+          pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+          job_uuid: this.props.queryArgs.job_uuid,
+          run_uuid: this.props.queryArgs.run_uuid,
+          step_uuid: step_uuid,
+          read_only: this.props.queryArgs.read_only,
+        },
       });
     });
   }
@@ -1414,12 +1444,10 @@ class PipelineView extends React.Component {
       let finished_time = undefined;
 
       if (result.pipeline_steps[x].started_time) {
-        started_time = new Date(result.pipeline_steps[x].started_time + " GMT");
+        started_time = new Date(result.pipeline_steps[x].started_time + "Z");
       }
       if (result.pipeline_steps[x].finished_time) {
-        finished_time = new Date(
-          result.pipeline_steps[x].finished_time + " GMT"
-        );
+        finished_time = new Date(result.pipeline_steps[x].finished_time + "Z");
       }
 
       this.setStepExecutionState(result.pipeline_steps[x].step_uuid, {
@@ -1638,7 +1666,7 @@ class PipelineView extends React.Component {
     // store pipeline.json
     let data = {
       uuids: uuids,
-      project_uuid: this.props.project_uuid,
+      project_uuid: this.props.queryArgs.project_uuid,
       run_type: type,
       pipeline_definition: this.getPipelineJSON(),
     };
@@ -1664,21 +1692,23 @@ class PipelineView extends React.Component {
         this.startStatusInterval();
       })
       .catch((response) => {
-        this.setState({
-          pipelineRunning: false,
-        });
+        if (!response.isCanceled) {
+          this.setState({
+            pipelineRunning: false,
+          });
 
-        try {
-          let data = JSON.parse(response.body);
-          orchest.alert(
-            "Error",
-            "Failed to start interactive run. " + data["message"]
-          );
-        } catch {
-          orchest.alert(
-            "Error",
-            "Failed to start interactive run. Unknown error."
-          );
+          try {
+            let data = JSON.parse(response.body);
+            orchest.alert(
+              "Error",
+              "Failed to start interactive run. " + data["message"]
+            );
+          } catch {
+            orchest.alert(
+              "Error",
+              "Failed to start interactive run. Unknown error."
+            );
+          }
         }
       });
   }
@@ -1833,7 +1863,7 @@ class PipelineView extends React.Component {
   }
 
   onSessionFetch(session_details) {
-    if (!this.props.readOnly) {
+    if (this.props.queryArgs.read_only !== "true") {
       if (session_details === undefined) {
         this.refManager.refs.sessionToggleButton.toggleSession();
       }
@@ -1975,6 +2005,8 @@ class PipelineView extends React.Component {
   }
 
   render() {
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
+
     let pipelineSteps = [];
 
     for (let uuid in this.state.steps) {
@@ -2065,7 +2097,7 @@ class PipelineView extends React.Component {
               if (
                 this.state.selectedSteps.length > 0 &&
                 !this.state.stepSelector.active &&
-                !this.props.readOnly
+                this.props.queryArgs.read_only !== "true"
               ) {
                 if (!this.state.pipelineRunning) {
                   return (
@@ -2089,7 +2121,10 @@ class PipelineView extends React.Component {
                   );
                 }
               }
-              if (this.state.pipelineRunning && !this.props.readOnly) {
+              if (
+                this.state.pipelineRunning &&
+                this.props.queryArgs.read_only !== "true"
+              ) {
                 return (
                   <div className="selection-buttons">
                     <MDCButtonReact
@@ -2106,13 +2141,13 @@ class PipelineView extends React.Component {
           </div>
 
           {(() => {
-            if (!this.props.readOnly) {
+            if (this.props.queryArgs.read_only !== "true") {
               return (
                 <div className={"pipeline-actions"}>
                   <SessionToggleButton
                     ref={this.refManager.nrefs.sessionToggleButton}
-                    pipeline_uuid={this.props.pipeline_uuid}
-                    project_uuid={this.props.project_uuid}
+                    pipeline_uuid={this.props.queryArgs.pipeline_uuid}
+                    project_uuid={this.props.queryArgs.project_uuid}
                     onSessionStateChange={this.onSessionStateChange.bind(this)}
                     onSessionFetch={this.onSessionFetch.bind(this)}
                     onSessionShutdown={this.onSessionShutdown.bind(this)}
@@ -2193,10 +2228,11 @@ class PipelineView extends React.Component {
                 connections={connections_list}
                 defaultViewIndex={this.state.defaultDetailViewIndex}
                 pipeline={this.state.pipelineJson}
-                project_uuid={this.props.project_uuid}
-                pipelineRun={this.props.pipelineRun}
+                project_uuid={this.props.queryArgs.project_uuid}
+                job_uuid={this.props.queryArgs.job_uuid}
+                run_uuid={this.props.queryArgs.run_uuid}
                 sio={this.sio}
-                readOnly={this.props.readOnly}
+                readOnly={this.props.queryArgs.read_only === "true"}
                 step={JSON.parse(
                   JSON.stringify(this.state.steps[this.state.openedStep])
                 )}

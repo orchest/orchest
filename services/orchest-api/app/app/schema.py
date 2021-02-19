@@ -468,8 +468,8 @@ environment_builds = Model(
     },
 )
 
-environment_builds_request_result = Model(
-    "EnvironmentBuilds",
+environment_builds_requests_result = Model(
+    "EnvironmentBuildsPost",
     {
         "environment_builds": fields.List(
             fields.Nested(environment_build),

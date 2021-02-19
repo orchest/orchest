@@ -21,7 +21,7 @@ def echo(*args, wrap=WRAP_LINES, **kwargs):
             kwargs["message"] = textwrap.fill(kwargs["message"], width=wrap)
 
         else:
-            if args[0] is not None:
+            if args and args[0] is not None:
                 args = (textwrap.fill(args[0], width=wrap), *args[1:])
 
     typer.echo(*args, **kwargs)

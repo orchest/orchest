@@ -1,4 +1,4 @@
-import { setWithRetry } from "../utils/webserver-utils";
+import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
   constructor(jupyterHolderJEl) {
@@ -20,6 +20,7 @@ class Jupyter {
   }
 
   show() {
+    // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
 
     if (this.reloadOnShow) {
@@ -28,20 +29,25 @@ class Jupyter {
     }
 
     // make sure the baseAddress has loaded
-    if (this.iframe.src.indexOf(this.baseAddress) === -1) {
-      this.setJupyterAddress(this.baseAddress);
+    if (
+      this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
+    ) {
+      this.setJupyterAddress(this.baseAddress + "/lab");
     }
+
+    this.fixJupyterRenderingGlitch();
   }
+
   hide() {
     this.jupyterHolder.addClass("hidden");
   }
 
   unload() {
-    this.iframe.src = "about:blank";
+    this.iframe.contentWindow.location.replace("about:blank");
   }
 
   setJupyterAddress(url) {
-    this.iframe.src = url;
+    this.iframe.contentWindow.location.replace(url);
   }
 
   reloadFilesFromDisk() {
@@ -79,27 +85,84 @@ class Jupyter {
     }
   }
 
+  isJupyterShellShowing() {
+    try {
+      return (
+        this.iframe.contentWindow._orchest_app.shell.node.offsetParent != null
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  fixJupyterRenderingGlitch() {
+    if (
+      this.isJupyterShellShowing() &&
+      this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+        "#jp-main-content-panel"
+      ).clientWidth !=
+        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
+    ) {
+      this.iframe.contentWindow.location.reload();
+    }
+  }
+
   navigateTo(filePath) {
     if (!filePath) {
       return;
     }
-    if (
-      this.iframe.src.indexOf(this.baseAddress) !== -1 &&
-      this.iframe.contentWindow._orchest_docmanager !== undefined
-    ) {
-      this.iframe.contentWindow._orchest_docmanager.openOrReveal(filePath);
-    } else {
-      this.setJupyterAddress(
-        this.baseAddress +
-          "/lab/workspaces/main/tree/" +
-          encodeURIComponent(filePath) +
-          "?reset"
-      );
-    }
+
+    tryUntilTrue(
+      () => {
+        if (this.isJupyterShellShowing()) {
+          if (
+            this.iframe.contentWindow.location.href.indexOf(
+              this.baseAddress
+            ) !== -1 &&
+            this.iframe.contentWindow._orchest_docmanager !== undefined
+          ) {
+            this.iframe.contentWindow._orchest_docmanager.openOrReveal(
+              filePath
+            );
+          } else {
+            // delayed opening of filePath
+            ((jupyter) => {
+              tryUntilTrue(
+                () => {
+                  try {
+                    jupyter.iframe.contentWindow._orchest_docmanager.openOrReveal(
+                      filePath
+                    );
+
+                    return (
+                      jupyter.iframe.contentWindow._orchest_docmanager.findWidget(
+                        filePath
+                      ) !== undefined
+                    );
+                  } catch (err) {
+                    // fail silently
+                    return false;
+                  }
+                },
+                100,
+                250
+              );
+            })(this);
+          }
+
+          return true;
+        } else {
+          return false;
+        }
+      },
+      100,
+      250
+    );
   }
 
   initializeJupyter() {
     this.iframe = document.createElement("iframe");
+
     $(this.iframe).attr("width", "100%");
     $(this.iframe).attr("height", "100%");
 

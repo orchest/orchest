@@ -127,8 +127,9 @@ def register_views(app, db):
 
         return json_string, 404, {"content-type": "application/json"}
 
-    @app.route("/", methods=["GET"])
-    def index():
+    @app.route("/", defaults={"path": ""}, methods=["GET"])
+    @app.route("/<path:path>", methods=["GET"])
+    def index(path):
 
         js_bundle_path = os.path.join(
             app.config["STATIC_DIR"], "js", "dist", "main.bundle.js"

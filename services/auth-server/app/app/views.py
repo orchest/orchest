@@ -1,11 +1,10 @@
 import datetime
 import json
 import os
-import random
 import secrets
 import uuid
 
-from flask import make_response, redirect, render_template, request, send_from_directory
+from flask import make_response, render_template, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.connections import db
@@ -130,6 +129,10 @@ def register_views(app):
     @app.route("/login/admin", methods=["GET", "POST"])
     def admin():
 
+        context = static_render_context()
+        data_json = {"users": []}
+        return_status = 200
+
         config_data = get_user_conf()
 
         if not is_authenticated(request) and config_data["AUTH_ENABLED"]:
@@ -145,16 +148,20 @@ def register_views(app):
                 user = User.query.filter(User.username == username).first()
 
                 if user is not None:
-                    return "", 409
+                    data_json.update({"error": "User already exists."})
+                    return_status = 409
+                elif len(password) == 0:
+                    data_json.update({"error": "Password cannot be empty."})
+                    return_status = 409
+                else:
+                    user = User(
+                        username=username,
+                        password_hash=generate_password_hash(password),
+                        uuid=str(uuid.uuid4()),
+                    )
 
-                user = User(
-                    username=username,
-                    password_hash=generate_password_hash(password),
-                    uuid=str(uuid.uuid4()),
-                )
-
-                db.session.add(user)
-                db.session.commit()
+                    db.session.add(user)
+                    db.session.commit()
 
             elif "delete_username" in request.form:
                 username = request.form.get("delete_username")
@@ -165,15 +172,10 @@ def register_views(app):
                     db.session.delete(user)
                     db.session.commit()
 
-        context = static_render_context()
-
-        data_json = {"users": []}
-
         users = User.query.all()
-
         for user in users:
             data_json["users"].append({"username": user.username})
 
         context["data_json"] = json.dumps(data_json)
 
-        return render_template("admin.html", **context)
+        return render_template("admin.html", **context), return_status

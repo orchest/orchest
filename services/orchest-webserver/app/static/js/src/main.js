@@ -4,26 +4,26 @@ import { MDCDrawer } from "@material/drawer";
 import $ from "jquery";
 window.$ = $;
 
-import ProjectsView from "./views/ProjectsView";
-import SettingsView from "./views/SettingsView";
-import HelpView from "./views/HelpView";
-import ManageUsersView from "./views/ManageUsersView";
-import FileManagerView from "./views/FileManagerView";
-import JobsView from "./views/JobsView";
-import PipelinesView from "./views/PipelinesView";
-import EditJobView from "./views/EditJobView";
+import "./utils/overflowing";
+import Dialogs from "./components/Dialogs";
 import HeaderButtons from "./components/HeaderButtons";
+import Jupyter from "./jupyter/Jupyter";
+import PipelineSettingsView from "./views/PipelineSettingsView";
+import PipelineView from "./views/PipelineView";
 import React from "react";
 import ReactDOM from "react-dom";
-import PipelineView from "./views/PipelineView";
-import Jupyter from "./jupyter/Jupyter";
-import "./utils/overflowing";
-import JobView from "./views/JobView";
-import PipelineSettingsView from "./views/PipelineSettingsView";
-import Dialogs from "./components/Dialogs";
-import EnvironmentsView from "./views/EnvironmentsView";
-import UpdateView from "./views/UpdateView";
+
 import { PersistentLocalConfig, makeRequest } from "./lib/utils/all";
+import {
+  nameToComponent,
+  componentName,
+  generateRoute,
+  decodeRoute,
+  getViewDrawerParentViewName,
+  pascalCaseToCapitalized,
+} from "./utils/webserver-utils";
+import ProjectsView from "./views/ProjectsView";
+import JupyterLabView from "./views/JupyterLabView";
 
 function Orchest() {
   // load server side config populated by flask template
@@ -41,30 +41,28 @@ function Orchest() {
 
   this.browserConfig = new PersistentLocalConfig("orchest");
 
-  this.viewComponents = {
-    ProjectsView,
-    FileManagerView,
-    EnvironmentsView,
-    PipelineView,
-    SettingsView,
-    HelpView,
-    UpdateView,
-    PipelinesView,
-    JobsView,
-    JobView,
-    EditJobView,
-    ManageUsersView,
-  };
+  const drawer = MDCDrawer.attachTo(document.getElementById("main-drawer"));
 
-  this.componentName = function (TagName) {
-    for (let viewName of Object.keys(orchest.viewComponents)) {
-      if (orchest.viewComponents[viewName] === TagName) {
-        return viewName;
+  function setDrawerSelectedIndex(drawer, viewName) {
+    // resolve mapped parent view
+    viewName = getViewDrawerParentViewName(viewName);
+
+    for (let x = 0; x < drawer.list.listElements.length; x++) {
+      let listElement = drawer.list.listElements[x];
+      let elementViewName = listElement.attributes.getNamedItem(
+        "data-react-view"
+      ).value;
+
+      if (viewName === elementViewName) {
+        listElement.focus();
+        listElement.blur();
+        drawer.list.selectedIndex = x;
       }
     }
-  };
+  }
 
-  const drawer = MDCDrawer.attachTo(document.getElementById("main-drawer"));
+  // create Jupyter manager
+  this.jupyter = new Jupyter($(".persistent-view.jupyter"));
 
   // mount titlebar component
   this.headerBar = document.querySelector(".header-bar-interactive");
@@ -83,7 +81,9 @@ function Orchest() {
       let viewName = listElement.attributes.getNamedItem("data-react-view")
         .value;
 
-      this.loadView(this.viewComponents[viewName]);
+      this.loadView(nameToComponent(viewName), undefined, () => {
+        setDrawerSelectedIndex(drawer, this.activeView);
+      });
     }
   });
 
@@ -99,36 +99,128 @@ function Orchest() {
     }
   };
 
-  this.loadView = function (TagName, dynamicProps) {
-    let viewName = this.componentName(TagName);
+  this.activeView = undefined;
+  this._loadView = function (TagName, dynamicProps) {
+    let viewName = componentName(TagName);
+    this.activeView = viewName;
 
     // Analytics call
     this.sendEvent("view load", { name: viewName });
 
-    // make sure reactRoot is not hidden
-    $(this.reactRoot).removeClass("hidden");
-
-    if (this.jupyter) {
-      this.jupyter.hide();
-
-      if (TagName !== PipelineView && TagName !== PipelineSettingsView) {
-        this.headerBarComponent.clearPipeline();
-      }
+    if (
+      TagName !== PipelineView &&
+      TagName !== PipelineSettingsView &&
+      TagName !== JupyterLabView
+    ) {
+      this.headerBarComponent.clearPipeline();
     }
 
     // select menu if menu tag is selected
-    for (let listIndex in drawer.list.listElements) {
-      let listElement = drawer.list.listElements[listIndex];
-
-      if (listElement.getAttribute("data-react-view") === viewName) {
-        drawer.list.selectedIndex = parseInt(listIndex);
-      }
-    }
+    setDrawerSelectedIndex(this.drawer, viewName);
 
     ReactDOM.render(<TagName {...dynamicProps} />, this.reactRoot);
   };
 
+  this.setUnsavedChanges = (unsavedChanges) => {
+    if (unsavedChanges) {
+      // Enable navigation prompt
+      window.onbeforeunload = function () {
+        return true;
+      };
+    } else {
+      // Remove navigation prompt
+      window.onbeforeunload = null;
+    }
+
+    this.unsavedChanges = unsavedChanges;
+  };
+
+  this.setUnsavedChanges(false);
+
+  this.loadView = function (TagName, dynamicProps, onCancelled) {
+    let conditionalBody = () => {
+      // This public loadView sets the state through the
+      // history API.
+
+      let [pathname, search] = generateRoute(TagName, dynamicProps);
+
+      // Because pushState objects need to be serialized,
+      // we need to store the string representation of the TagName.
+      let viewName = componentName(TagName);
+      window.history.pushState(
+        {
+          viewName,
+          dynamicProps,
+        },
+        /* `title` argument for pushState was deprecated, 
+        document.title should be used instead. */
+        "",
+        pathname + search
+      );
+
+      window.document.title =
+        pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
+
+      this._loadView(TagName, dynamicProps);
+    };
+
+    if (!this.unsavedChanges) {
+      conditionalBody();
+    } else {
+      this.confirm(
+        "Warning",
+        "There are unsaved changes. Are you sure you want to navigate away?",
+        () => {
+          this.setUnsavedChanges(false);
+          conditionalBody();
+        },
+        onCancelled
+      );
+    }
+  };
+
+  window.onpopstate = (event) => {
+    if (event.state !== null) {
+      let conditionalBody = () => {
+        this._loadView(
+          nameToComponent(event.state.viewName),
+          event.state.dynamicProps
+        );
+      };
+
+      if (!this.unsavedChanges) {
+        conditionalBody();
+      } else {
+        this.confirm(
+          "Warning",
+          "There are unsaved changes. Are you sure you want to navigate away?",
+          () => {
+            this.setUnsavedChanges(false);
+            conditionalBody();
+          }
+        );
+      }
+    }
+  };
+
   this.initializeFirstView = function () {
+    // handle default
+    if (location.pathname == "/") {
+      this.loadDefaultView();
+    }
+    try {
+      let [TagName, dynamicProps] = decodeRoute(
+        location.pathname,
+        location.search
+      );
+      this.loadView(TagName, dynamicProps);
+    } catch (error) {
+      this.loadDefaultView();
+    }
+  };
+
+  this.loadDefaultView = function () {
+    // if request view doesn't load, load default route
     this.loadView(ProjectsView);
   };
 
@@ -158,20 +250,10 @@ function Orchest() {
 
   // to embed an <iframe> in the main application as a first class citizen (with state) there needs to be a
   // persistent element on the page. It will only be created when the JupyterLab UI is first requested.
-
-  this.jupyter = new Jupyter($(".persistent-view.jupyter"));
-
-  this.showJupyter = function () {
-    this.jupyter.show();
-
-    // hide reactDOM
-    $(this.reactRoot).addClass("hidden");
-  };
-
   this.dialogHolder = document.querySelector(".dialogs");
 
   // avoid anchor link clicking default behavior
-  $("a[href='#']").click((e) => {
+  $("a[href='#']").on("click", (e) => {
     e.preventDefault();
   });
 
@@ -188,6 +270,27 @@ function Orchest() {
     this.sendEvent("confirm show", { title: title, content: content });
 
     dialogs.confirm(title, content, onConfirm, onCancel);
+  };
+
+  this.requestBuild = function (
+    project_uuid,
+    environmentValidationData,
+    requestedFromView,
+    onBuildComplete,
+    onCancel
+  ) {
+    // Analytics call
+    this.sendEvent("build-request request", {
+      requestedFromView: requestedFromView,
+    });
+
+    dialogs.requestBuild(
+      project_uuid,
+      environmentValidationData,
+      requestedFromView,
+      onBuildComplete,
+      onCancel
+    );
   };
 }
 

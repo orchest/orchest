@@ -1,6 +1,6 @@
 {
     "port": 80,
-    "baseURL": "/file-manager",
+    "baseURL": "/container-file-manager",
     "address": "0.0.0.0",
     "log": "stdout",
     "database": "/database.db",

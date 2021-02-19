@@ -1,11 +1,17 @@
 import React, { Fragment } from "react";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
-import { makeRequest, checkHeartbeat } from "../lib/utils/all";
+import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
+import {
+  makeRequest,
+  checkHeartbeat,
+  PromiseManager,
+  makeCancelable,
+} from "../lib/utils/all";
 import UpdateView from "./UpdateView";
 import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";
-require("codemirror/mode/javascript/javascript");
+import "codemirror/mode/javascript/javascript";
 
 class SettingsView extends React.Component {
   constructor(props) {
@@ -16,8 +22,10 @@ class SettingsView extends React.Component {
       restarting: false,
       config: undefined,
       version: undefined,
-      configChangesPending: false,
+      unsavedChanges: false,
     };
+
+    this.promiseManager = new PromiseManager();
   }
 
   componentWillUnmount() {}
@@ -41,7 +49,12 @@ class SettingsView extends React.Component {
   }
 
   getConfig() {
-    makeRequest("GET", "/async/user-config").then((data) => {
+    let getConfigPromise = makeCancelable(
+      makeRequest("GET", "/async/user-config"),
+      this.promiseManager
+    );
+
+    getConfigPromise.promise.then((data) => {
       try {
         let configJSON = JSON.parse(data);
 
@@ -73,7 +86,7 @@ class SettingsView extends React.Component {
 
       this.setState({
         configJSON,
-        configChangesPending: false,
+        unsavedChanges: false,
       });
 
       makeRequest("POST", "/async/user-config", {
@@ -97,16 +110,23 @@ class SettingsView extends React.Component {
   }
 
   checkOrchestStatus() {
-    makeRequest("GET", "/heartbeat")
+    let checkOrchestPromise = makeCancelable(
+      makeRequest("GET", "/heartbeat"),
+      this.promiseManager
+    );
+
+    checkOrchestPromise.promise
       .then(() => {
         this.setState({
           status: "online",
         });
       })
-      .catch(() => {
-        this.setState({
-          status: "offline",
-        });
+      .catch((e) => {
+        if (!e.isCanceled) {
+          this.setState({
+            status: "offline",
+          });
+        }
       });
   }
 
@@ -154,6 +174,8 @@ class SettingsView extends React.Component {
   }
 
   render() {
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
+
     return (
       <div className={"view-page"}>
         <h2>Global settings</h2>
@@ -180,7 +202,7 @@ class SettingsView extends React.Component {
                       onBeforeChange={(editor, data, value) => {
                         this.setState({
                           config: value,
-                          configChangesPending: this.state.config != value,
+                          unsavedChanges: this.state.config != value,
                         });
                       }}
                     />
@@ -199,10 +221,13 @@ class SettingsView extends React.Component {
                     })()}
 
                     <MDCButtonReact
-                      classNames={["push-up"]}
-                      label="Save"
+                      classNames={[
+                        "push-up",
+                        "mdc-button--raised",
+                        "themed-secondary",
+                      ]}
+                      label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
                       icon="save"
-                      disabled={!this.state.configChangesPending}
                       onClick={this.saveConfig.bind(this, this.state.config)}
                     />
                   </div>

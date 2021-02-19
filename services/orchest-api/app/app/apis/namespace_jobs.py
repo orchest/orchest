@@ -7,7 +7,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
 from docker import errors
 from flask import abort, current_app, request
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc, func
 from sqlalchemy.orm import joinedload, undefer
 
@@ -19,6 +19,7 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
+    get_env_uuids_missing_image,
     get_proj_pip_env_variables,
     lock_environment_images_for_run,
     register_schema,
@@ -51,7 +52,6 @@ class JobList(Resource):
 
     @api.doc("start_job")
     @api.expect(schema.job_spec)
-    @api.marshal_with(schema.job, code=201, description="Queued job")
     def post(self):
         """Queues a new job."""
         # TODO: possibly use marshal() on the post_data. Note that we
@@ -116,7 +116,7 @@ class JobList(Resource):
             current_app.logger.error(e)
             return {"message": str(e)}, 500
 
-        return job, 201
+        return marshal(job, schema.job), 201
 
 
 @api.route("/<string:job_uuid>")
@@ -749,6 +749,26 @@ class UpdateJob(TwoPhaseFunction):
         if confirm_draft:
             if job.status != "DRAFT":
                 raise ValueError("Failed update operation. The job is not a draft.")
+
+            # Make sure all environments still exist, that is, the
+            # pipeline is not referring non-existing environments.
+            pipeline_def = job.pipeline_definition
+            environment_uuids = set(
+                [step["environment"] for step in pipeline_def["steps"].values()]
+            )
+            env_uuids_missing_image = get_env_uuids_missing_image(
+                job.project_uuid, environment_uuids
+            )
+            if env_uuids_missing_image:
+                env_uuids_missing_image = ", ".join(env_uuids_missing_image)
+                msg = (
+                    "Pipeline references environments that do not exist in the"
+                    f" project. The following environments do not exist:"
+                    f" [{env_uuids_missing_image}].\n\n Please make sure all"
+                    " pipeline steps are assigned an environment that exists"
+                    " in the project."
+                )
+                raise errors.ImageNotFound(msg)
 
             if job.schedule is None:
                 job.status = "PENDING"

@@ -11,6 +11,7 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
+  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCCheckboxReact from "../lib/mdc-components/MDCCheckboxReact";
@@ -19,7 +20,7 @@ import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact
 import { Controlled as CodeMirror } from "react-codemirror2";
 import EnvVarList from "../components/EnvVarList";
 import MDCTabBarReact from "../lib/mdc-components/MDCTabBarReact";
-require("codemirror/mode/javascript/javascript");
+import "codemirror/mode/javascript/javascript";
 
 class PipelineSettingsView extends React.Component {
   constructor(props) {
@@ -64,10 +65,10 @@ class PipelineSettingsView extends React.Component {
 
   fetchPipeline() {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      this.props.pipeline_uuid,
-      this.props.project_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.job_uuid,
-      this.props.pipelineRun && this.props.pipelineRun.uuid
+      this.props.queryArgs.pipeline_uuid,
+      this.props.queryArgs.project_uuid,
+      this.props.queryArgs.job_uuid,
+      this.props.queryArgs.run_uuid
     );
 
     let pipelinePromise = makeCancelable(
@@ -105,12 +106,12 @@ class PipelineSettingsView extends React.Component {
   }
 
   fetchPipelineMetadata() {
-    if (!this.props.pipelineRun) {
+    if (!this.props.queryArgs.job_uuid) {
       // get pipeline path
       let cancelableRequest = makeCancelable(
         makeRequest(
           "GET",
-          `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+          `/async/pipelines/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
         ),
         this.promiseManager
       );
@@ -126,7 +127,10 @@ class PipelineSettingsView extends React.Component {
 
       // get project environment variables
       let cancelableProjectRequest = makeCancelable(
-        makeRequest("GET", `/async/projects/${this.props.project_uuid}`),
+        makeRequest(
+          "GET",
+          `/async/projects/${this.props.queryArgs.project_uuid}`
+        ),
         this.promiseManager
       );
 
@@ -144,20 +148,35 @@ class PipelineSettingsView extends React.Component {
           console.error(error);
         });
     } else {
-      let cancelableRequest = makeCancelable(
+      let cancelableJobPromise = makeCancelable(
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/jobs/${this.props.pipelineRun.job_uuid}`
+          `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
+        ),
+        this.promiseManager
+      );
+      let cancelableRunPromise = makeCancelable(
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}/${this.props.queryArgs.run_uuid}`
         ),
         this.promiseManager
       );
 
-      cancelableRequest.promise.then((response) => {
-        let job = JSON.parse(response);
-
+      Promise.all([
+        cancelableJobPromise.promise.then((response) => {
+          let job = JSON.parse(response);
+          return job.pipeline_run_spec.run_config.pipeline_path;
+        }),
+        cancelableRunPromise.promise.then((response) => {
+          let run = JSON.parse(response);
+          return envVariablesDictToArray(run["env_variables"]);
+        }),
+      ]).then((values) => {
+        let [pipeline_path, envVariables] = values;
         this.setState({
-          pipeline_path: job.pipeline_run_spec.run_config.pipeline_path,
-          envVariables: envVariablesDictToArray(job["env_variables"]),
+          pipeline_path: pipeline_path,
+          envVariables: envVariables,
         });
       });
     }
@@ -165,10 +184,13 @@ class PipelineSettingsView extends React.Component {
 
   closeSettings() {
     orchest.loadView(PipelineView, {
-      pipeline_uuid: this.props.pipeline_uuid,
-      project_uuid: this.props.project_uuid,
-      readOnly: this.props.readOnly,
-      pipelineRun: this.props.pipelineRun,
+      queryArgs: {
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        project_uuid: this.props.queryArgs.project_uuid,
+        read_only: this.props.queryArgs.read_only,
+        job_uuid: this.props.queryArgs.job_uuid,
+        run_uuid: this.props.queryArgs.run_uuid,
+      },
     });
   }
 
@@ -263,7 +285,7 @@ class PipelineSettingsView extends React.Component {
     // perform POST to save
     makeRequest(
       "POST",
-      `/async/pipelines/json/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+      `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
       { type: "FormData", content: formData }
     )
       .then(() => {
@@ -277,7 +299,7 @@ class PipelineSettingsView extends React.Component {
 
     makeRequest(
       "PUT",
-      `/async/pipelines/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+      `/async/pipelines/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
       {
         type: "json",
         content: { env_variables: envVariables },
@@ -297,7 +319,7 @@ class PipelineSettingsView extends React.Component {
       let restartPromise = makeCancelable(
         makeRequest(
           "PUT",
-          `/catch/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+          `/catch/api-proxy/api/sessions/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
         ),
         this.promiseManager
       );
@@ -309,18 +331,20 @@ class PipelineSettingsView extends React.Component {
           });
         })
         .catch((response) => {
-          let errorMessage =
-            "Could not clear memory server, reason unknown. Please try again later.";
-          try {
-            errorMessage = JSON.parse(response.body)["message"];
-          } catch (error) {
-            console.error(error);
-          }
-          orchest.alert("Error", errorMessage);
+          if (!response.isCanceled) {
+            let errorMessage =
+              "Could not clear memory server, reason unknown. Please try again later.";
+            try {
+              errorMessage = JSON.parse(response.body)["message"];
+            } catch (error) {
+              console.error(error);
+            }
+            orchest.alert("Error", errorMessage);
 
-          this.setState({
-            restartingMemoryServer: false,
-          });
+            this.setState({
+              restartingMemoryServer: false,
+            });
+          }
         });
     } else {
       console.error(
@@ -331,11 +355,13 @@ class PipelineSettingsView extends React.Component {
 
   render() {
     let rootView = undefined;
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
 
     if (
       this.state.pipelineJson &&
       this.state.envVariables &&
-      (this.props.readOnly || this.state.projectEnvVariables)
+      (this.props.queryArgs.read_only === "true" ||
+        this.state.projectEnvVariables)
     ) {
       let tabView = undefined;
 
@@ -354,7 +380,7 @@ class PipelineSettingsView extends React.Component {
                     value={this.state.pipelineJson.name}
                     onChange={this.onChangeName.bind(this)}
                     label="Pipeline name"
-                    disabled={this.props.readOnly === true}
+                    disabled={this.props.queryArgs.read_only === "true"}
                     classNames={["push-down"]}
                   />
                   {this.state.pipeline_path && (
@@ -372,7 +398,7 @@ class PipelineSettingsView extends React.Component {
                       mode: "application/json",
                       theme: "jupyter",
                       lineNumbers: true,
-                      readOnly: this.props.readOnly === true,
+                      readOnly: this.props.queryArgs.read_only === "true",
                     }}
                     onBeforeChange={this.onChangePipelineParameters.bind(this)}
                   />
@@ -390,7 +416,7 @@ class PipelineSettingsView extends React.Component {
                   })()}
 
                   <h3 className="push-up">Data passing</h3>
-                  {!this.props.readOnly && (
+                  {this.props.queryArgs.read_only !== "true" && (
                     <p className="push-up">
                       <i>
                         For these changes to take effect you have to restart the
@@ -403,33 +429,37 @@ class PipelineSettingsView extends React.Component {
                     value={this.state.pipelineJson.settings.auto_eviction}
                     onChange={this.onChangeEviction.bind(this)}
                     label="Automatic memory eviction"
-                    disabled={this.props.readOnly === true}
+                    disabled={this.props.queryArgs.read_only === "true"}
                     classNames={["push-down", "push-up"]}
                   />
 
-                  {!this.props.readOnly && (
+                  {this.props.queryArgs.read_only !== "true" && (
                     <p className="push-down">
                       Change the size of the memory server for data passing. For
                       units use KB, MB, or GB, e.g.{" "}
                       <span className="code">1GB</span>.{" "}
                     </p>
                   )}
-                  <MDCTextFieldReact
-                    ref={
-                      this.refManager.nrefs
-                        .pipelineSettingDataPassingMemorySizeTextField
-                    }
-                    value={
-                      this.state.pipelineJson.settings.data_passing_memory_size
-                    }
-                    onChange={this.onChangeDataPassingMemorySize.bind(this)}
-                    label="Data passing memory size"
-                    disabled={this.props.readOnly === true}
-                  />
+
+                  <div>
+                    <MDCTextFieldReact
+                      ref={
+                        this.refManager.nrefs
+                          .pipelineSettingDataPassingMemorySizeTextField
+                      }
+                      value={
+                        this.state.pipelineJson.settings
+                          .data_passing_memory_size
+                      }
+                      onChange={this.onChangeDataPassingMemorySize.bind(this)}
+                      label="Data passing memory size"
+                      disabled={this.props.queryArgs.read_only === "true"}
+                    />
+                  </div>
                 </div>
               </form>
 
-              {!this.props.readOnly && (
+              {this.props.queryArgs.read_only !== "true" && (
                 <>
                   <h3 className="push-up push-down">Actions</h3>
 
@@ -465,7 +495,7 @@ class PipelineSettingsView extends React.Component {
           tabView = (
             <div className="push-up">
               {(() => {
-                if (this.props.readOnly) {
+                if (this.props.queryArgs.read_only === "true") {
                   return (
                     <>
                       <EnvVarList
@@ -536,7 +566,7 @@ class PipelineSettingsView extends React.Component {
               onClick={this.closeSettings.bind(this)}
             />
           </div>
-          {!this.props.readOnly && (
+          {this.props.queryArgs.read_only !== "true" && (
             <div className="bottom-buttons observe-overflow">
               <MDCButtonReact
                 label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}

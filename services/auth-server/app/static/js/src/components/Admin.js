@@ -8,20 +8,22 @@ export default class Admin extends React.Component {
 
     let userNodes = [];
 
-    for (let user of data["users"]) {
-      userNodes.push(
-        <div key={user.username}>
-          <form className="delete-user-form" method="post">
-            <input
-              type="hidden"
-              name="delete_username"
-              value={user.username}
-            ></input>
-            <span>{user.username}</span>
-            <MDCButtonReact submitButton label="Delete" />
-          </form>
-        </div>
-      );
+    if (data["users"]) {
+      for (let user of data["users"]) {
+        userNodes.push(
+          <div key={user.username}>
+            <form className="delete-user-form" method="post">
+              <input
+                type="hidden"
+                name="delete_username"
+                value={user.username}
+              ></input>
+              <span>{user.username}</span>
+              <MDCButtonReact submitButton label="Delete" />
+            </form>
+          </div>
+        );
+      }
     }
 
     return (
@@ -42,6 +44,7 @@ export default class Admin extends React.Component {
               classNames={["mdc-button--raised"]}
               label="Add"
             />
+            {data["error"] && <p className="push-up error">{data["error"]}</p>}
           </form>
         </div>
         <div className="group">
