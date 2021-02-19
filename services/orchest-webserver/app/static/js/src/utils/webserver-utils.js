@@ -1,5 +1,63 @@
 import { makeRequest } from "../lib/utils/all";
+import dashify from "dashify";
+import pascalcase from "pascalcase";
+
+import EditJobView from "../views/EditJobView";
+import EnvironmentEditView from "../views/EnvironmentEditView";
 import EnvironmentsView from "../views/EnvironmentsView";
+import FileManagerView from "../views/FileManagerView";
+import FilePreviewView from "../views/FilePreviewView";
+import HelpView from "../views/HelpView";
+import JobsView from "../views/JobsView";
+import JobView from "../views/JobView";
+import JupyterLabView from "../views/JupyterLabView";
+import ManageUsersView from "../views/ManageUsersView";
+import PipelineSettingsView from "../views/PipelineSettingsView";
+import PipelinesView from "../views/PipelinesView";
+import PipelineView from "../views/PipelineView";
+import ProjectSettingsView from "../views/ProjectSettingsView";
+import ProjectsView from "../views/ProjectsView";
+import SettingsView from "../views/SettingsView";
+import UpdateView from "../views/UpdateView";
+
+function getComponentObject() {
+  // This {str: Class} mapping is required for name
+  // resolution after Class name obfuscation performed
+  // by the JS minifier.
+  return {
+    EditJobView,
+    EnvironmentEditView,
+    EnvironmentsView,
+    FileManagerView,
+    FilePreviewView,
+    HelpView,
+    JobsView,
+    JobView,
+    JupyterLabView,
+    ManageUsersView,
+    PipelineSettingsView,
+    PipelinesView,
+    PipelineView,
+    ProjectSettingsView,
+    ProjectsView,
+    SettingsView,
+    UpdateView,
+  };
+}
+
+export function nameToComponent(viewName) {
+  return getComponentObject()[viewName];
+}
+
+export function componentName(TagName) {
+  let viewComponents = getComponentObject();
+  for (let viewName of Object.keys(viewComponents)) {
+    if (viewComponents[viewName] === TagName) {
+      return viewName;
+    }
+  }
+  console.error("Was not able to get componentName for TagName" + TagName);
+}
 
 export function checkGate(project_uuid) {
   return new Promise((resolve, reject) => {
@@ -74,7 +132,11 @@ export function requestBuild(
             });
 
           // show environments view
-          orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
+          orchest.loadView(EnvironmentsView, {
+            queryArgs: {
+              project_uuid: project_uuid,
+            },
+          });
           reject();
         },
         () => {
@@ -90,7 +152,11 @@ export function requestBuild(
             : ""),
         () => {
           // show environments view
-          orchest.loadView(EnvironmentsView, { project_uuid: project_uuid });
+          orchest.loadView(EnvironmentsView, {
+            queryArgs: {
+              project_uuid: project_uuid,
+            },
+          });
           reject();
         },
         () => {
@@ -311,3 +377,79 @@ export function envVariablesDictToArray(envVariables) {
 
   return result;
 }
+
+export function updateGlobalUnsavedChanges(unsavedChanges) {
+  // NOTE: perhaps a more granular unsaved changes
+  // is necessary in the future
+  orchest.unsavedChanges = unsavedChanges;
+}
+
+/*
+ Set of functions related to application routing.
+*/
+
+export function URIPathComponentToViewName(pathComponent) {
+  // pathComponent:
+  // e.g. /some-url/abd/?abc=12 --> just 'some-url' or 'abd'
+  return pascalcase(pathComponent) + "View";
+}
+
+export function viewNameToURIPathComponent(viewName) {
+  // strip 'View' at the end
+  viewName = viewName.slice(0, viewName.length - 4);
+  return dashify(viewName);
+}
+
+export function generateRoute(TagName, dynamicProps) {
+  // returns: [pathname, search]
+  let search = queryArgPropsToQueryArgs(
+    dynamicProps ? dynamicProps.queryArgs : {}
+  );
+  let pathname = "/" + viewNameToURIPathComponent(componentName(TagName));
+  return [pathname, search];
+}
+
+export function decodeRoute(pathname, search) {
+  // note: pathname includes '/' prefix
+  // note: search includes '?' prefix
+  // returns: [TagName, props]
+  let TagName = nameToComponent(
+    URIPathComponentToViewName(pathname.split("/")[1])
+  );
+
+  let queryArgProps = queryArgsToQueryArgProps(search);
+
+  return [TagName, { queryArgs: queryArgProps }];
+}
+
+export function queryArgPropsToQueryArgs(queryArgProps) {
+  // note: only string based query args are supported
+  if (!queryArgProps || Object.keys(queryArgProps).length == 0) {
+    return "";
+  }
+
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(queryArgProps)) {
+    if (value !== undefined) {
+      searchParams.append(key, String(value));
+    }
+  }
+  return "?" + searchParams.toString();
+}
+
+export function queryArgsToQueryArgProps(search) {
+  // note: only string based query args are supported
+  // note: search includes '?' prefix
+  let searchParams = new URLSearchParams(search);
+  let queryArgProps = {};
+
+  for (let [key, value] of searchParams.entries()) {
+    queryArgProps[key] = value;
+  }
+
+  return queryArgProps;
+}
+
+/*
+ End of routing functions.
+*/

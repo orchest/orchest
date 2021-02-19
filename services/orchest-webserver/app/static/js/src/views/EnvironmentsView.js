@@ -1,13 +1,13 @@
 import React from "react";
 import EnvironmentList from "../components/EnvironmentList";
-import ProjectBasedView from "./ProjectBasedView";
+import ProjectBasedView from "../components/ProjectBasedView";
 
 class EnvironmentsView extends React.Component {
   render() {
     let childViewProperties = {};
 
-    if (this.props.project_uuid) {
-      childViewProperties.project_uuid = this.props.project_uuid;
+    if (this.props.queryArgs.project_uuid) {
+      childViewProperties.project_uuid = this.props.queryArgs.project_uuid;
     }
 
     return (
@@ -18,5 +18,9 @@ class EnvironmentsView extends React.Component {
     );
   }
 }
+
+EnvironmentsView.defaultProps = {
+  queryArgs: {},
+};
 
 export default EnvironmentsView;

@@ -183,7 +183,9 @@ class JobList extends React.Component {
       let job = JSON.parse(response);
 
       orchest.loadView(EditJobView, {
-        job_uuid: job.uuid,
+        queryArgs: {
+          job_uuid: job.uuid,
+        },
       });
     });
   }
@@ -202,11 +204,15 @@ class JobList extends React.Component {
 
     if (job.status === "DRAFT") {
       orchest.loadView(EditJobView, {
-        job_uuid: job.uuid,
+        queryArgs: {
+          job_uuid: job.uuid,
+        },
       });
     } else {
       orchest.loadView(JobView, {
-        job_uuid: job.uuid,
+        queryArgs: {
+          job_uuid: job.uuid,
+        },
       });
     }
   }

@@ -116,14 +116,18 @@ class EnvironmentList extends React.Component {
   onClickListItem(row, idx, e) {
     let environment = this.state.environments[idx];
     orchest.loadView(EnvironmentEditView, {
-      project_uuid: this.props.project_uuid,
-      environment: environment,
+      queryArgs: {
+        project_uuid: this.props.project_uuid,
+        environment_uuid: environment.uuid,
+      },
     });
   }
 
   onCreateClick() {
     orchest.loadView(EnvironmentEditView, {
-      project_uuid: this.props.project_uuid,
+      queryArgs: {
+        project_uuid: this.props.project_uuid,
+      },
     });
   }
 

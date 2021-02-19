@@ -19,6 +19,7 @@ import {
   requestBuild,
   envVariablesArrayToDict,
   envVariablesDictToArray,
+  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 import JobView from "./JobView";
 
@@ -36,6 +37,7 @@ class EditJobView extends React.Component {
       pipeline: undefined,
       cronString: undefined,
       strategyJSON: {},
+      unsavedChanges: true,
     };
 
     this.promiseManager = new PromiseManager();
@@ -48,7 +50,10 @@ class EditJobView extends React.Component {
 
   fetchJob() {
     let fetchJobPromise = makeCancelable(
-      makeRequest("GET", `/catch/api-proxy/api/jobs/${this.props.job_uuid}`),
+      makeRequest(
+        "GET",
+        `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
+      ),
       this.promiseManager
     );
 
@@ -281,6 +286,7 @@ class EditJobView extends React.Component {
   runJob() {
     this.setState({
       runJobLoading: true,
+      unsavedChanges: false,
     });
 
     let envVariables = envVariablesArrayToDict(this.state.envVariables);
@@ -336,7 +342,9 @@ class EditJobView extends React.Component {
     putJobPromise
       .then(() => {
         orchest.loadView(JobsView, {
-          project_uuid: this.state.job.project_uuid,
+          queryArgs: {
+            project_uuid: this.state.job.project_uuid,
+          },
         });
       })
       .catch((e) => {
@@ -364,6 +372,11 @@ class EditJobView extends React.Component {
       return;
     }
 
+    // saving changes
+    this.setState({
+      unsavedChanges: false,
+    });
+
     let putJobRequest = makeCancelable(
       makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
         type: "json",
@@ -380,7 +393,9 @@ class EditJobView extends React.Component {
     putJobRequest.promise
       .then(() => {
         orchest.loadView(JobView, {
-          job_uuid: this.state.job.uuid,
+          queryArgs: {
+            job_uuid: this.state.job.uuid,
+          },
         });
       })
       .catch((error) => {
@@ -417,7 +432,9 @@ class EditJobView extends React.Component {
 
   cancel() {
     orchest.loadView(JobsView, {
-      project_uuid: this.state.job.project_uuid,
+      queryArgs: {
+        project_uuid: this.state.job.project_uuid,
+      },
     });
   }
 
@@ -521,6 +538,8 @@ class EditJobView extends React.Component {
   }
 
   render() {
+    updateGlobalUnsavedChanges(this.state.unsavedChanges);
+
     let rootView = undefined;
 
     if (this.state.job && this.state.pipeline) {

@@ -3,7 +3,7 @@ import { RefManager, uuidv4 } from "../lib/utils/all";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
 
-require("codemirror/mode/shell/shell");
+import "codemirror/mode/shell/shell";
 
 class PipelineDetailsLogs extends React.Component {
   constructor(props) {
@@ -96,9 +96,9 @@ class PipelineDetailsLogs extends React.Component {
       step_uuid: this.props.step.uuid,
     };
 
-    if (this.props.pipelineRun) {
-      data["pipeline_run_uuid"] = this.props.pipelineRun.uuid;
-      data["job_uuid"] = this.props.pipelineRun.job_uuid;
+    if (this.props.run_uuid && this.props.job_uuid) {
+      data["pipeline_run_uuid"] = this.props.run_uuid;
+      data["job_uuid"] = this.props.job_uuid;
     }
 
     this.props.sio.emit("pty-log-manager", data);

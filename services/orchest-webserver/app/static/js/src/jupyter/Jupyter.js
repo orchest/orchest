@@ -20,6 +20,7 @@ class Jupyter {
   }
 
   show() {
+    // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
 
     if (this.reloadOnShow) {
@@ -28,20 +29,23 @@ class Jupyter {
     }
 
     // make sure the baseAddress has loaded
-    if (this.iframe.src.indexOf(this.baseAddress) === -1) {
-      this.setJupyterAddress(this.baseAddress);
+    if (
+      this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
+    ) {
+      this.setJupyterAddress(this.baseAddress + "/lab/workspaces/main");
     }
   }
+
   hide() {
     this.jupyterHolder.addClass("hidden");
   }
 
   unload() {
-    this.iframe.src = "about:blank";
+    this.iframe.contentWindow.location.replace("about:blank");
   }
 
   setJupyterAddress(url) {
-    this.iframe.src = url;
+    this.iframe.contentWindow.location.replace(url);
   }
 
   reloadFilesFromDisk() {
@@ -84,22 +88,52 @@ class Jupyter {
       return;
     }
     if (
-      this.iframe.src.indexOf(this.baseAddress) !== -1 &&
+      this.iframe.contentWindow.location.href.indexOf(this.baseAddress) !==
+        -1 &&
       this.iframe.contentWindow._orchest_docmanager !== undefined
     ) {
       this.iframe.contentWindow._orchest_docmanager.openOrReveal(filePath);
     } else {
-      this.setJupyterAddress(
-        this.baseAddress +
-          "/lab/workspaces/main/tree/" +
-          encodeURIComponent(filePath) +
-          "?reset"
-      );
+      // delayed opening of filePath
+      ((jupyter) => {
+        setWithRetry(
+          true,
+          () => {
+            try {
+              jupyter.iframe.contentWindow._orchest_docmanager.openOrReveal(
+                filePath
+              );
+            } catch (err) {
+              // fail silently
+            }
+          },
+          () => {
+            let success = false;
+            try {
+              success =
+                jupyter.iframe.contentWindow._orchest_docmanager.findWidget(
+                  filePath
+                ) !== undefined;
+            } catch (err) {
+              // fail silently
+            }
+            return success;
+          },
+          1000
+        );
+      })(this);
     }
   }
 
   initializeJupyter() {
     this.iframe = document.createElement("iframe");
+
+    this.iframe.addEventListener("load", () => {
+      // disable pushState to avoid adding to Orchest navigation history
+      // by JupyterLab
+      this.iframe.contentWindow.history.pushState = () => {};
+    });
+
     $(this.iframe).attr("width", "100%");
     $(this.iframe).attr("height", "100%");
 
