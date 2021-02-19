@@ -313,7 +313,7 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
         if env_uuid in envs:
             future_jobs_using_env.append(job)
 
-    return [future_jobs_using_env]
+    return future_jobs_using_env
 
 
 def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
@@ -327,7 +327,9 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
     """
 
     int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
+    print("int_runs", len(int_runs))
     exps = jobs_using_environment(project_uuid, env_uuid)
+    print("exp", len(exps))
     return len(int_runs) > 0 or len(exps) > 0
 
 
