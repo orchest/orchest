@@ -46,7 +46,7 @@ def abortable_async_res(monkeypatch):
     return aresult
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def monkeypatch_image_utils(monkeypatch):
     monkeypatch.setattr(
         namespace_environment_images, "remove_if_dangling", lambda *args, **kwargs: None
@@ -60,6 +60,9 @@ def monkeypatch_image_utils(monkeypatch):
         namespace_environment_images,
         "docker_images_rm_safe",
         lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        namespace_jobs, "get_env_uuids_missing_image", lambda *args, **kwargs: []
     )
 
 
@@ -153,7 +156,7 @@ def interactive_run(client, pipeline, celery, monkeypatch):
 
 
 @pytest.fixture()
-def job(client, pipeline):
+def job(client, pipeline, monkeypatch_image_utils):
     """Provides a job backed by an entry in the db."""
     return Job(client, pipeline)
 

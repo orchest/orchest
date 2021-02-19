@@ -108,8 +108,10 @@ def test_environmentbuild_delete(client, celery, project, abortable_async_res):
 
 
 def test_projectenvironmostrecentbuild_get_empty(client):
-    resp = client.get("/api/environment-builds/most-recent/proj_uuid/env_uuid")
-    assert resp.status_code == 404
+    data = client.get(
+        "/api/environment-builds/most-recent/proj_uuid/env_uuid"
+    ).get_json()
+    assert data == {"environment_builds": []}
 
 
 def test_projectenvironmentmostrecentbuild_get(
@@ -125,7 +127,7 @@ def test_projectenvironmentmostrecentbuild_get(
     data = client.get(
         f"/api/environment-builds/most-recent/{project.uuid}/{env_uuid}"
     ).get_json()
-    assert data["uuid"] == last_uuid
+    assert data["environment_builds"][0]["uuid"] == last_uuid
 
 
 def test_projectmostrecentbuildlist_get_empty(client):

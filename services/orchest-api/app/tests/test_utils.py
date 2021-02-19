@@ -24,7 +24,7 @@ def create_pipeline_run_spec(project_uuid, pipeline_uuid, n_steps=1):
             "name": f"step-{i}",
             "uuid": f"uuid-{i}",
             "file_path": "",
-            "environment": 0.3,
+            "environment": "my-env",
         }
         steps[f"uuid-{i}"] = step
 
