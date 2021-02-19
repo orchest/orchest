@@ -144,8 +144,8 @@ class Jupyter {
                     return false;
                   }
                 },
-                50,
-                1000
+                100,
+                250
               );
             })(this);
           }
@@ -155,8 +155,8 @@ class Jupyter {
           return false;
         }
       },
-      10,
-      100
+      100,
+      250
     );
   }
 
