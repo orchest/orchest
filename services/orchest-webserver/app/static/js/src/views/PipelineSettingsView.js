@@ -148,20 +148,35 @@ class PipelineSettingsView extends React.Component {
           console.error(error);
         });
     } else {
-      let cancelableRequest = makeCancelable(
+      let cancelableJobPromise = makeCancelable(
         makeRequest(
           "GET",
           `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
         ),
         this.promiseManager
       );
+      let cancelableRunPromise = makeCancelable(
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}/${this.props.queryArgs.run_uuid}`
+        ),
+        this.promiseManager
+      );
 
-      cancelableRequest.promise.then((response) => {
-        let job = JSON.parse(response);
-
+      Promise.all([
+        cancelableJobPromise.promise.then((response) => {
+          let job = JSON.parse(response);
+          return job.pipeline_run_spec.run_config.pipeline_path;
+        }),
+        cancelableRunPromise.promise.then((response) => {
+          let run = JSON.parse(response);
+          return envVariablesDictToArray(run["env_variables"]);
+        }),
+      ]).then((values) => {
+        let [pipeline_path, envVariables] = values;
         this.setState({
-          pipeline_path: job.pipeline_run_spec.run_config.pipeline_path,
-          envVariables: envVariablesDictToArray(job["env_variables"]),
+          pipeline_path: pipeline_path,
+          envVariables: envVariables,
         });
       });
     }
