@@ -7,7 +7,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
 from docker import errors
 from flask import abort, current_app, request
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc, func
 from sqlalchemy.orm import joinedload, undefer
 
@@ -19,6 +19,7 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
+    get_env_uuids_missing_image,
     get_proj_pip_env_variables,
     lock_environment_images_for_run,
     register_schema,
@@ -51,7 +52,6 @@ class JobList(Resource):
 
     @api.doc("start_job")
     @api.expect(schema.job_spec)
-    @api.marshal_with(schema.job, code=201, description="Queued job")
     def post(self):
         """Queues a new job."""
         # TODO: possibly use marshal() on the post_data. Note that we
@@ -89,6 +89,26 @@ class JobList(Resource):
             else:
                 raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
+            # Make sure all environments still exist, that is, the
+            # pipeline is not refering non-existing environments.
+            pipeline_def = post_data["pipeline_definition"]
+            environment_uuids = set(
+                [step["environment"] for step in pipeline_def["steps"].values()]
+            )
+            env_uuids_missing_image = get_env_uuids_missing_image(
+                post_data["project_uuid"], environment_uuids
+            )
+            if env_uuids_missing_image:
+                env_uuids_missing_image = ", ".join(env_uuids_missing_image)
+                msg = (
+                    "Pipeline references environments that do not exist in the"
+                    f" project, the following environments do not exist:"
+                    f" [{env_uuids_missing_image}].\n Please make sure all"
+                    " pipeline steps are assigned an environment that exists"
+                    " in the project."
+                )
+                raise errors.ImageNotFound(msg)
+
             job = {
                 "uuid": post_data["uuid"],
                 "name": post_data["name"],
@@ -100,7 +120,7 @@ class JobList(Resource):
                 "env_variables": get_proj_pip_env_variables(
                     post_data["project_uuid"], post_data["pipeline_uuid"]
                 ),
-                "pipeline_definition": post_data["pipeline_definition"],
+                "pipeline_definition": pipeline_def,
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,
                 "next_scheduled_time": next_scheduled_time,
@@ -116,7 +136,7 @@ class JobList(Resource):
             current_app.logger.error(e)
             return {"message": str(e)}, 500
 
-        return job, 201
+        return marshal(job, schema.job), 201
 
 
 @api.route("/<string:job_uuid>")
