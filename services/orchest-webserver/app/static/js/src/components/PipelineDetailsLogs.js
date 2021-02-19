@@ -107,7 +107,7 @@ class PipelineDetailsLogs extends React.Component {
   render() {
     return (
       <div className={"detail-subview"}>
-        <div className="log-content">
+        <div className="log-content xterm-holder">
           <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
         </div>
       </div>
