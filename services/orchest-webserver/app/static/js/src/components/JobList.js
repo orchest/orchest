@@ -165,29 +165,49 @@ class JobList extends React.Component {
       createModelLoading: true,
     });
 
-    makeRequest("POST", "/catch/api-proxy/api/jobs/", {
-      type: "json",
-      content: {
-        pipeline_uuid: pipeline_uuid,
-        pipeline_name: pipelineName,
-        project_uuid: this.props.project_uuid,
-        name: this.refManager.refs.formJobName.mdc.value,
-        draft: true,
-        pipeline_run_spec: {
-          run_type: "full",
-          uuids: [],
+    let postJobPromise = makeCancelable(
+      makeRequest("POST", "/catch/api-proxy/api/jobs/", {
+        type: "json",
+        content: {
+          pipeline_uuid: pipeline_uuid,
+          pipeline_name: pipelineName,
+          project_uuid: this.props.project_uuid,
+          name: this.refManager.refs.formJobName.mdc.value,
+          draft: true,
+          pipeline_run_spec: {
+            run_type: "full",
+            uuids: [],
+          },
+          parameters: [],
         },
-        parameters: [],
-      },
-    }).then((response) => {
-      let job = JSON.parse(response);
+      }),
+      this.promiseManager
+    );
 
-      orchest.loadView(EditJobView, {
-        queryArgs: {
-          job_uuid: job.uuid,
-        },
+    postJobPromise.promise
+      .then((response) => {
+        let job = JSON.parse(response);
+
+        orchest.loadView(EditJobView, {
+          queryArgs: {
+            job_uuid: job.uuid,
+          },
+        });
+      })
+      .catch((response) => {
+        if (!response.isCanceled) {
+          try {
+            let result = JSON.parse(response.body);
+            orchest.alert("Error", "Failed to create job. " + result.message);
+
+            this.setState({
+              createModelLoading: false,
+            });
+          } catch (error) {
+            console.log(error);
+          }
+        }
       });
-    });
   }
   onCancelModal() {
     this.refManager.refs.createJobDialog.close();
