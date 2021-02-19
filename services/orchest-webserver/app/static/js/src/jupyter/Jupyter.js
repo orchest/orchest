@@ -32,8 +32,10 @@ class Jupyter {
     if (
       this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
     ) {
-      this.setJupyterAddress(this.baseAddress + "/lab/workspaces/main");
+      this.setJupyterAddress(this.baseAddress + "/lab");
     }
+
+    this.fixJupyterRenderingGlitch();
   }
 
   hide() {
@@ -93,6 +95,18 @@ class Jupyter {
     }
   }
 
+  fixJupyterRenderingGlitch() {
+    if (
+      this.isJupyterShellShowing() &&
+      this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+        "#jp-main-content-panel"
+      ).clientWidth !=
+        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
+    ) {
+      this.iframe.contentWindow.location.reload();
+    }
+  }
+
   navigateTo(filePath) {
     if (!filePath) {
       return;
@@ -130,8 +144,8 @@ class Jupyter {
                     return false;
                   }
                 },
-                50,
-                1000
+                100,
+                250
               );
             })(this);
           }
@@ -141,19 +155,13 @@ class Jupyter {
           return false;
         }
       },
-      10,
-      100
+      100,
+      250
     );
   }
 
   initializeJupyter() {
     this.iframe = document.createElement("iframe");
-
-    this.iframe.addEventListener("load", () => {
-      // disable pushState to avoid adding to Orchest navigation history
-      // by JupyterLab
-      this.iframe.contentWindow.history.pushState = () => {};
-    });
 
     $(this.iframe).attr("width", "100%");
     $(this.iframe).attr("height", "100%");

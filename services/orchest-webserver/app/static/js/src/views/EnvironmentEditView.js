@@ -378,8 +378,10 @@ class EnvironmentEditView extends React.Component {
 
     environmentBuildRequestPromise.promise
       .then((response) => {
-        let environmentBuild = JSON.parse(response);
-        this.updateEnvironmentBuildState(environmentBuild);
+        let environmentBuilds = JSON.parse(response)["environment_builds"];
+        if (environmentBuilds.length > 0) {
+          this.updateEnvironmentBuildState(environmentBuilds[0]);
+        }
       })
       .catch((error) => {});
   }

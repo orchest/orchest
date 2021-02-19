@@ -15,7 +15,6 @@ import {
 
 import {
   checkGate,
-  requestBuild,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
   updateGlobalUnsavedChanges,
@@ -220,6 +219,8 @@ class PipelineView extends React.Component {
     clearInterval(this.sessionPollingInterval);
 
     this.promiseManager.cancelCancelablePromises();
+
+    this._ismounted = false;
   }
 
   constructor(props) {
@@ -257,6 +258,7 @@ class PipelineView extends React.Component {
 
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
+    this._ismounted = true;
 
     this.pipelineStepStatusPollingInterval = undefined;
     this.sessionPollingInterval = undefined;
@@ -309,11 +311,14 @@ class PipelineView extends React.Component {
           })
           .catch((result) => {
             if (result.reason === "gate-failed") {
-              requestBuild(
+              orchest.requestBuild(
                 props.queryArgs.project_uuid,
                 result.data,
-                "Pipeline"
-              ).catch((e) => {});
+                "Pipeline",
+                () => {
+                  this.loadViewInEdit();
+                }
+              );
             }
           });
       }
@@ -327,6 +332,7 @@ class PipelineView extends React.Component {
     let newProps = {};
     Object.assign(newProps, this.props);
     newProps.queryArgs.read_only = "false";
+    newProps.key = uuidv4();
     // open in non-read only
     orchest.loadView(PipelineView, newProps);
   }
@@ -415,7 +421,7 @@ class PipelineView extends React.Component {
           `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
           { type: "FormData", content: formData }
         ).then(() => {
-          if (callback && typeof callback == "function") {
+          if (callback && typeof callback == "function" && this._ismounted) {
             callback();
           }
         });
@@ -1326,7 +1332,15 @@ class PipelineView extends React.Component {
     }
 
     delete this.state.steps[uuid];
+
+    // if step is in selectedSteps remove
+    let deletedStepIndex = this.state.selectedSteps.indexOf(uuid);
+    if (deletedStepIndex >= 0) {
+      this.state.selectedSteps.splice(deletedStepIndex, 1);
+    }
+
     this.setState({
+      selectedSteps: this.state.selectedSteps,
       steps: this.state.steps,
       unsavedChanges: true,
     });
@@ -1430,12 +1444,10 @@ class PipelineView extends React.Component {
       let finished_time = undefined;
 
       if (result.pipeline_steps[x].started_time) {
-        started_time = new Date(result.pipeline_steps[x].started_time + " GMT");
+        started_time = new Date(result.pipeline_steps[x].started_time + "Z");
       }
       if (result.pipeline_steps[x].finished_time) {
-        finished_time = new Date(
-          result.pipeline_steps[x].finished_time + " GMT"
-        );
+        finished_time = new Date(result.pipeline_steps[x].finished_time + "Z");
       }
 
       this.setStepExecutionState(result.pipeline_steps[x].step_uuid, {
@@ -1680,21 +1692,23 @@ class PipelineView extends React.Component {
         this.startStatusInterval();
       })
       .catch((response) => {
-        this.setState({
-          pipelineRunning: false,
-        });
+        if (!response.isCanceled) {
+          this.setState({
+            pipelineRunning: false,
+          });
 
-        try {
-          let data = JSON.parse(response.body);
-          orchest.alert(
-            "Error",
-            "Failed to start interactive run. " + data["message"]
-          );
-        } catch {
-          orchest.alert(
-            "Error",
-            "Failed to start interactive run. Unknown error."
-          );
+          try {
+            let data = JSON.parse(response.body);
+            orchest.alert(
+              "Error",
+              "Failed to start interactive run. " + data["message"]
+            );
+          } catch {
+            orchest.alert(
+              "Error",
+              "Failed to start interactive run. Unknown error."
+            );
+          }
         }
       });
   }

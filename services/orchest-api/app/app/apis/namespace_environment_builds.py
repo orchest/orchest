@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from celery.contrib.abortable import AbortableAsyncResult
-from flask import abort, current_app, request
+from flask import current_app, request
 from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func, or_
 
@@ -41,7 +41,9 @@ class EnvironmentBuildList(Resource):
     @api.doc("start_environment_builds")
     @api.expect(schema.environment_build_requests)
     @api.marshal_with(
-        schema.environment_builds, code=201, description="Queued environment builds"
+        schema.environment_builds_requests_result,
+        code=201,
+        description="Queued environment builds",
     )
     def post(self):
         """Queues a list of environment builds.
@@ -203,13 +205,15 @@ class ProjectMostRecentBuildsList(Resource):
 @api.param("environment_uuid", "UUID of the environment.")
 class ProjectEnvironmentMostRecentBuild(Resource):
     @api.doc("get_most_recent_build_by_proj_env")
-    @api.marshal_with(schema.environment_build, code=200)
+    @api.marshal_with(schema.environment_builds, code=200)
     def get(self, project_uuid, environment_uuid):
         """Get the most recent build for a project and environment pair.
 
         Only environments for which builds have already been requested
         are considered.
         """
+
+        environment_builds = []
 
         recent = (
             db.session.query(models.EnvironmentBuild)
@@ -218,8 +222,9 @@ class ProjectEnvironmentMostRecentBuild(Resource):
             .first()
         )
         if recent:
-            return recent.as_dict()
-        abort(404, "EnvironmentBuild not found.")
+            environment_builds.append(recent.as_dict())
+
+        return {"environment_builds": environment_builds}
 
 
 class CreateEnvironmentBuild(TwoPhaseFunction):

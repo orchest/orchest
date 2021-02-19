@@ -292,6 +292,11 @@ p > i.material-icons.float-left {
   }
 }
 
+.xterm-holder {
+  background: #000;
+  padding: 5px;
+}
+
 .edit-environment {
   span.build-label {
     display: inline-block;
@@ -532,7 +537,7 @@ button.text-button {
   .top-labels {
     font-size: 14px;
 
-    a {
+    button.text-button {
       font-size: 16px;
     }
 
@@ -818,11 +823,6 @@ h2.header {
       width: 25%;
     }
   }
-}
-
-a {
-  color: $mdc-theme-secondary;
-  cursor: pointer;
 }
 
 .console-output {

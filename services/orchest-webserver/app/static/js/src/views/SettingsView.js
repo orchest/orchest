@@ -2,7 +2,12 @@ import React, { Fragment } from "react";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
-import { makeRequest, checkHeartbeat } from "../lib/utils/all";
+import {
+  makeRequest,
+  checkHeartbeat,
+  PromiseManager,
+  makeCancelable,
+} from "../lib/utils/all";
 import UpdateView from "./UpdateView";
 import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -19,6 +24,8 @@ class SettingsView extends React.Component {
       version: undefined,
       unsavedChanges: false,
     };
+
+    this.promiseManager = new PromiseManager();
   }
 
   componentWillUnmount() {}
@@ -42,7 +49,12 @@ class SettingsView extends React.Component {
   }
 
   getConfig() {
-    makeRequest("GET", "/async/user-config").then((data) => {
+    let getConfigPromise = makeCancelable(
+      makeRequest("GET", "/async/user-config"),
+      this.promiseManager
+    );
+
+    getConfigPromise.promise.then((data) => {
       try {
         let configJSON = JSON.parse(data);
 
@@ -98,16 +110,23 @@ class SettingsView extends React.Component {
   }
 
   checkOrchestStatus() {
-    makeRequest("GET", "/heartbeat")
+    let checkOrchestPromise = makeCancelable(
+      makeRequest("GET", "/heartbeat"),
+      this.promiseManager
+    );
+
+    checkOrchestPromise.promise
       .then(() => {
         this.setState({
           status: "online",
         });
       })
-      .catch(() => {
-        this.setState({
-          status: "offline",
-        });
+      .catch((e) => {
+        if (!e.isCanceled) {
+          this.setState({
+            status: "offline",
+          });
+        }
       });
   }
 

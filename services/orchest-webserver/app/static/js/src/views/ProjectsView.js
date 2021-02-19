@@ -221,10 +221,7 @@ class ProjectsView extends React.Component {
         try {
           let data = JSON.parse(response.body);
 
-          orchest.alert(
-            "Error",
-            "Could not create project. Reason " + data.message
-          );
+          orchest.alert("Error", "Could not create project. " + data.message);
         } catch {
           orchest.alert("Error", "Could not create project. Reason unknown.");
         }

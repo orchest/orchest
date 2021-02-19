@@ -45,6 +45,37 @@ function getComponentObject() {
   };
 }
 
+export function getViewDrawerParentViewName(viewName) {
+  /* This function describes the parent->child relation
+     between child views and root views listed
+     in the drawer menu.
+
+     This is used for example for selecting the right
+     drawer item when a child view is loaded.
+  */
+
+  let viewHierarchy = {
+    EditJobView: JobsView,
+    EnvironmentEditView: EnvironmentsView,
+    EnvironmentsView: EnvironmentsView,
+    FileManagerView: FileManagerView,
+    FilePreviewView: PipelinesView,
+    HelpView: HelpView,
+    JobsView: JobsView,
+    JobView: JobsView,
+    JupyterLabView: PipelinesView,
+    ManageUsersView: SettingsView,
+    PipelineSettingsView: PipelinesView,
+    PipelinesView: PipelinesView,
+    PipelineView: PipelinesView,
+    ProjectSettingsView: ProjectsView,
+    ProjectsView: ProjectsView,
+    SettingsView: SettingsView,
+    UpdateView: SettingsView,
+  };
+  return componentName(viewHierarchy[viewName]);
+}
+
 export function nameToComponent(viewName) {
   return getComponentObject()[viewName];
 }
@@ -83,95 +114,6 @@ export function checkGate(project_uuid) {
       .catch((error) => {
         reject({ reason: "request-failed", error: error });
       });
-  });
-}
-
-export function requestBuild(
-  project_uuid,
-  environmentValidationData,
-  requestedFromView
-) {
-  // NOTE: It is assumed requestBuild is only called after a pipeline gate check
-  // fails
-
-  return new Promise((resolve, reject) => {
-    let environmentsToBeBuilt = [];
-
-    for (let x = 0; x < environmentValidationData.actions.length; x++) {
-      if (environmentValidationData.actions[x] == "BUILD") {
-        environmentsToBeBuilt.push(environmentValidationData.fail[x]);
-      }
-    }
-
-    let messageSuffix = "";
-    switch (requestedFromView) {
-      case "Pipeline":
-        messageSuffix =
-          " You can cancel to open the pipeline in read-only mode.";
-        break;
-      case "JupyterLab":
-        messageSuffix =
-          " To start JupyterLab all environments in the project need to be built.";
-        break;
-    }
-
-    if (environmentsToBeBuilt.length > 0) {
-      orchest.confirm(
-        "Build",
-        `Not all environments of this project have been built. Would you like to build them?` +
-          messageSuffix,
-        () => {
-          let environment_build_requests = [];
-
-          for (let environmentUUID of environmentsToBeBuilt) {
-            environment_build_requests.push({
-              environment_uuid: environmentUUID,
-              project_uuid: project_uuid,
-            });
-          }
-
-          makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
-            type: "json",
-            content: {
-              environment_build_requests: environment_build_requests,
-            },
-          })
-            .then((_) => {})
-            .catch((error) => {
-              console.log(error);
-            });
-
-          // show environments view
-          orchest.loadView(EnvironmentsView, {
-            queryArgs: {
-              project_uuid: project_uuid,
-            },
-          });
-          resolve();
-        },
-        () => {
-          reject();
-        }
-      );
-    } else {
-      orchest.confirm(
-        "Build",
-        `Some environments of this project are still building. Would you like to check their status?` +
-          messageSuffix,
-        () => {
-          // show environments view
-          orchest.loadView(EnvironmentsView, {
-            queryArgs: {
-              project_uuid: project_uuid,
-            },
-          });
-          resolve();
-        },
-        () => {
-          reject();
-        }
-      );
-    }
   });
 }
 
@@ -265,9 +207,7 @@ export function getScrollLineHeight() {
 }
 
 export function formatServerDateTime(dateTimeString) {
-  return new Date(
-    dateTimeString.replace(/T/, " ").replace(/\..+/, "") + " GMT"
-  ).toLocaleString();
+  return new Date(dateTimeString + "Z").toLocaleString();
 }
 
 export function getPipelineJSONEndpoint(
@@ -406,7 +346,7 @@ export function envVariablesDictToArray(envVariables) {
 export function updateGlobalUnsavedChanges(unsavedChanges) {
   // NOTE: perhaps a more granular unsaved changes
   // is necessary in the future
-  orchest.unsavedChanges = unsavedChanges;
+  orchest.setUnsavedChanges(unsavedChanges);
 }
 
 /*
@@ -473,6 +413,12 @@ export function queryArgsToQueryArgProps(search) {
   }
 
   return queryArgProps;
+}
+
+export function pascalCaseToCapitalized(viewName) {
+  const regex = /([A-Z])/gm;
+  const subst = ` $1`;
+  return viewName.replace(regex, subst).trim();
 }
 
 /*
