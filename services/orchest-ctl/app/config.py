@@ -1,10 +1,12 @@
 from typing import List, Set
 
+# NOTE: "orchest/orchest-ctl:latest" is excluded on purpose, since the
+# orchest-ctl is not managing itself. Instead the top-level `orchest`
+# shell script manages its updates.
 _minimal_orchest_images = [
     "orchest/jupyter-enterprise-gateway:latest",
     "orchest/jupyter-server:latest",
     "orchest/memory-server:latest",
-    "orchest/orchest-ctl:latest",
     "orchest/update-server:latest",
     "orchest/orchest-api:latest",
     "orchest/orchest-webserver:latest",

@@ -88,9 +88,7 @@ class OrchestApp:
         req_images: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
         missing_images = req_images - set(pulled_images)
 
-        if missing_images or not self.docker_client.is_network_installed(
-            self.resource_manager.network
-        ):
+        if missing_images or not self.resource_manager.is_network_installed():
             utils.echo("Before starting Orchest, make sure Orchest is installed. Run:")
             utils.echo("\torchest install")
             return

@@ -1,5 +1,5 @@
 from typing import List, Literal
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,6 +15,7 @@ from app import orchest, spec, utils
     ],
     ids=["completed", "partial", "none"],
 )
+@patch("app.docker_wrapper.OrchestResourceManager.network", "orchest-ctl-tests")
 def test_install(installed_images, expected_stdout, install_orchest, capsys):
     required_images = ["A", "B"]
     orchest.get_required_images = MagicMock(return_value=required_images)
@@ -216,6 +217,7 @@ def test_stop(
         "clean",
     ],
 )
+@patch("app.docker_wrapper.OrchestResourceManager.network", "orchest-ctl-tests")
 def test_start(
     container_config,
     running_containers,
@@ -260,6 +262,7 @@ def test_start(
 
     app = orchest.OrchestApp()
     monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
+    resource_manager.docker_client = docker_client
     app.resource_manager = resource_manager
     app.docker_client = docker_client
 
