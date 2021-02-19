@@ -393,13 +393,16 @@ class OrchestResourceManager:
     def __init__(self):
         self.docker_client = DockerWrapper()
 
+    def is_network_installed(self):
+        return self.docker_client.is_network_installed(self.network)
+
     def install_network(self) -> None:
         """Installs the Orchest Docker network."""
         # Don't install the network again if it is already installed
         # because that will create the another network with the same
         # name but with another ID. Thereby, breaking Orchest.
         try:
-            is_installed = self.docker_client.is_network_installed(self.network)
+            is_installed = self.is_network_installed()
         except docker.errors.APIError:
             # TODO: reraise the error but with a helpful message that
             # helps the user fix the issue.
