@@ -49,21 +49,11 @@ class JupyterLabView extends React.Component {
             result.data,
             "JupyterLab",
             () => {
-              orchest.confirm(
-                "Build",
-                "All environments have been built. Would you like to start JupyterLab?",
-                () => {
-                  // force view reload
-                  orchest.loadView(JupyterLabView, {
-                    ...this.props,
-                    key: uuidv4(),
-                  });
-                },
-                () => {
-                  // back to pipelines view
-                  orchest.loadView(PipelinesView);
-                }
-              );
+              // force view reload
+              orchest.loadView(JupyterLabView, {
+                ...this.props,
+                key: uuidv4(),
+              });
             },
             () => {
               // back to pipelines view

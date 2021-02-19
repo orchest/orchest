@@ -316,13 +316,7 @@ class PipelineView extends React.Component {
                 result.data,
                 "Pipeline",
                 () => {
-                  orchest.confirm(
-                    "Build",
-                    "All environments have been built. Would you like to open the pipeline editor in edit mode?",
-                    () => {
-                      this.loadViewInEdit();
-                    }
-                  );
+                  this.loadViewInEdit();
                 }
               );
             }

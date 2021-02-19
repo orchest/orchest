@@ -275,13 +275,7 @@ class EditJobView extends React.Component {
               result.data,
               "CreateJob",
               () => {
-                orchest.confirm(
-                  "Build",
-                  "All environments have been built. Would you like to run the job?",
-                  () => {
-                    this.attemptRunJob();
-                  }
-                );
+                this.attemptRunJob();
               }
             );
           }
@@ -338,16 +332,15 @@ class EditJobView extends React.Component {
 
     // Update orchest-api through PUT.
     // Note: confirm_draft will trigger the start the job.
-    let putJobPromise = makeRequest(
-      "PUT",
-      "/catch/api-proxy/api/jobs/" + this.state.job.uuid,
-      {
+    let putJobPromise = makeCancelable(
+      makeRequest("PUT", "/catch/api-proxy/api/jobs/" + this.state.job.uuid, {
         type: "json",
         content: jobPUTData,
-      }
+      }),
+      this.promiseManager
     );
 
-    putJobPromise
+    putJobPromise.promise
       .then(() => {
         orchest.loadView(JobsView, {
           queryArgs: {
@@ -355,8 +348,22 @@ class EditJobView extends React.Component {
           },
         });
       })
-      .catch((e) => {
-        console.log(e);
+      .catch((response) => {
+        if (!response.isCanceled) {
+          try {
+            let result = JSON.parse(response.body);
+
+            orchest.alert("Error", "Failed to start job. " + result.message);
+
+            orchest.loadView(JobsView, {
+              queryArgs: {
+                project_uuid: this.state.job.project_uuid,
+              },
+            });
+          } catch (error) {
+            console.log("error");
+          }
+        }
       });
   }
 
