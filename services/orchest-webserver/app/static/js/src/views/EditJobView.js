@@ -564,34 +564,6 @@ class EditJobView extends React.Component {
         case 0:
           tabView = (
             <div className="tab-view">
-              <ParameterEditor
-                pipelineName={this.state.pipeline.name}
-                onParameterChange={this.onParameterChange.bind(this)}
-                strategyJSON={this.state.strategyJSON}
-              />
-            </div>
-          );
-          break;
-        case 1:
-          tabView = (
-            <div className="tab-view">
-              <p className="push-down">
-                Override any project or pipeline environment variables here.
-              </p>
-              <EnvVarList
-                value={this.state.envVariables}
-                onAdd={this.addEnvVariablePair.bind(this)}
-                onChange={(e, idx, type) =>
-                  this.onEnvVariablesChange(e, idx, type)
-                }
-                onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
-              />
-            </div>
-          );
-          break;
-        case 2:
-          tabView = (
-            <div className="tab-view">
               {this.state.job.status === "DRAFT" && (
                 <div>
                   <div className="push-down">
@@ -651,6 +623,35 @@ class EditJobView extends React.Component {
               </div>
             </div>
           );
+          
+          break;
+        case 1:
+          tabView = (
+            <div className="tab-view">
+              <ParameterEditor
+                pipelineName={this.state.pipeline.name}
+                onParameterChange={this.onParameterChange.bind(this)}
+                strategyJSON={this.state.strategyJSON}
+              />
+            </div>
+          );
+          break;
+        case 2:
+          tabView = (
+            <div className="tab-view">
+              <p className="push-down">
+                Override any project or pipeline environment variables here.
+              </p>
+              <EnvVarList
+                value={this.state.envVariables}
+                onAdd={this.addEnvVariablePair.bind(this)}
+                onChange={(e, idx, type) =>
+                  this.onEnvVariablesChange(e, idx, type)
+                }
+                onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
+              />
+            </div>
+          );
           break;
         case 3:
           tabView = (
@@ -688,9 +689,9 @@ class EditJobView extends React.Component {
             selectedIndex={this.state.selectedTabIndex}
             ref={this.refManager.nrefs.tabBar}
             items={[
+              "Scheduling",
               "Parameters",
               "Environment variables",
-              "Scheduling",
               "Pipeline runs (" +
                 this.state.selectedIndices.reduce(
                   (total, num) => total + num,
@@ -700,7 +701,7 @@ class EditJobView extends React.Component {
                 this.state.generatedPipelineRuns.length +
                 ")",
             ]}
-            icons={["tune", "view_comfy", "schedule", "list"]}
+            icons={["schedule", "tune", "view_comfy", "list"]}
             onChange={this.onSelectSubview.bind(this)}
           />
 
