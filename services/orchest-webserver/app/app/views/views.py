@@ -557,6 +557,12 @@ def register_views(app, db):
                     html_exporter = HTMLExporter()
                     (file_content, _) = html_exporter.from_filename(file_path)
 
+                    # custom CSS
+                    custom_style = "<style>.CodeMirror pre {overflow: auto}</style>"
+                    file_content = file_content.replace(
+                        "</head>", custom_style + "</head>", 1
+                    )
+
                 except IOError as error:
                     app.logger.info(
                         "Error opening notebook file %s error: %s" % (file_path, error)
