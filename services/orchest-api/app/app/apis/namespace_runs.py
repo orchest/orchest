@@ -297,7 +297,6 @@ class CreateInteractiveRun(TwoPhaseFunction):
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
         celery = make_celery(current_app)
-        run_config = run_config
         run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
         run_config["user_env_variables"] = env_variables
         celery_job_kwargs = {

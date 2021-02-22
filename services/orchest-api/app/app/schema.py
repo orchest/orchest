@@ -395,7 +395,7 @@ job = Model(
         "name": fields.String(required=True, description="Name of the job."),
         "strategy_json": fields.Raw(required=True, description="Strategy json."),
         "env_variables": fields.Raw(
-            required=True, description="Environment variables of the job"
+            required=False, description="Environment variables of the job"
         ),
     },
 )
