@@ -277,6 +277,9 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
     if utils.do_proxy_certs_exist_on_host():
         certs_bind: dict = {
             "nginx-proxy": {
+                "Env": [
+                    "ENABLE_SSL=true",
+                ],
                 "ExposedPorts": {"443/tcp": {}},
                 "HostConfig": {
                     "PortBindings": {

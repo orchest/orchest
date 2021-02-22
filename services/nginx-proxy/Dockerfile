@@ -5,6 +5,9 @@ RUN apt-get update && apt-get install python3 -y
 
 RUN mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
 
+# Add environment variable
+RUN echo "\nenv ENABLE_SSL;" >> /usr/local/openresty/nginx/conf/nginx.conf
+
 COPY ./*.conf* /etc/nginx/conf.d/
 
 COPY ./certs/* /etc/ssl/certs/
