@@ -623,7 +623,7 @@ class EditJobView extends React.Component {
               </div>
             </div>
           );
-          
+
           break;
         case 1:
           tabView = (
