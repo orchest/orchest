@@ -353,11 +353,11 @@ class JobView extends React.Component {
             </div>
             <div className="push-up">
               <div className="column">
-                <label>Created at</label>
+                <label>Snapshot date</label>
                 <h3>{formatServerDateTime(this.state.job.created_time)}</h3>
               </div>
               <div className="column">
-                <label>Scheduled at</label>
+                <label>Scheduled</label>
                 <h3>
                   {this.state.job.next_scheduled_time
                     ? formatServerDateTime(this.state.job.next_scheduled_time)

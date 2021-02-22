@@ -355,7 +355,7 @@ class JobList extends React.Component {
                   selectable={true}
                   onRowClick={this.onRowClick.bind(this)}
                   rows={this.jobListToTableData(this.state.jobs)}
-                  headers={["Job", "Pipeline", "Date created", "Status"]}
+                  headers={["Job", "Pipeline", "Snapshot date", "Status"]}
                 />
               </Fragment>
             );
