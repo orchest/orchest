@@ -357,7 +357,7 @@ class JobView extends React.Component {
                 <h3>{formatServerDateTime(this.state.job.created_time)}</h3>
               </div>
               <div className="column">
-                <label>Scheduled</label>
+                <label>Scheduled to run</label>
                 <h3>
                   {this.state.job.next_scheduled_time
                     ? formatServerDateTime(this.state.job.next_scheduled_time)
