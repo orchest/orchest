@@ -1,6 +1,6 @@
 from tests.test_utils import create_env_build_request
 
-from _orchest.internals.test_utils import CeleryMock, gen_uuid
+from _orchest.internals.test_utils import CeleryMock, gen_uuid, raise_exception_function
 from app.apis import namespace_environment_builds
 
 
@@ -39,7 +39,7 @@ def test_environmentbuildlist_post_same(client, celery, project):
 
 def test_environmentbuildlist_post_with_error1(client, project, monkeypatch):
     monkeypatch.setattr(
-        namespace_environment_builds, "make_celery", lambda *args, **kwargs: 1 / 0
+        namespace_environment_builds, "make_celery", raise_exception_function()
     )
 
     data = client.post(
@@ -54,7 +54,9 @@ def test_environmentbuildlist_post_with_error2(client, project, monkeypatch):
     monkeypatch.setattr(
         namespace_environment_builds,
         "make_celery",
-        lambda *args, **kwargs: 1 / 0 if len(celery.tasks) > 0 else celery,
+        raise_exception_function(
+            should_trigger=lambda: bool(celery.tasks), return_value=celery
+        ),
     )
 
     data = client.post(
@@ -75,7 +77,7 @@ def test_environmentbuildlist_get(client, celery, project):
 
 def test_environmentbuildlist_post_revert(client, project, monkeypatch):
     monkeypatch.setattr(
-        namespace_environment_builds, "make_celery", lambda *args, **kwargs: 1 / 0
+        namespace_environment_builds, "make_celery", raise_exception_function()
     )
     client.post(
         "/api/environment-builds/", json=create_env_build_request(project.uuid, 1)

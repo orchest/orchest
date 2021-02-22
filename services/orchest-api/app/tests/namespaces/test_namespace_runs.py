@@ -3,6 +3,7 @@ import datetime
 import pytest
 from tests.test_utils import create_pipeline_run_spec
 
+from _orchest.internals.test_utils import raise_exception_function
 from app.apis import namespace_runs
 
 
@@ -17,9 +18,7 @@ def test_runlist_get_empty(client, query_string):
     assert not resp.get_json()["runs"]
 
 
-def test_runlist_post_success(
-    client, celery, pipeline, monkeypatch_lock_environment_images
-):
+def test_runlist_post_success(client, celery, pipeline):
 
     resp = client.post(
         "/api/runs/",
@@ -32,9 +31,7 @@ def test_runlist_post_success(
     assert data["pipeline_uuid"] == pipeline.uuid
 
 
-def test_runlist_post_success_env_vars(
-    client, celery, pipeline, monkeypatch_lock_environment_images
-):
+def test_runlist_post_success_env_vars(client, celery, pipeline):
     # Prepare proj/pipeline env variables.
     proj_env_vars = {"var1": 1, "var2": 2}
     client.put(
@@ -57,7 +54,7 @@ def test_runlist_post_success_env_vars(
 
 def test_runlist_post_revert(client, celery, pipeline, monkeypatch):
     monkeypatch.setattr(
-        namespace_runs, "lock_environment_images_for_run", lambda *args, **kwargs: 1 / 0
+        namespace_runs, "lock_environment_images_for_run", raise_exception_function()
     )
 
     resp = client.post(
@@ -70,7 +67,7 @@ def test_runlist_post_revert(client, celery, pipeline, monkeypatch):
     assert data[0]["status"] == "FAILURE"
 
 
-def test_runlist_get(client, celery, pipeline, monkeypatch_lock_environment_images):
+def test_runlist_get(client, celery, pipeline):
     client.post(
         "/api/runs/",
         json=create_pipeline_run_spec(pipeline.project.uuid, pipeline.uuid),
@@ -95,9 +92,7 @@ def test_run_delete_not_existing(client):
     assert resp.status_code == 400
 
 
-def test_run_delete_started(
-    client, celery, pipeline, abortable_async_res, monkeypatch_lock_environment_images
-):
+def test_run_delete_started(client, celery, pipeline, abortable_async_res):
     resp = client.post(
         "/api/runs/",
         json=create_pipeline_run_spec(pipeline.project.uuid, pipeline.uuid),
@@ -108,9 +103,7 @@ def test_run_delete_started(
     assert abortable_async_res.is_aborted()
 
 
-def test_run_delete_after_end_state(
-    client, celery, pipeline, abortable_async_res, monkeypatch_lock_environment_images
-):
+def test_run_delete_after_end_state(client, celery, pipeline, abortable_async_res):
     resp = client.post(
         "/api/runs/",
         json=create_pipeline_run_spec(pipeline.project.uuid, pipeline.uuid),

@@ -7,7 +7,7 @@ def test_environmentimage_delete_non_existent(client):
 
 
 def test_environmentimage_delete_with_builds(
-    client, celery, project, abortable_async_res, monkeypatch_image_utils
+    client, celery, project, abortable_async_res
 ):
 
     req = create_env_build_request(project.uuid, 1)
@@ -21,13 +21,13 @@ def test_environmentimage_delete_with_builds(
     assert not client.get("/api/environment-builds/").get_json()["environment_builds"]
 
 
-def test_environmentimageinuse_get(client, monkeypatch_image_utils):
+def test_environmentimageinuse_get(client):
     resp = client.get("/api/environment-images/in-use/proj_uuid/env_uuid")
     data = resp.get_json()
     assert resp.status_code == 200
     assert not data["in_use"]
 
 
-def test_projectenvironmentdanglingimages_delete(client, monkeypatch_image_utils):
+def test_projectenvironmentdanglingimages_delete(client):
     resp = client.delete("/api/environment-images/dangling/proj_uuid/env_uuid")
     assert resp.status_code == 200

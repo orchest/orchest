@@ -156,7 +156,7 @@ def interactive_run(client, pipeline, celery, monkeypatch):
 
 
 @pytest.fixture()
-def job(client, pipeline, monkeypatch_image_utils):
+def job(client, pipeline):
     """Provides a job backed by an entry in the db."""
     return Job(client, pipeline)
 
@@ -167,7 +167,7 @@ def environment_build(client, celery, project):
     return EnvironmentBuild(client, project)
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def monkeypatch_lock_environment_images(monkeypatch):
     monkeypatch.setattr(
         namespace_runs, "lock_environment_images_for_run", lambda *args, **kwargs: {}

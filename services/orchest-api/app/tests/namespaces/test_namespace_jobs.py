@@ -3,6 +3,7 @@ import datetime
 import pytest
 from tests.test_utils import create_job_spec
 
+from _orchest.internals.test_utils import raise_exception_function
 from app.apis import namespace_jobs
 
 
@@ -59,9 +60,11 @@ def test_joblist_post(
     )
     resp = client.post("/api/jobs/", json=job_spec)
 
-    expect_error = cron_schedule is not None and scheduled_start is not None
-    expect_error |= cron_schedule == "invalid string"
-    expect_error |= scheduled_start == "invalid string"
+    expect_error = (
+        (cron_schedule is not None and scheduled_start is not None)
+        or cron_schedule == "invalid string"
+        or scheduled_start == "invalid string"
+    )
     expected_code = 201 if not expect_error else 500
 
     assert resp.status_code == expected_code
@@ -146,7 +149,6 @@ def test_job_put_on_draft(
     cron_schedule,
     next_scheduled_time,
     parameters,
-    monkeypatch_lock_environment_images,
 ):
 
     job_spec = create_job_spec(pipeline.project.uuid, pipeline.uuid)
@@ -162,9 +164,11 @@ def test_job_put_on_draft(
 
     resp = client.put(f"/api/jobs/{job_uuid}", json=job_update)
 
-    expect_error = cron_schedule is not None and next_scheduled_time is not None
-    expect_error |= cron_schedule == "invalid string"
-    expect_error |= next_scheduled_time == "invalid string"
+    expect_error = (
+        (cron_schedule is not None and next_scheduled_time is not None)
+        or cron_schedule == "invalid string"
+        or next_scheduled_time == "invalid string"
+    )
     expected_code = 200 if not expect_error else 500
 
     assert resp.status_code == expected_code
@@ -261,7 +265,7 @@ def test_job_put_revert(client, pipeline, monkeypatch):
 
     # Cause an exception so that running the job fails.
     monkeypatch.setattr(
-        namespace_jobs, "lock_environment_images_for_run", lambda *args, **kwargs: 1 / 0
+        namespace_jobs, "lock_environment_images_for_run", raise_exception_function()
     )
 
     resp = client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
@@ -294,7 +298,6 @@ def test_job_delete_running_job(
     celery,
     pipeline,
     abortable_async_res,
-    monkeypatch_lock_environment_images,
 ):
 
     job_spec = create_job_spec(pipeline.project.uuid, pipeline.uuid)
@@ -324,7 +327,7 @@ def test_jobdeletion_delete(client, celery, pipeline):
     assert client.get(f"/api/jobs/{job_uuid}").status_code == 404
 
 
-def test_pipelinerun_get(client, celery, pipeline, monkeypatch_lock_environment_images):
+def test_pipelinerun_get(client, celery, pipeline):
 
     job_spec = create_job_spec(pipeline.project.uuid, pipeline.uuid)
     job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
@@ -339,7 +342,7 @@ def test_pipelinerun_get(client, celery, pipeline, monkeypatch_lock_environment_
         assert run["env_variables"] is not None
 
 
-def test_pipelinerun_set(client, celery, pipeline, monkeypatch_lock_environment_images):
+def test_pipelinerun_set(client, celery, pipeline):
 
     # Multiple parameters so that the job consists of multiple pipeline
     # runs.

@@ -1,4 +1,45 @@
 import uuid
+from typing import Any, Callable, Optional
+
+
+def raise_exception_function(
+    exception: Optional[Exception] = None,
+    should_trigger: Optional[Callable[[], bool]] = None,
+    return_value: Optional[Any] = None,
+) -> Callable[[Any], Any]:
+    """Returns a function that will raise an exception.
+
+    Args:
+        exception: The exception to raise.
+        should_trigger: If the specified exception should be raised by
+            the returned function when it is called. This can be used to
+            have fine grained control on when the specified exception is
+            raised.
+        return_value: What the returned function should return when
+            called if the specified exception is not to be raised. When
+            passing a return_value a should_trigger callable must be
+            passed as well.
+
+    Returns:
+        Returns a function that will raise an exception when called. If
+        should_trigger is defined the specified exception will be raised
+        only if should_trigger returns True.
+    """
+    if exception is None:
+        exception = Exception()
+
+    if should_trigger is None and return_value is not None:
+        raise ValueError(
+            "Must pass a should_trigger callable when passing" " a return value."
+        )
+
+    def f(*args, **kwargs):
+        if should_trigger is not None and not should_trigger():
+            return return_value
+
+        raise exception
+
+    return f
 
 
 def gen_uuid(use_underscores=False):

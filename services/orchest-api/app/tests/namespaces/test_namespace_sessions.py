@@ -1,3 +1,4 @@
+from _orchest.internals.test_utils import raise_exception_function
 from app.apis.namespace_sessions import CreateInteractiveSession, StopInteractiveSession
 from app.core.sessions import InteractiveSession
 
@@ -60,8 +61,7 @@ def test_sessionlist_post_revert(client, pipeline, monkeypatch):
         "host_userdir": "host_userdir",
     }
 
-    # The 1/0 lambda is to cause an exception.
-    monkeypatch.setattr(InteractiveSession, "launch", lambda *args, **kwargs: 1 / 0)
+    monkeypatch.setattr(InteractiveSession, "launch", raise_exception_function)
     client.post("/api/sessions/", json=pipeline_spec)
 
     resp = client.get(f"/api/sessions/{pipeline.project.uuid}/{pipeline.uuid}")
@@ -173,9 +173,8 @@ def test_session_delete_revert(
 
     client.post("/api/sessions/", json=pipeline_spec)
 
-    # The 1/0 lambda is to cause an exception.
     monkeypatch.setattr(
-        InteractiveSession, "from_container_IDs", lambda *args, **kwargs: 1 / 0
+        InteractiveSession, "from_container_IDs", raise_exception_function()
     )
     resp1 = client.delete(f"/api/sessions/{pipeline.project.uuid}/{pipeline.uuid}")
 

@@ -70,7 +70,7 @@ def test_project_delete_non_existing(client):
     assert resp.status_code == 200
 
 
-def test_project_delete_existing(client, monkeypatch_image_utils):
+def test_project_delete_existing(client):
     project = {"uuid": gen_uuid()}
     client.post("/api/projects/", json=project)
 
@@ -80,7 +80,7 @@ def test_project_delete_existing(client, monkeypatch_image_utils):
 
 
 def test_delete_existing_with_interactive_run(
-    client, celery, interactive_run, abortable_async_res, monkeypatch_image_utils
+    client, celery, interactive_run, abortable_async_res
 ):
 
     resp = client.delete(f"/api/projects/{interactive_run.project.uuid}")
@@ -91,7 +91,7 @@ def test_delete_existing_with_interactive_run(
 
 
 def test_delete_existing_with_interactive_session(
-    client, interactive_session, monkeypatch_image_utils, monkeypatch
+    client, interactive_session, monkeypatch
 ):
     class ShutDown:
         def __init__(self):
@@ -113,7 +113,7 @@ def test_delete_existing_with_interactive_session(
 
 
 def test_delete_existing_with_job(
-    client, celery, job, abortable_async_res, monkeypatch_image_utils, monkeypatch
+    client, celery, job, abortable_async_res, monkeypatch
 ):
     monkeypatch.setattr(
         namespace_jobs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
