@@ -65,24 +65,24 @@ def background_task(json_obj):
         else:
             break
 
-    # try:
+    try:
 
-    #     # Restart Orchest in either regular or dev mode.
-    #     ctl_command = ["restart"]
+        # Restart Orchest in either regular or dev mode.
+        ctl_command = ["restart"]
 
-    #     # Note: this depends on the detached
-    #     # Docker orchest_ctl finishing
-    #     # without waiting for the response
-    #     # as the update-server is shutdown as part
-    #     # of the restart command.
-    #     dev_mode = json_obj.get("mode") == "dev"
-    #     if dev_mode:
-    #         ctl_command += ["--mode=dev"]
+        # Note: this depends on the detached
+        # Docker orchest_ctl finishing
+        # without waiting for the response
+        # as the update-server is shutdown as part
+        # of the restart command.
+        dev_mode = json_obj.get("mode") == "dev"
+        if dev_mode:
+            ctl_command += ["--mode=dev"]
 
-    #     run_orchest_ctl(client, ctl_command)
+        run_orchest_ctl(client, ctl_command)
 
-    # except docker.errors.APIError as e:
-    #     print(e)
+    except docker.errors.APIError as e:
+        print(e)
 
 
 def register_views(app):
