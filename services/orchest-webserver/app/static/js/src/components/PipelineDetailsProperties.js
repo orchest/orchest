@@ -99,7 +99,8 @@ class PipelineDetailsProperties extends React.Component {
         if (!currentEnvironmentInEnvironments) {
           // update environment
           this.onChangeEnvironment(
-            environmentOptions.length > 0 ? environmentOptions[0][0] : ""
+            environmentOptions.length > 0 ? environmentOptions[0][0] : "",
+            environmentOptions.length > 0 ? environmentOptions[0][1] : ""
           );
         }
 
