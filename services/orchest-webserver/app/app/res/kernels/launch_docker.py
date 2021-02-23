@@ -86,7 +86,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     orchest_mounts = get_orchest_mounts(
         project_dir=_config.PROJECT_DIR,
         host_user_dir=os.path.join(
-            param_env.get("ORCHEST_HOST_PROJECT_DIR"), os.pardir, os.pardir, "data"
+            param_env.get("ORCHEST_HOST_PROJECT_DIR"), os.pardir, os.pardir
         ),
         host_project_dir=param_env.get("ORCHEST_HOST_PROJECT_DIR"),
     )
