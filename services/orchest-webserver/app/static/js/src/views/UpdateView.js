@@ -73,16 +73,20 @@ class UpdateView extends React.Component {
 
       updateStatusPromise.promise
         .then((response) => {
-          this.setState({
-            updateOutput: response,
-          });
-        })
-        .catch((e) => {
-          if (!e.isCanceled) {
+          let json = JSON.parse(response);
+          if (json.updating === false) {
             this.setState({
               updating: false,
             });
             clearInterval(this.updatePollInterval);
+          }
+          this.setState({
+            updateOutput: json.update_output,
+          });
+        })
+        .catch((e) => {
+          if (!e.isCanceled) {
+            console.error(e);
           }
         });
     }, 1000);

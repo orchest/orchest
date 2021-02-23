@@ -4,7 +4,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import docker
-from flask import request
+from flask import jsonify, request
 
 from _orchest.internals.utils import run_orchest_ctl
 
@@ -94,17 +94,20 @@ def register_views(app):
     def update_status():
         try:
             content = ""
+
+            updating = True
+
             with open(UPDATE_FILE_LOG, "r") as f:
                 content = f.read()
-
             try:
                 if os.path.exists(UPDATE_COMPLETE_FILE):
+                    updating = False
                     os.remove(UPDATE_COMPLETE_FILE)
             except Exception as e:
                 logging.error("Failed to clear update complete file.")
                 logging.error(e)
 
-            return content, 200
+            return jsonify({"updating": updating, "update_output": content}), 200
 
         except Exception:
             return "Could not check update status.", 500
