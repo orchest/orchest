@@ -208,4 +208,13 @@ class FilePicker extends React.Component {
   }
 }
 
+FilePicker.defaultProps = {
+  tree: {
+    name: "/",
+    root: true,
+    type: "directory",
+    children: [],
+  },
+};
+
 export default FilePicker;

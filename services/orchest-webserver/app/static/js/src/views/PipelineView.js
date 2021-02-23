@@ -1,4 +1,5 @@
 import React from "react";
+import _ from "lodash";
 
 import {
   uuidv4,
@@ -17,7 +18,6 @@ import {
   checkGate,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
-  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -438,13 +438,13 @@ class PipelineView extends React.Component {
     // generate JSON representation using the internal state of React components
     // describing the pipeline
 
-    let pipelineJSON = JSON.parse(JSON.stringify(this.state.pipelineJson));
+    let pipelineJSON = _.cloneDeep(this.state.pipelineJson);
     pipelineJSON["steps"] = {};
 
     for (let key in this.state.steps) {
       if (this.state.steps.hasOwnProperty(key)) {
         // deep copy step
-        let step = JSON.parse(JSON.stringify(this.state.steps[key]));
+        let step = _.cloneDeep(this.state.steps[key]);
 
         // remove private meta_data (prefixed with underscore)
         let keys = Object.keys(step.meta_data);
@@ -1736,18 +1736,16 @@ class PipelineView extends React.Component {
     });
   }
 
-  onSaveDetails(pipelineDetailsComponent) {
+  onSaveDetails(updatedStep) {
     // update step state based on latest state of pipelineDetails component
 
-    // step name
-    this.state.steps[pipelineDetailsComponent.props.step.uuid] = JSON.parse(
-      JSON.stringify(pipelineDetailsComponent.state.step)
-    );
-
     // update steps in setState even though reference objects are directly modified - this propagates state updates properly
+    this.state.steps[updatedStep.uuid] = updatedStep;
+
     this.setState({
       steps: this.state.steps,
     });
+
     this.savePipeline();
   }
 
@@ -2208,9 +2206,7 @@ class PipelineView extends React.Component {
                 run_uuid={this.props.queryArgs.run_uuid}
                 sio={this.sio}
                 readOnly={this.props.queryArgs.read_only === "true"}
-                step={JSON.parse(
-                  JSON.stringify(this.state.steps[this.state.openedStep])
-                )}
+                step={this.state.steps[this.state.openedStep]}
                 saveHash={this.state.saveHash}
               />
             );

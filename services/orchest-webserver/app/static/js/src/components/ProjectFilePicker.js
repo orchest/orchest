@@ -1,5 +1,4 @@
 import React, { Fragment } from "react";
-import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
@@ -268,93 +267,85 @@ class ProjectFilePicker extends React.Component {
   }
 
   render() {
-    if (this.state.tree) {
-      return (
-        <Fragment>
-          {(() => {
-            if (this.state.createFileModal) {
-              return (
-                <MDCDialogReact
-                  title="Create a new file"
-                  onClose={this.onCloseCreateFileModal.bind(this)}
-                  ref={this.refManager.nrefs.createFileDialog}
-                  content={
-                    <div className="create-file-input">
-                      <div className="push-down">
-                        Supported file extensions are:&nbsp;
-                        {this.allowedExtensionsMarkup()}.
-                      </div>
+    return (
+      <Fragment>
+        {(() => {
+          if (this.state.createFileModal) {
+            return (
+              <MDCDialogReact
+                title="Create a new file"
+                onClose={this.onCloseCreateFileModal.bind(this)}
+                ref={this.refManager.nrefs.createFileDialog}
+                content={
+                  <div className="create-file-input">
+                    <div className="push-down">
+                      Supported file extensions are:&nbsp;
+                      {this.allowedExtensionsMarkup()}.
+                    </div>
 
-                      <div className="push-down field-select-combo">
-                        <MDCTextFieldReact
-                          ref={this.refManager.nrefs.createFileTextField}
-                          label="File name"
-                          onChange={this.onChangeNewFilename.bind(this)}
-                        />
-                        <MDCSelectReact
-                          ref={
-                            this.refManager.nrefs.createFileExtensionDropdown
-                          }
-                          label="Extension"
-                          value={"." + ALLOWED_STEP_EXTENSIONS[0]}
-                          options={ALLOWED_STEP_EXTENSIONS.map((el) => [
-                            "." + el,
-                          ])}
-                          onChange={this.onChangeNewFilenameExtension.bind(
-                            this
-                          )}
-                        />
-                      </div>
+                    <div className="push-down field-select-combo">
                       <MDCTextFieldReact
-                        label="Path in project"
-                        value={this.state.createFileFullProjectPath}
-                        classNames={["fullwidth push-down"]}
-                        ref={this.refManager.nrefs.fullFilePath}
-                        disabled
+                        ref={this.refManager.nrefs.createFileTextField}
+                        label="File name"
+                        onChange={this.onChangeNewFilename.bind(this)}
+                      />
+                      <MDCSelectReact
+                        ref={this.refManager.nrefs.createFileExtensionDropdown}
+                        label="Extension"
+                        value={"." + ALLOWED_STEP_EXTENSIONS[0]}
+                        options={ALLOWED_STEP_EXTENSIONS.map((el) => [
+                          "." + el,
+                        ])}
+                        onChange={this.onChangeNewFilenameExtension.bind(this)}
                       />
                     </div>
-                  }
-                  actions={
-                    <Fragment>
-                      <MDCButtonReact
-                        icon="add"
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        label="Create file"
-                        submitButton
-                        onClick={this.onSubmitModal.bind(this)}
-                      />
-                      <MDCButtonReact
-                        icon="close"
-                        label="Cancel"
-                        classNames={["push-left"]}
-                        onClick={this.onCancelModal.bind(this)}
-                      />
-                    </Fragment>
-                  }
-                />
-              );
-            }
-          })()}
-          <FilePicker
-            ref={this.refManager.nrefs.filePicker}
-            tree={this.state.tree}
-            cwd={this.state.cwd}
-            onFocus={this.onFocus.bind(this)}
-            value={this.props.value}
-            icon={this.state.selectedFileExists ? "check" : "warning"}
-            iconTitle={
-              this.state.selectedFileExists
-                ? "File exists in the project directory."
-                : "Warning: this file wasn't found in the project directory."
-            }
-            onCreateFile={this.onCreateFile.bind(this)}
-            onChangeValue={this.onChangeFileValue.bind(this)}
-          />
-        </Fragment>
-      );
-    } else {
-      return <MDCLinearProgressReact />;
-    }
+                    <MDCTextFieldReact
+                      label="Path in project"
+                      value={this.state.createFileFullProjectPath}
+                      classNames={["fullwidth push-down"]}
+                      ref={this.refManager.nrefs.fullFilePath}
+                      disabled
+                    />
+                  </div>
+                }
+                actions={
+                  <Fragment>
+                    <MDCButtonReact
+                      icon="add"
+                      classNames={["mdc-button--raised", "themed-secondary"]}
+                      label="Create file"
+                      submitButton
+                      onClick={this.onSubmitModal.bind(this)}
+                    />
+                    <MDCButtonReact
+                      icon="close"
+                      label="Cancel"
+                      classNames={["push-left"]}
+                      onClick={this.onCancelModal.bind(this)}
+                    />
+                  </Fragment>
+                }
+              />
+            );
+          }
+        })()}
+        <FilePicker
+          ref={this.refManager.nrefs.filePicker}
+          tree={this.state.tree}
+          cwd={this.state.cwd}
+          onFocus={this.onFocus.bind(this)}
+          value={this.props.value}
+          icon={this.state.selectedFileExists ? "check" : "warning"}
+          iconTitle={
+            this.state.selectedFileExists
+              ? "File exists in the project directory."
+              : "Warning: this file wasn't found in the project directory."
+          }
+          onCreateFile={this.onCreateFile.bind(this)}
+          onChangeValue={this.onChangeFileValue.bind(this)}
+        />
+      </Fragment>
+    );
   }
 }
 
