@@ -1293,8 +1293,11 @@ class PipelineView extends React.Component {
     this.closeMultistepView();
     this.closeDetailsView();
 
-    for (let x = 0; x < this.state.selectedSteps.length; x++) {
-      this.deleteStep(this.state.selectedSteps[x]);
+    // DeleteStep is going to remove the step from this.state.selected
+    // Steps, modifying the collection while we are iterating on it.
+    let stepsToRemove = this.state.selectedSteps.slice();
+    for (let x = 0; x < stepsToRemove.length; x++) {
+      this.deleteStep(stepsToRemove[x]);
     }
 
     this.setState({
