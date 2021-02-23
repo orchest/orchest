@@ -59,29 +59,28 @@ def background_task(json_obj):
         f.write("true")
 
     # wait at most 10 seconds for file to be read
-    for i in range(10):
+    for _ in range(10):
         if os.path.exists(UPDATE_COMPLETE_FILE):
             time.sleep(1)
         else:
             break
 
-    # kill self
     try:
-        container = client.containers.get("nginx-proxy")
-        container.kill()
-        container.remove()
 
-        # restart Orchest in either dev mode
-        start_command = ["start"]
+        # Restart Orchest in either regular or dev mode.
+        ctl_command = ["restart"]
 
+        # Note: this depends on the detached
+        # Docker orchest_ctl finishing
+        # without waiting for the response
+        # as the update-server is shutdown as part
+        # of the restart command.
         dev_mode = json_obj.get("mode") == "dev"
         if dev_mode:
-            start_command += ["dev"]
+            ctl_command += ["--mode=dev"]
 
-        run_orchest_ctl(client, start_command)
+        run_orchest_ctl(client, ctl_command)
 
-        container = client.containers.get("update-server")
-        container.kill()
     except docker.errors.APIError as e:
         print(e)
 
