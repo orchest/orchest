@@ -14,38 +14,46 @@ UPDATE_FILE_LOG = "/tmp/update-log"
 UPDATE_COMPLETE_FILE = "/tmp/update-complete"
 
 
+def log_update(message):
+    try:
+        with open(UPDATE_FILE_LOG, "a") as log_file:
+            log_file.write(message)
+
+    except Exception as e:
+        logging.error("Failed to write to update log")
+        logging.error(e)
+
+
 def background_task(json_obj):
 
     client = docker.from_env()
 
     try:
-        with open(UPDATE_FILE_LOG, "w") as log_file:
+        log_update("Starting update ...\n")
 
-            log_file.write("Starting update ...\n")
+        # get latest orchest-ctl
+        log_update("Pulling orchest-ctl ...\n")
+        try:
+            client.images.pull("orchest/orchest-ctl:latest")
+        except docker.errors.APIError as e:
+            logging.error(e)
+        log_update("Pulled orchest-ctl. Starting update ...\n")
 
-            # get latest orchest-ctl
-            log_file.write("Pulling orchest-ctl ...\n")
-            try:
-                client.images.pull("orchest/orchest-ctl:latest")
-            except docker.errors.APIError as e:
-                logging.error(e)
-            log_file.write("Pulled orchest-ctl. Starting update ...\n")
+        try:
+            container = run_orchest_ctl(client, ["update", "--mode=web"])
 
-            try:
-                container = run_orchest_ctl(client, ["update", "--mode=web"])
+            for line in container.logs(stream=True):
+                log_update(line.decode())
+        except Exception as e:
+            log_update("Error run_orchest_ctl: %s" % e)
 
-                for line in container.logs(stream=True):
-                    log_file.write(line.decode())
-            except Exception as e:
-                log_file.write("Error run_orchest_ctl: %s" % e)
-
-            log_file.write(
-                "Update complete! Restarting Orchest "
-                "... (this can take up to 15 seconds)\n"
-            )
+        log_update(
+            "Update complete! Restarting Orchest "
+            "... (this can take up to 15 seconds)\n"
+        )
 
     except Exception as e:
-        log_file.write("Error during updating: %s" % e)
+        log_update("Error during updating: %s" % e)
 
     with open(UPDATE_COMPLETE_FILE, "w") as f:
         f.write("true")
