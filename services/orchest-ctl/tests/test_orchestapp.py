@@ -155,9 +155,6 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
         installed_images, prog_bar=True, force=True
     )
 
-    if mode == "web":
-        app.restart.assert_called_once()
-
 
 @pytest.mark.parametrize(
     ("running_containers", "skip_containers", "stopped_containers", "expected_stdout"),
