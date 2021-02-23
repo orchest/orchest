@@ -96,6 +96,12 @@ class UpdateView extends React.Component {
   }
 
   render() {
+    let updateOutputLines = this.state.updateOutput.split("\n").reverse();
+    updateOutputLines =
+      updateOutputLines[0] == ""
+        ? updateOutputLines.slice(1)
+        : updateOutputLines;
+
     return (
       <div className={"view-page update-page"}>
         <h2>Orchest updater</h2>
@@ -112,7 +118,7 @@ class UpdateView extends React.Component {
           if (this.state.updateOutput.length > 0) {
             elements.push(
               <div key="1" className="console-output">
-                {this.state.updateOutput.split("\n").reverse().join("\n")}
+                {updateOutputLines.join("\n")}
               </div>
             );
           }
