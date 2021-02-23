@@ -1,4 +1,6 @@
 import logging
+import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import docker
@@ -9,6 +11,7 @@ from _orchest.internals.utils import run_orchest_ctl
 executor = ThreadPoolExecutor(1)
 
 UPDATE_FILE_LOG = "/tmp/update-log"
+UPDATE_COMPLETE_FILE = "/tmp/update-complete"
 
 
 def background_task(json_obj):
@@ -44,6 +47,16 @@ def background_task(json_obj):
     except Exception as e:
         log_file.write("Error during updating: %s" % e)
 
+    with open(UPDATE_COMPLETE_FILE, "w") as f:
+        f.write("true")
+
+    # wait at most 10 seconds for file to be read
+    for i in range(10):
+        if os.path.exists(UPDATE_COMPLETE_FILE):
+            time.sleep(1)
+        else:
+            break
+
     # kill self
     try:
         container = client.containers.get("nginx-proxy")
@@ -73,8 +86,19 @@ def register_views(app):
     @app.route("/update-server/update-status", methods=["GET"])
     def update_status():
         try:
+            content = ""
             with open(UPDATE_FILE_LOG, "r") as f:
-                return f.read(), 200
+                content = f.read()
+
+            try:
+                if os.path.exists(UPDATE_COMPLETE_FILE):
+                    os.remove(UPDATE_COMPLETE_FILE)
+            except Exception as e:
+                logging.error("Failed to clear update complete file.")
+                logging.error(e)
+
+            return content, 200
+
         except Exception:
             return "Could not check update status.", 500
 
