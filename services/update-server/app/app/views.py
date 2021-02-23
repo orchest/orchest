@@ -65,24 +65,24 @@ def background_task(json_obj):
         else:
             break
 
-    try:
+    # try:
 
-        # Restart Orchest in either regular or dev mode.
-        ctl_command = ["restart"]
+    #     # Restart Orchest in either regular or dev mode.
+    #     ctl_command = ["restart"]
 
-        # Note: this depends on the detached
-        # Docker orchest_ctl finishing
-        # without waiting for the response
-        # as the update-server is shutdown as part
-        # of the restart command.
-        dev_mode = json_obj.get("mode") == "dev"
-        if dev_mode:
-            ctl_command += ["--mode=dev"]
+    #     # Note: this depends on the detached
+    #     # Docker orchest_ctl finishing
+    #     # without waiting for the response
+    #     # as the update-server is shutdown as part
+    #     # of the restart command.
+    #     dev_mode = json_obj.get("mode") == "dev"
+    #     if dev_mode:
+    #         ctl_command += ["--mode=dev"]
 
-        run_orchest_ctl(client, ctl_command)
+    #     run_orchest_ctl(client, ctl_command)
 
-    except docker.errors.APIError as e:
-        print(e)
+    # except docker.errors.APIError as e:
+    #     print(e)
 
 
 def register_views(app):
@@ -94,11 +94,8 @@ def register_views(app):
     def update_status():
         try:
             content = ""
-
             updating = True
 
-            with open(UPDATE_FILE_LOG, "r") as f:
-                content = f.read()
             try:
                 if os.path.exists(UPDATE_COMPLETE_FILE):
                     updating = False
@@ -106,6 +103,9 @@ def register_views(app):
             except Exception as e:
                 logging.error("Failed to clear update complete file.")
                 logging.error(e)
+
+            with open(UPDATE_FILE_LOG, "r") as f:
+                content = f.read()
 
             return jsonify({"updating": updating, "update_output": content}), 200
 
