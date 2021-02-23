@@ -29,16 +29,17 @@ class ConnectionItem extends React.Component {
   }
 }
 
+const KERNEL_OPTIONS = [
+  ["python", "Python"],
+  ["ir", "R"],
+  ["julia", "Julia"],
+];
+
 class PipelineDetailsProperties extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      kernelOptions: [
-        ["python", "Python"],
-        ["ir", "R"],
-        ["julia", "Julia"],
-      ],
       environmentOptions: [],
       // this is required to let users edit JSON (while typing the text will not be valid JSON)
       editableParameters: JSON.stringify(this.props.step.parameters, null, 2),
@@ -360,7 +361,7 @@ class PipelineDetailsProperties extends React.Component {
           <MDCSelectReact
             label="Kernel"
             onChange={this.onChangeKernel.bind(this)}
-            options={this.state.kernelOptions}
+            options={KERNEL_OPTIONS}
             value={this.props.step.kernel.name}
             disabled={this.props.readOnly}
             classNames={(() => {
