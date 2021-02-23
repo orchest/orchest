@@ -60,42 +60,63 @@ class UpdateView extends React.Component {
     );
   }
 
+  startUpdatePolling() {
+    clearInterval(this.updatePollInterval);
+
+    this.updatePollInterval = setInterval(() => {
+      let updateStatusPromise = makeCancelable(
+        makeRequest("GET", "/update-server/update-status"),
+        this.promiseManager,
+        undefined,
+        2000
+      );
+
+      updateStatusPromise.promise
+        .then((response) => {
+          this.setState({
+            updateOutput: response,
+          });
+        })
+        .catch((e) => {
+          if (!e.isCanceled) {
+            this.setState({
+              updating: false,
+            });
+            clearInterval(this.updatePollInterval);
+          }
+        });
+    }, 1000);
+  }
+
   requestUpdate() {
-    let _this = this;
-
     let updateUrl = "/update-server/update";
-
     let data = {
       mode: orchest.environment === "development" ? "dev" : "reg",
     };
 
     let updatePromise = makeCancelable(
-      makeRequest(
-        "POST",
-        updateUrl,
-        {
-          type: "json",
-          content: data,
-        },
-        function () {
-          _this.setState({
-            updateOutput: this.responseText,
-          });
-        },
-        0
-      ),
+      makeRequest("POST", updateUrl, {
+        type: "json",
+        content: data,
+      }),
       this.promiseManager
-    ); // 0 means no timeout.
-
-    updatePromise.promise.then((response) => {
-      this.setState({
-        updateOutput: response,
-        updating: false,
+    );
+    updatePromise.promise
+      .then(() => {
+        this.startUpdatePolling();
+      })
+      .catch((e) => {
+        console.error(e);
       });
-    });
   }
 
   render() {
+    let updateOutputLines = this.state.updateOutput.split("\n").reverse();
+    updateOutputLines =
+      updateOutputLines[0] == ""
+        ? updateOutputLines.slice(1)
+        : updateOutputLines;
+
     return (
       <div className={"view-page update-page"}>
         <h2>Orchest updater</h2>
@@ -112,7 +133,7 @@ class UpdateView extends React.Component {
           if (this.state.updateOutput.length > 0) {
             elements.push(
               <div key="1" className="console-output">
-                {this.state.updateOutput.split("\n").reverse().join("\n")}
+                {updateOutputLines.join("\n")}
               </div>
             );
           }
