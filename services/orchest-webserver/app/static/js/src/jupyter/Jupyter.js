@@ -107,6 +107,22 @@ class Jupyter {
     }
   }
 
+  setNotebookKernel(notebook, kernel, kernelDisplayName) {
+    if (this.iframe.contentWindow._orchest_app) {
+      let docManager = this.iframe.contentWindow._orchest_docmanager;
+      let contexts = docManager._contextsForPath(notebook);
+      contexts.forEach((context) => {
+        if (context.sessionContext.kernelDisplayName !== kernelDisplayName) {
+          context.sessionContext
+            .changeKernel({ name: kernel })
+            .catch((exception) => {
+              console.log(exception);
+            });
+        }
+      });
+    }
+  }
+
   navigateTo(filePath) {
     if (!filePath) {
       return;
