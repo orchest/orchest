@@ -495,35 +495,28 @@ def remove_project_jobs_directories(project_uuid):
         shutil.rmtree(project_jobs_path, ignore_errors=True)
 
 
+def get_ipynb_template(language: str):
+
+    language_to_template = {
+        "python": "ipynb_template.json",
+        "julia": "ipynb_template_julia.json",
+        "ir": "ipynb_template_r.json",
+    }
+
+    template_json = json.load(
+        open(
+            os.path.join(
+                current_app.config["RESOURCE_DIR"], language_to_template[language]
+            ),
+            "r",
+        )
+    )
+    return template_json
+
+
 def generate_ipynb_from_template(step, project_uuid):
 
-    # TODO: support additional languages to Python and R
-    if "python" in step["kernel"]["name"].lower():
-        template_json = json.load(
-            open(
-                os.path.join(current_app.config["RESOURCE_DIR"], "ipynb_template.json"),
-                "r",
-            )
-        )
-    elif "julia" in step["kernel"]["name"]:
-        template_json = json.load(
-            open(
-                os.path.join(
-                    current_app.config["RESOURCE_DIR"], "ipynb_template_julia.json"
-                ),
-                "r",
-            )
-        )
-    else:
-        template_json = json.load(
-            open(
-                os.path.join(
-                    current_app.config["RESOURCE_DIR"], "ipynb_template_r.json"
-                ),
-                "r",
-            )
-        )
-
+    template_json = get_ipynb_template(step["kernel"]["name"].lower())
     template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
         "display_name"
     ]
@@ -604,6 +597,15 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
                 if notebook_json["metadata"]["kernelspec"]["name"] != gateway_kernel:
                     notebook_changed = True
                     notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+
+                language = step["kernel"]["name"]
+                if notebook_json["metadata"]["kernelspec"]["language"] != language:
+                    notebook_changed = True
+                    notebook_json["metadata"]["kernelspec"]["language"] = language
+                    template_json = get_ipynb_template(language.lower())
+                    notebook_json["metadata"]["language_info"] = template_json[
+                        "metadata"
+                    ]["language_info"]
 
                 environment = get_environment(step["environment"], project_uuid)
 
