@@ -74,7 +74,7 @@ class UpdateView extends React.Component {
       updateStatusPromise.promise
         .then((response) => {
           this.setState({
-            updateOutput: response.responseText,
+            updateOutput: response,
           });
         })
         .catch((e) => {
