@@ -87,8 +87,20 @@ class PipelineDetailsProperties extends React.Component {
 
         let environmentOptions = [];
 
+        let currentEnvironmentInEnvironments = false;
+
         for (let environment of result) {
+          if (environment.uuid == this.props.step.environment) {
+            currentEnvironmentInEnvironments = true;
+          }
           environmentOptions.push([environment.uuid, environment.name]);
+        }
+
+        if (!currentEnvironmentInEnvironments) {
+          // update environment
+          this.onChangeEnvironment(
+            environmentOptions.length > 0 ? environmentOptions[0][0] : ""
+          );
         }
 
         this.setState({
