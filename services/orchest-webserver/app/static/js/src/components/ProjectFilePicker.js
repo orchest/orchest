@@ -64,7 +64,9 @@ class ProjectFilePicker extends React.Component {
         tree = JSON.parse(response);
       })
       .catch((error) => {
-        console.log(error);
+        if (!error.isCanceled) {
+          console.log(error);
+        }
       });
 
     let cwdFetchPromise = makeCancelable(
@@ -82,7 +84,9 @@ class ProjectFilePicker extends React.Component {
         cwd = JSON.parse(response)["cwd"] + "/";
       })
       .catch((error) => {
-        console.log(error);
+        if (!error.isCanceled) {
+          console.log(error);
+        }
       });
 
     Promise.all(promises)
@@ -93,7 +97,9 @@ class ProjectFilePicker extends React.Component {
         });
       })
       .catch((error) => {
-        console.error(error);
+        if (!error.isCanceled) {
+          console.error(error);
+        }
       });
   }
 
