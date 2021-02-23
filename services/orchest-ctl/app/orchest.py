@@ -294,19 +294,19 @@ class OrchestApp:
         logger.info("Deleting user-built environment images.")
         self.resource_manager.remove_env_build_imgs()
 
-        # Restart the application in case the update-server invoked the
-        # update, since the user called the update through the UI and
-        # most likely does not want to invoke "orchest restart"
-        # manually.
+        # We invoke the Orchest restart from the webserver ui-updater.
+        # Hence we do not show the message to restart manually.
         if mode == "web":
             utils.echo("Update completed.")
-            return
-
-        # Let the user know they need to restart the application for the
-        # changes to take effect. NOTE: otherwise Orchest might also be
-        # running a mix of containers on different versions.
-        utils.echo("Don't forget to restart Orchest for the changes to take effect:")
-        utils.echo("\torchest restart")
+        else:
+            # Let the user know they need to restart the application
+            # for the changes to take effect. NOTE: otherwise Orchest
+            # might also be running a mix of containers on different
+            # versions.
+            utils.echo(
+                "Don't forget to restart Orchest for the changes to take effect:"
+            )
+            utils.echo("\torchest restart")
 
     def version(self, ext=False):
         """Returns the version of Orchest.
