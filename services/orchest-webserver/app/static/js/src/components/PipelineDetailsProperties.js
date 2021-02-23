@@ -168,11 +168,7 @@ class PipelineDetailsProperties extends React.Component {
 
     this.props.onSave(step);
     let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
-    orchest.jupyter.setNotebookKernel(
-      step["file_path"],
-      kernelName,
-      step.kernel.display_name
-    );
+    orchest.jupyter.setNotebookKernel(step["file_path"], kernelName);
   }
 
   onChangeKernel(updatedKernel) {

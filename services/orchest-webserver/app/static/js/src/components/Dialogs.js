@@ -69,6 +69,9 @@ class Dialogs extends React.Component {
 
   confirm(title, content, onConfirm, onCancel) {
     let uuid = uuidv4();
+
+    content = newslines2breaks(content);
+
     this.state.dialogs.push(
       <ConfirmDialog
         key={uuid}

@@ -107,19 +107,27 @@ class Jupyter {
     }
   }
 
-  setNotebookKernel(notebook, kernel, kernelDisplayName) {
+  setNotebookKernel(notebook, kernel) {
     if (this.iframe.contentWindow._orchest_app) {
       let docManager = this.iframe.contentWindow._orchest_docmanager;
-      let contexts = docManager._contextsForPath(notebook);
-      contexts.forEach((context) => {
-        if (context.sessionContext.kernelDisplayName !== kernelDisplayName) {
-          context.sessionContext
-            .changeKernel({ name: kernel })
-            .catch((exception) => {
-              console.log(exception);
-            });
+
+      let notebookWidget = docManager.findWidget(notebook);
+      if (notebookWidget) {
+        let sessionContext = notebookWidget.context.sessionContext;
+        if (sessionContext) {
+          if (sessionContext.session.kernel.name !== kernel) {
+            orchest.confirm(
+              "Warning",
+              "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
+              () => {
+                sessionContext.changeKernel({ name: kernel }).catch((error) => {
+                  console.error(error);
+                });
+              }
+            );
+          }
         }
-      });
+      }
     }
   }
 
