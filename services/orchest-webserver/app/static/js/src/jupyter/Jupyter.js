@@ -64,12 +64,8 @@ class Jupyter {
 
       let citer = lab.shell.widgets("main");
 
-      while (true) {
-        let widget = citer.next();
-        if (widget === undefined) {
-          break;
-        }
-
+      let widget;
+      while ((widget = citer.next())) {
         // Refresh active NotebookPanel widgets
         // if users has unsaved state, don't reload file from disk
         if (widget.constructor.name == "NotebookPanel" && !widget.model.dirty) {
