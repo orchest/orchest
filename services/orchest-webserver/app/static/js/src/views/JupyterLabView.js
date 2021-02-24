@@ -67,6 +67,27 @@ class JupyterLabView extends React.Component {
   componentWillUnmount() {
     $(orchest.reactRoot).removeClass("hidden");
     orchest.jupyter.hide();
+
+    clearInterval(this.verifyKernelsRetryInterval);
+  }
+
+  verifyKernelsCallback(pipeline) {
+    this.verifyKernelsRetryInterval = setInterval(() => {
+      if (orchest.jupyter.isJupyterLoaded()) {
+        for (let stepUUID in pipeline.steps) {
+          let step = pipeline.steps[stepUUID];
+
+          if (step.file_path.length > 0 && step.environment.length > 0) {
+            orchest.jupyter.setNotebookKernel(
+              step.file_path,
+              `orchest-kernel-${step.environment}`
+            );
+          }
+        }
+
+        clearInterval(this.verifyKernelsRetryInterval);
+      }
+    }, 1000);
   }
 
   fetchPipeline() {
@@ -85,6 +106,8 @@ class JupyterLabView extends React.Component {
         let result = JSON.parse(response);
         if (result.success) {
           let pipeline = JSON.parse(result.pipeline_json);
+
+          this.verifyKernelsCallback(pipeline);
 
           orchest.headerBarComponent.setPipeline(
             this.props.queryArgs.pipeline_uuid,

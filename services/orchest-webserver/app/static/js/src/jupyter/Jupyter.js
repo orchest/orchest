@@ -85,10 +85,27 @@ class Jupyter {
     }
   }
 
-  isJupyterShellShowing() {
+  isJupyterLoaded() {
+    try {
+      let widget = this.iframe.contentWindow._orchest_app.shell
+        .widgets()
+        .next();
+      return (
+        this.iframe.contentWindow._orchest_app !== undefined &&
+        widget.node.offsetParent !== null
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  isJupyterShellRenderedCorrectly() {
     try {
       return (
-        this.iframe.contentWindow._orchest_app.shell.node.offsetParent != null
+        this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+          "#jp-main-content-panel"
+        ).clientWidth ===
+        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
       );
     } catch {
       return false;
@@ -96,13 +113,7 @@ class Jupyter {
   }
 
   fixJupyterRenderingGlitch() {
-    if (
-      this.isJupyterShellShowing() &&
-      this.iframe.contentWindow._orchest_app.shell.node.querySelector(
-        "#jp-main-content-panel"
-      ).clientWidth !=
-        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
-    ) {
+    if (this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly()) {
       this.iframe.contentWindow.location.reload();
     }
   }
@@ -127,6 +138,29 @@ class Jupyter {
             );
           }
         }
+      } else {
+        docManager.services.sessions
+          .findByPath(notebook)
+          .then((notebookSession) => {
+            if (notebookSession) {
+              if (notebookSession.kernel.name !== kernel) {
+                orchest.confirm(
+                  "Warning",
+                  "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
+                  () => {
+                    docManager.services.sessions
+                      .shutdown(notebookSession.id)
+                      .catch((error) => {
+                        console.error(error);
+                      });
+                  }
+                );
+              }
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
       }
     }
   }
@@ -138,43 +172,20 @@ class Jupyter {
 
     tryUntilTrue(
       () => {
-        if (this.isJupyterShellShowing()) {
-          if (
-            this.iframe.contentWindow.location.href.indexOf(
-              this.baseAddress
-            ) !== -1 &&
-            this.iframe.contentWindow._orchest_docmanager !== undefined
-          ) {
+        if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
+          try {
             this.iframe.contentWindow._orchest_docmanager.openOrReveal(
               filePath
             );
-          } else {
-            // delayed opening of filePath
-            ((jupyter) => {
-              tryUntilTrue(
-                () => {
-                  try {
-                    jupyter.iframe.contentWindow._orchest_docmanager.openOrReveal(
-                      filePath
-                    );
-
-                    return (
-                      jupyter.iframe.contentWindow._orchest_docmanager.findWidget(
-                        filePath
-                      ) !== undefined
-                    );
-                  } catch (err) {
-                    // fail silently
-                    return false;
-                  }
-                },
-                100,
-                250
-              );
-            })(this);
+            return (
+              this.iframe.contentWindow._orchest_docmanager.findWidget(
+                filePath
+              ) !== undefined
+            );
+          } catch (err) {
+            // fail silently
+            return false;
           }
-
-          return true;
         } else {
           return false;
         }
