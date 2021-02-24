@@ -6,6 +6,7 @@ class Jupyter {
     this.iframe = undefined;
     this.baseAddress = "";
     this.reloadOnShow = false;
+    this.pendingKernelChanges = {};
 
     this.initializeJupyter();
   }
@@ -125,6 +126,14 @@ class Jupyter {
     }
   }
 
+  isKernelChangePending(notebook, kernel) {
+    return this.pendingKernelChanges[`${notebook}-${kernel}`] === true;
+  }
+
+  setKernelChangePending(notebook, kernel, value) {
+    this.pendingKernelChanges[`${notebook}-${kernel}`] = value;
+  }
+
   setNotebookKernel(notebook, kernel) {
     if (this.iframe.contentWindow._orchest_app) {
       let docManager = this.iframe.contentWindow._orchest_docmanager;
@@ -138,15 +147,24 @@ class Jupyter {
           sessionContext.session.kernel
         ) {
           if (sessionContext.session.kernel.name !== kernel) {
-            orchest.confirm(
-              "Warning",
-              "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
-              () => {
-                sessionContext.changeKernel({ name: kernel }).catch((error) => {
-                  console.error(error);
-                });
-              }
-            );
+            if (!this.isKernelChangePending(notebook, kernel)) {
+              this.setKernelChangePending(notebook, kernel, true);
+              orchest.confirm(
+                "Warning",
+                "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
+                () => {
+                  sessionContext
+                    .changeKernel({ name: kernel })
+                    .then(() => {
+                      this.setKernelChangePending(notebook, kernel, false);
+                    })
+                    .catch((error) => {
+                      this.setKernelChangePending(notebook, kernel, false);
+                      console.error(error);
+                    });
+                }
+              );
+            }
           }
         }
       } else {
@@ -155,17 +173,24 @@ class Jupyter {
           .then((notebookSession) => {
             if (notebookSession && notebookSession.kernel) {
               if (notebookSession.kernel.name !== kernel) {
-                orchest.confirm(
-                  "Warning",
-                  "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
-                  () => {
-                    docManager.services.sessions
-                      .shutdown(notebookSession.id)
-                      .catch((error) => {
-                        console.error(error);
-                      });
-                  }
-                );
+                if (!this.isKernelChangePending(notebook, kernel)) {
+                  this.setKernelChangePending(notebook, kernel, true);
+                  orchest.confirm(
+                    "Warning",
+                    "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
+                    () => {
+                      docManager.services.sessions
+                        .shutdown(notebookSession.id)
+                        .then(() => {
+                          this.setKernelChangePending(notebook, kernel, false);
+                        })
+                        .catch((error) => {
+                          this.setKernelChangePending(notebook, kernel, false);
+                          console.error(error);
+                        });
+                    }
+                  );
+                }
               }
             }
           })
