@@ -325,6 +325,7 @@ class PipelineView extends React.Component {
       // retrieve interactive run runUUID to show pipeline exeuction state
       this.fetchActivePipelineRuns();
     }
+    this.current_ongoing_saves = 0;
   }
 
   loadViewInEdit() {
@@ -419,6 +420,7 @@ class PipelineView extends React.Component {
         });
 
         clearTimeout(this.saveIndicatorTimeout);
+        this.current_ongoing_saves++;
         this.saveIndicatorTimeout = setTimeout(() => {
           orchest.headerBarComponent.pipelineSaveStatus("saving");
         }, 100);
@@ -428,14 +430,19 @@ class PipelineView extends React.Component {
           "POST",
           `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
           { type: "FormData", content: formData }
-        ).then(() => {
-          clearTimeout(this.saveIndicatorTimeout);
-          orchest.headerBarComponent.pipelineSaveStatus("saved");
-
-          if (callback && typeof callback == "function" && this._ismounted) {
-            callback();
-          }
-        });
+        )
+          .then(() => {
+            if (callback && typeof callback == "function" && this._ismounted) {
+              callback();
+            }
+          })
+          .finally(() => {
+            this.current_ongoing_saves--;
+            if (this.current_ongoing_saves === 0) {
+              clearTimeout(this.saveIndicatorTimeout);
+              orchest.headerBarComponent.pipelineSaveStatus("saved");
+            }
+          });
       }
     } else {
       console.error("savePipeline should be uncallable in readOnly mode.");
