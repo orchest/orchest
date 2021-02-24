@@ -1,7 +1,20 @@
-@import "fonts";
-@import "vars";
+@use "vars";
+
+@use "@material/theme" with (
+  $primary: vars.$primary,
+  $secondary: vars.$secondary,
+  $on-primary: vars.$on-primary,
+  $on-secondary: vars.$on-secondary,
+);
+
+@use "@material/typography" with (
+    $font-family: ("Inter", sans-serif)
+);
+
+@use "@material/circular-progress";
 
 @import "material-components-web/material-components-web";
+@import "fonts";
 @import "codemirror/lib/codemirror";
 
 @import "scrollbar";
@@ -31,7 +44,7 @@ $pipelineStepWidth: 190px;
 html,
 body {
   font-size: 17px;
-  font-family: $mdc-typography-font-family;
+  font-family: typography.$font-family;
   height: 100%;
   padding: 0;
   margin: 0;
@@ -71,7 +84,7 @@ h3 {
 }
 
 .mdc-checkbox {
-  --mdc-theme-primary: #{$mdc-theme-secondary};
+  --mdc-theme-primary: #{theme.$secondary};
 }
 
 .create-job-modal {
@@ -182,7 +195,7 @@ a.button {
 .projects-view {
   .mdc-data-table {
     .mdc-button {
-      color: $mdc-theme-secondary;
+      color: theme.$secondary;
       font-weight: 500;
     }
 
@@ -229,6 +242,9 @@ p > i.material-icons.float-left {
       width: 70%;
       margin-right: $mdcComponentPadding;
     }
+    .mdc-select {
+      flex: 1;
+    }
   }
 }
 
@@ -248,7 +264,7 @@ p > i.material-icons.float-left {
 // rounded notched buttons
 .mdc-text-field--outlined {
   .mdc-text-field__input {
-    padding-left: $mdcComponentPadding * 2;
+    padding: 0 $mdcComponentPadding;
   }
 
   .mdc-notched-outline {
@@ -461,7 +477,7 @@ iframe.fullsize {
   top: 0;
   height: 100%;
 
-  div {
+  > div {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -469,6 +485,25 @@ iframe.fullsize {
     width: 100%;
     height: 100%;
     position: relative;
+  }
+
+  .pipelineStatusIndicator {
+    float: left;
+    margin-right: 10px;
+    height: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: 1px;
+
+    .mdc-circular-progress {
+      width: 24px;
+      height: 24px;
+    }
+
+    .mdc-circular-progress__indeterminate-circle-graphic {
+      stroke: white;
+    }
   }
 
   button {
@@ -628,6 +663,25 @@ h2.header {
   }
 }
 
+span.floating-button {
+  float: left;
+  display: block;
+  i {
+    font-size: 30px;
+    padding-top: 3px;
+  }
+
+  .mdc-circular-progress {
+    transform: scale(0.888888);
+  }
+
+  &.pipeline-save-status {
+    i {
+      color: #999;
+    }
+  }
+}
+
 .job-view {
   display: flex;
   flex-direction: column;
@@ -768,7 +822,7 @@ h2.header {
 
   .parameter-value {
     &.editable {
-      color: $mdc-theme-secondary;
+      color: theme.$secondary;
       text-decoration: underline;
       cursor: pointer;
     }
@@ -779,9 +833,14 @@ h2.header {
 
 .mdc-data-table {
   a {
-    color: $mdc-theme-secondary;
+    color: theme.$secondary;
     text-decoration: underline;
   }
+}
+
+.mdc-circular-progress {
+  width: 36px;
+  height: 36px;
 }
 
 .mdc-data-table__table {
@@ -837,7 +896,7 @@ h2.header {
 
 button.themed-secondary {
   &:not(:disabled) {
-    background-color: $mdc-theme-secondary;
+    background-color: theme.$secondary;
   }
 
   &:disabled {
@@ -871,7 +930,7 @@ button.themed-secondary {
   font-size: $defaultFontSize;
 
   a {
-    color: $mdc-theme-secondary;
+    color: theme.$secondary;
   }
 }
 
@@ -1077,7 +1136,7 @@ span.code {
 
       &.running {
         .execution-indicator {
-          background: $mdc-theme-secondary;
+          background: theme.$secondary;
           color: #fff;
         }
       }
@@ -1085,7 +1144,7 @@ span.code {
       box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 
       &.selected {
-        border-color: $mdc-theme-secondary;
+        border-color: theme.$secondary;
         background: rgb(245, 245, 255);
       }
 
@@ -1132,7 +1191,7 @@ span.code {
 
         &.hover {
           .inner-dot {
-            background: $mdc-theme-secondary;
+            background: theme.$secondary;
           }
         }
 

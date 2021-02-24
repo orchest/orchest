@@ -1,6 +1,17 @@
-@import "vars";
-@import "fonts";
+@use "vars";
 
+@use "@material/theme" with (
+  $primary: vars.$primary,
+  $secondary: vars.$secondary,
+  $on-primary: vars.$on-primary,
+  $on-secondary: vars.$on-secondary,
+);
+
+@use "@material/typography" with (
+    $font-family: ("Inter", sans-serif)
+);
+
+@import "fonts";
 @import "material-components-web/material-components-web";
 
 input:-webkit-autofill::first-line {
@@ -23,7 +34,7 @@ $mdcComponentPadding: 16px;
 html,
 body {
   font-size: 17px;
-  font-family: $mdc-typography-font-family;
+  font-family: typography.$font-family;
   height: 100%;
   padding: 0;
   margin: 0;

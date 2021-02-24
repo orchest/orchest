@@ -380,7 +380,7 @@ class PipelineDetailsProperties extends React.Component {
             value={this.props.step.kernel.name}
             disabled={this.props.readOnly}
             classNames={(() => {
-              let classes = ["push-down"];
+              let classes = ["push-down", "fullwidth"];
               if (!this.isNotebookStep()) {
                 classes.push("hidden");
               }
@@ -391,6 +391,7 @@ class PipelineDetailsProperties extends React.Component {
           <MDCSelectReact
             label="Environment"
             disabled={this.props.readOnly}
+            classNames={["fullwidth"]}
             onChange={this.onChangeEnvironment.bind(this)}
             options={this.state.environmentOptions}
             value={this.props.step.environment}

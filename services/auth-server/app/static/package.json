@@ -6,7 +6,7 @@
   "scripts": {
     "build": "esbuild js/src/main.js --bundle --loader:.js=jsx --preserve-symlinks --outfile=js/dist/main.bundle.js --define:process.env.NODE_ENV=\\\"production\\\" --define:global=window --minify --sourcemap --target=chrome58,firefox57,safari11,edge16",
     "build-development": "esbuild js/src/main.js --bundle --loader:.js=jsx --preserve-symlinks --outfile=js/dist/main.bundle.js --define:process.env.NODE_ENV=\\\"development\\\" --define:global=window --sourcemap",
-    "build-sass": "node-sass css/main.scss --include-path=node_modules/ css/dist/main.css",
+    "build-sass": "sass css/main.scss --load-path=node_modules/ css/dist/main.css",
     "watch": "npm-watch"
   },
   "watch": {
@@ -15,13 +15,13 @@
   "author": "R. Lamers",
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "material-components-web": "^4.0.0",
+    "material-components-web": "^10.0.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
     "esbuild": "^0.8.44",
-    "node-sass": "^5.0.0",
-    "npm-watch": "^0.7.0"
+    "npm-watch": "^0.7.0",
+    "sass": "^1.32.8"
   }
 }
