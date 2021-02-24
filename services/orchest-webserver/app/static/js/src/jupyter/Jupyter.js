@@ -135,6 +135,11 @@ class Jupyter {
   }
 
   setNotebookKernel(notebook, kernel) {
+    let warningMessage =
+      "Do you want to change the active kernel of the opened " +
+      "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
+      "is attached to it.";
+
     if (this.iframe.contentWindow._orchest_app) {
       let docManager = this.iframe.contentWindow._orchest_docmanager;
 
@@ -149,21 +154,17 @@ class Jupyter {
           if (sessionContext.session.kernel.name !== kernel) {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
-              orchest.confirm(
-                "Warning",
-                "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
-                () => {
-                  sessionContext
-                    .changeKernel({ name: kernel })
-                    .then(() => {
-                      this.setKernelChangePending(notebook, kernel, false);
-                    })
-                    .catch((error) => {
-                      this.setKernelChangePending(notebook, kernel, false);
-                      console.error(error);
-                    });
-                }
-              );
+              orchest.confirm("Warning", warningMessage, () => {
+                sessionContext
+                  .changeKernel({ name: kernel })
+                  .then(() => {
+                    this.setKernelChangePending(notebook, kernel, false);
+                  })
+                  .catch((error) => {
+                    this.setKernelChangePending(notebook, kernel, false);
+                    console.error(error);
+                  });
+              });
             }
           }
         }
@@ -175,21 +176,17 @@ class Jupyter {
               if (notebookSession.kernel.name !== kernel) {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
-                  orchest.confirm(
-                    "Warning",
-                    "Do you want to change the active kernel of the opened Notebook? \n\nYou will lose the current kernel's state if no other Notebook is attached to it.",
-                    () => {
-                      docManager.services.sessions
-                        .shutdown(notebookSession.id)
-                        .then(() => {
-                          this.setKernelChangePending(notebook, kernel, false);
-                        })
-                        .catch((error) => {
-                          this.setKernelChangePending(notebook, kernel, false);
-                          console.error(error);
-                        });
-                    }
-                  );
+                  orchest.confirm("Warning", warningMessage, () => {
+                    docManager.services.sessions
+                      .shutdown(notebookSession.id)
+                      .then(() => {
+                        this.setKernelChangePending(notebook, kernel, false);
+                      })
+                      .catch((error) => {
+                        this.setKernelChangePending(notebook, kernel, false);
+                        console.error(error);
+                      });
+                  });
                 }
               }
             }
