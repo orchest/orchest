@@ -6,6 +6,7 @@ import {
   makeRequest,
   PromiseManager,
   RefManager,
+  relativeToAbsolutePath,
 } from "../lib/utils/all";
 
 import _ from "lodash";
@@ -169,7 +170,12 @@ class PipelineDetailsProperties extends React.Component {
     this.props.onSave(step);
     if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
       let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
-      orchest.jupyter.setNotebookKernel(step["file_path"], kernelName);
+      orchest.jupyter.setNotebookKernel(
+        relativeToAbsolutePath(step["file_path"], this.props.pipelineCwd).slice(
+          1
+        ),
+        kernelName
+      );
     }
   }
 

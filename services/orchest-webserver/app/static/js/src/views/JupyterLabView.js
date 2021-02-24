@@ -7,6 +7,7 @@ import {
   makeCancelable,
   makeRequest,
   uuidv4,
+  relativeToAbsolutePath,
 } from "../lib/utils/all";
 
 import { checkGate } from "../utils/webserver-utils";
@@ -79,7 +80,10 @@ class JupyterLabView extends React.Component {
 
           if (step.file_path.length > 0 && step.environment.length > 0) {
             orchest.jupyter.setNotebookKernel(
-              step.file_path,
+              relativeToAbsolutePath(
+                step.file_path,
+                this.state.pipelineCwd
+              ).slice(1),
               `orchest-kernel-${step.environment}`
             );
           }
@@ -101,9 +105,25 @@ class JupyterLabView extends React.Component {
       this.promiseManager
     );
 
-    fetchPipelinePromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
+    // fetch pipeline cwd
+    let cwdFetchPromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/async/file-picker-tree/pipeline-cwd/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
+      ),
+      this.promiseManager
+    );
+
+    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise]).then(
+      ([fetchCwdResult, fetchPipelinePromiseResult]) => {
+        // relativeToAbsolutePath expects trailing / for directories
+        let cwd = JSON.parse(fetchCwdResult)["cwd"] + "/";
+        this.state.pipelineCwd = cwd;
+        this.setState({
+          pipelineCwd: cwd,
+        });
+
+        let result = JSON.parse(fetchPipelinePromiseResult);
         if (result.success) {
           let pipeline = JSON.parse(result.pipeline_json);
 
@@ -125,10 +145,8 @@ class JupyterLabView extends React.Component {
           console.error("Could not load pipeline.json");
           console.error(result);
         }
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+      }
+    );
   }
 
   onSessionStateChange(working, running, session_details) {

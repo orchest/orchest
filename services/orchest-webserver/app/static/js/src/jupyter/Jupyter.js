@@ -87,12 +87,19 @@ class Jupyter {
 
   isJupyterLoaded() {
     try {
-      let widget = this.iframe.contentWindow._orchest_app.shell
-        .widgets()
-        .next();
+      let widgets = this.iframe.contentWindow._orchest_app.shell.widgets();
+
+      // a widget is on screen
+      let widgetOnScreen = false;
+      let widget;
+      while ((widget = widgets.next())) {
+        if (widget.node.offsetParent !== null) {
+          widgetOnScreen = true;
+          break;
+        }
+      }
       return (
-        this.iframe.contentWindow._orchest_app !== undefined &&
-        widget.node.offsetParent !== null
+        this.iframe.contentWindow._orchest_app !== undefined && widgetOnScreen
       );
     } catch {
       return false;
@@ -125,7 +132,11 @@ class Jupyter {
       let notebookWidget = docManager.findWidget(notebook);
       if (notebookWidget) {
         let sessionContext = notebookWidget.context.sessionContext;
-        if (sessionContext) {
+        if (
+          sessionContext &&
+          sessionContext.session &&
+          sessionContext.session.kernel
+        ) {
           if (sessionContext.session.kernel.name !== kernel) {
             orchest.confirm(
               "Warning",
@@ -142,7 +153,7 @@ class Jupyter {
         docManager.services.sessions
           .findByPath(notebook)
           .then((notebookSession) => {
-            if (notebookSession) {
+            if (notebookSession && notebookSession.kernel) {
               if (notebookSession.kernel.name !== kernel) {
                 orchest.confirm(
                   "Warning",

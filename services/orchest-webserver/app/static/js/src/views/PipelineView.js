@@ -744,13 +744,6 @@ class PipelineView extends React.Component {
     );
 
     $(document).on("keydown.initializePipeline", (e) => {
-      // Ctrl / Meta + S for saving pipeline
-      if (e.keyCode === 83 && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        // saveButton.click is used instead of savePipeline() to trigger visual
-        // button press
-        this.refManager.refs.saveButton.click();
-      }
       if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
         this.deleteSelectedSteps();
       }
@@ -1096,9 +1089,49 @@ class PipelineView extends React.Component {
       this.promiseManager
     );
 
-    fetchPipelinePromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
+    // fetch pipeline cwd
+    let cwdFetchPromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/async/file-picker-tree/pipeline-cwd/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
+      ),
+      this.promiseManager
+    );
+
+    fetchPipelinePromise.promise.catch(() => {
+      if (this.props.queryArgs.job_uuid) {
+        // This case is hit when a user tries to load a pipeline that belongs
+        // to a run that has not started yet. The project files are only
+        // copied when the run starts. Before start, the pipeline.json thus
+        // cannot be found. Alert the user about missing pipeline and return
+        // to JobView.
+
+        orchest.alert(
+          "Error",
+          "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+          () => {
+            orchest.loadView(JobView, {
+              queryArgs: {
+                job_uuid: this.props.queryArgs.job_uuid,
+              },
+            });
+          }
+        );
+      } else {
+        console.error("Could not load pipeline.json");
+        console.error(result);
+      }
+    });
+
+    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise])
+      .then(([cwdPromiseResult, fetchPipelinePromiseResult]) => {
+        // relativeToAbsolutePath expects trailing / for directories
+        let cwd = JSON.parse(cwdPromiseResult)["cwd"] + "/";
+        this.setState({
+          pipelineCwd: cwd,
+        });
+
+        let result = JSON.parse(fetchPipelinePromiseResult);
         if (result.success) {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
@@ -1116,29 +1149,8 @@ class PipelineView extends React.Component {
           console.error(result);
         }
       })
-      .catch(() => {
-        if (this.props.queryArgs.job_uuid) {
-          // This case is hit when a user tries to load a pipeline that belongs
-          // to a run that has not started yet. The project files are only
-          // copied when the run starts. Before start, the pipeline.json thus
-          // cannot be found. Alert the user about missing pipeline and return
-          // to JobView.
-
-          orchest.alert(
-            "Error",
-            "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-            () => {
-              orchest.loadView(JobView, {
-                queryArgs: {
-                  job_uuid: this.props.queryArgs.job_uuid,
-                },
-              });
-            }
-          );
-        } else {
-          console.error("Could not load pipeline.json");
-          console.error(result);
-        }
+      .catch((error) => {
+        console.error(error);
       });
   }
 
@@ -1375,36 +1387,19 @@ class PipelineView extends React.Component {
   }
 
   openNotebook() {
-    let cwdFetchPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/file-picker-tree/pipeline-cwd/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
-      ),
-      this.promiseManager
+    orchest.loadView(JupyterLabView, {
+      queryArgs: {
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        project_uuid: this.props.queryArgs.project_uuid,
+      },
+    });
+
+    orchest.jupyter.navigateTo(
+      relativeToAbsolutePath(
+        this.state.steps[this.state.openedStep].file_path,
+        this.state.pipelineCwd
+      ).slice(1)
     );
-
-    cwdFetchPromise.promise
-      .then((response) => {
-        // relativeToAbsolutePath expects trailing / for directories
-        let cwd = JSON.parse(response)["cwd"] + "/";
-
-        orchest.loadView(JupyterLabView, {
-          queryArgs: {
-            pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-            project_uuid: this.props.queryArgs.project_uuid,
-          },
-        });
-
-        orchest.jupyter.navigateTo(
-          relativeToAbsolutePath(
-            this.state.steps[this.state.openedStep].file_path,
-            cwd
-          ).slice(1)
-        );
-      })
-      .catch((error) => {
-        console.log(error);
-      });
   }
 
   onOpenFilePreviewView(step_uuid) {
@@ -2216,6 +2211,7 @@ class PipelineView extends React.Component {
                 connections={connections_list}
                 defaultViewIndex={this.state.defaultDetailViewIndex}
                 pipeline={this.state.pipelineJson}
+                pipelineCwd={this.state.pipelineCwd}
                 project_uuid={this.props.queryArgs.project_uuid}
                 job_uuid={this.props.queryArgs.job_uuid}
                 run_uuid={this.props.queryArgs.run_uuid}

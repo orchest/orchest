@@ -92,8 +92,6 @@ class FilePicker extends React.Component {
         state.path.slice(0, -1).lastIndexOf("/") + 1
       );
 
-      this.onChangeValue(this.visualizePath(newPath, this.props.cwd));
-
       return {
         path: newPath,
       };
@@ -107,8 +105,6 @@ class FilePicker extends React.Component {
 
       this.setState((state, _) => {
         let newPath = state.path + node.name + "/";
-
-        this.onChangeValue(this.visualizePath(newPath, this.props.cwd));
 
         return {
           path: newPath,
