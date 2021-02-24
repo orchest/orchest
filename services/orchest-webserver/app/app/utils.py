@@ -587,17 +587,12 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
 
             if os.path.isfile(notebook_path):
 
-                gateway_kernel = generate_gateway_kernel_name(step["environment"])
-
                 with open(notebook_path, "r") as file:
                     notebook_json = json.load(file)
 
                 notebook_changed = False
 
-                if notebook_json["metadata"]["kernelspec"]["name"] != gateway_kernel:
-                    notebook_changed = True
-                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
-
+                # Set language info and kernelspec.language metadata.
                 language = step["kernel"]["name"]
                 if notebook_json["metadata"]["kernelspec"]["language"] != language:
                     notebook_changed = True
@@ -607,25 +602,42 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
                         "metadata"
                     ]["language_info"]
 
-                environment = get_environment(step["environment"], project_uuid)
-
-                if environment is not None:
+                # Set kernel name (orchest-kernel-<uuid>) and display
+                # name (name of the environment).
+                environment_uuid = step.get("environment")
+                if environment_uuid is None or environment_uuid == "":
+                    notebook_changed = True
+                    notebook_json["metadata"]["kernelspec"]["name"] = ""
+                    notebook_json["metadata"]["kernelspec"]["display_name"] = ""
+                else:
+                    gateway_kernel = generate_gateway_kernel_name(step["environment"])
                     if (
-                        notebook_json["metadata"]["kernelspec"]["display_name"]
-                        != environment.name
+                        notebook_json["metadata"]["kernelspec"]["name"]
+                        != gateway_kernel
                     ):
                         notebook_changed = True
-                        notebook_json["metadata"]["kernelspec"][
-                            "display_name"
-                        ] = environment.name
-                else:
-                    current_app.logger.warn(
-                        (
-                            "Could not find environment [%s] while setting"
-                            "notebook kernelspec for notebook %s."
+                        notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+
+                    environment = get_environment(step["environment"], project_uuid)
+                    if environment is not None:
+                        if (
+                            notebook_json["metadata"]["kernelspec"]["display_name"]
+                            != environment.name
+                        ):
+                            notebook_changed = True
+                            notebook_json["metadata"]["kernelspec"][
+                                "display_name"
+                            ] = environment.name
+                    else:
+                        notebook_changed = True
+                        notebook_json["metadata"]["kernelspec"]["display_name"] = ""
+                        current_app.logger.warn(
+                            (
+                                "Could not find environment [%s] while setting"
+                                "notebook kernelspec for notebook %s."
+                            )
+                            % (step["environment"], notebook_path)
                         )
-                        % (step["environment"], notebook_path)
-                    )
 
                 if notebook_changed:
                     with open(notebook_path, "w") as file:
