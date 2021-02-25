@@ -967,7 +967,7 @@ class PipelineView extends React.Component {
       "mousedown",
       "#path-clickable",
       function (e) {
-        if (e.button === 0 && !this.keysDown[32]) {
+        if (e.button === 0 && !_this.keysDown[32]) {
           if (_this.selectedConnection) {
             _this.selectedConnection.deselectState();
           }
@@ -1309,24 +1309,28 @@ class PipelineView extends React.Component {
     this.closeMultistepView();
     this.closeDetailsView();
 
-    orchest.confirm(
-      "Warning",
-      "A deleted step and its logs cannot be recovered once deleted, are you" +
-        " sure you want to proceed?",
-      () => {
-        // DeleteStep is going to remove the step from this.state.selected
-        // Steps, modifying the collection while we are iterating on it.
-        let stepsToRemove = this.state.selectedSteps.slice();
-        for (let x = 0; x < stepsToRemove.length; x++) {
-          this.deleteStep(stepsToRemove[x]);
-        }
+    // The if is to avoid the dialog appearing when no steps are
+    // selected and the delete button is pressed.
+    if (this.state.selectedSteps.length > 0) {
+      orchest.confirm(
+        "Warning",
+        "A deleted step and its logs cannot be recovered once deleted, are you" +
+          " sure you want to proceed?",
+        () => {
+          // DeleteStep is going to remove the step from this.state.selected
+          // Steps, modifying the collection while we are iterating on it.
+          let stepsToRemove = this.state.selectedSteps.slice();
+          for (let x = 0; x < stepsToRemove.length; x++) {
+            this.deleteStep(stepsToRemove[x]);
+          }
 
-        this.setState({
-          selectedSteps: [],
-        });
-        this.savePipeline();
-      }
-    );
+          this.setState({
+            selectedSteps: [],
+          });
+          this.savePipeline();
+        }
+      );
+    }
   }
 
   deleteStep(uuid) {
