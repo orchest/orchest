@@ -136,10 +136,10 @@ class Jupyter {
 
   setNotebookKernel(notebook, kernel) {
     /**
-     *   @param {String} notebook relative path to the Jupyter file from the
+     *   @param {string} notebook relative path to the Jupyter file from the
      *   perspective of the root of the project directory.
      *   E.g. somedir/myipynb.ipynb (no starting slash)
-     *   @param {String} kernel name of the kernel (orchest-kernel-<uuid>)
+     *   @param {string} kernel name of the kernel (orchest-kernel-<uuid>)
      */
 
     let warningMessage =
@@ -207,7 +207,7 @@ class Jupyter {
 
   navigateTo(filePath) {
     /**
-     *   @param {String} filePath relative path to the Jupyter file from the
+     *   @param {string} filePath relative path to the Jupyter file from the
      *   perspective of the root of the project directory.
      *   E.g. somedir/myipynb.ipynb (no starting slash)
      */
