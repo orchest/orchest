@@ -607,6 +607,10 @@ button.text-button {
   }
 }
 
+.environment-properties {
+  max-width: 800px;
+}
+
 .environment-variables-list {
   ul {
     list-style-type: none;
@@ -1408,6 +1412,10 @@ table {
   .mdc-select__menu {
     position: absolute;
   }
+}
+
+.project-selector {
+  max-width: 300px;
 }
 
 .mdc-select {
