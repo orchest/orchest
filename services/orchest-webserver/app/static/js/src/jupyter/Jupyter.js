@@ -135,6 +135,13 @@ class Jupyter {
   }
 
   setNotebookKernel(notebook, kernel) {
+    /**
+        @param {String} A relative path to the Jupyter file from the 
+        perspective of the root of the project directory.
+        E.g. somedir/myipynb.ipynb (no starting slash)
+        @param {String} The name of the kernel (orchest-kernel-<uuid>)
+    **/
+
     let warningMessage =
       "Do you want to change the active kernel of the opened " +
       "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
