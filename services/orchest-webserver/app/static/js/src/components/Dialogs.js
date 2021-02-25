@@ -45,7 +45,9 @@ class Dialogs extends React.Component {
   alert(title, content, onClose) {
     let uuid = uuidv4();
 
-    content = newslines2breaks(content);
+    if (typeof content == "string") {
+      content = newslines2breaks(content);
+    }
 
     this.state.dialogs.push(
       <AlertDialog
@@ -70,7 +72,9 @@ class Dialogs extends React.Component {
   confirm(title, content, onConfirm, onCancel) {
     let uuid = uuidv4();
 
-    content = newslines2breaks(content);
+    if (typeof content == "string") {
+      content = newslines2breaks(content);
+    }
 
     this.state.dialogs.push(
       <ConfirmDialog

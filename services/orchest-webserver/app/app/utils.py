@@ -503,6 +503,9 @@ def get_ipynb_template(language: str):
         "r": "ipynb_template_r.json",
     }
 
+    if language not in language_to_template.keys():
+        language = "python"
+
     template_json = json.load(
         open(
             os.path.join(
@@ -527,45 +530,40 @@ def generate_ipynb_from_template(step, project_uuid):
     return json.dumps(template_json, indent=4)
 
 
-def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
+def create_pipeline_file(
+    file_path, pipeline_json, pipeline_directory, project_uuid, step_uuid
+):
+    """
+    Note: this function does not assume that step['file_path']
+    holds the value of file_path!
+    """
 
-    # Currently, we check per step whether the file exists. If not,
-    # we create it (empty by default). In case the file has an
-    # .ipynb extension we generate the file from a template with a
-    # kernel based on the kernel description in the JSON step.
+    step = pipeline_json["steps"][step_uuid]
 
-    # Iterate over steps
-    steps = pipeline_json["steps"].keys()
+    full_file_path = os.path.join(pipeline_directory, file_path)
+    file_path_split = file_path.split(".")
+    file_path_without_ext = ".".join(file_path_split[:-1])
+    ext = file_path_split[-1]
 
-    for key in steps:
-        step = pipeline_json["steps"][key]
+    file_content = None
 
-        file_name = step["file_path"]
+    if not os.path.isfile(full_file_path):
 
-        full_file_path = os.path.join(pipeline_directory, file_name)
-        file_name_split = file_name.split(".")
-        file_name_without_ext = ".".join(file_name_split[:-1])
-        ext = file_name_split[-1]
+        if len(file_path_without_ext) > 0:
+            file_content = ""
 
-        file_content = None
+        if ext == "ipynb":
+            file_content = generate_ipynb_from_template(step, project_uuid)
 
-        if not os.path.isfile(full_file_path):
+    elif ext == "ipynb":
+        # Check for empty .ipynb, for which we also generate a
+        # template notebook.
+        if os.stat(full_file_path).st_size == 0:
+            file_content = generate_ipynb_from_template(step, project_uuid)
 
-            if len(file_name_without_ext) > 0:
-                file_content = ""
-
-            if ext == "ipynb":
-                file_content = generate_ipynb_from_template(step, project_uuid)
-
-        elif ext == "ipynb":
-            # Check for empty .ipynb, for which we also generate a
-            # template notebook.
-            if os.stat(full_file_path).st_size == 0:
-                file_content = generate_ipynb_from_template(step, project_uuid)
-
-        if file_content is not None:
-            with open(full_file_path, "w") as file:
-                file.write(file_content)
+    if file_content is not None:
+        with open(full_file_path, "w") as file:
+            file.write(file_content)
 
 
 def generate_gateway_kernel_name(environment_uuid):

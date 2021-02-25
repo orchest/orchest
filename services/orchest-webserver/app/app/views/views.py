@@ -26,13 +26,14 @@ from app.kernel_manager import populate_kernels
 from app.models import Environment, Pipeline, Project
 from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
 from app.utils import (
-    create_pipeline_files,
+    create_pipeline_file,
     delete_environment,
     get_environment,
     get_environment_directory,
     get_environments,
     get_hash,
     get_pipeline_directory,
+    get_pipeline_json,
     get_pipeline_path,
     get_project_directory,
     get_repo_tag,
@@ -608,11 +609,6 @@ def register_views(app, db):
             # Parse JSON.
             pipeline_json = json.loads(request.form.get("pipeline_json"))
 
-            # First create all files part of pipeline_json definition
-            # TODO: consider removing other files (no way to do this
-            # reliably, special case might be rename).
-            create_pipeline_files(pipeline_json, pipeline_directory, project_uuid)
-
             # Side effect: for each Notebook in de pipeline.json set the
             # correct kernel.
             pipeline_set_notebook_kernels(
@@ -720,8 +716,11 @@ def register_views(app, db):
 
         return jsonify(tree)
 
-    @app.route("/async/project-files/create/<project_uuid>", methods=["POST"])
-    def create_project_file(project_uuid):
+    @app.route(
+        "/async/project-files/create/<project_uuid>/<pipeline_uuid>/<step_uuid>",
+        methods=["POST"],
+    )
+    def create_project_file(project_uuid, pipeline_uuid, step_uuid):
         """Create project file in specified directory within project."""
 
         project_dir = get_project_directory(project_uuid)
@@ -732,9 +731,14 @@ def register_views(app, db):
 
         if os.path.isfile(file_path):
             return jsonify({"message": "File already exists."}), 409
-
         try:
-            open(file_path, "a").close()
+            create_pipeline_file(
+                file_path,
+                get_pipeline_json(pipeline_uuid, project_uuid),
+                project_dir,
+                project_uuid,
+                step_uuid,
+            )
             return jsonify({"message": "File created."})
         except IOError as e:
             app.logger.error("Could not create file at %s. Error: %s" % (file_path, e))

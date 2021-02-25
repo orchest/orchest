@@ -212,7 +212,7 @@ export function formatServerDateTime(dateTimeString) {
 }
 
 export function newslines2breaks(lines) {
-  if (lines === "undefined") {
+  if (lines === undefined) {
     return [];
   }
 

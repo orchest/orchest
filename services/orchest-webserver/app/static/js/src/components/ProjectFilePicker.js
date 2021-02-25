@@ -21,6 +21,8 @@ class ProjectFilePicker extends React.Component {
     this.state = {
       createFileModal: false,
       selectedFileExists: "undetermined",
+      fileName: "",
+      selectedExtension: "." + ALLOWED_STEP_EXTENSIONS[0],
       tree: undefined,
     };
 
@@ -171,21 +173,20 @@ class ProjectFilePicker extends React.Component {
   }
 
   onChangeNewFilename(value) {
-    let extension = this.refManager.refs.createFileExtensionDropdown.mdc.value;
-
     this.setState((state, _) => {
       return {
-        createFileFullProjectPath: state.createFileDir + value + extension,
+        fileName: value,
+        createFileFullProjectPath:
+          state.createFileDir + value + state.selectedExtension,
       };
     });
   }
 
   onChangeNewFilenameExtension(value) {
-    let fileName = this.refManager.refs.createFileTextField.mdc.value;
-
     this.setState((state, _) => {
       return {
-        createFileFullProjectPath: state.createFileDir + fileName + value,
+        selectedExtension: value,
+        createFileFullProjectPath: state.createFileDir + state.fileName + value,
       };
     });
   }
@@ -198,8 +199,8 @@ class ProjectFilePicker extends React.Component {
     if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
       orchest.alert(
         "Error",
-        "Invalid file extension",
         <div>
+          <p>Invalid file extension</p>
           Extension {extension} is not in allowed set of{" "}
           {this.allowedExtensionsMarkup()}.
         </div>
@@ -211,7 +212,7 @@ class ProjectFilePicker extends React.Component {
     let createPromise = makeCancelable(
       makeRequest(
         "POST",
-        `/async/project-files/create/${this.props.project_uuid}`,
+        `/async/project-files/create/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`,
         {
           type: "json",
           content: {
@@ -292,7 +293,7 @@ class ProjectFilePicker extends React.Component {
                       <MDCSelectReact
                         ref={this.refManager.nrefs.createFileExtensionDropdown}
                         label="Extension"
-                        value={"." + ALLOWED_STEP_EXTENSIONS[0]}
+                        value={this.state.selectedExtension}
                         options={ALLOWED_STEP_EXTENSIONS.map((el) => [
                           "." + el,
                         ])}

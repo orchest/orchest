@@ -122,11 +122,8 @@ class PipelineDetailsProperties extends React.Component {
     let step = _.cloneDeep(this.props.step);
     step.file_path = updatedFileName;
 
-    // block propagation for directory values
-    if (!updatedFileName.endsWith("/")) {
-      this.updateStepName(step.uuid, step.title, step.file_path);
-      this.props.onSave(step);
-    }
+    this.updateStepName(step.uuid, step.title, step.file_path);
+    this.props.onSave(step);
   }
 
   onChangeVCPUS(updatedVCPUS) {
@@ -369,11 +366,11 @@ class PipelineDetailsProperties extends React.Component {
               } else {
                 return (
                   <ProjectFilePicker
-                    key={this.props.saveHash}
                     cwd="/"
                     value={this.props.step.file_path}
                     project_uuid={this.props.project_uuid}
                     pipeline_uuid={this.props.pipeline_uuid}
+                    step_uuid={this.props.step.uuid}
                     onChange={this.onChangeFileName.bind(this)}
                   />
                 );

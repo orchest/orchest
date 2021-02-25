@@ -92,6 +92,8 @@ class FilePicker extends React.Component {
         state.path.slice(0, -1).lastIndexOf("/") + 1
       );
 
+      this.onChangeValue(this.visualizePath(newPath, this.props.cwd));
+
       return {
         path: newPath,
       };
@@ -105,6 +107,8 @@ class FilePicker extends React.Component {
 
       this.setState((state, _) => {
         let newPath = state.path + node.name + "/";
+
+        this.onChangeValue(this.visualizePath(newPath, this.props.cwd));
 
         return {
           path: newPath,
@@ -156,7 +160,6 @@ class FilePicker extends React.Component {
 
   onBlurTextField(e) {
     clearTimeout(this.blurTimeout);
-
     this.blurTimeout = setTimeout(() => {
       if (document.activeElement !== this.refManager.refs.fileMenu) {
         this.setState({
@@ -189,6 +192,9 @@ class FilePicker extends React.Component {
             <div
               ref={this.refManager.nrefs.fileMenu}
               onBlur={this.onBlurMenu.bind(this)}
+              // tabIndex is REQUIRED for proper blur/focus events
+              // for the dropdown mdc-list.
+              tabIndex="0"
               className={
                 "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
                 (this.state.focused ? "" : "hidden")
