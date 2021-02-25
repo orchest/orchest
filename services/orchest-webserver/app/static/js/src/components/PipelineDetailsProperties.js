@@ -382,7 +382,7 @@ class PipelineDetailsProperties extends React.Component {
           </div>
 
           <MDCSelectReact
-            label="Kernel"
+            label="Kernel language"
             onChange={this.onChangeKernel.bind(this)}
             options={KERNEL_OPTIONS}
             value={this.props.step.kernel.name}
