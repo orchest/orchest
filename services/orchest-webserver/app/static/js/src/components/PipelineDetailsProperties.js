@@ -32,7 +32,7 @@ class ConnectionItem extends React.Component {
 
 const KERNEL_OPTIONS = [
   ["python", "Python"],
-  ["ir", "R"],
+  ["r", "R"],
   ["julia", "Julia"],
 ];
 

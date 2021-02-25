@@ -500,7 +500,7 @@ def get_ipynb_template(language: str):
     language_to_template = {
         "python": "ipynb_template.json",
         "julia": "ipynb_template_julia.json",
-        "ir": "ipynb_template_r.json",
+        "r": "ipynb_template_r.json",
     }
 
     template_json = json.load(
