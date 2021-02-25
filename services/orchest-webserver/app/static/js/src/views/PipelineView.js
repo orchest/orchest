@@ -2229,7 +2229,10 @@ class PipelineView extends React.Component {
               />
             );
           }
-          if (this.state.openedMultistep) {
+          if (
+            this.state.openedMultistep &&
+            this.props.queryArgs.read_only !== "true"
+          ) {
             return (
               <div className={"pipeline-actions bottom-right"}>
                 <MDCButtonReact
