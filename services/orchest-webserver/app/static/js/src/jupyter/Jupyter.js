@@ -136,11 +136,11 @@ class Jupyter {
 
   setNotebookKernel(notebook, kernel) {
     /**
-        @param {String} A relative path to the Jupyter file from the 
-        perspective of the root of the project directory.
-        E.g. somedir/myipynb.ipynb (no starting slash)
-        @param {String} The name of the kernel (orchest-kernel-<uuid>)
-    **/
+     *   @param {String} notebook relative path to the Jupyter file from the
+     *   perspective of the root of the project directory.
+     *   E.g. somedir/myipynb.ipynb (no starting slash)
+     *   @param {String} kernel name of the kernel (orchest-kernel-<uuid>)
+     */
 
     let warningMessage =
       "Do you want to change the active kernel of the opened " +
@@ -206,6 +206,12 @@ class Jupyter {
   }
 
   navigateTo(filePath) {
+    /**
+     *   @param {String} filePath relative path to the Jupyter file from the
+     *   perspective of the root of the project directory.
+     *   E.g. somedir/myipynb.ipynb (no starting slash)
+     */
+
     if (!filePath) {
       return;
     }
