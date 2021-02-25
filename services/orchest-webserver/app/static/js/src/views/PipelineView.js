@@ -787,29 +787,32 @@ class PipelineView extends React.Component {
           step.meta_data._drag_count = 0;
         }
 
-        if (
-          this.state.selectedSteps.length > 1 &&
-          this.state.selectedSteps.indexOf(this.selectedItem) !== -1
-        ) {
-          for (let key in this.state.selectedSteps) {
-            let uuid = this.state.selectedSteps[key];
+        // check for spacebar
+        if (!this.keysDown[32]) {
+          if (
+            this.state.selectedSteps.length > 1 &&
+            this.state.selectedSteps.indexOf(this.selectedItem) !== -1
+          ) {
+            for (let key in this.state.selectedSteps) {
+              let uuid = this.state.selectedSteps[key];
 
-            let singleStep = this.state.steps[uuid];
+              let singleStep = this.state.steps[uuid];
 
-            singleStep.meta_data.position[0] += delta[0];
-            singleStep.meta_data.position[1] += delta[1];
+              singleStep.meta_data.position[0] += delta[0];
+              singleStep.meta_data.position[1] += delta[1];
 
-            this.refManager.refs[uuid].updatePosition(
-              singleStep.meta_data.position
+              this.refManager.refs[uuid].updatePosition(
+                singleStep.meta_data.position
+              );
+            }
+          } else if (this.selectedItem !== undefined) {
+            step.meta_data.position[0] += delta[0];
+            step.meta_data.position[1] += delta[1];
+
+            this.refManager.refs[step.uuid].updatePosition(
+              step.meta_data.position
             );
           }
-        } else if (this.selectedItem !== undefined) {
-          step.meta_data.position[0] += delta[0];
-          step.meta_data.position[1] += delta[1];
-
-          this.refManager.refs[step.uuid].updatePosition(
-            step.meta_data.position
-          );
         }
 
         this.renderConnections(this.connections);
@@ -964,7 +967,7 @@ class PipelineView extends React.Component {
       "mousedown",
       "#path-clickable",
       function (e) {
-        if (e.button === 0) {
+        if (e.button === 0 && !this.keysDown[32]) {
           if (_this.selectedConnection) {
             _this.selectedConnection.deselectState();
           }
@@ -1925,16 +1928,20 @@ class PipelineView extends React.Component {
     this.mouseClientX = e.clientX;
     this.mouseClientY = e.clientY;
 
+    if (e.button === 0) {
+      if (this.keysDown[32]) {
+        // space held while clicking, means canvas drag
+        $(this.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
+        this.draggingPipeline = true;
+      }
+    }
+
     if (
       ($(e.target).hasClass("pipeline-steps-holder") ||
         $(e.target).hasClass("pipeline-steps-outer-holder")) &&
       e.button === 0
     ) {
-      if (this.keysDown[32]) {
-        // space held while clicking, means canvas drag
-        $(this.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
-        this.draggingPipeline = true;
-      } else {
+      if (!this.keysDown[32]) {
         let pipelineStepHolderOffset = $(".pipeline-steps-holder").offset();
 
         this.state.stepSelector.active = true;

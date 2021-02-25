@@ -54,8 +54,6 @@ function Orchest() {
       ).value;
 
       if (viewName === elementViewName) {
-        listElement.focus();
-        listElement.blur();
         drawer.list.selectedIndex = x;
       }
     }
@@ -81,9 +79,7 @@ function Orchest() {
       let viewName = listElement.attributes.getNamedItem("data-react-view")
         .value;
 
-      this.loadView(nameToComponent(viewName), undefined, () => {
-        setDrawerSelectedIndex(drawer, this.activeView);
-      });
+      this.loadView(nameToComponent(viewName));
     }
   });
 
@@ -224,16 +220,16 @@ function Orchest() {
     this.loadView(ProjectsView);
   };
 
-  setTimeout(() => {
-    this.initializeFirstView();
-  }, 0);
-
   const topAppBar = MDCTopAppBar.attachTo(document.getElementById("app-bar"));
   topAppBar.setScrollTarget(document.getElementById("main-content"));
   topAppBar.listen("MDCTopAppBar:nav", () => {
     window.localStorage.setItem("topAppBar.open", "" + !drawer.open);
 
     drawer.open = !drawer.open;
+  });
+
+  drawer.listen("MDCDrawer:opened", () => {
+    document.body.focus();
   });
 
   // persist nav menu to localStorage
@@ -295,3 +291,4 @@ function Orchest() {
 }
 
 window.orchest = new Orchest();
+window.orchest.initializeFirstView();

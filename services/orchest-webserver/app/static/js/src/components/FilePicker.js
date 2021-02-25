@@ -193,7 +193,6 @@ class FilePicker extends React.Component {
                 "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
                 (this.state.focused ? "" : "hidden")
               }
-              tabIndex="0"
             >
               <ul className="mdc-list">{directory_list}</ul>
             </div>

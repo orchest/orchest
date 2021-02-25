@@ -1028,6 +1028,14 @@ span.code {
 
     &.dragging {
       cursor: grabbing;
+
+      .pipeline-steps-holder {
+        .pipeline-step {
+          &:active {
+            background: #fff;
+          }
+        }
+      }
     }
   }
 
