@@ -15,7 +15,6 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app.analytics import send_anonymized_pipeline_definition
-from app.compat import migrate_pipeline
 from app.core.pipelines import CreatePipeline, DeletePipeline
 from app.core.projects import (
     CreateProject,
@@ -494,16 +493,14 @@ def register_views(app, db):
 
         for pipeline in pipelines:
 
-            pipeline_json_path = get_pipeline_path(pipeline.uuid, pipeline.project_uuid)
-
             pipeline_augmented = {
                 "uuid": pipeline.uuid,
                 "path": pipeline.path,
             }
-            if os.path.isfile(pipeline_json_path):
-                with open(pipeline_json_path, "r") as json_file:
-                    pipeline_json = json.load(json_file)
-                    pipeline_augmented["name"] = pipeline_json["name"]
+
+            pipeline_json = get_pipeline_json(pipeline.uuid, pipeline.project_uuid)
+            if pipeline_json is not None:
+                pipeline_augmented["name"] = pipeline_json["name"]
             else:
                 pipeline_augmented["name"] = "Warning: pipeline file was not found."
 
@@ -638,17 +635,13 @@ def register_views(app, db):
                     404,
                 )
             else:
-                with open(pipeline_json_path) as json_file:
-                    pipeline_json = json.load(json_file)
 
-                    # Apply pipeline migrations
-                    pipeline_json = migrate_pipeline(pipeline_json)
-
-                    # json.dumps because the front end expects it as a
-                    # string.
-                    return jsonify(
-                        {"success": True, "pipeline_json": json.dumps(pipeline_json)}
-                    )
+                pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
+                # json.dumps because the front end expects it as a
+                # string.
+                return jsonify(
+                    {"success": True, "pipeline_json": json.dumps(pipeline_json)}
+                )
 
             return ""
 

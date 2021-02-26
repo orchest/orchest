@@ -8,6 +8,7 @@ import requests
 from flask import current_app
 
 from _orchest.internals import config as _config
+from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
 from app.schemas import EnvironmentSchema
@@ -245,7 +246,12 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
 
     try:
         with open(pipeline_path, "r") as json_file:
-            return json.load(json_file)
+            pipeline_json = json.load(json_file)
+
+            # Apply pipeline migrations
+            pipeline_json = migrate_pipeline(pipeline_json)
+
+            return pipeline_json
     except Exception as e:
         current_app.logger.error("Could not read pipeline JSON from %s" % e)
 
