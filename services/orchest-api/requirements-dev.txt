@@ -1,6 +1,6 @@
 APScheduler==3.6.3
 aiodocker==0.18.3
-aiohttp==3.6.2
+aiohttp==3.7.4
 amqp==2.6.0
 celery==4.4.2
 croniter==1.0.2
