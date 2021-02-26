@@ -13,4 +13,4 @@ echo "[Cleaning up userdir]: ..."
 sudo rm -rf $DIR/../userdir
 git checkout $DIR/../userdir
 
-echo "[Cleaning up userdir]: succes"
+echo "[Cleaning up userdir]: success"
