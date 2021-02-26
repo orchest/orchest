@@ -51,10 +51,14 @@ function Orchest() {
       let listElement = drawer.list.listElements[x];
       let elementViewName = listElement.attributes.getNamedItem(
         "data-react-view"
-      ).value;
+      );
 
-      if (viewName === elementViewName) {
-        drawer.list.selectedIndex = x;
+      if (elementViewName) {
+        elementViewName = elementViewName.value;
+
+        if (viewName === elementViewName) {
+          drawer.list.selectedIndex = x;
+        }
       }
     }
   }
