@@ -15,6 +15,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app.analytics import send_anonymized_pipeline_definition
+from app.compat import migrate_pipeline
 from app.core.pipelines import CreatePipeline, DeletePipeline
 from app.core.projects import (
     CreateProject,
@@ -639,9 +640,10 @@ def register_views(app, db):
             else:
                 with open(pipeline_json_path) as json_file:
                     pipeline_json = json.load(json_file)
-                    # Take care of old pipelines with no defined params.
-                    if "parameters" not in pipeline_json:
-                        pipeline_json["parameters"] = {}
+
+                    # Apply pipeline migrations
+                    pipeline_json = migrate_pipeline(pipeline_json)
+
                     # json.dumps because the front end expects it as a
                     # string.
                     return jsonify(
