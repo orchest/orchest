@@ -76,10 +76,11 @@ function Orchest() {
     let listElement = drawer.list.listElements[selectedIndex];
 
     if (listElement.attributes.getNamedItem("data-react-view")) {
-      let viewName = listElement.attributes.getNamedItem("data-react-view")
-        .value;
-
-      this.loadView(nameToComponent(viewName));
+      let viewName = listElement.attributes.getNamedItem("data-react-view");
+      if (viewName) {
+        viewName = viewName.value;
+        this.loadView(nameToComponent(viewName));
+      }
     }
   });
 
