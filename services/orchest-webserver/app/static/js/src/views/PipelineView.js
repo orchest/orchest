@@ -1,4 +1,5 @@
 import React from "react";
+import _ from "lodash";
 
 import {
   uuidv4,
@@ -17,7 +18,6 @@ import {
   checkGate,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
-  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -260,6 +260,7 @@ class PipelineView extends React.Component {
     this.refManager = new RefManager();
     this._ismounted = true;
 
+    this.currentOngoingSaves = 0;
     this.pipelineStepStatusPollingInterval = undefined;
     this.sessionPollingInterval = undefined;
 
@@ -268,7 +269,6 @@ class PipelineView extends React.Component {
       openedMultistep: undefined,
       selectedSteps: [],
       runStatusEndpoint: "/catch/api-proxy/api/runs/",
-      unsavedChanges: false,
       stepSelector: {
         active: false,
         x1: 0,
@@ -415,21 +415,34 @@ class PipelineView extends React.Component {
         let formData = new FormData();
         formData.append("pipeline_json", JSON.stringify(pipelineJSON));
 
+        this.setState({
+          saveHash: uuidv4(),
+        });
+
+        clearTimeout(this.saveIndicatorTimeout);
+        this.currentOngoingSaves++;
+        this.saveIndicatorTimeout = setTimeout(() => {
+          orchest.headerBarComponent.pipelineSaveStatus("saving");
+        }, 100);
+
         // perform POST to save
         makeRequest(
           "POST",
           `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
           { type: "FormData", content: formData }
-        ).then(() => {
-          if (callback && typeof callback == "function" && this._ismounted) {
-            callback();
-          }
-        });
-
-        this.setState({
-          unsavedChanges: false,
-          saveHash: uuidv4(),
-        });
+        )
+          .then(() => {
+            if (callback && typeof callback == "function" && this._ismounted) {
+              callback();
+            }
+          })
+          .finally(() => {
+            this.currentOngoingSaves--;
+            if (this.currentOngoingSaves === 0) {
+              clearTimeout(this.saveIndicatorTimeout);
+              orchest.headerBarComponent.pipelineSaveStatus("saved");
+            }
+          });
       }
     } else {
       console.error("savePipeline should be uncallable in readOnly mode.");
@@ -440,13 +453,13 @@ class PipelineView extends React.Component {
     // generate JSON representation using the internal state of React components
     // describing the pipeline
 
-    let pipelineJSON = JSON.parse(JSON.stringify(this.state.pipelineJson));
+    let pipelineJSON = _.cloneDeep(this.state.pipelineJson);
     pipelineJSON["steps"] = {};
 
     for (let key in this.state.steps) {
       if (this.state.steps.hasOwnProperty(key)) {
         // deep copy step
-        let step = JSON.parse(JSON.stringify(this.state.steps[key]));
+        let step = _.cloneDeep(this.state.steps[key]);
 
         // remove private meta_data (prefixed with underscore)
         let keys = Object.keys(step.meta_data);
@@ -694,10 +707,6 @@ class PipelineView extends React.Component {
             endNodeUUID
           );
           this.newConnection.render();
-
-          this.setState({
-            unsavedChanges: true,
-          });
         } else {
           this.newConnection.el.remove();
           this.connections.splice(
@@ -718,11 +727,6 @@ class PipelineView extends React.Component {
       }
       this.newConnection = undefined;
 
-      // always check unsavedChanges on mouseup
-      this.setState({
-        unsavedChanges: this.state.unsavedChanges,
-      });
-
       // clean up creating-connection class
       $(".pipeline-step").removeClass("creating-connection");
     });
@@ -740,13 +744,6 @@ class PipelineView extends React.Component {
     );
 
     $(document).on("keydown.initializePipeline", (e) => {
-      // Ctrl / Meta + S for saving pipeline
-      if (e.keyCode === 83 && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        // saveButton.click is used instead of savePipeline() to trigger visual
-        // button press
-        this.refManager.refs.saveButton.click();
-      }
       if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
         this.deleteSelectedSteps();
       }
@@ -790,35 +787,32 @@ class PipelineView extends React.Component {
           step.meta_data._drag_count = 0;
         }
 
-        if (
-          this.state.selectedSteps.length > 1 &&
-          this.state.selectedSteps.indexOf(this.selectedItem) !== -1
-        ) {
-          for (let key in this.state.selectedSteps) {
-            let uuid = this.state.selectedSteps[key];
+        // check for spacebar
+        if (!this.keysDown[32]) {
+          if (
+            this.state.selectedSteps.length > 1 &&
+            this.state.selectedSteps.indexOf(this.selectedItem) !== -1
+          ) {
+            for (let key in this.state.selectedSteps) {
+              let uuid = this.state.selectedSteps[key];
 
-            let singleStep = this.state.steps[uuid];
+              let singleStep = this.state.steps[uuid];
 
-            singleStep.meta_data.position[0] += delta[0];
-            singleStep.meta_data.position[1] += delta[1];
+              singleStep.meta_data.position[0] += delta[0];
+              singleStep.meta_data.position[1] += delta[1];
 
-            this.refManager.refs[uuid].updatePosition(
-              singleStep.meta_data.position
+              this.refManager.refs[uuid].updatePosition(
+                singleStep.meta_data.position
+              );
+            }
+          } else if (this.selectedItem !== undefined) {
+            step.meta_data.position[0] += delta[0];
+            step.meta_data.position[1] += delta[1];
+
+            this.refManager.refs[step.uuid].updatePosition(
+              step.meta_data.position
             );
-
-            // note: state will be invalidated in mouseup event for view updating
-            this.state.unsavedChanges = true;
           }
-        } else if (this.selectedItem !== undefined) {
-          step.meta_data.position[0] += delta[0];
-          step.meta_data.position[1] += delta[1];
-
-          this.refManager.refs[step.uuid].updatePosition(
-            step.meta_data.position
-          );
-
-          // note: state will be invalidated in mouseup event for view updating
-          this.state.unsavedChanges = true;
         }
 
         this.renderConnections(this.connections);
@@ -931,6 +925,8 @@ class PipelineView extends React.Component {
         });
       }
 
+      if (stepDragged) this.savePipeline();
+
       if (e.button === 0 && this.state.selectedSteps.length == 0) {
         // when space bar is held make sure deselection does not occur
         // on click (as it is a drag event)
@@ -971,7 +967,7 @@ class PipelineView extends React.Component {
       "mousedown",
       "#path-clickable",
       function (e) {
-        if (e.button === 0) {
+        if (e.button === 0 && !_this.keysDown[32]) {
           if (_this.selectedConnection) {
             _this.selectedConnection.deselectState();
           }
@@ -1096,9 +1092,49 @@ class PipelineView extends React.Component {
       this.promiseManager
     );
 
-    fetchPipelinePromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
+    // fetch pipeline cwd
+    let cwdFetchPromise = makeCancelable(
+      makeRequest(
+        "GET",
+        `/async/file-picker-tree/pipeline-cwd/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
+      ),
+      this.promiseManager
+    );
+
+    fetchPipelinePromise.promise.catch(() => {
+      if (this.props.queryArgs.job_uuid) {
+        // This case is hit when a user tries to load a pipeline that belongs
+        // to a run that has not started yet. The project files are only
+        // copied when the run starts. Before start, the pipeline.json thus
+        // cannot be found. Alert the user about missing pipeline and return
+        // to JobView.
+
+        orchest.alert(
+          "Error",
+          "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+          () => {
+            orchest.loadView(JobView, {
+              queryArgs: {
+                job_uuid: this.props.queryArgs.job_uuid,
+              },
+            });
+          }
+        );
+      } else {
+        console.error("Could not load pipeline.json");
+        console.error(result);
+      }
+    });
+
+    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise])
+      .then(([cwdPromiseResult, fetchPipelinePromiseResult]) => {
+        // relativeToAbsolutePath expects trailing / for directories
+        let cwd = JSON.parse(cwdPromiseResult)["cwd"] + "/";
+        this.setState({
+          pipelineCwd: cwd,
+        });
+
+        let result = JSON.parse(fetchPipelinePromiseResult);
         if (result.success) {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
@@ -1116,29 +1152,8 @@ class PipelineView extends React.Component {
           console.error(result);
         }
       })
-      .catch(() => {
-        if (this.props.queryArgs.job_uuid) {
-          // This case is hit when a user tries to load a pipeline that belongs
-          // to a run that has not started yet. The project files are only
-          // copied when the run starts. Before start, the pipeline.json thus
-          // cannot be found. Alert the user about missing pipeline and return
-          // to JobView.
-
-          orchest.alert(
-            "Error",
-            "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-            () => {
-              orchest.loadView(JobView, {
-                queryArgs: {
-                  job_uuid: this.props.queryArgs.job_uuid,
-                },
-              });
-            }
-          );
-        } else {
-          console.error("Could not load pipeline.json");
-          console.error(result);
-        }
+      .catch((error) => {
+        console.error(error);
       });
   }
 
@@ -1212,6 +1227,8 @@ class PipelineView extends React.Component {
         this.refManager.refs[step.uuid].updatePosition(
           this.state.steps[step.uuid].meta_data.position
         );
+
+        this.savePipeline();
       }, 0);
     });
   }
@@ -1255,6 +1272,7 @@ class PipelineView extends React.Component {
     }
 
     this.forceUpdate();
+    this.savePipeline();
   }
 
   getStepExecutionState(stepUUID) {
@@ -1284,25 +1302,35 @@ class PipelineView extends React.Component {
       );
     }
 
-    this.setState({
-      unsavedChanges: true,
-    });
+    this.savePipeline();
   }
 
   deleteSelectedSteps() {
     this.closeMultistepView();
     this.closeDetailsView();
 
-    // DeleteStep is going to remove the step from this.state.selected
-    // Steps, modifying the collection while we are iterating on it.
-    let stepsToRemove = this.state.selectedSteps.slice();
-    for (let x = 0; x < stepsToRemove.length; x++) {
-      this.deleteStep(stepsToRemove[x]);
-    }
+    // The if is to avoid the dialog appearing when no steps are
+    // selected and the delete button is pressed.
+    if (this.state.selectedSteps.length > 0) {
+      orchest.confirm(
+        "Warning",
+        "A deleted step and its logs cannot be recovered once deleted, are you" +
+          " sure you want to proceed?",
+        () => {
+          // DeleteStep is going to remove the step from this.state.selected
+          // Steps, modifying the collection while we are iterating on it.
+          let stepsToRemove = this.state.selectedSteps.slice();
+          for (let x = 0; x < stepsToRemove.length; x++) {
+            this.deleteStep(stepsToRemove[x]);
+          }
 
-    this.setState({
-      selectedSteps: [],
-    });
+          this.setState({
+            selectedSteps: [],
+          });
+          this.savePipeline();
+        }
+      );
+    }
   }
 
   deleteStep(uuid) {
@@ -1345,84 +1373,58 @@ class PipelineView extends React.Component {
     this.setState({
       selectedSteps: this.state.selectedSteps,
       steps: this.state.steps,
-      unsavedChanges: true,
     });
   }
 
   onDetailsDelete() {
     let uuid = this.state.openedStep;
-
-    this.setState({
-      openedStep: undefined,
-      selectedSteps: [],
-    });
-
-    this.deleteStep(uuid);
+    orchest.confirm(
+      "Warning",
+      "A deleted step and its logs cannot be recovered once deleted, are you" +
+        " sure you want to proceed?",
+      () => {
+        this.setState({
+          openedStep: undefined,
+          selectedSteps: [],
+        });
+        this.deleteStep(uuid);
+        this.savePipeline();
+      }
+    );
   }
 
   openNotebook() {
-    let cwdFetchPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/file-picker-tree/pipeline-cwd/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
-      ),
-      this.promiseManager
+    orchest.loadView(JupyterLabView, {
+      queryArgs: {
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        project_uuid: this.props.queryArgs.project_uuid,
+      },
+    });
+
+    orchest.jupyter.navigateTo(
+      relativeToAbsolutePath(
+        this.state.steps[this.state.openedStep].file_path,
+        this.state.pipelineCwd
+      ).slice(1)
     );
-
-    cwdFetchPromise.promise
-      .then((response) => {
-        // relativeToAbsolutePath expects trailing / for directories
-        let cwd = JSON.parse(response)["cwd"] + "/";
-
-        orchest.loadView(JupyterLabView, {
-          queryArgs: {
-            pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-            project_uuid: this.props.queryArgs.project_uuid,
-          },
-        });
-
-        orchest.jupyter.navigateTo(
-          relativeToAbsolutePath(
-            this.state.steps[this.state.openedStep].file_path,
-            cwd
-          ).slice(1)
-        );
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }
-
-  saveBeforeAction(actionCallback) {
-    if (this.state.unsavedChanges) {
-      this.savePipeline(() => {
-        actionCallback();
-      });
-    } else {
-      actionCallback();
-    }
   }
 
   onOpenFilePreviewView(step_uuid) {
-    this.saveBeforeAction(() => {
-      orchest.loadView(FilePreviewView, {
-        queryArgs: {
-          project_uuid: this.props.queryArgs.project_uuid,
-          pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-          job_uuid: this.props.queryArgs.job_uuid,
-          run_uuid: this.props.queryArgs.run_uuid,
-          step_uuid: step_uuid,
-          read_only: this.props.queryArgs.read_only,
-        },
-      });
+    orchest.loadView(FilePreviewView, {
+      queryArgs: {
+        project_uuid: this.props.queryArgs.project_uuid,
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        job_uuid: this.props.queryArgs.job_uuid,
+        run_uuid: this.props.queryArgs.run_uuid,
+        step_uuid: step_uuid,
+        read_only: this.props.queryArgs.read_only,
+      },
     });
   }
 
   onOpenNotebook() {
     if (this.state.backend.running && !this.state.backend.working) {
-      this.saveBeforeAction(() => {
-        this.openNotebook();
-      });
+      this.openNotebook();
     } else {
       orchest.alert(
         "Error",
@@ -1613,14 +1615,10 @@ class PipelineView extends React.Component {
   }
 
   runSelectedSteps() {
-    this.saveBeforeAction(() => {
-      this.runStepUUIDs(this.state.selectedSteps, "selection");
-    });
+    this.runStepUUIDs(this.state.selectedSteps, "selection");
   }
   onRunIncoming() {
-    this.saveBeforeAction(() => {
-      this.runStepUUIDs(this.state.selectedSteps, "incoming");
-    });
+    this.runStepUUIDs(this.state.selectedSteps, "incoming");
   }
 
   cancelRun() {
@@ -1645,23 +1643,7 @@ class PipelineView extends React.Component {
     })(this.state.runUUID);
   }
 
-  runStepUUIDs(uuids, type) {
-    if (!this.state.backend.running) {
-      orchest.alert(
-        "Error",
-        "There is no active session. Please start the session first."
-      );
-      return;
-    }
-
-    if (this.state.pipelineRunning) {
-      orchest.alert(
-        "Error",
-        "The pipeline is currently executing, please wait until it completes."
-      );
-      return;
-    }
-
+  _runStepUUIDs(uuids, type) {
     this.setState({
       pipelineRunning: true,
     });
@@ -1716,6 +1698,28 @@ class PipelineView extends React.Component {
       });
   }
 
+  runStepUUIDs(uuids, type) {
+    if (!this.state.backend.running) {
+      orchest.alert(
+        "Error",
+        "There is no active session. Please start the session first."
+      );
+      return;
+    }
+
+    if (this.state.pipelineRunning) {
+      orchest.alert(
+        "Error",
+        "The pipeline is currently executing, please wait until it completes."
+      );
+      return;
+    }
+
+    this.savePipeline(() => {
+      this._runStepUUIDs(uuids, type);
+    });
+  }
+
   startStatusInterval() {
     // initialize interval
     this.pipelineStepStatusPollingInterval = setInterval(
@@ -1755,19 +1759,17 @@ class PipelineView extends React.Component {
     });
   }
 
-  onSaveDetails(pipelineDetailsComponent) {
+  onSaveDetails(updatedStep) {
     // update step state based on latest state of pipelineDetails component
 
-    // step name
-    this.state.steps[pipelineDetailsComponent.props.step.uuid] = JSON.parse(
-      JSON.stringify(pipelineDetailsComponent.state.step)
-    );
-
     // update steps in setState even though reference objects are directly modified - this propagates state updates properly
+    this.state.steps[updatedStep.uuid] = updatedStep;
+
     this.setState({
       steps: this.state.steps,
-      unsavedChanges: true,
     });
+
+    this.savePipeline();
   }
 
   getPowerButtonClasses() {
@@ -1936,16 +1938,20 @@ class PipelineView extends React.Component {
     this.mouseClientX = e.clientX;
     this.mouseClientY = e.clientY;
 
+    if (e.button === 0) {
+      if (this.keysDown[32]) {
+        // space held while clicking, means canvas drag
+        $(this.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
+        this.draggingPipeline = true;
+      }
+    }
+
     if (
       ($(e.target).hasClass("pipeline-steps-holder") ||
         $(e.target).hasClass("pipeline-steps-outer-holder")) &&
       e.button === 0
     ) {
-      if (this.keysDown[32]) {
-        // space held while clicking, means canvas drag
-        $(this.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
-        this.draggingPipeline = true;
-      } else {
+      if (!this.keysDown[32]) {
         let pipelineStepHolderOffset = $(".pipeline-steps-holder").offset();
 
         this.state.stepSelector.active = true;
@@ -2008,8 +2014,6 @@ class PipelineView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
-
     let pipelineSteps = [];
 
     for (let uuid in this.state.steps) {
@@ -2165,13 +2169,6 @@ class PipelineView extends React.Component {
 
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
-                    ref={this.refManager.nrefs.saveButton}
-                    onClick={this.savePipeline.bind(this)}
-                    label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                  />
-
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
                     onClick={this.openSettings.bind(this)}
                     label={"Settings"}
                     icon="tune"
@@ -2231,19 +2228,21 @@ class PipelineView extends React.Component {
                 connections={connections_list}
                 defaultViewIndex={this.state.defaultDetailViewIndex}
                 pipeline={this.state.pipelineJson}
+                pipelineCwd={this.state.pipelineCwd}
                 project_uuid={this.props.queryArgs.project_uuid}
                 job_uuid={this.props.queryArgs.job_uuid}
                 run_uuid={this.props.queryArgs.run_uuid}
                 sio={this.sio}
                 readOnly={this.props.queryArgs.read_only === "true"}
-                step={JSON.parse(
-                  JSON.stringify(this.state.steps[this.state.openedStep])
-                )}
+                step={this.state.steps[this.state.openedStep]}
                 saveHash={this.state.saveHash}
               />
             );
           }
-          if (this.state.openedMultistep) {
+          if (
+            this.state.openedMultistep &&
+            this.props.queryArgs.read_only !== "true"
+          ) {
             return (
               <div className={"pipeline-actions bottom-right"}>
                 <MDCButtonReact

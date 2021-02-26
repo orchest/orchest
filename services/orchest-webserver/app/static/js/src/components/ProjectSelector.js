@@ -116,6 +116,7 @@ class ProjectSelector extends React.Component {
         return (
           <MDCSelectReact
             label="Project"
+            classNames={["project-selector", "fullwidth"]}
             options={this.state.selectItems}
             onChange={this.onChangeProject.bind(this)}
             value={this.state.project_uuid}

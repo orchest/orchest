@@ -6,6 +6,7 @@ class Jupyter {
     this.iframe = undefined;
     this.baseAddress = "";
     this.reloadOnShow = false;
+    this.pendingKernelChanges = {};
 
     this.initializeJupyter();
   }
@@ -63,15 +64,15 @@ class Jupyter {
 
       let citer = lab.shell.widgets("main");
 
-      while (true) {
-        let widget = citer.next();
-        if (widget === undefined) {
-          break;
-        }
-
+      let widget;
+      while ((widget = citer.next())) {
         // Refresh active NotebookPanel widgets
         // if users has unsaved state, don't reload file from disk
-        if (widget.constructor.name == "NotebookPanel" && !widget.model.dirty) {
+        if (
+          widget.node &&
+          widget.node.classList.contains("jp-NotebookPanel") &&
+          !widget.model.dirty
+        ) {
           // for each widget revert if not dirty
           let ctx = docManager.contextForWidget(widget);
 
@@ -85,10 +86,34 @@ class Jupyter {
     }
   }
 
-  isJupyterShellShowing() {
+  isJupyterLoaded() {
+    try {
+      let widgets = this.iframe.contentWindow._orchest_app.shell.widgets();
+
+      // a widget is on screen
+      let widgetOnScreen = false;
+      let widget;
+      while ((widget = widgets.next())) {
+        if (widget.node.offsetParent !== null) {
+          widgetOnScreen = true;
+          break;
+        }
+      }
+      return (
+        this.iframe.contentWindow._orchest_app !== undefined && widgetOnScreen
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  isJupyterShellRenderedCorrectly() {
     try {
       return (
-        this.iframe.contentWindow._orchest_app.shell.node.offsetParent != null
+        this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+          "#jp-main-content-panel"
+        ).clientWidth ===
+        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
       );
     } catch {
       return false;
@@ -96,61 +121,117 @@ class Jupyter {
   }
 
   fixJupyterRenderingGlitch() {
-    if (
-      this.isJupyterShellShowing() &&
-      this.iframe.contentWindow._orchest_app.shell.node.querySelector(
-        "#jp-main-content-panel"
-      ).clientWidth !=
-        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
-    ) {
+    if (this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly()) {
       this.iframe.contentWindow.location.reload();
     }
   }
 
+  isKernelChangePending(notebook, kernel) {
+    return this.pendingKernelChanges[`${notebook}-${kernel}`] === true;
+  }
+
+  setKernelChangePending(notebook, kernel, value) {
+    this.pendingKernelChanges[`${notebook}-${kernel}`] = value;
+  }
+
+  setNotebookKernel(notebook, kernel) {
+    /**
+     *   @param {string} notebook relative path to the Jupyter file from the
+     *   perspective of the root of the project directory.
+     *   E.g. somedir/myipynb.ipynb (no starting slash)
+     *   @param {string} kernel name of the kernel (orchest-kernel-<uuid>)
+     */
+
+    let warningMessage =
+      "Do you want to change the active kernel of the opened " +
+      "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
+      "is attached to it.";
+
+    if (this.iframe.contentWindow._orchest_app) {
+      let docManager = this.iframe.contentWindow._orchest_docmanager;
+
+      let notebookWidget = docManager.findWidget(notebook);
+      if (notebookWidget) {
+        let sessionContext = notebookWidget.context.sessionContext;
+        if (
+          sessionContext &&
+          sessionContext.session &&
+          sessionContext.session.kernel
+        ) {
+          if (sessionContext.session.kernel.name !== kernel) {
+            if (!this.isKernelChangePending(notebook, kernel)) {
+              this.setKernelChangePending(notebook, kernel, true);
+              orchest.confirm("Warning", warningMessage, () => {
+                sessionContext
+                  .changeKernel({ name: kernel })
+                  .then(() => {
+                    this.setKernelChangePending(notebook, kernel, false);
+                  })
+                  .catch((error) => {
+                    this.setKernelChangePending(notebook, kernel, false);
+                    console.error(error);
+                  });
+              });
+            }
+          }
+        }
+      } else {
+        docManager.services.sessions
+          .findByPath(notebook)
+          .then((notebookSession) => {
+            if (notebookSession && notebookSession.kernel) {
+              if (notebookSession.kernel.name !== kernel) {
+                if (!this.isKernelChangePending(notebook, kernel)) {
+                  this.setKernelChangePending(notebook, kernel, true);
+                  orchest.confirm("Warning", warningMessage, () => {
+                    docManager.services.sessions
+                      .shutdown(notebookSession.id)
+                      .then(() => {
+                        this.setKernelChangePending(notebook, kernel, false);
+                      })
+                      .catch((error) => {
+                        this.setKernelChangePending(notebook, kernel, false);
+                        console.error(error);
+                      });
+                  });
+                }
+              }
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      }
+    }
+  }
+
   navigateTo(filePath) {
+    /**
+     *   @param {string} filePath relative path to the Jupyter file from the
+     *   perspective of the root of the project directory.
+     *   E.g. somedir/myipynb.ipynb (no starting slash)
+     */
+
     if (!filePath) {
       return;
     }
 
     tryUntilTrue(
       () => {
-        if (this.isJupyterShellShowing()) {
-          if (
-            this.iframe.contentWindow.location.href.indexOf(
-              this.baseAddress
-            ) !== -1 &&
-            this.iframe.contentWindow._orchest_docmanager !== undefined
-          ) {
+        if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
+          try {
             this.iframe.contentWindow._orchest_docmanager.openOrReveal(
               filePath
             );
-          } else {
-            // delayed opening of filePath
-            ((jupyter) => {
-              tryUntilTrue(
-                () => {
-                  try {
-                    jupyter.iframe.contentWindow._orchest_docmanager.openOrReveal(
-                      filePath
-                    );
-
-                    return (
-                      jupyter.iframe.contentWindow._orchest_docmanager.findWidget(
-                        filePath
-                      ) !== undefined
-                    );
-                  } catch (err) {
-                    // fail silently
-                    return false;
-                  }
-                },
-                100,
-                250
-              );
-            })(this);
+            return (
+              this.iframe.contentWindow._orchest_docmanager.findWidget(
+                filePath
+              ) !== undefined
+            );
+          } catch (err) {
+            // fail silently
+            return false;
           }
-
-          return true;
         } else {
           return false;
         }

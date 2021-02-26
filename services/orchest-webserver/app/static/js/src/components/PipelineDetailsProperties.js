@@ -6,7 +6,10 @@ import {
   makeRequest,
   PromiseManager,
   RefManager,
+  relativeToAbsolutePath,
 } from "../lib/utils/all";
+
+import _ from "lodash";
 import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import ProjectFilePicker from "../components/ProjectFilePicker";
@@ -27,20 +30,18 @@ class ConnectionItem extends React.Component {
   }
 }
 
+const KERNEL_OPTIONS = [
+  ["python", "Python"],
+  ["r", "R"],
+  ["julia", "Julia"],
+];
+
 class PipelineDetailsProperties extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      kernelOptions: [
-        ["python", "Python"],
-        ["ir", "R"],
-        ["julia", "Julia"],
-      ],
       environmentOptions: [],
-      isNotebookStep:
-        extensionFromFilename(this.props.step.file_path) == "ipynb",
-      step: this.props.step,
       // this is required to let users edit JSON (while typing the text will not be valid JSON)
       editableParameters: JSON.stringify(this.props.step.parameters, null, 2),
     };
@@ -55,12 +56,25 @@ class PipelineDetailsProperties extends React.Component {
     $(document).off("mousemove.connectionList");
   }
 
+  isNotebookStep() {
+    return extensionFromFilename(this.props.step.file_path) == "ipynb";
+  }
+
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.step.kernel.name != this.props.step.kernel.name ||
+      prevProps.step.file_path != this.props.step.file_path
+    ) {
+      this.fetchEnvironmentOptions();
+    }
+  }
+
   fetchEnvironmentOptions() {
     let environmentsEndpoint = `/store/environments/${this.props.project_uuid}`;
 
-    if (this.state.isNotebookStep) {
+    if (this.isNotebookStep()) {
       environmentsEndpoint +=
-        "?language=" + kernelNameToLanguage(this.state.step.kernel.name);
+        "?language=" + kernelNameToLanguage(this.props.step.kernel.name);
     }
 
     let fetchEnvironmentOptionsPromise = makeCancelable(
@@ -74,8 +88,21 @@ class PipelineDetailsProperties extends React.Component {
 
         let environmentOptions = [];
 
+        let currentEnvironmentInEnvironments = false;
+
         for (let environment of result) {
+          if (environment.uuid == this.props.step.environment) {
+            currentEnvironmentInEnvironments = true;
+          }
           environmentOptions.push([environment.uuid, environment.name]);
+        }
+
+        if (!currentEnvironmentInEnvironments) {
+          // update environment
+          this.onChangeEnvironment(
+            environmentOptions.length > 0 ? environmentOptions[0][0] : "",
+            environmentOptions.length > 0 ? environmentOptions[0][1] : ""
+          );
         }
 
         this.setState({
@@ -87,48 +114,28 @@ class PipelineDetailsProperties extends React.Component {
       });
   }
 
-  updateStepName() {
-    this.props.onNameUpdate(
-      this.props.step.uuid,
-      this.state.step.title,
-      this.state.step.file_path
-    );
+  updateStepName(step_uuid, title, file_path) {
+    this.props.onNameUpdate(step_uuid, title, file_path);
   }
 
   onChangeFileName(updatedFileName) {
-    this.state.step.file_path = updatedFileName;
+    let step = _.cloneDeep(this.props.step);
+    step.file_path = updatedFileName;
 
-    this.setState({
-      step: this.state.step,
-      isNotebookStep: extensionFromFilename(updatedFileName) === "ipynb",
-    });
-
-    // block propagation for directory values
-    if (!updatedFileName.endsWith("/")) {
-      this.updateStepName();
-      // refetch environment options as it changes depending on kernel type
-      this.fetchEnvironmentOptions();
-      this.props.onSave(this);
-    }
+    this.updateStepName(step.uuid, step.title, step.file_path);
+    this.props.onSave(step);
   }
 
   onChangeVCPUS(updatedVCPUS) {
-    this.state.step.vcpus = updatedVCPUS;
-
-    this.setState({
-      step: this.state.step,
-    });
-
-    this.props.onSave(this);
+    let step = _.cloneDeep(this.props.step);
+    step.vcpus = updatedVCPUS;
+    this.props.onSave(step);
   }
 
   onChangeGPUS(updatedGPUS) {
-    this.state.step.gpus = updatedGPUS;
-    this.setState({
-      step: this.state.step,
-    });
-
-    this.props.onSave(this);
+    let step = _.cloneDeep(this.props.step);
+    step.gpus = updatedGPUS;
+    this.props.onSave(step);
   }
 
   onChangeParameterJSON(updatedParameterJSON) {
@@ -137,88 +144,69 @@ class PipelineDetailsProperties extends React.Component {
     });
 
     try {
-      this.state.step.parameters = JSON.parse(updatedParameterJSON);
-      this.setState({
-        step: this.state.step,
-      });
-
-      this.props.onSave(this);
+      let step = _.cloneDeep(this.props.step);
+      step.parameters = JSON.parse(updatedParameterJSON);
+      this.props.onSave(step);
     } catch (err) {
       // console.log("JSON did not parse")
     }
   }
 
   onChangeMemory(updatedMemory) {
-    this.state.step.memory = updatedMemory;
-
-    this.setState({
-      step: this.state.step,
-    });
-
-    this.props.onSave(this);
+    let step = _.cloneDeep(this.props.step);
+    step.memory = updatedMemory;
+    this.props.onSave(step);
   }
 
   onChangeEnvironment(updatedEnvironmentUUID, updatedEnvironmentName) {
-    this.state.step.environment = updatedEnvironmentUUID;
-    this.state.step.kernel.display_name = updatedEnvironmentName;
+    let step = _.cloneDeep(this.props.step);
 
-    this.setState({
-      step: this.state.step,
-    });
+    step.environment = updatedEnvironmentUUID;
+    step.kernel.display_name = updatedEnvironmentName;
 
-    this.props.onSave(this);
+    this.props.onSave(step);
+    if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
+      let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
+      orchest.jupyter.setNotebookKernel(
+        relativeToAbsolutePath(step["file_path"], this.props.pipelineCwd).slice(
+          1
+        ),
+        kernelName
+      );
+    }
   }
 
   onChangeKernel(updatedKernel) {
-    this.state.step.kernel.name = updatedKernel;
-
-    this.setState({
-      step: this.state.step,
-    });
-
-    this.props.onSave(this);
-
-    // re-fetch environment options as it changes depending on kernel
-    this.fetchEnvironmentOptions();
+    let step = _.cloneDeep(this.props.step);
+    step.kernel.name = updatedKernel;
+    this.props.onSave(step);
   }
 
   onChangeTitle(updatedTitle) {
-    this.state.step.title = updatedTitle;
+    let step = _.cloneDeep(this.props.step);
+    step.title = updatedTitle;
 
-    this.setState({
-      step: this.state.step,
-    });
+    this.updateStepName(step.uuid, step.title, step.file_path);
 
-    this.updateStepName();
-
-    this.props.onSave(this);
+    this.props.onSave(step);
   }
 
   swapConnectionOrder(oldConnectionIndex, newConnectionIndex) {
     // check if there is work to do
     if (oldConnectionIndex != newConnectionIndex) {
+      let step = _.cloneDeep(this.props.step);
+
       // note it's creating a reference
-      let connectionList = this.state.step.incoming_connections;
+      let connectionList = step.incoming_connections;
 
       let tmp = connectionList[oldConnectionIndex];
       connectionList.splice(oldConnectionIndex, 1);
       connectionList.splice(newConnectionIndex, 0, tmp);
 
-      this.state.step.incoming_connections = connectionList;
+      step.incoming_connections = connectionList;
 
-      this.setState({
-        step: this.state.step,
-      });
-
-      this.props.onSave(this);
+      this.props.onSave(step);
     }
-  }
-
-  static getDerivedStateFromProps(props) {
-    return {
-      step: props.step,
-      isNotebookStep: extensionFromFilename(props.step.file_path) == "ipynb",
-    };
   }
 
   setupConnectionListener() {
@@ -342,7 +330,7 @@ class PipelineDetailsProperties extends React.Component {
   }
 
   render() {
-    let connections = this.state.step.incoming_connections.map((item, key) => (
+    let connections = this.props.step.incoming_connections.map((item, key) => (
       <ConnectionItem
         connection={{
           name: this.props.connections[item],
@@ -356,7 +344,7 @@ class PipelineDetailsProperties extends React.Component {
       <div className={"detail-subview"}>
         <div className="input-group">
           <MDCTextFieldReact
-            value={this.state.step.title}
+            value={this.props.step.title}
             onChange={this.onChangeTitle.bind(this)}
             label="Title"
             disabled={this.props.readOnly}
@@ -369,7 +357,7 @@ class PipelineDetailsProperties extends React.Component {
               if (this.props.readOnly) {
                 return (
                   <MDCTextFieldReact
-                    value={this.state.step.file_path}
+                    value={this.props.step.file_path}
                     label="File name"
                     disabled={this.props.readOnly}
                     classNames={["fullwidth", "push-down"]}
@@ -378,11 +366,11 @@ class PipelineDetailsProperties extends React.Component {
               } else {
                 return (
                   <ProjectFilePicker
-                    key={this.props.saveHash}
                     cwd="/"
-                    value={this.state.step.file_path}
+                    value={this.props.step.file_path}
                     project_uuid={this.props.project_uuid}
                     pipeline_uuid={this.props.pipeline_uuid}
+                    step_uuid={this.props.step.uuid}
                     onChange={this.onChangeFileName.bind(this)}
                   />
                 );
@@ -391,14 +379,14 @@ class PipelineDetailsProperties extends React.Component {
           </div>
 
           <MDCSelectReact
-            label="Kernel"
+            label="Kernel language"
             onChange={this.onChangeKernel.bind(this)}
-            options={this.state.kernelOptions}
-            value={this.state.step.kernel.name}
+            options={KERNEL_OPTIONS}
+            value={this.props.step.kernel.name}
             disabled={this.props.readOnly}
             classNames={(() => {
-              let classes = ["push-down"];
-              if (!this.state.isNotebookStep) {
+              let classes = ["push-down", "fullwidth"];
+              if (!this.isNotebookStep()) {
                 classes.push("hidden");
               }
               return classes;
@@ -408,9 +396,10 @@ class PipelineDetailsProperties extends React.Component {
           <MDCSelectReact
             label="Environment"
             disabled={this.props.readOnly}
+            classNames={["fullwidth"]}
             onChange={this.onChangeEnvironment.bind(this)}
             options={this.state.environmentOptions}
-            value={this.state.step.environment}
+            value={this.props.step.environment}
           />
         </div>
 
@@ -445,7 +434,7 @@ class PipelineDetailsProperties extends React.Component {
         </div>
 
         {(() => {
-          if (this.state.step.incoming_connections.length != 0) {
+          if (this.props.step.incoming_connections.length != 0) {
             return (
               <div className="input-group">
                 <h3>Connections</h3>

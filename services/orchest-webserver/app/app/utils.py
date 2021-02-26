@@ -8,6 +8,7 @@ import requests
 from flask import current_app
 
 from _orchest.internals import config as _config
+from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
 from app.schemas import EnvironmentSchema
@@ -245,7 +246,12 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
 
     try:
         with open(pipeline_path, "r") as json_file:
-            return json.load(json_file)
+            pipeline_json = json.load(json_file)
+
+            # Apply pipeline migrations
+            pipeline_json = migrate_pipeline(pipeline_json)
+
+            return pipeline_json
     except Exception as e:
         current_app.logger.error("Could not read pipeline JSON from %s" % e)
 
@@ -495,35 +501,31 @@ def remove_project_jobs_directories(project_uuid):
         shutil.rmtree(project_jobs_path, ignore_errors=True)
 
 
+def get_ipynb_template(language: str):
+
+    language_to_template = {
+        "python": "ipynb_template.json",
+        "julia": "ipynb_template_julia.json",
+        "r": "ipynb_template_r.json",
+    }
+
+    if language not in language_to_template.keys():
+        language = "python"
+
+    template_json = json.load(
+        open(
+            os.path.join(
+                current_app.config["RESOURCE_DIR"], language_to_template[language]
+            ),
+            "r",
+        )
+    )
+    return template_json
+
+
 def generate_ipynb_from_template(step, project_uuid):
 
-    # TODO: support additional languages to Python and R
-    if "python" in step["kernel"]["name"].lower():
-        template_json = json.load(
-            open(
-                os.path.join(current_app.config["RESOURCE_DIR"], "ipynb_template.json"),
-                "r",
-            )
-        )
-    elif "julia" in step["kernel"]["name"]:
-        template_json = json.load(
-            open(
-                os.path.join(
-                    current_app.config["RESOURCE_DIR"], "ipynb_template_julia.json"
-                ),
-                "r",
-            )
-        )
-    else:
-        template_json = json.load(
-            open(
-                os.path.join(
-                    current_app.config["RESOURCE_DIR"], "ipynb_template_r.json"
-                ),
-                "r",
-            )
-        )
-
+    template_json = get_ipynb_template(step["kernel"]["name"].lower())
     template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
         "display_name"
     ]
@@ -534,45 +536,40 @@ def generate_ipynb_from_template(step, project_uuid):
     return json.dumps(template_json, indent=4)
 
 
-def create_pipeline_files(pipeline_json, pipeline_directory, project_uuid):
+def create_pipeline_file(
+    file_path, pipeline_json, pipeline_directory, project_uuid, step_uuid
+):
+    """
+    Note: this function does not assume that step['file_path']
+    holds the value of file_path!
+    """
 
-    # Currently, we check per step whether the file exists. If not,
-    # we create it (empty by default). In case the file has an
-    # .ipynb extension we generate the file from a template with a
-    # kernel based on the kernel description in the JSON step.
+    step = pipeline_json["steps"][step_uuid]
 
-    # Iterate over steps
-    steps = pipeline_json["steps"].keys()
+    full_file_path = os.path.join(pipeline_directory, file_path)
+    file_path_split = file_path.split(".")
+    file_path_without_ext = ".".join(file_path_split[:-1])
+    ext = file_path_split[-1]
 
-    for key in steps:
-        step = pipeline_json["steps"][key]
+    file_content = None
 
-        file_name = step["file_path"]
+    if not os.path.isfile(full_file_path):
 
-        full_file_path = os.path.join(pipeline_directory, file_name)
-        file_name_split = file_name.split(".")
-        file_name_without_ext = ".".join(file_name_split[:-1])
-        ext = file_name_split[-1]
+        if len(file_path_without_ext) > 0:
+            file_content = ""
 
-        file_content = None
+        if ext == "ipynb":
+            file_content = generate_ipynb_from_template(step, project_uuid)
 
-        if not os.path.isfile(full_file_path):
+    elif ext == "ipynb":
+        # Check for empty .ipynb, for which we also generate a
+        # template notebook.
+        if os.stat(full_file_path).st_size == 0:
+            file_content = generate_ipynb_from_template(step, project_uuid)
 
-            if len(file_name_without_ext) > 0:
-                file_content = ""
-
-            if ext == "ipynb":
-                file_content = generate_ipynb_from_template(step, project_uuid)
-
-        elif ext == "ipynb":
-            # Check for empty .ipynb, for which we also generate a
-            # template notebook.
-            if os.stat(full_file_path).st_size == 0:
-                file_content = generate_ipynb_from_template(step, project_uuid)
-
-        if file_content is not None:
-            with open(full_file_path, "w") as file:
-                file.write(file_content)
+    if file_content is not None:
+        with open(full_file_path, "w") as file:
+            file.write(file_content)
 
 
 def generate_gateway_kernel_name(environment_uuid):
@@ -594,36 +591,57 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
 
             if os.path.isfile(notebook_path):
 
-                gateway_kernel = generate_gateway_kernel_name(step["environment"])
-
                 with open(notebook_path, "r") as file:
                     notebook_json = json.load(file)
 
                 notebook_changed = False
 
-                if notebook_json["metadata"]["kernelspec"]["name"] != gateway_kernel:
+                # Set language info and kernelspec.language metadata.
+                language = step["kernel"]["name"]
+                if notebook_json["metadata"]["kernelspec"]["language"] != language:
                     notebook_changed = True
-                    notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+                    notebook_json["metadata"]["kernelspec"]["language"] = language
+                    template_json = get_ipynb_template(language.lower())
+                    notebook_json["metadata"]["language_info"] = template_json[
+                        "metadata"
+                    ]["language_info"]
 
-                environment = get_environment(step["environment"], project_uuid)
-
-                if environment is not None:
+                # Set kernel name (orchest-kernel-<uuid>) and display
+                # name (name of the environment).
+                environment_uuid = step.get("environment")
+                if environment_uuid is None or environment_uuid == "":
+                    notebook_changed = True
+                    notebook_json["metadata"]["kernelspec"]["name"] = ""
+                    notebook_json["metadata"]["kernelspec"]["display_name"] = ""
+                else:
+                    gateway_kernel = generate_gateway_kernel_name(step["environment"])
                     if (
-                        notebook_json["metadata"]["kernelspec"]["display_name"]
-                        != environment.name
+                        notebook_json["metadata"]["kernelspec"]["name"]
+                        != gateway_kernel
                     ):
                         notebook_changed = True
-                        notebook_json["metadata"]["kernelspec"][
-                            "display_name"
-                        ] = environment.name
-                else:
-                    current_app.logger.warn(
-                        (
-                            "Could not find environment [%s] while setting"
-                            "notebook kernelspec for notebook %s."
+                        notebook_json["metadata"]["kernelspec"]["name"] = gateway_kernel
+
+                    environment = get_environment(step["environment"], project_uuid)
+                    if environment is not None:
+                        if (
+                            notebook_json["metadata"]["kernelspec"]["display_name"]
+                            != environment.name
+                        ):
+                            notebook_changed = True
+                            notebook_json["metadata"]["kernelspec"][
+                                "display_name"
+                            ] = environment.name
+                    else:
+                        notebook_changed = True
+                        notebook_json["metadata"]["kernelspec"]["display_name"] = ""
+                        current_app.logger.warn(
+                            (
+                                "Could not find environment [%s] while setting"
+                                "notebook kernelspec for notebook %s."
+                            )
+                            % (step["environment"], notebook_path)
                         )
-                        % (step["environment"], notebook_path)
-                    )
 
                 if notebook_changed:
                     with open(notebook_path, "w") as file:

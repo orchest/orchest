@@ -160,7 +160,6 @@ class FilePicker extends React.Component {
 
   onBlurTextField(e) {
     clearTimeout(this.blurTimeout);
-
     this.blurTimeout = setTimeout(() => {
       if (document.activeElement !== this.refManager.refs.fileMenu) {
         this.setState({
@@ -193,11 +192,13 @@ class FilePicker extends React.Component {
             <div
               ref={this.refManager.nrefs.fileMenu}
               onBlur={this.onBlurMenu.bind(this)}
+              // tabIndex is REQUIRED for proper blur/focus events
+              // for the dropdown mdc-list.
+              tabIndex="0"
               className={
                 "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
                 (this.state.focused ? "" : "hidden")
               }
-              tabIndex="0"
             >
               <ul className="mdc-list">{directory_list}</ul>
             </div>
@@ -207,5 +208,14 @@ class FilePicker extends React.Component {
     );
   }
 }
+
+FilePicker.defaultProps = {
+  tree: {
+    name: "/",
+    root: true,
+    type: "directory",
+    children: [],
+  },
+};
 
 export default FilePicker;

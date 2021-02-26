@@ -41,7 +41,7 @@ class FilePreviewView extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchAll();
+    this.loadFile();
   }
 
   constructor(props) {
@@ -71,7 +71,7 @@ class FilePreviewView extends React.Component {
       this.props.queryArgs.step_uuid !== prevProps.queryArgs.step_uuid ||
       this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
     ) {
-      this.fetchAll();
+      this.loadFile();
     }
   }
 
@@ -141,6 +141,9 @@ class FilePreviewView extends React.Component {
           resolve();
         })
         .catch(() => {
+          this.setState({
+            loadingFile: false,
+          });
           reject();
         });
     });
@@ -192,56 +195,75 @@ class FilePreviewView extends React.Component {
     ));
   }
 
-  refreshFile() {
-    // cache scroll position
-    this.cachedScrollPosition = 0;
+  restorePreviousScrollPosition() {
     if (
       this.state.fileDescription.ext == "ipynb" &&
       this.refManager.refs.htmlNotebookIframe
     ) {
-      this.cachedScrollPosition = this.refManager.refs.htmlNotebookIframe.contentWindow.scrollY;
+      this.retryIntervals.push(
+        setWithRetry(
+          this.cachedScrollPosition,
+          (value) => {
+            this.refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
+              this.refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
+              value
+            );
+          },
+          () => {
+            return this.refManager.refs.htmlNotebookIframe.contentWindow
+              .scrollY;
+          },
+          25,
+          100
+        )
+      );
     } else if (this.refManager.refs.fileViewer) {
-      this.cachedScrollPosition = this.refManager.refs.fileViewer.scrollTop;
+      this.retryIntervals.push(
+        setWithRetry(
+          this.cachedScrollPosition,
+          (value) => {
+            this.refManager.refs.fileViewer.scrollTop = value;
+          },
+          () => {
+            return this.refManager.refs.fileViewer.scrollTop;
+          },
+          25,
+          100
+        )
+      );
     }
+  }
 
-    this.fetchAll().then(() => {
+  loadFile() {
+    // cache scroll position
+    let attemptRestore = false;
+
+    if (this.state.fileDescription) {
+      // File was loaded before, requires restoring scroll position.
+      attemptRestore = true;
+      this.cachedScrollPosition = 0;
       if (
         this.state.fileDescription.ext == "ipynb" &&
         this.refManager.refs.htmlNotebookIframe
       ) {
-        this.retryIntervals.push(
-          setWithRetry(
-            this.cachedScrollPosition,
-            (value) => {
-              this.refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
-                this.refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
-                value
-              );
-            },
-            () => {
-              return this.refManager.refs.htmlNotebookIframe.contentWindow
-                .scrollY;
-            },
-            25,
-            100
-          )
-        );
+        this.cachedScrollPosition = this.refManager.refs.htmlNotebookIframe.contentWindow.scrollY;
       } else if (this.refManager.refs.fileViewer) {
-        this.retryIntervals.push(
-          setWithRetry(
-            this.cachedScrollPosition,
-            (value) => {
-              this.refManager.refs.fileViewer.scrollTop = value;
-            },
-            () => {
-              return this.refManager.refs.fileViewer.scrollTop;
-            },
-            25,
-            100
-          )
-        );
+        this.cachedScrollPosition = this.refManager.refs.fileViewer.scrollTop;
       }
-    });
+    }
+
+    this.fetchAll()
+      .then(() => {
+        if (attemptRestore) {
+          this.restorePreviousScrollPosition();
+        }
+      })
+      .catch(() => {
+        orchest.alert(
+          "Error",
+          "Failed to load file. Make sure the path of the pipeline step is correct."
+        );
+      });
   }
 
   render() {
@@ -257,7 +279,7 @@ class FilePreviewView extends React.Component {
           <MDCButtonReact
             classNames={["refresh-button"]}
             icon="refresh"
-            onClick={this.refreshFile.bind(this)}
+            onClick={this.loadFile.bind(this)}
           />
           <MDCButtonReact
             classNames={["close-button"]}
@@ -269,7 +291,10 @@ class FilePreviewView extends React.Component {
         {(() => {
           if (this.state.loadingFile) {
             return <MDCLinearProgressReact />;
-          } else {
+          } else if (
+            this.state.fileDescription != undefined &&
+            this.state.parentSteps != undefined
+          ) {
             let fileComponent;
 
             if (this.state.fileDescription.ext != "ipynb") {

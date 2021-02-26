@@ -2,6 +2,7 @@ import React from "react";
 import PipelineView from "../views/PipelineView";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import JupyterLabView from "../views/JupyterLabView";
+import MDCCircularProgressReact from "../lib/mdc-components/MDCCircularProgressReact";
 
 class HeaderButtons extends React.Component {
   constructor(props) {
@@ -12,6 +13,7 @@ class HeaderButtons extends React.Component {
       project_uuid: undefined,
       sessionActive: false,
       viewShowing: "pipeline",
+      pipelineSaveStatus: "saved",
     };
   }
 
@@ -63,11 +65,29 @@ class HeaderButtons extends React.Component {
     });
   }
 
+  pipelineSaveStatus(status) {
+    this.setState({
+      pipelineSaveStatus: status,
+    });
+  }
+
   render() {
     if (this.state.pipelineName) {
       return (
         <div>
-          <span className="pipeline-name">{this.state.pipelineName}</span>
+          <div className="pipeline-name">
+            <div className="pipelineStatusIndicator">
+              {this.state.pipelineSaveStatus == "saved" ? (
+                <i title="Pipeline saved" className="material-icons">
+                  check_circle
+                </i>
+              ) : (
+                <MDCCircularProgressReact />
+              )}
+            </div>
+
+            {this.state.pipelineName}
+          </div>
           {this.state.viewShowing == "jupyter" && (
             <MDCButtonReact
               classNames={["mdc-button--raised"]}

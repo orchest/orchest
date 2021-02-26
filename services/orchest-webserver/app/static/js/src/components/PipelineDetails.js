@@ -126,6 +126,7 @@ class PipelineDetails extends React.Component {
           <PipelineDetailsProperties
             project_uuid={this.props.project_uuid}
             pipeline_uuid={this.props.pipeline.uuid}
+            pipelineCwd={this.props.pipelineCwd}
             readOnly={this.props.readOnly}
             onNameUpdate={this.props.onNameUpdate}
             onSave={this.props.onSave}

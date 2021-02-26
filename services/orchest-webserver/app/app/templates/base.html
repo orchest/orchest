@@ -13,7 +13,7 @@
     />
     <link rel="icon" href="public/image/favicon.png" type="image/x-icon" />
   </head>
-  <body>
+  <body tabindex="0">
     <script>
       window.ORCHEST_CONFIG = {{config_json|tojson}};
     </script>
@@ -26,30 +26,35 @@
             data-react-view="ProjectsView"
             href="#"
           >
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >format_list_bulleted</i
             >
             <span class="mdc-list-item__text">Projects</span>
           </a>
           <a class="mdc-list-item" data-react-view="PipelinesView" href="#">
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >device_hub</i
             >
             <span class="mdc-list-item__text">Pipelines</span>
           </a>
           <a class="mdc-list-item" data-react-view="JobsView" href="#">
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >pending_actions</i
             >
             <span class="mdc-list-item__text">Jobs</span>
           </a>
           <a class="mdc-list-item" data-react-view="EnvironmentsView" href="#">
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >view_comfy</i
             >
             <span class="mdc-list-item__text">Environments</span>
           </a>
           <a class="mdc-list-item" data-react-view="FileManagerView" href="#">
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >folder_open</i
             >
@@ -57,6 +62,7 @@
           </a>
           <li role="separator" class="mdc-list-divider"></li>
           <a class="mdc-list-item" data-react-view="SettingsView" href="#">
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >settings</i
             >
@@ -64,6 +70,7 @@
           </a>
           {% if user_config['AUTH_ENABLED'] %}
           <a class="mdc-list-item" href="/login/clear">
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >account_circle</i
             >
@@ -71,6 +78,7 @@
           </a>
           {% endif %}
           <a class="mdc-list-item" data-react-view="HelpView" href="#">
+            <span class="mdc-list-item__ripple"></span>
             <i class="material-icons mdc-list-item__graphic" aria-hidden="true"
               >help</i
             >
