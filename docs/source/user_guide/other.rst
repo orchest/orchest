@@ -106,3 +106,21 @@ Tips and tricks
   want to select.
 * On your host machine, in the terminal, run :code:`docker ps -f network=orchest` to see all the
   containers that Orchest is running.
+
+Docker networking
+-----------------
+
+If you need to connect to your host machine from within Orchest you can use 
+:code:`host.docker.internal` as the hostname to point to services running on your host.
+
+You can read more  about this networking feature on the 
+`Docker website <https://docs.docker.com/docker-for-windows/networking/#use-cases-and-workarounds>`_.
+
+For this to work in Linux you need to have the latest version of Docker installed. More information about support can be found 
+in this `thread on GitHub <https://github.com/docker/for-linux/issues/264#issuecomment-714253414>`_.
+
+.. note::
+  This is helpful when, for example, connecting to a local `Postgres <https://www.postgresql.org/>`_ database. Make sure your
+  service listens on the right interfaces. For Postgres you can refer to `this Stack Overflow post 
+  <https://stackoverflow.com/questions/3278379/how-to-configure-postgresql-to-accept-all-incoming-connections>`_ to learn 
+  how to configure Postgres to listen on all network interfaces so you can connect from within containers.
