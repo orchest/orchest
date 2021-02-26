@@ -1643,23 +1643,7 @@ class PipelineView extends React.Component {
     })(this.state.runUUID);
   }
 
-  runStepUUIDs(uuids, type) {
-    if (!this.state.backend.running) {
-      orchest.alert(
-        "Error",
-        "There is no active session. Please start the session first."
-      );
-      return;
-    }
-
-    if (this.state.pipelineRunning) {
-      orchest.alert(
-        "Error",
-        "The pipeline is currently executing, please wait until it completes."
-      );
-      return;
-    }
-
+  _runStepUUIDs(uuids, type) {
     this.setState({
       pipelineRunning: true,
     });
@@ -1712,6 +1696,28 @@ class PipelineView extends React.Component {
           }
         }
       });
+  }
+
+  runStepUUIDs(uuids, type) {
+    if (!this.state.backend.running) {
+      orchest.alert(
+        "Error",
+        "There is no active session. Please start the session first."
+      );
+      return;
+    }
+
+    if (this.state.pipelineRunning) {
+      orchest.alert(
+        "Error",
+        "The pipeline is currently executing, please wait until it completes."
+      );
+      return;
+    }
+
+    this.savePipeline(() => {
+      this._runStepUUIDs(uuids, type);
+    });
   }
 
   startStatusInterval() {
