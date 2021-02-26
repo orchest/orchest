@@ -111,7 +111,8 @@ Docker networking
 -----------------
 
 If you need to connect to your host machine from within Orchest you can use 
-:code:`host.docker.internal` as the hostname to point to services running on your host.
+:code:`host.docker.internal` as the hostname to point to services running on 
+your host (i.e. point to :code:`127.0.0.1` on your host).
 
 You can read more  about this networking feature on the 
 `Docker website <https://docs.docker.com/docker-for-windows/networking/#use-cases-and-workarounds>`_.
