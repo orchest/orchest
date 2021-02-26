@@ -195,9 +195,52 @@ class FilePreviewView extends React.Component {
     ));
   }
 
+  restorePreviousScrollPosition() {
+    if (
+      this.state.fileDescription.ext == "ipynb" &&
+      this.refManager.refs.htmlNotebookIframe
+    ) {
+      this.retryIntervals.push(
+        setWithRetry(
+          this.cachedScrollPosition,
+          (value) => {
+            this.refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
+              this.refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
+              value
+            );
+          },
+          () => {
+            return this.refManager.refs.htmlNotebookIframe.contentWindow
+              .scrollY;
+          },
+          25,
+          100
+        )
+      );
+    } else if (this.refManager.refs.fileViewer) {
+      this.retryIntervals.push(
+        setWithRetry(
+          this.cachedScrollPosition,
+          (value) => {
+            this.refManager.refs.fileViewer.scrollTop = value;
+          },
+          () => {
+            return this.refManager.refs.fileViewer.scrollTop;
+          },
+          25,
+          100
+        )
+      );
+    }
+  }
+
   loadFile() {
     // cache scroll position
+    let attemptRestore = false;
+
     if (this.state.fileDescription) {
+      // File was loaded before, requires restoring scroll position.
+      attemptRestore = true;
       this.cachedScrollPosition = 0;
       if (
         this.state.fileDescription.ext == "ipynb" &&
@@ -211,41 +254,8 @@ class FilePreviewView extends React.Component {
 
     this.fetchAll()
       .then(() => {
-        if (
-          this.state.fileDescription.ext == "ipynb" &&
-          this.refManager.refs.htmlNotebookIframe
-        ) {
-          this.retryIntervals.push(
-            setWithRetry(
-              this.cachedScrollPosition,
-              (value) => {
-                this.refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
-                  this.refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
-                  value
-                );
-              },
-              () => {
-                return this.refManager.refs.htmlNotebookIframe.contentWindow
-                  .scrollY;
-              },
-              25,
-              100
-            )
-          );
-        } else if (this.refManager.refs.fileViewer) {
-          this.retryIntervals.push(
-            setWithRetry(
-              this.cachedScrollPosition,
-              (value) => {
-                this.refManager.refs.fileViewer.scrollTop = value;
-              },
-              () => {
-                return this.refManager.refs.fileViewer.scrollTop;
-              },
-              25,
-              100
-            )
-          );
+        if (attemptRestore) {
+          this.restorePreviousScrollPosition();
         }
       })
       .catch(() => {
