@@ -14,6 +14,8 @@ import {
   activeElementIsInput,
 } from "../lib/utils/all";
 
+import { stepMigrations } from "../utils/compat";
+
 import {
   checkGate,
   getScrollLineHeight,
@@ -373,6 +375,9 @@ class PipelineView extends React.Component {
     // check whether steps share notebook steps
     outerLoop: for (let stepKey in pipelineJSON.steps) {
       let step = pipelineJSON.steps[stepKey];
+
+      // Apply step migrations
+      step = stepMigrations(step);
 
       if (extensionFromFilename(step.file_path) === "ipynb") {
         for (let otherStepKey in pipelineJSON.steps) {
