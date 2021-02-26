@@ -4,7 +4,7 @@ def migrate_pipeline(pipeline):
     if "parameters" not in pipeline:
         pipeline["parameters"] = {}
 
-    for _, step in enumerate(pipeline["steps"]):
+    for step in pipeline["steps"].values():
         if (
             "kernel" in step
             and "name" in step["kernel"]
