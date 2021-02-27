@@ -126,6 +126,7 @@ class ProjectsView extends React.Component {
   onClickListItem(row, idx, e) {
     if ($(e.target).parents(".mdc-button").length === 0) {
       let project = this.state.projects[idx];
+      orchest.browserConfig.set("selected_project_uuid", project.uuid);
       this.openSettings(project);
     }
   }
