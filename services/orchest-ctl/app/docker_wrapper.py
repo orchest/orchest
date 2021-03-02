@@ -418,7 +418,8 @@ class OrchestResourceManager:
                 " To disable it, please refer to:",
             )
             utils.echo(
-                "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration"  # noqa: E501, W505
+                "\thttps://orchest.readthedocs.io/en/stable/user_guide/other.html#configuration",  # noqa: E501, W505
+                wrap=100,
             )
 
             self.docker_client.install_network(self.network)
