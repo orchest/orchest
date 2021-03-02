@@ -28,6 +28,14 @@ def get_user_conf():
 
         conf_data.update(config)
     except Exception as e:
-        current_app.logger.debug(e)
+        try:
+            current_app.logger.debug(e)
+        except RuntimeError:
+            # Is hit in case the function is called without an
+            # application context, e.g. in the `main.py` module.
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.debug(e)
 
     return conf_data
