@@ -268,7 +268,6 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
                 "Binds": [
                     "/var/run/docker.sock:/var/run/docker.sock",
                 ],
-                "AutoRemove": True,
             },
             "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
