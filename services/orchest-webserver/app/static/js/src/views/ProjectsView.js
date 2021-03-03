@@ -395,7 +395,13 @@ class ProjectsView extends React.Component {
                   <Fragment>
                     <MDCButtonReact
                       icon="input"
-                      disabled={this.state.importResult !== undefined}
+                      // So that the button is disabled when in a states
+                      // that requires so (currently ["PENDING"]).
+                      disabled={["PENDING"].includes(
+                        this.state.importResult !== undefined
+                          ? this.state.importResult.status
+                          : undefined
+                      )}
                       classNames={["mdc-button--raised", "themed-secondary"]}
                       label="Import"
                       submitButton
