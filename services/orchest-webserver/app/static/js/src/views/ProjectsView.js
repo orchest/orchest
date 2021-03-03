@@ -293,6 +293,10 @@ class ProjectsView extends React.Component {
         (result) => {
           this.setState({
             importResult: result,
+            // This way the modal will not be reopened if it was closed
+            // by the user.
+            showImportModal:
+              this.state.showImportModal && result.status !== "SUCCESS",
           });
           this.fetchList();
         }
@@ -363,15 +367,6 @@ class ProjectsView extends React.Component {
                         if (this.state.importResult.status === "PENDING") {
                           result = <MDCLinearProgressReact />;
                         } else if (
-                          this.state.importResult.status === "SUCCESS"
-                        ) {
-                          result = (
-                            <p>
-                              <i className="material-icons float-left">check</i>{" "}
-                              Import completed!
-                            </p>
-                          );
-                        } else if (
                           this.state.importResult.status === "FAILURE"
                         ) {
                           result = (
@@ -388,6 +383,12 @@ class ProjectsView extends React.Component {
                         return <div className="push-up">{result}</div>;
                       }
                     })()}
+                    <p className="push-up">
+                      To import <b>private </b>
+                      <span className="code">git</span> repositories upload them
+                      directly through the File Manager into the{" "}
+                      <span className="code">projects/</span> directory.
+                    </p>
                   </div>
                 }
                 actions={

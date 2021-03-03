@@ -100,6 +100,8 @@ notebooks as part of pipelines in Orchest they will not be run.
 
 Tips and tricks
 ---------------
+* To import private ``git`` repositories upload them directly through the File Manager into the
+  ``projects/`` directory.
 * Hold down ``<Space>`` inside the pipeline editor to drag the canvas (similar to design tools such
   as Sketch).
 * To select a specific selection of pipeline steps: hold ``<Ctrl>`` and click on  pipeline steps you
