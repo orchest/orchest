@@ -23,6 +23,10 @@ class User(db.Model):
 
     password_hash = db.Column(db.String(255), nullable=False)
 
+    token_hash = db.Column(db.String(255))
+
+    is_admin = db.Column(db.Boolean, server_default=text("False"), nullable=False)
+
     created = db.Column(
         db.DateTime,
         unique=False,

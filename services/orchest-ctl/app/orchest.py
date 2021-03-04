@@ -342,6 +342,45 @@ class OrchestApp:
     def debug(self, ext: bool, compress: bool):
         debug_dump(ext, compress)
 
+    def add_user(self, username, password, token, is_admin):
+        """Adds a new user to Orchest.
+
+        Args:
+            username:
+            password:
+            token:
+            is_admin:
+        """
+
+        ids, running_containers = self.resource_manager.get_containers(state="running")
+        auth_server_id = None
+        database_running = False
+        for id, container in zip(ids, running_containers):
+            if "postgres" in container:
+                database_running = True
+            if "auth-server" in container:
+                auth_server_id = id
+
+        if not database_running:
+            utils.echo("The orchest-database service needs to be running.")
+            exit(1)
+
+        if auth_server_id is None:
+            utils.echo("The auth-server service needs to be running.")
+            exit(1)
+
+        cmd = f"python add_user.py {username} {password}"
+        if token:
+            cmd += f" --token {token}"
+        if is_admin:
+            cmd += " --is_admin"
+
+        exit_code = self.docker_client.exec_runs([(auth_server_id, cmd)])[0]
+
+        if exit_code != 0:
+            utils.echo(f"Non zero exit code: {exit_code}.")
+        exit(exit_code)
+
 
 # TODO: Could potentially make this into set as well.
 def get_required_images(language: Optional[str], gpu: bool = False) -> List[str]:

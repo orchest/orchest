@@ -232,3 +232,16 @@ def updateserver():
     Update Orchest through the update-server.
     """
     app._updateserver()
+
+
+@typer_app.command(hidden=True)
+def adduser(
+    username: str = typer.Argument(..., help="Name of the user to add."),
+    password: str = typer.Argument(..., help="Password of the user."),
+    token: str = typer.Option(None, help="Login Token of the user."),
+    is_admin: bool = typer.Option(False, help="True if the user is an admin."),
+):
+    """
+    Add user to Orchest.
+    """
+    app.add_user(username, password, token, is_admin)
