@@ -1,158 +1,159 @@
 {
     "name": "california-housing",
-    "version": "1.0.0",
-    "uuid": "0915b350-b929-4cbd-b0d4-763cac0bb69f",
+    "parameters": {},
     "settings": {
         "auto_eviction": false,
         "data_passing_memory_size": "1GB"
     },
     "steps": {
-        "106bb318-252d-4f94-ba86-c36722dddf41": {
-            "title": "Get data",
-            "uuid": "106bb318-252d-4f94-ba86-c36722dddf41",
-            "incoming_connections": [],
-            "file_path": "get-data.py",
-            "kernel": {
-                "name": "python",
-                "display_name": "Python 3"
-            },
-            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
-            "parameters": {},
-            "meta_data": {
-                "position": [
-                    114.79004357272606,
-                    355.1891122428357
-                ],
-                "hidden": false
-            }
-        },
-        "ac578410-0cab-4c58-a968-19ee7386203a": {
-            "title": "Data exploration",
-            "uuid": "ac578410-0cab-4c58-a968-19ee7386203a",
-            "incoming_connections": [
-                "106bb318-252d-4f94-ba86-c36722dddf41"
-            ],
-            "file_path": "explore-data.ipynb",
-            "kernel": {
-                "name": "python",
-                "display_name": "Python 3"
-            },
-            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
-            "parameters": {},
-            "meta_data": {
-                "position": [
-                    409.877390860413,
-                    272.07007254205917
-                ],
-                "hidden": false
-            }
-        },
-        "c9484b08-9d23-4f1a-96da-c41711d77c09": {
-            "title": "Preprocessing",
-            "uuid": "c9484b08-9d23-4f1a-96da-c41711d77c09",
-            "incoming_connections": [
-                "106bb318-252d-4f94-ba86-c36722dddf41"
-            ],
-            "file_path": "pre-processing.ipynb",
-            "kernel": {
-                "name": "python",
-                "display_name": "Python 3"
-            },
-            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
-            "parameters": {},
-            "meta_data": {
-                "position": [
-                    411.81305028370195,
-                    459.16801619433204
-                ],
-                "hidden": false
-            }
-        },
-        "f9a4e19a-b70e-451d-8bf4-db635ce860c6": {
-            "title": "linear-regression",
-            "uuid": "f9a4e19a-b70e-451d-8bf4-db635ce860c6",
-            "incoming_connections": [
-                "c9484b08-9d23-4f1a-96da-c41711d77c09"
-            ],
-            "file_path": "linear-regression.ipynb",
-            "kernel": {
-                "name": "python",
-                "display_name": "Python 3"
-            },
-            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
-            "parameters": {},
-            "meta_data": {
-                "position": [
-                    732.4319081206595,
-                    336.3457576120965
-                ],
-                "hidden": false
-            }
-        },
-        "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d": {
-            "title": "decision-tree",
-            "uuid": "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d",
-            "incoming_connections": [
-                "c9484b08-9d23-4f1a-96da-c41711d77c09"
-            ],
-            "file_path": "decision-tree.ipynb",
-            "kernel": {
-                "name": "python",
-                "display_name": "Python 3"
-            },
-            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
-            "parameters": {},
-            "meta_data": {
-                "position": [
-                    732.8604381113583,
-                    459.10930478196144
-                ],
-                "hidden": false
-            }
-        },
         "0ecdafa6-317b-4acd-be73-b69983053501": {
-            "title": "Collect results",
-            "uuid": "0ecdafa6-317b-4acd-be73-b69983053501",
+            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+            "file_path": "collect-results.ipynb",
             "incoming_connections": [
                 "f9a4e19a-b70e-451d-8bf4-db635ce860c6",
                 "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d",
                 "74c4c63c-0e37-4b06-90f8-88f22c1e1b3d"
             ],
-            "file_path": "collect-results.ipynb",
             "kernel": {
-                "name": "python",
-                "display_name": "Python 3"
+                "display_name": "Python 3",
+                "name": "python"
             },
-            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
-            "parameters": {},
             "meta_data": {
+                "hidden": false,
                 "position": [
-                    1047.5264350628843,
-                    459.433333079455
-                ],
-                "hidden": false
-            }
+                    1004.5264350628843,
+                    457.433333079455
+                ]
+            },
+            "parameters": {},
+            "title": "Collect results",
+            "uuid": "0ecdafa6-317b-4acd-be73-b69983053501"
+        },
+        "106bb318-252d-4f94-ba86-c36722dddf41": {
+            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+            "file_path": "get-data.py",
+            "incoming_connections": [],
+            "kernel": {
+                "display_name": "Python 3",
+                "name": "python"
+            },
+            "meta_data": {
+                "hidden": false,
+                "position": [
+                    114.79004357272606,
+                    355.1891122428357
+                ]
+            },
+            "parameters": {},
+            "title": "Get data",
+            "uuid": "106bb318-252d-4f94-ba86-c36722dddf41"
         },
         "74c4c63c-0e37-4b06-90f8-88f22c1e1b3d": {
-            "title": "svm",
-            "uuid": "74c4c63c-0e37-4b06-90f8-88f22c1e1b3d",
+            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+            "file_path": "svm.ipynb",
             "incoming_connections": [
                 "c9484b08-9d23-4f1a-96da-c41711d77c09"
             ],
-            "file_path": "svm.ipynb",
             "kernel": {
-                "name": "python",
-                "display_name": "custom-base-kernel-py"
+                "display_name": "custom-base-kernel-py",
+                "name": "python"
             },
-            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
-            "parameters": {},
             "meta_data": {
+                "hidden": false,
                 "position": [
-                    735.2843866171004,
-                    580.3516919903861
-                ],
-                "hidden": false
-            }
+                    732.2843866171004,
+                    578.3516919903861
+                ]
+            },
+            "parameters": {},
+            "title": "svm",
+            "uuid": "74c4c63c-0e37-4b06-90f8-88f22c1e1b3d"
+        },
+        "ac578410-0cab-4c58-a968-19ee7386203a": {
+            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+            "file_path": "explore-data.ipynb",
+            "incoming_connections": [
+                "106bb318-252d-4f94-ba86-c36722dddf41"
+            ],
+            "kernel": {
+                "display_name": "Python 3",
+                "name": "python"
+            },
+            "meta_data": {
+                "hidden": false,
+                "position": [
+                    409.877390860413,
+                    272.07007254205917
+                ]
+            },
+            "parameters": {},
+            "title": "Data exploration",
+            "uuid": "ac578410-0cab-4c58-a968-19ee7386203a"
+        },
+        "c9484b08-9d23-4f1a-96da-c41711d77c09": {
+            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+            "file_path": "pre-processing.ipynb",
+            "incoming_connections": [
+                "106bb318-252d-4f94-ba86-c36722dddf41"
+            ],
+            "kernel": {
+                "display_name": "Python 3",
+                "name": "python"
+            },
+            "meta_data": {
+                "hidden": false,
+                "position": [
+                    408.81305028370195,
+                    457.16801619433204
+                ]
+            },
+            "parameters": {},
+            "title": "Preprocessing",
+            "uuid": "c9484b08-9d23-4f1a-96da-c41711d77c09"
+        },
+        "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d": {
+            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+            "file_path": "decision-tree.ipynb",
+            "incoming_connections": [
+                "c9484b08-9d23-4f1a-96da-c41711d77c09"
+            ],
+            "kernel": {
+                "display_name": "Python 3",
+                "name": "python"
+            },
+            "meta_data": {
+                "hidden": false,
+                "position": [
+                    729.8604381113583,
+                    457.10930478196144
+                ]
+            },
+            "parameters": {},
+            "title": "decision-tree",
+            "uuid": "d094b09e-17a6-4bf1-ab59-6ec94b2a1c1d"
+        },
+        "f9a4e19a-b70e-451d-8bf4-db635ce860c6": {
+            "environment": "c56ab762-539c-4cce-9b1e-c4b00300ec6f",
+            "file_path": "linear-regression.ipynb",
+            "incoming_connections": [
+                "c9484b08-9d23-4f1a-96da-c41711d77c09"
+            ],
+            "kernel": {
+                "display_name": "Python 3",
+                "name": "python"
+            },
+            "meta_data": {
+                "hidden": false,
+                "position": [
+                    729.4319081206595,
+                    334.3457576120965
+                ]
+            },
+            "parameters": {},
+            "title": "linear-regression",
+            "uuid": "f9a4e19a-b70e-451d-8bf4-db635ce860c6"
         }
-    }
+    },
+    "uuid": "0915b350-b929-4cbd-b0d4-763cac0bb69f",
+    "version": "1.0.0"
 }
