@@ -21,10 +21,7 @@ class User(db.Model):
         primary_key=True,
     )
 
-    password_hash = db.Column(
-        db.String(255),
-        primary_key=True,
-    )
+    password_hash = db.Column(db.String(255), nullable=False)
 
     created = db.Column(
         db.DateTime,
