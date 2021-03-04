@@ -419,11 +419,9 @@ class PipelineView extends React.Component {
           saveHash: uuidv4(),
         });
 
-        clearTimeout(this.saveIndicatorTimeout);
         this.currentOngoingSaves++;
-        this.saveIndicatorTimeout = setTimeout(() => {
-          orchest.headerBarComponent.pipelineSaveStatus("saving");
-        }, 100);
+        clearTimeout(this.saveIndicatorTimeout);
+        orchest.headerBarComponent.pipelineSaveStatus("saving");
 
         // perform POST to save
         makeRequest(
@@ -440,7 +438,9 @@ class PipelineView extends React.Component {
             this.currentOngoingSaves--;
             if (this.currentOngoingSaves === 0) {
               clearTimeout(this.saveIndicatorTimeout);
-              orchest.headerBarComponent.pipelineSaveStatus("saved");
+              this.saveIndicatorTimeout = setTimeout(() => {
+                orchest.headerBarComponent.pipelineSaveStatus("saved");
+              }, 250);
             }
           });
       }
@@ -788,7 +788,7 @@ class PipelineView extends React.Component {
         }
 
         // check for spacebar
-        if (!this.keysDown[32]) {
+        if (!this.draggingPipeline) {
           if (
             this.state.selectedSteps.length > 1 &&
             this.state.selectedSteps.indexOf(this.selectedItem) !== -1
@@ -934,7 +934,7 @@ class PipelineView extends React.Component {
         if (
           (e.target === this.refManager.refs.pipelineStepsOuterHolder ||
             e.target === this.refManager.refs.pipelineStepsHolder) &&
-          this.keysDown[32] !== true
+          this.draggingPipeline !== true
         ) {
           if (this.selectedConnection) {
             this.deselectConnection();
@@ -1951,7 +1951,7 @@ class PipelineView extends React.Component {
         $(e.target).hasClass("pipeline-steps-outer-holder")) &&
       e.button === 0
     ) {
-      if (!this.keysDown[32]) {
+      if (!this.draggingPipeline) {
         let pipelineStepHolderOffset = $(".pipeline-steps-holder").offset();
 
         this.state.stepSelector.active = true;
