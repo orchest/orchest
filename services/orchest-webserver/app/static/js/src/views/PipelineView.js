@@ -419,9 +419,11 @@ class PipelineView extends React.Component {
           saveHash: uuidv4(),
         });
 
-        this.currentOngoingSaves++;
         clearTimeout(this.saveIndicatorTimeout);
-        orchest.headerBarComponent.pipelineSaveStatus("saving");
+        this.currentOngoingSaves++;
+        this.saveIndicatorTimeout = setTimeout(() => {
+          orchest.headerBarComponent.pipelineSaveStatus("saving");
+        }, 100);
 
         // perform POST to save
         makeRequest(
@@ -438,9 +440,7 @@ class PipelineView extends React.Component {
             this.currentOngoingSaves--;
             if (this.currentOngoingSaves === 0) {
               clearTimeout(this.saveIndicatorTimeout);
-              this.saveIndicatorTimeout = setTimeout(() => {
-                orchest.headerBarComponent.pipelineSaveStatus("saved");
-              }, 250);
+              orchest.headerBarComponent.pipelineSaveStatus("saved");
             }
           });
       }
