@@ -237,11 +237,47 @@ def updateserver():
 @typer_app.command(hidden=True)
 def adduser(
     username: str = typer.Argument(..., help="Name of the user to add."),
-    password: str = typer.Argument(..., help="Password of the user."),
-    token: str = typer.Option(None, help="Login Token of the user."),
-    is_admin: bool = typer.Option(False, help="True if the user is an admin."),
+    set_token: bool = typer.Option(
+        False, "--set-token", help="True if the token of the user is to be setup."
+    ),
+    is_admin: bool = typer.Option(
+        False, "--is-admin", help="True if the user is an admin."
+    ),
+    non_interactive: bool = typer.Option(
+        False, hidden=True, help="Set non interactive mode."
+    ),
+    non_interactive_password: str = typer.Option(
+        "", hidden=True, help="Set non interactive mode."
+    ),
+    non_interactive_token: str = typer.Option(
+        None, hidden=True, help="Set non interactive mode."
+    ),
 ):
     """
     Add user to Orchest.
     """
+    if non_interactive:
+        password = non_interactive_password
+        token = non_interactive_token
+    else:
+        if non_interactive_password:
+            print("Cannot use non_interactive_password in interactive mode.")
+            exit(1)
+        if non_interactive_token:
+            print("Cannot use non_interactive_token in interactive mode.")
+            exit(1)
+
+        password = typer.prompt("Password", hide_input=True, confirmation_prompt=True)
+        if set_token:
+            token = typer.prompt("Token", hide_input=True, confirmation_prompt=True)
+        else:
+            token = None
+
+    if not password:
+        print("Password cannot be empty.")
+        exit(1)
+    if token is not None and not token:
+        print("Token cannot be empty.")
+        exit(1)
+
     app.add_user(username, password, token, is_admin)

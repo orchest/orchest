@@ -46,6 +46,7 @@ $SUDO_PREFIX chown $USER "${HOST_CONFIG_DIR}"
 
 $SUDO_PREFIX docker run \
     --rm \
+    -it \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${DIR}":/orchest-host \
     -v "${HOST_CONFIG_DIR}":/config \
