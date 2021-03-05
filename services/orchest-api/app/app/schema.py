@@ -483,6 +483,54 @@ environment_builds_requests_result = Model(
     },
 )
 
+
+jupyter_build = Model(
+    "JupyterBuild",
+    {
+        "uuid": fields.String(required=True, description="UUID of the Jupyter build"),
+        "requested_time": fields.String(
+            required=True, description="Time at which the build was requested"
+        ),
+        "started_time": fields.String(
+            required=True, description="Time at which the build started executing"
+        ),
+        "finished_time": fields.String(
+            required=True, description="Time at which the build finished executing"
+        ),
+        "status": fields.String(
+            required=True,
+            description="Status of the build",
+            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+        ),
+    },
+)
+
+jupyter_builds = Model(
+    "JupyterBuilds",
+    {
+        "jupyter_builds": fields.List(
+            fields.Nested(jupyter_build),
+            description="Collection of jupyter_builds",
+        ),
+    },
+)
+
+jupyter_build_request = Model("JupyterBuildRequest")
+
+jupyter_build_request_result = Model(
+    "JupyterBuildPost",
+    {
+        "jupyter_build": fields.Nested(
+            jupyter_build_request,
+            description="Requested jupyter_build",
+        ),
+        "failed_request": fields.Nested(
+            jupyter_build_request,
+            description="Failed jupyter_build",
+        ),
+    },
+)
+
 validation_environments = Model(
     "GateCheck",
     {
