@@ -148,7 +148,7 @@ def create_app():
     register_views(app, db)
     register_orchest_api_views(app, db)
     register_background_tasks_view(app, db)
-    register_socketio_broadcast(db, socketio)
+    register_socketio_broadcast(socketio)
     register_analytics_views(app, db)
 
     processes = []

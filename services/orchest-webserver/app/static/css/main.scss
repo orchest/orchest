@@ -313,12 +313,20 @@ p > i.material-icons.float-left {
   padding: 5px;
 }
 
-.edit-environment {
+.build-notice {
+  font-size: $codeSize;
+  display: inline-block;
+  &.subtle {
+    color: #555;
+  }
+
   span.build-label {
     display: inline-block;
     min-width: 130px;
   }
+}
 
+.edit-environment {
   .xterm-holder {
     &.initializing {
       position: absolute;
@@ -326,19 +334,13 @@ p > i.material-icons.float-left {
     }
   }
 
-  .environment-notice {
-    font-size: $codeSize;
-    display: inline-block;
-    margin-bottom: $generalPadding;
-    &.subtle {
-      color: #555;
-    }
-  }
-
   .CodeMirror {
     height: auto;
   }
+}
 
+.jupyterlab-config-page,
+.edit-environment {
   .xterm {
     height: 400px;
     width: 100%;

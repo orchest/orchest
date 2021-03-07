@@ -67,7 +67,7 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, flag, path):
         f'&& echo "{flag}" '
         f"&& bash {bash_script} "
         f'&& echo "{flag}" '
-        f"&& sudo rm {bash_script}"
+        f"&& rm {bash_script}"
     )
     statements.append("LABEL _orchest_jupyter_build_is_intermediate=0")
 

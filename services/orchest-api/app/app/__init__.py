@@ -17,11 +17,15 @@ from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
 from sqlalchemy_utils import create_database, database_exists
 
+from _orchest.internals import config as _config
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import is_werkzeug_parent
+from app import utils
 from app.apis import blueprint as api
+from app.apis.namespace_jupyter_builds import CreateJupyterBuild
 from app.connections import db
 from app.core.scheduler import Scheduler
-from app.models import InteractivePipelineRun, InteractiveSession
+from app.models import InteractivePipelineRun, InteractiveSession, JupyterBuild
 
 
 def create_app(config_class=None, use_db=True, be_scheduler=False):
@@ -86,14 +90,37 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
             # directory is already there, this cleanup operation will
             # run only once per container.
             try:
-                os.mkdir("/tmp/interactive_cleanup_done")
+                os.mkdir("/tmp/cleanup_done")
                 InteractiveSession.query.delete()
                 InteractivePipelineRun.query.filter(
                     InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
                 ).delete(synchronize_session="fetch")
+
+                # delete old JupyterBuilds on start
+                jupyter_builds = (
+                    JupyterBuild.query.order_by(JupyterBuild.requested_time.desc())
+                    .offset(1)
+                    .all()
+                )
+
+                # Can't use offset and .delete in conjunction
+                # in sqlalchemy unfortunately.
+                for jupyer_build in jupyter_builds:
+                    db.session.delete(jupyer_build)
+
                 db.session.commit()
+
+                # Trigger a build of JupyterLab if no
+                # JupyterLab image is found
+                # for this version and JupyterLab
+                # setup_script is non-empty.
+                trigger_conditional_jupyter_build(app)
+
             except FileExistsError:
-                pass
+                app.logger.info("/tmp/cleanup_done exists. Skipping cleanup.")
+            except Exception as e:
+                app.logger.error("Cleanup failed")
+                app.logger.error(e)
 
     if be_scheduler and not is_werkzeug_parent():
         # Create a scheduler and have the scheduling logic running
@@ -200,6 +227,32 @@ def init_logging():
     }
 
     dictConfig(logging_config)
+
+
+def trigger_conditional_jupyter_build(app):
+    # Use early return to satisfy all conditions for
+    # triggering a build.
+
+    # check if Jupyter setup_script is non-empty
+    jupyter_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
+    if os.path.isfile(jupyter_setup_script):
+        with open(jupyter_setup_script, "r") as file:
+            if len(file.read()) == 0:
+                return
+    else:
+        return
+
+    user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME.format(
+        orchest_version=os.environ.get("ORCHEST_VERSION")
+    )
+    if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
+        return
+
+    try:
+        with TwoPhaseExecutor(db.session) as tpe:
+            CreateJupyterBuild(tpe).transaction()
+    except Exception:
+        app.logger.error("Failed to build Jupyter image")
 
 
 def register_teardown_request(app):

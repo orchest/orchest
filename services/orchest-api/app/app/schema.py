@@ -515,19 +515,13 @@ jupyter_builds = Model(
     },
 )
 
-jupyter_build_request = Model("JupyterBuildRequest")
-
 jupyter_build_request_result = Model(
     "JupyterBuildPost",
     {
         "jupyter_build": fields.Nested(
-            jupyter_build_request,
+            jupyter_build,
             description="Requested jupyter_build",
-        ),
-        "failed_request": fields.Nested(
-            jupyter_build_request,
-            description="Failed jupyter_build",
-        ),
+        )
     },
 )
 

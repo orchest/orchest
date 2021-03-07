@@ -675,9 +675,23 @@ def _get_container_specs(
         project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
         pipeline_uuid=uuid[: _config.TRUNCATED_UUID_LENGTH],
     )
+
+    jupyer_server_image = "orchest/jupyter-server:latest"
+
+    user_jupyer_server_image = (
+        _config.JUPYTER_IMAGE_NAME.format(
+            orchest_version=os.environ.get("ORCHEST_VERSION")
+        )
+        + ":latest"
+    )
+
+    # Check if user tweaked JupyterLab image exists
+    if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
+        jupyer_server_image = user_jupyer_server_image
+
     # Run Jupyter server container.
     container_specs["jupyter-server"] = {
-        "image": "orchest/jupyter-server:latest",  # TODO: make not static.
+        "image": jupyer_server_image,
         "detach": True,
         "mounts": [
             mounts["project_dir"],

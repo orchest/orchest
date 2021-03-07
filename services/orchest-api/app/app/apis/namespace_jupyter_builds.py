@@ -4,7 +4,7 @@ from typing import Optional
 
 from celery.contrib.abortable import AbortableAsyncResult
 from flask import abort, current_app, request
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import or_
 
 import app.models as models
@@ -14,7 +14,7 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.utils import register_schema, update_status_db
 
-api = Namespace("jupyter-build", description="Build Jupyter server image")
+api = Namespace("jupyter-builds", description="Build Jupyter server image")
 api = register_schema(api)
 
 
@@ -30,8 +30,6 @@ class JupyterBuildList(Resource):
 
         """
         jupyter_builds = models.JupyterBuild.query.all()
-        if not jupyter_builds:
-            jupyter_builds = []
 
         return (
             {
@@ -43,23 +41,13 @@ class JupyterBuildList(Resource):
         )
 
     @api.doc("start_jupyter_build")
-    @api.expect(schema.jupyter_build_request)
-    @api.marshal_with(
-        schema.jupyter_build_request_result,
-        code=201,
-        description="Start new Jupyter build",
-    )
     def post(self):
         """Queues a Jupyter build."""
-
-        # keep only unique requests
-        post_data = request.get_json()
-        build_request = post_data["jupyter_build_request"]
-
-        # Start a celery task
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                jupyter_build = CreateJupyterBuild(tpe).transaction(build_request)
+                jupyter_build = CreateJupyterBuild(tpe).transaction()
+        except SessionInProgressException:
+            return {"message": "SessionInProgressException"}, 500
         except Exception:
             jupyter_build = None
 
@@ -67,10 +55,10 @@ class JupyterBuildList(Resource):
             return_data = {"jupyter_build": jupyter_build}
             return_code = 200
         else:
-            return_data = {"failed_request": build_request}
+            return_data = {}
             return_code = 500
 
-        return return_data, return_code
+        return marshal(return_data, schema.jupyter_build_request_result), return_code
 
 
 @api.route(
@@ -132,8 +120,48 @@ class JupyterBuild(Resource):
             return {"message": "Jupyter build does not exist or is not running."}, 400
 
 
+@api.route(
+    "/most-recent/",
+)
+class MostRecentJupyterBuild(Resource):
+    @api.doc("get_project_most_recent_jupyter_build")
+    @api.marshal_with(schema.jupyter_builds, code=200)
+    def get(self):
+        """Get the most recent Jupyter build."""
+
+        # Filter by project uuid. Use a window function to get the most
+        # recently requested build for each environment return.
+        jupyter_builds = (
+            models.JupyterBuild.query.order_by(
+                models.JupyterBuild.requested_time.desc()
+            )
+            .limit(1)
+            .all()
+        )
+
+        return {"jupyter_builds": [build.as_dict() for build in jupyter_builds]}
+
+
+class SessionInProgressException(Exception):
+    pass
+
+
 class CreateJupyterBuild(TwoPhaseFunction):
-    def _transaction(self, build_request):
+    def _transaction(self):
+
+        # Check if there are any active sessions
+
+        # Gate check to see if there is a Jupyter lab build active
+        active_session_count = models.InteractiveSession.query.filter(
+            or_(
+                models.InteractiveSession.status == "LAUNCHING",
+                models.InteractiveSession.status == "RUNNING",
+                models.InteractiveSession.status == "STOPPING",
+            )
+        ).count()
+
+        if active_session_count > 0:
+            raise SessionInProgressException()
 
         # Abort any Jupyter build that is
         # already running, given by the status of PENDING/STARTED.

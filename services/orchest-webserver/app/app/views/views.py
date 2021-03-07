@@ -148,6 +148,7 @@ def register_views(app, db):
 
         front_end_config_internal = [
             "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE",
+            "ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE",
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 
@@ -211,6 +212,33 @@ def register_views(app, db):
             return ""
         else:
             return get_user_conf_raw()
+
+    @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
+    def jupyter_setup_script():
+
+        setup_script_path = os.path.join(
+            app.config["USER_DIR"], _config.JUPYTER_SETUP_SCRIPT
+        )
+
+        if request.method == "POST":
+
+            setup_script = request.form.get("setup_script")
+            try:
+                with open(setup_script_path, "w") as f:
+                    f.write(setup_script)
+
+            except IOError as io_error:
+                current_app.logger.error("Failed to write setup_script %s" % io_error)
+
+            return ""
+
+        else:
+            try:
+                with open(setup_script_path, "r") as f:
+                    return f.read()
+            except FileNotFoundError as fnf_error:
+                current_app.logger.error("Failed to read setup_script %s" % fnf_error)
+                return ""
 
     @app.route(
         "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]

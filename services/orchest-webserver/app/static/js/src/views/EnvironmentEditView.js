@@ -1,5 +1,6 @@
 import React, { Fragment } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import { uuidv4 } from "../lib/utils/all";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 import MDCSelectReact from "../lib/mdc-components/MDCSelectReact";
@@ -18,21 +19,18 @@ import {
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 
 import EnvironmentsView from "./EnvironmentsView";
-import EnvironmentEditBuildTab from "../components/EnvironmentEditBuildTab";
+import ImageBuildLog from "../components/ImageBuildLog";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import "codemirror/mode/shell/shell";
 
 class EnvironmentEditView extends React.Component {
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
-    clearInterval(this.environmentBuildInterval);
   }
 
   constructor(props) {
     super(props);
 
-    this.BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
-    this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
     this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
     this.state = {
@@ -40,8 +38,6 @@ class EnvironmentEditView extends React.Component {
       baseImages: [...DEFAULT_BASE_IMAGES],
       newEnvironment: props.queryArgs.environment_uuid === undefined,
       unsavedChanges: !props.queryArgs.environment_uuid,
-      ignoreIncomingLogs: false,
-      environmentBuild: undefined,
       environment: !props.queryArgs.environment_uuid
         ? {
             uuid: "new",
@@ -53,6 +49,10 @@ class EnvironmentEditView extends React.Component {
             setup_script: orchest.config.ENVIRONMENT_DEFAULTS.setup_script,
           }
         : undefined,
+      ignoreIncomingLogs: false,
+      building: false,
+      environmentBuild: undefined,
+      buildFetchHash: uuidv4(),
     };
 
     this.promiseManager = new PromiseManager();
@@ -78,9 +78,8 @@ class EnvironmentEditView extends React.Component {
               ? DEFAULT_BASE_IMAGES.concat(environment.base_image)
               : [...DEFAULT_BASE_IMAGES],
         });
-
-        this.environmentBuildPolling(true);
       })
+
       .catch((error) => {
         console.error(error);
       });
@@ -123,9 +122,6 @@ class EnvironmentEditView extends React.Component {
               newEnvironment: false,
               unsavedChanges: false,
             });
-
-            // start polling after save
-            this.environmentBuildPolling(true);
 
             resolve();
           })
@@ -262,20 +258,9 @@ class EnvironmentEditView extends React.Component {
     });
   }
 
-  onBuildStarted() {
-    this.setState({
-      ignoreIncomingLogs: false,
-    });
-  }
-
   build(e) {
     e.nativeEvent.preventDefault();
-
     this.refManager.refs.tabBar.tabBar.activateTab(1);
-
-    // reinitialize polling - to increase frequency during build
-    this.state.building = true;
-    this.environmentBuildPolling(true);
 
     this.setState({
       building: true,
@@ -299,7 +284,7 @@ class EnvironmentEditView extends React.Component {
             let environmentBuild = JSON.parse(response)[
               "environment_builds"
             ][0];
-            this.updateEnvironmentBuildState(environmentBuild);
+            this.onUpdateBuild(environmentBuild);
           } catch (error) {
             console.error(error);
           }
@@ -325,7 +310,9 @@ class EnvironmentEditView extends React.Component {
           // immediately fetch latest status
           // NOTE: this DELETE call doesn't actually destroy the resource, that's
           // why we're querying it again.
-          this.environmentBuildRequest();
+          this.setState({
+            buildFetchHash: uuidv4(),
+          });
         })
         .catch((error) => {
           console.error(error);
@@ -341,63 +328,18 @@ class EnvironmentEditView extends React.Component {
     }
   }
 
-  updateEnvironmentBuildState(environmentBuild) {
-    this.updateBuildStatus(environmentBuild);
+  onBuildStart() {
     this.setState({
-      environmentBuild: environmentBuild,
+      ignoreIncomingLogs: false,
     });
   }
 
-  updateBuildStatus(environmentBuild) {
-    if (this.CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1) {
-      this.state.building = true;
-      this.environmentBuildPolling();
-
-      this.setState({
-        building: true,
-      });
-    } else {
-      // reinitialize polling - to increase frequency during build
-      this.state.building = false;
-      this.environmentBuildPolling();
-
-      this.setState({
-        building: false,
-      });
-    }
-  }
-
-  environmentBuildRequest() {
-    let environmentBuildRequestPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.state.environment.uuid}`
-      ),
-      this.promiseManager
-    );
-
-    environmentBuildRequestPromise.promise
-      .then((response) => {
-        let environmentBuilds = JSON.parse(response)["environment_builds"];
-        if (environmentBuilds.length > 0) {
-          this.updateEnvironmentBuildState(environmentBuilds[0]);
-        }
-      })
-      .catch((error) => {});
-  }
-
-  environmentBuildPolling(triggerDirectly) {
-    if (triggerDirectly) {
-      this.environmentBuildRequest();
-    }
-
-    clearInterval(this.environmentBuildInterval);
-    this.environmentBuildInterval = setInterval(
-      this.environmentBuildRequest.bind(this),
-      this.state.building
-        ? this.BUILD_POLL_FREQUENCY[1]
-        : this.BUILD_POLL_FREQUENCY[0]
-    );
+  onUpdateBuild(environmentBuild) {
+    this.setState({
+      building:
+        this.CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1,
+      environmentBuild,
+    });
   }
 
   render() {
@@ -537,12 +479,31 @@ class EnvironmentEditView extends React.Component {
                 break;
               case 1:
                 subview = (
-                  <EnvironmentEditBuildTab
-                    onBuildStarted={this.onBuildStarted.bind(this)}
-                    environment={this.state.environment}
-                    ignoreIncomingLogs={this.state.ignoreIncomingLogs}
-                    environmentBuild={this.state.environmentBuild}
-                  />
+                  <>
+                    {this.state.environment &&
+                      this.state.environment.uuid !== "new" && (
+                        <ImageBuildLog
+                          buildFetchHash={this.state.buildFetchHash}
+                          buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.state.environment.uuid}`}
+                          buildsKey="environment_builds"
+                          socketIONamespace={
+                            orchest.config[
+                              "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"
+                            ]
+                          }
+                          streamIdentity={
+                            this.state.environment.project_uuid +
+                            "-" +
+                            this.state.environment.uuid
+                          }
+                          onUpdateBuild={this.onUpdateBuild.bind(this)}
+                          onBuildStart={this.onBuildStart.bind(this)}
+                          ignoreIncomingLogs={this.state.ignoreIncomingLogs}
+                          build={this.state.environmentBuild}
+                          building={this.state.building}
+                        />
+                      )}
+                  </>
                 );
             }
 
@@ -608,7 +569,7 @@ class EnvironmentEditView extends React.Component {
                             classNames={["mdc-button--raised"]}
                             onClick={this.cancelBuild.bind(this)}
                             label="Cancel build"
-                            icon="memory"
+                            icon="close"
                           />
                         );
                       }

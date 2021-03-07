@@ -33,7 +33,7 @@ PIPELINE_STEP_CONTAINER_NAME = "orchest-step-{run_uuid}-{step_uuid}"
 JUPYTER_SERVER_NAME = "jupyter-server-{project_uuid}-{pipeline_uuid}"
 JUPYTER_EG_SERVER_NAME = "jupyter-EG-{project_uuid}-{pipeline_uuid}"
 JUPYTER_SETUP_SCRIPT = ".orchest/user-configurations/jupyterlab/setup_script.sh"
-JUPYTER_IMAGE_NAME = "jupyter-server-{orchest_version}"
+JUPYTER_IMAGE_NAME = "orchest-jupyter-server-{orchest_version}"
 
 # Whenever UUIDs take up too much space in an identifier the UUIDs are
 # truncated to this length. This typically only happens when multiple

@@ -2,57 +2,100 @@ import React, { Fragment } from "react";
 import io from "socket.io-client";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
-import { RefManager } from "../lib/utils/all";
+import {
+  makeRequest,
+  makeCancelable,
+  RefManager,
+  PromiseManager,
+} from "../lib/utils/all";
 
-class EnvironmentEditBuildTab extends React.Component {
+class ImageBuild extends React.Component {
   constructor(props) {
     super(props);
+
+    this.BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
+    this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
+
     this.state = {
       building: false,
       ignoreIncomingLogs: this.props.ignoreIncomingLogs,
     };
 
-    this.SOCKETIO_NAMESPACE_ENV_BUILDS =
-      orchest.config["ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"];
-
     // initialize Xterm addons
     this.fitAddon = new FitAddon();
-
     this.refManager = new RefManager();
+    this.promiseManager = new PromiseManager();
   }
 
   componentWillUnmount() {
     if (this.socket) {
       this.socket.close();
       console.log(
-        `SocketIO with namespace ${this.SOCKETIO_NAMESPACE_ENV_BUILDS} disconnected.`
+        `SocketIO with namespace ${this.props.socketIONamespace} disconnected.`
       );
     }
+    clearTimeout(this.buildTimeout);
+    this.promiseManager.cancelCancelablePromises();
+
+    window.removeEventListener("resize", this.fitTerminal.bind(this));
   }
 
   componentDidMount() {
     this.connectSocketIO();
     this.fitTerminal();
+    this.buildPolling(true);
+
+    window.addEventListener("resize", this.fitTerminal.bind(this));
+  }
+
+  buildPolling(triggerDirectly) {
+    if (triggerDirectly) {
+      this.buildRequest();
+    }
+
+    clearTimeout(this.buildTimeout);
+    this.buildTimeout = setTimeout(
+      () => {
+        this.buildRequest();
+        this.buildPolling(false);
+      },
+      this.props.building
+        ? this.BUILD_POLL_FREQUENCY[1]
+        : this.BUILD_POLL_FREQUENCY[0]
+    );
+  }
+
+  buildRequest() {
+    let buildRequestPromise = makeCancelable(
+      makeRequest("GET", this.props.buildRequestEndpoint),
+      this.promiseManager
+    );
+
+    buildRequestPromise.promise
+      .then((response) => {
+        let builds = JSON.parse(response)[this.props.buildsKey];
+        if (builds.length > 0) {
+          this.props.onUpdateBuild(builds[0]);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   }
 
   connectSocketIO() {
     // disable polling
-    this.socket = io.connect(this.SOCKETIO_NAMESPACE_ENV_BUILDS, {
+    this.socket = io.connect(this.props.socketIONamespace, {
       transports: ["websocket"],
     });
 
     this.socket.on("connect", () => {
-      console.log(
-        `SocketIO connected on ${this.SOCKETIO_NAMESPACE_ENV_BUILDS}`
-      );
+      console.log(`SocketIO connected on ${this.props.socketIONamespace}`);
     });
 
     this.socket.on("sio_streamed_task_data", (data) => {
-      // ignore terminal outputs from other environment_uuids
-      if (
-        data.identity ==
-        this.props.environment.project_uuid + "-" + this.props.environment.uuid
-      ) {
+      // ignore terminal outputs from other builds
+      if (data.identity == this.props.streamIdentity) {
         if (
           data["action"] == "sio_streamed_task_output" &&
           !this.state.ignoreIncomingLogs
@@ -73,7 +116,7 @@ class EnvironmentEditBuildTab extends React.Component {
           this.setState({
             ignoreIncomingLogs: false,
           });
-          this.props.onBuildStarted();
+          this.props.onBuildStart();
         }
       }
     });
@@ -96,7 +139,7 @@ class EnvironmentEditBuildTab extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps, prevState, snapshot) {
+  componentDidUpdate(prevProps) {
     if (prevProps.ignoreIncomingLogs != this.props.ignoreIncomingLogs) {
       this.setState({
         ignoreIncomingLogs: this.props.ignoreIncomingLogs,
@@ -106,6 +149,10 @@ class EnvironmentEditBuildTab extends React.Component {
       }
     }
 
+    if (prevProps.buildFetchHash != this.props.buildFetchHash) {
+      this.buildPolling(true);
+    }
+
     this.fitTerminal();
   }
 
@@ -113,28 +160,28 @@ class EnvironmentEditBuildTab extends React.Component {
     return (
       <Fragment>
         {(() => {
-          if (this.props.environmentBuild) {
+          if (this.props.build) {
             return (
-              <div className="environment-notice">
+              <div className="build-notice push-down">
                 <div>
                   <span className="build-label">Build status:</span>
-                  {this.props.environmentBuild.status}
+                  {this.props.build.status}
                 </div>
                 <div>
-                  <span className="build-label">Build started:</span>
-                  {this.props.environmentBuild.started_time ? (
+                  <span className="build-label">Build requested:</span>
+                  {this.props.build.requested_time ? (
                     new Date(
-                      this.props.environmentBuild.started_time + "Z"
+                      this.props.build.requested_time + "Z"
                     ).toLocaleString()
                   ) : (
-                    <i>not yet started</i>
+                    <i>not yet requested</i>
                   )}
                 </div>
                 <div>
                   <span className="build-label">Build finished:</span>
-                  {this.props.environmentBuild.finished_time ? (
+                  {this.props.build.finished_time ? (
                     new Date(
-                      this.props.environmentBuild.finished_time + "Z"
+                      this.props.build.finished_time + "Z"
                     ).toLocaleString()
                   ) : (
                     <i>not yet finished</i>
@@ -153,4 +200,4 @@ class EnvironmentEditBuildTab extends React.Component {
   }
 }
 
-export default EnvironmentEditBuildTab;
+export default ImageBuild;

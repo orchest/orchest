@@ -12,6 +12,7 @@ import UpdateView from "./UpdateView";
 import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/javascript/javascript";
+import ConfigureJupyterLabView from "./ConfigureJupyterLabView";
 
 class SettingsView extends React.Component {
   constructor(props) {
@@ -173,6 +174,10 @@ class SettingsView extends React.Component {
     );
   }
 
+  loadConfigureJupyterLab() {
+    orchest.loadView(ConfigureJupyterLabView);
+  }
+
   render() {
     updateGlobalUnsavedChanges(this.state.unsavedChanges);
 
@@ -235,6 +240,15 @@ class SettingsView extends React.Component {
               }
             })()}
           </div>
+        </div>
+
+        <h2>JupyterLab configuration</h2>
+        <div className="push-down">
+          <MDCButtonReact
+            label="Configure JupyterLab"
+            icon="tune"
+            onClick={this.loadConfigureJupyterLab.bind(this)}
+          />
         </div>
 
         <h2>Version information</h2>
