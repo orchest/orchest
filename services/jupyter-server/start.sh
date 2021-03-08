@@ -18,9 +18,9 @@ get_ext_versions() {
 check_versions() {
     # Checks $1 whether it contains the same setup as set by
     # `get_ext_versions`
-    [ -z $(echo "$1" | grep -o -F "$orchest_integration") ] && return 1
-    [ -z $(echo "$1" | grep -o -F "$visual_tags") ] && return 1
-    [ -z $(echo "$1" | grep -o -F "$jupyterlab_manager") ] && return 1
+    [ -z "$(echo '$1' | grep -o -F '$orchest_integration')" ] && return 1
+    [ -z "$(echo '$1' | grep -o -F '$visual_tags')" ] && return 1
+    [ -z "$(echo '$1' | grep -o -F '$jupyterlab_manager')" ] && return 1
 }
 
 build_path=/jupyterlab-orchest-build
@@ -30,7 +30,7 @@ userdir_path=/usr/local/share/jupyter/lab
 
 # Check whether this is the first time ever JupyterLab is started.
 userdir_version=$(jq .jupyterlab.version "$userdir_path/static/package.json" 2>/dev/null)
-if [ -z $userdir_version ]; then
+if [ -z "$userdir_version" ]; then
     cp -rfT "$build_path" "$userdir_path"
     jupyter lab --LabApp.app_dir="$userdir_path" "$@"
     exit 0
