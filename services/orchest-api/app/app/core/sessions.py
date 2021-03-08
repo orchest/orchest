@@ -325,11 +325,16 @@ class InteractiveSession(Session):
         }
 
         # Poll jupyter_server until available
-        url = f"http://{IP.jupyter_server}{self._notebook_server_info['base_url']}/api"
-        for _ in range(10):
+        url = (
+            f"http://{IP.jupyter_server}"
+            f":8888{self._notebook_server_info['base_url']}/api"
+        )
+
+        # Wait for at most 1 minute
+        for _ in range(120):
             try:
-                requests.get(url)
-            except requests.ConnectionError:
+                requests.get(url, timeout=0.5)
+            except (requests.ConnectionError, requests.Timeout):
                 time.sleep(0.5)
             else:
                 break
