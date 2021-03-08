@@ -1,16 +1,16 @@
 import argparse
 import uuid
 
-from config import CONFIG_CLASS
 from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.connections import db
 from app.models import User
 from app.utils import get_user_conf
+from config import CONFIG_CLASS
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Start plasma store and manager.")
+    parser = argparse.ArgumentParser(description="Add a user to Orchest.")
     parser.add_argument(
         "username",
         nargs=1,

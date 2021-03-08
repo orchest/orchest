@@ -8,6 +8,7 @@ import typer
 from app.cli import start as cli_start
 from app.orchest import OrchestApp
 from app.spec import get_container_config, inject_dict
+from app.utils import echo
 
 
 # TODO: utils.py
@@ -241,16 +242,21 @@ def adduser(
         False, "--set-token", help="True if the token of the user is to be setup."
     ),
     is_admin: bool = typer.Option(
-        False, "--is-admin", help="True if the user is an admin."
+        False,
+        show_default="--no-is-admin",
+        help=(
+            "If the newly created user should be an admin or not. An admin"
+            " user cannot be deleted."
+        ),
     ),
     non_interactive: bool = typer.Option(
-        False, hidden=True, help="Set non interactive mode."
+        False, hidden=True, help="Use non interactive mode for password and token."
     ),
-    non_interactive_password: str = typer.Option(
-        "", hidden=True, help="Set non interactive mode."
+    non_interactive_password: Optional[str] = typer.Option(
+        None, hidden=True, help="User password in non interactive mode."
     ),
-    non_interactive_token: str = typer.Option(
-        None, hidden=True, help="Set non interactive mode."
+    non_interactive_token: Optional[str] = typer.Option(
+        None, hidden=True, help="User token in non interactive mode."
     ),
 ):
     """
@@ -261,11 +267,11 @@ def adduser(
         token = non_interactive_token
     else:
         if non_interactive_password:
-            print("Cannot use non_interactive_password in interactive mode.")
-            exit(1)
+            echo("Cannot use non_interactive_password in interactive mode.", err=True)
+            raise typer.Exit(code=1)
         if non_interactive_token:
-            print("Cannot use non_interactive_token in interactive mode.")
-            exit(1)
+            echo("Cannot use non_interactive_token in interactive mode.", err=True)
+            raise typer.Exit(code=1)
 
         password = typer.prompt("Password", hide_input=True, confirmation_prompt=True)
         if set_token:
@@ -273,11 +279,14 @@ def adduser(
         else:
             token = None
 
-    if not password:
-        print("Password cannot be empty.")
-        exit(1)
+    if password is None:
+        echo("Password must be specified.", err=True)
+        raise typer.Exit(code=1)
+    elif not password:
+        echo("Password cannot be empty.", err=True)
+        raise typer.Exit(code=1)
     if token is not None and not token:
-        print("Token cannot be empty.")
-        exit(1)
+        echo("Token cannot be empty.", err=True)
+        raise typer.Exit(code=1)
 
     app.add_user(username, password, token, is_admin)

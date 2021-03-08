@@ -14,6 +14,8 @@ import os
 from functools import reduce
 from typing import List, Optional, Set, Tuple
 
+import typer
+
 from app import spec, utils
 from app.config import ORCHEST_IMAGES, _on_start_images
 from app.debug import debug_dump, health_check
@@ -362,12 +364,12 @@ class OrchestApp:
                 auth_server_id = id
 
         if not database_running:
-            utils.echo("The orchest-database service needs to be running.")
-            exit(1)
+            utils.echo("The orchest-database service needs to be running.", err=True)
+            raise typer.Exit(code=1)
 
         if auth_server_id is None:
-            utils.echo("The auth-server service needs to be running.")
-            exit(1)
+            utils.echo("The auth-server service needs to be running.", err=True)
+            raise typer.Exit(code=1)
 
         cmd = f"python add_user.py {username} {password}"
         if token:
@@ -378,8 +380,15 @@ class OrchestApp:
         exit_code = self.docker_client.exec_runs([(auth_server_id, cmd)])[0]
 
         if exit_code != 0:
-            utils.echo(f"Non zero exit code: {exit_code}.")
-        exit(exit_code)
+            utils.echo(
+                (
+                    "Non zero exit code whilst trying to add a user to "
+                    f"the auth-server: {exit_code}."
+                ),
+                err=True,
+            )
+
+        raise typer.Exit(code=exit_code)
 
 
 # TODO: Could potentially make this into set as well.
