@@ -51,6 +51,8 @@ class EnvironmentEditView extends React.Component {
         : undefined,
       ignoreIncomingLogs: false,
       building: false,
+      buildRequestInProgress: false,
+      cancelBuildRequestInProgress: false,
       environmentBuild: undefined,
       buildFetchHash: uuidv4(),
     };
@@ -263,22 +265,27 @@ class EnvironmentEditView extends React.Component {
     this.refManager.refs.tabBar.tabBar.activateTab(1);
 
     this.setState({
-      building: true,
+      buildRequestInProgress: true,
       ignoreIncomingLogs: true,
     });
 
     this.save().then(() => {
-      makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
-        type: "json",
-        content: {
-          environment_build_requests: [
-            {
-              environment_uuid: this.state.environment.uuid,
-              project_uuid: this.state.environment.project_uuid,
-            },
-          ],
-        },
-      })
+      let buildPromise = makeCancelable(
+        makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
+          type: "json",
+          content: {
+            environment_build_requests: [
+              {
+                environment_uuid: this.state.environment.uuid,
+                project_uuid: this.state.environment.project_uuid,
+              },
+            ],
+          },
+        }),
+        this.promiseManager
+      );
+
+      buildPromise.promise
         .then((response) => {
           try {
             let environmentBuild = JSON.parse(response)[
@@ -289,8 +296,18 @@ class EnvironmentEditView extends React.Component {
             console.error(error);
           }
         })
-        .catch((error) => {
-          console.log(error);
+        .catch((e) => {
+          if (!e.isCanceled) {
+            this.setState({
+              ignoreIncomingLogs: false,
+            });
+            console.log(e);
+          }
+        })
+        .finally(() => {
+          this.setState({
+            buildRequestInProgress: false,
+          });
         });
     });
   }
@@ -302,6 +319,10 @@ class EnvironmentEditView extends React.Component {
       this.CANCELABLE_STATUSES.indexOf(this.state.environmentBuild.status) !==
         -1
     ) {
+      this.setState({
+        cancelBuildRequestInProgress: true,
+      });
+
       makeRequest(
         "DELETE",
         `/catch/api-proxy/api/environment-builds/${this.state.environmentBuild.uuid}`
@@ -316,11 +337,12 @@ class EnvironmentEditView extends React.Component {
         })
         .catch((error) => {
           console.error(error);
+        })
+        .finally(() => {
+          this.setState({
+            cancelBuildRequestInProgress: false,
+          });
         });
-
-      this.setState({
-        building: false,
-      });
     } else {
       orchest.alert(
         "Could not cancel build, please try again in a few seconds."
@@ -557,6 +579,7 @@ class EnvironmentEditView extends React.Component {
                       if (!this.state.building) {
                         return (
                           <MDCButtonReact
+                            disabled={this.state.buildRequestInProgress}
                             classNames={["mdc-button--raised"]}
                             onClick={this.build.bind(this)}
                             label="Build"
@@ -566,6 +589,7 @@ class EnvironmentEditView extends React.Component {
                       } else {
                         return (
                           <MDCButtonReact
+                            disabled={this.state.cancelBuildRequestInProgress}
                             classNames={["mdc-button--raised"]}
                             onClick={this.cancelBuild.bind(this)}
                             label="Cancel build"

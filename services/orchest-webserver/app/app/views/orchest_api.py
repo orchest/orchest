@@ -140,7 +140,7 @@ def register_orchest_api_views(app, db):
         resp = requests.delete(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/jupyter-builds/%s/" % build_uuid,
+            + "/api/jupyter-builds/%s" % build_uuid,
         )
         return resp.content, resp.status_code, resp.headers.items()
 

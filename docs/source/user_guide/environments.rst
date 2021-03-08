@@ -45,3 +45,29 @@ Build an environment
 
        # E.g. pip install tensorflow
        pip install -r requirements.txt
+
+
+JupyterLab extensions
+---------------------
+
+You can install JupyterLab extensions through the GUI directly.
+
+JupyterLab also supports server extensions. You can install these by
+navigating to Settings > Configure JupyterLab. Here you can install 
+extensions like you normally would using commands such as:
+
+.. code-block:: bash
+
+   pip install jupyterlab-git
+
+In addition, you can install extensions from :code:`npm` through the
+:code:`jupyter` command.
+
+.. code-block:: bash
+
+   jupyter labextension install jupyterlab-spreadsheet
+
+.. note::
+
+   To build the JupyterLab image you need to make sure there are no
+   sessions running.

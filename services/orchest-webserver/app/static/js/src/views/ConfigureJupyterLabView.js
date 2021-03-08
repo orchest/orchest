@@ -22,6 +22,8 @@ class ConfigureJupyterLabView extends React.Component {
     this.state = {
       unsavedChanges: false,
       building: false,
+      buildRequestInProgress: false,
+      cancelBuildRequestInProgress: false,
       ignoreIncomingLogs: false,
       jupyterBuild: undefined,
       buildFetchHash: uuidv4(),
@@ -56,12 +58,12 @@ class ConfigureJupyterLabView extends React.Component {
   buildImage() {
     orchest.jupyter.unload();
 
-    this.save(() => {
-      this.setState({
-        building: true,
-        ignoreIncomingLogs: true,
-      });
+    this.setState({
+      buildRequestInProgress: true,
+      ignoreIncomingLogs: true,
+    });
 
+    this.save(() => {
       let buildPromise = makeCancelable(
         makeRequest("POST", "/catch/api-proxy/api/jupyter-builds"),
         this.promiseManager
@@ -76,25 +78,30 @@ class ConfigureJupyterLabView extends React.Component {
             console.error(error);
           }
         })
-        .catch((error) => {
-          this.setState({
-            building: false,
-            ignoreIncomingLogs: false,
-          });
+        .catch((e) => {
+          if (!e.isCanceled) {
+            this.setState({
+              ignoreIncomingLogs: false,
+            });
 
-          try {
-            let resp = JSON.parse(error.body);
+            try {
+              let resp = JSON.parse(e.body);
 
-            if (resp.message == "SessionInProgressException") {
-              orchest.alert(
-                "Error",
-                "You must stop all active sessions in order to build a new JupyerLab image."
-              );
+              if (resp.message == "SessionInProgressException") {
+                orchest.alert(
+                  "Error",
+                  "You must stop all active sessions in order to build a new JupyerLab image."
+                );
+              }
+            } catch (error) {
+              console.error(error);
             }
-          } catch (error) {
-            console.error(error);
           }
-          console.log(error);
+        })
+        .finally(() => {
+          this.setState({
+            buildRequestInProgress: false,
+          });
         });
     });
   }
@@ -105,6 +112,10 @@ class ConfigureJupyterLabView extends React.Component {
       this.state.jupyterBuild &&
       this.CANCELABLE_STATUSES.indexOf(this.state.jupyterBuild.status) !== -1
     ) {
+      this.setState({
+        cancelBuildRequestInProgress: true,
+      });
+
       makeRequest(
         "DELETE",
         `/catch/api-proxy/api/jupyter-builds/${this.state.jupyterBuild.uuid}`
@@ -119,11 +130,12 @@ class ConfigureJupyterLabView extends React.Component {
         })
         .catch((error) => {
           console.error(error);
+        })
+        .finally(() => {
+          this.setState({
+            cancelBuildRequestInProgress: false,
+          });
         });
-
-      this.setState({
-        building: false,
-      });
     } else {
       orchest.alert(
         "Could not cancel build, please try again in a few seconds."
@@ -176,6 +188,26 @@ class ConfigureJupyterLabView extends React.Component {
             <p className="push-down">
               You can install JupyterLab extensions using the bash script below.
             </p>
+            <p className="push-down">
+              For example, you can install the JupyterLab{" "}
+              <span className="code">git</span> extension by executing{" "}
+              <span className="code">pip install jupyterlab-git</span>.
+            </p>
+
+            <p className="push-down">
+              In addition, you can configure the JupyterLab environment to
+              include settings such as your <span className="code">git</span>{" "}
+              username and email.
+              <br />
+              <br />
+              <span className="code">
+                git config --global user.name "John Doe"
+              </span>
+              <br />
+              <span className="code">
+                git config --global user.email "john@example.org"
+              </span>
+            </p>
 
             <div className="push-down">
               <CodeMirror
@@ -227,6 +259,7 @@ class ConfigureJupyterLabView extends React.Component {
             {!this.state.building ? (
               <MDCButtonReact
                 label="Build"
+                disabled={this.state.buildRequestInProgress}
                 icon="memory"
                 classNames={["mdc-button--raised"]}
                 onClick={this.buildImage.bind(this)}
@@ -234,6 +267,7 @@ class ConfigureJupyterLabView extends React.Component {
             ) : (
               <MDCButtonReact
                 label="Cancel build"
+                disabled={this.state.cancelBuildRequestInProgress}
                 icon="close"
                 classNames={["mdc-button--raised"]}
                 onClick={this.cancelImageBuild.bind(this)}

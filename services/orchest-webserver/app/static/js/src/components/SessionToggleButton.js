@@ -174,6 +174,15 @@ class SessionToggleButton extends React.Component {
         })
         .catch((e) => {
           if (!e.isCanceled) {
+            let error = JSON.parse(e.body);
+
+            if (error.message == "JupyterBuildInProgress") {
+              orchest.alert(
+                "Error",
+                "Cannot start session. A JupyterLab build is still in progress."
+              );
+            }
+
             this.setState(() => {
               let working = false;
               let running = false;

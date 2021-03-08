@@ -2,7 +2,7 @@ from typing import Dict
 
 from flask import request
 from flask.globals import current_app
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc
 
 import app.models as models
@@ -15,6 +15,10 @@ from app.utils import register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)
+
+
+class JupyterBuildInProgressException(Exception):
+    pass
 
 
 @api.route("/")
@@ -41,7 +45,6 @@ class SessionList(Resource):
 
     @api.doc("launch_session")
     @api.expect(schema.pipeline_spec)
-    @api.marshal_with(schema.session, code=201, description="Session launched.")
     def post(self):
         """Launches an interactive session."""
         post_data = request.get_json()
@@ -55,6 +58,8 @@ class SessionList(Resource):
                     post_data["project_dir"],
                     post_data["host_userdir"],
                 )
+        except JupyterBuildInProgressException:
+            return {"message": "JupyterBuildInProgress"}, 423
         except Exception as e:
             current_app.logger.error(e)
             return {"message": str(e)}, 500
@@ -64,7 +69,7 @@ class SessionList(Resource):
             pipeline_uuid=post_data["pipeline_uuid"],
         ).one_or_none()
 
-        return isess.as_dict(), 201
+        return marshal(isess.as_dict(), schema.session), 201
 
 
 @api.route("/<string:project_uuid>/<string:pipeline_uuid>")
@@ -147,7 +152,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
             "PENDING",
             "STARTED",
         ]:
-            raise Exception("JupyterLab build in progress. Cannot start session.")
+            raise JupyterBuildInProgressException()
 
         interactive_session = {
             "project_uuid": project_uuid,
