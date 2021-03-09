@@ -3,6 +3,7 @@ import { makeRequest } from "../lib/utils/all";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
 
+import ConfigureJupyterLabView from "../views/ConfigureJupyterLabView";
 import EditJobView from "../views/EditJobView";
 import EnvironmentEditView from "../views/EnvironmentEditView";
 import EnvironmentsView from "../views/EnvironmentsView";
@@ -26,6 +27,7 @@ function getComponentObject() {
   // resolution after Class name obfuscation performed
   // by the JS minifier.
   return {
+    ConfigureJupyterLabView,
     EditJobView,
     EnvironmentEditView,
     EnvironmentsView,
@@ -56,6 +58,7 @@ export function getViewDrawerParentViewName(viewName) {
   */
 
   let viewHierarchy = {
+    ConfigureJupyterLabView: SettingsView,
     EditJobView: JobsView,
     EnvironmentEditView: EnvironmentsView,
     EnvironmentsView: EnvironmentsView,

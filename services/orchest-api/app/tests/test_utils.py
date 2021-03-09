@@ -1,4 +1,109 @@
+import json
+import time
+
 from _orchest.internals.test_utils import gen_uuid
+
+
+def mocked_abortable_async_result(abort):
+    class MockAbortableAsyncResult:
+        def __init__(self, task_uuid) -> None:
+            pass
+
+        def is_aborted(self):
+            return abort
+
+    return MockAbortableAsyncResult
+
+
+def mocked_docker_client(_NOT_TO_BE_LOGGED, build_events):
+    class MockDockerClient:
+        def __init__(self):
+            # A way to mock this kind of properties:
+            # docker_client.images.get(build_context["base_image"])
+            self.images = self
+            self.api = self
+
+        @staticmethod
+        def from_env():
+            return MockDockerClient()
+
+        # Will be used as docker_client.images.get(...).
+        def get(self, *args, **kwargs):
+            pass
+
+        # Will be used as docker_client.api.build(...).
+        def build(self, path, tag, *args, **kwargs):
+
+            # The env build process should only log events/data between
+            # the flags.
+            events = (
+                [_NOT_TO_BE_LOGGED]
+                + ["_ORCHEST_RESERVED_FLAG_"]
+                + build_events
+                + ["_ORCHEST_RESERVED_FLAG_"]
+                + [_NOT_TO_BE_LOGGED]
+            )
+
+            data = []
+            for event in events:
+                if event is None:
+                    event = {"error": "error"}
+                else:
+                    event = {"stream": event + "\n"}
+                data.append(json.dumps(event))
+
+            # This way tasks can be aborted, otherwise it might be done
+            # building an image before the parent process has the chance
+            # to check if it has been aborted.
+            time.sleep(0.5)
+            return iter(data)
+
+    return MockDockerClient
+
+
+def mocked_socketio_class(socketio_data):
+    class MockSocketIOClient:
+        def __init__(self, *args, **kwargs) -> None:
+            self.on_connect = None
+
+        def connect(self, *args, **kwargs):
+            socketio_data["has_connected"] = True
+            self.on_connect()
+
+        def sleep(self, *args, **kwargs):
+            time.sleep(args[0])
+
+        def disconnect(self, *args, **kwargs):
+            socketio_data["has_disconnected"] = True
+
+        def emit(self, name, data, *args, **kwargs):
+            if "output" in data:
+                socketio_data["output_logs"].append(data["output"])
+            # disconnect is passed as a callback
+            if "callback" in kwargs:
+                kwargs["callback"]()
+
+        def on(self, event, *args, **kwargs):
+            if event == "connect":
+
+                def set_handler(handler):
+                    self.on_connect = handler
+                    return handler
+
+                return set_handler
+
+    return MockSocketIOClient
+
+
+class MockRequestReponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        pass
+
+    def json(self):
+        pass
 
 
 def create_env_build_request(project_uuid, n):

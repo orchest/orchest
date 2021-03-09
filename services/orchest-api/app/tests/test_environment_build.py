@@ -1,26 +1,19 @@
-import json
 import os
-import time
 
 import docker
 import pytest
 import requests
 import socketio
+from tests.test_utils import (
+    MockRequestReponse,
+    mocked_abortable_async_result,
+    mocked_docker_client,
+    mocked_socketio_class,
+)
 
 import app.connections
 import app.core.environment_builds
-
-
-class MockRequestReponse:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        pass
-
-    def json(self):
-        pass
-
+from _orchest.internals.test_utils import raise_exception_function
 
 # String that should not appear in the logs.
 _NOT_TO_BE_LOGGED = "_NOT_TO_BE_LOGGED"
@@ -47,6 +40,9 @@ def test_environment_build(
     build_events,
     monkeypatch,
 ):
+    def mock_cleanup_docker_artifacts(filters):
+        docker_cleanup_uuid_request.append(filters["label"][1].split("=")[1])
+
     def mock_put_request(self, url, json=None, *args, **kwargs):
         put_requests.append(json["status"])
         return MockRequestReponse()
@@ -62,91 +58,7 @@ def test_environment_build(
     def mock_prepare_build_context(
         task_uuid, project_uuid, environment_uuid, project_path
     ):
-
         return {"snapshot_path": None, "base_image": None}
-
-    def mock_cleanup_env_build_docker_artifacts(filters):
-        docker_cleanup_uuid_request.append(filters["label"][1].split("=")[1])
-
-    class MockAbortableAsyncResult:
-        def __init__(self, task_uuid) -> None:
-            pass
-
-        def is_aborted(self):
-            return abort
-
-    class MockSocketIOClient:
-        def __init__(self, *args, **kwargs) -> None:
-            self.on_connect = None
-
-        def connect(self, *args, **kwargs):
-            socketio_data["has_connected"] = True
-            self.on_connect()
-
-        def sleep(self, *args, **kwargs):
-            time.sleep(args[0])
-
-        def disconnect(self, *args, **kwargs):
-            socketio_data["has_disconnected"] = True
-
-        def emit(self, name, data, *args, **kwargs):
-            if "output" in data:
-                socketio_data["output_logs"].append(data["output"])
-            # disconnect is passed as a callback
-            if "callback" in kwargs:
-                kwargs["callback"]()
-
-        def on(self, event, *args, **kwargs):
-            if event == "connect":
-
-                def set_handler(handler):
-                    self.on_connect = handler
-                    return handler
-
-                return set_handler
-
-    class MockDockerClient:
-        def __init__(self):
-            # A way to mock this kind of properties:
-            # docker_client.images.get(build_context["base_image"])
-            self.images = self
-            self.api = self
-
-        @staticmethod
-        def from_env():
-            return MockDockerClient()
-
-        # Will be used as docker_client.images.get(...).
-        def get(self, *args, **kwargs):
-            if not image_in_local_environment:
-                raise docker.errors.ImageNotFound("error")
-
-        # Will be used as docker_client.api.build(...).
-        def build(self, path, tag, *args, **kwargs):
-
-            # The env build process should only log events/data between
-            # the flags.
-            events = (
-                [_NOT_TO_BE_LOGGED]
-                + ["_ORCHEST_RESERVED_FLAG_"]
-                + build_events
-                + ["_ORCHEST_RESERVED_FLAG_"]
-                + [_NOT_TO_BE_LOGGED]
-            )
-
-            data = []
-            for event in events:
-                if event is None:
-                    event = {"error": "error"}
-                else:
-                    event = {"stream": event + "\n"}
-                data.append(json.dumps(event))
-
-            # This way tasks can be aborted, otherwise it might be done
-            # building an image before the parent process has the chance
-            # to check if it has been aborted.
-            time.sleep(0.5)
-            return iter(data)
 
     # To keep track if requests are properly made.
     monkeypatch.setattr(requests.sessions.Session, "put", mock_put_request)
@@ -172,28 +84,40 @@ def test_environment_build(
     # To make sure the correct cleanup request is issued.
     monkeypatch.setattr(
         app.core.environment_builds,
-        "cleanup_env_build_docker_artifacts",
-        mock_cleanup_env_build_docker_artifacts,
+        "cleanup_docker_artifacts",
+        mock_cleanup_docker_artifacts,
     )
     # To be able to fake the cancellation of an env build.
     monkeypatch.setattr(
-        app.core.environment_builds, "AbortableAsyncResult", MockAbortableAsyncResult
+        app.core.environment_builds,
+        "AbortableAsyncResult",
+        mocked_abortable_async_result(abort),
     )
     # To mock getting an image and building an image.
-    monkeypatch.setattr(
-        app.core.environment_builds, "docker_client", MockDockerClient()
-    )
-    # Capture build logs sent to socketio.
-    monkeypatch.setattr(socketio, "Client", MockSocketIOClient)
+    MockedDockerClient = mocked_docker_client(_NOT_TO_BE_LOGGED, build_events)
 
-    put_requests = []
-    delete_requests = []
-    docker_cleanup_uuid_request = []
+    # Patch docker get
+    if not image_in_local_environment:
+        monkeypatch.setattr(
+            MockedDockerClient,
+            "get",
+            raise_exception_function(docker.errors.ImageNotFound("error")),
+        )
+
+    monkeypatch.setattr(app.core.docker_utils, "docker_client", MockedDockerClient())
+
     socketio_data = {
         "output_logs": [],
         "has_connected": False,
         "has_disconnected": False,
     }
+
+    # Capture build logs sent to socketio.
+    monkeypatch.setattr(socketio, "Client", mocked_socketio_class(socketio_data))
+
+    put_requests = []
+    delete_requests = []
+    docker_cleanup_uuid_request = []
 
     # Inputs of the function to be tested.
     task_uuid = "task_uuid"

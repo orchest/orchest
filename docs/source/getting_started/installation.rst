@@ -84,7 +84,7 @@ within the container it reports the CUDA Toolkit version installed on the *host*
 CUDA Toolkit version installed in the container image run ``cat /usr/local/cuda/version.txt``.
 
 Additionally, we require the ``nvidia-container`` package to make sure Docker is able to provide GPU
-enabled containers. Installation of the nvidia-container is done using ``apt-get install
+enabled containers. Installation of the nvidia-container is done using ``apt install
 nvidia-container-runtime``.
 
 .. seealso::

@@ -1,7 +1,7 @@
 .. _install packages:
 
-Installing additional packages
-==============================
+Installing packages
+===================
 
 .. warning::
    Do not install packages by running :code:`!pip install <package-name>` inside your
@@ -14,8 +14,8 @@ The default images are based on the `Jupyter Docker Stacks
 packages <https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html>`_.
 
 To install additional packages or to run other terminal commands inside the base image, we support
-custom *Environments*. We essentially create a new image by running your script inside the selected base
-image.
+custom :ref:`environments <environment glossary>`. We essentially create a new image by running your
+script inside the selected base image.
 
 .. _environments:
 
@@ -25,11 +25,11 @@ Build an environment
 1. Simply go to *Environments* in the left menu pane.
 2. Create a new *Environment*. *Environments* are part of a single project.
 3. Choose an *Environment name*.
-4. To keep environment image sizes to a minimal, each environment is tied to a specific programming 
+4. To keep environment image sizes to a minimal, each environment is tied to a specific programming
    language. Choose one of the supported languages for your environment.
 5. Choose a base image. This image will be extended through your setup bash script.
 6. Install additional packages, e.g. :code:`pip install tensorflow` or
-   :code:`sudo apt-get install vim`.
+   :code:`sudo apt-get install gcc`.
 
 .. tip::
 

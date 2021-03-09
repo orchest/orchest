@@ -32,6 +32,8 @@ KERNEL_NAME = "orchest-kernel-{environment_uuid}"
 PIPELINE_STEP_CONTAINER_NAME = "orchest-step-{run_uuid}-{step_uuid}"
 JUPYTER_SERVER_NAME = "jupyter-server-{project_uuid}-{pipeline_uuid}"
 JUPYTER_EG_SERVER_NAME = "jupyter-EG-{project_uuid}-{pipeline_uuid}"
+JUPYTER_SETUP_SCRIPT = ".orchest/user-configurations/jupyterlab/setup_script.sh"
+JUPYTER_IMAGE_NAME = "orchest-jupyter-server-user-configured"
 
 # Whenever UUIDs take up too much space in an identifier the UUIDs are
 # truncated to this length. This typically only happens when multiple
@@ -51,6 +53,7 @@ WEBSERVER_LOGS = "/orchest/services/orchest-webserver/app/orchest-webserver.log"
 ORCHEST_API_ADDRESS = "orchest-api"
 ORCHEST_SOCKETIO_SERVER_ADDRESS = "http://orchest-webserver"
 ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
+ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE = "/jupyter_builds"
 
 
 ENV_SETUP_SCRIPT_FILE_NAME = "setup_script.sh"
