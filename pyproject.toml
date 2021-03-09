@@ -17,7 +17,7 @@ exclude = '''
 [tool.isort]
 profile = "black"
 filter_files = true
-known_first_party = ["app", "_orchest", "orchest", "runner"]
+known_first_party = ["app", "_orchest", "orchest", "runner", "config"]
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0

@@ -1,7 +1,5 @@
-FROM openresty/openresty:1.15.8.3-2-buster-nosse42
+FROM openresty/openresty:1.19.3.1-3-buster
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
-
-RUN apt-get update && apt-get install python3 -y
 
 RUN mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
 
