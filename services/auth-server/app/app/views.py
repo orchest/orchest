@@ -94,6 +94,7 @@ def register_views(app):
 
             username = request.form.get("username")
             password = request.form.get("password")
+            token = request.form.get("token")
 
             user = User.query.filter(User.username == username).first()
 
@@ -103,7 +104,14 @@ def register_views(app):
 
                 return render_template("login.html", **context)
             else:
-                if check_password_hash(user.password_hash, password):
+                if password is not None:
+                    can_login = check_password_hash(user.password_hash, password)
+                elif token is not None and user.token_hash is not None:
+                    can_login = check_password_hash(user.token_hash, token)
+                else:
+                    can_login = False
+
+                if can_login:
 
                     # remove old token if it exists
                     Token.query.filter(Token.user == user.uuid).delete()
@@ -169,8 +177,12 @@ def register_views(app):
                 user = User.query.filter(User.username == username).first()
 
                 if user is not None:
-                    db.session.delete(user)
-                    db.session.commit()
+                    if user.is_admin:
+                        data_json.update({"error": "Admins cannot be deleted."})
+                        return_status = 409
+                    else:
+                        db.session.delete(user)
+                        db.session.commit()
 
         users = User.query.all()
         for user in users:

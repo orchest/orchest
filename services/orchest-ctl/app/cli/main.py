@@ -8,6 +8,7 @@ import typer
 from app.cli import start as cli_start
 from app.orchest import OrchestApp
 from app.spec import get_container_config, inject_dict
+from app.utils import echo
 
 
 # TODO: utils.py
@@ -232,3 +233,60 @@ def updateserver():
     Update Orchest through the update-server.
     """
     app._updateserver()
+
+
+@typer_app.command(hidden=True)
+def adduser(
+    username: str = typer.Argument(..., help="Name of the user to add."),
+    set_token: bool = typer.Option(
+        False, "--set-token", help="True if the token of the user is to be setup."
+    ),
+    is_admin: bool = typer.Option(
+        False,
+        show_default="--no-is-admin",
+        help=(
+            "If the newly created user should be an admin or not. An admin"
+            " user cannot be deleted."
+        ),
+    ),
+    non_interactive: bool = typer.Option(
+        False, hidden=True, help="Use non interactive mode for password and token."
+    ),
+    non_interactive_password: Optional[str] = typer.Option(
+        None, hidden=True, help="User password in non interactive mode."
+    ),
+    non_interactive_token: Optional[str] = typer.Option(
+        None, hidden=True, help="User token in non interactive mode."
+    ),
+):
+    """
+    Add user to Orchest.
+    """
+    if non_interactive:
+        password = non_interactive_password
+        token = non_interactive_token
+    else:
+        if non_interactive_password:
+            echo("Cannot use non_interactive_password in interactive mode.", err=True)
+            raise typer.Exit(code=1)
+        if non_interactive_token:
+            echo("Cannot use non_interactive_token in interactive mode.", err=True)
+            raise typer.Exit(code=1)
+
+        password = typer.prompt("Password", hide_input=True, confirmation_prompt=True)
+        if set_token:
+            token = typer.prompt("Token", hide_input=True, confirmation_prompt=True)
+        else:
+            token = None
+
+    if password is None:
+        echo("Password must be specified.", err=True)
+        raise typer.Exit(code=1)
+    elif not password:
+        echo("Password cannot be empty.", err=True)
+        raise typer.Exit(code=1)
+    if token is not None and not token:
+        echo("Token cannot be empty.", err=True)
+        raise typer.Exit(code=1)
+
+    app.add_user(username, password, token, is_admin)

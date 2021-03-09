@@ -44,8 +44,14 @@ fi
 mkdir -p "${HOST_CONFIG_DIR}"
 $SUDO_PREFIX chown $USER "${HOST_CONFIG_DIR}"
 
+# The -it flags are needed to be able to safely prompt for secrets
+# (password and tokens) when adding a new user. The -i is actually
+# needed for prompting, while the -t is to make it safe, without the -t
+# getpass would complain.
+
 $SUDO_PREFIX docker run \
     --rm \
+    -it \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${DIR}":/orchest-host \
     -v "${HOST_CONFIG_DIR}":/config \
