@@ -29,7 +29,7 @@ Build an environment
    language. Choose one of the supported languages for your environment.
 5. Choose a base image. This image will be extended through your setup bash script.
 6. Install additional packages, e.g. :code:`pip install tensorflow` or
-   :code:`sudo apt install vim`.
+   :code:`sudo apt-get install gcc`.
 
 .. tip::
 
