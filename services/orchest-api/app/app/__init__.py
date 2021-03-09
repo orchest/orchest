@@ -96,7 +96,10 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
                     InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
                 ).delete(synchronize_session="fetch")
 
-                # delete old JupyterBuilds on start
+                # Delete old JupyterBuilds on start to avoid
+                # accumulation in the DB. Leave the latest such that the
+                # user can see details about the last executed build
+                # after restarting Orchest.
                 jupyter_builds = (
                     JupyterBuild.query.order_by(JupyterBuild.requested_time.desc())
                     .offset(1)
