@@ -49,9 +49,16 @@ $SUDO_PREFIX chown $USER "${HOST_CONFIG_DIR}"
 # needed for prompting, while the -t is to make it safe, without the -t
 # getpass would complain.
 
+OPTIONAL_IT=""
+if [ "$1" == "adduser" ]
+then
+    OPTIONAL_IT="-it"
+fi
+
+
 $SUDO_PREFIX docker run \
     --rm \
-    -it \
+    ${OPTIONAL_IT} \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${DIR}":/orchest-host \
     -v "${HOST_CONFIG_DIR}":/config \
