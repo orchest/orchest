@@ -472,6 +472,12 @@ class EnvironmentEditView extends React.Component {
                         }
                       })()}
                     </div>
+                  </Fragment>
+                );
+                break;
+              case 1:
+                subview = (
+                  <>
                     <h3>Environment set-up script</h3>
                     <div className="form-helper-text push-down">
                       This will execute when you build the environment. Use it
@@ -496,12 +502,6 @@ class EnvironmentEditView extends React.Component {
                         }}
                       />
                     </div>
-                  </Fragment>
-                );
-                break;
-              case 1:
-                subview = (
-                  <>
                     {this.state.environment &&
                       this.state.environment.uuid !== "new" && (
                         <ImageBuildLog
@@ -549,7 +549,7 @@ class EnvironmentEditView extends React.Component {
                   <MDCTabBarReact
                     ref={this.refManager.nrefs.tabBar}
                     selectedIndex={this.state.subviewIndex}
-                    items={["Properties", "Build logs"]}
+                    items={["Properties", "Build"]}
                     icons={["tune", "view_headline"]}
                     onChange={this.onSelectSubview.bind(this)}
                   />
@@ -558,44 +558,37 @@ class EnvironmentEditView extends React.Component {
                 {subview}
 
                 <div className="multi-button">
-                  {(() => {
-                    if (this.state.subviewIndex == 0) {
-                      return (
-                        <MDCButtonReact
-                          classNames={[
-                            "mdc-button--raised",
-                            "themed-secondary",
-                          ]}
-                          onClick={this.onSave.bind(this)}
-                          label={this.state.unsavedChanges ? "Save*" : "Save"}
-                          icon="save"
-                        />
-                      );
-                    }
-                  })()}
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised", "themed-secondary"]}
+                    onClick={this.onSave.bind(this)}
+                    label={this.state.unsavedChanges ? "Save*" : "Save"}
+                    icon="save"
+                  />
 
                   {(() => {
-                    if (this.state.environment.uuid != "new") {
-                      if (!this.state.building) {
-                        return (
-                          <MDCButtonReact
-                            disabled={this.state.buildRequestInProgress}
-                            classNames={["mdc-button--raised"]}
-                            onClick={this.build.bind(this)}
-                            label="Build"
-                            icon="memory"
-                          />
-                        );
-                      } else {
-                        return (
-                          <MDCButtonReact
-                            disabled={this.state.cancelBuildRequestInProgress}
-                            classNames={["mdc-button--raised"]}
-                            onClick={this.cancelBuild.bind(this)}
-                            label="Cancel build"
-                            icon="close"
-                          />
-                        );
+                    if (this.state.subviewIndex == 1) {
+                      if (this.state.environment.uuid != "new") {
+                        if (!this.state.building) {
+                          return (
+                            <MDCButtonReact
+                              disabled={this.state.buildRequestInProgress}
+                              classNames={["mdc-button--raised"]}
+                              onClick={this.build.bind(this)}
+                              label="Build"
+                              icon="memory"
+                            />
+                          );
+                        } else {
+                          return (
+                            <MDCButtonReact
+                              disabled={this.state.cancelBuildRequestInProgress}
+                              classNames={["mdc-button--raised"]}
+                              onClick={this.cancelBuild.bind(this)}
+                              label="Cancel build"
+                              icon="close"
+                            />
+                          );
+                        }
                       }
                     }
                   })()}
