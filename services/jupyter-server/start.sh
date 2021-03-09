@@ -73,8 +73,9 @@ fi
 # configuration from the userdir.
 build_version=$(jq .jupyterlab.version "$build_path/static/package.json")
 
-# Add new extension tarballs to `extensions/`. This way the
-# extensions get automatically included in the build.
+# Add new extension tarballs to `extensions/` that are
+# part of the build_path (e.g. because of a user image build).
+# This way the extensions get automatically included in the build.
 # Note: new extensions should trigger a build automatically.
 cp -rnT "$build_path/extensions" "$userdir_path/extensions"
 

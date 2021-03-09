@@ -510,6 +510,7 @@ jupyter_builds = Model(
     {
         "jupyter_builds": fields.List(
             fields.Nested(jupyter_build),
+            required=True,
             description="Collection of jupyter_builds",
         ),
     },

@@ -12,6 +12,7 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
+from app.errors import SessionInProgressException
 from app.utils import register_schema, update_status_db
 
 api = Namespace("jupyter-builds", description="Build Jupyter server image")
@@ -51,7 +52,7 @@ class JupyterBuildList(Resource):
         except Exception:
             jupyter_build = None
 
-        if jupyter_build:
+        if jupyter_build is not None:
             return_data = {"jupyter_build": jupyter_build}
             return_code = 200
         else:
@@ -142,16 +143,9 @@ class MostRecentJupyterBuild(Resource):
         return {"jupyter_builds": [build.as_dict() for build in jupyter_builds]}
 
 
-class SessionInProgressException(Exception):
-    pass
-
-
 class CreateJupyterBuild(TwoPhaseFunction):
     def _transaction(self):
-
         # Check if there are any active sessions
-
-        # Gate check to see if there is a Jupyter lab build active
         active_session_count = models.InteractiveSession.query.filter(
             or_(
                 models.InteractiveSession.status == "LAUNCHING",

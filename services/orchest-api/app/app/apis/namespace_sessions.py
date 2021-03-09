@@ -11,14 +11,11 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import schema
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
+from app.errors import JupyterBuildInProgressException
 from app.utils import register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)
-
-
-class JupyterBuildInProgressException(Exception):
-    pass
 
 
 @api.route("/")

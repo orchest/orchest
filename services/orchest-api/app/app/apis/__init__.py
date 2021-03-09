@@ -21,9 +21,9 @@ api = Api(
 )
 
 api.add_namespace(ns_env_builds)
-api.add_namespace(ns_jupyter_builds)
 api.add_namespace(ns_env_images)
 api.add_namespace(ns_jobs)
+api.add_namespace(ns_jupyter_builds)
 api.add_namespace(ns_pipelines)
 api.add_namespace(ns_projects)
 api.add_namespace(ns_runs)
