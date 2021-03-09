@@ -36,7 +36,9 @@ Pipeline step
 
 Interactive session
     Some notion of a session that you can boot and shut down which gives you additional functionality
-    when it comes to editing and running your pipelines.
+    when it comes to editing and running your pipelines. The lifetime of a session can be managed
+    inside the pipeline editor, or in the list pipelines. A session is automatically started for you
+    when opening up a pipeline.
 
     * Automatically boots: Jupyter environment and ``memory-server``.
     * Required in order to start an :ref:`interactive pipeline run <interactive pipeline run>`.
@@ -89,4 +91,4 @@ Read-only mode
 
     * A pipeline from read-only mode can be created into a pipeline in edit mode. This can be useful if
       you want to actively play with the environment that produced the results (state is not stored
-      after execution has finished, unless it is an :ref:`interactive run <interactive pipeline run>`). 
+      after execution has finished, unless it is an :ref:`interactive run <interactive pipeline run>`).
