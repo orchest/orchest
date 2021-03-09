@@ -19,11 +19,14 @@ COPY ./orchest-sdk /orchest/orchest-sdk
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
 WORKDIR /orchest/services/base-images/runnable-shared/runner
 
+RUN chown $NB_USER -R /orchest/orchest-sdk
+RUN chown $NB_USER -R /orchest/lib
+
+USER $NB_USER
 RUN pip install -r requirements.txt
 
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 
-USER $NB_USER
 ENV HOME=/home/$NB_USER
 
 ARG ORCHEST_VERSION
