@@ -7,11 +7,11 @@
 # extensions including the Orchest extensions.
 # In the GUI of Orchest users can install server side JupyterLab extensions
 # with a bash script that runs inside an image build.
-# 
+#
 # JupyterLab on the client side has pre-built and source extensions.
-# In addition JupyterLab supports server-side extensions that 
+# In addition JupyterLab supports server-side extensions that
 # are installed as conda or pip Python packages.
-# - pre-built extensions reside in /usr/local/share/jupyter/labextensions as 
+# - pre-built extensions reside in /usr/local/share/jupyter/labextensions as
 #   directories with compiled assets
 # - source extensions reside in /usr/local/share/jupyter/lab/extensions as tarballs
 # - server side extensions are standard Python packages.
@@ -84,10 +84,8 @@ if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     exit 0
 fi
 
-# Force rebuild if the Orchest included extensions have changed
-
-# Force add extension tarballs to `extensions/`. This way the
-# Orchest and image included extensions get automatically included in the build.
+# Force add extension tarballs to `extensions/`. This way the Orchest
+# and image included extensions get automatically included in the build.
 cp -rf $build_path/extensions/orchest-integration* "$userdir_path/extensions"
 cp -rf $build_path/extensions/visual-tags* "$userdir_path/extensions"
 
