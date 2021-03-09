@@ -678,14 +678,8 @@ def _get_container_specs(
 
     jupyer_server_image = "orchest/jupyter-server:latest"
 
-    user_jupyer_server_image = (
-        _config.JUPYTER_IMAGE_NAME.format(
-            orchest_version=os.environ.get("ORCHEST_VERSION")
-        )
-        + ":latest"
-    )
-
     # Check if user tweaked JupyterLab image exists
+    user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
     if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
         jupyer_server_image = user_jupyer_server_image
 

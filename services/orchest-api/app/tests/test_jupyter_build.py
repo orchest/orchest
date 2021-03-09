@@ -113,8 +113,6 @@ def test_jupyter_build(abort, monkeypatch):
     os.remove(
         os.path.join(
             app.core.jupyter_builds.__JUPYTER_BUILD_FULL_LOGS_DIRECTORY,
-            _config.JUPYTER_IMAGE_NAME.format(
-                orchest_version=os.environ.get("ORCHEST_VERSION")
-            ),
+            _config.JUPYTER_IMAGE_NAME,
         )
     )

@@ -151,9 +151,7 @@ def build_jupyter_task(task_uuid):
             build_context = prepare_build_context(task_uuid)
 
             # Use the agreed upon pattern for the docker image name.
-            docker_image_name = _config.JUPYTER_IMAGE_NAME.format(
-                orchest_version=os.environ.get("ORCHEST_VERSION")
-            )
+            docker_image_name = _config.JUPYTER_IMAGE_NAME
 
             if not os.path.exists(__JUPYTER_BUILD_FULL_LOGS_DIRECTORY):
                 os.mkdir(__JUPYTER_BUILD_FULL_LOGS_DIRECTORY)

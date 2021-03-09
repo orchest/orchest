@@ -242,9 +242,7 @@ def trigger_conditional_jupyter_build(app):
     else:
         return
 
-    user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME.format(
-        orchest_version=os.environ.get("ORCHEST_VERSION")
-    )
+    user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
     if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
         return
 
