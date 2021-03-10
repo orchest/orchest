@@ -6,7 +6,7 @@ Quickstart
    walkthrough of Orchest! 💪
 
 This quickstart will follow an example explaining how to build data science pipelines in Orchest and
-touching upon some core principles that will be helpful when you get to building your own pipelines.
+touches upon some core principles that will be helpful when you get to building your own pipelines.
 The example pipeline will download the `sklearn California housing dataset
 <https://scikit-learn.org/stable/datasets/index.html#california-housing-dataset>`_, explore the
 data, train some classifiers, and in the final step collect the results from those classifiers.
@@ -59,11 +59,13 @@ you can interactively edit the Python script we create (the other steps will be 
 
 1. Create a new step by clicking: *+ new step*.
 2. Enter a *Title* and *File path*, respectively ``Get housing data`` and ``get-data.py``.
-3. Make sure to save your progress with *save\**.
 
 .. figure:: ../img/quickstart/step-properties.png
    :width: 300
    :align: center
+
+.. note::
+   The changes you make to the pipeline (through the pipeline editor) are saved automatically.
 
 Now we can start writing our code through the familiar JupyterLab interface, simply press *edit in
 JupyterLab* (making sure you have the step selected) and paste in the following code:

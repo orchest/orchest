@@ -38,10 +38,10 @@ make code changes that are instantly reflected, without having to build the cont
    and restart Orchest (``./orchest restart --mode=dev``) to make sure the newly build container is
    used.
 
-In ``dev`` mode the repository code from the filesystem is mounted (and thus adhering to branches)
-to the appropriate paths in the Docker containers. This allows for active code changes being
-reflected inside the application. In ``dev`` mode the Flask applications are run in development
-mode.
+In ``dev`` mode the repository code from the filesystem is mounted (and thus adhering to git
+branches) to the appropriate paths in the Docker containers. This allows for active code changes
+being reflected inside the application. In ``dev`` mode the Flask applications are run in
+development mode.
 
 
 Before committing
@@ -57,5 +57,5 @@ Run formatters, linters and tests with:
 
 .. code-block:: bash
 
-    pre-commit run -a
+    pre-commit run
     scripts/run_tests.sh

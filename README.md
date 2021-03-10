@@ -34,6 +34,7 @@ Orchest lets you:
 - Integrate commonly used data-sources.
 - Easily define your custom runtime environment.
 - Version your pipelines through Git.
+- Run your pipelines on a cron-like schedule.
 
 Check out the [overview](https://orchest.readthedocs.io/en/stable/getting_started/overview.html) in our docs!
 
@@ -51,11 +52,11 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
-#### Linux, macOS and Windows
-
 > **NOTE:** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
 > the Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
 > visit https://docs.docker.com/docker-for-windows/wsl/.
+
+#### Linux, macOS and Windows
 
 ```bash
 git clone https://github.com/orchest/orchest.git && cd orchest
@@ -98,6 +99,7 @@ Not sure where to start? [Book a free, no-pressure pairing session](mailto:rick@
 ## Contributors
 
 <!-- To get src for img: https://api.github.com/users/username -->
+
 <a href="https://github.com/ricklamers"><img src="https://avatars2.githubusercontent.com/u/1309307?v=4" title="ricklamers" width="50" height="50"></a>
 <a href="https://github.com/yannickperrenet"><img src="https://avatars0.githubusercontent.com/u/26223174?v=4" title="yannickperrenet" width="50" height="50"></a>
 <a href="https://github.com/fruttasecca"><img src="https://avatars3.githubusercontent.com/u/19429509?v=4" title="fruttasecca" width="50" height="50"></a>
@@ -107,4 +109,3 @@ Not sure where to start? [Book a free, no-pressure pairing session](mailto:rick@
 <a href="https://github.com/howie6879"><img src="https://avatars.githubusercontent.com/u/17047388?v=4" title="howie6879" width="50" height="50"></a>
 <a href="https://github.com/FanaHOVA"><img src="https://avatars.githubusercontent.com/u/6490430?v=4" title="FanaHOVA" width="50" height="50"></a>
 <a href="https://github.com/mitchglass97"><img src="https://avatars.githubusercontent.com/u/52224377?v=4" title="mitchglass97" width="50" height="50"></a>
-

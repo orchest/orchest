@@ -17,7 +17,7 @@ Orchest is a tool for creating data science pipelines. Orchest enables you to de
 your models on the cloud without any knowledge of cloud infrastructure.
 
 A pipeline in Orchest can be thought of as a graph consisting of executable files within their own
-isolated environment (powered by containerization). Users get to describe the execution order of these
+isolated environment (powered by containerization). You get to describe the execution order of these
 executable files through our visual pipeline editor. After coding your scripts, Orchest allows you
 to select and run any subset of the pipeline whilst keeping in mind the defined execution order.
 
@@ -25,9 +25,9 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    Orchest is in alpha.
 
 .. note::
-   Check out the `latest docs <https://orchest.readthedocs.io/en/latest/index.html>`_ for the most
-   up-to-date version of the docs that moves along with the master branch from the `GitHub
-   <http://www.github.com/orchest/orchest>`_.
+   The `stable docs <https://orchest.readthedocs.io/en/stable/index.html>`_ follow the latest
+   release, whereas the `latest docs <https://orchest.readthedocs.io/en/latest/index.html>`_ follow
+   the master branch from `GitHub <http://www.github.com/orchest/orchest>`_.
 
 .. toctree::
    :maxdepth: 1

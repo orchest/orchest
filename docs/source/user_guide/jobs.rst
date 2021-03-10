@@ -1,42 +1,58 @@
 .. _jobs:
 
 Jobs
-===========
-
+====
 .. tip::
    For reproducibility Orchest makes a full snapshot by copying the project directory. So make sure
-   to put data in ``/data``, otherwise it will be included in the snapshot.
+   to write data to ``/data`` in your scripts, otherwise the data will be included in the snapshot.
 
-Run a job
------------------
+.. _parametrize pipeline section:
 
-Before we get into jobs, it is good to first cover the notion of parameterizing your pipeline
-and your pipeline steps.
+Parametrizing your pipeline and steps
+-------------------------------------
+Before we get into jobs, it is good to first cover the notion of parameterizing your pipeline and
+your pipeline steps. A job runs a specific pipeline for a set of parameters, these parameters have
+to be defined first before you can set their value for a job. We allow you to define parameters at
+two different levels:
 
-You can access your pipeline parameters through the pipeline settings:
+* Pipeline level. The parameters and corresponding values will be available in every step of the
+  pipeline.
+* Pipeline step level, for parameters that are only accessible by the step they are defined for.
+
+.. note::
+   Unlike :ref:`environment variables <environment variables>`, name collisions between pipeline and
+   step level parameters do not result in overwrite behavior. In other words, you can define
+   pipeline and step level parameters with the same name without one (automatically) overwritting
+   the other, you can access both values.
+
+You can edit your pipeline parameters through the pipeline settings:
 
 1. Open a pipeline via the *Pipelines* option in the left menu pane.
 2. Click on *SETTINGS* in the top right corner.
-3. Towards the top you will find the *Pipeline Parameters* section. 
+3. Towards the top you will find the *Pipeline parameters* section.
 4. Input some JSON like :code:`{"my-param": <param-value>}`.
-5. Make sure to press the black *Save* button towards the top of your screen.
+5. Make sure to press the black *Save* button towards the bottom of your screen.
 
-To access the parameters of the steps of a pipeline:
+To edit the parameters of the steps of a pipeline:
 
 1. Open a pipeline via the *Pipelines* option in the left menu pane.
 2. Click on a pipeline step to open its *Properties*.
-3. Towards the bottom you will find the *Parameters* section. 
+3. Towards the bottom you will find the *Parameters* section.
 4. Input some JSON like :code:`{"my-param": <param-value>}`.
-5. Make sure to press the black *Save* button towards the top of your screen.
 
 You can now access the value of those parameters (and even update them) from within the script of
-the respective pipeline step.  See the :ref:`parameters section <sdk-quickstart-parameters>` to get
+the respective pipeline step. See the :ref:`parameters section <sdk-quickstart-parameters>` to get
 started on using parameters inside your scripts.
 
-Now that we have covered how to parameterize your pipeline we will introduce jobs.
-With jobs you get to try out all your modeling ideas by iterating over different parameter
-values. For now you can think of it as a `grid search
-<https://scikit-learn.org/stable/modules/grid_search.html>`_. To start a job
+.. _running a job:
+
+Running a job
+-------------
+
+Make sure you have first read the previous section on how to parametrize your pipeline.  With jobs
+you get to try out all your modeling ideas by iterating over different parameter values. For now you
+can think of it as a `grid search <https://scikit-learn.org/stable/modules/grid_search.html>`_. To
+start a job:
 
 1. Make sure you have defined some parameters or you will only be able to schedule the pipeline as
    is.
@@ -45,12 +61,12 @@ values. For now you can think of it as a `grid search
 4. Choose an "Job name" and the "Pipeline" you want to run the job for.
 5. Your default set of parameters are pre-loaded. By clicking on the values a JSON editor opens,
    allowing you to add additional values you would like to try out.
-6. If you would like to schedule the job to run at a specific time have a look at
-   *Scheduling*. In case you don't want your grid search to run every combination of your parameter
-   values, you can deselect them through the *Pipeline runs* option.
+6. If you would like to schedule the job to run at a specific time have a look at *Scheduling*. In
+   case you don't want your grid search to run every combination of your parameter values, you can
+   deselect them through the *Pipeline runs* option.
 7. Press *Run job*.
 
-To inspect the result of your job, simply click on the job you just created, choose a
-specific pipeline run (the one you want to inspect) and open *View pipeline*. The pipeline is now
-opened in *Read only* mode giving you the opportunity to check the logs or to open the HTML version
-of you notebooks.
+To inspect the result of your job, simply click on the job you just created, choose a specific
+pipeline run (the one you want to inspect) and open *View pipeline*. The pipeline is now opened in
+:ref:`read-only mode <read-only mode>` giving you the opportunity to check the logs or to open the
+HTML version of you notebooks.
