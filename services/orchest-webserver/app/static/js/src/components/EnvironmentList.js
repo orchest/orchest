@@ -10,6 +10,7 @@ import EnvironmentEditView from "../views/EnvironmentEditView";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import MDCDataTableReact from "../lib/mdc-components/MDCDataTableReact";
+import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 
 class EnvironmentList extends React.Component {
   constructor(props) {
@@ -235,9 +236,15 @@ class EnvironmentList extends React.Component {
         <span>{LANGUAGE_MAP[environment.language]}</span>,
         <span>
           {environment.gpu_support ? (
-            <i className="material-icons lens-button">lens</i>
+            <>
+              <span>Enabled </span>
+              <i className="material-icons lens-button">lens</i>
+            </>
           ) : (
-            <i className="material-icons disabled lens-button">lens</i>
+            <>
+              <span>Disabled </span>
+              <i className="material-icons disabled lens-button">lens</i>
+            </>
           )}
         </span>,
         <span>{environmentBuild ? environmentBuild.status : ""}</span>,
@@ -255,12 +262,15 @@ class EnvironmentList extends React.Component {
           if (this.state.environments) {
             return (
               <Fragment>
-                <div className={"environment-actions push-down"}>
-                  <MDCIconButtonToggleReact
+                <div className="push-down">
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised", "themed-secondary"]}
                     icon="add"
-                    tooltipText="Add environment"
+                    label="Create environment"
                     onClick={this.onCreateClick.bind(this)}
                   />
+                </div>
+                <div className={"environment-actions push-down"}>
                   <MDCIconButtonToggleReact
                     icon="delete"
                     tooltipText="Delete environment"

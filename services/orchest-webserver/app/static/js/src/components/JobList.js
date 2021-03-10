@@ -314,6 +314,12 @@ class JobList extends React.Component {
                         actions={
                           <Fragment>
                             <MDCButtonReact
+                              icon="close"
+                              classNames={["push-right"]}
+                              label="Cancel"
+                              onClick={this.onCancelModal.bind(this)}
+                            />
+                            <MDCButtonReact
                               disabled={this.state.createModelLoading}
                               icon="add"
                               classNames={[
@@ -324,25 +330,22 @@ class JobList extends React.Component {
                               submitButton
                               onClick={this.onSubmitModal.bind(this)}
                             />
-                            <MDCButtonReact
-                              icon="close"
-                              classNames={["push-left"]}
-                              label="Cancel"
-                              onClick={this.onCancelModal.bind(this)}
-                            />
                           </Fragment>
                         }
                       />
                     );
                   }
                 })()}
-
-                <div className={"job-actions"}>
-                  <MDCIconButtonToggleReact
+                <div className="push-down">
+                  <MDCButtonReact
                     icon="add"
-                    tooltipText="Add job"
+                    label="Create job"
+                    classNames={["mdc-button--raised", "themed-secondary"]}
                     onClick={this.onCreateClick.bind(this)}
                   />
+                </div>
+
+                <div className={"job-actions"}>
                   <MDCIconButtonToggleReact
                     icon="delete"
                     tooltipText="Delete job"

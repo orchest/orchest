@@ -1,1 +1,21 @@
-{% extends "base.html" %} {% block content %} {% endblock %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orchest</title>
+    <link
+      rel="stylesheet"
+      href="public/css/dist/main.css?v={{ css_bundle_hash }}"
+    />
+    <link rel="icon" href="public/image/favicon.png" type="image/x-icon" />
+  </head>
+  <body tabindex="0">
+    <script>
+      window.ORCHEST_CONFIG = {{config_json|tojson}};
+      window.ORCHEST_USER_CONFIG = {{user_config|tojson}};
+    </script>
+    <div id="react-root"></div>
+    <script src="public/js/dist/main.bundle.js?v={{ javascript_bundle_hash }}"></script>
+  </body>
+</html>

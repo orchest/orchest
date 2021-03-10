@@ -5,10 +5,7 @@ import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleReact";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
-import JobsView from "./JobsView";
-import PipelinesView from "./PipelinesView";
 import ProjectSettingsView from "./ProjectSettingsView";
-import EnvironmentsView from "./EnvironmentsView";
 
 import {
   makeRequest,
@@ -61,34 +58,15 @@ class ProjectsView extends React.Component {
     this.fetchList();
   }
 
-  onClickProjectEntity(view, project, e) {
-    e.preventDefault();
-    orchest.browserConfig.set("selected_project_uuid", project.uuid);
-    orchest.loadView(view);
-  }
-
   processListData(projects) {
     let listData = [];
 
     for (let project of projects) {
       listData.push([
         <span>{project.path}</span>,
-        <MDCButtonReact
-          onClick={this.onClickProjectEntity.bind(this, PipelinesView, project)}
-          label={project.pipeline_count}
-        />,
-        <MDCButtonReact
-          onClick={this.onClickProjectEntity.bind(this, JobsView, project)}
-          label={project.job_count}
-        />,
-        <MDCButtonReact
-          onClick={this.onClickProjectEntity.bind(
-            this,
-            EnvironmentsView,
-            project
-          )}
-          label={project.environment_count}
-        />,
+        <span>{project.pipeline_count}</span>,
+        <span>{project.job_count}</span>,
+        <span>{project.environment_count}</span>,
       ]);
     }
 
@@ -109,6 +87,9 @@ class ProjectsView extends React.Component {
         projects: projects,
         loading: false,
       });
+
+      orchest.invalidateProjects();
+
       if (this.refManager.refs.projectListView) {
         this.refManager.refs.projectListView.setSelectedRowIds([]);
       }
@@ -124,11 +105,9 @@ class ProjectsView extends React.Component {
   }
 
   onClickListItem(row, idx, e) {
-    if ($(e.target).parents(".mdc-button").length === 0) {
-      let project = this.state.projects[idx];
-      orchest.browserConfig.set("selected_project_uuid", project.uuid);
-      this.openSettings(project);
-    }
+    let project = this.state.projects[idx];
+    orchest.setProject(project.uuid);
+    this.openSettings(project);
   }
 
   onDeleteClick() {
@@ -186,8 +165,6 @@ class ProjectsView extends React.Component {
     this.setState({
       createModal: true,
     });
-
-    this.refManager.refs.createProjectNameTextField.focus();
   }
 
   onSubmitModal() {
@@ -394,6 +371,12 @@ class ProjectsView extends React.Component {
                 actions={
                   <Fragment>
                     <MDCButtonReact
+                      icon="close"
+                      label="Close"
+                      classNames={["push-right"]}
+                      onClick={this.onCancelImport.bind(this)}
+                    />
+                    <MDCButtonReact
                       icon="input"
                       // So that the button is disabled when in a states
                       // that requires so (currently ["PENDING"]).
@@ -406,12 +389,6 @@ class ProjectsView extends React.Component {
                       label="Import"
                       submitButton
                       onClick={this.onSubmitImport.bind(this)}
-                    />
-                    <MDCButtonReact
-                      icon="close"
-                      label="Close"
-                      classNames={["push-left"]}
-                      onClick={this.onCancelImport.bind(this)}
                     />
                   </Fragment>
                 }
@@ -437,17 +414,17 @@ class ProjectsView extends React.Component {
                 actions={
                   <Fragment>
                     <MDCButtonReact
+                      icon="close"
+                      label="Cancel"
+                      classNames={["push-right"]}
+                      onClick={this.onCancelModal.bind(this)}
+                    />
+                    <MDCButtonReact
                       icon="format_list_bulleted"
                       classNames={["mdc-button--raised", "themed-secondary"]}
                       label="Create project"
                       submitButton
                       onClick={this.onSubmitModal.bind(this)}
-                    />
-                    <MDCButtonReact
-                      icon="close"
-                      label="Cancel"
-                      classNames={["push-left"]}
-                      onClick={this.onCancelModal.bind(this)}
                     />
                   </Fragment>
                 }

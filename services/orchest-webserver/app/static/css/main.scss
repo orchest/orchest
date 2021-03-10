@@ -78,18 +78,137 @@ aside.mdc-drawer {
 }
 
 h1,
-h2,
 h3 {
   font-weight: 400;
+}
+
+h2 {
+  font-weight: 500;
 }
 
 .mdc-checkbox {
   --mdc-theme-primary: #{theme.$secondary};
 }
 
+.mdc-drawer--dismissible {
+  position: relative;
+}
+
+#react-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .create-job-modal {
   .mdc-linear-progress {
     margin: $generalPadding 0;
+  }
+}
+
+header {
+  height: 80px;
+  padding: $generalPadding/2;
+  border-bottom: 1px solid $borderColor;
+  position: relative;
+
+  .header-left,
+  .global-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .global-actions {
+    button {
+      margin-left: $generalPadding/2;
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+  }
+
+  .header-left {
+    button.mdc-icon-button {
+      font-size: 32px;
+      padding: 8px;
+    }
+  }
+
+  img.logo {
+    height: 80%;
+    width: auto;
+    padding-right: $generalPadding;
+    padding-left: 10px;
+    display: inline-block;
+  }
+
+  display: flex;
+  justify-content: space-between;
+
+  .pipeline-header-component {
+    position: absolute;
+    left: 50%;
+    height: 100%;
+    top: 0;
+    transform: translateX(-50%);
+
+    > div {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .pipelineStatusIndicator {
+      float: left;
+      margin-right: 10px;
+      height: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      margin-top: 1px;
+
+      .mdc-circular-progress {
+        width: 24px;
+        height: 24px;
+      }
+
+      .mdc-circular-progress__indeterminate-circle-graphic {
+        stroke: white;
+      }
+    }
+
+    button {
+      position: absolute;
+      right: $generalPadding;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .pipeline-name {
+      font-size: 21px;
+    }
+  }
+}
+
+.app-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+
+  > .mdc-drawer {
+    flex: initial;
+    --mdc-drawer-width: 325px;
+    padding: 20px;
+    height: 100%;
+    text-align: center;
+  }
+
+  > main {
+    flex: 1;
   }
 }
 
@@ -116,6 +235,27 @@ a.button {
   padding: $generalPadding;
   overflow-y: auto;
   height: 100%;
+
+  p {
+    line-height: 1.5;
+  }
+
+  &.global-settings {
+    h3 {
+      margin-top: $generalPadding * 2;
+      margin-bottom: $generalPadding/2;
+    }
+    .columns {
+      .column {
+        &:nth-child(2n) {
+          padding-left: 2.5%;
+        }
+        &:nth-child(2n + 1) {
+          padding-right: 2.5%;
+        }
+      }
+    }
+  }
 
   &.jupyter {
     .hiddenSession {
@@ -279,6 +419,15 @@ p > i.material-icons.float-left {
   }
 }
 
+.mdc-tab-bar-holder {
+  display: flex;
+  border-bottom: 1px solid $borderColor;
+
+  .mdc-tab-bar {
+    width: auto;
+  }
+}
+
 .form-helper-text {
   font-size: $codeSize;
   margin-top: 10px;
@@ -294,14 +443,16 @@ p > i.material-icons.float-left {
     span {
       i.material-icons {
         float: left;
+        margin-right: 8px;
+        margin-top: 3px;
 
         &.lens-button {
           color: #7dd467;
           font-size: 15px;
-        }
 
-        &.disabled {
-          color: #cd6756;
+          &.disabled {
+            color: #999;
+          }
         }
       }
     }
@@ -347,14 +498,7 @@ p > i.material-icons.float-left {
   }
 }
 
-aside.mdc-drawer {
-  --mdc-drawer-width: 325px;
-  padding: 20px;
-  height: 100%;
-  text-align: center;
-}
-
-.seperated {
+.separated {
   > :last-child {
     margin-right: 0;
   }
@@ -379,6 +523,11 @@ aside.mdc-drawer {
 .persistent-view {
   flex: 1;
   display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 
   &.hidden {
     display: none;
@@ -470,54 +619,6 @@ iframe.fullsize {
 
 .hidden {
   display: none;
-}
-
-.header-bar-interactive {
-  position: absolute;
-  width: 100%;
-  left: 0;
-  top: 0;
-  height: 100%;
-
-  > div {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-    position: relative;
-  }
-
-  .pipelineStatusIndicator {
-    float: left;
-    margin-right: 10px;
-    height: 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    margin-top: 1px;
-
-    .mdc-circular-progress {
-      width: 24px;
-      height: 24px;
-    }
-
-    .mdc-circular-progress__indeterminate-circle-graphic {
-      stroke: white;
-    }
-  }
-
-  button {
-    position: absolute;
-    right: $generalPadding;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .pipeline-name {
-    font-size: 21px;
-  }
 }
 
 button.text-button {
@@ -765,7 +866,7 @@ span.floating-button {
   }
 
   .top-labels {
-    padding: $generalPadding 0;
+    padding-bottom: $generalPadding;
     font-size: 14px;
 
     h3 {
@@ -873,10 +974,20 @@ span.floating-button {
   }
 }
 
+.pipeline-settings {
+  .columns {
+    .column:nth-child(1) {
+      width: 30%;
+    }
+    margin-bottom: $generalPadding;
+  }
+}
+
 .columns {
   .column {
     width: 50%;
     float: left;
+    min-height: 1px;
   }
   &.three {
     .column {
@@ -1487,6 +1598,7 @@ table {
 
 .main-content {
   flex: 1;
+  position: relative;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -1537,7 +1649,11 @@ table {
     .column {
       width: 100%;
       padding: 0;
-      padding-bottom: $generalPadding;
+      margin-bottom: $generalPadding;
     }
+    margin-bottom: 0;
+  }
+  .pipeline-settings .columns {
+    margin-bottom: 0;
   }
 }

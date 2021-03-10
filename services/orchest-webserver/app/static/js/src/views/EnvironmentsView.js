@@ -6,12 +6,13 @@ class EnvironmentsView extends React.Component {
   render() {
     let childViewProperties = {};
 
-    if (this.props.queryArgs.project_uuid) {
-      childViewProperties.project_uuid = this.props.queryArgs.project_uuid;
+    if (this.props.project_uuid) {
+      childViewProperties.project_uuid = this.props.project_uuid;
     }
 
     return (
       <ProjectBasedView
+        project_uuid={this.props.project_uuid}
         childView={EnvironmentList}
         childViewProperties={childViewProperties}
       />

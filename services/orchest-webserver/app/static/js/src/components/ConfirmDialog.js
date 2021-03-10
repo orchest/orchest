@@ -26,24 +26,33 @@ class ConfirmDialog extends React.Component {
     }
   }
 
+  onOpened() {
+    if (this.refManager.refs.okButton) {
+      this.refManager.refs.okButton.focus();
+    }
+  }
+
   render() {
     return (
       <MDCDialogReact
         ref={this.refManager.nrefs.dialog}
         title={this.props.title}
         onClose={this.props.onClose}
+        onOpened={this.onOpened.bind(this)}
         content={<p>{this.props.content}</p>}
         actions={
           <Fragment>
             <MDCButtonReact
-              submitButton
-              label="Ok"
-              onClick={this.confirm.bind(this)}
+              label="Cancel"
+              classNames={["push-right"]}
+              onClick={this.cancel.bind(this)}
             />
             <MDCButtonReact
-              label="Cancel"
-              classNames={["push-left"]}
-              onClick={this.cancel.bind(this)}
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              submitButton
+              ref={this.refManager.nrefs.okButton}
+              label="Ok"
+              onClick={this.confirm.bind(this)}
             />
           </Fragment>
         }

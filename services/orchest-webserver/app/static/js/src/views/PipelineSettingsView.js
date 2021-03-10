@@ -368,125 +368,150 @@ class PipelineSettingsView extends React.Component {
       switch (this.state.selectedTabIndex) {
         case 0:
           tabView = (
-            <div className="push-up">
+            <div className="push-up pipeline-settings">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                 }}
               >
-                <div>
-                  <MDCTextFieldReact
-                    ref={this.refManager.nrefs.pipelineNameTextField}
-                    value={this.state.pipelineJson.name}
-                    onChange={this.onChangeName.bind(this)}
-                    label="Pipeline name"
-                    disabled={this.props.queryArgs.read_only === "true"}
-                    classNames={["push-down"]}
-                  />
-                  {this.state.pipeline_path && (
-                    <p className="push-down">
-                      Pipeline path:{" "}
-                      <span className="code">{this.state.pipeline_path}</span>
-                    </p>
-                  )}
-
-                  <h3 className="push-down">Pipeline parameters</h3>
-
-                  <CodeMirror
-                    value={this.state.inputParameters}
-                    options={{
-                      mode: "application/json",
-                      theme: "jupyter",
-                      lineNumbers: true,
-                      readOnly: this.props.queryArgs.read_only === "true",
-                    }}
-                    onBeforeChange={this.onChangePipelineParameters.bind(this)}
-                  />
-                  {(() => {
-                    try {
-                      JSON.parse(this.state.inputParameters);
-                    } catch {
-                      return (
-                        <div className="warning push-up push-down">
-                          <i className="material-icons">warning</i> Your input
-                          is not valid JSON.
-                        </div>
-                      );
-                    }
-                  })()}
-
-                  <h3 className="push-up">Data passing</h3>
-                  {this.props.queryArgs.read_only !== "true" && (
-                    <p className="push-up">
-                      <i>
-                        For these changes to take effect you have to restart the
-                        memory-server (see button below).
-                      </i>
-                    </p>
-                  )}
-
-                  <MDCCheckboxReact
-                    value={this.state.pipelineJson.settings.auto_eviction}
-                    onChange={this.onChangeEviction.bind(this)}
-                    label="Automatic memory eviction"
-                    disabled={this.props.queryArgs.read_only === "true"}
-                    classNames={["push-down", "push-up"]}
-                  />
-
-                  {this.props.queryArgs.read_only !== "true" && (
-                    <p className="push-down">
-                      Change the size of the memory server for data passing. For
-                      units use KB, MB, or GB, e.g.{" "}
-                      <span className="code">1GB</span>.{" "}
-                    </p>
-                  )}
-
-                  <div>
-                    <MDCTextFieldReact
-                      ref={
-                        this.refManager.nrefs
-                          .pipelineSettingDataPassingMemorySizeTextField
-                      }
-                      value={
-                        this.state.pipelineJson.settings
-                          .data_passing_memory_size
-                      }
-                      onChange={this.onChangeDataPassingMemorySize.bind(this)}
-                      label="Data passing memory size"
-                      disabled={this.props.queryArgs.read_only === "true"}
-                    />
+                <div className="columns">
+                  <div className="column">
+                    <h3>Pipeline name</h3>
                   </div>
+                  <div className="column">
+                    <MDCTextFieldReact
+                      ref={this.refManager.nrefs.pipelineNameTextField}
+                      value={this.state.pipelineJson.name}
+                      onChange={this.onChangeName.bind(this)}
+                      label="Pipeline name"
+                      disabled={this.props.queryArgs.read_only === "true"}
+                      classNames={["push-down"]}
+                    />
+                    {this.state.pipeline_path && (
+                      <p className="push-down">
+                        Pipeline path:{" "}
+                        <span className="code">{this.state.pipeline_path}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="clear"></div>
+                </div>
+
+                <div className="columns">
+                  <div className="column">
+                    <h3>Pipeline parameters</h3>
+                  </div>
+                  <div className="column">
+                    <CodeMirror
+                      value={this.state.inputParameters}
+                      options={{
+                        mode: "application/json",
+                        theme: "jupyter",
+                        lineNumbers: true,
+                        readOnly: this.props.queryArgs.read_only === "true",
+                      }}
+                      onBeforeChange={this.onChangePipelineParameters.bind(
+                        this
+                      )}
+                    />
+                    {(() => {
+                      try {
+                        JSON.parse(this.state.inputParameters);
+                      } catch {
+                        return (
+                          <div className="warning push-up push-down">
+                            <i className="material-icons">warning</i> Your input
+                            is not valid JSON.
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                  <div className="clear"></div>
+                </div>
+
+                <div className="columns">
+                  <div className="column">
+                    <h3>Data passing</h3>
+                  </div>
+                  <div className="column">
+                    {this.props.queryArgs.read_only !== "true" && (
+                      <p className="push-up">
+                        <i>
+                          For these changes to take effect you have to restart
+                          the memory-server (see button below).
+                        </i>
+                      </p>
+                    )}
+
+                    <MDCCheckboxReact
+                      value={this.state.pipelineJson.settings.auto_eviction}
+                      onChange={this.onChangeEviction.bind(this)}
+                      label="Automatic memory eviction"
+                      disabled={this.props.queryArgs.read_only === "true"}
+                      classNames={["push-down", "push-up"]}
+                    />
+
+                    {this.props.queryArgs.read_only !== "true" && (
+                      <p className="push-down">
+                        Change the size of the memory server for data passing.
+                        For units use KB, MB, or GB, e.g.{" "}
+                        <span className="code">1GB</span>.{" "}
+                      </p>
+                    )}
+
+                    <div>
+                      <MDCTextFieldReact
+                        ref={
+                          this.refManager.nrefs
+                            .pipelineSettingDataPassingMemorySizeTextField
+                        }
+                        value={
+                          this.state.pipelineJson.settings
+                            .data_passing_memory_size
+                        }
+                        onChange={this.onChangeDataPassingMemorySize.bind(this)}
+                        label="Data passing memory size"
+                        disabled={this.props.queryArgs.read_only === "true"}
+                      />
+                    </div>
+                  </div>
+                  <div className="clear"></div>
                 </div>
               </form>
 
               {this.props.queryArgs.read_only !== "true" && (
-                <>
-                  <h3 className="push-up push-down">Actions</h3>
-
-                  <p className="push-down">
-                    Restarting the memory-server also clears the memory to allow
-                    additional data to be passed between pipeline steps.
-                  </p>
-                  <div className="push-down">
-                    {(() => {
-                      if (this.state.restartingMemoryServer) {
-                        return (
-                          <p className="push-p push-down">
-                            Restarting in progress...
-                          </p>
-                        );
-                      }
-                    })()}
-
-                    <MDCButtonReact
-                      disabled={this.state.restartingMemoryServer}
-                      label="Restart memory-server"
-                      icon="memory"
-                      classNames={["mdc-button--raised push-down"]}
-                      onClick={this.restartMemoryServer.bind(this)}
-                    />
+                <div className="columns">
+                  <div className="column">
+                    <h3>Actions</h3>
                   </div>
-                </>
+                  <div className="column">
+                    <p className="push-down">
+                      Restarting the memory-server also clears the memory to
+                      allow additional data to be passed between pipeline steps.
+                    </p>
+                    <div className="push-down">
+                      {(() => {
+                        if (this.state.restartingMemoryServer) {
+                          return (
+                            <p className="push-p push-down">
+                              Restarting in progress...
+                            </p>
+                          );
+                        }
+                      })()}
+
+                      <MDCButtonReact
+                        disabled={this.state.restartingMemoryServer}
+                        label="Restart memory-server"
+                        icon="memory"
+                        classNames={["mdc-button--raised push-down"]}
+                        onClick={this.restartMemoryServer.bind(this)}
+                      />
+                    </div>
+                  </div>
+                  <div className="clear"></div>
+                </div>
               )}
             </div>
           );

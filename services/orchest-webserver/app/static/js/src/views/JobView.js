@@ -20,6 +20,7 @@ import {
 } from "../utils/webserver-utils";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import EnvVarList from "../components/EnvVarList";
+import JobsView from "./JobsView";
 
 class JobView extends React.Component {
   constructor(props) {
@@ -225,6 +226,11 @@ class JobView extends React.Component {
     });
   }
 
+  returnToJobs() {
+    orchest.setProject(this.state.job.project_uuid);
+    orchest.loadView(JobsView);
+  }
+
   detailRows(pipelineRuns) {
     let detailElements = [];
 
@@ -319,6 +325,14 @@ class JobView extends React.Component {
 
       rootView = (
         <div className="view-page job-view">
+          <div className="push-down">
+            <MDCButtonReact
+              label="Back to jobs"
+              icon="arrow_back"
+              onClick={this.returnToJobs.bind(this)}
+            />
+          </div>
+
           <div className="columns top-labels">
             <div>
               <div className="column">
@@ -388,7 +402,7 @@ class JobView extends React.Component {
 
           <div className="tab-view">{tabView}</div>
 
-          <div className="seperated">
+          <div className="separated">
             <MDCButtonReact
               disabled={this.state.refreshing}
               label="Refresh"

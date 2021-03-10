@@ -4,7 +4,12 @@ import ProjectBasedView from "../components/ProjectBasedView";
 
 class PipelinesView extends React.Component {
   render() {
-    return <ProjectBasedView childView={PipelineList} />;
+    return (
+      <ProjectBasedView
+        project_uuid={this.props.project_uuid}
+        childView={PipelineList}
+      />
+    );
   }
 }
 

@@ -38,9 +38,11 @@ class JupyterLabView extends React.Component {
   checkEnvironmentGate() {
     checkGate(this.props.queryArgs.project_uuid)
       .then(() => {
+        this.state.environmentCheckCompleted = true;
         this.setState({
-          environmentCheckCompleted: true,
+          environmentCheckCompleted: this.state.environmentCheckCompleted,
         });
+        this.conditionalRenderingOfJupyterLab();
         this.fetchPipeline();
       })
       .catch((result) => {
@@ -66,9 +68,7 @@ class JupyterLabView extends React.Component {
   }
 
   componentWillUnmount() {
-    $(orchest.reactRoot).removeClass("hidden");
     orchest.jupyter.hide();
-
     clearInterval(this.verifyKernelsRetryInterval);
   }
 
@@ -165,8 +165,17 @@ class JupyterLabView extends React.Component {
     if (session_details) {
       this.updateJupyterInstance();
     }
-
     orchest.headerBarComponent.updateSessionState(running);
+
+    this.conditionalRenderingOfJupyterLab();
+  }
+
+  conditionalRenderingOfJupyterLab() {
+    if (this.state.backend.running && this.state.environmentCheckCompleted) {
+      orchest.jupyter.show();
+    } else {
+      orchest.jupyter.hide();
+    }
   }
 
   updateJupyterInstance() {
@@ -184,14 +193,6 @@ class JupyterLabView extends React.Component {
   }
 
   render() {
-    if (this.state.backend.running && this.state.environmentCheckCompleted) {
-      $(orchest.reactRoot).addClass("hidden");
-      orchest.jupyter.show();
-    } else {
-      orchest.jupyter.hide();
-      $(orchest.reactRoot).removeClass("hidden");
-    }
-
     return (
       <div className="view-page jupyter no-padding">
         <div className="hiddenSession">

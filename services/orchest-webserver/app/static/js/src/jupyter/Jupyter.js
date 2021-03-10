@@ -2,7 +2,7 @@ import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
   constructor(jupyterHolderJEl) {
-    this.jupyterHolder = jupyterHolderJEl;
+    this.jupyterHolder = $(jupyterHolderJEl);
     this.iframe = undefined;
     this.baseAddress = "";
     this.reloadOnShow = false;

@@ -312,17 +312,17 @@ class ProjectFilePicker extends React.Component {
                 actions={
                   <Fragment>
                     <MDCButtonReact
+                      icon="close"
+                      label="Cancel"
+                      classNames={["push-right"]}
+                      onClick={this.onCancelModal.bind(this)}
+                    />
+                    <MDCButtonReact
                       icon="add"
                       classNames={["mdc-button--raised", "themed-secondary"]}
                       label="Create file"
                       submitButton
                       onClick={this.onSubmitModal.bind(this)}
-                    />
-                    <MDCButtonReact
-                      icon="close"
-                      label="Cancel"
-                      classNames={["push-left"]}
-                      onClick={this.onCancelModal.bind(this)}
                     />
                   </Fragment>
                 }

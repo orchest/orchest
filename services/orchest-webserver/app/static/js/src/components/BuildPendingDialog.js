@@ -117,11 +117,8 @@ class BuildPendingDialog extends React.Component {
   }
 
   onViewBuildStatus() {
-    orchest.loadView(EnvironmentsView, {
-      queryArgs: {
-        project_uuid: this.props.project_uuid,
-      },
-    });
+    orchest.setProject(this.props.project_uuid);
+    orchest.loadView(EnvironmentsView);
     this.close();
   }
 
@@ -146,23 +143,31 @@ class BuildPendingDialog extends React.Component {
         }
         actions={
           <>
-            {this.state.allowBuild && (
-              <MDCButtonReact
-                submitButton
-                label="Build"
-                classNames={["push-right"]}
-                onClick={this.onBuild.bind(this)}
-              />
-            )}
+            <MDCButtonReact label="Cancel" onClick={this.onCancel.bind(this)} />
             {this.state.showBuildStatus && (
               <MDCButtonReact
                 submitButton
                 label="View build status"
-                classNames={["push-right"]}
+                classNames={
+                  !this.state.allowBuild
+                    ? ["push-left", "mdc-button--raised", "themed-secondary"]
+                    : ["push-left"]
+                }
                 onClick={this.onViewBuildStatus.bind(this)}
               />
             )}
-            <MDCButtonReact label="Cancel" onClick={this.onCancel.bind(this)} />
+            {this.state.allowBuild && (
+              <MDCButtonReact
+                submitButton
+                classNames={[
+                  "mdc-button--raised",
+                  "themed-secondary",
+                  "push-left",
+                ]}
+                label="Build"
+                onClick={this.onBuild.bind(this)}
+              />
+            )}
           </>
         }
       />

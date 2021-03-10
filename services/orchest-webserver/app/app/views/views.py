@@ -156,7 +156,7 @@ def register_views(app, db):
             "index.html",
             javascript_bundle_hash=get_hash(js_bundle_path),
             css_bundle_hash=get_hash(css_bundle_path),
-            user_config=get_user_conf(),
+            user_config=flask_json.htmlsafe_dumps(get_user_conf()),
             config_json=flask_json.htmlsafe_dumps(
                 {
                     **{key: app.config[key] for key in front_end_config},
