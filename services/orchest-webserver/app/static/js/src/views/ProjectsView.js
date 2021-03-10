@@ -441,17 +441,25 @@ class ProjectsView extends React.Component {
           } else {
             return (
               <Fragment>
-                <div className={"pipeline-actions push-down"}>
-                  <MDCIconButtonToggleReact
+                <div className="push-down">
+                  <MDCButtonReact
+                    classNames={[
+                      "mdc-button--raised",
+                      "themed-secondary",
+                      "push-right",
+                    ]}
                     icon="add"
-                    tooltipText="Add project"
+                    label="Add project"
                     onClick={this.onCreateClick.bind(this)}
                   />
-                  <MDCIconButtonToggleReact
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
                     icon="input"
-                    tooltipText="Import project"
+                    label="Import project"
                     onClick={this.onImport.bind(this)}
                   />
+                </div>
+                <div className={"pipeline-actions push-down"}>
                   <MDCIconButtonToggleReact
                     icon="delete"
                     tooltipText="Delete project"
