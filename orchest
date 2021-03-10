@@ -30,7 +30,7 @@ function update_orchest_ctl {
 # orchest-ctl should be used to update the application.
 [[ "$1" == "update" ]] && [[ "$@" != *"--help"* ]] && update_orchest_ctl
 
-HOST_CONFIG_DIR=$HOME/.config/orchest
+HOST_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/orchest"
 HOST_USER_DIR=$DIR/userdir
 
 # We detect the host OS to properly set the GID owner
