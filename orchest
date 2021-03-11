@@ -50,7 +50,7 @@ $SUDO_PREFIX chown $USER "${HOST_CONFIG_DIR}"
 # getpass would complain.
 
 OPTIONAL_IT=""
-if [ "$1" == "adduser" ]
+if [ "$1" == "adduser" ] && [ -t 1 ]
 then
     OPTIONAL_IT="-it"
 fi
