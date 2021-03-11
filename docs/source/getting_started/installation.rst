@@ -18,8 +18,7 @@ If you do not yet have Docker installed, please visit https://docs.docker.com/ge
 
 Linux, macOS and Windows
 ------------------------
-Simply follow the steps below to install Orchest. For Windows, please read the note at the bottom
-first.
+Simply follow the steps below to install Orchest.
 
 .. code-block:: bash
 
@@ -31,6 +30,8 @@ first.
 
    # Start Orchest.
    ./orchest start
+
+Now that you have installed Orchest, get started with the :ref:`quickstart <quickstart>` tutorial.
 
 .. note::
    By default, running ``./orchest install``, installs only the language dependencies for Python.
