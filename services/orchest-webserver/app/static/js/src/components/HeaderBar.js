@@ -135,7 +135,6 @@ class HeaderBar extends React.Component {
 
           {this.state.pipelineName && this.state.viewShowing == "pipeline" && (
             <MDCButtonReact
-              disabled={!this.state.sessionActive}
               classNames={["mdc-button--outlined"]}
               onClick={this.showJupyter.bind(this)}
               icon="science"

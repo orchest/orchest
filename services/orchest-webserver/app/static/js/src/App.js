@@ -276,7 +276,12 @@ class App extends React.Component {
   }
 
   setProject(projectUUID) {
-    this.browserConfig.set("selected_project_uuid", projectUUID);
+    if (projectUUID === undefined) {
+      this.browserConfig.remove("selected_project_uuid");
+    } else {
+      this.browserConfig.set("selected_project_uuid", projectUUID);
+    }
+
     this.setState({
       selectedProject: projectUUID,
     });

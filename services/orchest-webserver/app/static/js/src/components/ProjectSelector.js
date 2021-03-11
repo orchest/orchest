@@ -54,10 +54,10 @@ class ProjectSelector extends React.Component {
 
     if (!foundProjectUUID) {
       // selected project doesn't exist anymore
-      orchest.browserConfig.remove("selected_project_uuid");
-    } else {
-      this.onChangeProject(project_uuid);
+      project_uuid = undefined;
     }
+
+    this.onChangeProject(project_uuid);
   }
 
   fetchProjects() {
