@@ -16,6 +16,7 @@ class HeaderBar extends React.Component {
       pipeline_uuid: undefined,
       project_uuid: undefined,
       sessionActive: false,
+      readOnlyPipeline: false,
       viewShowing: "pipeline",
       pipelineSaveStatus: "saved",
     };
@@ -44,6 +45,12 @@ class HeaderBar extends React.Component {
   updateCurrentView(view) {
     this.setState({
       viewShowing: view,
+    });
+  }
+
+  updateReadOnlyState(readOnly) {
+    this.setState({
+      readOnlyPipeline: readOnly,
     });
   }
 
@@ -133,15 +140,17 @@ class HeaderBar extends React.Component {
             />
           )}
 
-          {this.state.pipelineName && this.state.viewShowing == "pipeline" && (
-            <MDCButtonReact
-              disabled={!this.state.sessionActive}
-              classNames={["mdc-button--outlined"]}
-              onClick={this.showJupyter.bind(this)}
-              icon="science"
-              label="Switch to JupyterLab"
-            />
-          )}
+          {this.state.pipelineName &&
+            !this.state.readOnlyPipeline &&
+            this.state.viewShowing == "pipeline" && (
+              <MDCButtonReact
+                disabled={!this.state.sessionActive}
+                classNames={["mdc-button--outlined"]}
+                onClick={this.showJupyter.bind(this)}
+                icon="science"
+                label="Switch to JupyterLab"
+              />
+            )}
 
           {orchest.user_config.AUTH_ENABLED && (
             <MDCIconButtonToggleReact

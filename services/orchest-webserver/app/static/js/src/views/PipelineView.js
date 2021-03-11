@@ -1146,6 +1146,9 @@ class PipelineView extends React.Component {
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");
+          orchest.headerBarComponent.updateReadOnlyState(
+            this.props.queryArgs.read_only === "true"
+          );
 
           this.initializePipeline();
         } else {
