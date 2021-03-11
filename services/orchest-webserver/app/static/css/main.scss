@@ -209,6 +209,7 @@ header {
   }
 
   > main {
+    overflow: hidden;
     flex: 1;
   }
 }
