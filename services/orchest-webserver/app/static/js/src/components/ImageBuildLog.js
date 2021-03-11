@@ -8,6 +8,11 @@ import {
   RefManager,
   PromiseManager,
 } from "../lib/utils/all";
+import {
+  cleanServerDateTime,
+  formatServerDateTime,
+  serverTimeToMoment,
+} from "../utils/webserver-utils";
 
 class ImageBuild extends React.Component {
   constructor(props) {
@@ -170,9 +175,7 @@ class ImageBuild extends React.Component {
                 <div>
                   <span className="build-label">Build requested:</span>
                   {this.props.build.requested_time ? (
-                    new Date(
-                      this.props.build.requested_time + "Z"
-                    ).toLocaleString()
+                    formatServerDateTime(this.props.build.requested_time)
                   ) : (
                     <i>not yet requested</i>
                   )}
@@ -180,9 +183,7 @@ class ImageBuild extends React.Component {
                 <div>
                   <span className="build-label">Build finished:</span>
                   {this.props.build.finished_time ? (
-                    new Date(
-                      this.props.build.finished_time + "Z"
-                    ).toLocaleString()
+                    formatServerDateTime(this.props.build.finished_time)
                   ) : (
                     <i>not yet finished</i>
                   )}

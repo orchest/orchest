@@ -23,6 +23,7 @@ class AlertDialog extends React.Component {
         content={this.props.content}
         actions={
           <MDCButtonReact
+            classNames={["mdc-button--raised", "themed-secondary"]}
             submitButton
             label="Ok"
             onClick={this.close.bind(this)}

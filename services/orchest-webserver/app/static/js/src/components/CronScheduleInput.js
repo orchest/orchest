@@ -25,7 +25,7 @@ class CronScheduleInput extends React.Component {
   render() {
     return (
       <>
-        <div className="push-down seperated">
+        <div className="push-down separated">
           <MDCButtonReact
             disabled={this.props.disabled}
             onClick={this.onChange.bind(this, "* * * * *")}

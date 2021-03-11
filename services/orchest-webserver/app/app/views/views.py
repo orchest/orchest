@@ -156,7 +156,7 @@ def register_views(app, db):
             "index.html",
             javascript_bundle_hash=get_hash(js_bundle_path),
             css_bundle_hash=get_hash(css_bundle_path),
-            user_config=get_user_conf(),
+            user_config=flask_json.htmlsafe_dumps(get_user_conf()),
             config_json=flask_json.htmlsafe_dumps(
                 {
                     **{key: app.config[key] for key in front_end_config},
@@ -391,29 +391,32 @@ def register_views(app, db):
     @app.route("/async/projects", methods=["GET"])
     def projects_get():
 
-        discoverFSDeletedProjects()
-        discoverFSCreatedProjects()
+        if request.args.get("skip_discovery") != "true":
+            discoverFSDeletedProjects()
+            discoverFSCreatedProjects()
 
         # Projects that are in a INITIALIZING or DELETING state won't
         # be shown until ready.
         projects = projects_schema.dump(Project.query.filter_by(status="READY").all())
 
         for project in projects:
+
             # Discover both pipelines of newly initialized projects and
             # manually initialized pipelines of existing projects. Use a
             # a TwoPhaseExecutor for each project so that issues in one
             # project do not hinder the pipeline synchronization of
             # others.
-            try:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    SyncProjectPipelinesDBState(tpe).transaction(project["uuid"])
-            except Exception as e:
-                current_app.logger.error(
-                    (
-                        "Error during project pipelines synchronization of "
-                        f'{project["path"]}: {e}.'
+            if request.args.get("skip_discovery") != "true":
+                try:
+                    with TwoPhaseExecutor(db.session) as tpe:
+                        SyncProjectPipelinesDBState(tpe).transaction(project["uuid"])
+                except Exception as e:
+                    current_app.logger.error(
+                        (
+                            "Error during project pipelines synchronization of "
+                            f'{project["path"]}: {e}.'
+                        )
                     )
-                )
 
             counts = project_entity_counts(project["uuid"])
             project.update(counts)

@@ -22,6 +22,7 @@
     "jquery": "^3.5.1",
     "lodash": "^4.17.20",
     "material-components-web": "^10.0.0",
+    "moment": "^2.29.1",
     "pascalcase": "^1.0.0",
     "react": "^16.13.1",
     "react-codemirror2": "^7.2.1",

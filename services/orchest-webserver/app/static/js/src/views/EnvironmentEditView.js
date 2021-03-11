@@ -150,11 +150,8 @@ class EnvironmentEditView extends React.Component {
   }
 
   returnToEnvironments() {
-    orchest.loadView(EnvironmentsView, {
-      queryArgs: {
-        project_uuid: this.props.queryArgs.project_uuid,
-      },
-    });
+    orchest.setProject(this.props.queryArgs.project_uuid);
+    orchest.loadView(EnvironmentsView);
   }
 
   onChangeName(value) {
@@ -236,16 +233,16 @@ class EnvironmentEditView extends React.Component {
           actions={
             <Fragment>
               <MDCButtonReact
+                classNames={["push-right"]}
+                label="Cancel"
+                onClick={this.onCancelAddCustomBaseImageDialog.bind(this)}
+              />
+              <MDCButtonReact
                 label="Add"
                 icon="check"
                 classNames={["mdc-button--raised"]}
                 submitButton
                 onClick={this.submitAddCustomBaseImage.bind(this)}
-              />
-              <MDCButtonReact
-                classNames={["push-left"]}
-                label="Cancel"
-                onClick={this.onCancelAddCustomBaseImageDialog.bind(this)}
               />
             </Fragment>
           }

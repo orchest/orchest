@@ -14,7 +14,6 @@ import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact
 import MDCDialogReact from "../lib/mdc-components/MDCDialogReact";
 import MDCDataTableReact from "../lib/mdc-components/MDCDataTableReact";
 import SessionToggleButton from "./SessionToggleButton";
-import JupyterLabView from "../views/JupyterLabView";
 import PipelineView from "../views/PipelineView";
 
 class PipelineList extends React.Component {
@@ -158,8 +157,6 @@ class PipelineList extends React.Component {
     this.setState({
       createModal: true,
     });
-
-    this.refManager.refs.createPipelineNameTextField.focus();
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {}
@@ -284,17 +281,17 @@ class PipelineList extends React.Component {
                   actions={
                     <Fragment>
                       <MDCButtonReact
-                        icon="device_hub"
+                        icon="close"
+                        label="Cancel"
+                        classNames={["push-right"]}
+                        onClick={this.onCancelModal.bind(this)}
+                      />
+                      <MDCButtonReact
+                        icon="add"
                         classNames={["mdc-button--raised", "themed-secondary"]}
                         label="Create pipeline"
                         submitButton
                         onClick={this.onSubmitModal.bind(this)}
-                      />
-                      <MDCButtonReact
-                        icon="close"
-                        label="Cancel"
-                        classNames={["push-left"]}
-                        onClick={this.onCancelModal.bind(this)}
                       />
                     </Fragment>
                   }
@@ -304,12 +301,15 @@ class PipelineList extends React.Component {
           })()}
 
           <h2>Pipelines</h2>
-          <div className={"pipeline-actions push-down"}>
-            <MDCIconButtonToggleReact
+          <div className="push-down">
+            <MDCButtonReact
+              classNames={["mdc-button--raised", "themed-secondary"]}
               icon="add"
-              tooltipText="Add pipeline"
+              label="Create pipeline"
               onClick={this.onCreateClick.bind(this)}
             />
+          </div>
+          <div className={"pipeline-actions push-down"}>
             <MDCIconButtonToggleReact
               icon="delete"
               tooltipText="Delete pipeline"

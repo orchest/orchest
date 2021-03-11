@@ -182,7 +182,7 @@ class SettingsView extends React.Component {
     updateGlobalUnsavedChanges(this.state.unsavedChanges);
 
     return (
-      <div className={"view-page"}>
+      <div className={"view-page global-settings"}>
         <h2>Global settings</h2>
         <div className="push-down">
           <div>
@@ -242,78 +242,118 @@ class SettingsView extends React.Component {
           </div>
         </div>
 
-        <h2>JupyterLab configuration</h2>
-        <div className="push-down">
-          <MDCButtonReact
-            label="Configure JupyterLab"
-            icon="tune"
-            onClick={this.loadConfigureJupyterLab.bind(this)}
-          />
+        <h3>JupyterLab configuration</h3>
+        <div className="columns">
+          <div className="column">
+            <p>Configure JupyterLab by installing server extensions.</p>
+          </div>
+          <div className="column">
+            <MDCButtonReact
+              classNames={["mdc-button--outlined"]}
+              label="Configure JupyterLab"
+              icon="tune"
+              onClick={this.loadConfigureJupyterLab.bind(this)}
+            />
+          </div>
+          <div className="clear"></div>
         </div>
 
-        <h2>Version information</h2>
-        <div>
-          {(() => {
-            if (this.state.version !== undefined) {
-              return <p className="push-down">{this.state.version}</p>;
-            } else {
-              return (
-                <Fragment>
-                  <MDCLinearProgressReact classNames={["push-down"]} />
-                </Fragment>
-              );
-            }
-          })()}
-          <p className={"push-down"}>
-            Application mode:{" "}
-            <span className="code">{orchest.environment}</span>.
-          </p>
+        <h3>Version information</h3>
+        <div className="columns">
+          <div className="column">
+            <p>
+              Find out Orchest's version and application mode. The application
+              mode can either be: <span className="code">production</span> or{" "}
+              <span className="code">development</span>.
+            </p>
+          </div>
+          <div className="column">
+            {(() => {
+              if (this.state.version !== undefined) {
+                return <p>{this.state.version}</p>;
+              } else {
+                return (
+                  <Fragment>
+                    <MDCLinearProgressReact classNames={["push-down"]} />
+                  </Fragment>
+                );
+              }
+            })()}
+            <p>
+              Application mode:{" "}
+              <span className="code">{orchest.environment}</span>.
+            </p>
+          </div>
+          <div className="clear"></div>
         </div>
 
-        <h2>Updates</h2>
-        <div className="push-down">
-          <MDCButtonReact
-            label="Check for updates"
-            icon="system_update_alt"
-            onClick={this.updateView.bind(this)}
-          />
+        <h3>Updates</h3>
+        <div className="columns">
+          <div className="column">
+            <p>Update Orchest from the web UI using the built in updater.</p>
+          </div>
+          <div className="column">
+            <MDCButtonReact
+              classNames={["mdc-button--outlined"]}
+              label="Check for updates"
+              icon="system_update_alt"
+              onClick={this.updateView.bind(this)}
+            />
+          </div>
+          <div className="clear"></div>
         </div>
 
-        <h2>Controls</h2>
-        <div className="push-down">
-          <p className="push-down">
-            Orchest's current status is <i>{this.state.status}</i>.
-          </p>
-          {(() => {
-            if (!this.state.restarting) {
-              return (
-                <Fragment>
-                  <MDCButtonReact
-                    label="Restart"
-                    icon="power_settings_new"
-                    onClick={this.restartOrchest.bind(this)}
-                  />
-                </Fragment>
-              );
-            } else {
-              return (
-                <Fragment>
-                  <MDCLinearProgressReact
-                    classNames={["push-up", "push-down"]}
-                  />
-                  <p>Restarting... This can take up to 30 seconds.</p>
-                </Fragment>
-              );
-            }
-          })()}
+        <h3>Controls</h3>
+        <div className="columns">
+          <div className="column">
+            <p>
+              Restart Orchest will force quit ongoing builds, jobs and sessions.
+            </p>
+          </div>
+          <div className="column">
+            {(() => {
+              if (!this.state.restarting) {
+                return (
+                  <Fragment>
+                    <MDCButtonReact
+                      classNames={["mdc-button--outlined"]}
+                      label="Restart"
+                      icon="power_settings_new"
+                      onClick={this.restartOrchest.bind(this)}
+                    />
+                  </Fragment>
+                );
+              } else {
+                return (
+                  <Fragment>
+                    <MDCLinearProgressReact classNames={["push-down"]} />
+                    <p>Restarting... This can take up to 30 seconds.</p>
+                  </Fragment>
+                );
+              }
+            })()}
+            <p className="push-up">
+              Orchest's current status is <i>{this.state.status}</i>.
+            </p>
+          </div>
+          <div className="clear"></div>
         </div>
 
-        <h2>Authentication</h2>
-        <MDCButtonReact
-          onClick={this.onClickManageUsers.bind(this)}
-          icon="people"
-          label="Manage users"
-        />
+        <h3>Authentication</h3>
+        <div className="columns">
+          <div className="column">
+            <p>Manage Orchest users using the user admin panel.</p>
+          </div>
+          <div className="column">
+            <MDCButtonReact
+              classNames={["mdc-button--outlined"]}
+              onClick={this.onClickManageUsers.bind(this)}
+              icon="people"
+              label="Manage users"
+            />
+          </div>
+          <div className="clear"></div>
+        </div>
       </div>
     );
   }

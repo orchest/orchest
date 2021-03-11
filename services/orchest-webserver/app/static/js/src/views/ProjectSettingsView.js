@@ -68,7 +68,7 @@ class ProjectSettingsView extends React.Component {
     });
   }
 
-  closeSettings() {
+  returnToProjects() {
     orchest.loadView(ProjectsView);
   }
 
@@ -131,7 +131,7 @@ class ProjectSettingsView extends React.Component {
 
   onClickProjectEntity(view, projectUUID, e) {
     e.preventDefault();
-    orchest.browserConfig.set("selected_project_uuid", projectUUID);
+    orchest.setProject(projectUUID);
     orchest.loadView(view);
   }
 
@@ -145,6 +145,14 @@ class ProjectSettingsView extends React.Component {
             e.preventDefault();
           }}
         >
+          <div className="push-down">
+            <MDCButtonReact
+              label="Back to projects"
+              icon="arrow_back"
+              onClick={this.returnToProjects.bind(this)}
+            />
+          </div>
+
           <h2>Project settings</h2>
           {(() => {
             if (this.state.envVariables) {
@@ -240,14 +248,6 @@ class ProjectSettingsView extends React.Component {
               return <MDCLinearProgressReact />;
             }
           })()}
-
-          <div className="top-buttons">
-            <MDCButtonReact
-              classNames={["close-button"]}
-              icon="close"
-              onClick={this.closeSettings.bind(this)}
-            />
-          </div>
         </form>
       </div>
     );

@@ -18,6 +18,7 @@ import {
   checkGate,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
+  serverTimeToMoment,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -1145,6 +1146,9 @@ class PipelineView extends React.Component {
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");
+          orchest.headerBarComponent.updateReadOnlyState(
+            this.props.queryArgs.read_only === "true"
+          );
 
           this.initializePipeline();
         } else {
@@ -1306,9 +1310,6 @@ class PipelineView extends React.Component {
   }
 
   deleteSelectedSteps() {
-    this.closeMultistepView();
-    this.closeDetailsView();
-
     // The if is to avoid the dialog appearing when no steps are
     // selected and the delete button is pressed.
     if (this.state.selectedSteps.length > 0) {
@@ -1317,6 +1318,9 @@ class PipelineView extends React.Component {
         "A deleted step and its logs cannot be recovered once deleted, are you" +
           " sure you want to proceed?",
         () => {
+          this.closeMultistepView();
+          this.closeDetailsView();
+
           // DeleteStep is going to remove the step from this.state.selected
           // Steps, modifying the collection while we are iterating on it.
           let stepsToRemove = this.state.selectedSteps.slice();
@@ -1449,10 +1453,14 @@ class PipelineView extends React.Component {
       let finished_time = undefined;
 
       if (result.pipeline_steps[x].started_time) {
-        started_time = new Date(result.pipeline_steps[x].started_time + "Z");
+        started_time = serverTimeToMoment(
+          result.pipeline_steps[x].started_time
+        );
       }
       if (result.pipeline_steps[x].finished_time) {
-        finished_time = new Date(result.pipeline_steps[x].finished_time + "Z");
+        finished_time = serverTimeToMoment(
+          result.pipeline_steps[x].finished_time
+        );
       }
 
       this.setStepExecutionState(result.pipeline_steps[x].step_uuid, {
@@ -1750,7 +1758,6 @@ class PipelineView extends React.Component {
 
   onDeleteMultistep() {
     this.deleteSelectedSteps();
-    this.closeMultistepView();
   }
 
   onDetailsChangeView(newIndex) {

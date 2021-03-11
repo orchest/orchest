@@ -4,7 +4,12 @@ import ProjectBasedView from "../components/ProjectBasedView";
 
 class JobsView extends React.Component {
   render() {
-    return <ProjectBasedView childView={JobList} />;
+    return (
+      <ProjectBasedView
+        project_uuid={this.props.project_uuid}
+        childView={JobList}
+      />
+    );
   }
 }
 
