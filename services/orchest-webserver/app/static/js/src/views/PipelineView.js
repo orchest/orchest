@@ -1307,9 +1307,6 @@ class PipelineView extends React.Component {
   }
 
   deleteSelectedSteps() {
-    this.closeMultistepView();
-    this.closeDetailsView();
-
     // The if is to avoid the dialog appearing when no steps are
     // selected and the delete button is pressed.
     if (this.state.selectedSteps.length > 0) {
@@ -1318,6 +1315,9 @@ class PipelineView extends React.Component {
         "A deleted step and its logs cannot be recovered once deleted, are you" +
           " sure you want to proceed?",
         () => {
+          this.closeMultistepView();
+          this.closeDetailsView();
+
           // DeleteStep is going to remove the step from this.state.selected
           // Steps, modifying the collection while we are iterating on it.
           let stepsToRemove = this.state.selectedSteps.slice();
@@ -1755,7 +1755,6 @@ class PipelineView extends React.Component {
 
   onDeleteMultistep() {
     this.deleteSelectedSteps();
-    this.closeMultistepView();
   }
 
   onDetailsChangeView(newIndex) {
