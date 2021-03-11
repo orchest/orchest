@@ -18,6 +18,7 @@ import {
   checkGate,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
+  serverTimeToMoment,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -1449,10 +1450,14 @@ class PipelineView extends React.Component {
       let finished_time = undefined;
 
       if (result.pipeline_steps[x].started_time) {
-        started_time = new Date(result.pipeline_steps[x].started_time + "Z");
+        started_time = serverTimeToMoment(
+          result.pipeline_steps[x].started_time
+        );
       }
       if (result.pipeline_steps[x].finished_time) {
-        finished_time = new Date(result.pipeline_steps[x].finished_time + "Z");
+        finished_time = serverTimeToMoment(
+          result.pipeline_steps[x].finished_time
+        );
       }
 
       this.setStepExecutionState(result.pipeline_steps[x].step_uuid, {

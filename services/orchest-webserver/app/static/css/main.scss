@@ -202,6 +202,7 @@ header {
   > .mdc-drawer {
     flex: initial;
     --mdc-drawer-width: 325px;
+    min-width: 325px;
     padding: 20px;
     height: 100%;
     text-align: center;

@@ -1,5 +1,6 @@
 import React, { Fragment } from "react";
 import { makeRequest } from "../lib/utils/all";
+import moment from "moment";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
 
@@ -210,8 +211,19 @@ export function getScrollLineHeight() {
   return fontSize ? window.parseInt(fontSize) : undefined;
 }
 
-export function formatServerDateTime(dateTimeString) {
-  return new Date(dateTimeString + "Z").toLocaleString();
+export function formatServerDateTime(serverDateTimeString) {
+  return serverTimeToMoment(serverDateTimeString).format("lll");
+}
+
+export function serverTimeToMoment(serverDateTimeString) {
+  serverDateTimeString = cleanServerDateTime(serverDateTimeString);
+  return moment(serverDateTimeString + " Z");
+}
+
+export function cleanServerDateTime(dateTimeString) {
+  const regex = /([^\.]*)(\.\d*)?(\+\d*:\d*)?/g;
+  const subst = `$1`;
+  return dateTimeString.replace(regex, subst);
 }
 
 export function newslines2breaks(lines) {

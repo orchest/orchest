@@ -1,4 +1,5 @@
 import React from "react";
+import moment from "moment";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
 
 class DateTimeInput extends React.Component {
@@ -21,8 +22,8 @@ class DateTimeInput extends React.Component {
   }
 
   getISOString() {
-    return new Date(
-      this.state.dateValue + " " + this.state.timeValue
+    return moment(
+      this.state.dateValue + " " + this.state.timeValue + " Z"
     ).toISOString();
   }
 
