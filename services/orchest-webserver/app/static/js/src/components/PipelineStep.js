@@ -42,7 +42,7 @@ class PipelineStep extends React.Component {
     if (this.props.executionState.status === "FAILURE") {
       let seconds = 0;
 
-      if (this.props.executionState.started_time instanceof Date) {
+      if (this.props.executionState.started_time !== undefined) {
         seconds = Math.round(
           (this.props.executionState.finished_time -
             this.props.executionState.started_time) /
@@ -55,7 +55,7 @@ class PipelineStep extends React.Component {
     if (this.props.executionState.status === "STARTED") {
       let seconds = 0;
 
-      if (this.props.executionState.started_time instanceof Date) {
+      if (this.props.executionState.started_time !== undefined) {
         seconds = Math.round(
           (moment() - this.props.executionState.started_time) / 1000
         );

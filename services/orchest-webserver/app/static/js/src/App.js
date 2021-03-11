@@ -97,7 +97,7 @@ class App extends React.Component {
     this.state = {
       activeViewName: "",
       // Default drawer state is open.
-      drawerOpen: topAppBarOpen !== undefined && topAppBarOpen === "true",
+      drawerOpen: topAppBarOpen === undefined || topAppBarOpen === "true",
       selectedProject: this.browserConfig.get("selected_project_uuid"),
       projectSelectorHash: uuidv4(),
     };
