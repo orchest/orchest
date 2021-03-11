@@ -1,3 +1,5 @@
+.. _development workflow:
+
 Development workflow
 ====================
 
@@ -43,6 +45,8 @@ branches) to the appropriate paths in the Docker containers. This allows for act
 being reflected inside the application. In ``dev`` mode the Flask applications are run in
 development mode.
 
+
+.. _before committing:
 
 Before committing
 -----------------

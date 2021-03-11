@@ -7,6 +7,8 @@ Awesome that you are willing to contribute! Feel free to pick up any of the issu
 If you need any help or would like our perspective, then don't hesitate and reach out to us on our
 `Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_!
 
+Make sure to check out the :ref:`Development workflow <development workflow>` section and to follow
+the :ref:`Before committing <before committing>` instructions.
 
 Contributor License Agreement
 -----------------------------
