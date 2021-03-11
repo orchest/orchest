@@ -820,7 +820,7 @@ span.floating-button {
 
   .existing-pipeline-runs {
     .mdc-data-table {
-      $sizes: 5%, 65%, 30%;
+      $sizes: 10%, 60%, 30%;
 
       @for $i from 1 through length($sizes) {
         .mdc-data-table__header-cell:nth-child(#{$i}) {
