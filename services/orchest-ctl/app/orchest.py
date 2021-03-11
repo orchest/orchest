@@ -411,12 +411,16 @@ def get_required_images(language: Optional[str], gpu: bool = False) -> List[str]
     required_images = ORCHEST_IMAGES["minimal"]
 
     if language == "all":
-        for lang, imgs in language_images.items():
+        for lang, _ in language_images.items():
             required_images += language_images[lang]
+
+            if lang in gpu_images:
+                required_images += gpu_images[lang]
+
     elif language is not None:
         required_images += language_images[language]
 
-    if gpu:
-        required_images += gpu_images["language"]
+        if gpu:
+            required_images += gpu_images[language]
 
     return required_images
