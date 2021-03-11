@@ -66,6 +66,8 @@ class MainDrawer extends React.Component {
     // resolve mapped parent view
     let rootViewName = getViewDrawerParentViewName(viewName);
 
+    let foundRootViewInList = false;
+
     for (let x = 0; x < this.drawer.list.listElements.length; x++) {
       let listElement = this.drawer.list.listElements[x];
 
@@ -78,8 +80,14 @@ class MainDrawer extends React.Component {
 
         if (rootViewName === elementViewName) {
           this.drawer.list.selectedIndex = x;
+          foundRootViewInList = true;
+          break;
         }
       }
+    }
+
+    if (!foundRootViewInList) {
+      this.drawer.list.selectedIndex = -1;
     }
   }
 

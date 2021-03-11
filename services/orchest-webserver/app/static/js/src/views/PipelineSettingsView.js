@@ -368,7 +368,7 @@ class PipelineSettingsView extends React.Component {
       switch (this.state.selectedTabIndex) {
         case 0:
           tabView = (
-            <div className="push-up pipeline-settings">
+            <div className="pipeline-settings">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -526,7 +526,7 @@ class PipelineSettingsView extends React.Component {
           break;
         case 1:
           tabView = (
-            <div className="push-up">
+            <div>
               {(() => {
                 if (this.props.queryArgs.read_only === "true") {
                   return (
@@ -582,13 +582,15 @@ class PipelineSettingsView extends React.Component {
         <div className="pipeline-settings">
           <h2>Pipeline settings</h2>
 
-          <MDCTabBarReact
-            selectedIndex={this.state.selectedTabIndex}
-            ref={this.refManager.nrefs.tabBar}
-            items={["Configuration", "Environment variables"]}
-            icons={["list", "view_comfy"]}
-            onChange={this.onSelectSubview.bind(this)}
-          />
+          <div className="push-down">
+            <MDCTabBarReact
+              selectedIndex={this.state.selectedTabIndex}
+              ref={this.refManager.nrefs.tabBar}
+              items={["Configuration", "Environment variables"]}
+              icons={["list", "view_comfy"]}
+              onChange={this.onSelectSubview.bind(this)}
+            />
+          </div>
 
           <div className="tab-view trigger-overflow">{tabView}</div>
 
