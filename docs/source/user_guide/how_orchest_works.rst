@@ -3,11 +3,13 @@
 How Orchest works
 =================
 
+.. note::
+   Global configurations are stored at ``~/.config/orchest/config.json``, for possible configuration
+   values see :ref:`configuration <configuration>`.
+
 Orchest is a fully containerized application and its runtime can be managed through the ``orchest``
 shell script. In the script you can see that the Docker socket ``/var/run/docker.sock`` is mounted,
 which Orchest requires in order order to dynamically spawn Docker containers when running pipelines.
-Global configurations are stored at ``~/.config/orchest/config.json``, for possible configuration
-values see :ref:`configuration <configuration>`.
 
 Orchest is powered by your filesystem, there is no hidden magic. Upon launching, Orchest will mount
 the content of the ``orchest/userdir/`` directory, where ``orchest/`` is the install directory from
@@ -42,13 +44,13 @@ following directory structure of a project:
    containing the STDOUT of the scripts, the STDOUT can be inspected through the Orchest UI.
 
 .. tip::
-   You should not put large files inside your project, use instead the special ``/data``
-   directory, which is mounted as the ``userdir/data/`` directory, and is shared between projects.
-   :ref:`Jobs <jobs>` creates snapshots of the project directory (for reproducibility
-   reasons) and therefore would copy all the data.
+   You should not put large files inside your project, instead, you should write data to the special
+   ``/data`` directory. The ``/data`` directory is actually the mounted ``userdir/data/`` directory,
+   and is shared between projects.  :ref:`Jobs <jobs>` creates snapshots of the project directory
+   (for reproducibility reasons) and therefore would copy all the data.
 
-The :ref:`pipeline definition <pipeline definition>` file ``pipeline.orchest`` above defines the
-structure of the pipeline. For example:
+The :ref:`pipeline definition <pipeline definition>` file ``pipeline.orchest`` in the directory
+structure above defines the structure of the pipeline. For example:
 
 .. image:: ../img/pipeline-orientation.png
   :width: 400
@@ -59,10 +61,6 @@ As you can see the pipeline steps point to the corresponding files: ``prep.ipynb
 ``training.py``. These files are run inside their own isolated environments (as defined in
 ``.orchest/environments/``) using containerization.  In order to install additional packages or to
 easily change the Docker image, see :ref:`environments <environments>`.
-
-.. note::
-   We currently support Python, R and Julia.
-
 
 Concepts
 --------

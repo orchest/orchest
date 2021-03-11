@@ -9,32 +9,44 @@ Prerequisites
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
+.. note::
+   On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the
+   Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
+   visit https://docs.docker.com/docker-for-windows/wsl/.
+
 .. _regular installation:
 
 Linux, macOS and Windows
--------------------------
-Simply follow the steps below to install Orchest. For Windows, please read the note at the bottom
-first.
+------------------------
+Simply follow the steps below to install Orchest.
 
 .. code-block:: bash
 
    git clone https://github.com/orchest/orchest.git && cd orchest
    ./orchest install
 
-   # The previous command will only install language dependencies for
-   # Python. Orchest supports Python, R, and Julia.
-   # To specify other dependencies you can, for example, use:
-   # ./orchest install --lang=all
-   # Valid options for the lang flag are: python, r, julia, all, none
-
    # Verify the installation.
    ./orchest --help
 
-.. note::
+   # Start Orchest.
+   ./orchest start
 
-    On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the
-    Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
-    visit https://docs.docker.com/docker-for-windows/wsl/.
+Now that you have installed Orchest, get started with the :ref:`quickstart <quickstart>` tutorial.
+
+.. note::
+   By default, running ``./orchest install``, installs only the language dependencies for Python.
+   Other language dependencies can be installed as follows:
+
+   .. code-block:: bash
+
+      # To install R dependencies.
+      ./orchest install --lang=r
+
+      # To install all languages: Python, R and Julia.
+      ./orchest install --lang=all
+
+      # Check out all available options.
+      ./orchest install --help
 
 .. tip::
    Add Orchest to your ``PATH`` to gain the ability to invoke the ``orchest`` script from anywhere,
@@ -44,14 +56,14 @@ first.
 
 Build from source
 -----------------
-You should expect the build to finish in roughly 15 minutes.
+You can expect the build to finish in roughly 15 minutes.
 
 .. code-block:: bash
 
    git clone https://github.com/orchest/orchest.git && cd orchest
 
    # Check out the version you would like to build.
-   git checkout v0.3.0
+   git checkout v2021.03.3
 
    # Build all Docker containers from source (in parallel).
    scripts/build_container.sh
@@ -66,6 +78,15 @@ You should expect the build to finish in roughly 15 minutes.
 
 GPU support
 -----------
+
+.. note::
+   Make sure you have installed our GPU images for the programming language you want to use. For
+   example:
+
+   .. code-block:: bash
+
+      # Install the image with GPU passthrough for Python.
+      ./orchest install --lang=python --gpu
 
 **Linux** (supported)
 
@@ -107,22 +128,22 @@ Unfortunately, ``nvidia-docker`` does not support GPU enabled images on macOS (s
 <https://github.com/NVIDIA/nvidia-docker/wiki/Frequently-Asked-Questions#is-macos-supported>`_ on
 ``nvidia-docker``).
 
-.. note::
-   Make sure you have installed our GPU images for the programming language you want to use.
-
-   .. code-block:: bash
-
-      ./orchest install --lang=python --gpu
-
 .. _cloud installation:
 
 Run Orchest on the cloud
 ------------------------
-Running Orchest on a cloud hosted VM (such as EC2) does not require a special installation. Simply follow the
-:ref:`regular installation process <regular installation>`.
+Running Orchest on a cloud hosted VM (such as EC2) does not require a special installation. Simply
+follow the :ref:`regular installation process <regular installation>`.
 
-To enable SSL run ``scripts/letsencrypt-nginx.sh <domain> <email>`` and restart Orchest ``./orchest restart``.
+To enable SSL you first need to get the SSL certificates for your domain and put the certificates in
+the correct place so that Orchest recognizes them. Luckily, this can all be done using:
+``scripts/letsencrypt-nginx.sh <domain> <email>``. For the changes to take effect you need to
+start Orchest on port ``80`` (as otherwise the default port ``8000`` is used):
 
-Please refer to the :ref:`authentication section <authentication>` to enable the authentication
-server, giving you a login screen requiring a username and password before you can access Orchest.
+.. code-block:: bash
 
+   ./orchest start --port=80
+
+.. tip::
+   Refer to the :ref:`authentication section <authentication>` to enable the authentication server,
+   giving you a login screen requiring a username and password before you can access Orchest.

@@ -82,6 +82,12 @@ def register_views(app):
         resp.set_cookie("auth_username", "")
         return resp
 
+    def render_login_failed():
+        context = static_render_context()
+        context["login_failed_reason"] = "Incorrect username or password."
+
+        return render_template("login.html", **context)
+
     @app.route("/login", methods=["GET", "POST"])
     def login():
 
@@ -99,10 +105,7 @@ def register_views(app):
             user = User.query.filter(User.username == username).first()
 
             if user is None:
-                context = static_render_context()
-                context["login_failed_reason"] = "Incorrect username or password."
-
-                return render_template("login.html", **context)
+                return render_login_failed()
             else:
                 if password is not None:
                     can_login = check_password_hash(user.password_hash, password)
@@ -129,7 +132,7 @@ def register_views(app):
 
                     return resp
                 else:
-                    return "", 401
+                    return render_login_failed()
 
         else:
             return render_template("login.html", **static_render_context())

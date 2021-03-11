@@ -1,0 +1,29 @@
+# Runs pre-commit on all changed files.
+name: pre-commit
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - id: file_changes
+        uses: trilom/file-changes-action@v1.2.4
+        with:
+          output: " "
+
+      - uses: pre-commit/action@v2.0.0
+        with:
+          extra_args: --files ${{ steps.file_changes.outputs.files }}

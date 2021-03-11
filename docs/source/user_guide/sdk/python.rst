@@ -81,13 +81,13 @@ Parameters
    # Update both the step parameters and the pipeline parameters. The
    # updated parameters will be visible in the GUI, in the properties
    # pane of the step and in the pipeline settings respectively.
-   step_params_update["fruit"] = "apple"
-   pipeline_params_update["eating_rate"] = 0.2 
-   orchest.update_params(step_params_update, pipeline_params_update)
+   step_params["fruit"] = "apple"
+   pipeline_params["eating_rate"] = 0.2
+   orchest.update_params(step_params, pipeline_params)
 
 .. note::
-   Parameters are at the core of :ref:`jobs <jobs>`, giving a handle to try out
-   different modeling ideas based on a set of variable inputs.
+   Parameters are at the core of :ref:`jobs <jobs>`, giving a handle to try out different modeling
+   ideas based on a set of variable inputs.
 
 API
 ---
