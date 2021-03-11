@@ -62,7 +62,7 @@ class ProjectSelector extends React.Component {
 
   fetchProjects() {
     let fetchProjectsPromise = makeCancelable(
-      makeRequest("GET", "/async/projects"),
+      makeRequest("GET", "/async/projects?skip_discovery=true"),
       this.promiseManager
     );
 

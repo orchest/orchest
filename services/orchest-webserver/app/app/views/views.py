@@ -391,29 +391,32 @@ def register_views(app, db):
     @app.route("/async/projects", methods=["GET"])
     def projects_get():
 
-        discoverFSDeletedProjects()
-        discoverFSCreatedProjects()
+        if request.args.get("skip_discovery") != "true":
+            discoverFSDeletedProjects()
+            discoverFSCreatedProjects()
 
         # Projects that are in a INITIALIZING or DELETING state won't
         # be shown until ready.
         projects = projects_schema.dump(Project.query.filter_by(status="READY").all())
 
         for project in projects:
+
             # Discover both pipelines of newly initialized projects and
             # manually initialized pipelines of existing projects. Use a
             # a TwoPhaseExecutor for each project so that issues in one
             # project do not hinder the pipeline synchronization of
             # others.
-            try:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    SyncProjectPipelinesDBState(tpe).transaction(project["uuid"])
-            except Exception as e:
-                current_app.logger.error(
-                    (
-                        "Error during project pipelines synchronization of "
-                        f'{project["path"]}: {e}.'
+            if request.args.get("skip_discovery") != "true":
+                try:
+                    with TwoPhaseExecutor(db.session) as tpe:
+                        SyncProjectPipelinesDBState(tpe).transaction(project["uuid"])
+                except Exception as e:
+                    current_app.logger.error(
+                        (
+                            "Error during project pipelines synchronization of "
+                            f'{project["path"]}: {e}.'
+                        )
                     )
-                )
 
             counts = project_entity_counts(project["uuid"])
             project.update(counts)
