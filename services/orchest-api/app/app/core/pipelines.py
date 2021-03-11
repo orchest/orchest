@@ -3,19 +3,14 @@ import copy
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, TypedDict
 
 import aiodocker
 import aiohttp
-from config import CONFIG_CLASS
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_device_requests, get_orchest_mounts
-
-
-# TODO: supported in python3.8 But docker images run 3.7
-class TypedDict:
-    pass
+from config import CONFIG_CLASS
 
 
 # TODO: this class is not extensive yet. The Other Dicts can be typed
@@ -35,6 +30,7 @@ class PipelineDefinition(TypedDict):
     uuid: str
     steps: Dict[str, PipelineStepProperties]
     parameters: Dict[str, Any]
+    settings: Dict[str, Any]
 
 
 def construct_pipeline(
