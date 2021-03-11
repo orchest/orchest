@@ -376,7 +376,7 @@ class PipelineSettingsView extends React.Component {
               >
                 <div className="columns">
                   <div className="column">
-                    <h3>Pipeline name</h3>
+                    <h3>Name</h3>
                   </div>
                   <div className="column">
                     <MDCTextFieldReact
@@ -387,9 +387,17 @@ class PipelineSettingsView extends React.Component {
                       disabled={this.props.queryArgs.read_only === "true"}
                       classNames={["push-down"]}
                     />
+                  </div>
+                  <div className="clear"></div>
+                </div>
+
+                <div className="columns">
+                  <div className="column">
+                    <h3>Path</h3>
+                  </div>
+                  <div className="column">
                     {this.state.pipeline_path && (
                       <p className="push-down">
-                        Pipeline path:{" "}
                         <span className="code">{this.state.pipeline_path}</span>
                       </p>
                     )}
