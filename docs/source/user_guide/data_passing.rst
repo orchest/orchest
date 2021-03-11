@@ -10,31 +10,6 @@ convenience wrapper of the project to be used within Orchest.
 See the :ref:`data passing quickstart<sdk-quickstart-data-passing>` of the SDK to get started
 directly.
 
-.. _connections:
-
-Connections
------------
-.. note::
-   This section only applies when you are outputting unnamed data, i.e.
-   calling :meth:`orchest.transfer.output` with ``name=None``.
-
-The image below is a screenshot from the properties pane of step that has incoming steps "A", "B"
-and "C". The order of the list can be changed with a simple drag and drop.
-
-.. image:: ../img/step-connections.png
-  :width: 300
-  :alt: From top to bottom: A -> C -> B
-  :align: center
-
-The order of this list is important as it determines the order in which the receiving step obtains
-data from the steps A, B and C when calling :meth:`orchest.transfer.get_inputs`. In the example
-image above the receiving step would get a list with the data from steps A, C and B respectively.
-
-.. note::
-   The Orchest SDK actually infers the order via the pipeline definition. The UI simply stores the
-   order in the pipeline definition file.
-
-
 Memory data passing
 -------------------
 To pass data through memory between steps (which is enabled by default) we make use of `the Plasma
@@ -54,3 +29,34 @@ When it comes to clearing the memory store there are two options:
 1. Clearing all objects from memory through the pipeline settings.
 2. Enabling auto eviction also through the pipeline settings, additional information about this
    setting can be found in :ref:`pipeline level configurations <pipeline configuration>`.
+
+.. _connections:
+
+Connections
+-----------
+.. note::
+   This section only applies when you are outputting unnamed data, i.e.
+   calling :meth:`orchest.transfer.output` with ``name=None``.
+
+The image below is a screenshot from the properties pane of step that has incoming steps "A", "B"
+and "C". The order of the list can be changed with a simple drag and drop.
+
+.. image:: ../img/step-connections.png
+  :width: 300
+  :alt: From top to bottom: A -> C -> B
+  :align: center
+
+The order of this list is important as it determines the order in which the receiving step obtains
+data from the steps A, B and C when calling :meth:`orchest.transfer.get_inputs`. In the example
+image above, under the assumption that all steps called :meth:`orchest.transfer.output` with
+``name=None``, the receiving step would get the following data structure (when calling
+:meth:`orchest.transfer.get_inputs`):
+
+.. code-block:: python
+
+   # Note the order!
+   {'unnamed': ['A', 'C', 'B']}
+
+.. note::
+   The Orchest SDK actually infers the order via the pipeline definition. The UI simply stores the
+   order in the pipeline definition file.

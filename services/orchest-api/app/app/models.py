@@ -103,6 +103,28 @@ class EnvironmentBuild(BaseModel):
         return f"<EnvironmentBuildTask: {self.uuid}>"
 
 
+class JupyterBuild(BaseModel):
+    """State of Jupyter builds.
+
+    Table meant to store the state of the build task of a
+    Jupyter image, i.e. when a user wants to install a server side
+    JupyterLab extension.
+
+    """
+
+    __tablename__ = "jupyter_builds"
+
+    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
+    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
+    requested_time = db.Column(db.DateTime, unique=False, nullable=False)
+    started_time = db.Column(db.DateTime, unique=False, nullable=True)
+    finished_time = db.Column(db.DateTime, unique=False, nullable=True)
+    status = db.Column(db.String(15), unique=False, nullable=True)
+
+    def __repr__(self):
+        return f"<JupyterBuildTask: {self.uuid}>"
+
+
 class InteractiveSession(BaseModel):
     __tablename__ = "interactive_sessions"
     __table_args__ = (

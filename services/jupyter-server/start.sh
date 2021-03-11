@@ -1,5 +1,22 @@
 #! /usr/bin/env sh
 
+###
+# This script manages JupyterLab extensions.
+# Users are able to install extensions through the JupyterLab GUI.
+# The base Jupyter server image includes a number of default
+# extensions including the Orchest extensions.
+# In the GUI of Orchest users can install server side JupyterLab extensions
+# with a bash script that runs inside an image build.
+#
+# JupyterLab on the client side has pre-built and source extensions.
+# In addition JupyterLab supports server-side extensions that
+# are installed as conda or pip Python packages.
+# - pre-built extensions reside in /usr/local/share/jupyter/labextensions as
+#   directories with compiled assets
+# - source extensions reside in /usr/local/share/jupyter/lab/extensions as tarballs
+# - server side extensions are standard Python packages.
+###
+
 umask 002
 
 get_ext_versions() {
@@ -11,8 +28,6 @@ get_ext_versions() {
         | grep -o -P "orchest-integration v\d+\.\d+\.\d+")
     visual_tags=$(echo $1 \
         | grep -o -P "visual-tags v\d+\.\d+\.\d+")
-    jupyterlab_manager=$(echo $1 \
-        | grep -o -P "@jupyter-widgets/jupyterlab-manager v\d+\.\d+\.\d+")
 }
 
 check_versions() {
@@ -20,9 +35,9 @@ check_versions() {
     # `get_ext_versions`
     [ -z "$(echo '$1' | grep -o -F '$orchest_integration')" ] && return 1
     [ -z "$(echo '$1' | grep -o -F '$visual_tags')" ] && return 1
-    [ -z "$(echo '$1' | grep -o -F '$jupyterlab_manager')" ] && return 1
 }
 
+# This is where the Docker image puts pre-installed extensions during build
 build_path=/jupyterlab-orchest-build
 
 # This is the default path JupyterLab uses as the application directory.
@@ -58,15 +73,22 @@ fi
 # configuration from the userdir.
 build_version=$(jq .jupyterlab.version "$build_path/static/package.json")
 
+# Add new extension tarballs to `extensions/` that are
+# part of the build_path (e.g. because of a user image build).
+# This way the extensions get automatically included in the build.
+# Note: new extensions should trigger a build automatically.
+cp -rnT "$build_path/extensions" "$userdir_path/extensions"
+
 if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     # We don't have to do anything.
     jupyter lab --LabApp.app_dir="$userdir_path" "$@"
     exit 0
 fi
 
-# Add orchest extension tarballs to `extensions/`. This way the
-# extensions get automatically included in the build.
-cp -rfT "$build_path/extensions" "$userdir_path/extensions"
+# Force add extension tarballs to `extensions/`. This way the Orchest
+# and image included extensions get automatically included in the build.
+cp -rf $build_path/extensions/orchest-integration* "$userdir_path/extensions"
+cp -rf $build_path/extensions/visual-tags* "$userdir_path/extensions"
 
 # Overwrite the static files from the userdir with the static files
 # from the build. Otherwise JupyterLab cannot start as part of Orchest.

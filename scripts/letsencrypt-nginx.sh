@@ -39,8 +39,8 @@ apt-get install python3-pip -y
 if [ $? != 0 ]; then
     # We probably held broken packages so we need to fix them and
     # try to install again.
-    sudo apt -f install
-    apt update -y && apt dist-upgrade -y
+    apt-get -f install
+    apt-get update -y && apt-get dist-upgrade -y
     apt-get install python3-pip -y
 fi
 

@@ -549,8 +549,8 @@ def output_to_memory(
             of the data, when ``None``, the data is considered nameless.
             This affects the way the data can be later retrieved using
             :func:`get_inputs`.
-        disk_fallback: If True, then outputing to disk is used when the
-            `data` does not fit in memory. If False, then a
+        disk_fallback: If ``True``, then outputing to disk is used when
+            the `data` does not fit in memory. If ``False``, then a
             :exc:`MemoryError` is thrown.
 
     Raises:
@@ -895,13 +895,14 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     """Gets all data sent from incoming steps.
 
     Args:
-        ignore_failure: If True then the returned result can have
+        ignore_failure: If ``True`` then the returned result can have
             ``None`` values if the data of a step could not be
-            retrieved. If False, then this function will fail if any of
-            the incoming steps's data could not be retrieved. Example:
-            ``[None, "Hello World!"]`` vs :exc:`OutputNotFoundError`
-        verbose: If True print all the steps from which the current step
-            has retrieved data.
+            retrieved. If ``False``, then this function will fail if any
+            of the incoming steps's data could not be retrieved.
+            Example: ``[None, "Hello World!"]`` vs
+            :exc:`OutputNotFoundError`
+        verbose: If ``True`` print all the steps from which the current
+            step has retrieved data.
 
     Returns:
         Dictionary with input data for this step. We differentiate
@@ -917,12 +918,12 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
           Unnamed data can be retrieved by accessing the reserved
           ``"unnamed"`` key. The order of this list depends on the order
           of the parent steps of the node, which is visible through the
-          GUI.
+          GUI, refer to the :ref:`connections section <connections>`.
 
         Example::
 
-            # It does not matter how the data was output by parent
-            # steps. It is resolved automatically by the get_inputs
+            # It does not matter how the data was outputted by parent
+            # steps. It is resolved automatically by the `get_inputs`
             # method.
             {
                 "unnamed" : ["Hello World!", (3, 4)],

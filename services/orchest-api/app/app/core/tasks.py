@@ -13,6 +13,7 @@ from app import create_app
 from app.celery_app import make_celery
 from app.connections import docker_client
 from app.core.environment_builds import build_environment_task
+from app.core.jupyter_builds import build_jupyter_task
 from app.core.pipelines import Pipeline, PipelineDefinition
 from app.core.sessions import launch_noninteractive_session
 
@@ -287,3 +288,20 @@ def build_environment(
     return build_environment_task(
         self.request.id, project_uuid, environment_uuid, project_path
     )
+
+
+# Note: cannot use ignore_result and also AsyncResult to abort
+# https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
+# @celery.task(bind=True, ignore_result=True)
+@celery.task(bind=True, base=AbortableTask)
+def build_jupyter(
+    self,
+) -> str:
+    """Builds Jupyter image, producing a new image in the docker env.
+
+    Returns:
+        Status of the environment build.
+
+    """
+
+    return build_jupyter_task(self.request.id)

@@ -8,11 +8,11 @@ umask 002
 celery worker -A app.core.tasks \
     -l "$ORCHEST_LOG_LEVEL" \
     -Q jobs \
-    -n worker-expriments \
+    -n worker-jobs \
     --statedb /userdir/.orchest/celery-state.db \
     -f celery_jobs.log \
     --concurrency=1 \
-    --pidfile="worker-expriments.pid" \
+    --pidfile="worker-jobs.pid" \
     --detach
 
 # Interactive runs. "celery" is the default queue name.
@@ -24,16 +24,16 @@ celery worker -A app.core.tasks \
     --pidfile="worker-interactive.pid" \
     --detach
 
-# Environment builds. "celery" is the default queue name.
+# Builds. "celery" is the default queue name.
 # max-tasks-per-child is currently needed, because SocketIO is not
 # cleaning up state when using disconnect, which will lead to sockets
 # related failures in a subsequent task
 celery worker -A app.core.tasks \
     -l "$ORCHEST_LOG_LEVEL" \
-    -Q environment_builds \
-    -n worker-env-builds \
-    --statedb /userdir/.orchest/celery-environment-builds-state.db \
-    -f celery_env_builds.log \
+    -Q builds \
+    -n worker-builds \
+    --statedb /userdir/.orchest/celery-builds-state.db \
+    -f celery_builds.log \
     --concurrency=1 \
-    --pidfile="worker-env-builds.pid" \
+    --pidfile="worker-builds.pid" \
     --max-tasks-per-child 1

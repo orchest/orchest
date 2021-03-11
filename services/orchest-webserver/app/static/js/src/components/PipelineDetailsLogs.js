@@ -3,8 +3,6 @@ import { RefManager, uuidv4 } from "../lib/utils/all";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
 
-import "codemirror/mode/shell/shell";
-
 class PipelineDetailsLogs extends React.Component {
   constructor(props) {
     super(props);
@@ -22,6 +20,8 @@ class PipelineDetailsLogs extends React.Component {
     // intialize socket.io listener
     this.initializeSocketIOListener();
     this.startLogSession();
+
+    window.addEventListener("resize", this.fitTerminal.bind(this));
   }
 
   initializeSocketIOListener() {
@@ -67,14 +67,28 @@ class PipelineDetailsLogs extends React.Component {
     this.props.sio.off("pty-reset", this.onPtyReset);
 
     clearInterval(this.heartBeatInterval);
+
+    window.removeEventListener("resize", this.fitTerminal.bind(this));
   }
 
   componentDidUpdate() {
+    this.fitTerminal();
+  }
+
+  fitTerminal() {
     if (
       this.refManager.refs.term &&
       this.refManager.refs.term.terminal.element.offsetParent != null
     ) {
-      this.fitAddon.fit();
+      setTimeout(() => {
+        try {
+          this.fitAddon.fit();
+        } catch {
+          console.warn(
+            "fitAddon.fit() failed - Xterm only allows fit when element is visible."
+          );
+        }
+      });
     }
   }
 

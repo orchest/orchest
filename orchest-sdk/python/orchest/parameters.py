@@ -54,15 +54,8 @@ def update_params(
             updating their values or adding new parameter keys.
 
     Warning:
-        Updating the parameters of a pipeline can lead to race
-        conditions, since different steps could be updating them at
-        the same time. Making sure that the correct behaviour takes
-        place, when it comes to pipeline parameters, is responsibility
-        of the user, e.g. by making a pipeline where no steps that
-        modify the pipeline parameters can run in parallel, or by using
-        external forms of locking. Updating the parameters of a single
-        step is perfectly safe.
-
+        Updating the `pipeline_params` can lead to read conditions,
+        since different steps could be updating them at the same time.
 
     """
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:

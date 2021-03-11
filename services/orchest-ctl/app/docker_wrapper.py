@@ -459,11 +459,20 @@ class OrchestResourceManager:
         return self.docker_client.get_containers(state=state, network=self.network)
 
     def get_env_build_imgs(self):
-        return self.docker_client.list_image_ids(label="_orchest_project_uuid")
+        return self.docker_client.list_image_ids(label="_orchest_env_build_task_uuid")
+
+    def get_jupyter_build_imgs(self):
+        return self.docker_client.list_image_ids(
+            label="_orchest_jupyter_build_task_uuid"
+        )
 
     def remove_env_build_imgs(self):
         env_build_imgs = self.get_env_build_imgs()
         self.docker_client.remove_images(env_build_imgs, force=True)
+
+    def remove_jupyter_build_imgs(self):
+        jupyter_build_imgs = self.get_jupyter_build_imgs()
+        self.docker_client.remove_images(jupyter_build_imgs, force=True)
 
     def containers_version(self):
         pulled_images = self.get_images(orchest_owned=True)

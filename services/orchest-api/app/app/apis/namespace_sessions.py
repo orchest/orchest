@@ -2,7 +2,8 @@ from typing import Dict
 
 from flask import request
 from flask.globals import current_app
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, marshal
+from sqlalchemy import desc
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -10,6 +11,7 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import schema
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
+from app.errors import JupyterBuildInProgressException
 from app.utils import register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
@@ -40,7 +42,6 @@ class SessionList(Resource):
 
     @api.doc("launch_session")
     @api.expect(schema.pipeline_spec)
-    @api.marshal_with(schema.session, code=201, description="Session launched.")
     def post(self):
         """Launches an interactive session."""
         post_data = request.get_json()
@@ -54,6 +55,8 @@ class SessionList(Resource):
                     post_data["project_dir"],
                     post_data["host_userdir"],
                 )
+        except JupyterBuildInProgressException:
+            return {"message": "JupyterBuildInProgress"}, 423
         except Exception as e:
             current_app.logger.error(e)
             return {"message": str(e)}, 500
@@ -63,7 +66,7 @@ class SessionList(Resource):
             pipeline_uuid=post_data["pipeline_uuid"],
         ).one_or_none()
 
-        return isess.as_dict(), 201
+        return marshal(isess.as_dict(), schema.session), 201
 
 
 @api.route("/<string:project_uuid>/<string:pipeline_uuid>")
@@ -137,6 +140,17 @@ class CreateInteractiveSession(TwoPhaseFunction):
         project_dir: str,
         host_userdir: str,
     ):
+        # Gate check to see if there is a Jupyter lab build active
+        latest_jupyter_build = models.JupyterBuild.query.order_by(
+            desc(models.JupyterBuild.requested_time)
+        ).first()
+
+        if latest_jupyter_build is not None and latest_jupyter_build.status in [
+            "PENDING",
+            "STARTED",
+        ]:
+            raise JupyterBuildInProgressException()
+
         interactive_session = {
             "project_uuid": project_uuid,
             "pipeline_uuid": pipeline_uuid,
