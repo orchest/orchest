@@ -1,0 +1,28 @@
+# Configuration for welcome - https://github.com/behaviorbot/welcome
+
+# Configuration for new-issue-welcome - https://github.com/behaviorbot/new-issue-welcome
+
+# Comment to be posted to on first time issues
+newIssueWelcomeComment: >
+  :heart: Thanks for opening your first issue! We really appreciate your input.
+
+  :speech_balloon: If you need to connect more synchronously with members of the _Orchest_
+  community, please feel free to chat with us on our
+  [Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
+
+# Configuration for new-pr-welcome - https://github.com/behaviorbot/new-pr-welcome
+
+# Comment to be posted to on PRs from first time contributors in your repository
+newPRWelcomeComment: >
+  :rocket: Awesome! Thanks for opening this pull request, it is great to see that you don't mind
+  getting your hands dirty.
+
+  :sparkles: We are proud to have you as a contributor, so don't forget to add yourself to the list
+  of contributors at the bottom of the `README.md`!
+
+  :checkered_flag: To help getting your pull request across the finish line, make sure to check out
+  our [contributor guides](https://orchest.readthedocs.io/en/latest/developer_guide/contributing.html).
+
+  :speech_balloon: If you need to connect more synchronously with members of the _Orchest_
+  community, please feel free to chat with us on our
+  [Slack](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w).
