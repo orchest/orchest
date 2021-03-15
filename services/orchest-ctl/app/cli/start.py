@@ -80,8 +80,8 @@ def cloud(
     """
     Start Orchest in CLOUD mode.
 
-    Starting Orchest in cloud mode makes it so that the user uuid, auth
-    mode and telemetry_disabled are not modifiable through the GUI.
+    Running Orchest in CLOUD mode changes GUI functionality. For 
+    example making it impossible to disable the authentication layer.
     """
     container_config = get_container_config("cloud")
 
