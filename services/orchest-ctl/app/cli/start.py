@@ -71,7 +71,7 @@ def reg(
     app.start(container_config)
 
 
-@typer_app.command()
+@typer_app.command(hidden=True)
 def cloud(
     port: Optional[int] = typer.Option(
         8000, help="The port the Orchest webserver will listen on."
