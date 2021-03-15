@@ -215,7 +215,7 @@ class SettingsView extends React.Component {
                       Note that <span className="code">AUTH_ENABLED</span>,{" "}
                       <span className="code">TELEMETRY_DISABLED</span>,{" "}
                       <span className="code">TELEMETRY_UUID</span> cannot be
-                      modified in <span className="code">cloud</span>, mode.
+                      modified in <span className="code">cloud</span> mode.
                     </span>
                   );
                 }
