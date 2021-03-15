@@ -1,10 +1,8 @@
-import copy
 import hashlib
 import json
 import os
 import shutil
 import uuid
-from typing import Dict
 
 import requests
 from flask import current_app
@@ -303,29 +301,6 @@ def save_user_conf_raw(config):
             f.write(config)
     except Exception as e:
         current_app.logger.debug(e)
-
-
-def update_orchest_config(config: Dict, update: Dict) -> Dict:
-    config = copy.deepcopy(config)
-    is_cloud = StaticConfig.CLOUD_MODE
-    unmodifiable_settings = StaticConfig._CLOUD_UNMODIFIABLE_CONFIG_VALUES
-
-    for k, v in update.items():
-        if not is_cloud or k not in unmodifiable_settings:
-            config[k] = v
-
-    # Delete entries that are not part of config update. Make keys into
-    # a list to avoid changing the dict while we go through an iterator.
-    for k in list(config.keys()):
-        # Delete entries that aren't in the update.
-        if k not in update and (
-            # If not cloud anything can be deleted. If in cloud mode
-            # then only a subset of the config can be deleted.
-            not is_cloud
-            or k not in unmodifiable_settings
-        ):
-            del config[k]
-    return config
 
 
 def clear_folder(folder):

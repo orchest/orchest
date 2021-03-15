@@ -15,6 +15,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app.analytics import send_anonymized_pipeline_definition
+from app.config import CONFIG_CLASS as StaticConfig
 from app.core.pipelines import CreatePipeline, DeletePipeline
 from app.core.projects import (
     CreateProject,
@@ -43,7 +44,6 @@ from app.utils import (
     project_entity_counts,
     save_user_conf_raw,
     serialize_environment_to_disk,
-    update_orchest_config,
 )
 
 
@@ -199,24 +199,36 @@ def register_views(app, db):
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
 
+        # Current user config, from disk.
         current_config = json.loads(get_user_conf_raw())
 
         if request.method == "POST":
 
+            # Updated config, from client.
             config = request.form.get("config")
 
             try:
                 # Only save if parseable JSON.
-                config_update = json.loads(config)
-                config = update_orchest_config(current_config, config_update)
+                config = json.loads(config)
+
+                # Do not allow some settings to be modified or removed
+                # while in cloud mode, by overwriting whatever value was
+                # set (or unset) using the current configuration.
+                if StaticConfig.CLOUD_MODE:
+                    for setting in StaticConfig._CLOUD_UNMODIFIABLE_CONFIG_VALUES:
+                        if setting in current_config:
+                            config[setting] = current_config[setting]
+                        else:
+                            config.pop(setting, None)
+
+                # Save the updated configuration.
                 save_user_conf_raw(json.dumps(config))
+                current_config = config
 
             except json.JSONDecodeError as e:
                 app.logger.debug(e)
 
-            return config
-        else:
-            return current_config
+        return current_config
 
     @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
     def jupyter_setup_script():
