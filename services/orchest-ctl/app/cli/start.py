@@ -81,7 +81,9 @@ def cloud(
     Start Orchest in CLOUD mode.
 
     Starting Orchest in cloud mode makes it so that the user uuid, auth
-    mode and telemetry_disabled are not modifiable through the GUI.
+    mode and telemetry_disabled are not modifiable through the GUI. To
+    modify them you will need to modify the config.json file directly,
+    which can be found at ~/.config/orchest/config.json.
     """
     container_config = get_container_config("cloud")
 
