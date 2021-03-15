@@ -53,6 +53,13 @@ class Config:
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
 
+    CLOUD_MODE = _config.CLOUD_MODE
+    _CLOUD_UNMODIFIABLE_SETTINGS = [
+        "TELEMETRY_UUID",
+        "TELEMETRY_DISABLED",
+        "AUTH_ENABLED",
+    ]
+
     RESOURCE_DIR = os.path.join(dir_path, "res")
 
 

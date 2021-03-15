@@ -43,6 +43,7 @@ from app.utils import (
     project_entity_counts,
     save_user_conf_raw,
     serialize_environment_to_disk,
+    update_orchest_config,
 )
 
 
@@ -144,6 +145,7 @@ def register_views(app, db):
             "TELEMETRY_DISABLED",
             "ENVIRONMENT_DEFAULTS",
             "ORCHEST_WEB_URLS",
+            "CLOUD_MODE",
         ]
 
         front_end_config_internal = [
@@ -197,21 +199,24 @@ def register_views(app, db):
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
 
+        current_config = json.loads(get_user_conf_raw())
+
         if request.method == "POST":
 
             config = request.form.get("config")
 
             try:
-                # only save if parseable JSON
-                json.loads(config)
-                save_user_conf_raw(config)
+                # Only save if parseable JSON.
+                config_update = json.loads(config)
+                config = update_orchest_config(current_config, config_update)
+                save_user_conf_raw(json.dumps(config))
 
             except json.JSONDecodeError as e:
                 app.logger.debug(e)
 
-            return ""
+            return config
         else:
-            return get_user_conf_raw()
+            return current_config
 
     @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
     def jupyter_setup_script():

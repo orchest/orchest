@@ -113,6 +113,9 @@ def get_container_config(
     if mode == "reg":
         return get_reg_container_config(env)
 
+    if mode == "cloud":
+        return get_cloud_container_config(env)
+
     if mode == "dev":
         return get_dev_container_config(env)
 
@@ -295,6 +298,39 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
         }
         inject_dict(container_config, certs_bind, overwrite=True)
 
+    return container_config
+
+
+def get_cloud_container_config(env: Optional[dict] = None) -> dict:
+    """Constructs the container config to run Orchest in "cloud" mode.
+
+    Note:
+        The returned configuration adheres to:
+        https://docs.docker.com/engine/api/v1.41/#operation/ContainerCreate
+
+    Args:
+        env: Refer to :meth:`get_container_config`.
+
+    Returns:
+        Dictionary mapping the name of the docker containers to their
+        respective configs in the format required by the docker engine
+        API.
+
+    """
+    if env is None:
+        env = utils.get_env()
+
+    container_config = get_reg_container_config(env)
+
+    cloud_inject = {
+        "orchest-webserver": {
+            "Env": [
+                "CLOUD_MODE=true",
+            ],
+        },
+    }
+
+    inject_dict(container_config, cloud_inject, overwrite=False)
     return container_config
 
 

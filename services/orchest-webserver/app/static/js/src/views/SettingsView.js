@@ -97,9 +97,27 @@ class SettingsView extends React.Component {
         .catch((e) => {
           console.error(e);
         })
-        .then(() => {
-          // refresh the page when auth gets enabled in the config
-          if (configJSON.AUTH_ENABLED && !authWasEnabled) {
+        .then((data) => {
+          let shouldReload = false;
+
+          try {
+            let configJSON = JSON.parse(data);
+
+            this.setState({
+              configJSON,
+            });
+
+            // Refresh the page when auth gets enabled in the config.
+            shouldReload = configJSON.AUTH_ENABLED && !authWasEnabled;
+          } catch (error) {
+            console.warn("Received invalid JSON config from the server.");
+          }
+
+          this.setState({
+            config: data,
+          });
+
+          if (shouldReload) {
             location.reload();
           }
         });
@@ -189,6 +207,19 @@ class SettingsView extends React.Component {
             <p className="push-down">
               These settings are stored in{" "}
               <span className="code">config.json</span>.
+              {(() => {
+                if (orchest.config["CLOUD_MODE"] === true) {
+                  return (
+                    <span>
+                      {" "}
+                      Note that <span className="code">AUTH_ENABLED</span>,{" "}
+                      <span className="code">TELEMETRY_DISABLED</span>,{" "}
+                      <span className="code">TELEMETRY_UUID</span> cannot be
+                      modified in cloud mode.
+                    </span>
+                  );
+                }
+              })()}
             </p>
 
             {(() => {

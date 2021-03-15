@@ -6,6 +6,7 @@ import typer
 
 from app.orchest import OrchestApp
 from app.spec import get_container_config, inject_dict
+from app.utils import echo
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,34 @@ def reg(
         },
     }
     inject_dict(container_config, port_bind, overwrite=True)
+    app.start(container_config)
+
+
+@typer_app.command()
+def cloud(
+    port: Optional[int] = typer.Option(
+        8000, help="The port the Orchest webserver will listen on."
+    )
+):
+    """
+    Start Orchest in CLOUD mode.
+
+    Starting Orchest in cloud mode makes it so that the user uuid, auth
+    mode and telemetry_disabled are not modifiable through the GUI.
+    """
+    container_config = get_container_config("cloud")
+
+    port_bind: dict = {
+        "nginx-proxy": {
+            "HostConfig": {
+                "PortBindings": {
+                    "80/tcp": [{"HostPort": f"{port}"}],
+                },
+            },
+        },
+    }
+    inject_dict(container_config, port_bind, overwrite=True)
+    echo("Orchest set to run in CLOUD mode.")
     app.start(container_config)
 
 
