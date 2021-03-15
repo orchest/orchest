@@ -308,7 +308,7 @@ def save_user_conf_raw(config):
 def update_orchest_config(config: Dict, update: Dict) -> Dict:
     config = copy.deepcopy(config)
     is_cloud = StaticConfig.CLOUD_MODE
-    unmodifiable_settings = StaticConfig._CLOUD_UNMODIFIABLE_SETTINGS
+    unmodifiable_settings = StaticConfig._CLOUD_UNMODIFIABLE_CONFIG_VALUES
 
     for k, v in update.items():
         if not is_cloud or k not in unmodifiable_settings:
