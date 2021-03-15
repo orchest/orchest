@@ -215,7 +215,7 @@ class SettingsView extends React.Component {
                       Note that <span className="code">AUTH_ENABLED</span>,{" "}
                       <span className="code">TELEMETRY_DISABLED</span>,{" "}
                       <span className="code">TELEMETRY_UUID</span> cannot be
-                      modified in cloud mode.
+                      modified in <span className="code">cloud</span>, mode.
                     </span>
                   );
                 }
@@ -292,11 +292,20 @@ class SettingsView extends React.Component {
         <h3>Version information</h3>
         <div className="columns">
           <div className="column">
-            <p>
-              Find out Orchest's version and application mode. The application
-              mode can either be: <span className="code">production</span> or{" "}
-              <span className="code">development</span>.
-            </p>
+            {(() => {
+              if (orchest.config["CLOUD_MODE"] === true) {
+                return <p>Find out Orchest's version.</p>;
+              } else {
+                return (
+                  <p>
+                    Find out Orchest's version and application mode. The
+                    application mode can either be:{" "}
+                    <span className="code">production</span> or{" "}
+                    <span className="code">development</span>.
+                  </p>
+                );
+              }
+            })()}
           </div>
           <div className="column">
             {(() => {
@@ -310,10 +319,16 @@ class SettingsView extends React.Component {
                 );
               }
             })()}
-            <p>
-              Application mode:{" "}
-              <span className="code">{orchest.environment}</span>.
-            </p>
+            {(() => {
+              if (orchest.config["CLOUD_MODE"] === false) {
+                return (
+                  <p>
+                    Application mode:{" "}
+                    <span className="code">{orchest.environment}</span>.
+                  </p>
+                );
+              }
+            })()}
           </div>
           <div className="clear"></div>
         </div>
