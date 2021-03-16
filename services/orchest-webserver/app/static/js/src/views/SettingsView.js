@@ -307,6 +307,15 @@ class SettingsView extends React.Component {
                 );
               }
             })()}
+            {(() => {
+              if (orchest.environment === "development") {
+                return (
+                  <p>
+                    <span className="code">development mode</span>
+                  </p>
+                );
+              }
+            })()}
           </div>
           <div className="clear"></div>
         </div>
