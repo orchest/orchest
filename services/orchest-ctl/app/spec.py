@@ -340,6 +340,11 @@ def update_container_config_with_cloud(
                 "CLOUD=true",
             ],
         },
+        "update-server": {
+            "Env": [
+                "CLOUD=true",
+            ],
+        },
     }
 
     inject_dict(container_config, cloud_inject, overwrite=False)
