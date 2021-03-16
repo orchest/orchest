@@ -7,6 +7,7 @@ import docker
 from flask import jsonify, request
 
 from _orchest.internals.utils import run_orchest_ctl
+from app import config
 
 executor = ThreadPoolExecutor(1)
 
@@ -66,19 +67,23 @@ def background_task(json_obj):
             break
 
     try:
-
-        # Restart Orchest in either regular or dev mode.
+        # Restart Orchest given the flags.
         ctl_command = ["restart"]
 
-        # Note: this depends on the detached
-        # Docker orchest_ctl finishing
-        # without waiting for the response
-        # as the update-server is shutdown as part
-        # of the restart command.
-        dev_mode = json_obj.get("mode") == "dev"
-        if dev_mode:
-            ctl_command += ["--mode=dev"]
+        if json_obj.get("dev"):
+            ctl_command.append("--dev")
 
+        # Restart with --cloud if it's requested by the client or if
+        # Orchest is already running with it. This, essentially, allows
+        # going from --no-cloud to --cloud but does not allow to do the
+        # opposite, so that --cloud cannot be disabled through a web
+        # request.
+        if config.CLOUD or json_obj.get("cloud"):
+            ctl_command.append("--cloud")
+
+        # Note: this depends on the detached Docker orchest_ctl
+        # finishing without waiting for the response as the
+        # update-server is shutdown as part of the restart command.
         run_orchest_ctl(client, ctl_command)
 
     except docker.errors.APIError as e:

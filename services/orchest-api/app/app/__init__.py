@@ -84,7 +84,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
             # in an invalid state, so they are deleted, since for sure
             # they are not running anymore.
             # To avoid the issue of entities being deleted because of a
-            # flask app reload triggered by a dev mode code change, we
+            # flask app reload triggered by a --dev code change, we
             # attempt to create a directory first. Since this is an
             # atomic operation that will result in an error if the
             # directory is already there, this cleanup operation will

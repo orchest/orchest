@@ -184,11 +184,20 @@ def register_views(app, db):
     def restart_server():
 
         client = docker.from_env()
+        args = ["restart"]
 
-        if request.args.get("mode") == "dev":
-            run_orchest_ctl(client, ["restart", "--mode=dev"])
-        else:
-            run_orchest_ctl(client, ["restart"])
+        if request.args.get("dev") == "true":
+            args.append("--dev")
+
+        # Restart with --cloud if it's requested by the client or if
+        # Orchest is already running with it. This, essentially, allows
+        # going from --no-cloud to --cloud but does not allow to do the
+        # opposite, so that --cloud cannot be disabled through a web
+        # request.
+        if StaticConfig.CLOUD or request.args.get("cloud") == "true":
+            args.append("--cloud")
+
+        run_orchest_ctl(client, args)
 
         return ""
 
@@ -212,8 +221,9 @@ def register_views(app, db):
                 config = json.loads(config)
 
                 # Do not allow some settings to be modified or removed
-                # while in cloud mode, by overwriting whatever value was
-                # set (or unset) using the current configuration.
+                # while running with --cloud, by overwriting whatever
+                # value was set (or unset) using the current
+                # configuration.
                 if StaticConfig.CLOUD:
                     for setting in StaticConfig._CLOUD_UNMODIFIABLE_CONFIG_VALUES:
                         if setting in current_config:

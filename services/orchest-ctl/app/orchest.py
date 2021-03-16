@@ -214,7 +214,7 @@ class OrchestApp:
         logger.info("Starting Orchest update service...")
 
         config = {}
-        container_config = spec.get_container_config("reg")
+        container_config = spec.get_container_config()
         config["update-server"] = container_config["update-server"]
 
         self.docker_client.run_containers(config, use_name=True, detach=True)

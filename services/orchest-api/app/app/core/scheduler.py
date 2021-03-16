@@ -58,7 +58,8 @@ class Scheduler:
                     )
                 )
                 # This is to avoid errors in case two schedulers are
-                # running, which happens in dev mode.
+                # running, which happens when starting Orchest with
+                # --dev.
                 .with_for_update()
                 # Ignore drafts.
                 .filter(Job.status != "DRAFT")

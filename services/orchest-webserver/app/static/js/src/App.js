@@ -51,7 +51,7 @@ class App extends React.Component {
       console.log("Orchest is running with --dev.");
     }
 
-    if (this.config["CLOUD"] === true) {
+    if (this.config.CLOUD === true) {
       console.log("Orchest is running with --cloud.");
     }
 

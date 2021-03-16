@@ -47,7 +47,7 @@ docker exec ${SERVICE} python migration_manager.py db ${COMMANDS}
 code=$?
 if [ $code -eq 0 ]; then
   # cp the revision files to the filesystem, this way the script works
-  # both in production and dev mode
+  # both with or without --dev.
   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
   docker cp \
   "${SERVICE}:/orchest/services/${SERVICE}/app/migrations/versions/" \

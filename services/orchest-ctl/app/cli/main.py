@@ -72,11 +72,6 @@ typer_app.add_typer(cli_start.typer_app, name="start")
 app = OrchestApp()
 
 
-class Mode(str, Enum):
-    reg = "reg"
-    dev = "dev"
-
-
 class Language(str, Enum):
     python = "python"
     r = "r"
@@ -149,7 +144,7 @@ def debug(
     The command does not need Orchest to be running when called, but
     will produce a less inclusive dump if that is not the case.
 
-    Note: if Orchest was/has been running in dev mode, then there is the
+    Note: if Orchest was/has been running with --dev, then there is the
     possibility of some user data getting into the dump due to the log
     level being set to DEBUG.
 
@@ -203,17 +198,36 @@ def update(
 
 @typer_app.command()
 def restart(
-    mode: Mode = typer.Option(
-        Mode.reg, help="Mode in which to start Orchest afterwards."
+    # Support the old way of passing mode so that an old version of
+    # Orchest does not break when updating.
+    mode: str = typer.Option(
+        "reg",
+        help=(
+            "Mode in which to start Orchest afterwards. This option is "
+            "deprecated and will be removed in a future version. Use --dev "
+            "instead of --mode=dev."
+        ),
+        hidden=True,
     ),
     port: Optional[int] = typer.Option(
         8000, help="The port the Orchest webserver will listen on."
+    ),
+    cloud: bool = typer.Option(
+        False,
+        show_default="--no-cloud",
+        help=cli_start.__CLOUD_HELP_MESSAGE,
+        hidden=True,
+    ),
+    dev: bool = typer.Option(
+        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
     ),
 ):
     """
     Restart Orchest.
     """
-    container_config = get_container_config(mode.value)
+
+    dev = dev or (mode == "dev")
+    container_config = get_container_config(cloud=cloud, dev=dev)
     port_bind: dict = {
         "nginx-proxy": {
             "HostConfig": {

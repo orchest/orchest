@@ -288,7 +288,7 @@ def containers_logs_dump(
     }
 
     # Only log these containers if in ext mode, since they coud log user
-    # data in case of error, even in production mode.
+    # data in case of error, even when running with --no-dev.
     ext_names = {"postgres:13.1"}
 
     for id, name in zip(ids, names):
