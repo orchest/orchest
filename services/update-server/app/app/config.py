@@ -1,9 +1,12 @@
+import os
+
 from _orchest.internals import config as _config
 
 
 class Config:
     DEBUG = False
     CLOUD = _config.CLOUD
+    FLASK_ENV = os.environ.get("FLASK_ENV", "production")
 
 
 class DevelopmentConfig(Config):

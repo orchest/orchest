@@ -242,11 +242,23 @@ def restart(
 
 
 @typer_app.command(hidden=True)
-def updateserver():
+def updateserver(
+    # Necessary to make it so that the update server restarts Orchest
+    # with the correct settings.
+    cloud: bool = typer.Option(
+        False,
+        show_default="--no-cloud",
+        help=cli_start.__CLOUD_HELP_MESSAGE,
+        hidden=True,
+    ),
+    dev: bool = typer.Option(
+        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
+    ),
+):
     """
     Update Orchest through the update-server.
     """
-    app._updateserver()
+    app._updateserver(cloud, dev)
 
 
 @typer_app.command(hidden=True)

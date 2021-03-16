@@ -425,6 +425,11 @@ def update_container_config_with_dev(
                 ],
             },
         },
+        "update-server": {
+            "Env": [
+                "FLASK_ENV=development",
+            ],
+        },
     }
 
     inject_dict(container_config, dev_inject, overwrite=False)

@@ -209,12 +209,12 @@ class OrchestApp:
         self.stop()
         self.start(container_config)
 
-    def _updateserver(self):
+    def _updateserver(self, cloud: bool = False, dev: bool = False):
         """Starts the update-server service."""
         logger.info("Starting Orchest update service...")
 
         config = {}
-        container_config = spec.get_container_config()
+        container_config = spec.get_container_config(cloud=cloud, dev=dev)
         config["update-server"] = container_config["update-server"]
 
         self.docker_client.run_containers(config, use_name=True, detach=True)
