@@ -24,4 +24,4 @@ jobs:
           summary: |
             ${{ github.event.issue.title }}
           description: |
-            New issue on GitHub ${{ github.repository }}
+            New issue on GitHub ${{ github.repository }} at ${{ github.event.issue.url }}
