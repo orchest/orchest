@@ -8,6 +8,12 @@ __pycache__/
 
 .vscode/
 
+# Build artifacts 
+#  These files are only present during the build process, but we'll add them to
+#  .gitignore to avoid confusion
+services/*/.dockerignore
+services/*/lib
+
 # Distribution / packaging
 .Python
 build/
