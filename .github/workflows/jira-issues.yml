@@ -5,14 +5,14 @@ on:
     types: [opened]
 
 jobs:
-  create:
+  login:
     - name: Login
       uses: atlassian/gajira-login@master
       env:
         JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
         JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
         JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-
+  create:
     - name: Create
       id: create
       uses: atlassian/gajira-create@master
