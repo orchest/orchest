@@ -4,10 +4,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import docker
-from flask import jsonify, request
+from flask import jsonify
 
 from _orchest.internals.utils import run_orchest_ctl
-from app import config
+from app.config import CONFIG_CLASS
 
 executor = ThreadPoolExecutor(1)
 
@@ -25,7 +25,7 @@ def log_update(message):
         logging.error(e)
 
 
-def background_task(json_obj):
+def background_task():
 
     client = docker.from_env()
 
@@ -70,15 +70,10 @@ def background_task(json_obj):
         # Restart Orchest given the flags.
         ctl_command = ["restart"]
 
-        if json_obj.get("dev"):
+        if CONFIG_CLASS.FLASK_ENV == "development":
             ctl_command.append("--dev")
 
-        # Restart with --cloud if it's requested by the client or if
-        # Orchest is already running with it. This, essentially, allows
-        # going from --no-cloud to --cloud but does not allow to do the
-        # opposite, so that --cloud cannot be disabled through a web
-        # request.
-        if config.CLOUD or json_obj.get("cloud"):
+        if CONFIG_CLASS.CLOUD:
             ctl_command.append("--cloud")
 
         # Note: this depends on the detached Docker orchest_ctl
@@ -123,7 +118,7 @@ def register_views(app):
         if app.config.get("UPDATING") is not True:
             app.config["UPDATING"] = True
 
-            executor.submit(background_task, request.json)
+            executor.submit(background_task)
             return ""
         else:
             return "Update in progress", 423

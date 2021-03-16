@@ -94,16 +94,9 @@ class UpdateView extends React.Component {
 
   requestUpdate() {
     let updateUrl = "/update-server/update";
-    let data = {
-      dev: orchest.config.FLASK_ENV === "development",
-      cloud: orchest.config.CLOUD === true,
-    };
 
     let updatePromise = makeCancelable(
-      makeRequest("POST", updateUrl, {
-        type: "json",
-        content: data,
-      }),
+      makeRequest("POST", updateUrl),
       this.promiseManager
     );
     updatePromise.promise

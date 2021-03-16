@@ -159,21 +159,7 @@ class SettingsView extends React.Component {
           status: "restarting",
         });
 
-        let args = [];
-
-        let restartURL = "/async/restart";
-        if (orchest.config.FLASK_ENV === "development") {
-          args.push("dev=true");
-        }
-
-        if (orchest.config.CLOUD === true) {
-          args.push("cloud=true");
-        }
-
-        args = args.join("&");
-        restartURL += "?" + args;
-
-        makeRequest("POST", restartURL)
+        makeRequest("POST", "/async/restart")
           .then(() => {
             setTimeout(() => {
               checkHeartbeat("/heartbeat")

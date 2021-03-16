@@ -172,7 +172,15 @@ def register_views(app, db):
 
         client = docker.from_env()
 
-        run_orchest_ctl(client, ["updateserver"])
+        cmd = ["updateserver"]
+
+        if StaticConfig.FLASK_ENV == "development":
+            cmd.append("--dev")
+
+        if StaticConfig.CLOUD:
+            cmd.append("--cloud")
+
+        run_orchest_ctl(client, cmd)
 
         return ""
 
@@ -184,20 +192,15 @@ def register_views(app, db):
     def restart_server():
 
         client = docker.from_env()
-        args = ["restart"]
+        cmd = ["restart"]
 
-        if request.args.get("dev") == "true":
-            args.append("--dev")
+        if StaticConfig.FLASK_ENV == "development":
+            cmd.append("--dev")
 
-        # Restart with --cloud if it's requested by the client or if
-        # Orchest is already running with it. This, essentially, allows
-        # going from --no-cloud to --cloud but does not allow to do the
-        # opposite, so that --cloud cannot be disabled through a web
-        # request.
-        if StaticConfig.CLOUD or request.args.get("cloud") == "true":
-            args.append("--cloud")
+        if StaticConfig.CLOUD:
+            cmd.append("--cloud")
 
-        run_orchest_ctl(client, args)
+        run_orchest_ctl(client, cmd)
 
         return ""
 
