@@ -159,10 +159,19 @@ class SettingsView extends React.Component {
           status: "restarting",
         });
 
+        args = [];
+
         let restartURL = "/async/restart";
-        if (orchest.environment === "development") {
-          restartURL += "?mode=dev";
+        if (orchest.config.FLASK_ENV === "development") {
+          args.push("dev=true");
         }
+
+        if (orchest.config["CLOUD"] === true) {
+          args.push("cloud=true");
+        }
+
+        args = args.join("&");
+        restartURL += "?" + args;
 
         makeRequest("POST", restartURL)
           .then(() => {
@@ -308,7 +317,7 @@ class SettingsView extends React.Component {
               }
             })()}
             {(() => {
-              if (orchest.environment === "development") {
+              if (orchest.config.FLASK_ENV === "development") {
                 return (
                   <p>
                     <span className="code">development mode</span>

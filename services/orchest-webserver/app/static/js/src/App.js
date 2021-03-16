@@ -47,11 +47,13 @@ class App extends React.Component {
     this.config = JSON.parse(window.ORCHEST_CONFIG);
     this.user_config = JSON.parse(window.ORCHEST_USER_CONFIG);
 
-    this.environment = "production";
-    if (this.config.FLASK_ENV == "development") {
-      this.environment = "development";
+    if (this.config.FLASK_ENV === "development") {
+      console.log("Orchest is running with --dev.");
     }
-    console.log("Orchest is running in environment: " + this.environment);
+
+    if (this.config["CLOUD"] === true) {
+      console.log("Orchest is running with --cloud.");
+    }
 
     this.browserConfig = new PersistentLocalConfig("orchest");
 
