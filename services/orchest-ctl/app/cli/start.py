@@ -56,14 +56,15 @@ typer_app = typer.Typer(
     help="""
     Start Orchest.
     """,
-    epilog="Run 'orchest start COMMAND --help' for more information on a command.",
+    # epilog="Run 'orchest start COMMAND --help' for more
+    # information on a command.",
     callback=_default,
 )
 
 app = OrchestApp()
 
 
-@typer_app.command()
+@typer_app.command(hidden=True)
 def reg(
     port: Optional[int] = typer.Option(
         8000, help="The port the Orchest webserver will listen on."
