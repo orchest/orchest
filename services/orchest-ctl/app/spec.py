@@ -2,10 +2,18 @@
 
 import os
 from collections.abc import Container
-from typing import Dict, Literal, Optional
+from enum import Enum
+from typing import Dict, Optional
 
 from _orchest.internals import config as _config
 from app import utils
+
+
+class LogLevel(str, Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
 
 
 def inject_dict(self, other: dict, overwrite: bool = True) -> None:
@@ -89,12 +97,15 @@ def filter_container_config(
 
 
 def get_container_config(
-    mode: Literal["reg", "dev"], env: Optional[dict] = None
+    cloud: bool = False,
+    dev: bool = False,
+    log_level: Optional[LogLevel] = None,
+    env: Optional[dict] = None,
 ) -> dict:
-    """Returns a container configuration given a mode.
+    """Returns a container configuration.
 
-    This methods serves as a convenience method to the particular config
-    methods for each individual mode.
+    This methods serves as a convenience method to return a config which
+    is set up based on the provided arguments.
 
     Note:
         Each of the following keys (with a corresponding value) have to
@@ -106,22 +117,31 @@ def get_container_config(
             * ``"ORCHEST_HOST_GID"``
 
     Args:
+        cloud: If the configuration should be setup for running in the
+            cloud.
+        dev: If the configuration should be setup for running in dev
+            mode.
+        log_level: Log level inside of the application.
         env: Dictionary containing the environment from which to
             construct the container configurations.
 
     """
-    if mode == "reg":
-        return get_reg_container_config(env)
+    config = get_reg_container_config(env)
 
-    if mode == "cloud":
-        return get_cloud_container_config(env)
+    if cloud:
+        update_container_config_with_cloud(config, env)
 
-    if mode == "dev":
-        return get_dev_container_config(env)
+    if dev:
+        update_container_config_with_dev(config, env)
+
+    if log_level is not None:
+        update_container_config_log_level(config, log_level)
+
+    return config
 
 
 def get_reg_container_config(env: Optional[dict] = None) -> dict:
-    """Constructs the container config to run Orchest in "reg" mode.
+    """Constructs the container config to run Orchest.
 
     Note:
         The returned dictionary needs to contain a configuration
@@ -301,59 +321,42 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
     return container_config
 
 
-def get_cloud_container_config(env: Optional[dict] = None) -> dict:
-    """Constructs the container config to run Orchest in "cloud" mode.
-
-    Note:
-        The returned configuration adheres to:
-        https://docs.docker.com/engine/api/v1.41/#operation/ContainerCreate
+def update_container_config_with_cloud(
+    container_config: dict, env: Optional[dict] = None
+) -> None:
+    """Updates the container config to run with --cloud.
 
     Args:
+        container_config: An existing container config, to be updated in
+            place.
         env: Refer to :meth:`get_container_config`.
-
-    Returns:
-        Dictionary mapping the name of the docker containers to their
-        respective configs in the format required by the docker engine
-        API.
-
     """
     if env is None:
         env = utils.get_env()
 
-    container_config = get_reg_container_config(env)
-
     cloud_inject = {
         "orchest-webserver": {
             "Env": [
-                "CLOUD_MODE=true",
+                "CLOUD=true",
             ],
         },
     }
 
     inject_dict(container_config, cloud_inject, overwrite=False)
-    return container_config
 
 
-def get_dev_container_config(env: Optional[dict] = None) -> dict:
-    """Constructs the container config to run Orchest in "dev" mode.
-
-    Note:
-        The returned configuration adheres to:
-        https://docs.docker.com/engine/api/v1.41/#operation/ContainerCreate
+def update_container_config_with_dev(
+    container_config: dict, env: Optional[dict] = None
+) -> None:
+    """Updates the container config to run with --dev.
 
     Args:
+        container_config: An existing container config, to be updated in
+            place.
         env: Refer to :meth:`get_container_config`.
-
-    Returns:
-        Dictionary mapping the name of the docker containers to their
-        respective configs in the format required by the docker engine
-        API.
-
     """
     if env is None:
         env = utils.get_env()
-
-    container_config = get_reg_container_config(env)
 
     dev_inject = {
         "orchest-webserver": {
@@ -420,4 +423,33 @@ def get_dev_container_config(env: Optional[dict] = None) -> dict:
     }
 
     inject_dict(container_config, dev_inject, overwrite=False)
-    return container_config
+
+
+def update_container_config_log_level(
+    container_config: dict, log_level: LogLevel
+) -> None:
+    """Updates the container config for logging purposes.
+
+    Args:
+        container_config: An existing container config, to be updated in
+            place.
+        log_level: Refer to :meth:`get_container_config`.
+
+    """
+
+    logging_env = f"ORCHEST_LOG_LEVEL={log_level.value}"
+    log_levels: dict = {
+        "orchest-webserver": {
+            "Env": [logging_env],
+        },
+        "orchest-api": {
+            "Env": [logging_env],
+        },
+        "auth-server": {
+            "Env": [logging_env],
+        },
+        "celery-worker": {
+            "Env": [logging_env],
+        },
+    }
+    inject_dict(container_config, log_levels, overwrite=False)

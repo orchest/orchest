@@ -208,14 +208,15 @@ class SettingsView extends React.Component {
               These settings are stored in{" "}
               <span className="code">config.json</span>.
               {(() => {
-                if (orchest.config["CLOUD_MODE"] === true) {
+                if (orchest.config["CLOUD"] === true) {
                   return (
                     <span>
                       {" "}
                       Note that <span className="code">AUTH_ENABLED</span>,{" "}
                       <span className="code">TELEMETRY_DISABLED</span>,{" "}
                       <span className="code">TELEMETRY_UUID</span> cannot be
-                      modified in <span className="code">cloud</span> mode.
+                      modified when running in the{" "}
+                      <span className="code">cloud</span>.
                     </span>
                   );
                 }
@@ -292,20 +293,7 @@ class SettingsView extends React.Component {
         <h3>Version information</h3>
         <div className="columns">
           <div className="column">
-            {(() => {
-              if (orchest.config["CLOUD_MODE"] === true) {
-                return <p>Find out Orchest's version.</p>;
-              } else {
-                return (
-                  <p>
-                    Find out Orchest's version and application mode. The
-                    application mode can either be:{" "}
-                    <span className="code">production</span> or{" "}
-                    <span className="code">development</span>.
-                  </p>
-                );
-              }
-            })()}
+            <p>Find out Orchest's version.</p>
           </div>
           <div className="column">
             {(() => {
@@ -316,16 +304,6 @@ class SettingsView extends React.Component {
                   <Fragment>
                     <MDCLinearProgressReact classNames={["push-down"]} />
                   </Fragment>
-                );
-              }
-            })()}
-            {(() => {
-              if (orchest.config["CLOUD_MODE"] === false) {
-                return (
-                  <p>
-                    Application mode:{" "}
-                    <span className="code">{orchest.environment}</span>.
-                  </p>
                 );
               }
             })()}

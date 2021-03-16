@@ -145,7 +145,7 @@ def register_views(app, db):
             "TELEMETRY_DISABLED",
             "ENVIRONMENT_DEFAULTS",
             "ORCHEST_WEB_URLS",
-            "CLOUD_MODE",
+            "CLOUD",
         ]
 
         front_end_config_internal = [
@@ -214,7 +214,7 @@ def register_views(app, db):
                 # Do not allow some settings to be modified or removed
                 # while in cloud mode, by overwriting whatever value was
                 # set (or unset) using the current configuration.
-                if StaticConfig.CLOUD_MODE:
+                if StaticConfig.CLOUD:
                     for setting in StaticConfig._CLOUD_UNMODIFIABLE_CONFIG_VALUES:
                         if setting in current_config:
                             config[setting] = current_config[setting]

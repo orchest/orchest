@@ -53,7 +53,7 @@ class Config:
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
 
-    CLOUD_MODE = _config.CLOUD_MODE
+    CLOUD = _config.CLOUD
     _CLOUD_UNMODIFIABLE_CONFIG_VALUES = [
         "TELEMETRY_UUID",
         "TELEMETRY_DISABLED",
