@@ -200,8 +200,10 @@ class SettingsView extends React.Component {
         <div className="push-down">
           <div>
             <p className="push-down">
-              These settings are stored in{" "}
-              <span className="code">config.json</span>.
+              Enabling authentication through{" "}
+              <span className="code">AUTH_ENABLED</span> will automatically
+              redirect you to the login page, so make sure you have set up a
+              user first!
               {(() => {
                 if (orchest.config.CLOUD === true) {
                   return (
