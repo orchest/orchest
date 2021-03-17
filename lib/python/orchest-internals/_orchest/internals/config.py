@@ -1,3 +1,5 @@
+import os
+
 # TODO: add notice that some of these values have effect on the sdk!.
 
 # General.
@@ -5,6 +7,7 @@ TEMP_DIRECTORY_PATH = "/tmp/orchest"
 TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
 PROJECT_DIR = "/project-dir"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
+CLOUD = os.environ.get("CLOUD") == "true"
 
 # Databases
 database_naming_convention = {

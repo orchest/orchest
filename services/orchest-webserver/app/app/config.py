@@ -46,12 +46,19 @@ class Config:
 
     PROJECT_ORCHEST_GIT_IGNORE_CONTENT = "\n".join(["logs/", "data/"])
 
-    FLASK_ENV = os.environ.get("FLASK_ENV", "PRODUCTION")
+    FLASK_ENV = os.environ.get("FLASK_ENV", "production")
 
     DEBUG = True
 
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
+
+    CLOUD = _config.CLOUD
+    _CLOUD_UNMODIFIABLE_CONFIG_VALUES = [
+        "TELEMETRY_UUID",
+        "TELEMETRY_DISABLED",
+        "AUTH_ENABLED",
+    ]
 
     RESOURCE_DIR = os.path.join(dir_path, "res")
 

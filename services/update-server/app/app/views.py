@@ -4,9 +4,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import docker
-from flask import jsonify, request
+from flask import jsonify
 
 from _orchest.internals.utils import run_orchest_ctl
+from app.config import CONFIG_CLASS
 
 executor = ThreadPoolExecutor(1)
 
@@ -24,7 +25,7 @@ def log_update(message):
         logging.error(e)
 
 
-def background_task(json_obj):
+def background_task():
 
     client = docker.from_env()
 
@@ -66,19 +67,18 @@ def background_task(json_obj):
             break
 
     try:
-
-        # Restart Orchest in either regular or dev mode.
+        # Restart Orchest given the flags.
         ctl_command = ["restart"]
 
-        # Note: this depends on the detached
-        # Docker orchest_ctl finishing
-        # without waiting for the response
-        # as the update-server is shutdown as part
-        # of the restart command.
-        dev_mode = json_obj.get("mode") == "dev"
-        if dev_mode:
-            ctl_command += ["--mode=dev"]
+        if CONFIG_CLASS.FLASK_ENV == "development":
+            ctl_command.append("--dev")
 
+        if CONFIG_CLASS.CLOUD:
+            ctl_command.append("--cloud")
+
+        # Note: this depends on the detached Docker orchest_ctl
+        # finishing without waiting for the response as the
+        # update-server is shutdown as part of the restart command.
         run_orchest_ctl(client, ctl_command)
 
     except docker.errors.APIError as e:
@@ -118,7 +118,7 @@ def register_views(app):
         if app.config.get("UPDATING") is not True:
             app.config["UPDATING"] = True
 
-            executor.submit(background_task, request.json)
+            executor.submit(background_task)
             return ""
         else:
             return "Update in progress", 423

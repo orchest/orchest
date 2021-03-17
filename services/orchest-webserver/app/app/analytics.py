@@ -6,6 +6,7 @@ import uuid
 import posthog
 from posthog.request import APIError
 
+from app.config import CONFIG_CLASS as StaticConfig
 from app.utils import write_config
 
 
@@ -101,8 +102,8 @@ def send_event(app, event, properties):
     try:
         telemetry_uuid = get_telemetry_uuid(app)
 
-        if "mode" not in properties:
-            properties["mode"] = os.environ.get("FLASK_ENV", "production")
+        properties["dev"] = StaticConfig.FLASK_ENV
+        properties["cloud"] = StaticConfig.CLOUD
 
         properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
 

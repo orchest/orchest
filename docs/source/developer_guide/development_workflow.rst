@@ -22,7 +22,7 @@ Since Orchest is a fully containerized application you will first have to build 
 
 Incremental development
 -----------------------
-Orchest supports incremental development by starting Orchest in ``dev`` mode. This allows you to
+Orchest supports incremental development by starting Orchest with the ``--dev`` flag. This allows you to
 make code changes that are instantly reflected, without having to build the containers again.
 
 .. code-block:: bash
@@ -31,18 +31,18 @@ make code changes that are instantly reflected, without having to build the cont
    # be compiled.
    scripts/dev_compile_frontend.sh
 
-   ./orchest start dev
+   ./orchest start --dev
 
 .. note::
-   ``dev`` mode is supported for the following services: ``orchest-webserver``, ``auth-server``,
+   The ``--dev`` flag affects the following services: ``orchest-webserver``, ``auth-server``,
    ``file-manager`` and ``orchest-api``. For changes to other services you will have to run the
    build script again to rebuild the container (``scripts/build_container.sh -i <service-name>``)
-   and restart Orchest (``./orchest restart --mode=dev``) to make sure the newly build container is
+   and restart Orchest (``./orchest restart --dev``) to make sure the newly built container is
    used.
 
-In ``dev`` mode the repository code from the filesystem is mounted (and thus adhering to git
+With ``--dev`` the repository code from the filesystem is mounted (and thus adhering to git
 branches) to the appropriate paths in the Docker containers. This allows for active code changes
-being reflected inside the application. In ``dev`` mode the Flask applications are run in
+being reflected inside the application. With ``--dev`` the Flask applications are run in
 development mode.
 
 

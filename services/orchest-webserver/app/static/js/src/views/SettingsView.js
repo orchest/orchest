@@ -97,9 +97,27 @@ class SettingsView extends React.Component {
         .catch((e) => {
           console.error(e);
         })
-        .then(() => {
-          // refresh the page when auth gets enabled in the config
-          if (configJSON.AUTH_ENABLED && !authWasEnabled) {
+        .then((data) => {
+          let shouldReload = false;
+
+          try {
+            let configJSON = JSON.parse(data);
+
+            this.setState({
+              configJSON,
+            });
+
+            // Refresh the page when auth gets enabled in the config.
+            shouldReload = configJSON.AUTH_ENABLED && !authWasEnabled;
+          } catch (error) {
+            console.warn("Received invalid JSON config from the server.");
+          }
+
+          this.setState({
+            config: data,
+          });
+
+          if (shouldReload) {
             location.reload();
           }
         });
@@ -141,12 +159,7 @@ class SettingsView extends React.Component {
           status: "restarting",
         });
 
-        let restartURL = "/async/restart";
-        if (orchest.environment === "development") {
-          restartURL += "?mode=dev";
-        }
-
-        makeRequest("POST", restartURL)
+        makeRequest("POST", "/async/restart")
           .then(() => {
             setTimeout(() => {
               checkHeartbeat("/heartbeat")
@@ -187,8 +200,24 @@ class SettingsView extends React.Component {
         <div className="push-down">
           <div>
             <p className="push-down">
-              These settings are stored in{" "}
-              <span className="code">config.json</span>.
+              Enabling authentication through{" "}
+              <span className="code">AUTH_ENABLED</span> will automatically
+              redirect you to the login page, so make sure you have set up a
+              user first!
+              {(() => {
+                if (orchest.config.CLOUD === true) {
+                  return (
+                    <span>
+                      {" "}
+                      Note that <span className="code">AUTH_ENABLED</span>,{" "}
+                      <span className="code">TELEMETRY_DISABLED</span>,{" "}
+                      <span className="code">TELEMETRY_UUID</span> cannot be
+                      modified when running in the{" "}
+                      <span className="code">cloud</span>.
+                    </span>
+                  );
+                }
+              })()}
             </p>
 
             {(() => {
@@ -261,11 +290,7 @@ class SettingsView extends React.Component {
         <h3>Version information</h3>
         <div className="columns">
           <div className="column">
-            <p>
-              Find out Orchest's version and application mode. The application
-              mode can either be: <span className="code">production</span> or{" "}
-              <span className="code">development</span>.
-            </p>
+            <p>Find out Orchest's version.</p>
           </div>
           <div className="column">
             {(() => {
@@ -279,10 +304,15 @@ class SettingsView extends React.Component {
                 );
               }
             })()}
-            <p>
-              Application mode:{" "}
-              <span className="code">{orchest.environment}</span>.
-            </p>
+            {(() => {
+              if (orchest.config.FLASK_ENV === "development") {
+                return (
+                  <p>
+                    <span className="code">development mode</span>
+                  </p>
+                );
+              }
+            })()}
           </div>
           <div className="clear"></div>
         </div>

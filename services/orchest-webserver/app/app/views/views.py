@@ -15,6 +15,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app.analytics import send_anonymized_pipeline_definition
+from app.config import CONFIG_CLASS as StaticConfig
 from app.core.pipelines import CreatePipeline, DeletePipeline
 from app.core.projects import (
     CreateProject,
@@ -144,6 +145,7 @@ def register_views(app, db):
             "TELEMETRY_DISABLED",
             "ENVIRONMENT_DEFAULTS",
             "ORCHEST_WEB_URLS",
+            "CLOUD",
         ]
 
         front_end_config_internal = [
@@ -170,7 +172,15 @@ def register_views(app, db):
 
         client = docker.from_env()
 
-        run_orchest_ctl(client, ["updateserver"])
+        cmd = ["updateserver"]
+
+        if StaticConfig.FLASK_ENV == "development":
+            cmd.append("--dev")
+
+        if StaticConfig.CLOUD:
+            cmd.append("--cloud")
+
+        run_orchest_ctl(client, cmd)
 
         return ""
 
@@ -182,11 +192,15 @@ def register_views(app, db):
     def restart_server():
 
         client = docker.from_env()
+        cmd = ["restart"]
 
-        if request.args.get("mode") == "dev":
-            run_orchest_ctl(client, ["restart", "--mode=dev"])
-        else:
-            run_orchest_ctl(client, ["restart"])
+        if StaticConfig.FLASK_ENV == "development":
+            cmd.append("--dev")
+
+        if StaticConfig.CLOUD:
+            cmd.append("--cloud")
+
+        run_orchest_ctl(client, cmd)
 
         return ""
 
@@ -197,21 +211,37 @@ def register_views(app, db):
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
 
+        # Current user config, from disk.
+        current_config = json.loads(get_user_conf_raw())
+
         if request.method == "POST":
 
+            # Updated config, from client.
             config = request.form.get("config")
 
             try:
-                # only save if parseable JSON
-                json.loads(config)
-                save_user_conf_raw(config)
+                # Only save if parseable JSON.
+                config = json.loads(config)
+
+                # Do not allow some settings to be modified or removed
+                # while running with --cloud, by overwriting whatever
+                # value was set (or unset) using the current
+                # configuration.
+                if StaticConfig.CLOUD:
+                    for setting in StaticConfig._CLOUD_UNMODIFIABLE_CONFIG_VALUES:
+                        if setting in current_config:
+                            config[setting] = current_config[setting]
+                        else:
+                            config.pop(setting, None)
+
+                # Save the updated configuration.
+                save_user_conf_raw(json.dumps(config))
+                current_config = config
 
             except json.JSONDecodeError as e:
                 app.logger.debug(e)
 
-            return ""
-        else:
-            return get_user_conf_raw()
+        return current_config
 
     @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
     def jupyter_setup_script():
