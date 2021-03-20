@@ -10,7 +10,7 @@ Quickstart
 This quickstart will follow an example explaining how to build data science pipelines in Orchest and
 touches upon some core principles that will be helpful when you get to building your own pipelines.
 The example pipeline will download the `sklearn California housing dataset
-<https://scikit-learn.org/stable/datasets/index.html#california-housing-dataset>`_, explore the
+<https://scikit-learn.org/stable/modules/generated/sklearn.datasets.fetch_california_housing.html>`_, explore the
 data, train some classifiers, and in the final step collect the results from those classifiers.
 
 .. figure:: ../img/quickstart/final-pipeline.png
