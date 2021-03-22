@@ -882,12 +882,16 @@ span.floating-button {
 }
 
 .warning {
-  color: orangered;
+  padding: $generalPadding/2;
+  border-radius: 3px;
+  color: #fff;
+  background: #b00020;
+  font-size: 15px;
 
   .material-icons {
     float: left;
     margin-right: 10px;
-    margin-top: -2px;
+    margin-top: -4px;
   }
 }
 
@@ -1055,7 +1059,7 @@ button.themed-secondary {
 
 span.code {
   font-family: monospace;
-  background: #eee;
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 3px;
   padding: 2px 4px;
   display: inline-block;
@@ -1647,6 +1651,21 @@ table {
 }
 
 @media only screen and (max-width: 1200px) {
+  .view-page {
+    &.global-settings {
+      .columns {
+        .column {
+          &:nth-child(2n) {
+            padding-left: 0;
+          }
+          &:nth-child(2n + 1) {
+            padding-right: 0;
+          }
+        }
+      }
+    }
+  }
+
   .columns {
     .column {
       width: 100%;
