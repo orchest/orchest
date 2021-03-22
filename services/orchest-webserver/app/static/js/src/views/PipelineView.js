@@ -26,7 +26,6 @@ import PipelineDetails from "../components/PipelineDetails";
 import PipelineStep from "../components/PipelineStep";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import io from "socket.io-client";
-import SessionToggleButton from "../components/SessionToggleButton";
 import FilePreviewView from "./FilePreviewView";
 import JobView from "./JobView";
 import JupyterLabView from "./JupyterLabView";
@@ -1142,7 +1141,10 @@ class PipelineView extends React.Component {
           orchest.headerBarComponent.setPipeline(
             this.props.queryArgs.pipeline_uuid,
             this.props.queryArgs.project_uuid,
-            this.state.pipelineJson.name
+            this.state.pipelineJson.name,
+            this.onSessionStateChange.bind(this),
+            this.onSessionShutdown.bind(this),
+            this.onSessionFetch.bind(this)
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");
@@ -1865,8 +1867,6 @@ class PipelineView extends React.Component {
     if (session_details) {
       this.updateJupyterInstance();
     }
-
-    orchest.headerBarComponent.updateSessionState(running);
   }
 
   onSessionShutdown() {
@@ -1877,7 +1877,7 @@ class PipelineView extends React.Component {
   onSessionFetch(session_details) {
     if (this.props.queryArgs.read_only !== "true") {
       if (session_details === undefined) {
-        this.refManager.refs.sessionToggleButton.toggleSession();
+        orchest.headerBarComponent.toggleSession();
       }
     }
   }
@@ -2158,15 +2158,6 @@ class PipelineView extends React.Component {
             if (this.props.queryArgs.read_only !== "true") {
               return (
                 <div className={"pipeline-actions"}>
-                  <SessionToggleButton
-                    ref={this.refManager.nrefs.sessionToggleButton}
-                    pipeline_uuid={this.props.queryArgs.pipeline_uuid}
-                    project_uuid={this.props.queryArgs.project_uuid}
-                    onSessionStateChange={this.onSessionStateChange.bind(this)}
-                    onSessionFetch={this.onSessionFetch.bind(this)}
-                    onSessionShutdown={this.onSessionShutdown.bind(this)}
-                  />
-
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
                     onClick={this.newStep.bind(this)}

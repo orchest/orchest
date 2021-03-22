@@ -1,5 +1,4 @@
 import React from "react";
-import SessionToggleButton from "../components/SessionToggleButton";
 import MDCLinearProgressReact from "../lib/mdc-components/MDCLinearProgressReact";
 import {
   PromiseManager,
@@ -132,15 +131,12 @@ class JupyterLabView extends React.Component {
           orchest.headerBarComponent.setPipeline(
             this.props.queryArgs.pipeline_uuid,
             this.props.queryArgs.project_uuid,
-            pipeline.name
+            pipeline.name,
+            this.onSessionStateChange.bind(this),
+            this.onSessionShutdown.bind(this)
           );
 
           orchest.headerBarComponent.updateCurrentView("jupyter");
-
-          // start session if session is not running
-          if (!this.state.backend.running) {
-            this.refManager.refs.sessionToggleButton.toggleSession();
-          }
         } else {
           console.error("Could not load pipeline.json");
           console.error(result);
@@ -158,6 +154,15 @@ class JupyterLabView extends React.Component {
         session_details.notebook_server_info;
     }
 
+    // Start session if it's not running
+    if (!working && !running) {
+      // Schedule as callback to avoid calling setState
+      // from within React render call.
+      setTimeout(() => {
+        orchest.headerBarComponent.toggleSession();
+      }, 1);
+    }
+
     this.setState({
       backend: this.state.backend,
     });
@@ -165,7 +170,6 @@ class JupyterLabView extends React.Component {
     if (session_details) {
       this.updateJupyterInstance();
     }
-    orchest.headerBarComponent.updateSessionState(running);
 
     this.conditionalRenderingOfJupyterLab();
   }
@@ -186,24 +190,11 @@ class JupyterLabView extends React.Component {
     orchest.jupyter.updateJupyterInstance(baseAddress);
   }
 
-  onSessionShutdown() {
-    // restart session - this view always attempts
-    // to start the session
-    this.refManager.refs.sessionToggleButton.toggleSession();
-  }
+  onSessionShutdown() {}
 
   render() {
     return (
       <div className="view-page jupyter no-padding">
-        <div className="hiddenSession">
-          <SessionToggleButton
-            ref={this.refManager.nrefs.sessionToggleButton}
-            pipeline_uuid={this.props.queryArgs.pipeline_uuid}
-            project_uuid={this.props.queryArgs.project_uuid}
-            onSessionStateChange={this.onSessionStateChange.bind(this)}
-            onSessionShutdown={this.onSessionShutdown.bind(this)}
-          />
-        </div>
         {!this.state.backend.running && this.state.environmentCheckCompleted && (
           <div className="lab-loader">
             <div>

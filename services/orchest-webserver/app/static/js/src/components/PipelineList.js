@@ -55,6 +55,7 @@ class PipelineList extends React.Component {
         <span>{pipeline.name}</span>,
         <span>{pipeline.path}</span>,
         <SessionToggleButton
+          switch={true}
           classNames={["consume-click"]}
           pipeline_uuid={pipeline.uuid}
           project_uuid={this.props.project_uuid}

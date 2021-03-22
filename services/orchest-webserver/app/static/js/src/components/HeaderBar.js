@@ -7,6 +7,8 @@ import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleR
 import ProjectSelector from "./ProjectSelector";
 import SettingsView from "../views/SettingsView";
 import HelpView from "../views/HelpView";
+import { RefManager } from "../lib/utils/all";
+import SessionToggleButton from "./SessionToggleButton";
 
 class HeaderBar extends React.Component {
   constructor(props) {
@@ -19,7 +21,12 @@ class HeaderBar extends React.Component {
       readOnlyPipeline: false,
       viewShowing: "pipeline",
       pipelineSaveStatus: "saved",
+      onSessionStateChange: undefined,
+      onSessionShutdown: undefined,
+      onSessionFetch: undefined,
     };
+
+    this.refManager = new RefManager();
   }
 
   showPipeline() {
@@ -54,25 +61,32 @@ class HeaderBar extends React.Component {
     });
   }
 
-  updateSessionState(active) {
-    this.setState({
-      sessionActive: active,
-    });
-  }
-
   clearPipeline() {
     this.setState({
       pipeline_uuid: undefined,
       project_uuid: undefined,
       pipelineName: undefined,
+      onSessionStateChange: undefined,
+      onSessionShutdown: undefined,
+      onSessionFetch: undefined,
     });
   }
 
-  setPipeline(pipeline_uuid, project_uuid, pipelineName) {
+  setPipeline(
+    pipeline_uuid,
+    project_uuid,
+    pipelineName,
+    onSessionStateChange,
+    onSessionShutdown,
+    onSessionFetch
+  ) {
     this.setState({
-      pipeline_uuid: pipeline_uuid,
-      project_uuid: project_uuid,
-      pipelineName: pipelineName,
+      pipeline_uuid,
+      project_uuid,
+      pipelineName,
+      onSessionStateChange,
+      onSessionShutdown,
+      onSessionFetch,
     });
   }
 
@@ -94,6 +108,34 @@ class HeaderBar extends React.Component {
     this.props.changeSelectedProject(projectUUID);
   }
 
+  toggleSession() {
+    if (this.refManager.refs.sessionToggleButton) {
+      this.refManager.refs.sessionToggleButton.toggleSession();
+    }
+  }
+
+  onSessionStateChange(working, running, session_details) {
+    this.setState({
+      sessionActive: running,
+    });
+
+    if (this.state.onSessionStateChange) {
+      this.state.onSessionStateChange(working, running, session_details);
+    }
+  }
+
+  onSessionFetch(session_details) {
+    if (this.state.onSessionFetch) {
+      this.state.onSessionFetch(session_details);
+    }
+  }
+
+  onSessionShutdown() {
+    if (this.state.onSessionShutdown) {
+      this.state.onSessionShutdown();
+    }
+  }
+
   render() {
     return (
       <header>
@@ -104,7 +146,7 @@ class HeaderBar extends React.Component {
           >
             menu
           </button>
-          <img src="public/image/favicon.png" className="logo" />
+          <img src="public/image/logo.svg" className="logo" />
           <ProjectSelector
             key={this.props.projectSelectorHash}
             onChangeProject={this.onChangeProject.bind(this)}
@@ -131,6 +173,17 @@ class HeaderBar extends React.Component {
         )}
 
         <div className="global-actions">
+          {this.state.pipelineName && (
+            <SessionToggleButton
+              ref={this.refManager.nrefs.sessionToggleButton}
+              pipeline_uuid={this.state.pipeline_uuid}
+              project_uuid={this.state.project_uuid}
+              onSessionStateChange={this.onSessionStateChange.bind(this)}
+              onSessionFetch={this.onSessionFetch.bind(this)}
+              onSessionShutdown={this.onSessionShutdown.bind(this)}
+            />
+          )}
+
           {this.state.pipelineName && this.state.viewShowing == "jupyter" && (
             <MDCButtonReact
               classNames={["mdc-button--outlined"]}
