@@ -80,14 +80,21 @@ class HeaderBar extends React.Component {
     onSessionShutdown,
     onSessionFetch
   ) {
-    this.setState({
-      pipeline_uuid,
-      project_uuid,
-      pipelineName,
-      onSessionStateChange,
-      onSessionShutdown,
-      onSessionFetch,
-    });
+    this.setState(
+      {
+        pipeline_uuid,
+        project_uuid,
+        pipelineName,
+        onSessionStateChange,
+        onSessionShutdown,
+        onSessionFetch,
+      },
+      () => {
+        if (this.refManager.refs.sessionToggleButton) {
+          this.refManager.refs.sessionToggleButton.fetchSessionStatus();
+        }
+      }
+    );
   }
 
   pipelineSaveStatus(status) {

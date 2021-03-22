@@ -55,6 +55,7 @@ class PipelineList extends React.Component {
         <span>{pipeline.name}</span>,
         <span>{pipeline.path}</span>,
         <SessionToggleButton
+          fetchOnInit={true}
           switch={true}
           classNames={["consume-click"]}
           pipeline_uuid={pipeline.uuid}

@@ -26,7 +26,9 @@ class SessionToggleButton extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchSessionStatus();
+    if (this.props.fetchOnInit) {
+      this.fetchSessionStatus();
+    }
   }
 
   initializeFetchSessionPolling() {
@@ -186,7 +188,6 @@ class SessionToggleButton extends React.Component {
         .catch((e) => {
           if (!e.isCanceled) {
             let error = JSON.parse(e.body);
-
             if (error.message == "JupyterBuildInProgress") {
               orchest.alert(
                 "Error",
@@ -232,8 +233,6 @@ class SessionToggleButton extends React.Component {
 
       deletePromise.promise
         .then((response) => {
-          let result = JSON.parse(response);
-
           this.setState(() => {
             let working = false;
             let running = false;
