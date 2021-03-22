@@ -132,8 +132,7 @@ class JupyterLabView extends React.Component {
             this.props.queryArgs.pipeline_uuid,
             this.props.queryArgs.project_uuid,
             pipeline.name,
-            this.onSessionStateChange.bind(this),
-            this.onSessionShutdown.bind(this)
+            this.onSessionStateChange.bind(this)
           );
 
           orchest.headerBarComponent.updateCurrentView("jupyter");
@@ -189,8 +188,6 @@ class JupyterLabView extends React.Component {
       this.state.backend.notebook_server_info.base_url;
     orchest.jupyter.updateJupyterInstance(baseAddress);
   }
-
-  onSessionShutdown() {}
 
   render() {
     return (
