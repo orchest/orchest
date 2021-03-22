@@ -361,9 +361,9 @@ class ProjectsView extends React.Component {
                         <div className="push-down warning">
                           <p>
                             <i className="material-icons">warning</i> The import
-                            URL was pre-filled using the URL. Make sure you
-                            trust the <span className="code">git</span>{" "}
-                            repository you're importing.
+                            URL was pre-filled. Make sure you trust the{" "}
+                            <span className="code">git</span> repository you're
+                            importing.
                           </p>
                         </div>
                       )}
