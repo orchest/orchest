@@ -160,8 +160,6 @@ class PipelineList extends React.Component {
     });
   }
 
-  componentDidUpdate(prevProps, prevState, snapshot) {}
-
   onSubmitModal() {
     let pipelineName = this.refManager.refs.createPipelineNameTextField.mdc
       .value;

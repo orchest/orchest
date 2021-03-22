@@ -29,6 +29,7 @@ import io from "socket.io-client";
 import FilePreviewView from "./FilePreviewView";
 import JobView from "./JobView";
 import JupyterLabView from "./JupyterLabView";
+import PipelinesView from "./PipelinesView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -526,16 +527,59 @@ class PipelineView extends React.Component {
     });
   }
 
+  areQueryArgsValid() {
+    // Verify required props
+    if (
+      this.props.queryArgs.pipeline_uuid === undefined ||
+      this.props.queryArgs.project_uuid === undefined
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  loadDefaultPipeline() {
+    // Fetch this project's pipeline
+    let selectedProject = orchest.getProject();
+
+    if (selectedProject !== undefined) {
+      // initialize REST call for pipelines
+      let fetchPipelinesPromise = makeCancelable(
+        makeRequest("GET", `/async/pipelines/${selectedProject}`),
+        this.promiseManager
+      );
+
+      fetchPipelinesPromise.promise.then((response) => {
+        let data = JSON.parse(response);
+
+        if (data.result.length > 0) {
+          orchest.loadView(PipelineView, {
+            queryArgs: {
+              pipeline_uuid: data.result[0].uuid,
+              project_uuid: selectedProject,
+            },
+          });
+        } else {
+          orchest.loadView(PipelinesView);
+        }
+      });
+    } else {
+      orchest.loadView(PipelinesView);
+    }
+  }
+
   componentDidMount() {
-    this.fetchPipelineAndInitialize();
-    this.connectSocketIO();
-    this.initializeResizeHandlers();
+    if (this.areQueryArgsValid()) {
+      this.fetchPipelineAndInitialize();
+      this.connectSocketIO();
+      this.initializeResizeHandlers();
+    } else {
+      this.loadDefaultPipeline();
+    }
   }
 
   initializeResizeHandlers() {
-    this.setPipelineHolderSize();
-    this.renderPipelineHolder();
-
     $(window).resize(() => {
       this.setPipelineHolderSize();
     });
@@ -1022,6 +1066,9 @@ class PipelineView extends React.Component {
     // called after render, assumed dom elements are also available
     // (required by i.e. connections)
 
+    this.setPipelineHolderSize();
+    this.renderPipelineHolder();
+
     if (this.initializedPipeline) {
       console.error("PipelineView component should only be initialized once.");
       return;
@@ -1076,6 +1123,7 @@ class PipelineView extends React.Component {
       this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
     ) {
       this.fetchPipelineAndInitialize();
+      this.setPipelineHolderSize();
     }
   }
 

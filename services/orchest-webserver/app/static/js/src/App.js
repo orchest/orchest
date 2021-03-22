@@ -289,6 +289,14 @@ class App extends React.Component {
     });
   }
 
+  getProject() {
+    // Use this to get the currently selected project outside
+    // of a view that consumes it as props.
+    // E.g. in the pipeline view that loads the selected project's
+    // pipeline when no query arguments are passed.
+    return this.state.selectedProject;
+  }
+
   invalidateProjects() {
     this.setState({
       projectSelectorHash: uuidv4(),
