@@ -15,12 +15,22 @@ jobs:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      # Subsequent steps have access to the env set here.
+      - name: Determine issue type
+        run: |
+          if [[ ${{ contains(github.event.issue.labels.*.name, 'bug') }} == true ]]; then
+              echo "ISSUE_TYPE=Bug" >> $GITHUB_ENV
+          elif [[ ${{ contains(github.event.issue.labels.*.name, 'new feature') }} == true ]]; then
+              echo "ISSUE_TYPE=New Feature" >> $GITHUB_ENV
+          else
+              echo "ISSUE_TYPE=Improvement" >> $GITHUB_ENV
+          fi
       - name: Create
         id: create
         uses: atlassian/gajira-create@master
         with:
           project: ORCHEST
-          issuetype: Improvement
+          issuetype: ${{ env.ISSUE_TYPE }}
           summary: |
             ${{ github.event.issue.title }}
           description: |
