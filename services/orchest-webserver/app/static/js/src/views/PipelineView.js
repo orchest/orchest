@@ -26,10 +26,10 @@ import PipelineDetails from "../components/PipelineDetails";
 import PipelineStep from "../components/PipelineStep";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
 import io from "socket.io-client";
-import SessionToggleButton from "../components/SessionToggleButton";
 import FilePreviewView from "./FilePreviewView";
 import JobView from "./JobView";
 import JupyterLabView from "./JupyterLabView";
+import PipelinesView from "./PipelinesView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -527,16 +527,59 @@ class PipelineView extends React.Component {
     });
   }
 
+  areQueryArgsValid() {
+    // Verify required props
+    if (
+      this.props.queryArgs.pipeline_uuid === undefined ||
+      this.props.queryArgs.project_uuid === undefined
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  loadDefaultPipeline() {
+    // Fetch this project's pipeline
+    let selectedProject = orchest.getProject();
+
+    if (selectedProject !== undefined) {
+      // initialize REST call for pipelines
+      let fetchPipelinesPromise = makeCancelable(
+        makeRequest("GET", `/async/pipelines/${selectedProject}`),
+        this.promiseManager
+      );
+
+      fetchPipelinesPromise.promise.then((response) => {
+        let data = JSON.parse(response);
+
+        if (data.result.length > 0) {
+          orchest.loadView(PipelineView, {
+            queryArgs: {
+              pipeline_uuid: data.result[0].uuid,
+              project_uuid: selectedProject,
+            },
+          });
+        } else {
+          orchest.loadView(PipelinesView);
+        }
+      });
+    } else {
+      orchest.loadView(PipelinesView);
+    }
+  }
+
   componentDidMount() {
-    this.fetchPipelineAndInitialize();
-    this.connectSocketIO();
-    this.initializeResizeHandlers();
+    if (this.areQueryArgsValid()) {
+      this.fetchPipelineAndInitialize();
+      this.connectSocketIO();
+      this.initializeResizeHandlers();
+    } else {
+      this.loadDefaultPipeline();
+    }
   }
 
   initializeResizeHandlers() {
-    this.setPipelineHolderSize();
-    this.renderPipelineHolder();
-
     $(window).resize(() => {
       this.setPipelineHolderSize();
     });
@@ -1023,6 +1066,9 @@ class PipelineView extends React.Component {
     // called after render, assumed dom elements are also available
     // (required by i.e. connections)
 
+    this.setPipelineHolderSize();
+    this.renderPipelineHolder();
+
     if (this.initializedPipeline) {
       console.error("PipelineView component should only be initialized once.");
       return;
@@ -1077,6 +1123,7 @@ class PipelineView extends React.Component {
       this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
     ) {
       this.fetchPipelineAndInitialize();
+      this.setPipelineHolderSize();
     }
   }
 
@@ -1142,7 +1189,10 @@ class PipelineView extends React.Component {
           orchest.headerBarComponent.setPipeline(
             this.props.queryArgs.pipeline_uuid,
             this.props.queryArgs.project_uuid,
-            this.state.pipelineJson.name
+            this.state.pipelineJson.name,
+            this.onSessionStateChange.bind(this),
+            this.onSessionShutdown.bind(this),
+            this.onSessionFetch.bind(this)
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");
@@ -1865,8 +1915,6 @@ class PipelineView extends React.Component {
     if (session_details) {
       this.updateJupyterInstance();
     }
-
-    orchest.headerBarComponent.updateSessionState(running);
   }
 
   onSessionShutdown() {
@@ -1877,7 +1925,7 @@ class PipelineView extends React.Component {
   onSessionFetch(session_details) {
     if (this.props.queryArgs.read_only !== "true") {
       if (session_details === undefined) {
-        this.refManager.refs.sessionToggleButton.toggleSession();
+        orchest.headerBarComponent.toggleSession();
       }
     }
   }
@@ -2158,15 +2206,6 @@ class PipelineView extends React.Component {
             if (this.props.queryArgs.read_only !== "true") {
               return (
                 <div className={"pipeline-actions"}>
-                  <SessionToggleButton
-                    ref={this.refManager.nrefs.sessionToggleButton}
-                    pipeline_uuid={this.props.queryArgs.pipeline_uuid}
-                    project_uuid={this.props.queryArgs.project_uuid}
-                    onSessionStateChange={this.onSessionStateChange.bind(this)}
-                    onSessionFetch={this.onSessionFetch.bind(this)}
-                    onSessionShutdown={this.onSessionShutdown.bind(this)}
-                  />
-
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
                     onClick={this.newStep.bind(this)}

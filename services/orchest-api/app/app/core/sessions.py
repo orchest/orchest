@@ -192,10 +192,16 @@ class Session:
             # command is issued by a project/pipeline/exp deletion
             # at the same time
             try:
-                container.kill()
-                container.remove()
-            except (requests.exceptions.HTTPError, NotFound, APIError, ContainerError):
-                pass
+                container.remove(force=True)
+            except (
+                requests.exceptions.HTTPError,
+                NotFound,
+                APIError,
+                ContainerError,
+            ) as e:
+                current_app.logger.error(
+                    "Failed to kill/remove session container %s [%s]" % (e, type(e))
+                )
 
         # the reasons such removal needs to be done in sessions.py
         # instead of pipelines.py are: 1) in a job run, the

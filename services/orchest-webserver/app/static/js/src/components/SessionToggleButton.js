@@ -1,5 +1,6 @@
 import React from "react";
 import MDCButtonReact from "../lib/mdc-components/MDCButtonReact";
+import MDCSwitchReact from "../lib/mdc-components/MDCSwitchReact";
 import { makeCancelable, makeRequest, PromiseManager } from "../lib/utils/all";
 
 class SessionToggleButton extends React.Component {
@@ -58,11 +59,14 @@ class SessionToggleButton extends React.Component {
             let working = false;
             let running = true;
 
+            this.state.working = working;
+            this.state.running = running;
+            this.state.session_details = session_details;
             this.props.onSessionStateChange(working, running, session_details);
 
             return {
-              working: working,
-              running: running,
+              working,
+              running,
               session_details,
             };
           });
@@ -73,11 +77,13 @@ class SessionToggleButton extends React.Component {
             let working = true;
             let running = false;
 
+            this.state.working = working;
+            this.state.running = running;
             this.props.onSessionStateChange(working, running);
 
             return {
-              working: working,
-              running: running,
+              working,
+              running,
             };
           });
 
@@ -89,12 +95,12 @@ class SessionToggleButton extends React.Component {
 
             this.state.working = working;
             this.state.running = running;
-
+            this.state.session_details = session_details;
             this.initializeFetchSessionPolling();
 
             return {
-              working: working,
-              running: running,
+              working,
+              running,
               session_details,
             };
           });
@@ -104,13 +110,15 @@ class SessionToggleButton extends React.Component {
           let working = false;
           let running = false;
 
+          this.state.working = working;
+          this.state.running = running;
           this.props.onSessionStateChange(working, running);
 
           clearInterval(this.sessionPollingInterval);
 
           return {
-            working: working,
-            running: running,
+            working,
+            running,
           };
         });
       }
@@ -141,9 +149,10 @@ class SessionToggleButton extends React.Component {
 
       this.setState((state, _) => {
         let working = true;
+        this.state.working = working;
         this.props.onSessionStateChange(working, state.running);
         return {
-          working: working,
+          working,
         };
       });
 
@@ -163,11 +172,13 @@ class SessionToggleButton extends React.Component {
             let working = false;
             let running = true;
 
+            this.state.working = working;
+            this.state.running = running;
             this.props.onSessionStateChange(working, running, session_details);
 
             return {
-              working: working,
-              running: running,
+              working,
+              running,
               session_details,
             };
           });
@@ -187,11 +198,13 @@ class SessionToggleButton extends React.Component {
               let working = false;
               let running = false;
 
+              this.state.working = working;
+              this.state.running = running;
               this.props.onSessionStateChange(working, running);
 
               return {
-                working: working,
-                running: running,
+                working,
+                running,
               };
             });
           }
@@ -200,11 +213,12 @@ class SessionToggleButton extends React.Component {
       this.setState((state) => {
         let working = true;
 
+        this.state.working = working;
         this.props.onSessionStateChange(working, state.running);
         this.props.onSessionShutdown();
 
         return {
-          working: true,
+          working,
         };
       });
 
@@ -224,11 +238,13 @@ class SessionToggleButton extends React.Component {
             let working = false;
             let running = false;
 
+            this.state.working = working;
+            this.state.running = running;
             this.props.onSessionStateChange(working, running);
 
             return {
-              working: working,
-              running: running,
+              working,
+              running,
             };
           });
         })
@@ -244,11 +260,13 @@ class SessionToggleButton extends React.Component {
                 let working = false;
                 let running = true;
 
+                this.state.working = working;
+                this.state.running = running;
                 this.props.onSessionStateChange(working, running);
 
                 return {
-                  working: working,
-                  running: running,
+                  working,
+                  running,
                 };
               });
             }
@@ -258,18 +276,12 @@ class SessionToggleButton extends React.Component {
   }
 
   getPowerButtonClasses() {
-    let classes = [
-      "mdc-power-button",
-      "mdc-button--raised",
-      "session-state-button",
-    ];
+    let classes = ["mdc-button--outlined", "session-state-button"];
 
-    if (this.props.classNames) {
-      classes = classes.concat(this.props.classNames);
-    }
     if (this.state.running) {
       classes.push("active");
     }
+
     if (this.state.working) {
       classes.push("working");
     }
@@ -288,14 +300,34 @@ class SessionToggleButton extends React.Component {
       label = "Stop session";
     }
 
-    return (
-      <MDCButtonReact
-        onClick={this.toggleSession.bind(this)}
-        classNames={this.getPowerButtonClasses()}
-        label={label}
-        icon={this.state.working ? "hourglass_empty" : "power_settings_new"}
-      />
-    );
+    let classes = [];
+    if (this.props.classNames) {
+      classes = classes.concat(this.props.classNames);
+    }
+
+    // This component can be rendered as a switch or button
+    if (this.props.switch === true) {
+      return (
+        <MDCSwitchReact
+          classNames={classes.join(" ")}
+          disabled={this.state.working}
+          on={this.state.running}
+          onChange={this.toggleSession.bind(this)}
+          label={label}
+        />
+      );
+    } else {
+      classes = classes.concat(this.getPowerButtonClasses());
+      return (
+        <MDCButtonReact
+          onClick={this.toggleSession.bind(this)}
+          classNames={classes.join(" ")}
+          label={label}
+          disabled={this.state.working}
+          icon={this.state.running ? "stop" : "play_arrow"}
+        />
+      );
+    }
   }
 }
 

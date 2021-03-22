@@ -43,14 +43,31 @@ class PipelineSettingsView extends React.Component {
     this.promiseManager.cancelCancelablePromises();
   }
 
-  componentDidMount() {
+  setHeaderComponent(pipelineName) {
+    orchest.headerBarComponent.setPipeline(
+      this.props.queryArgs.pipeline_uuid,
+      this.props.queryArgs.project_uuid,
+      pipelineName
+    );
+  }
+
+  init() {
     this.fetchPipeline();
     this.fetchPipelineMetadata();
     this.attachResizeListener();
   }
 
-  componentDidUpdate() {
-    this.attachResizeListener();
+  componentDidMount() {
+    this.init();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (
+      this.props.queryArgs.pipeline_uuid != prevProps.queryArgs.pipeline_uuid ||
+      this.props.queryArgs.project_uuid != prevProps.queryArgs.project_uuid
+    ) {
+      this.init();
+    }
   }
 
   attachResizeListener() {
@@ -97,6 +114,8 @@ class PipelineSettingsView extends React.Component {
           null,
           2
         );
+
+        this.setHeaderComponent(pipelineJson.name);
         this.setState({ pipelineJson: pipelineJson });
       } else {
         console.warn("Could not load pipeline.json");

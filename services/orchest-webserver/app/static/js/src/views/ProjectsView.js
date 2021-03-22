@@ -15,6 +15,7 @@ import {
   validURL,
 } from "../lib/utils/all";
 import { BackgroundTaskPoller } from "../utils/webserver-utils";
+import PipelinesView from "./PipelinesView";
 
 class ProjectsView extends React.Component {
   componentWillUnmount() {}
@@ -67,6 +68,12 @@ class ProjectsView extends React.Component {
         <span>{project.pipeline_count}</span>,
         <span>{project.job_count}</span>,
         <span>{project.environment_count}</span>,
+        <MDCIconButtonToggleReact
+          icon={"settings"}
+          onClick={() => {
+            this.openSettings(project);
+          }}
+        />,
       ]);
     }
 
@@ -107,7 +114,7 @@ class ProjectsView extends React.Component {
   onClickListItem(row, idx, e) {
     let project = this.state.projects[idx];
     orchest.setProject(project.uuid);
-    this.openSettings(project);
+    orchest.loadView(PipelinesView);
   }
 
   onDeleteClick() {
@@ -472,7 +479,13 @@ class ProjectsView extends React.Component {
                   selectable
                   onRowClick={this.onClickListItem.bind(this)}
                   classNames={["fullwidth"]}
-                  headers={["Project", "Pipelines", "Jobs", "Environments"]}
+                  headers={[
+                    "Project",
+                    "Pipelines",
+                    "Jobs",
+                    "Environments",
+                    "Settings",
+                  ]}
                   rows={this.state.listData}
                 />
               </Fragment>
