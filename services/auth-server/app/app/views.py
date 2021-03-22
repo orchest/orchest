@@ -124,8 +124,10 @@ def register_views(app):
                     db.session.add(token)
                     db.session.commit()
 
+                    redirect_url = request.args.get("redirect_url", "/")
+
                     resp = make_response(
-                        render_template("client_side_redirect.html", url="/")
+                        render_template("client_side_redirect.html", url=redirect_url)
                     )
                     resp.set_cookie("auth_token", token.token)
                     resp.set_cookie("auth_username", username)

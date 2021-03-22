@@ -27,6 +27,11 @@ class ProjectsView extends React.Component {
       createModal: false,
       showImportModal: false,
       loading: true,
+      // import dialog
+      import_url: "",
+      import_project_name: "",
+      // create dialog
+      create_project_name: "",
     };
 
     this.ERROR_MAPPING = {
@@ -55,8 +60,28 @@ class ProjectsView extends React.Component {
     this.backgroundTaskPoller.removeAllTasks();
   }
 
+  componentDidUpdate(prevProps) {
+    if (
+      this.props.queryArgs &&
+      prevProps.queryArgs &&
+      this.props.queryArgs.import_url != prevProps.queryArgs.import_url
+    ) {
+      this.conditionalShowImportFromURL();
+    }
+  }
+
+  conditionalShowImportFromURL() {
+    if (this.props.queryArgs && this.props.queryArgs.import_url) {
+      this.setState({
+        import_url: this.props.queryArgs.import_url,
+        showImportModal: true,
+      });
+    }
+  }
+
   componentDidMount() {
     this.fetchList();
+    this.conditionalShowImportFromURL();
   }
 
   processListData(projects) {
@@ -175,7 +200,7 @@ class ProjectsView extends React.Component {
   }
 
   onSubmitModal() {
-    let projectName = this.refManager.refs.createProjectNameTextField.mdc.value;
+    let projectName = this.state.create_project_name;
 
     if (projectName.length == 0) {
       orchest.alert("Error", "Project name cannot be empty.");
@@ -210,6 +235,11 @@ class ProjectsView extends React.Component {
         } catch {
           orchest.alert("Error", "Could not create project. Reason unknown.");
         }
+      })
+      .finally(() => {
+        this.setState({
+          create_project_name: "",
+        });
       });
 
     this.setState({
@@ -232,8 +262,8 @@ class ProjectsView extends React.Component {
   }
 
   onSubmitImport() {
-    let gitURL = this.refManager.refs.gitURLTextField.mdc.value;
-    let gitProjectName = this.refManager.refs.gitProjectNameTextField.mdc.value;
+    let gitURL = this.state.import_url;
+    let gitProjectName = this.state.import_project_name;
 
     if (!validURL(gitURL) || !gitURL.startsWith("https://")) {
       orchest.alert(
@@ -315,6 +345,12 @@ class ProjectsView extends React.Component {
     });
   }
 
+  handleChange(key, value) {
+    let updateObj = {};
+    updateObj[key] = value;
+    this.setState(updateObj);
+  }
+
   render() {
     return (
       <div className={"view-page projects-view"}>
@@ -327,6 +363,17 @@ class ProjectsView extends React.Component {
                 ref={this.refManager.nrefs.importProjectDialog}
                 content={
                   <div className="project-import-modal">
+                    {this.props.queryArgs &&
+                      this.props.queryArgs.import_url !== undefined && (
+                        <div className="push-down warning">
+                          <p>
+                            <i className="material-icons">warning</i> The import
+                            URL was pre-filled. Make sure you trust the{" "}
+                            <span className="code">git</span> repository you're
+                            importing.
+                          </p>
+                        </div>
+                      )}
                     <p className="push-down">
                       Import a <span className="code">git</span> repository by
                       specifying the <span className="code">HTTPS</span> URL
@@ -335,13 +382,18 @@ class ProjectsView extends React.Component {
                     <MDCTextFieldReact
                       classNames={["fullwidth push-down"]}
                       label="Git repository URL"
-                      ref={this.refManager.nrefs.gitURLTextField}
+                      value={this.state.import_url}
+                      onChange={this.handleChange.bind(this, "import_url")}
                     />
 
                     <MDCTextFieldReact
                       classNames={["fullwidth"]}
                       label="Project name (optional)"
-                      ref={this.refManager.nrefs.gitProjectNameTextField}
+                      value={this.state.import_project_name}
+                      onChange={this.handleChange.bind(
+                        this,
+                        "import_project_name"
+                      )}
                     />
 
                     {(() => {
@@ -413,9 +465,13 @@ class ProjectsView extends React.Component {
                 ref={this.refManager.nrefs.createProjectDialog}
                 content={
                   <MDCTextFieldReact
-                    ref={this.refManager.nrefs.createProjectNameTextField}
                     classNames={["fullwidth"]}
                     label="Project name"
+                    value={this.state.create_project_name}
+                    onChange={this.handleChange.bind(
+                      this,
+                      "create_project_name"
+                    )}
                   />
                 }
                 actions={
