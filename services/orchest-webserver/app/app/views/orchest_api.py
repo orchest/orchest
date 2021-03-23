@@ -302,7 +302,12 @@ def register_orchest_api_views(app, db):
             if active_runs:
                 return (
                     jsonify(
-                        {"message": "Cannot clear memory while pipeline is running."}
+                        {
+                            "message": (
+                                "Cannot restart the memory "
+                                "server while the pipeline is running."
+                            )
+                        }
                     ),
                     423,
                 )
