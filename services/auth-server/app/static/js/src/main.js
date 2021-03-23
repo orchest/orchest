@@ -11,7 +11,17 @@ switch (viewName) {
   case "Login":
     let loginFailedReason = document.querySelector("input[name='LOGIN_FAILED']")
       .value;
-    ReactDOM.render(<Login loginFailedReason={loginFailedReason} />, view);
+    let cloud = document.querySelector("input[name='CLOUD']").value === "true";
+    let cloudURL = document.querySelector("input[name='CLOUD_URL']").value;
+
+    ReactDOM.render(
+      <Login
+        cloud={cloud}
+        cloudURL={cloudURL}
+        loginFailedReason={loginFailedReason}
+      />,
+      view
+    );
     break;
   case "Admin":
     ReactDOM.render(

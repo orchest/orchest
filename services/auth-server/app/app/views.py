@@ -22,6 +22,8 @@ def register_views(app):
         )
 
         context = {
+            "CLOUD": str(app.config.get("CLOUD")).lower(),
+            "CLOUD_URL": app.config.get("CLOUD_URL"),
             "javascript_bundle_hash": get_hash(js_bundle_path),
             "css_bundle_hash": get_hash(css_bundle_path),
         }

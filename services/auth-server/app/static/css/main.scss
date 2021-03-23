@@ -51,6 +51,15 @@ a.button {
   text-decoration: none;
 }
 
+a {
+  color: vars.$secondary;
+}
+
+.cloud-login-suggestion {
+  padding-top: 40px;
+  max-width: 300px;
+}
+
 h1,
 h2,
 h3 {

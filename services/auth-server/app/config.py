@@ -1,8 +1,14 @@
+import os
+
+
 class Config:
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/auth_server"
 
     TOKEN_DURATION_HOURS = 24
+
+    CLOUD = os.environ.get("CLOUD") == "true"
+    CLOUD_URL = "https://cloud.orchest.io"
 
     STATIC_DIR = "/orchest/services/auth-server/app/static"
 

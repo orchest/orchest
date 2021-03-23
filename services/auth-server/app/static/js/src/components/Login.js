@@ -32,6 +32,12 @@ export default class Login extends React.Component {
               }
             })()}
           </form>
+          {this.props.cloud && (
+            <div className="cloud-login-suggestion">
+              You can also log in using the <br />
+              <a href={this.props.cloudURL}>Orchest Cloud dashboard</a>.
+            </div>
+          )}
         </div>
       </div>
     );
