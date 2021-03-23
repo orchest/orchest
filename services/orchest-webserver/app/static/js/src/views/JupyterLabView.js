@@ -68,6 +68,9 @@ class JupyterLabView extends React.Component {
 
   componentWillUnmount() {
     orchest.jupyter.hide();
+
+    orchest.headerBarComponent.clearSessionListeners();
+
     clearInterval(this.verifyKernelsRetryInterval);
   }
 
@@ -128,11 +131,14 @@ class JupyterLabView extends React.Component {
 
           this.verifyKernelsCallback(pipeline);
 
+          orchest.headerBarComponent.setSessionListeners(
+            this.onSessionStateChange.bind(this)
+          );
+
           orchest.headerBarComponent.setPipeline(
             this.props.queryArgs.pipeline_uuid,
             this.props.queryArgs.project_uuid,
-            pipeline.name,
-            this.onSessionStateChange.bind(this)
+            pipeline.name
           );
 
           orchest.headerBarComponent.updateCurrentView("jupyter");

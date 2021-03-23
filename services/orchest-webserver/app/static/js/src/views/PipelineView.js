@@ -219,8 +219,9 @@ class PipelineView extends React.Component {
     clearInterval(this.pipelineStepStatusPollingInterval);
     clearInterval(this.sessionPollingInterval);
 
-    this.promiseManager.cancelCancelablePromises();
+    orchest.headerBarComponent.clearSessionListeners();
 
+    this.promiseManager.cancelCancelablePromises();
     this._ismounted = false;
   }
 
@@ -1186,13 +1187,16 @@ class PipelineView extends React.Component {
         if (result.success) {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
-          orchest.headerBarComponent.setPipeline(
-            this.props.queryArgs.pipeline_uuid,
-            this.props.queryArgs.project_uuid,
-            this.state.pipelineJson.name,
+          orchest.headerBarComponent.setSessionListeners(
             this.onSessionStateChange.bind(this),
             this.onSessionShutdown.bind(this),
             this.onSessionFetch.bind(this)
+          );
+
+          orchest.headerBarComponent.setPipeline(
+            this.props.queryArgs.pipeline_uuid,
+            this.props.queryArgs.project_uuid,
+            this.state.pipelineJson.name
           );
 
           orchest.headerBarComponent.updateCurrentView("pipeline");

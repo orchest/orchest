@@ -57,72 +57,71 @@ class SessionToggleButton extends React.Component {
         session_details = result.sessions[0];
 
         if (session_details.status == "RUNNING") {
-          this.setState(() => {
-            let working = false;
-            let running = true;
-
-            this.state.working = working;
-            this.state.running = running;
-            this.state.session_details = session_details;
-            this.props.onSessionStateChange(working, running, session_details);
-
-            return {
-              working,
-              running,
-              session_details,
-            };
-          });
+          this.setState(
+            () => {
+              return {
+                working: false,
+                running: true,
+                session_details,
+              };
+            },
+            () => {
+              this.props.onSessionStateChange(
+                this.state.working,
+                this.state.running,
+                this.state.session_details
+              );
+            }
+          );
 
           clearInterval(this.sessionPollingInterval);
         } else if (session_details.status == "LAUNCHING") {
-          this.setState(() => {
-            let working = true;
-            let running = false;
-
-            this.state.working = working;
-            this.state.running = running;
-            this.props.onSessionStateChange(working, running);
-
-            return {
-              working,
-              running,
-            };
-          });
+          this.setState(
+            () => {
+              return {
+                working: true,
+                running: false,
+              };
+            },
+            () => {
+              this.props.onSessionStateChange(
+                this.state.working,
+                this.state.running
+              );
+            }
+          );
 
           this.initializeFetchSessionPolling();
         } else if (session_details.status == "STOPPING") {
-          this.setState(() => {
-            let working = true;
-            let running = true;
-
-            this.state.working = working;
-            this.state.running = running;
-            this.state.session_details = session_details;
-            this.initializeFetchSessionPolling();
-
-            return {
-              working,
-              running,
-              session_details,
-            };
-          });
+          this.setState(
+            () => {
+              return {
+                working: true,
+                running: true,
+                session_details,
+              };
+            },
+            () => {
+              this.initializeFetchSessionPolling();
+            }
+          );
         }
       } else {
-        this.setState(() => {
-          let working = false;
-          let running = false;
-
-          this.state.working = working;
-          this.state.running = running;
-          this.props.onSessionStateChange(working, running);
-
-          clearInterval(this.sessionPollingInterval);
-
-          return {
-            working,
-            running,
-          };
-        });
+        this.setState(
+          () => {
+            clearInterval(this.sessionPollingInterval);
+            return {
+              working: false,
+              running: false,
+            };
+          },
+          () => {
+            this.props.onSessionStateChange(
+              this.state.working,
+              this.state.running
+            );
+          }
+        );
       }
 
       this.props.onSessionFetch(session_details);
@@ -149,14 +148,19 @@ class SessionToggleButton extends React.Component {
         project_uuid: this.props.project_uuid,
       };
 
-      this.setState((state, _) => {
-        let working = true;
-        this.state.working = working;
-        this.props.onSessionStateChange(working, state.running);
-        return {
-          working,
-        };
-      });
+      this.setState(
+        () => {
+          return {
+            working: true,
+          };
+        },
+        () => {
+          this.props.onSessionStateChange(
+            this.state.working,
+            this.state.running
+          );
+        }
+      );
 
       let launchPromise = makeCancelable(
         makeRequest("POST", "/catch/api-proxy/api/sessions/", {
@@ -170,20 +174,22 @@ class SessionToggleButton extends React.Component {
         .then((response) => {
           let session_details = JSON.parse(response);
 
-          this.setState(() => {
-            let working = false;
-            let running = true;
-
-            this.state.working = working;
-            this.state.running = running;
-            this.props.onSessionStateChange(working, running, session_details);
-
-            return {
-              working,
-              running,
-              session_details,
-            };
-          });
+          this.setState(
+            () => {
+              return {
+                working: false,
+                running: true,
+                session_details,
+              };
+            },
+            () => {
+              this.props.onSessionStateChange(
+                this.state.working,
+                this.state.running,
+                this.state.session_details
+              );
+            }
+          );
         })
         .catch((e) => {
           if (!e.isCanceled) {
@@ -195,33 +201,37 @@ class SessionToggleButton extends React.Component {
               );
             }
 
-            this.setState(() => {
-              let working = false;
-              let running = false;
-
-              this.state.working = working;
-              this.state.running = running;
-              this.props.onSessionStateChange(working, running);
-
-              return {
-                working,
-                running,
-              };
-            });
+            this.setState(
+              () => {
+                return {
+                  working: false,
+                  running: false,
+                };
+              },
+              () => {
+                this.props.onSessionStateChange(
+                  this.state.working,
+                  this.state.running
+                );
+              }
+            );
           }
         });
     } else {
-      this.setState((state) => {
-        let working = true;
-
-        this.state.working = working;
-        this.props.onSessionStateChange(working, state.running);
-        this.props.onSessionShutdown();
-
-        return {
-          working,
-        };
-      });
+      this.setState(
+        () => {
+          return {
+            working: true,
+          };
+        },
+        () => {
+          this.props.onSessionStateChange(
+            this.state.working,
+            this.state.running
+          );
+          this.props.onSessionShutdown();
+        }
+      );
 
       let deletePromise = makeCancelable(
         makeRequest(
@@ -232,20 +242,21 @@ class SessionToggleButton extends React.Component {
       );
 
       deletePromise.promise
-        .then((response) => {
-          this.setState(() => {
-            let working = false;
-            let running = false;
-
-            this.state.working = working;
-            this.state.running = running;
-            this.props.onSessionStateChange(working, running);
-
-            return {
-              working,
-              running,
-            };
-          });
+        .then(() => {
+          this.setState(
+            () => {
+              return {
+                working: false,
+                running: false,
+              };
+            },
+            () => {
+              this.props.onSessionStateChange(
+                this.state.working,
+                this.state.running
+              );
+            }
+          );
         })
         .catch((err) => {
           if (!err.isCanceled) {
@@ -254,20 +265,28 @@ class SessionToggleButton extends React.Component {
             );
             console.log(err);
 
+            let error = JSON.parse(e.body);
+            if (error.message == "MemoryServerRestartInProgress") {
+              orchest.alert(
+                "The session can't be stopped while the memory server is being restarted."
+              );
+            }
+
             if (err === undefined || (err && err.isCanceled !== true)) {
-              this.setState(() => {
-                let working = false;
-                let running = true;
-
-                this.state.working = working;
-                this.state.running = running;
-                this.props.onSessionStateChange(working, running);
-
-                return {
-                  working,
-                  running,
-                };
-              });
+              this.setState(
+                () => {
+                  return {
+                    working: false,
+                    running: true,
+                  };
+                },
+                () => {
+                  this.props.onSessionStateChange(
+                    this.state.working,
+                    this.state.running
+                  );
+                }
+              );
             }
           }
         });

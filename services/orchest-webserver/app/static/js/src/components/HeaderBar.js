@@ -61,38 +61,39 @@ class HeaderBar extends React.Component {
     });
   }
 
-  clearPipeline() {
+  setSessionListeners(onSessionStateChange, onSessionShutdown, onSessionFetch) {
     this.setState({
-      pipeline_uuid: undefined,
-      project_uuid: undefined,
-      pipelineName: undefined,
+      onSessionStateChange,
+      onSessionShutdown,
+      onSessionFetch,
+    });
+  }
+
+  clearSessionListeners() {
+    this.setState({
       onSessionStateChange: undefined,
       onSessionShutdown: undefined,
       onSessionFetch: undefined,
     });
   }
 
-  setPipeline(
-    pipeline_uuid,
-    project_uuid,
-    pipelineName,
-    onSessionStateChange,
-    onSessionShutdown,
-    onSessionFetch
-  ) {
+  clearPipeline() {
+    this.setState({
+      pipeline_uuid: undefined,
+      project_uuid: undefined,
+      pipelineName: undefined,
+    });
+  }
+
+  setPipeline(pipeline_uuid, project_uuid, pipelineName) {
     this.setState(
       {
         pipeline_uuid,
         project_uuid,
         pipelineName,
-        onSessionStateChange,
-        onSessionShutdown,
-        onSessionFetch,
       },
       () => {
-        if (this.refManager.refs.sessionToggleButton) {
-          this.refManager.refs.sessionToggleButton.fetchSessionStatus();
-        }
+        this.fetchSessionStatus();
       }
     );
   }
@@ -119,6 +120,19 @@ class HeaderBar extends React.Component {
     if (this.refManager.refs.sessionToggleButton) {
       this.refManager.refs.sessionToggleButton.toggleSession();
     }
+  }
+
+  fetchSessionStatus() {
+    // Make sure all renders have been flushed,
+    // such that SessionToggleButton is available.
+    this.setState(
+      () => {},
+      () => {
+        if (this.refManager.refs.sessionToggleButton) {
+          this.refManager.refs.sessionToggleButton.fetchSessionStatus();
+        }
+      }
+    );
   }
 
   onSessionStateChange(working, running, session_details) {

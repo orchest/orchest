@@ -126,7 +126,12 @@ class Session(Resource):
         # Note: The entry in the database does not have to be updated
         # since restarting the `memory-server` does not change its
         # Docker ID.
-        session_obj.restart_resource(resource_name="memory-server")
+        try:
+            session_obj.restart_resource(resource_name="memory-server")
+        except Exception as e:
+            current_app.logger.error(
+                "Failed to restart the memory server %s [%s]" % (e, type(e))
+            )
 
         return {"message": "Session restart was successful."}, 200
 
