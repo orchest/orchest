@@ -984,7 +984,12 @@ class PipelineView extends React.Component {
         });
       }
 
-      if (stepDragged) this.savePipeline();
+      if (stepDragged) {
+        // Trigger save through event queue (for perfomance)
+        setTimeout(() => {
+          this.savePipeline();
+        }, 1);
+      }
 
       if (e.button === 0 && this.state.selectedSteps.length == 0) {
         // when space bar is held make sure deselection does not occur
