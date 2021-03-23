@@ -22,6 +22,7 @@ class PipelineDetailsLogs extends React.Component {
     this.startLogSession();
 
     window.addEventListener("resize", this.fitTerminal.bind(this));
+    this.fitTerminal();
   }
 
   initializeSocketIOListener() {
