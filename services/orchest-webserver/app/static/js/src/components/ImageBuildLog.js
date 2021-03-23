@@ -94,10 +94,6 @@ class ImageBuild extends React.Component {
       transports: ["websocket"],
     });
 
-    this.socket.on("connect", () => {
-      console.log(`SocketIO connected on ${this.props.socketIONamespace}`);
-    });
-
     this.socket.on("sio_streamed_task_data", (data) => {
       // ignore terminal outputs from other builds
       if (data.identity == this.props.streamIdentity) {

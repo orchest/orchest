@@ -10,6 +10,7 @@ class SessionToggleButton extends React.Component {
     this.state = {
       working: false,
       running: false,
+      session_details: undefined,
     };
 
     this.promiseManager = new PromiseManager();

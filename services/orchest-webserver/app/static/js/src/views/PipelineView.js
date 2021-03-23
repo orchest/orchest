@@ -251,6 +251,11 @@ class PipelineView extends React.Component {
     this.pipelineOrigin = [0, 0];
     this.mouseClientX = 0;
     this.mouseClientY = 0;
+
+    // double click timer
+    this.doubleClickFirstClick = false;
+    this.DOUBLE_CLICK_TIMEOUT = 300;
+
     this.scaleFactor = 1;
 
     this.connections = [];
@@ -589,10 +594,6 @@ class PipelineView extends React.Component {
   connectSocketIO() {
     // disable polling
     this.sio = io.connect("/pty", { transports: ["websocket"] });
-
-    this.sio.on("connect", () => {
-      console.log("SocketIO connected on /pty");
-    });
   }
 
   getConnectionByUUIDs(startNodeUUID, endNodeUUID) {
@@ -908,9 +909,22 @@ class PipelineView extends React.Component {
         if (!step.meta_data._dragged) {
           if (!e.ctrlKey) {
             stepClicked = true;
-            this.refManager.refs[this.selectedItem].props.onClick(
-              this.selectedItem
-            );
+
+            if (this.doubleClickFirstClick) {
+              this.refManager.refs[this.selectedItem].props.onDoubleClick(
+                this.selectedItem
+              );
+            } else {
+              this.refManager.refs[this.selectedItem].props.onClick(
+                this.selectedItem
+              );
+            }
+
+            this.doubleClickFirstClick = true;
+            clearTimeout(this.doubleClickTimeout);
+            this.doubleClickTimeout = setTimeout(() => {
+              this.doubleClickFirstClick = false;
+            }, this.DOUBLE_CLICK_TIMEOUT);
           } else {
             // if clicked step is not selected, select it on Ctrl+Mouseup
             if (this.state.selectedSteps.indexOf(this.selectedItem) === -1) {
@@ -1312,6 +1326,10 @@ class PipelineView extends React.Component {
     });
   }
 
+  onDoubleClickStepHandler(stepUUID) {
+    this.openNotebook(stepUUID);
+  }
+
   stepNameUpdate(pipelineStepUUID, title, file_path) {
     this.state.steps[pipelineStepUUID].title = title;
     this.state.steps[pipelineStepUUID].file_path = file_path;
@@ -1451,20 +1469,27 @@ class PipelineView extends React.Component {
     );
   }
 
-  openNotebook() {
-    orchest.loadView(JupyterLabView, {
-      queryArgs: {
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        project_uuid: this.props.queryArgs.project_uuid,
-      },
-    });
+  openNotebook(stepUUID) {
+    if (this.state.backend.running && !this.state.backend.working) {
+      orchest.loadView(JupyterLabView, {
+        queryArgs: {
+          pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+          project_uuid: this.props.queryArgs.project_uuid,
+        },
+      });
 
-    orchest.jupyter.navigateTo(
-      relativeToAbsolutePath(
-        this.state.steps[this.state.openedStep].file_path,
-        this.state.pipelineCwd
-      ).slice(1)
-    );
+      orchest.jupyter.navigateTo(
+        relativeToAbsolutePath(
+          this.state.steps[stepUUID].file_path,
+          this.state.pipelineCwd
+        ).slice(1)
+      );
+    } else {
+      orchest.alert(
+        "Error",
+        "Please start the session before opening the Notebook in Jupyter"
+      );
+    }
   }
 
   onOpenFilePreviewView(step_uuid) {
@@ -1481,14 +1506,7 @@ class PipelineView extends React.Component {
   }
 
   onOpenNotebook() {
-    if (this.state.backend.running && !this.state.backend.working) {
-      this.openNotebook();
-    } else {
-      orchest.alert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter"
-      );
-    }
+    this.openNotebook(this.state.openedStep);
   }
 
   parseRunStatuses(result) {
@@ -2092,6 +2110,7 @@ class PipelineView extends React.Component {
             executionState={this.getStepExecutionState(step.uuid)}
             onConnect={this.makeConnection.bind(this)}
             onClick={this.onClickStepHandler.bind(this)}
+            onDoubleClick={this.onDoubleClickStepHandler.bind(this)}
           />
         );
       }
