@@ -359,7 +359,7 @@ def pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid=None):
             return None
 
 
-def project_entity_counts(project_uuid):
+def project_entity_counts(project_uuid, get_job_count=False, get_session_count=False):
 
     counts = {}
 
@@ -369,17 +369,52 @@ def project_entity_counts(project_uuid):
 
     counts["environment_count"] = len(get_environments(project_uuid))
 
-    resp = requests.get(
-        f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/jobs/',
-        params={"project_uuid": project_uuid},
-    )
-    data = resp.json()
-    if resp.status_code != 200:
-        job_count = 0
-    else:
-        job_count = len(data.get("jobs", []))
+    if get_job_count:
+        counts["job_count"] = get_api_entity_counts(
+            "/api/jobs/", "jobs", project_uuid
+        ).get(project_uuid, 0)
 
-    counts["job_count"] = job_count
+    if get_session_count:
+        counts["session_count"] = get_api_entity_counts(
+            "/api/sessions/", "sessions", project_uuid
+        ).get(project_uuid, 0)
+
+    return counts
+
+
+def get_job_counts():
+    return get_api_entity_counts("/api/jobs/", "jobs")
+
+
+def get_session_counts():
+    return get_api_entity_counts("/api/sessions/", "sessions")
+
+
+def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
+    params = {}
+    if project_uuid is not None:
+        params["project_uuid"] = project_uuid
+
+    resp = requests.get(
+        f'http://{current_app.config["ORCHEST_API_ADDRESS"]}{endpoint}', params=params
+    )
+
+    data = resp.json()
+    counts = {}
+
+    if resp.status_code != 200:
+        current_app.logger.error(
+            "Failed to fetch entity count "
+            "from orchest-api. Endpoint [%s] Entity key[%s]. Status code: %d"
+            % (endpoint, entity_key, resp.status_code)
+        )
+        return counts
+
+    for entity in data[entity_key]:
+        if entity["project_uuid"] in counts:
+            counts[entity["project_uuid"]] += 1
+        else:
+            counts[entity["project_uuid"]] = 1
 
     return counts
 

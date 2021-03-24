@@ -437,12 +437,9 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/api/jobs/", methods=["get"])
     def catch_api_proxy_jobs_get_all():
 
-        params = {}
-        if "project_uuid" in request.args:
-            params = {"project_uuid": request.args["project_uuid"]}
-
         resp = requests.get(
-            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/', params
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/?'
+            + request.query_string.decode()
         )
 
         return resp.content, resp.status_code, resp.headers.items()

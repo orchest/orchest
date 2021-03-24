@@ -34,11 +34,13 @@ from app.utils import (
     get_environment_directory,
     get_environments,
     get_hash,
+    get_job_counts,
     get_pipeline_directory,
     get_pipeline_json,
     get_pipeline_path,
     get_project_directory,
     get_repo_tag,
+    get_session_counts,
     get_user_conf,
     get_user_conf_raw,
     pipeline_set_notebook_kernels,
@@ -398,7 +400,7 @@ def register_views(app, db):
             )
         else:
             # Merge the project data coming from the orchest-api.
-            counts = project_entity_counts(project_uuid)
+            counts = project_entity_counts(project_uuid, get_job_count=True)
             project = {**project.as_dict(), **resp.json(), **counts}
 
             return jsonify(project)
@@ -430,6 +432,12 @@ def register_views(app, db):
         # be shown until ready.
         projects = projects_schema.dump(Project.query.filter_by(status="READY").all())
 
+        if request.args.get("session_counts") == "true":
+            session_counts = get_session_counts()
+
+        if request.args.get("job_counts") == "true":
+            job_counts = get_job_counts()
+
         for project in projects:
 
             # Discover both pipelines of newly initialized projects and
@@ -451,6 +459,14 @@ def register_views(app, db):
 
             counts = project_entity_counts(project["uuid"])
             project.update(counts)
+
+            if request.args.get("session_counts") == "true":
+                project.update(
+                    {"session_count": session_counts.get(project["uuid"], 0)}
+                )
+
+            if request.args.get("job_counts") == "true":
+                project.update({"job_count": job_counts.get(project["uuid"], 0)})
 
         return jsonify(projects)
 

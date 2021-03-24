@@ -88,9 +88,11 @@ class ProjectsView extends React.Component {
     let listData = [];
 
     for (let project of projects) {
+      console.log(project);
       listData.push([
         <span>{project.path}</span>,
         <span>{project.pipeline_count}</span>,
+        <span>{project.session_count}</span>,
         <span>{project.job_count}</span>,
         <span>{project.environment_count}</span>,
         <MDCIconButtonToggleReact
@@ -108,7 +110,7 @@ class ProjectsView extends React.Component {
   fetchList() {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
-      makeRequest("GET", "/async/projects"),
+      makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
       this.promiseManager
     );
 
@@ -538,6 +540,7 @@ class ProjectsView extends React.Component {
                   headers={[
                     "Project",
                     "Pipelines",
+                    "Active sessions",
                     "Jobs",
                     "Environments",
                     "Settings",
