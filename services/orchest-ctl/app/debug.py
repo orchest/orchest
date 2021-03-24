@@ -14,7 +14,9 @@ from app.docker_wrapper import OrchestResourceManager
 health_check_command = {
     "orchest/orchest-api:latest": "wget localhost/api -T 2 -t 2 --spider",
     "orchest/orchest-webserver:latest": "wget localhost -T 2 -t 2 --spider",
-    "orchest/auth-server:latest": "wget localhost/auth -T 2 -t 2 --spider",
+    # Need to GET login/clear because this will work both when AUTH is
+    # enabled and not.
+    "orchest/auth-server:latest": "wget localhost/login/clear -T 2 -t 2",
     "orchest/celery-worker:latest": "celery inspect ping -A app.core.tasks",
     "orchest/file-manager:latest": "wget localhost -T 2 -t 2 --spider",
     "postgres:13.1": "pg_isready --username postgres",
@@ -340,8 +342,7 @@ def orchest_config_dump(path: str) -> None:
 
 def health_check_dump(resource_manager: OrchestResourceManager, path: str) -> None:
     with open(os.path.join(path, "health_check.txt"), "w") as file:
-        for container, exit_code in health_check(resource_manager).items():
-            file.write(f"{container:<44}: {exit_code}\n")
+        json.dump(health_check(resource_manager), file, indent=4)
 
 
 def running_containers_dump(
