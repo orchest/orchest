@@ -379,6 +379,10 @@ class PipelineSettingsView extends React.Component {
               "Could not clear memory server, reason unknown. Please try again later.";
             try {
               errorMessage = JSON.parse(response.body)["message"];
+              if (errorMessage == "SessionNotRunning") {
+                errorMessage =
+                  "Session is not running, please try again later.";
+              }
             } catch (error) {
               console.error(error);
             }
