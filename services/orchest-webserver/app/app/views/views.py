@@ -27,6 +27,7 @@ from app.kernel_manager import populate_kernels
 from app.models import Environment, Pipeline, Project
 from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
 from app.utils import (
+    check_pipeline_correctness,
     create_pipeline_file,
     delete_environment,
     get_environment,
@@ -668,6 +669,15 @@ def register_views(app, db):
             # Parse JSON.
             pipeline_json = json.loads(request.form.get("pipeline_json"))
 
+            errors = check_pipeline_correctness(pipeline_json)
+            if errors:
+                msg = {}
+                msg = {"success": False}
+                reason = ", ".join([key for key in errors])
+                reason = f"Invalid value: {reason}."
+                msg["reason"] = reason
+                return jsonify(msg), 400
+
             # Side effect: for each Notebook in de pipeline.json set the
             # correct kernel.
             pipeline_set_notebook_kernels(
@@ -680,7 +690,7 @@ def register_views(app, db):
             # Analytics call.
             send_anonymized_pipeline_definition(app, pipeline_json)
 
-            return jsonify({"message": "Successfully saved pipeline."})
+            return jsonify({"success": True, "message": "Successfully saved pipeline."})
 
         elif request.method == "GET":
 

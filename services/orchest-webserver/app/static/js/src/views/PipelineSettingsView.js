@@ -32,6 +32,7 @@ class PipelineSettingsView extends React.Component {
       restartingMemoryServer: false,
       unsavedChanges: false,
       pipeline_path: undefined,
+      dataPassingMemorySize: "1GB",
     };
 
     this.overflowListener = new OverflowListener();
@@ -108,6 +109,9 @@ class PipelineSettingsView extends React.Component {
         }
         if (pipelineJson.settings.data_passing_memory_size === undefined) {
           pipelineJson.settings.data_passing_memory_size = "1GB";
+        } else {
+          this.state.dataPassingMemorySize =
+            pipelineJson.settings.data_passing_memory_size;
         }
         this.state.inputParameters = JSON.stringify(
           pipelineJson.parameters,
@@ -236,11 +240,31 @@ class PipelineSettingsView extends React.Component {
     }
   }
 
+  isValidMemorySize(value) {
+    if (Number.isInteger(value)) {
+      return value >= 0;
+    } else if (typeof value === "string") {
+      return value.match(/^\d+(\.\d+)?\s*(KB|MB|GB)+$/);
+    }
+    return false;
+  }
+
   onChangeDataPassingMemorySize(value) {
-    this.state.pipelineJson.settings.data_passing_memory_size = value;
+    if (typeof value === "string" && value.match(/^\d+$/)) {
+      value = parseInt(value);
+    }
+
+    this.state.dataPassingMemorySize = value;
     this.setState({
-      unsavedChanges: true,
+      dataPassingMemorySize: value,
     });
+
+    if (this.isValidMemorySize(value)) {
+      this.state.pipelineJson.settings.data_passing_memory_size = value;
+      this.setState({
+        unsavedChanges: true,
+      });
+    }
   }
 
   onChangeEviction(value) {
@@ -307,10 +331,16 @@ class PipelineSettingsView extends React.Component {
       `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
       { type: "FormData", content: formData }
     )
-      .then(() => {
-        this.setState({
-          unsavedChanges: false,
-        });
+      .then((response) => {
+        let result = JSON.parse(response);
+        if (result.success) {
+          this.setState({
+            unsavedChanges: false,
+          });
+        } else {
+          console.error("Could not save pipeline.json");
+          console.error(result);
+        }
       })
       .catch((response) => {
         console.error(response);
@@ -502,6 +532,20 @@ class PipelineSettingsView extends React.Component {
                         disabled={this.props.queryArgs.read_only === "true"}
                       />
                     </div>
+                    {(() => {
+                      if (
+                        !this.isValidMemorySize(
+                          this.state.dataPassingMemorySize
+                        )
+                      ) {
+                        return (
+                          <div className="warning push-up">
+                            <i className="material-icons">warning</i> Not a
+                            valid memory size.
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                   <div className="clear"></div>
                 </div>

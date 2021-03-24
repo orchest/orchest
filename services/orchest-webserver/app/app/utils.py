@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import uuid
 
@@ -655,3 +656,22 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
                     )
                     % notebook_path
                 )
+
+
+def check_pipeline_correctness(pipeline_json):
+    invalid_entries = {}
+
+    mem_size = pipeline_json["settings"].get("data_passing_memory_size")
+    if mem_size is None:
+        invalid_entries["data_passing_memory_size"] = "missing"
+    elif (
+        (not isinstance(mem_size, (str, int)))
+        or (isinstance(mem_size, int) and mem_size < 0)
+        or (
+            isinstance(mem_size, str)
+            and re.match(r"\d+(\.\d+)?\s*(KB|MB|GB)$", mem_size) is None
+        )
+    ):
+        invalid_entries["data_passing_memory_size"] = "invalid_value"
+
+    return invalid_entries
