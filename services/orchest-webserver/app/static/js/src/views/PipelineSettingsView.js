@@ -108,11 +108,9 @@ class PipelineSettingsView extends React.Component {
           pipelineJson.settings.auto_eviction = false;
         }
         if (pipelineJson.settings.data_passing_memory_size === undefined) {
-          pipelineJson.settings.data_passing_memory_size = "1GB";
-        } else {
-          this.state.dataPassingMemorySize =
-            pipelineJson.settings.data_passing_memory_size;
+          pipelineJson.settings.data_passing_memory_size = this.state.dataPassingMemorySize;
         }
+
         this.state.inputParameters = JSON.stringify(
           pipelineJson.parameters,
           null,
@@ -120,7 +118,10 @@ class PipelineSettingsView extends React.Component {
         );
 
         this.setHeaderComponent(pipelineJson.name);
-        this.setState({ pipelineJson: pipelineJson });
+        this.setState({
+          pipelineJson: pipelineJson,
+          dataPassingMemorySize: pipelineJson.settings.data_passing_memory_size,
+        });
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -252,7 +253,9 @@ class PipelineSettingsView extends React.Component {
 
     if (this.isValidMemorySize(value)) {
       this.state.pipelineJson.settings.data_passing_memory_size = value;
+
       this.setState({
+        pipelineJson: this.state.pipelineJson,
         unsavedChanges: true,
       });
     }
@@ -376,6 +379,10 @@ class PipelineSettingsView extends React.Component {
               "Could not clear memory server, reason unknown. Please try again later.";
             try {
               errorMessage = JSON.parse(response.body)["message"];
+              if (errorMessage == "SessionNotRunning") {
+                errorMessage =
+                  "Session is not running, please try again later.";
+              }
             } catch (error) {
               console.error(error);
             }
@@ -514,10 +521,7 @@ class PipelineSettingsView extends React.Component {
                           this.refManager.nrefs
                             .pipelineSettingDataPassingMemorySizeTextField
                         }
-                        value={
-                          this.state.pipelineJson.settings
-                            .data_passing_memory_size
-                        }
+                        value={this.state.dataPassingMemorySize}
                         onChange={this.onChangeDataPassingMemorySize.bind(this)}
                         label="Data passing memory size"
                         disabled={this.props.queryArgs.read_only === "true"}

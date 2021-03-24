@@ -116,6 +116,10 @@ class Session(Resource):
         session = models.InteractiveSession.query.get_or_404(
             ident=(project_uuid, pipeline_uuid), description="Session not found"
         )
+
+        if session.status != "RUNNING":
+            return {"message": "SessionNotRunning"}, 500
+
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,
             container_IDs=session.container_ids,
