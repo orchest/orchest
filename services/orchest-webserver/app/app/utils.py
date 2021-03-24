@@ -664,13 +664,8 @@ def check_pipeline_correctness(pipeline_json):
     mem_size = pipeline_json["settings"].get("data_passing_memory_size")
     if mem_size is None:
         invalid_entries["data_passing_memory_size"] = "missing"
-    elif (
-        (not isinstance(mem_size, (str, int)))
-        or (isinstance(mem_size, int) and mem_size < 0)
-        or (
-            isinstance(mem_size, str)
-            and re.match(r"\d+(\.\d+)?\s*(KB|MB|GB)$", mem_size) is None
-        )
+    elif (not isinstance(mem_size, str)) or (
+        re.match(r"^\d+(\.\d+)?\s*(KB|MB|GB)$", mem_size) is None
     ):
         invalid_entries["data_passing_memory_size"] = "invalid_value"
 

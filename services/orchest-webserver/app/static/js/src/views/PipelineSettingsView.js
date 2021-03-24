@@ -241,19 +241,10 @@ class PipelineSettingsView extends React.Component {
   }
 
   isValidMemorySize(value) {
-    if (Number.isInteger(value)) {
-      return value >= 0;
-    } else if (typeof value === "string") {
-      return value.match(/^\d+(\.\d+)?\s*(KB|MB|GB)+$/);
-    }
-    return false;
+    return value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
   }
 
   onChangeDataPassingMemorySize(value) {
-    if (typeof value === "string" && value.match(/^\d+$/)) {
-      value = parseInt(value);
-    }
-
     this.state.dataPassingMemorySize = value;
     this.setState({
       dataPassingMemorySize: value,

@@ -6,7 +6,7 @@ def _parse_string_memory_size(memory_size: Union[str, int]) -> int:
     """Converts string description of memory size to number of bytes
 
     Allowable inputs are an integer or a string which respects the regex
-    "\d+(\.\d+)?\s*(KB|MB|GB)$".
+    "^\d+(\.\d+)?\s*(KB|MB|GB)$".
     """
     # If an integer is given, then it is assumed to be the number of
     # bytes.
