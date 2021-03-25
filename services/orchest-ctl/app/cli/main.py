@@ -118,6 +118,17 @@ def status(
 ):
     """
     Get status of Orchest.
+
+    Exit codes:
+
+    - 0: Orchest is running and services are ready.
+
+    - 1: Orchest is not running.
+
+    - 2: Orchest is running, but some required service has shut down.
+
+    - 3: Orchest is running, but some required service is not passing an
+    health check.
     """
     app.status(ext=ext)
 

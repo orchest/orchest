@@ -227,7 +227,7 @@ class OrchestApp:
 
         if not self.is_running(running_containers_names):
             utils.echo("Orchest is not running.")
-            return
+            raise typer.Exit(code=1)
 
         # Minimal set of containers to be running for Orchest to be in
         # a valid state.
@@ -240,6 +240,7 @@ class OrchestApp:
                 "Orchest has reached an invalid state. Running containers:\n"
                 + "\n".join(running_containers_names)
             )
+            raise typer.Exit(code=2)
         else:
             utils.echo("Orchest is running.")
             if ext:
@@ -252,6 +253,8 @@ class OrchestApp:
 
                 if no_issues:
                     utils.echo("All services are ready.")
+                else:
+                    raise typer.Exit(code=3)
 
     def update(self, mode=None):
         """Update Orchest.
