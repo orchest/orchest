@@ -23,6 +23,7 @@ class ProjectFilePicker extends React.Component {
       selectedFileExists: "undetermined",
       fileName: "",
       selectedExtension: "." + ALLOWED_STEP_EXTENSIONS[0],
+      createFileDir: "",
       tree: undefined,
     };
 
@@ -157,15 +158,26 @@ class ProjectFilePicker extends React.Component {
   onCreateFile(dir) {
     let fileNameProposal = "";
     if (this.props.value) {
-      fileNameProposal = this.props.value.split("/").slice(-1);
+      fileNameProposal = this.props.value
+        .split("/")
+        .slice(-1)
+        .join("/")
+        .split(".")[0];
     }
 
     this.setState({
       fileName: fileNameProposal,
-      createFileFullProjectPath: dir,
       createFileDir: dir,
       createFileModal: true,
     });
+  }
+
+  getFullProjectPath() {
+    return (
+      this.state.createFileDir +
+      this.state.fileName +
+      this.state.selectedExtension
+    );
   }
 
   onCancelModal() {
@@ -182,8 +194,6 @@ class ProjectFilePicker extends React.Component {
     this.setState((state, _) => {
       return {
         fileName: value,
-        createFileFullProjectPath:
-          state.createFileDir + value + state.selectedExtension,
       };
     });
   }
@@ -192,14 +202,13 @@ class ProjectFilePicker extends React.Component {
     this.setState((state, _) => {
       return {
         selectedExtension: value,
-        createFileFullProjectPath: state.createFileDir + state.fileName + value,
       };
     });
   }
 
   onSubmitModal() {
     // validate extensions
-    let extension = extensionFromFilename(this.state.createFileFullProjectPath);
+    let extension = extensionFromFilename(this.getFullProjectPath());
 
     // TODO: case insensitive extension checking?
     if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
@@ -222,7 +231,7 @@ class ProjectFilePicker extends React.Component {
         {
           type: "json",
           content: {
-            file_path: this.state.createFileFullProjectPath,
+            file_path: this.getFullProjectPath(),
           },
         }
       ),
@@ -233,7 +242,7 @@ class ProjectFilePicker extends React.Component {
       .then(() => {
         this.onChangeFileValue(
           absoluteToRelativePath(
-            this.state.createFileFullProjectPath,
+            this.getFullProjectPath(),
             this.state.cwd
           ).slice(1)
         );
@@ -308,7 +317,7 @@ class ProjectFilePicker extends React.Component {
                     </div>
                     <MDCTextFieldReact
                       label="Path in project"
-                      value={this.state.createFileFullProjectPath}
+                      value={this.getFullProjectPath()}
                       classNames={["fullwidth push-down"]}
                       ref={this.refManager.nrefs.fullFilePath}
                       disabled
