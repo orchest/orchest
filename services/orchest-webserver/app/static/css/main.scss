@@ -1084,6 +1084,10 @@ span.code {
   display: flex;
   flex-direction: row;
 
+  .mdc-button--outlined {
+    background: #fff;
+  }
+
   .pipeline-actions {
     position: absolute;
     right: 0;
@@ -1100,6 +1104,13 @@ span.code {
       button {
         margin: 0;
       }
+    }
+
+    &.top-left {
+      top: auto;
+      left: 0;
+      bottom: auto;
+      right: auto;
     }
 
     &.bottom-left {

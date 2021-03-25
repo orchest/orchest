@@ -303,6 +303,10 @@ non_interactive_run = pipeline_run.inherit(
             required=True, description="Index across all runs for the same job"
         ),
         "parameters": fields.Raw(required=True, description="Parameters of the run"),
+        "server_time": fields.DateTime(
+            attribute=lambda x: datetime.datetime.now(datetime.timezone.utc),
+            description="Server time to be used when calculating run durations.",
+        ),
     },
 )
 

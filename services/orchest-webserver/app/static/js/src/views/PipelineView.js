@@ -2098,6 +2098,14 @@ class PipelineView extends React.Component {
     return rect;
   }
 
+  returnToJob(job_uuid) {
+    orchest.loadView(JobView, {
+      queryArgs: {
+        job_uuid,
+      },
+    });
+  }
+
   render() {
     let pipelineSteps = [];
 
@@ -2177,6 +2185,21 @@ class PipelineView extends React.Component {
     return (
       <div className="pipeline-view">
         <div className="pane pipeline-view-pane">
+          {this.props.queryArgs.job_uuid &&
+            this.props.queryArgs.read_only == "true" && (
+              <div className="pipeline-actions top-left">
+                <MDCButtonReact
+                  classNames={["mdc-button--outlined"]}
+                  label="Back to job"
+                  icon="arrow_back"
+                  onClick={this.returnToJob.bind(
+                    this,
+                    this.props.queryArgs.job_uuid
+                  )}
+                />
+              </div>
+            )}
+
           <div className="pipeline-actions bottom-left">
             <div className="navigation-buttons">
               <MDCButtonReact
@@ -2258,7 +2281,6 @@ class PipelineView extends React.Component {
               return (
                 <div className={"pipeline-actions"}>
                   <MDCButtonReact
-                    classNames={"mdc-button--outlined"}
                     label={"Read only"}
                     disabled={true}
                     icon={"visibility"}
