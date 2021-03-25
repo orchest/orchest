@@ -441,31 +441,61 @@ class EnvironmentEditView extends React.Component {
 
                       {(() => {
                         if (this.state.environment.gpu_support === true) {
-                          return (
-                            <div className="docs-notice push-down">
-                              <p className="push-down">
-                                If enabled, the environment will request GPU
-                                capabilities when in use.
-                              </p>
-                              <p>
-                                Check out{" "}
-                                <a
-                                  target="_blank"
-                                  href={
-                                    orchest.config.ORCHEST_WEB_URLS
-                                      .readthedocs +
-                                    "/getting_started/installation.html#gpu-support"
-                                  }
-                                >
-                                  the documentation
-                                </a>{" "}
-                                to make sure Orchest is properly configured for
-                                environments with GPU support. In particular,
-                                make sure the selected base image supports GPU
-                                pass through.
-                              </p>
-                            </div>
+                          let enabledBlock = (
+                            <p className="push-down">
+                              If enabled, the environment will request GPU
+                              capabilities when in use.
+                            </p>
                           );
+                          if (orchest.config["GPU_ENABLED_INSTANCE"] !== true) {
+                            if (orchest.config["CLOUD"] === true) {
+                              return (
+                                <div className="docs-notice push-down">
+                                  <p>
+                                    This instance is not configured with a GPU.
+                                    To request a GPU instance please fill out
+                                    this{" "}
+                                    <a
+                                      target="_blank"
+                                      href={orchest.config["GPU_REQUEST_URL"]}
+                                    >
+                                      form
+                                    </a>
+                                    .
+                                  </p>
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <div className="docs-notice push-down">
+                                  {enabledBlock}
+                                  <p>
+                                    Check out{" "}
+                                    <a
+                                      target="_blank"
+                                      href={
+                                        orchest.config.ORCHEST_WEB_URLS
+                                          .readthedocs +
+                                        "/getting_started/installation.html#gpu-support"
+                                      }
+                                    >
+                                      the documentation
+                                    </a>{" "}
+                                    to make sure Orchest is properly configured
+                                    for environments with GPU support. In
+                                    particular, make sure the selected base
+                                    image supports GPU pass through.
+                                  </p>
+                                </div>
+                              );
+                            }
+                          } else {
+                            return (
+                              <div className="docs-notice push-down">
+                                {enabledBlock}
+                              </div>
+                            );
+                          }
                         }
                       })()}
                     </div>

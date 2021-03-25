@@ -149,6 +149,8 @@ def register_views(app, db):
             "ENVIRONMENT_DEFAULTS",
             "ORCHEST_WEB_URLS",
             "CLOUD",
+            "GPU_REQUEST_URL",
+            "GPU_ENABLED_INSTANCE",
         ]
 
         front_end_config_internal = [

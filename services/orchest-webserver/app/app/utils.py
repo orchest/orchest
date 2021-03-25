@@ -608,6 +608,12 @@ def create_pipeline_file(
             file.write(file_content)
 
 
+def request_args_to_string(args):
+    if args is None or len(args) == 0:
+        return ""
+    return "?" + "&".join([key + "=" + value for key, value in args.items()])
+
+
 def generate_gateway_kernel_name(environment_uuid):
 
     return _config.KERNEL_NAME.format(environment_uuid=environment_uuid)

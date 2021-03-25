@@ -54,6 +54,8 @@ class Config:
     TELEMETRY_INTERVAL = 15  # in minutes
 
     CLOUD = _config.CLOUD
+    GPU_REQUEST_URL = "https://www.orchest.io/redirect-request-gpu"
+    GPU_ENABLED_INSTANCE = os.environ.get("GPU_ENABLED_INSTANCE", False)
     _CLOUD_UNMODIFIABLE_CONFIG_VALUES = [
         "TELEMETRY_UUID",
         "TELEMETRY_DISABLED",

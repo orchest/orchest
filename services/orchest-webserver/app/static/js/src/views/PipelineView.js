@@ -1528,6 +1528,7 @@ class PipelineView extends React.Component {
       // finished_time takes priority over started_time
       let started_time = undefined;
       let finished_time = undefined;
+      let server_time = serverTimeToMoment(result.server_time);
 
       if (result.pipeline_steps[x].started_time) {
         started_time = serverTimeToMoment(
@@ -1544,6 +1545,7 @@ class PipelineView extends React.Component {
         status: result.pipeline_steps[x].status,
         started_time: started_time,
         finished_time: finished_time,
+        server_time: server_time,
       });
     }
   }

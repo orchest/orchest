@@ -6,6 +6,8 @@ TODO:
       to share attributes?
 
 """
+import datetime
+
 from flask_restx import Model, fields
 
 # Namespace: Sessions
@@ -198,7 +200,15 @@ interactive_run_spec = pipeline_run_spec.inherit(
     },
 )
 
-interactive_run = pipeline_run.inherit("InteractiveRun", {})
+interactive_run = pipeline_run.inherit(
+    "InteractiveRun",
+    {
+        "server_time": fields.DateTime(
+            attribute=lambda x: datetime.datetime.now(datetime.timezone.utc),
+            description="Server time to be used when calculating run durations.",
+        )
+    },
+)
 
 interactive_runs = Model(
     "InteractiveRuns",
@@ -206,7 +216,7 @@ interactive_runs = Model(
         "runs": fields.List(
             fields.Nested(interactive_run),
             description='All ran interactive runs during this "lifecycle" of Orchest',
-        )
+        ),
     },
 )
 

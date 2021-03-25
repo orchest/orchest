@@ -88,7 +88,6 @@ class ProjectsView extends React.Component {
     let listData = [];
 
     for (let project of projects) {
-      console.log(project);
       listData.push([
         <span>{project.path}</span>,
         <span>{project.pipeline_count}</span>,

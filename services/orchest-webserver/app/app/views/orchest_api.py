@@ -13,6 +13,7 @@ from app.utils import (
     pipeline_uuid_to_path,
     project_uuid_to_path,
     remove_job_directory,
+    request_args_to_string,
 )
 
 
@@ -235,8 +236,8 @@ def register_orchest_api_views(app, db):
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/sessions/?"
-            + request.query_string.decode(),
+            + "/api/sessions/"
+            + request_args_to_string(request.args),
         )
 
         return resp.content, resp.status_code, resp.headers.items()
@@ -366,8 +367,8 @@ def register_orchest_api_views(app, db):
             resp = requests.get(
                 "http://"
                 + app.config["ORCHEST_API_ADDRESS"]
-                + "/api/runs/?"
-                + request.query_string.decode(),
+                + "/api/runs/"
+                + request_args_to_string(request.args),
             )
 
             return resp.content, resp.status_code, resp.headers.items()
@@ -438,8 +439,8 @@ def register_orchest_api_views(app, db):
     def catch_api_proxy_jobs_get_all():
 
         resp = requests.get(
-            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/?'
-            + request.query_string.decode()
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/'
+            + request_args_to_string(request.args)
         )
 
         return resp.content, resp.status_code, resp.headers.items()

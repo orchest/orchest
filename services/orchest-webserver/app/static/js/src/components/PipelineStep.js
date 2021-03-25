@@ -57,7 +57,9 @@ class PipelineStep extends React.Component {
 
       if (this.props.executionState.started_time !== undefined) {
         seconds = Math.round(
-          (moment() - this.props.executionState.started_time) / 1000
+          (this.props.executionState.server_time -
+            this.props.executionState.started_time) /
+            1000
         );
       }
 
