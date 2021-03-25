@@ -1206,6 +1206,12 @@ class PipelineView extends React.Component {
         if (result.success) {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
+          orchest.headerBarComponent.updateCurrentView("pipeline");
+
+          orchest.headerBarComponent.updateReadOnlyState(
+            this.props.queryArgs.read_only === "true"
+          );
+
           orchest.headerBarComponent.setSessionListeners(
             this.onSessionStateChange.bind(this),
             this.onSessionShutdown.bind(this),
@@ -1216,11 +1222,6 @@ class PipelineView extends React.Component {
             this.props.queryArgs.pipeline_uuid,
             this.props.queryArgs.project_uuid,
             this.state.pipelineJson.name
-          );
-
-          orchest.headerBarComponent.updateCurrentView("pipeline");
-          orchest.headerBarComponent.updateReadOnlyState(
-            this.props.queryArgs.read_only === "true"
           );
 
           this.initializePipeline();

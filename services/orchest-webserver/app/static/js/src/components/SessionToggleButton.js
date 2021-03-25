@@ -49,38 +49,71 @@ class SessionToggleButton extends React.Component {
       this.promiseManager
     );
 
-    fetchSessionPromise.promise.then((response) => {
-      let session_details;
+    fetchSessionPromise.promise
+      .then((response) => {
+        let session_details;
 
-      let result = JSON.parse(response);
+        let result = JSON.parse(response);
 
-      if (result.sessions.length > 0) {
-        session_details = result.sessions[0];
+        if (result.sessions.length > 0) {
+          session_details = result.sessions[0];
 
-        if (session_details.status == "RUNNING") {
+          if (session_details.status == "RUNNING") {
+            this.setState(
+              () => {
+                return {
+                  working: false,
+                  running: true,
+                  session_details,
+                };
+              },
+              () => {
+                this.props.onSessionStateChange(
+                  this.state.working,
+                  this.state.running,
+                  this.state.session_details
+                );
+              }
+            );
+
+            clearInterval(this.sessionPollingInterval);
+          } else if (session_details.status == "LAUNCHING") {
+            this.setState(
+              () => {
+                return {
+                  working: true,
+                  running: false,
+                };
+              },
+              () => {
+                this.props.onSessionStateChange(
+                  this.state.working,
+                  this.state.running
+                );
+              }
+            );
+
+            this.initializeFetchSessionPolling();
+          } else if (session_details.status == "STOPPING") {
+            this.setState(
+              () => {
+                return {
+                  working: true,
+                  running: true,
+                  session_details,
+                };
+              },
+              () => {
+                this.initializeFetchSessionPolling();
+              }
+            );
+          }
+        } else {
           this.setState(
             () => {
+              clearInterval(this.sessionPollingInterval);
               return {
                 working: false,
-                running: true,
-                session_details,
-              };
-            },
-            () => {
-              this.props.onSessionStateChange(
-                this.state.working,
-                this.state.running,
-                this.state.session_details
-              );
-            }
-          );
-
-          clearInterval(this.sessionPollingInterval);
-        } else if (session_details.status == "LAUNCHING") {
-          this.setState(
-            () => {
-              return {
-                working: true,
                 running: false,
               };
             },
@@ -91,42 +124,15 @@ class SessionToggleButton extends React.Component {
               );
             }
           );
-
-          this.initializeFetchSessionPolling();
-        } else if (session_details.status == "STOPPING") {
-          this.setState(
-            () => {
-              return {
-                working: true,
-                running: true,
-                session_details,
-              };
-            },
-            () => {
-              this.initializeFetchSessionPolling();
-            }
-          );
         }
-      } else {
-        this.setState(
-          () => {
-            clearInterval(this.sessionPollingInterval);
-            return {
-              working: false,
-              running: false,
-            };
-          },
-          () => {
-            this.props.onSessionStateChange(
-              this.state.working,
-              this.state.running
-            );
-          }
-        );
-      }
 
-      this.props.onSessionFetch(session_details);
-    });
+        this.props.onSessionFetch(session_details);
+      })
+      .catch((e) => {
+        if (!e.isCanceled) {
+          console.error(e);
+        }
+      });
   }
 
   toggleSession() {

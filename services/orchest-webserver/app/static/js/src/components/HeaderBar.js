@@ -7,7 +7,7 @@ import MDCIconButtonToggleReact from "../lib/mdc-components/MDCIconButtonToggleR
 import ProjectSelector from "./ProjectSelector";
 import SettingsView from "../views/SettingsView";
 import HelpView from "../views/HelpView";
-import { RefManager } from "../lib/utils/all";
+import { RefManager, uuidv4 } from "../lib/utils/all";
 import SessionToggleButton from "./SessionToggleButton";
 
 class HeaderBar extends React.Component {
@@ -86,16 +86,12 @@ class HeaderBar extends React.Component {
   }
 
   setPipeline(pipeline_uuid, project_uuid, pipelineName) {
-    this.setState(
-      {
-        pipeline_uuid,
-        project_uuid,
-        pipelineName,
-      },
-      () => {
-        this.fetchSessionStatus();
-      }
-    );
+    this.setState({
+      pipeline_uuid,
+      project_uuid,
+      pipelineName,
+      pipelineFetchHash: uuidv4(),
+    });
   }
 
   pipelineSaveStatus(status) {
@@ -125,14 +121,9 @@ class HeaderBar extends React.Component {
   fetchSessionStatus() {
     // Make sure all renders have been flushed,
     // such that SessionToggleButton is available.
-    this.setState(
-      () => {},
-      () => {
-        if (this.refManager.refs.sessionToggleButton) {
-          this.refManager.refs.sessionToggleButton.fetchSessionStatus();
-        }
-      }
-    );
+    if (this.refManager.refs.sessionToggleButton) {
+      this.refManager.refs.sessionToggleButton.fetchSessionStatus();
+    }
   }
 
   onSessionStateChange(working, running, session_details) {
@@ -154,6 +145,12 @@ class HeaderBar extends React.Component {
   onSessionShutdown() {
     if (this.state.onSessionShutdown) {
       this.state.onSessionShutdown();
+    }
+  }
+
+  componentDidUpdate(_, prevState) {
+    if (prevState.pipelineFetchHash != this.state.pipelineFetchHash) {
+      this.fetchSessionStatus();
     }
   }
 
