@@ -71,7 +71,16 @@ class FilePreviewView extends React.Component {
       this.props.queryArgs.step_uuid !== prevProps.queryArgs.step_uuid ||
       this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
     ) {
-      this.loadFile();
+      // Clear old state
+      this.setState(
+        {
+          fileDescription: undefined,
+          notebookHtml: undefined,
+        },
+        () => {
+          this.loadFile();
+        }
+      );
     }
   }
 
