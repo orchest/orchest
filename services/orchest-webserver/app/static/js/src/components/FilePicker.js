@@ -1,6 +1,10 @@
-import React from "react";
+import React, { isValidElement } from "react";
 import MDCTextFieldReact from "../lib/mdc-components/MDCTextFieldReact";
-import { absoluteToRelativePath, RefManager } from "../lib/utils/all";
+import {
+  absoluteToRelativePath,
+  collapseDoubleDots,
+  RefManager,
+} from "../lib/utils/all";
 
 class FilePicker extends React.Component {
   constructor(props) {
@@ -8,10 +12,82 @@ class FilePicker extends React.Component {
 
     this.state = {
       focused: false,
-      path: props.cwd ? props.cwd : "/",
+      path: this.setInitialPath(props),
     };
 
     this.refManager = new RefManager();
+  }
+
+  setInitialPath(props) {
+    let cwd = props.cwd ? props.cwd : "/";
+    let fullPath = collapseDoubleDots(cwd + props.value);
+    let directoryPath = fullPath.split("/").slice(0, -1).join("/") + "/";
+
+    // check if directoryPath is in tree
+    if (!this.validatePathInTree(directoryPath, props.tree)) {
+      directoryPath = "/";
+    }
+
+    return directoryPath;
+  }
+
+  validatePathInTree(path, tree) {
+    // path assumed to start with /
+
+    // Valid inputs
+    // /def/def
+    // /def
+    // /abc/
+
+    // Invalid inputs:
+    // //asd (empty directory component)
+    // asd/asd.py (doesn't start with /)
+    if (path === undefined || tree === undefined) {
+      return false;
+    }
+    if (tree.type != "directory") {
+      return false;
+    }
+    if (path[0] !== "/") {
+      return false;
+    }
+
+    let pathComponents = path.split("/");
+    let isFirstComponentDir = pathComponents.length > 2;
+
+    if (isFirstComponentDir) {
+      for (let x = 0; x < tree.children.length; x++) {
+        let child = tree.children[x];
+        if (child.name == pathComponents[1] && child.type == "directory") {
+          // Path ends in directory
+          if (pathComponents[2] == "") {
+            return true;
+          }
+          return this.validatePathInTree(
+            "/" + pathComponents.slice(2).join("/"),
+            child
+          );
+        }
+      }
+      return false;
+    } else {
+      for (let x = 0; x < tree.children.length; x++) {
+        let child = tree.children[x];
+        if (child.name == pathComponents[1] && child.type == "file") {
+          return true;
+        }
+      }
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.cwd !== this.props.cwd ||
+      prevProps.tree !== this.props.tree ||
+      prevProps.value !== this.props.value
+    ) {
+      this.setInitialPath(this.props);
+    }
   }
 
   componentWillUnmount() {

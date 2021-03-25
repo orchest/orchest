@@ -6,7 +6,7 @@ import {
   makeRequest,
   PromiseManager,
   RefManager,
-  relativeToAbsolutePath,
+  collapseDoubleDots,
 } from "../lib/utils/all";
 
 import _ from "lodash";
@@ -44,6 +44,7 @@ class PipelineDetailsProperties extends React.Component {
       environmentOptions: [],
       // this is required to let users edit JSON (while typing the text will not be valid JSON)
       editableParameters: JSON.stringify(this.props.step.parameters, null, 2),
+      openedWithEmptyFilePath: this.props.step.file_path.length == 0,
     };
 
     this.refManager = new RefManager();
@@ -168,9 +169,7 @@ class PipelineDetailsProperties extends React.Component {
     if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
       let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
       orchest.jupyter.setNotebookKernel(
-        relativeToAbsolutePath(step["file_path"], this.props.pipelineCwd).slice(
-          1
-        ),
+        collapseDoubleDots(this.props.pipelineCwd + step["file_path"]).slice(1),
         kernelName
       );
     }
@@ -182,6 +181,18 @@ class PipelineDetailsProperties extends React.Component {
     this.props.onSave(step);
   }
 
+  titleToFileName(title) {
+    const alphanumeric = /[^a-zA-Z0-9-]/g;
+    title = title.replace(alphanumeric, "-");
+    const concatDashes = /(-+)/g;
+    title = title.replace(concatDashes, "-");
+    if (title.slice(-1) == "-") {
+      title = title.slice(0, -1);
+    }
+    title = title.toLowerCase();
+    return title;
+  }
+
   onChangeTitle(updatedTitle) {
     let step = _.cloneDeep(this.props.step);
     step.title = updatedTitle;
@@ -189,6 +200,13 @@ class PipelineDetailsProperties extends React.Component {
     this.updateStepName(step.uuid, step.title, step.file_path);
 
     this.props.onSave(step);
+
+    if (this.state.openedWithEmptyFilePath) {
+      // Make sure the props have been updated
+      setTimeout(() => {
+        this.onChangeFileName(this.titleToFileName(updatedTitle));
+      }, 1);
+    }
   }
 
   swapConnectionOrder(oldConnectionIndex, newConnectionIndex) {

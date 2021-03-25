@@ -155,7 +155,13 @@ class ProjectFilePicker extends React.Component {
   }
 
   onCreateFile(dir) {
+    let fileNameProposal = "";
+    if (this.props.value) {
+      fileNameProposal = this.props.value.split("/").slice(-1);
+    }
+
     this.setState({
+      fileName: fileNameProposal,
       createFileFullProjectPath: dir,
       createFileDir: dir,
       createFileModal: true,
@@ -286,8 +292,8 @@ class ProjectFilePicker extends React.Component {
 
                     <div className="push-down field-select-combo">
                       <MDCTextFieldReact
-                        ref={this.refManager.nrefs.createFileTextField}
                         label="File name"
+                        value={this.state.fileName}
                         onChange={this.onChangeNewFilename.bind(this)}
                       />
                       <MDCSelectReact
@@ -330,21 +336,23 @@ class ProjectFilePicker extends React.Component {
             );
           }
         })()}
-        <FilePicker
-          ref={this.refManager.nrefs.filePicker}
-          tree={this.state.tree}
-          cwd={this.state.cwd}
-          onFocus={this.onFocus.bind(this)}
-          value={this.props.value}
-          icon={this.state.selectedFileExists ? "check" : "warning"}
-          iconTitle={
-            this.state.selectedFileExists
-              ? "File exists in the project directory."
-              : "Warning: this file wasn't found in the project directory."
-          }
-          onCreateFile={this.onCreateFile.bind(this)}
-          onChangeValue={this.onChangeFileValue.bind(this)}
-        />
+        {this.state.cwd && this.state.tree && (
+          <FilePicker
+            ref={this.refManager.nrefs.filePicker}
+            tree={this.state.tree}
+            cwd={this.state.cwd}
+            onFocus={this.onFocus.bind(this)}
+            value={this.props.value}
+            icon={this.state.selectedFileExists ? "check" : "warning"}
+            iconTitle={
+              this.state.selectedFileExists
+                ? "File exists in the project directory."
+                : "Warning: this file wasn't found in the project directory."
+            }
+            onCreateFile={this.onCreateFile.bind(this)}
+            onChangeValue={this.onChangeFileValue.bind(this)}
+          />
+        )}
       </Fragment>
     );
   }

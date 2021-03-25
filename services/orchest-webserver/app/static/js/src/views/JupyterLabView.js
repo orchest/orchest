@@ -6,7 +6,7 @@ import {
   makeCancelable,
   makeRequest,
   uuidv4,
-  relativeToAbsolutePath,
+  collapseDoubleDots,
 } from "../lib/utils/all";
 
 import { checkGate } from "../utils/webserver-utils";
@@ -82,10 +82,9 @@ class JupyterLabView extends React.Component {
 
           if (step.file_path.length > 0 && step.environment.length > 0) {
             orchest.jupyter.setNotebookKernel(
-              relativeToAbsolutePath(
-                step.file_path,
-                this.state.pipelineCwd
-              ).slice(1),
+              collapseDoubleDots(this.state.pipelineCwd + step.file_path).slice(
+                1
+              ),
               `orchest-kernel-${step.environment}`
             );
           }

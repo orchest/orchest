@@ -6,7 +6,7 @@ import {
   intersectRect,
   globalMDCVars,
   extensionFromFilename,
-  relativeToAbsolutePath,
+  collapseDoubleDots,
   makeRequest,
   makeCancelable,
   PromiseManager,
@@ -1485,9 +1485,8 @@ class PipelineView extends React.Component {
       });
 
       orchest.jupyter.navigateTo(
-        relativeToAbsolutePath(
-          this.state.steps[stepUUID].file_path,
-          this.state.pipelineCwd
+        collapseDoubleDots(
+          this.state.pipelineCwd + this.state.steps[stepUUID].file_path
         ).slice(1)
       );
     } else {
