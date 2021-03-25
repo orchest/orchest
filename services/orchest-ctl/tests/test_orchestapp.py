@@ -2,6 +2,7 @@ from typing import List, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+import typer
 
 from app import orchest, spec, utils
 
@@ -48,15 +49,17 @@ def test_install(installed_images, expected_stdout, install_orchest, capsys):
 
 
 @pytest.mark.parametrize(
-    ("running_containers", "expected_stdout"),
+    ("running_containers", "expected_stdout", "expected_exit_code"),
     [
-        (["A", "B"], "Orchest is running."),
-        (["A"], "has reached an invalid state"),
-        ([], "Orchest is not running."),
+        (["A", "B"], "Orchest is running.", 0),
+        (["A"], "has reached an invalid state", 2),
+        ([], "Orchest is not running.", 1),
     ],
     ids=["running", "partially-running", "not-running"],
 )
-def test_status(running_containers, expected_stdout, capsys, monkeypatch):
+def test_status(
+    running_containers, expected_stdout, expected_exit_code, capsys, monkeypatch
+):
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_containers = MagicMock(return_value=(None, running_containers))
 
@@ -64,8 +67,13 @@ def test_status(running_containers, expected_stdout, capsys, monkeypatch):
     app.resource_manager = resource_manager
     monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
 
-    app.status()
+    exit_code = 0
+    try:
+        app.status()
+    except typer.Exit as exit:
+        exit_code = exit.exit_code
 
+    assert exit_code == expected_exit_code
     captured = capsys.readouterr()
     assert expected_stdout in captured.out
 
