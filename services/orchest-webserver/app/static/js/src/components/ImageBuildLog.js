@@ -35,9 +35,6 @@ class ImageBuild extends React.Component {
   componentWillUnmount() {
     if (this.socket) {
       this.socket.close();
-      console.log(
-        `SocketIO with namespace ${this.props.socketIONamespace} disconnected.`
-      );
     }
     clearTimeout(this.buildTimeout);
     this.promiseManager.cancelCancelablePromises();
