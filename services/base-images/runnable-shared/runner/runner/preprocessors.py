@@ -35,7 +35,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         # disable timeout
         self.timeout = None
 
-    def log_output_message(self, output, partial_cell=False):
+    def log_output_message(self, output, partial_cell_output=False):
 
         if self.current_cell is None:
             raise Exception(
@@ -59,7 +59,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         elif "data" in output and "text/plain" in output["data"]:
             output_text = output["data"]["text/plain"]
 
-        if not output_text.endswith("\n") and not partial_cell:
+        if not output_text.endswith("\n") and not partial_cell_output:
             output_text = "".join([output_text, "\n"])
 
         prefix = "[%i] " % self.current_cell["execution_count"]
