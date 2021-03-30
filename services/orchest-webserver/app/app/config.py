@@ -65,7 +65,7 @@ class Config:
         "TELEMETRY_UUID",
         "TELEMETRY_DISABLED",
         "AUTH_ENABLED",
-        "INTERCOM_USER_EMAIL"
+        "INTERCOM_USER_EMAIL",
     ]
 
     RESOURCE_DIR = os.path.join(dir_path, "res")

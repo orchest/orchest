@@ -58,7 +58,7 @@ class App extends React.Component {
         app_id: this.config["INTERCOM_APP_ID"],
         name: "",
         email: this.user_config["INTERCOM_USER_EMAIL"], // Email address
-        created_at: this.config["INTERCOM_DEFAULT_SIGNUP_DATE"] // Signup date as a Unix timestamp
+        created_at: this.config["INTERCOM_DEFAULT_SIGNUP_DATE"], // Signup date as a Unix timestamp
       });
     }
 
@@ -123,7 +123,7 @@ class App extends React.Component {
     // Analytics call
     this.sendEvent("view load", { name: viewName });
 
-    if(this.config["CLOUD"] === true && window.Intercom !== undefined){
+    if (this.config["CLOUD"] === true && window.Intercom !== undefined) {
       window.Intercom("update");
     }
 

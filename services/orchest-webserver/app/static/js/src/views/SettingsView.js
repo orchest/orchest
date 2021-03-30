@@ -23,7 +23,7 @@ class SettingsView extends React.Component {
       status: "...",
       restarting: false,
       // text representation of config object, filtered for certain keys
-      config: undefined, 
+      config: undefined,
       // the full JSON config object
       configJSON: undefined,
       version: undefined,
@@ -79,7 +79,7 @@ class SettingsView extends React.Component {
   }
 
   configToVisibleConfig(configJSON) {
-    if(orchest.config["CLOUD"] !== true){
+    if (orchest.config["CLOUD"] !== true) {
       return configJSON;
     }
 
@@ -93,16 +93,18 @@ class SettingsView extends React.Component {
     return visibleJSON;
   }
 
-  configToInvisibleConfig(configJSON){
-    if(orchest.config["CLOUD"] !== true){
-      return {}
+  configToInvisibleConfig(configJSON) {
+    if (orchest.config["CLOUD"] !== true) {
+      return {};
     }
 
     let invisibleJSON = _.cloneDeep(configJSON);
 
     // Strip visible config
     for (let key of Object.keys(invisibleJSON)) {
-      if(orchest.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"].indexOf(key) === -1){
+      if (
+        orchest.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"].indexOf(key) === -1
+      ) {
         delete invisibleJSON[key];
       }
     }
@@ -115,7 +117,9 @@ class SettingsView extends React.Component {
 
     try {
       let visibleJSON = JSON.parse(config);
-      let invisibleConfigJSON = this.configToInvisibleConfig(this.state.configJSON);
+      let invisibleConfigJSON = this.configToInvisibleConfig(
+        this.state.configJSON
+      );
       let joinedConfig = { ...invisibleConfigJSON, ...visibleJSON };
 
       formData.append("config", JSON.stringify(joinedConfig));

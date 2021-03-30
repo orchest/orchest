@@ -10,5 +10,4 @@ window.addEventListener("load", () => {
   document.fonts.ready.then(() => {
     ReactDOM.render(<App />, document.querySelector("#react-root"));
   });
-})
-
+});
