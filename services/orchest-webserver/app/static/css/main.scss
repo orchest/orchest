@@ -336,6 +336,13 @@ a.button {
   }
 }
 
+.notice {
+  p {
+    color: #555;
+    font-size: $codeSize;
+  }
+}
+
 .projects-view {
   .mdc-data-table {
     .mdc-button {
@@ -1066,6 +1073,7 @@ span.code {
   border-radius: 3px;
   padding: 2px 4px;
   display: inline-block;
+  margin-bottom: 4px;
 }
 
 .mdc-switch-wrapper {

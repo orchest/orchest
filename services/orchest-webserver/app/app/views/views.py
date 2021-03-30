@@ -151,6 +151,9 @@ def register_views(app, db):
             "CLOUD",
             "GPU_REQUEST_URL",
             "GPU_ENABLED_INSTANCE",
+            "CLOUD_UNMODIFIABLE_CONFIG_VALUES",
+            "INTERCOM_APP_ID",
+            "INTERCOM_DEFAULT_SIGNUP_DATE",
         ]
 
         front_end_config_internal = [
@@ -163,6 +166,7 @@ def register_views(app, db):
             "index.html",
             javascript_bundle_hash=get_hash(js_bundle_path),
             css_bundle_hash=get_hash(css_bundle_path),
+            CLOUD=app.config["CLOUD"],
             user_config=flask_json.htmlsafe_dumps(get_user_conf()),
             config_json=flask_json.htmlsafe_dumps(
                 {
@@ -233,7 +237,7 @@ def register_views(app, db):
                 # value was set (or unset) using the current
                 # configuration.
                 if StaticConfig.CLOUD:
-                    for setting in StaticConfig._CLOUD_UNMODIFIABLE_CONFIG_VALUES:
+                    for setting in StaticConfig.CLOUD_UNMODIFIABLE_CONFIG_VALUES:
                         if setting in current_config:
                             config[setting] = current_config[setting]
                         else:
