@@ -35,7 +35,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         # disable timeout
         self.timeout = None
 
-    def log_output_message(self, output):
+    def log_output_message(self, output, partial_cell=False):
 
         if self.current_cell is None:
             raise Exception(
@@ -59,7 +59,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
         elif "data" in output and "text/plain" in output["data"]:
             output_text = output["data"]["text/plain"]
 
-        if not output_text.endswith("\n"):
+        if not output_text.endswith("\n") and not partial_cell:
             output_text = "".join([output_text, "\n"])
 
         prefix = "[%i] " % self.current_cell["execution_count"]
@@ -79,8 +79,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
         try:
             out = output_from_msg(msg)
-
-            self.log_output_message(out)
+            self.log_output_message(out, True)
 
         except ValueError:
             self.log.error("unhandled iopub msg: " + msg_type)
