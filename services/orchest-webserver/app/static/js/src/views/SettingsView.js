@@ -13,6 +13,7 @@ import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/javascript/javascript";
 import ConfigureJupyterLabView from "./ConfigureJupyterLabView";
+import _ from "lodash";
 
 class SettingsView extends React.Component {
   constructor(props) {
@@ -21,7 +22,10 @@ class SettingsView extends React.Component {
     this.state = {
       status: "...",
       restarting: false,
+      // text representation of config object, filtered for certain keys
       config: undefined,
+      // the full JSON config object
+      configJSON: undefined,
       version: undefined,
       unsavedChanges: false,
     };
@@ -58,17 +62,15 @@ class SettingsView extends React.Component {
     getConfigPromise.promise.then((data) => {
       try {
         let configJSON = JSON.parse(data);
+        let visibleJSON = this.configToVisibleConfig(configJSON);
 
         this.setState({
           configJSON,
+          config: JSON.stringify(visibleJSON, null, 2),
         });
       } catch (error) {
         console.warn("Received invalid JSON config from the server.");
       }
-
-      this.setState({
-        config: data,
-      });
     });
   }
 
@@ -76,17 +78,56 @@ class SettingsView extends React.Component {
     orchest.loadView(ManageUsersView);
   }
 
+  configToVisibleConfig(configJSON) {
+    if (orchest.config["CLOUD"] !== true) {
+      return configJSON;
+    }
+
+    let visibleJSON = _.cloneDeep(configJSON);
+
+    // strip cloud config
+    for (let key of orchest.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"]) {
+      delete visibleJSON[key];
+    }
+
+    return visibleJSON;
+  }
+
+  configToInvisibleConfig(configJSON) {
+    if (orchest.config["CLOUD"] !== true) {
+      return {};
+    }
+
+    let invisibleJSON = _.cloneDeep(configJSON);
+
+    // Strip visible config
+    for (let key of Object.keys(invisibleJSON)) {
+      if (
+        orchest.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"].indexOf(key) === -1
+      ) {
+        delete invisibleJSON[key];
+      }
+    }
+
+    return invisibleJSON;
+  }
+
   saveConfig(config) {
     let formData = new FormData();
 
     try {
-      let configJSON = JSON.parse(config);
-      formData.append("config", config);
+      let visibleJSON = JSON.parse(config);
+      let invisibleConfigJSON = this.configToInvisibleConfig(
+        this.state.configJSON
+      );
+      let joinedConfig = { ...invisibleConfigJSON, ...visibleJSON };
+
+      formData.append("config", JSON.stringify(joinedConfig));
 
       let authWasEnabled = this.state.configJSON.AUTH_ENABLED;
 
       this.setState({
-        configJSON,
+        configJSON: joinedConfig,
         unsavedChanges: false,
       });
 
@@ -107,15 +148,19 @@ class SettingsView extends React.Component {
               configJSON,
             });
 
+            this.setState({
+              config: JSON.stringify(
+                this.configToVisibleConfig(configJSON),
+                null,
+                2
+              ),
+            });
+
             // Refresh the page when auth gets enabled in the config.
             shouldReload = configJSON.AUTH_ENABLED && !authWasEnabled;
           } catch (error) {
             console.warn("Received invalid JSON config from the server.");
           }
-
-          this.setState({
-            config: data,
-          });
 
           if (shouldReload) {
             location.reload();
@@ -204,20 +249,6 @@ class SettingsView extends React.Component {
               <span className="code">AUTH_ENABLED</span> will automatically
               redirect you to the login page, so make sure you have set up a
               user first!
-              {(() => {
-                if (orchest.config.CLOUD === true) {
-                  return (
-                    <span>
-                      {" "}
-                      Note that <span className="code">AUTH_ENABLED</span>,{" "}
-                      <span className="code">TELEMETRY_DISABLED</span>,{" "}
-                      <span className="code">TELEMETRY_UUID</span> cannot be
-                      modified when running in the{" "}
-                      <span className="code">cloud</span>.
-                    </span>
-                  );
-                }
-              })()}
             </p>
 
             {(() => {
@@ -225,7 +256,7 @@ class SettingsView extends React.Component {
                 return <p>Loading config...</p>;
               } else {
                 return (
-                  <div>
+                  <div className="push-up">
                     <CodeMirror
                       value={this.state.config}
                       options={{
@@ -240,6 +271,33 @@ class SettingsView extends React.Component {
                         });
                       }}
                     />
+
+                    {(() => {
+                      if (orchest.config.CLOUD === true) {
+                        return (
+                          <div className="push-up notice">
+                            <p>
+                              {" "}
+                              Note that{" "}
+                              {orchest.config[
+                                "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
+                              ].map((el, i) => (
+                                <span key={i}>
+                                  <span className="code">{el}</span>
+                                  {i !=
+                                    orchest.config[
+                                      "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
+                                    ].length -
+                                      1 && <span>, </span>}
+                                </span>
+                              ))}{" "}
+                              cannot be modified when running in the{" "}
+                              <span className="code">cloud</span>.
+                            </p>
+                          </div>
+                        );
+                      }
+                    })()}
 
                     {(() => {
                       try {

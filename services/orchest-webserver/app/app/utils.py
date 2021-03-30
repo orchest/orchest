@@ -278,6 +278,7 @@ def get_user_conf():
 
     # configure default value
     conf_data["AUTH_ENABLED"] = False
+    conf_data["INTERCOM_USER_EMAIL"] = "johndoe@example.org"
 
     try:
         with open("/config/config.json", "r") as f:

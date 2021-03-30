@@ -55,11 +55,17 @@ class Config:
 
     CLOUD = _config.CLOUD
     GPU_REQUEST_URL = "https://www.orchest.io/redirect-request-gpu"
-    GPU_ENABLED_INSTANCE = os.environ.get("GPU_ENABLED_INSTANCE", False)
-    _CLOUD_UNMODIFIABLE_CONFIG_VALUES = [
+
+    # TODO: detect GPU capability
+    GPU_ENABLED_INSTANCE = False
+    INTERCOM_APP_ID = "v61sr629"
+    INTERCOM_DEFAULT_SIGNUP_DATE = "1577833200"
+
+    CLOUD_UNMODIFIABLE_CONFIG_VALUES = [
         "TELEMETRY_UUID",
         "TELEMETRY_DISABLED",
         "AUTH_ENABLED",
+        "INTERCOM_USER_EMAIL",
     ]
 
     RESOURCE_DIR = os.path.join(dir_path, "res")

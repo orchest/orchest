@@ -6,6 +6,8 @@ import "./utils/overflowing";
 window.$ = $;
 
 // Load after fonts are ready, required by MDC
-document.fonts.ready.then(() => {
-  ReactDOM.render(<App />, document.querySelector("#react-root"));
+window.addEventListener("load", () => {
+  document.fonts.ready.then(() => {
+    ReactDOM.render(<App />, document.querySelector("#react-root"));
+  });
 });

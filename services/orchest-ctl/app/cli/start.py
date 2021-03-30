@@ -5,7 +5,6 @@ import typer
 
 from app.orchest import OrchestApp
 from app.spec import LogLevel, get_container_config, inject_dict
-from app.utils import echo
 
 logger = logging.getLogger(__name__)
 
@@ -101,9 +100,6 @@ def reg(
         },
     }
     inject_dict(container_config, port_bind, overwrite=True)
-
-    if cloud:
-        echo("Starting Orchest with --cloud. Some GUI functionality is altered.")
 
     if dev:
         logger.info(

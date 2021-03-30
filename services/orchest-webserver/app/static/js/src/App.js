@@ -53,6 +53,13 @@ class App extends React.Component {
 
     if (this.config.CLOUD === true) {
       console.log("Orchest is running with --cloud.");
+
+      window.Intercom("boot", {
+        app_id: this.config["INTERCOM_APP_ID"],
+        name: "",
+        email: this.user_config["INTERCOM_USER_EMAIL"], // Email address
+        created_at: this.config["INTERCOM_DEFAULT_SIGNUP_DATE"], // Signup date as a Unix timestamp
+      });
     }
 
     this.browserConfig = new PersistentLocalConfig("orchest");
@@ -115,6 +122,10 @@ class App extends React.Component {
 
     // Analytics call
     this.sendEvent("view load", { name: viewName });
+
+    if (this.config["CLOUD"] === true && window.Intercom !== undefined) {
+      window.Intercom("update");
+    }
 
     if (this.KEEP_PIPELINE_VIEWS.indexOf(TagName) === -1) {
       this.headerBarComponent.clearPipeline();

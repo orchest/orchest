@@ -334,6 +334,8 @@ def update_container_config_with_cloud(
     if env is None:
         env = utils.get_env()
 
+    utils.echo("Starting Orchest with --cloud. Some GUI functionality is altered.")
+
     cloud_inject = {
         "orchest-webserver": {
             "Env": [
