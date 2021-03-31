@@ -102,7 +102,7 @@ def send_event(app, event, properties):
     try:
         telemetry_uuid = get_telemetry_uuid(app)
 
-        properties["dev"] = StaticConfig.FLASK_ENV
+        properties["dev"] = StaticConfig.FLASK_ENV == "development"
         properties["cloud"] = StaticConfig.CLOUD
 
         properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
