@@ -4,11 +4,11 @@ from typing import Any
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
-from config import CONFIG_CLASS
 
 from _orchest.internals import config as _config
 from app.core.docker_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
+from config import CONFIG_CLASS
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 __JUPYTER_BUILD_FULL_LOGS_DIRECTORY = "/tmp/jupyter_builds_logs"
@@ -67,6 +67,10 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, flag, path):
         f'&& echo "{flag}" '
         f"&& bash {bash_script} "
         f'&& echo "{flag}" '
+        "&& build_path_ext=/jupyterlab-orchest-build/extensions"
+        "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions"
+        "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "
+        "cp -rfT $userdir_path_ext $build_path_ext; fi"
         f"&& rm {bash_script}"
     )
     statements.append("LABEL _orchest_jupyter_build_is_intermediate=0")

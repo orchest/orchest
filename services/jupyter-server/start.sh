@@ -19,22 +19,20 @@
 
 umask 002
 
-get_ext_versions() {
+pre_installed_extensions=("orchest-integration" "visual-tags" "nbdime-jupyterlab")
+
+check_ext_versions() {
     # Gets the versions that Orchest needs to run from $1
     # As can be seen in https://stackoverflow.com/a/45201229 it is a
     # complete pain to split a variable on a delimeter. And so here,
     # instead of creating one regex, we create one for every extension.
-    orchest_integration=$(echo $1 \
-        | grep -o -P "orchest-integration v\d+\.\d+\.\d+")
-    visual_tags=$(echo $1 \
-        | grep -o -P "visual-tags v\d+\.\d+\.\d+")
-}
+    for i in "${pre_installed_extensions[@]}"
+    do
+        version=$(echo $1 | grep -o -P "$i v\d+\.\d+\.\d+")
+        [ -z "$(echo $2 | grep -o -F "$version")" ] && return 1
+    done
 
-check_versions() {
-    # Checks $1 whether it contains the same setup as set by
-    # `get_ext_versions`
-    [ -z "$(echo '$1' | grep -o -F '$orchest_integration')" ] && return 1
-    [ -z "$(echo '$1' | grep -o -F '$visual_tags')" ] && return 1
+    return 0
 }
 
 # This is where the Docker image puts pre-installed extensions during build
@@ -51,6 +49,14 @@ if [ -z "$userdir_version" ]; then
     exit 0
 fi
 
+# Clear uninstalled_core_extensions
+build_config=$userdir_path/settings/build_config.json
+if test -f "$build_config"; then
+    echo "Clearing uninstalled_core_extensions $build_config"
+    jq ".uninstalled_core_extensions = []" $build_config > $build_config.tmp
+    mv -f $build_config.tmp $build_config
+fi
+
 # Get installed extensions.
 ext_orchest=$(jupyter labextension list \
                      --BaseExtensionApp.app_dir="$build_path" 2>&1)
@@ -60,9 +66,7 @@ ext_userdir=$(jupyter labextension list \
 # Get the versions of the extensions of the freshly build Orchest
 # version and check whether the existing versions (in the userdir) are
 # the same.
-get_ext_versions "$ext_orchest"
-check_versions "$ext_userdir"
-
+check_ext_versions "$ext_orchest" "$ext_userdir"
 if [ $? -eq 1 ]; then
     equal_ext_versions=false
 else
@@ -84,11 +88,6 @@ if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     jupyter lab --LabApp.app_dir="$userdir_path" "$@"
     exit 0
 fi
-
-# Force add extension tarballs to `extensions/`. This way the Orchest
-# and image included extensions get automatically included in the build.
-cp -rf $build_path/extensions/orchest-integration* "$userdir_path/extensions"
-cp -rf $build_path/extensions/visual-tags* "$userdir_path/extensions"
 
 # Overwrite the static files from the userdir with the static files
 # from the build. Otherwise JupyterLab cannot start as part of Orchest.
