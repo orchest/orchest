@@ -22,6 +22,8 @@ Since Orchest is a fully containerized application you will first have to build 
 
 Incremental development
 -----------------------
+Make sure Orchest is already installed first. See the :ref:`regular installation process <regular installation>` for more details.
+
 Orchest supports incremental development by starting Orchest with the ``--dev`` flag. This allows you to
 make code changes that are instantly reflected, without having to build the containers again.
 
