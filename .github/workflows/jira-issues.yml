@@ -1,3 +1,7 @@
+# To also automatically close Jira issues, the Jira issue key needs to
+# be included somewhere, e.g. branch, commit message. Because we don't
+# the automatic closing is not supported by the `atlassian/gajira`
+# actions.
 name: Sync new GitHub issues to Jira
 
 on:
