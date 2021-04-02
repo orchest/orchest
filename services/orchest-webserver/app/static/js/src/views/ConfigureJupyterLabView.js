@@ -22,6 +22,7 @@ class ConfigureJupyterLabView extends React.Component {
     this.state = {
       unsavedChanges: false,
       building: false,
+      sessionKillInProgress: false,
       buildRequestInProgress: false,
       cancelBuildRequestInProgress: false,
       ignoreIncomingLogs: false,
@@ -88,9 +89,12 @@ class ConfigureJupyterLabView extends React.Component {
               let resp = JSON.parse(e.body);
 
               if (resp.message == "SessionInProgressException") {
-                orchest.alert(
-                  "Error",
-                  "You must stop all active sessions in order to build a new JupyerLab image."
+                this.stopAllSession(
+                  "You must stop all active sessions in order to build a new JupyerLab image. \n\n",
+                  () => {
+                    // Try again after killing sessions
+                    this.buildImage();
+                  }
                 );
               }
             } catch (error) {
@@ -104,6 +108,53 @@ class ConfigureJupyterLabView extends React.Component {
           });
         });
     });
+  }
+
+  stopAllSession(messagePrefix, successCallback) {
+    orchest.confirm(
+      "Warning",
+      messagePrefix +
+        "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
+      () => {
+        this.setState({
+          sessionKillInProgress: true,
+        });
+        // Get all sessions
+        makeRequest("GET", "/catch/api-proxy/api/sessions/")
+          .then((result) => {
+            let sessions = JSON.parse(result)["sessions"];
+
+            let promises = [];
+            for (let session of sessions) {
+              promises.push(
+                // deleting the job will also
+                // take care of aborting it if necessary
+                makeRequest(
+                  "DELETE",
+                  `/catch/api-proxy/api/sessions/${session.project_uuid}/${session.pipeline_uuid}`
+                )
+              );
+
+              Promise.all(promises)
+                .then(() => {
+                  if (successCallback) {
+                    successCallback();
+                  }
+                })
+                .finally(() => {
+                  this.setState({
+                    sessionKillInProgress: false,
+                  });
+                });
+            }
+          })
+          .catch(() => {
+            this.setState({
+              sessionKillInProgress: false,
+            });
+          });
+      }
+    );
   }
 
   cancelImageBuild() {
@@ -259,7 +310,10 @@ class ConfigureJupyterLabView extends React.Component {
             {!this.state.building ? (
               <MDCButtonReact
                 label="Build"
-                disabled={this.state.buildRequestInProgress}
+                disabled={
+                  this.state.buildRequestInProgress ||
+                  this.state.sessionKillInProgress
+                }
                 icon="memory"
                 classNames={["mdc-button--raised"]}
                 onClick={this.buildImage.bind(this)}
