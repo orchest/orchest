@@ -221,7 +221,7 @@ export function serverTimeToMoment(serverDateTimeString) {
 }
 
 export function cleanServerDateTime(dateTimeString) {
-  const regex = /([^\.+]*)(\.\d*)?(\+\d*:\d*)?/g;
+  const regex = /^([^\.+]+)([\.+]\d*)?(\+\d*:\d*)?$/m;
   const subst = `$1`;
   return dateTimeString.replace(regex, subst);
 }
