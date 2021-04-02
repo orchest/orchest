@@ -565,6 +565,7 @@ class PipelineView extends React.Component {
               pipeline_uuid: data.result[0].uuid,
               project_uuid: selectedProject,
             },
+            key: uuidv4(),
           });
         } else {
           orchest.loadView(PipelinesView);
