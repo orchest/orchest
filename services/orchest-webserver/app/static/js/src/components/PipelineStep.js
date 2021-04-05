@@ -1,5 +1,4 @@
 import React from "react";
-import moment from "moment";
 import { RefManager } from "../lib/utils/all";
 
 class PipelineStep extends React.Component {
