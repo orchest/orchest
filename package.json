@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "pnpm run build --filter '@lib/*' --stream"
+  },
+  "devDependencies": {
+    "pnpm": "6.0.0"
+  },
+  "engines": {
+    "pnpm": ">=6"
+  }
+}
