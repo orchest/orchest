@@ -1,9 +1,31 @@
 import React from "react";
 import AlertDialog from "./AlertDialog";
 import { uuidv4 } from "../lib/utils/all";
-import { newslines2breaks } from "../utils/webserver-utils";
 import ConfirmDialog from "./ConfirmDialog";
 import BuildPendingDialog from "./BuildPendingDialog";
+
+function newslines2breaks(lines) {
+  if (lines === undefined) {
+    return [];
+  }
+
+  // subtitute newlines for line breaks
+  let linesArr = lines.split("\n");
+
+  let lineElements = linesArr.map((line, index) => {
+    if (index !== linesArr.length - 1) {
+      return (
+        <Fragment key={index}>
+          {line}
+          <br />
+        </Fragment>
+      );
+    } else {
+      return <Fragment key={index}>{line}</Fragment>;
+    }
+  });
+  return lineElements;
+}
 
 class Dialogs extends React.Component {
   constructor(props) {
