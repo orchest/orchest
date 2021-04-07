@@ -6,13 +6,13 @@ import {
   MDCSelectReact,
   MDCLinearProgressReact,
   MDCDialogReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import {
   makeRequest,
   PromiseManager,
   makeCancelable,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import SearchableTable from "./SearchableTable";
 import EditJobView from "../views/EditJobView";
 

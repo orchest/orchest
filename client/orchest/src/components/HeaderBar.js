@@ -1,10 +1,10 @@
 import React from "react";
-import { RefManager, uuidv4 } from "@lib/utils";
+import { RefManager, uuidv4 } from "@orchest/lib-utils";
 import {
   MDCButtonReact,
   MDCCircularProgressReact,
   MDCIconButtonToggleReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import PipelineView from "../views/PipelineView";
 import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";

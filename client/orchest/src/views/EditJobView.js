@@ -4,13 +4,13 @@ import {
   MDCButtonReact,
   MDCLinearProgressReact,
   MDCRadioReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import {
   makeRequest,
   makeCancelable,
   PromiseManager,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import ParameterEditor from "../components/ParameterEditor";
 import CronScheduleInput from "../components/CronScheduleInput";
 import DateTimeInput from "../components/DateTimeInput";

@@ -1,5 +1,5 @@
 import React from "react";
-import { MDCButtonReact } from "@lib/mdc";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import ProjectsView from "../views/ProjectsView";
 
 class ProjectBasedView extends React.Component {

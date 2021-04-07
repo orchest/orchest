@@ -1,6 +1,6 @@
 import React from "react";
 import { MDCDrawer } from "@material/drawer";
-import { RefManager } from "@lib/utils";
+import { RefManager } from "@orchest/lib-utils";
 import {
   getViewDrawerParentViewName,
   nameToComponent,

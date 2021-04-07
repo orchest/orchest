@@ -1,5 +1,5 @@
 import React, { Fragment } from "react";
-import { makeRequest } from "@lib/utils";
+import { makeRequest } from "@orchest/lib-utils";
 import moment from "moment";
 import dashify from "dashify";
 import pascalcase from "pascalcase";

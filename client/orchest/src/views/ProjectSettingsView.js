@@ -1,7 +1,11 @@
 import React from "react";
 import ProjectsView from "./ProjectsView";
-import { makeRequest, makeCancelable, PromiseManager } from "@lib/utils";
-import { MDCButtonReact, MDCLinearProgressReact } from "@lib/mdc";
+import {
+  makeRequest,
+  makeCancelable,
+  PromiseManager,
+} from "@orchest/lib-utils";
+import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import EnvVarList from "../components/EnvVarList";
 import {
   envVariablesArrayToDict,

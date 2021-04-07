@@ -1,12 +1,12 @@
 import React, { Fragment } from "react";
-import { MDCButtonReact, MDCLinearProgressReact } from "@lib/mdc";
+import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import PipelineView from "./PipelineView";
 import {
   makeRequest,
   PromiseManager,
   RefManager,
   makeCancelable,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import {
   getPipelineJSONEndpoint,

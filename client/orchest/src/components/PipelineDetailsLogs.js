@@ -1,5 +1,5 @@
 import React from "react";
-import { RefManager, uuidv4 } from "@lib/utils";
+import { RefManager, uuidv4 } from "@orchest/lib-utils";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
 

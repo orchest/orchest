@@ -1,11 +1,11 @@
 import React from "react";
-import { MDCLinearProgressReact, MDCSelectReact } from "@lib/mdc";
+import { MDCLinearProgressReact, MDCSelectReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import ProjectsView from "../views/ProjectsView";
 
 class ProjectSelector extends React.Component {

@@ -1,12 +1,20 @@
 {
-  "name": "@client/orchest",
+  "name": "@orchest/client-orchest",
   "version": "1.0.0",
   "description": "",
   "private": true,
   "scripts": {
-    "build": "esbuild src/main.js --bundle --loader:.js=jsx --outfile=dist/main.bundle.js --define:process.env.NODE_ENV=\\\"production\\\" --define:global=window --minify --sourcemap --target=chrome58,firefox57,safari11,edge16",
-    "build-development": "esbuild src/main.js --bundle --loader:.js=jsx --outfile=dist/main.bundle.js --define:process.env.NODE_ENV=\\\"development\\\" --define:global=window --sourcemap",
-    "build-sass": "sass src/styles/main.scss --load-path=node_modules/ --load-path=../../node_modules/ dist/main.css",
+    "watch:es": "esbuild src/main.js --bundle --loader:.js=jsx --outfile=dist/main.bundle.js --define:global=window --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap",
+    "build:es": "esbuild src/main.js --bundle --loader:.js=jsx --outfile=dist/main.bundle.js --define:global=window --define:process.env.NODE_ENV=\\\"production\\\" --minify --target=chrome58,firefox57,safari11,edge16",
+    "watch:sass": "pnpm run build:sass",
+    "build:sass": "sass src/styles/main.scss --load-path=node_modules/ --load-path=../../node_modules/ dist/main.css",
+    "watch:public": "pnpm run build:public",
+    "build:public": "cp -R public dist",
+    "build": "concurrently -n w: npm:build:*",
+    "dev": "concurrently -n w: npm:watch:*",
+    "// IGNORE SCRIPTS BELOW ME //": "////////////////////////////////////////",
+    "build-sass": "pnpm run build:sass",
+    "build-development": "pnpm run watch:es",
     "watch": "npm-watch"
   },
   "watch": {
@@ -15,8 +23,8 @@
   "author": "",
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "@lib/mdc": "workspace:*",
-    "@lib/utils": "workspace:*",
+    "@orchest/lib-mdc": "workspace:*",
+    "@orchest/lib-utils": "workspace:*",
     "codemirror": "^5.55.0",
     "cron-validate": "^1.4.2",
     "cronstrue": "^1.108.0",
@@ -34,7 +42,8 @@
     "xterm-for-react": "^1.0.4"
   },
   "devDependencies": {
-    "esbuild": "^0.8.44",
+    "concurrently": "6.0.1",
+    "esbuild": "0.8.44",
     "npm-watch": "^0.7.0",
     "sass": "^1.32.8"
   }

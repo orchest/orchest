@@ -1,6 +1,10 @@
 import React from "react";
-import { MDCButtonReact, MDCSwitchReact } from "@lib/mdc";
-import { makeCancelable, makeRequest, PromiseManager } from "@lib/utils";
+import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
+import {
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+} from "@orchest/lib-utils";
 
 class SessionToggleButton extends React.Component {
   constructor(props) {

@@ -5,13 +5,13 @@ import {
   PromiseManager,
   RefManager,
   LANGUAGE_MAP,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import {
   MDCButtonReact,
   MDCDataTableReact,
   MDCIconButtonToggleReact,
   MDCLinearProgressReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import EnvironmentEditView from "../views/EnvironmentEditView";
 
 class EnvironmentList extends React.Component {

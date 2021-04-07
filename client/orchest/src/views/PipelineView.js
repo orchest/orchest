@@ -12,8 +12,8 @@ import {
   PromiseManager,
   RefManager,
   activeElementIsInput,
-} from "@lib/utils";
-import { MDCButtonReact } from "@lib/mdc";
+} from "@orchest/lib-utils";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 
 import {
   checkGate,

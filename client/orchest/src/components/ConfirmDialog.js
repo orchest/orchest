@@ -1,6 +1,6 @@
 import React, { Fragment } from "react";
-import { MDCButtonReact, MDCDialogReact } from "@lib/mdc";
-import { RefManager } from "@lib/utils";
+import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
+import { RefManager } from "@orchest/lib-utils";
 
 class ConfirmDialog extends React.Component {
   constructor() {

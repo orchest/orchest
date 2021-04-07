@@ -5,14 +5,14 @@ import {
   PromiseManager,
   makeCancelable,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import {
   MDCButtonReact,
   MDCTextFieldReact,
   MDCCheckboxReact,
   MDCTabBarReact,
   MDCLinearProgressReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import {
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,

@@ -1,12 +1,12 @@
 import React, { Fragment } from "react";
-import { MDCButtonReact, MDCLinearProgressReact } from "@lib/mdc";
+import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 import {
   makeRequest,
   checkHeartbeat,
   PromiseManager,
   makeCancelable,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import UpdateView from "./UpdateView";
 import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";

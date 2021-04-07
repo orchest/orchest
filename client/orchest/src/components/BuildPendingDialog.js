@@ -3,8 +3,8 @@ import {
   MDCButtonReact,
   MDCDialogReact,
   MDCLinearProgressReact,
-} from "@lib/mdc";
-import { RefManager, makeRequest } from "@lib/utils";
+} from "@orchest/lib-mdc";
+import { RefManager, makeRequest } from "@orchest/lib-utils";
 import { checkGate } from "../utils/webserver-utils";
 import EnvironmentsView from "../views/EnvironmentsView";
 

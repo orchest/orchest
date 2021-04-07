@@ -4,7 +4,7 @@ import {
   MDCButtonReact,
   MDCTabBarReact,
   MDCLinearProgressReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import ParameterEditor from "../components/ParameterEditor";
 import SearchableTable from "../components/SearchableTable";
 import {
@@ -12,7 +12,7 @@ import {
   PromiseManager,
   makeCancelable,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import ParamTree from "../components/ParamTree";
 import PipelineView from "./PipelineView";
 import EditJobView from "./EditJobView";

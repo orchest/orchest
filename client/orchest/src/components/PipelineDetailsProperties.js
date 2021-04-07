@@ -10,8 +10,8 @@ import {
   PromiseManager,
   RefManager,
   collapseDoubleDots,
-} from "@lib/utils";
-import { MDCSelectReact, MDCTextFieldReact } from "@lib/mdc";
+} from "@orchest/lib-utils";
+import { MDCSelectReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import ProjectFilePicker from "../components/ProjectFilePicker";
 
 class ConnectionItem extends React.Component {
