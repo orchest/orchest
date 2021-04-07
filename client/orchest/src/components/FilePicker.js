@@ -1,10 +1,10 @@
 import React from "react";
-import { MDCTextFieldReact } from "@lib/mdc";
+import { MDCTextFieldReact } from "@orchest/lib-mdc";
 import {
   absoluteToRelativePath,
   collapseDoubleDots,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 
 class FilePicker extends React.Component {
   constructor(props) {

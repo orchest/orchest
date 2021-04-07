@@ -7,7 +7,7 @@ import {
   makeCancelable,
   RefManager,
   PromiseManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import {
   cleanServerDateTime,
   formatServerDateTime,

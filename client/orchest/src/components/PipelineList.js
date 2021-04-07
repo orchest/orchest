@@ -4,7 +4,7 @@ import {
   makeCancelable,
   PromiseManager,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import {
   MDCIconButtonToggleReact,
   MDCButtonReact,
@@ -12,7 +12,7 @@ import {
   MDCLinearProgressReact,
   MDCDialogReact,
   MDCDataTableReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";

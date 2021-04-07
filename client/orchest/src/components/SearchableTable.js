@@ -1,6 +1,6 @@
 import React, { Fragment } from "react";
-import { MDCDataTableReact, MDCTextFieldReact } from "@lib/mdc";
-import { RefManager } from "@lib/utils";
+import { MDCDataTableReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+import { RefManager } from "@orchest/lib-utils";
 
 class SearchableTable extends React.Component {
   constructor(props) {

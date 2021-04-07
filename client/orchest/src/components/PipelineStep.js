@@ -1,5 +1,5 @@
 import React from "react";
-import { RefManager } from "@lib/utils";
+import { RefManager } from "@orchest/lib-utils";
 
 class PipelineStep extends React.Component {
   constructor() {

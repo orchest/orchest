@@ -1,7 +1,7 @@
 import React, { Fragment } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
-import { uuidv4 } from "@lib/utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import {
   MDCButtonReact,
   MDCTextFieldReact,
@@ -10,7 +10,7 @@ import {
   MDCTabBarReact,
   MDCDialogReact,
   MDCLinearProgressReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import {
   makeRequest,
   PromiseManager,
@@ -18,7 +18,7 @@ import {
   RefManager,
   LANGUAGE_MAP,
   DEFAULT_BASE_IMAGES,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 import EnvironmentsView from "./EnvironmentsView";
 import ImageBuildLog from "../components/ImageBuildLog";

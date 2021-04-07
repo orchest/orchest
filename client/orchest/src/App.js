@@ -5,7 +5,7 @@ import {
   PersistentLocalConfig,
   makeRequest,
   uuidv4,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";

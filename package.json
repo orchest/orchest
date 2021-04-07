@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "pnpm run build --filter '@lib/*' --stream"
+    "build": "pnpm run build --r --stream --filter '@orchest/lib-*' --filter '@orchest/client-*'"
   },
   "devDependencies": {
     "pnpm": "6.0.0"

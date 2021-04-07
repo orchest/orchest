@@ -4,7 +4,7 @@ import {
   MDCDialogReact,
   MDCSelectReact,
   MDCTextFieldReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import {
   absoluteToRelativePath,
   ALLOWED_STEP_EXTENSIONS,
@@ -13,7 +13,7 @@ import {
   makeRequest,
   PromiseManager,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import FilePicker from "./FilePicker";
 
 class ProjectFilePicker extends React.Component {

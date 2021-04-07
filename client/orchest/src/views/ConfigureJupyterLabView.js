@@ -7,8 +7,8 @@ import {
   makeCancelable,
   RefManager,
   PromiseManager,
-} from "@lib/utils";
-import { MDCButtonReact, MDCLinearProgressReact } from "@lib/mdc";
+} from "@orchest/lib-utils";
+import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import ImageBuildLog from "../components/ImageBuildLog";
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 

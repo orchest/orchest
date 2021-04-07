@@ -3,7 +3,7 @@ import {
   MDCButtonReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 
 class EnvVarList extends React.Component {
   constructor(props) {

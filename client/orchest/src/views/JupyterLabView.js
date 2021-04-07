@@ -1,5 +1,5 @@
 import React from "react";
-import { MDCLinearProgressReact } from "@lib/mdc";
+import { MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   PromiseManager,
   RefManager,
@@ -7,7 +7,7 @@ import {
   makeRequest,
   uuidv4,
   collapseDoubleDots,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import { checkGate } from "../utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";

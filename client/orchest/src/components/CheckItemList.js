@@ -1,7 +1,7 @@
 import React from "react";
 import ListCheckItem from "./ListCheckItem";
 import { MDCList } from "@material/list";
-import { RefManager } from "@lib/utils";
+import { RefManager } from "@orchest/lib-utils";
 
 class CheckItemList extends React.Component {
   constructor() {

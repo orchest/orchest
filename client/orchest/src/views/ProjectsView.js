@@ -6,7 +6,7 @@ import {
   MDCTextFieldReact,
   MDCIconButtonToggleReact,
   MDCLinearProgressReact,
-} from "@lib/mdc";
+} from "@orchest/lib-mdc";
 import ProjectSettingsView from "./ProjectSettingsView";
 
 import {
@@ -15,7 +15,7 @@ import {
   PromiseManager,
   RefManager,
   validURL,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 import { BackgroundTaskPoller } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 

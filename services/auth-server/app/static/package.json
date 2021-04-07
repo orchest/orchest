@@ -20,7 +20,7 @@
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "esbuild": "^0.8.44",
+    "esbuild": "0.8.44",
     "npm-watch": "^0.7.0",
     "sass": "^1.32.8"
   }

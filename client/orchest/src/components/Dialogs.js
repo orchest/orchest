@@ -1,6 +1,6 @@
 import React from "react";
 import AlertDialog from "./AlertDialog";
-import { uuidv4 } from "@lib/utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import ConfirmDialog from "./ConfirmDialog";
 import BuildPendingDialog from "./BuildPendingDialog";
 

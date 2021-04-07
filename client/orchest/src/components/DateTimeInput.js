@@ -1,6 +1,6 @@
 import React from "react";
 import moment from "moment";
-import { MDCTextFieldReact } from "@lib/mdc";
+import { MDCTextFieldReact } from "@orchest/lib-mdc";
 
 class DateTimeInput extends React.Component {
   constructor(props) {

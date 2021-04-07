@@ -1,12 +1,12 @@
 import React, { Fragment } from "react";
-import { MDCButtonReact, MDCLinearProgressReact } from "@lib/mdc";
+import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   checkHeartbeat,
   makeCancelable,
   makeRequest,
   PromiseManager,
   RefManager,
-} from "@lib/utils";
+} from "@orchest/lib-utils";
 
 class UpdateView extends React.Component {
   constructor() {
