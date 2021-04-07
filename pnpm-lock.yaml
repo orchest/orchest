@@ -7,44 +7,67 @@ importers:
     devDependencies:
       pnpm: 6.0.0
 
+  client/auth:
+    specifiers: {}
+
+  client/orchest:
+    specifiers:
+      "@lib/mdc": workspace:*
+      "@lib/utils": workspace:*
+      codemirror: ^5.55.0
+      cron-validate: ^1.4.2
+      cronstrue: ^1.108.0
+      dashify: ^2.0.0
+      esbuild: ^0.8.44
+      jquery: ^3.5.1
+      lodash: ^4.17.20
+      material-components-web: ^10.0.0
+      moment: ^2.29.1
+      npm-watch: ^0.7.0
+      pascalcase: ^1.0.0
+      react: ^16.13.1
+      react-codemirror2: ^7.2.1
+      react-dom: ^16.13.1
+      sass: ^1.32.8
+      socket.io-client: ^2.3.0
+      xterm-addon-fit: ^0.4.0
+      xterm-for-react: ^1.0.4
+    dependencies:
+      "@lib/mdc": link:../../lib/javascript/mdc-components
+      "@lib/utils": link:../../lib/javascript/utils
+      codemirror: 5.60.0
+      cron-validate: 1.4.3
+      cronstrue: 1.111.0
+      dashify: 2.0.0
+      jquery: 3.6.0
+      lodash: 4.17.21
+      material-components-web: 10.0.0
+      moment: 2.29.1
+      pascalcase: 1.0.0
+      react: 16.14.0
+      react-codemirror2: 7.2.1_codemirror@5.60.0+react@16.14.0
+      react-dom: 16.14.0_react@16.14.0
+      socket.io-client: 2.4.0
+      xterm-addon-fit: 0.4.0
+      xterm-for-react: 1.0.4_react-dom@16.14.0+react@16.14.0
+    devDependencies:
+      esbuild: 0.8.57
+      npm-watch: 0.7.0
+      sass: 1.32.8
+
   lib/javascript/mdc-components:
     specifiers:
       "@lib/utils": workspace:*
-      "@material/checkbox": 10.0.0
-      "@material/circular-progress": 10.0.0
-      "@material/data-table": 10.0.0
-      "@material/dialog": 10.0.0
-      "@material/form-field": 10.0.0
-      "@material/icon-button": 10.0.0
-      "@material/linear-progress": 10.0.0
-      "@material/radio": 10.0.0
-      "@material/ripple": 10.0.0
-      "@material/select": 10.0.0
-      "@material/switch": 10.0.0
-      "@material/tab-bar": 10.0.0
-      "@material/textfield": 10.0.0
       esbuild: ^0.8.44
+      material-components-web: 10.0.0
       react: 16.13.1
       react-dom: 16.13.1
-    dependencies:
+    devDependencies:
       "@lib/utils": link:../utils
-      "@material/checkbox": 10.0.0
-      "@material/circular-progress": 10.0.0
-      "@material/data-table": 10.0.0
-      "@material/dialog": 10.0.0
-      "@material/form-field": 10.0.0
-      "@material/icon-button": 10.0.0
-      "@material/linear-progress": 10.0.0
-      "@material/radio": 10.0.0
-      "@material/ripple": 10.0.0
-      "@material/select": 10.0.0
-      "@material/switch": 10.0.0
-      "@material/tab-bar": 10.0.0
-      "@material/textfield": 10.0.0
+      esbuild: 0.8.57
+      material-components-web: 10.0.0
       react: 16.13.1
       react-dom: 16.13.1_react@16.13.1
-    devDependencies:
-      esbuild: 0.8.57
 
   lib/javascript/utils:
     specifiers:
@@ -73,47 +96,6 @@ importers:
       npm-watch: 0.7.0
       sass: 1.32.8
 
-  services/orchest-webserver/app/static:
-    specifiers:
-      codemirror: ^5.55.0
-      cron-validate: ^1.4.2
-      cronstrue: ^1.108.0
-      dashify: ^2.0.0
-      esbuild: ^0.8.44
-      jquery: ^3.5.1
-      lodash: ^4.17.20
-      material-components-web: ^10.0.0
-      moment: ^2.29.1
-      npm-watch: ^0.7.0
-      pascalcase: ^1.0.0
-      react: ^16.13.1
-      react-codemirror2: ^7.2.1
-      react-dom: ^16.13.1
-      sass: ^1.32.8
-      socket.io-client: ^2.3.0
-      xterm-addon-fit: ^0.4.0
-      xterm-for-react: ^1.0.4
-    dependencies:
-      codemirror: 5.60.0
-      cron-validate: 1.4.3
-      cronstrue: 1.111.0
-      dashify: 2.0.0
-      jquery: 3.6.0
-      lodash: 4.17.21
-      material-components-web: 10.0.0
-      moment: 2.29.1
-      pascalcase: 1.0.0
-      react: 16.14.0
-      react-codemirror2: 7.2.1_codemirror@5.60.0+react@16.14.0
-      react-dom: 16.14.0_react@16.14.0
-      socket.io-client: 2.4.0
-      xterm-addon-fit: 0.4.0
-      xterm-for-react: 1.0.4_react-dom@16.14.0+react@16.14.0
-    devDependencies:
-      esbuild: 0.8.57
-      npm-watch: 0.7.0
-      sass: 1.32.8
-
 packages:
   /@babel/runtime/7.13.10:
     resolution:
@@ -131,7 +113,6 @@ packages:
       }
     dependencies:
       tslib: 1.14.1
-    dev: false
 
   /@material/auto-init/10.0.0:
     resolution:
@@ -141,7 +122,6 @@ packages:
     dependencies:
       "@material/base": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/banner/10.0.0:
     resolution:
@@ -159,7 +139,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/base/10.0.0:
     resolution:
@@ -168,7 +147,6 @@ packages:
       }
     dependencies:
       tslib: 1.14.1
-    dev: false
 
   /@material/button/10.0.0:
     resolution:
@@ -186,7 +164,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/touch-target": 10.0.0
       "@material/typography": 10.0.0
-    dev: false
 
   /@material/card/10.0.0:
     resolution:
@@ -201,7 +178,6 @@ packages:
       "@material/rtl": 10.0.0
       "@material/shape": 10.0.0
       "@material/theme": 10.0.0
-    dev: false
 
   /@material/checkbox/10.0.0:
     resolution:
@@ -218,7 +194,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/touch-target": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/chips/10.0.0:
     resolution:
@@ -240,7 +215,6 @@ packages:
       "@material/touch-target": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/circular-progress/10.0.0:
     resolution:
@@ -254,7 +228,6 @@ packages:
       "@material/progress-indicator": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/data-table/10.0.0:
     resolution:
@@ -280,14 +253,12 @@ packages:
       "@material/touch-target": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/density/10.0.0:
     resolution:
       {
         integrity: sha512-nLf8N5e6tEYo+W762z3coTDl2b1FFKJv/uU+E5UsBYOL0ftXrOMtiYSwg9MJjfWtdG+uUBfb3VLcBvIl2x3C0w==,
       }
-    dev: false
 
   /@material/dialog/10.0.0:
     resolution:
@@ -309,7 +280,6 @@ packages:
       "@material/touch-target": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/dom/10.0.0:
     resolution:
@@ -319,7 +289,6 @@ packages:
     dependencies:
       "@material/feature-targeting": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/drawer/10.0.0:
     resolution:
@@ -339,7 +308,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/elevation/10.0.0:
     resolution:
@@ -351,7 +319,6 @@ packages:
       "@material/base": 10.0.0
       "@material/feature-targeting": 10.0.0
       "@material/theme": 10.0.0
-    dev: false
 
   /@material/fab/10.0.0:
     resolution:
@@ -369,14 +336,12 @@ packages:
       "@material/theme": 10.0.0
       "@material/touch-target": 10.0.0
       "@material/typography": 10.0.0
-    dev: false
 
   /@material/feature-targeting/10.0.0:
     resolution:
       {
         integrity: sha512-Pn48jeeD2ScMq0NoR0k9SeC3UFOOTarKNIYxL+TkFRLGks/TgFoSIDRwXCzva/9umw9/Q2xOWrY/Gqs1zBIgOA==,
       }
-    dev: false
 
   /@material/floating-label/10.0.0:
     resolution:
@@ -392,7 +357,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/form-field/10.0.0:
     resolution:
@@ -407,7 +371,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/icon-button/10.0.0:
     resolution:
@@ -422,7 +385,6 @@ packages:
       "@material/rtl": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/image-list/10.0.0:
     resolution:
@@ -434,14 +396,12 @@ packages:
       "@material/shape": 10.0.0
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
-    dev: false
 
   /@material/layout-grid/10.0.0:
     resolution:
       {
         integrity: sha512-r6MydDwpGwawgEBjENrp7699r+ioGpUd/ntAfrYxeVqRT43Qkoa6/VHLYHDubv+RlaG130PQ5ipNPkCgqHURMw==,
       }
-    dev: false
 
   /@material/line-ripple/10.0.0:
     resolution:
@@ -454,7 +414,6 @@ packages:
       "@material/feature-targeting": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/linear-progress/10.0.0:
     resolution:
@@ -469,7 +428,6 @@ packages:
       "@material/rtl": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/list/10.0.0:
     resolution:
@@ -487,7 +445,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/menu-surface/10.0.0:
     resolution:
@@ -503,7 +460,6 @@ packages:
       "@material/shape": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/menu/10.0.0:
     resolution:
@@ -521,7 +477,6 @@ packages:
       "@material/rtl": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/notched-outline/10.0.0:
     resolution:
@@ -536,7 +491,6 @@ packages:
       "@material/shape": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/progress-indicator/10.0.0:
     resolution:
@@ -545,7 +499,6 @@ packages:
       }
     dependencies:
       tslib: 1.14.1
-    dev: false
 
   /@material/radio/10.0.0:
     resolution:
@@ -562,7 +515,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/touch-target": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/ripple/10.0.0:
     resolution:
@@ -576,7 +528,6 @@ packages:
       "@material/feature-targeting": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/rtl/10.0.0:
     resolution:
@@ -585,7 +536,6 @@ packages:
       }
     dependencies:
       "@material/theme": 10.0.0
-    dev: false
 
   /@material/segmented-button/10.0.0:
     resolution:
@@ -600,7 +550,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/touch-target": 10.0.0
       "@material/typography": 10.0.0
-    dev: false
 
   /@material/select/10.0.0:
     resolution:
@@ -625,7 +574,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/shape/10.0.0:
     resolution:
@@ -636,7 +584,6 @@ packages:
       "@material/feature-targeting": 10.0.0
       "@material/rtl": 10.0.0
       "@material/theme": 10.0.0
-    dev: false
 
   /@material/slider/10.0.0:
     resolution:
@@ -654,7 +601,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/snackbar/10.0.0:
     resolution:
@@ -675,7 +621,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/switch/10.0.0:
     resolution:
@@ -693,7 +638,6 @@ packages:
       "@material/rtl": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/tab-bar/10.0.0:
     resolution:
@@ -708,7 +652,6 @@ packages:
       "@material/tab": 10.0.0
       "@material/tab-scroller": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/tab-indicator/10.0.0:
     resolution:
@@ -721,7 +664,6 @@ packages:
       "@material/feature-targeting": 10.0.0
       "@material/theme": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/tab-scroller/10.0.0:
     resolution:
@@ -735,7 +677,6 @@ packages:
       "@material/feature-targeting": 10.0.0
       "@material/tab": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/tab/10.0.0:
     resolution:
@@ -751,7 +692,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/textfield/10.0.0:
     resolution:
@@ -773,7 +713,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/theme/10.0.0:
     resolution:
@@ -782,7 +721,6 @@ packages:
       }
     dependencies:
       "@material/feature-targeting": 10.0.0
-    dev: false
 
   /@material/tooltip/10.0.0:
     resolution:
@@ -800,7 +738,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/top-app-bar/10.0.0:
     resolution:
@@ -817,7 +754,6 @@ packages:
       "@material/theme": 10.0.0
       "@material/typography": 10.0.0
       tslib: 1.14.1
-    dev: false
 
   /@material/touch-target/10.0.0:
     resolution:
@@ -827,7 +763,6 @@ packages:
     dependencies:
       "@material/base": 10.0.0
       "@material/feature-targeting": 10.0.0
-    dev: false
 
   /@material/typography/10.0.0:
     resolution:
@@ -837,7 +772,6 @@ packages:
     dependencies:
       "@material/feature-targeting": 10.0.0
       "@material/theme": 10.0.0
-    dev: false
 
   /@sindresorhus/is/0.14.0:
     resolution:
@@ -1717,7 +1651,6 @@ packages:
       "@material/top-app-bar": 10.0.0
       "@material/touch-target": 10.0.0
       "@material/typography": 10.0.0
-    dev: false
 
   /mimic-response/1.0.1:
     resolution:
@@ -1987,6 +1920,7 @@ packages:
       prop-types: 15.7.2
       react: 16.13.1
       scheduler: 0.19.1
+    dev: true
 
   /react-dom/16.14.0_react@16.14.0:
     resolution:
@@ -2019,6 +1953,7 @@ packages:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       prop-types: 15.7.2
+    dev: true
 
   /react/16.14.0:
     resolution:
@@ -2320,7 +2255,6 @@ packages:
       {
         integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==,
       }
-    dev: false
 
   /type-fest/0.8.1:
     resolution:
