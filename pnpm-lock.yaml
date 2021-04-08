@@ -53,7 +53,7 @@ importers:
       xterm-for-react: 1.0.4_react-dom@16.14.0+react@16.14.0
     devDependencies:
       concurrently: 6.0.1
-      esbuild: 0.8.57
+      esbuild: 0.8.44
       npm-watch: 0.7.0
       sass: 1.32.8
 
@@ -66,7 +66,7 @@ importers:
       react-dom: 16.13.1
     devDependencies:
       "@orchest/lib-utils": link:../utils
-      esbuild: 0.8.57
+      esbuild: 0.8.44
       material-components-web: 10.0.0
       react: 16.13.1
       react-dom: 16.13.1_react@16.13.1
@@ -77,7 +77,7 @@ importers:
       react: 16.13.1
       react-dom: 16.13.1
     devDependencies:
-      esbuild: 0.8.57
+      esbuild: 0.8.44
       react: 16.13.1
       react-dom: 16.13.1_react@16.13.1
 
@@ -94,9 +94,15 @@ importers:
       react: 16.14.0
       react-dom: 16.14.0_react@16.14.0
     devDependencies:
-      esbuild: 0.8.57
+      esbuild: 0.8.44
       npm-watch: 0.7.0
       sass: 1.32.8
+
+  services/orchest-webserver:
+    specifiers:
+      "@orchest/client-orchest": workspace:*
+    dependencies:
+      "@orchest/client-orchest": link:../../client/orchest
 
 packages:
   /@babel/code-frame/7.12.13:
@@ -1348,10 +1354,10 @@ packages:
       is-arrayish: 0.2.1
     dev: true
 
-  /esbuild/0.8.57:
+  /esbuild/0.8.44:
     resolution:
       {
-        integrity: sha512-j02SFrUwFTRUqiY0Kjplwjm1psuzO1d6AjaXKuOR9hrY0HuPsT6sV42B6myW34h1q4CRy+Y3g4RU/cGJeI/nNA==,
+        integrity: sha512-m9yyBZMgWuAB7e7tA2g9L4PovoLa5Xb73+Yg9uBBR2w3Fe4P9/nxqj/HLrw1k/rjdjF1eX1kNJRytboqOtRCCQ==,
       }
     hasBin: true
     requiresBuild: true
