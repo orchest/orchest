@@ -143,6 +143,7 @@ def create_app():
     # static file serving
     @app.route("/public/<path:path>")
     def send_files(path):
+        # switch this to the vite directory?
         return send_from_directory("../static", path)
 
     register_views(app, db)

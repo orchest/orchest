@@ -1,8 +1,0 @@
-{
-  "name": "@orchest/service-orchest-webserver",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "@orchest/client-orchest": "workspace:*"
-  }
-}
