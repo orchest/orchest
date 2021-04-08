@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "watch:es": "esbuild src/index.js --bundle --outdir=dist --format=cjs --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap",
-    "build:es": "esbuild src/index.js --bundle --outdir=dist --format=cjs --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"production\\\"",
+    "watch:es": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap",
+    "build:es": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"production\\\"",
     "build": "pnpm run build:es",
     "dev": "pnpm run watch:es",
     "// IGNORE SCRIPTS BELOW ME //": "////////////////////////////////////////",
