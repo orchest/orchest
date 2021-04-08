@@ -75,7 +75,7 @@ db.sqlite3-journal
 .webassets-cache
 
 # NPM node_modules for web
-node_modules/
+node_modules
 
 # Scrapy stuff:
 .scrapy
