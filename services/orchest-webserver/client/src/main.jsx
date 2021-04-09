@@ -1,10 +1,7 @@
-import "./styles/main.scss";
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
-import $ from "jquery";
-import "./utils/overflowing";
-window.$ = $;
+import "./styles/main.scss";
 
 // Load after fonts are ready, required by MDC
 window.addEventListener("load", () => {
@@ -13,7 +10,7 @@ window.addEventListener("load", () => {
       <React.StrictMode>
         <App />
       </React.StrictMode>,
-      document.querySelector("#react-root")
+      document.querySelector("#root")
     );
   });
 });

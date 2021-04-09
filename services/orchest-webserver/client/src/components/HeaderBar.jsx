@@ -166,7 +166,7 @@ class HeaderBar extends React.Component {
           >
             menu
           </button>
-          <img src="public/image/logo.svg" className="logo" />
+          <img src="/image/logo.svg" className="logo" />
           <ProjectSelector
             key={this.props.projectSelectorHash}
             onChangeProject={this.onChangeProject.bind(this)}

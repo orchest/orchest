@@ -1,17 +1,26 @@
 @use "vars";
 
-@use "@material/theme" with (
+// =============================================================================
+// start of @material
+//
+// This is a little annoying, but because Vite treats `aliases` the same whether
+// it's scss or js, we need to be explicit for our `@material` imports
+
+@use "../../../../../node_modules/@material/theme" with (
   $primary: vars.$primary,
   $secondary: vars.$secondary,
   $on-primary: vars.$on-primary,
   $on-secondary: vars.$on-secondary,
 );
 
-@use "@material/typography" with (
+@use "../../../../../node_modules/@material/typography" with (
     $font-family: ("Inter", sans-serif)
 );
 
-@use "@material/circular-progress";
+@use "../../../../../node_modules/@material/circular-progress";
+
+// end of @material
+// =============================================================================
 
 @import "material-components-web/material-components-web";
 @import "fonts";
@@ -1176,7 +1185,7 @@ span.code {
     height: 100%;
     position: absolute;
     user-select: none;
-    background-image: url("../../image/cross-fill.svg");
+    background-image: url("/image/cross-fill.svg");
     background-repeat: repeat;
     border: 1px solid #e5e5e5;
 
@@ -1195,7 +1204,7 @@ span.code {
 
       &.selected {
         &:after {
-          background-image: url("../../image/arrow-head-blue.svg");
+          background-image: url("/image/arrow-head-blue.svg");
         }
       }
 
@@ -1205,7 +1214,7 @@ span.code {
         display: block;
         width: 12px;
         height: 12px;
-        background-image: url("../../image/arrow-head.svg");
+        background-image: url("/image/arrow-head.svg");
         background-size: contain;
         background-repeat: no-repeat;
         right: 7px;

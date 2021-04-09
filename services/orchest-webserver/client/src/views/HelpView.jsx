@@ -31,7 +31,7 @@ class HelpView extends React.Component {
             target="_blank"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
-              <img src="public/image/readthedocs.png" width="100%" />
+              <img src="/image/readthedocs.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Quickstart</span>
           </a>
@@ -41,7 +41,7 @@ class HelpView extends React.Component {
             target="_blank"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
-              <img src="public/image/readthedocs.png" width="100%" />
+              <img src="/image/readthedocs.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Documentation</span>
           </a>
@@ -51,7 +51,7 @@ class HelpView extends React.Component {
             target="_blank"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
-              <img src="public/image/slack.png" width="100%" />
+              <img src="/image/slack.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Slack</span>
           </a>
@@ -61,7 +61,7 @@ class HelpView extends React.Component {
             target="_blank"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
-              <img src="public/image/github.png" width="100%" />
+              <img src="/image/github.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">GitHub</span>
           </a>
@@ -71,7 +71,7 @@ class HelpView extends React.Component {
             target="_blank"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
-              <img src="public/image/favicon.png" width="100%" />
+              <img src="/image/favicon.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Website</span>
           </a>
