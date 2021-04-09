@@ -16,7 +16,7 @@ class Config:
     PROJECTS_DIR = os.path.join(USER_DIR, "projects")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
-    STATIC_DIR = os.path.join(dir_path, "..", "static")
+    STATIC_DIR = os.path.join(dir_path, "..", "..", "client", "dist")
 
     DEFAULT_ENVIRONMENTS = _config.DEFAULT_ENVIRONMENTS
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS

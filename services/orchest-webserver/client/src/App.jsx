@@ -23,6 +23,7 @@ import {
   generateRoute,
   decodeRoute,
   pascalCaseToCapitalized,
+  loadIntercom,
 } from "./utils/webserver-utils";
 import EnvironmentsView from "./views/EnvironmentsView";
 import PipelinesView from "./views/PipelinesView";
@@ -32,41 +33,8 @@ import $ from "jquery";
 import "./utils/overflowing";
 window.$ = $;
 
-window.ORCHEST_CONFIG = {};
-window.ORCHEST_USER_CONFIG = {};
-
-// if cloud
-// (function () {
-//   var w = window;
-//   var ic = w.Intercom;
-//   if (typeof ic === "function") {
-//     ic("reattach_activator");
-//     ic("update", w.intercomSettings);
-//   } else {
-//     var d = document;
-//     var i = function () {
-//       i.c(arguments);
-//     };
-//     i.q = [];
-//     i.c = function (args) {
-//       i.q.push(args);
-//     };
-//     w.Intercom = i;
-//     var l = function () {
-//       var s = d.createElement("script");
-//       s.type = "text/javascript";
-//       s.async = true;
-//       s.src = "https://widget.intercom.io/widget/v61sr629";
-//       var x = d.getElementsByTagName("script")[0];
-//       x.parentNode.insertBefore(s, x);
-//     };
-//     if (w.attachEvent) {
-//       w.attachEvent("onload", l);
-//     } else {
-//       w.addEventListener("load", l, false);
-//     }
-//   }
-// })();
+// Hack
+window.exports = {};
 
 class App extends React.Component {
   constructor() {
@@ -94,12 +62,11 @@ class App extends React.Component {
     if (this.config.CLOUD === true) {
       console.log("Orchest is running with --cloud.");
 
-      window.Intercom("boot", {
-        app_id: this.config["INTERCOM_APP_ID"],
-        name: "",
-        email: this.user_config["INTERCOM_USER_EMAIL"], // Email address
-        created_at: this.config["INTERCOM_DEFAULT_SIGNUP_DATE"], // Signup date as a Unix timestamp
-      });
+      loadIntercom(
+        this.config["INTERCOM_APP_ID"],
+        this.config["INTERCOM_USER_EMAIL"],
+        this.config["INTERCOM_DEFAULT_SIGNUP_DATE"]
+      );
     }
 
     this.browserConfig = new PersistentLocalConfig("orchest");

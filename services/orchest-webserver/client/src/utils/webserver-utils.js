@@ -1,6 +1,6 @@
 import React, { Fragment } from "react";
 import { makeRequest } from "@orchest/lib-utils";
-import moment from "moment";
+import { format, parseISO } from "date-fns";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
 
@@ -212,12 +212,12 @@ export function getScrollLineHeight() {
 }
 
 export function formatServerDateTime(serverDateTimeString) {
-  return serverTimeToMoment(serverDateTimeString).format("lll");
+  return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
-export function serverTimeToMoment(serverDateTimeString) {
+export function serverTimeToDate(serverDateTimeString) {
   serverDateTimeString = cleanServerDateTime(serverDateTimeString);
-  return moment(serverDateTimeString + " Z");
+  return parseISO(serverDateTimeString + " Z");
 }
 
 export function cleanServerDateTime(dateTimeString) {
@@ -435,6 +435,49 @@ export function pascalCaseToCapitalized(viewName) {
   const regex = /([A-Z])/gm;
   const subst = ` $1`;
   return viewName.replace(regex, subst).trim();
+}
+
+export function loadIntercom(
+  INTERCOM_APP_ID,
+  INTERCOM_USER_EMAIL,
+  INTERCOM_DEFAULT_SIGNUP_DATE
+) {
+  var w = window;
+  var ic = w.Intercom;
+  if (typeof ic === "function") {
+    ic("reattach_activator");
+    ic("update", w.intercomSettings);
+  } else {
+    var d = document;
+    var i = function () {
+      i.c(arguments);
+    };
+    i.q = [];
+    i.c = function (args) {
+      i.q.push(args);
+    };
+    w.Intercom = i;
+    var l = function () {
+      var s = d.createElement("script");
+      s.type = "text/javascript";
+      s.async = true;
+      s.src = "https://widget.intercom.io/widget/v61sr629";
+      var x = d.getElementsByTagName("script")[0];
+      x.parentNode.insertBefore(s, x);
+    };
+    if (w.attachEvent) {
+      w.attachEvent("onload", l);
+    } else {
+      w.addEventListener("load", l, false);
+    }
+  }
+
+  window.Intercom("boot", {
+    app_id: INTERCOM_APP_ID,
+    name: "",
+    email: INTERCOM_USER_EMAIL, // Email address
+    created_at: INTERCOM_DEFAULT_SIGNUP_DATE, // Signup date as a Unix timestamp
+  });
 }
 
 /*

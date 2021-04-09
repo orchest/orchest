@@ -1,6 +1,6 @@
 import React from "react";
 import cronstrue from "cronstrue";
-import cron from "cron-validate";
+import { cron } from "cron-validate";
 import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 
 class CronScheduleInput extends React.Component {
