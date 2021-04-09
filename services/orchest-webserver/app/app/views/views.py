@@ -160,13 +160,6 @@ def register_views(app, db):
             }
         )
 
-    @app.route("/", defaults={"path": ""}, methods=["GET"])
-    @app.route("/<path:path>", methods=["GET"])
-    def index(path):
-
-        # TODO: point to index.html from vite dist/ bundle.
-        return render_template("index.html")
-
     @app.route("/async/spawn-update-server", methods=["GET"])
     def spawn_update_server():
 

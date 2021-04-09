@@ -1,11 +1,9 @@
 {
   "private": true,
   "scripts": {
+    "setup": "npm i -g pnpm@6.0.0",
     "preinstall": "npx only-allow pnpm",
-    "build": "pnpm run build --r --stream --filter '@orchest/lib-*' --filter '@orchest/client-*'"
-  },
-  "devDependencies": {
-    "pnpm": "6.0.0"
+    "build": "pnpm run build --r --stream"
   },
   "engines": {
     "pnpm": ">=6"

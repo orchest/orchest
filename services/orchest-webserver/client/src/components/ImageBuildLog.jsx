@@ -11,7 +11,7 @@ import {
 import {
   cleanServerDateTime,
   formatServerDateTime,
-  serverTimeToMoment,
+  serverTimeToDate,
 } from "../utils/webserver-utils";
 
 class ImageBuild extends React.Component {

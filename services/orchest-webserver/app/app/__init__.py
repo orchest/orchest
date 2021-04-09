@@ -141,10 +141,14 @@ def create_app():
         )
 
     # static file serving
-    @app.route("/public/<path:path>")
-    def send_files(path):
-        # switch this to the vite directory?
-        return send_from_directory("../static", path)
+    @app.route("/", defaults={"path": ""}, methods=["GET"])
+    @app.route("/<path:path>", methods=["GET"])
+    def index(path):
+        file_path = os.path.join(app.config["STATIC_DIR"], path)
+        if os.path.isfile(file_path):
+            return send_from_directory(app.config["STATIC_DIR"], path)
+        else:
+            return send_from_directory(app.config["STATIC_DIR"], "index.html")
 
     register_views(app, db)
     register_orchest_api_views(app, db)

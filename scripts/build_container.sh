@@ -78,6 +78,19 @@ LIB_IMAGES=(
     "celery-worker"
     "jupyter-enterprise-gateway"
 )
+
+PNPM_FILES=(
+    "pnpm-lock.yaml"
+    "pnpm-workspace.yaml"
+    "package.json"
+    ".npmrc"
+)
+
+PNPM_IMAGES=(
+    "orchest-webserver"
+)
+# TODO: add auth-server
+
 SDK_IMAGES=(
     "base-kernel-py"
     "base-kernel-py-gpu"
@@ -113,6 +126,14 @@ run_build () {
         fi
         if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
             cp -r $DIR/../orchest-sdk $build_ctx/orchest-sdk 2>/dev/null
+        fi
+        if containsElement "${image}" "${PNPM_IMAGES[@]}" ; then
+            mkdir -p $build_ctx/pnpm_files
+            for i in "${PNPM_FILES[@]}"
+            do
+                pnpm_file=${i}
+                cp $DIR/../$pnpm_file $build_ctx/pnpm_files 2>/dev/null
+            done
         fi
     fi
     # copy end
@@ -150,6 +171,10 @@ function cleanup() {
             if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
                 rm -r $i/orchest-sdk 2> /dev/null
             fi
+            if containsElement "${image}" "${PNPM_IMAGES[@]}" ; then
+                rm -r $build_ctx/pnpm_files 2>/dev/null
+            fi
+
             rm $i/.dockerignore 2> /dev/null
         fi
         D=$(expr $D + 1)
@@ -173,7 +198,7 @@ do
     if [ $IMG == "jupyter-server" ]; then
 
         build_ctx=$DIR/../services/jupyter-server
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/jupyter-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-server/Dockerfile \
@@ -187,7 +212,7 @@ do
     if [ $IMG == "jupyter-enterprise-gateway" ]; then
 
         build_ctx=$DIR/../services/jupyter-enterprise-gateway
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/jupyter-enterprise-gateway:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-enterprise-gateway/Dockerfile \
@@ -199,7 +224,7 @@ do
     if [ $IMG == "celery-worker" ]; then
 
         build_ctx=$DIR/../services/orchest-api
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/celery-worker:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile_celery \
@@ -213,7 +238,7 @@ do
     if [ $IMG == "base-kernel-py" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/base-kernel-py:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-py/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -225,7 +250,7 @@ do
     if [ $IMG == "base-kernel-julia" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/base-kernel-julia:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-julia/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -237,7 +262,7 @@ do
     if [ $IMG == "base-kernel-py-gpu" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/base-kernel-py-gpu:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-py-gpu/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -249,7 +274,7 @@ do
     if [ $IMG == "base-kernel-r" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/base-kernel-r:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-r/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -261,7 +286,7 @@ do
     if [ $IMG == "orchest-api" ]; then
 
         build_ctx=$DIR/../services/orchest-api
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/orchest-api:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile \
@@ -272,7 +297,7 @@ do
     if [ $IMG == "orchest-ctl" ]; then
 
         build_ctx=$DIR/../services/orchest-ctl
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/orchest-ctl:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-ctl/Dockerfile \
@@ -283,7 +308,7 @@ do
     if [ $IMG == "update-server" ]; then
 
         build_ctx=$DIR/../services/update-server
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/update-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/update-server/Dockerfile \
@@ -294,7 +319,7 @@ do
     if [ $IMG == "file-manager" ]; then
 
         build_ctx=$DIR/../services/file-manager
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/file-manager:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/file-manager/Dockerfile \
@@ -308,7 +333,7 @@ do
         $DIR/dev_compile_cleanup.sh
 
         build_ctx=$DIR/../services/orchest-webserver
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/orchest-webserver:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-webserver/Dockerfile \
@@ -318,7 +343,7 @@ do
 
     if [ $IMG == "nginx-proxy" ]; then
         build_ctx=$DIR/../services/nginx-proxy
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/nginx-proxy:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/nginx-proxy/Dockerfile \
@@ -332,7 +357,7 @@ do
         $DIR/dev_compile_cleanup.sh
 
         build_ctx=$DIR/../services/auth-server
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/auth-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/auth-server/Dockerfile \
@@ -343,7 +368,7 @@ do
     # installs orchest-sdk
     if [ $IMG == "memory-server" ]; then
         build_ctx=$DIR/../services/memory-server
-        build=(docker build \
+        build=(docker build --progress=plain \
             -t "orchest/memory-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/memory-server/Dockerfile \

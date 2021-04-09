@@ -1,5 +1,5 @@
 import React from "react";
-import moment from "moment";
+import { parseISO } from "date-fns";
 import { MDCTextFieldReact } from "@orchest/lib-mdc";
 
 class DateTimeInput extends React.Component {
@@ -22,7 +22,7 @@ class DateTimeInput extends React.Component {
   }
 
   getISOString() {
-    return moment(
+    return parseISO(
       this.state.dateValue + " " + this.state.timeValue + " Z"
     ).toISOString();
   }

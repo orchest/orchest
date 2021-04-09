@@ -19,7 +19,7 @@ import {
   checkGate,
   getScrollLineHeight,
   getPipelineJSONEndpoint,
-  serverTimeToMoment,
+  serverTimeToDate,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -1535,15 +1535,13 @@ class PipelineView extends React.Component {
       // finished_time takes priority over started_time
       let started_time = undefined;
       let finished_time = undefined;
-      let server_time = serverTimeToMoment(result.server_time);
+      let server_time = serverTimeToDate(result.server_time);
 
       if (result.pipeline_steps[x].started_time) {
-        started_time = serverTimeToMoment(
-          result.pipeline_steps[x].started_time
-        );
+        started_time = serverTimeToDate(result.pipeline_steps[x].started_time);
       }
       if (result.pipeline_steps[x].finished_time) {
-        finished_time = serverTimeToMoment(
+        finished_time = serverTimeToDate(
           result.pipeline_steps[x].finished_time
         );
       }
