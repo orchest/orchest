@@ -21,7 +21,7 @@
     "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
     "codemirror": "^5.55.0",
-    "cron-validate": "^1.4.2",
+    "cron-parser": "^3.3.0",
     "cronstrue": "^1.108.0",
     "dashify": "^2.0.0",
     "date-fns": "2.20.1",
