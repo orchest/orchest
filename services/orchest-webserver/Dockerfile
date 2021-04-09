@@ -23,7 +23,7 @@ COPY ./client ./client
 COPY ./lib/javascript ./app/static/js/src/lib
 
 # PNPM files
-COPY ./pnpm_files/* /orchest
+COPY ./pnpm_files/* /orchest/
 
 
 # Compile front-end code with npx and compile style.

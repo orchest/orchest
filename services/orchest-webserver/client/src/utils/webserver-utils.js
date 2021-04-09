@@ -465,13 +465,19 @@ export function loadIntercom(
       var x = d.getElementsByTagName("script")[0];
       x.parentNode.insertBefore(s, x);
     };
-    if (w.attachEvent) {
-      w.attachEvent("onload", l);
-    } else {
-      w.addEventListener("load", l, false);
-    }
+
+    // if (w.attachEvent) {
+    //   w.attachEvent("onload", l);
+    // } else {
+    //   w.addEventListener("load", l, false);
+    // }
+
+    // Modified original embed snippet as window.load
+    // has already triggered.
+    l();
   }
 
+  // consumed by Intercom's function collector (i)
   window.Intercom("boot", {
     app_id: INTERCOM_APP_ID,
     name: "",

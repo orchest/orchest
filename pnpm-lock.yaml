@@ -55,7 +55,7 @@ importers:
       "@vitejs/plugin-react-refresh": 1.3.1
       codemirror: ^5.55.0
       concurrently: 6.0.1
-      cron-validate: ^1.4.2
+      cron-parser: ^3.3.0
       cronstrue: ^1.108.0
       dashify: ^2.0.0
       date-fns: 2.20.1
@@ -77,7 +77,7 @@ importers:
       "@orchest/lib-mdc": link:../../../lib/javascript/mdc
       "@orchest/lib-utils": link:../../../lib/javascript/utils
       codemirror: 5.60.0
-      cron-validate: 1.4.3
+      cron-parser: 3.3.0
       cronstrue: 1.111.0
       dashify: 2.0.0
       date-fns: 2.20.1
@@ -342,15 +342,6 @@ packages:
       "@babel/core": 7.13.14
       "@babel/helper-plugin-utils": 7.13.0
     dev: true
-
-  /@babel/runtime/7.13.10:
-    resolution:
-      {
-        integrity: sha512-4QPkjJq6Ns3V/RgpEahRk+AGfL0eO6RHHtTWoNNr5mO49G6B5+X6d6THgWEAvTrznU5xYpbAlVKRYcsCgh/Akw==,
-      }
-    dependencies:
-      regenerator-runtime: 0.13.7
-    dev: false
 
   /@babel/template/7.12.13:
     resolution:
@@ -1077,13 +1068,6 @@ packages:
       defer-to-connect: 1.1.3
     dev: true
 
-  /@types/lodash/4.14.168:
-    resolution:
-      {
-        integrity: sha512-oVfRvqHV/V6D1yifJbVRU3TMp8OT6o6BG+U9MkwuJ3U8/CsDHvalRpsxBqivn71ztOFZBTfJMvETbqHiaNSj7Q==,
-      }
-    dev: false
-
   /@types/normalize-package-data/2.4.0:
     resolution:
       {
@@ -1279,6 +1263,16 @@ packages:
       normalize-url: 4.5.0
       responselike: 1.0.2
     dev: true
+
+  /call-bind/1.0.2:
+    resolution:
+      {
+        integrity: sha512-7O+FbCihrB5WGbFYesctwmTKae6rOiIzmz1icreWJ+0aA7LJfuqhEso2T9ncpcFtzMQtzXf2QGGueWJGTYsqrA==,
+      }
+    dependencies:
+      function-bind: 1.1.1
+      get-intrinsic: 1.1.1
+    dev: false
 
   /camelcase/5.3.1:
     resolution:
@@ -1489,13 +1483,15 @@ packages:
     resolution: { integrity: sha1-tf1UIgqivFq1eqtxQMlAdUUDwac= }
     dev: true
 
-  /cron-validate/1.4.3:
+  /cron-parser/3.3.0:
     resolution:
       {
-        integrity: sha512-N+qKw019oQBEPIP5Qwi8Z5XelQ00ThN6Maahwv+9UGu2u/b/MPb35zngMQI0T8pBoNiBrIXGlhvsmspNSYae/w==,
+        integrity: sha512-Tz5WxSrDVhR7YVuLuUxhXoMGHCWoe8I7g8APkyRZNaINXHQ3zcfK97av6hBYy9ue4sOLI7ZH7SeQqi/t4jR+5A==,
       }
+    engines: { node: ">=0.8" }
     dependencies:
-      yup: 0.32.9
+      is-nan: 1.3.2
+      luxon: 1.26.0
     dev: false
 
   /cronstrue/1.111.0:
@@ -1600,6 +1596,16 @@ packages:
         integrity: sha512-0ISdNousHvZT2EiFlZeZAHBUvSxmKswVCEf8hW7KWgG4a8MVEu/3Vb6uWYozkjylyCxe0JBIiRB1jV45S70WVQ==,
       }
     dev: true
+
+  /define-properties/1.1.3:
+    resolution:
+      {
+        integrity: sha512-3MqfYKj2lLzdMSf8ZIZE/V+Zuy+BgD6f164e8K2w7dgnpKArBDerGYpM46IYYcjnkdPNMjPk9A6VFB8+3SKlXQ==,
+      }
+    engines: { node: ">= 0.4" }
+    dependencies:
+      object-keys: 1.1.1
+    dev: false
 
   /dot-prop/5.3.0:
     resolution:
@@ -1753,7 +1759,6 @@ packages:
       {
         integrity: sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==,
       }
-    dev: true
 
   /gensync/1.0.0-beta.2:
     resolution:
@@ -1770,6 +1775,17 @@ packages:
       }
     engines: { node: 6.* || 8.* || >= 10.* }
     dev: true
+
+  /get-intrinsic/1.1.1:
+    resolution:
+      {
+        integrity: sha512-kWZrnVM42QCiEA2Ig1bG8zjoIMOgxWwYCEeNdwY6Tv/cOSeGpcoX4pXHfKUxNKVoArnrEr2e9srnAxxGIraS9Q==,
+      }
+    dependencies:
+      function-bind: 1.1.1
+      has: 1.0.3
+      has-symbols: 1.0.2
+    dev: false
 
   /get-stream/4.1.0:
     resolution:
@@ -1872,6 +1888,14 @@ packages:
     engines: { node: ">=8" }
     dev: true
 
+  /has-symbols/1.0.2:
+    resolution:
+      {
+        integrity: sha512-chXa79rL/UC2KlX17jo3vRGz0azaWEx5tGqZg5pO3NUyEJVB17dMruQlzCCOfUvElghKcm5194+BCRvi2Rv/Gw==,
+      }
+    engines: { node: ">= 0.4" }
+    dev: false
+
   /has-yarn/2.1.0:
     resolution:
       {
@@ -1888,7 +1912,6 @@ packages:
     engines: { node: ">= 0.4.0" }
     dependencies:
       function-bind: 1.1.1
-    dev: true
 
   /hosted-git-info/2.8.8:
     resolution:
@@ -2015,6 +2038,17 @@ packages:
       is-path-inside: 3.0.3
     dev: true
 
+  /is-nan/1.3.2:
+    resolution:
+      {
+        integrity: sha512-E+zBKpQ2t6MEo1VsonYmluk9NxGrbzpeeLC2xIViuO2EjU2xsXsBPwTr3Ykv9l08UYEVEdWeRZNouaZqF6RN0w==,
+      }
+    engines: { node: ">= 0.4" }
+    dependencies:
+      call-bind: 1.0.2
+      define-properties: 1.1.3
+    dev: false
+
   /is-npm/4.0.0:
     resolution:
       {
@@ -2133,13 +2167,6 @@ packages:
     resolution: { integrity: sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA= }
     dev: true
 
-  /lodash-es/4.17.21:
-    resolution:
-      {
-        integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==,
-      }
-    dev: false
-
   /lodash/4.17.21:
     resolution:
       {
@@ -2170,6 +2197,13 @@ packages:
       }
     engines: { node: ">=8" }
     dev: true
+
+  /luxon/1.26.0:
+    resolution:
+      {
+        integrity: sha512-+V5QIQ5f6CDXQpWNICELwjwuHdqeJM1UenlZWx5ujcRMc9venvluCjFb4t5NYLhb6IhkbMVOxzVuOqkgMxee2A==,
+      }
+    dev: false
 
   /make-dir/3.1.0:
     resolution:
@@ -2276,13 +2310,6 @@ packages:
       }
     dev: true
 
-  /nanoclone/0.2.1:
-    resolution:
-      {
-        integrity: sha512-wynEP02LmIbLpcYw8uBKpcfF6dmg2vcpKqxeH5UcoKEYdExslsdUA4ugFauuaeYdTB76ez6gJW8XAZ6CgkXYxA==,
-      }
-    dev: false
-
   /nanoid/3.1.22:
     resolution:
       {
@@ -2369,6 +2396,14 @@ packages:
   /object-assign/4.1.1:
     resolution: { integrity: sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM= }
     engines: { node: ">=0.10.0" }
+
+  /object-keys/1.1.1:
+    resolution:
+      {
+        integrity: sha512-NuAESUOUMrlIXOfHKzD6bpPu3tYt3xvjNdRIQ+FeT0lNb4K8WR70CaDxhuNguS2XG+GjkyMwOzsN5ZktImfhLA==,
+      }
+    engines: { node: ">= 0.4" }
+    dev: false
 
   /once/1.4.0:
     resolution: { integrity: sha1-WDsap3WWHUsROsF9nFC6753Xa9E= }
@@ -2480,13 +2515,6 @@ packages:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       react-is: 16.13.1
-
-  /property-expr/2.0.4:
-    resolution:
-      {
-        integrity: sha512-sFPkHQjVKheDNnPvotjQmm3KD3uk1fWKUN7CrpdbwmUx3CrG3QiM8QpTSimvig5vTXmTvjz7+TDvXOI9+4rkcg==,
-      }
-    dev: false
 
   /pstree.remy/1.1.8:
     resolution:
@@ -2646,13 +2674,6 @@ packages:
     dependencies:
       picomatch: 2.2.2
     dev: true
-
-  /regenerator-runtime/0.13.7:
-    resolution:
-      {
-        integrity: sha512-a54FxoJDIr27pgf7IgeQGxmqUNYrcV338lf/6gH456HZ/PhX+5BcwHXG9ajESmwe6WRO0tAzRUrRmNONWgkrew==,
-      }
-    dev: false
 
   /registry-auth-token/4.2.1:
     resolution:
@@ -2993,10 +3014,6 @@ packages:
       is-number: 7.0.0
     dev: true
 
-  /toposort/2.0.2:
-    resolution: { integrity: sha1-riF2gXXRVZ1IvvNUILL0li8JwzA= }
-    dev: false
-
   /touch/3.1.0:
     resolution:
       {
@@ -3264,20 +3281,4 @@ packages:
 
   /yeast/0.1.2:
     resolution: { integrity: sha1-AI4G2AlDIMNy28L47XagymyKxBk= }
-    dev: false
-
-  /yup/0.32.9:
-    resolution:
-      {
-        integrity: sha512-Ci1qN+i2H0XpY7syDQ0k5zKQ/DoxO0LzPg8PAR/X4Mpj6DqaeCoIYEEjDJwhArh3Fa7GWbQQVDZKeXYlSH4JMg==,
-      }
-    engines: { node: ">=10" }
-    dependencies:
-      "@babel/runtime": 7.13.10
-      "@types/lodash": 4.14.168
-      lodash: 4.17.21
-      lodash-es: 4.17.21
-      nanoclone: 0.2.1
-      property-expr: 2.0.4
-      toposort: 2.0.2
     dev: false

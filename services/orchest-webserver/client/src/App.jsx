@@ -33,9 +33,6 @@ import $ from "jquery";
 import "./utils/overflowing";
 window.$ = $;
 
-// Hack
-window.exports = {};
-
 class App extends React.Component {
   constructor() {
     super();
@@ -52,8 +49,8 @@ class App extends React.Component {
     ];
 
     // load server side config populated by flask template
-    this.config = JSON.parse(window.ORCHEST_CONFIG);
-    this.user_config = JSON.parse(window.ORCHEST_USER_CONFIG);
+    this.config = window.ORCHEST_CONFIG;
+    this.user_config = window.ORCHEST_USER_CONFIG;
 
     if (this.config.FLASK_ENV === "development") {
       console.log("Orchest is running with --dev.");

@@ -1,6 +1,6 @@
 import React from "react";
 import cronstrue from "cronstrue";
-import { cron } from "cron-validate";
+import parser from "cron-parser";
 import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 
 class CronScheduleInput extends React.Component {
@@ -63,10 +63,8 @@ class CronScheduleInput extends React.Component {
         <div className={this.props.disabled ? "disabled-text" : ""}>
           {(() => {
             try {
-              let cronResult = cron(this.state.cronString);
-              if (cronResult.isValid()) {
-                return cronstrue.toString(this.state.cronString);
-              }
+              parser.parseExpression(this.state.cronString);
+              return cronstrue.toString(this.state.cronString);
             } catch (err) {
               console.warn(err);
             }
