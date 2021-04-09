@@ -5,9 +5,7 @@ import uuid
 import docker
 import requests
 import sqlalchemy
-from flask import current_app
-from flask import json as flask_json
-from flask import jsonify, render_template, request
+from flask import current_app, jsonify, render_template, request
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 
@@ -33,7 +31,6 @@ from app.utils import (
     get_environment,
     get_environment_directory,
     get_environments,
-    get_hash,
     get_job_counts,
     get_pipeline_directory,
     get_pipeline_json,
@@ -132,17 +129,8 @@ def register_views(app, db):
 
         return json_string, 404, {"content-type": "application/json"}
 
-    @app.route("/", defaults={"path": ""}, methods=["GET"])
-    @app.route("/<path:path>", methods=["GET"])
-    def index(path):
-
-        js_bundle_path = os.path.join(
-            app.config["STATIC_DIR"], "js", "dist", "main.bundle.js"
-        )
-        css_bundle_path = os.path.join(
-            app.config["STATIC_DIR"], "css", "dist", "main.css"
-        )
-
+    @app.route("/async/server-config", methods=["GET"])
+    def server_config():
         front_end_config = [
             "FLASK_ENV",
             "TELEMETRY_DISABLED",
@@ -162,19 +150,22 @@ def register_views(app, db):
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 
-        return render_template(
-            "index.html",
-            javascript_bundle_hash=get_hash(js_bundle_path),
-            css_bundle_hash=get_hash(css_bundle_path),
-            CLOUD=app.config["CLOUD"],
-            user_config=flask_json.htmlsafe_dumps(get_user_conf()),
-            config_json=flask_json.htmlsafe_dumps(
-                {
+        return jsonify(
+            {
+                "user_config": get_user_conf(),
+                "config": {
                     **{key: app.config[key] for key in front_end_config},
                     **{key: getattr(_config, key) for key in front_end_config_internal},
-                }
-            ),
+                },
+            }
         )
+
+    @app.route("/", defaults={"path": ""}, methods=["GET"])
+    @app.route("/<path:path>", methods=["GET"])
+    def index(path):
+
+        # TODO: point to index.html from vite dist/ bundle.
+        return render_template("index.html")
 
     @app.route("/async/spawn-update-server", methods=["GET"])
     def spawn_update_server():
