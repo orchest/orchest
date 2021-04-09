@@ -5,6 +5,9 @@ import reactRefresh from "@vitejs/plugin-react-refresh";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [reactRefresh()],
+  define: {
+    global: "window",
+  },
   resolve: {
     alias: {
       "@material": path.resolve(__dirname, "../../../node_modules/@material/"),
@@ -13,7 +16,7 @@ export default defineConfig({
   css: {
     preprocessOptions: {
       scss: {
-        includePaths: ["../../../node_modules"],
+        includePaths: ["node_modules"],
       },
     },
   },
