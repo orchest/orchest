@@ -1,16 +1,28 @@
 {
   "private": true,
   "scripts": {
-    "setup": "npm i -g pnpm@6.0.0",
-    "preinstall": "npx only-allow pnpm",
     "build": "pnpm run build --r --stream",
-    "dev": "pnpm run dev --r --stream",
-    "lint": "syncpack list-mismatches"
+    "format": "syncpack format",
+    "lint": "syncpack list-mismatches",
+    "pre-commit": "pnpm run lint",
+    "preinstall": "npx only-allow pnpm",
+    "setup": "npm i -g pnpm@6.0.0"
+  },
+  "dependencies": {
+    "syncpack": "^5.7.11"
   },
   "engines": {
     "pnpm": ">=6"
   },
-  "dependencies": {
-    "syncpack": "^5.7.11"
+  "syncpack": {
+    "sortFirst": [
+      "private",
+      "name",
+      "description",
+      "version",
+      "author",
+      "license",
+      "scripts"
+    ]
   }
 }

@@ -353,22 +353,28 @@ class PipelineView extends React.Component {
       this.promiseManager
     );
 
-    pipelineRunsPromise.promise.then((response) => {
-      let data = JSON.parse(response);
+    pipelineRunsPromise.promise
+      .then((response) => {
+        let data = JSON.parse(response);
 
-      try {
-        // Note that runs are returned by the orchest-api by
-        // started_time DESC. So we can just retrieve the first run.
-        if (data["runs"].length > 0) {
-          let run = data["runs"][0];
-          this.state.runUUID = run.uuid;
-          this.pollPipelineStepStatuses();
-          this.startStatusInterval();
+        try {
+          // Note that runs are returned by the orchest-api by
+          // started_time DESC. So we can just retrieve the first run.
+          if (data["runs"].length > 0) {
+            let run = data["runs"][0];
+            this.state.runUUID = run.uuid;
+            this.pollPipelineStepStatuses();
+            this.startStatusInterval();
+          }
+        } catch (e) {
+          console.log("Error parsing return from orchest-api " + e);
         }
-      } catch (e) {
-        console.log("Error parsing return from orchest-api " + e);
-      }
-    });
+      })
+      .catch((error) => {
+        if (!error.isCanceled) {
+          console.error(erorr);
+        }
+      });
   }
 
   validatePipelineJSON(pipelineJSON) {
@@ -547,32 +553,33 @@ class PipelineView extends React.Component {
 
   loadDefaultPipeline() {
     // Fetch this project's pipeline
-    let selectedProject = orchest.getProject();
+    orchest.getProject().then((selectedProject) => {
+      if (selectedProject !== undefined) {
+        // initialize REST call for pipelines
+        let fetchPipelinesPromise = makeCancelable(
+          makeRequest("GET", `/async/pipelines/${selectedProject}`),
+          this.promiseManager
+        );
 
-    if (selectedProject !== undefined) {
-      // initialize REST call for pipelines
-      let fetchPipelinesPromise = makeCancelable(
-        makeRequest("GET", `/async/pipelines/${selectedProject}`),
-        this.promiseManager
-      );
+        fetchPipelinesPromise.promise.then((response) => {
+          let data = JSON.parse(response);
 
-      fetchPipelinesPromise.promise.then((response) => {
-        let data = JSON.parse(response);
-
-        if (data.result.length > 0) {
-          orchest.loadView(PipelineView, {
-            queryArgs: {
-              pipeline_uuid: data.result[0].uuid,
-              project_uuid: selectedProject,
-            },
-          });
-        } else {
-          orchest.loadView(PipelinesView);
-        }
-      });
-    } else {
-      orchest.loadView(PipelinesView);
-    }
+          if (data.result.length > 0) {
+            orchest.loadView(PipelineView, {
+              queryArgs: {
+                pipeline_uuid: data.result[0].uuid,
+                project_uuid: selectedProject,
+              },
+              key: uuidv4(),
+            });
+          } else {
+            orchest.loadView(PipelinesView);
+          }
+        });
+      } else {
+        orchest.loadView(PipelinesView);
+      }
+    });
   }
 
   componentDidMount() {

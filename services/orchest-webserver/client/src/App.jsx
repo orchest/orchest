@@ -305,11 +305,32 @@ class App extends React.Component {
   }
 
   getProject() {
-    // Use this to get the currently selected project outside
-    // of a view that consumes it as props.
-    // E.g. in the pipeline view that loads the selected project's
-    // pipeline when no query arguments are passed.
-    return this.state.selectedProject;
+    return new Promise((resolve, reject) => {
+      // Use this to get the currently selected project outside
+      // of a view that consumes it as props.
+      // E.g. in the pipeline view that loads the selected project's
+      // pipeline when no query arguments are passed.
+      if (this.state.selectedProject) {
+        resolve(this.state.selectedProject);
+      } else {
+        // No project selected yet, fetch from server
+        makeRequest(
+          "GET",
+          "/async/projects?skip_discovery=true&session_counts=false"
+        )
+          .then((result) => {
+            let projects = JSON.parse(result);
+            if (projects.length == 0) {
+              resolve(undefined);
+            } else {
+              resolve(projects[0].uuid);
+            }
+          })
+          .catch(() => {
+            reject();
+          });
+      }
+    });
   }
 
   invalidateProjects() {

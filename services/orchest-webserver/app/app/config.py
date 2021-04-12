@@ -70,7 +70,6 @@ class Config:
     PROJECT_ORCHEST_GIT_IGNORE_CONTENT = "\n".join(["logs/", "data/"])
 
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
-    DEBUG = True
 
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes

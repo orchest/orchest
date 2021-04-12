@@ -17,6 +17,7 @@ RUN pip3 install pip --upgrade && \
 
 # Get our custom extensions for jupyterlab.
 ARG extension_dir=/jupyterlab-orchest-build
+ARG pip_jupyter_extension_dir=/usr/local/share/jupyter/lab/extensions
 RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/visual-tags \
     && git clone https://github.com/orchest/orchest-integration.git /jupyter-extensions/orchest-integration \
     && jupyter labextension install /jupyter-extensions/visual-tags \
@@ -25,6 +26,8 @@ RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/vis
     && jupyter labextension install /jupyter-extensions/orchest-integration \
         --no-build \
         --BaseExtensionApp.app_dir=$extension_dir \
+    && pip3 install jupyterlab-git==0.30.0b2 \
+    && cp -rfT $pip_jupyter_extension_dir $extension_dir/extensions \
     && jupyter lab build --dev-build=False --LabBuildApp.app_dir=$extension_dir \
     && jupyter lab clean --LabCleanApp.app_dir=$extension_dir
 

@@ -4,9 +4,10 @@ import os
 import re
 import shutil
 import uuid
+from urllib.parse import unquote
 
 import requests
-from flask import current_app
+from flask import Response, current_app
 
 from _orchest.internals import config as _config
 from app.compat import migrate_pipeline
@@ -613,6 +614,33 @@ def request_args_to_string(args):
     if args is None or len(args) == 0:
         return ""
     return "?" + "&".join([key + "=" + value for key, value in args.items()])
+
+
+def _proxy(request, new_host):
+
+    resp = requests.request(
+        method=request.method,
+        url=unquote(request.url.replace(request.host_url, new_host)),
+        headers={key: value for (key, value) in request.headers if key != "Host"},
+        data=request.get_data(),
+        cookies=request.cookies,
+        allow_redirects=False,
+    )
+
+    excluded_headers = [
+        "content-encoding",
+        "content-length",
+        "transfer-encoding",
+        "connection",
+    ]
+    headers = [
+        (name, value)
+        for (name, value) in resp.raw.headers.items()
+        if name.lower() not in excluded_headers
+    ]
+
+    response = Response(resp.content, resp.status_code, headers)
+    return response
 
 
 def generate_gateway_kernel_name(environment_uuid):
