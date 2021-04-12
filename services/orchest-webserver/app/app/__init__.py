@@ -31,7 +31,7 @@ from app.connections import db, ma
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import get_repo_tag, get_user_conf
+from app.utils import _proxy, get_repo_tag, get_user_conf
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -144,11 +144,15 @@ def create_app():
     @app.route("/", defaults={"path": ""}, methods=["GET"])
     @app.route("/<path:path>", methods=["GET"])
     def index(path):
-        file_path = os.path.join(app.config["STATIC_DIR"], path)
-        if os.path.isfile(file_path):
-            return send_from_directory(app.config["STATIC_DIR"], path)
+        # in Debug mode proxy to CLIENT_DEBUG_SERVER_URL
+        if os.environ.get("FLASK_ENV") == "development":
+            return _proxy(request, app.config["CLIENT_DEBUG_SERVER_URL"] + "/")
         else:
-            return send_from_directory(app.config["STATIC_DIR"], "index.html")
+            file_path = os.path.join(app.config["STATIC_DIR"], path)
+            if os.path.isfile(file_path):
+                return send_from_directory(app.config["STATIC_DIR"], path)
+            else:
+                return send_from_directory(app.config["STATIC_DIR"], "index.html")
 
     register_views(app, db)
     register_orchest_api_views(app, db)

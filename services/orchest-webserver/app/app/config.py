@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from _orchest.internals import config as _config
 
@@ -47,6 +48,27 @@ class Config:
     PROJECT_ORCHEST_GIT_IGNORE_CONTENT = "\n".join(["logs/", "data/"])
 
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
+
+    if FLASK_ENV == "development":
+        if os.environ.get("HOST_OS") == "darwin":
+            # Use Docker for Desktop
+            CLIENT_DEBUG_SERVER_URL = "http://host.docker.internal"
+        else:
+            # Find gateway IP (e.g. 172.18.0.1) to connect
+            # to host.
+            CLIENT_DEBUG_SERVER_URL = (
+                "http://"
+                + subprocess.check_output(
+                    ["bash", "-c", "/sbin/ip route|awk '/default/ { print $3 }'"]
+                )
+                .decode()
+                .strip()
+            )
+
+        # Client debug server assumed to be running on 3000
+        CLIENT_DEBUG_SERVER_URL += ":3000"
+    else:
+        CLIENT_DEBUG_SERVER_URL = None
 
     DEBUG = True
 
