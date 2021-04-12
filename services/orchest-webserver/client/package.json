@@ -5,8 +5,8 @@
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "dev": "vite",
     "build": "vite build",
+    "dev": "vite",
     "serve": "vite preview"
   },
   "dependencies": {
