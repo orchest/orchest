@@ -18,4 +18,5 @@ class DevelopmentConfig(Config):
 CONFIG_CLASS = Config
 
 # Development
-# CONFIG_CLASS = DevelopmentConfig
+if os.environ.get("FLASK_ENV") == "development":
+    CONFIG_CLASS = DevelopmentConfig

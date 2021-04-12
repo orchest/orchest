@@ -217,7 +217,7 @@ export function formatServerDateTime(serverDateTimeString) {
 
 export function serverTimeToDate(serverDateTimeString) {
   serverDateTimeString = cleanServerDateTime(serverDateTimeString);
-  return parseISO(serverDateTimeString + " Z");
+  return parseISO(serverDateTimeString + "Z");
 }
 
 export function cleanServerDateTime(dateTimeString) {

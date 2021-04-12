@@ -88,6 +88,7 @@ PNPM_FILES=(
 
 PNPM_IMAGES=(
     "orchest-webserver"
+    "auth-server"
 )
 # TODO: add auth-server
 
@@ -329,9 +330,6 @@ do
 
     if [ $IMG == "orchest-webserver" ]; then
 
-        # Cleanup dev symlinks
-        $DIR/dev_compile_cleanup.sh
-
         build_ctx=$DIR/../services/orchest-webserver
         build=(docker build --progress=plain \
             -t "orchest/orchest-webserver:$BUILD_TAG" \
@@ -352,9 +350,6 @@ do
     fi
 
     if [ $IMG == "auth-server" ]; then
-
-        # Cleanup dev symlinks
-        $DIR/dev_compile_cleanup.sh
 
         build_ctx=$DIR/../services/auth-server
         build=(docker build --progress=plain \

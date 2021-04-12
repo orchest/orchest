@@ -4,6 +4,7 @@
     "setup": "npm i -g pnpm@6.0.0",
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm run build --r --stream",
+    "dev": "pnpm run dev --r --stream",
     "lint": "syncpack list-mismatches"
   },
   "engines": {

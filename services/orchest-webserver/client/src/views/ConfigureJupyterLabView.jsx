@@ -252,7 +252,7 @@ class ConfigureJupyterLabView extends React.Component {
                 "push-right",
               ]}
               submitButton
-              onClick={this.save.bind(this)}
+              onClick={this.save.bind(this, undefined)}
             />
 
             {!this.state.building ? (

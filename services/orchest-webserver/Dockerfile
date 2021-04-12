@@ -20,7 +20,7 @@ RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 
 # Static application files.
 COPY ./client ./client
-COPY ./lib/javascript ./app/static/js/src/lib
+COPY ./lib/javascript /orchest/lib/javascript
 
 # PNPM files
 COPY ./pnpm_files/* /orchest/
@@ -31,7 +31,7 @@ WORKDIR /orchest
 
 RUN npm run setup
 RUN pnpm i && \
-  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/client-orchest"
+  pnpm run docker --filter=@orchest/client-orchest
 
 # TODO: cleanup node_modules/ across the /orchest
 

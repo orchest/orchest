@@ -32,7 +32,13 @@ make code changes that are instantly reflected, without having to build the cont
    # Before Orchest can be run in "dev" mode the front-end code has to
    # be compiled
    # (for the first time you may need to add the `--install` flag)
-   scripts/dev_compile_frontend.sh
+   
+   # First time setup
+   npm run setup
+   pnpm i
+
+   # Every time
+   pnpm run dev
 
    ./orchest start --dev
 

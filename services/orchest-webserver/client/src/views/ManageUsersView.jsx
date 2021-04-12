@@ -8,7 +8,7 @@ class ManageUsersView extends React.Component {
   render() {
     return (
       <div className={"view-page no-padding manage-users"}>
-        <iframe className="borderless fullsize" src="/login/admin" />
+        <iframe className="borderless fullsize" src="/login/?view=admin" />
       </div>
     );
   }

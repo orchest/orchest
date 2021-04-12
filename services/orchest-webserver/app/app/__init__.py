@@ -24,14 +24,14 @@ from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import is_werkzeug_parent
+from _orchest.internals.utils import _proxy, is_werkzeug_parent
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import _proxy, get_repo_tag, get_user_conf
+from app.utils import get_repo_tag, get_user_conf
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -144,9 +144,9 @@ def create_app():
     @app.route("/", defaults={"path": ""}, methods=["GET"])
     @app.route("/<path:path>", methods=["GET"])
     def index(path):
-        # in Debug mode proxy to CLIENT_DEBUG_SERVER_URL
+        # in Debug mode proxy to CLIENT_DEV_SERVER_URL
         if os.environ.get("FLASK_ENV") == "development":
-            return _proxy(request, app.config["CLIENT_DEBUG_SERVER_URL"] + "/")
+            return _proxy(request, app.config["CLIENT_DEV_SERVER_URL"] + "/")
         else:
             file_path = os.path.join(app.config["STATIC_DIR"], path)
             if os.path.isfile(file_path):

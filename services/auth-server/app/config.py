@@ -1,4 +1,27 @@
 import os
+import subprocess
+
+
+def get_dev_server_url():
+    if os.environ.get("HOST_OS") == "darwin":
+        # Use Docker for Desktop
+        CLIENT_DEV_SERVER_URL = "http://host.docker.internal"
+    else:
+        # Find gateway IP (e.g. 172.18.0.1) to connect
+        # to host.
+        CLIENT_DEV_SERVER_URL = (
+            "http://"
+            + subprocess.check_output(
+                ["bash", "-c", "/sbin/ip route|awk '/default/ { print $3 }'"]
+            )
+            .decode()
+            .strip()
+        )
+
+    # Client auth-server debug server assumed to be running on 3001
+    CLIENT_DEV_SERVER_URL += ":3001"
+
+    return CLIENT_DEV_SERVER_URL
 
 
 class Config:
@@ -7,16 +30,19 @@ class Config:
 
     TOKEN_DURATION_HOURS = 24
 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
     CLOUD = os.environ.get("CLOUD") == "true"
     CLOUD_URL = "https://cloud.orchest.io"
 
-    STATIC_DIR = "/orchest/services/auth-server/app/static"
+    STATIC_DIR = os.path.join(dir_path, "..", "client", "dist")
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    CLIENT_DEV_SERVER_URL = get_dev_server_url()
 
 
 # ---- CONFIGURATIONS ----
@@ -24,4 +50,5 @@ class DevelopmentConfig(Config):
 CONFIG_CLASS = Config
 
 # Development
-# CONFIG_CLASS = DevelopmentConfig
+if os.environ.get("FLASK_ENV") == "development":
+    CONFIG_CLASS = DevelopmentConfig

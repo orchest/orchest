@@ -233,6 +233,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             "Image": "orchest/auth-server:latest",
             "Env": [
                 "PYTHONUNBUFFERED=TRUE",
+                f'HOST_OS={env["HOST_OS"]}',
             ],
             "HostConfig": {
                 "Binds": [
@@ -389,10 +390,7 @@ def update_container_config_with_dev(
         },
         "auth-server": {
             "Cmd": ["sh", "-c", "umask 002 && flask run --host=0.0.0.0 --port=80"],
-            "Env": [
-                "FLASK_APP=main.py",
-                "FLASK_DEBUG=1",
-            ],
+            "Env": ["FLASK_APP=main.py", "FLASK_DEBUG=1", "FLASK_ENV=development"],
             "HostConfig": {
                 "Binds": [
                     os.path.join(env["HOST_REPO_DIR"], "services", "auth-server", "app")
