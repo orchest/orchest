@@ -2,22 +2,22 @@
   "private": true,
   "name": "@orchest/lib-utils",
   "version": "1.0.0",
+  "author": "Orchest B.V.",
+  "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "scripts": {
-    "watch:es": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap",
-    "build:es": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"production\\\"",
-    "build": "pnpm run build:es",
-    "dev": "pnpm run watch:es",
-    "// IGNORE SCRIPTS BELOW ME //": "////////////////////////////////////////",
-    "build-development": "pnpm run watch:es"
+    "es:watch": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap",
+    "es:build": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"production\\\"",
+    "build": "pnpm run es:build",
+    "dev": "pnpm run es:watch"
   },
   "peerDependencies": {
-    "react": "16.13.1",
-    "react-dom": "16.13.1"
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
   },
   "devDependencies": {
     "esbuild": "0.8.44",
-    "react": "16.13.1",
-    "react-dom": "16.13.1"
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
   }
 }

@@ -3,9 +3,13 @@
   "scripts": {
     "setup": "npm i -g pnpm@6.0.0",
     "preinstall": "npx only-allow pnpm",
-    "build": "pnpm run build --r --stream"
+    "build": "pnpm run build --r --stream",
+    "lint": "syncpack list-mismatches"
   },
   "engines": {
     "pnpm": ">=6"
+  },
+  "dependencies": {
+    "syncpack": "^5.7.11"
   }
 }
