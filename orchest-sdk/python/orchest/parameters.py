@@ -13,13 +13,13 @@ from orchest.pipeline import Pipeline, PipelineStep
 from orchest.utils import get_step_uuid
 
 
-def __get_pipeline() -> Pipeline:
+def _get_pipeline() -> Pipeline:
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
     return Pipeline.from_json(pipeline_definition)
 
 
-def __get_current_step(pipeline: Pipeline) -> PipelineStep:
+def _get_current_step(pipeline: Pipeline) -> PipelineStep:
     try:
         step_uuid = get_step_uuid(pipeline)
     except StepUUIDResolveError:
@@ -34,8 +34,8 @@ def get_params() -> Tuple[dict, dict]:
         A tuple of two elements, where the first is the parameters of
         the current step, the second is the parameters of the pipeline.
     """
-    pipeline = __get_pipeline()
-    step = __get_current_step(pipeline)
+    pipeline = _get_pipeline()
+    step = _get_current_step(pipeline)
     return step.get_params(), pipeline.get_params()
 
 
@@ -62,73 +62,69 @@ def update_params(
         since different steps could be updating them at the same time.
 
     """
-    pipeline = __get_pipeline()
+    pipeline = _get_pipeline()
 
     if pipeline_params is not None:
         pipeline.update_params(pipeline_params)
 
     if step_params is not None:
-        step = __get_current_step(pipeline)
+        step = _get_current_step(pipeline)
         step.update_params(step_params)
 
     with open(Config.PIPELINE_DEFINITION_PATH, "w") as f:
         json.dump(pipeline.to_dict(), f, indent=4, sort_keys=True)
 
 
-def get_step_param(key: str) -> Any:
+def get_step_param(name: str) -> Any:
     """Gets a parameter of the current step by name.
 
     Args:
-        key: The step parameter to get.
+        name: The step parameter to get.
 
     Returns:
         The value that was mapped to the step parameter name.
     """
-    pipeline = __get_pipeline()
-    step = __get_current_step(pipeline)
+    pipeline = _get_pipeline()
+    step = _get_current_step(pipeline)
     params = step.get_params()
-    return params[key]
+    return params[name]
 
 
-def get_pipeline_param(key: str) -> Any:
+def get_pipeline_param(name: str) -> Any:
     """Gets a pipeline parameter by name.
 
     Args:
-        key: The pipeline parameter to get.
+        name: The pipeline parameter to get.
 
     Returns:
         The value that was mapped to the pipeline parameter name.
     """
-    pipeline = __get_pipeline()
+    pipeline = _get_pipeline()
     params = pipeline.get_params()
-    return params[key]
+    return params[name]
 
 
-def update_step_param(key: str, value: Any) -> None:
+def update_step_param(name: str, value: Any) -> None:
     """Updates or sets a step parameter.
 
     Internally the updating is done by calling the ``dict.update``
     method. This further explains the behavior of this method.
 
     Args:
-        key: The step parameter to update/set.
+        name: The step parameter to update/set.
         value: The value that will be set.
     """
-    pipeline = __get_pipeline()
-    step = __get_current_step(pipeline)
-    step.update_params({key: value})
-    with open(Config.PIPELINE_DEFINITION_PATH, "w") as f:
-        json.dump(pipeline.to_dict(), f, indent=4, sort_keys=True)
+    update_params(step_params={name: value})
 
 
-def update_pipeline_param(key: str, value: Any) -> None:
+def update_pipeline_param(name: str, value: Any) -> None:
     """Updates or sets a pipeline parameter.
 
     Internally the updating is done by calling the ``dict.update``
     method. This further explains the behavior of this method.
 
     Args:
-        key: The pipeline parameter to update/set.
+        name: The pipeline parameter to update/set.
         value: The value that will be set.
 
     Warning:
@@ -136,7 +132,4 @@ def update_pipeline_param(key: str, value: Any) -> None:
         since different steps could be updating pipeline parameters at
         the same time.
     """
-    pipeline = __get_pipeline()
-    pipeline.update_params({key: value})
-    with open(Config.PIPELINE_DEFINITION_PATH, "w") as f:
-        json.dump(pipeline.to_dict(), f, indent=4, sort_keys=True)
+    update_params(pipeline_params={name: value})
