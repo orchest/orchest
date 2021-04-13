@@ -1,13 +1,13 @@
 @use "vars";
 
-@use "../../../../../../node_modules/@material/theme" with (
+@use "../../../../../node_modules/@material/theme" with (
   $primary: vars.$primary,
   $secondary: vars.$secondary,
   $on-primary: vars.$on-primary,
   $on-secondary: vars.$on-secondary,
 );
 
-@use "../../../../../../node_modules/@material/typography" with (
+@use "../../../../../node_modules/@material/typography" with (
     $font-family: ("Inter", sans-serif)
 );
 

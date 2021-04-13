@@ -25,7 +25,7 @@ WORKDIR /orchest
 
 RUN npm run setup
 RUN pnpm i && \
-  pnpm run docker --filter=@orchest/auth-client
+  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/auth-client"
 
 # TODO: cleanup node_modules/ across the /orchest
 

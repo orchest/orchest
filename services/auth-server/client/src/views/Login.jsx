@@ -1,7 +1,5 @@
 import React from "react";
-
 import { MDCTextFieldReact, MDCButtonReact } from "@orchest/lib-mdc";
-
 import { makeRequest } from "@orchest/lib-utils";
 
 export default class Login extends React.Component {
