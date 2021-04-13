@@ -4,8 +4,7 @@ import App from "./App";
 import "./styles/main.scss";
 
 // Get path components
-let queryArgs = new URLSearchParams(location.search);
-let view = queryArgs.has("view") ? queryArgs.get("view") : "";
+let view = window.location.href.split("/").slice(-1)[0];
 let reactRoot = document.getElementById("root");
 
 ReactDOM.render(<App view={view} />, reactRoot);
