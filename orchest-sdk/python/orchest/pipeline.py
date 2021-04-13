@@ -54,6 +54,9 @@ class PipelineStep:
         return self.properties.get("parameters", {})
 
     def update_params(self, params) -> None:
+        for param in params:
+            if not isinstance(param, str):
+                raise TypeError("Parameter keys can only be of type string.")
         try:
             self.properties["parameters"].update(params)
         except KeyError:
@@ -143,6 +146,10 @@ class Pipeline:
         return self.properties.get("parameters", {})
 
     def update_params(self, params) -> None:
+        for param in params:
+            if not isinstance(param, str):
+                raise TypeError("Parameter keys can only be of type string.")
+
         try:
             self.properties["parameters"].update(params)
         except KeyError:
