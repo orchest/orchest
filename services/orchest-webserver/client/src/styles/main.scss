@@ -122,12 +122,12 @@ header {
   position: relative;
 
   .header-left,
-  .global-actions {
+  .header-actions {
     display: flex;
     align-items: center;
   }
 
-  .global-actions {
+  .header-actions {
     button {
       margin-left: $generalPadding/2;
       &:first-child {
@@ -253,7 +253,7 @@ a.button {
     line-height: 1.5;
   }
 
-  &.global-settings {
+  &.orchest-settings {
     h3 {
       margin-top: $generalPadding * 2;
       margin-bottom: $generalPadding/2;
@@ -1648,7 +1648,7 @@ table {
 
 @media only screen and (max-width: 1200px) {
   .view-page {
-    &.global-settings {
+    &.orchest-settings {
       .columns {
         .column {
           &:nth-child(2n) {
