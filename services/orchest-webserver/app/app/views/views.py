@@ -183,7 +183,8 @@ def register_views(app, db):
 
         cmd = ["updateserver"]
 
-        cmd.append(f"--port {StaticConfig.PORT}")
+        # Note that it won't work as --port {port}.
+        cmd.append(f"--port={StaticConfig.PORT}")
 
         if StaticConfig.FLASK_ENV == "development":
             cmd.append("--dev")
@@ -205,7 +206,8 @@ def register_views(app, db):
         client = docker.from_env()
         cmd = ["restart"]
 
-        cmd.append(f"--port {StaticConfig.PORT}")
+        # Note that it won't work as --port {port}.
+        cmd.append(f"--port={StaticConfig.PORT}")
 
         if StaticConfig.FLASK_ENV == "development":
             cmd.append("--dev")
