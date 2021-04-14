@@ -70,6 +70,8 @@ def background_task():
         # Restart Orchest given the flags.
         ctl_command = ["restart"]
 
+        ctl_command.append(f"--port {CONFIG_CLASS.PORT}")
+
         if CONFIG_CLASS.FLASK_ENV == "development":
             ctl_command.append("--dev")
 
