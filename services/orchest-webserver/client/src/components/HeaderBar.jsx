@@ -192,7 +192,7 @@ class HeaderBar extends React.Component {
           </div>
         )}
 
-        <div className="global-actions">
+        <div className="header-actions">
           {this.state.pipelineName && !this.state.readOnlyPipeline && (
             <SessionToggleButton
               ref={this.refManager.nrefs.sessionToggleButton}

@@ -239,8 +239,8 @@ class SettingsView extends React.Component {
     updateGlobalUnsavedChanges(this.state.unsavedChanges);
 
     return (
-      <div className={"view-page global-settings"}>
-        <h2>Global settings</h2>
+      <div className={"view-page orchest-settings"}>
+        <h2>Orchest settings</h2>
         <div className="push-down">
           <div>
             <p className="push-down">
