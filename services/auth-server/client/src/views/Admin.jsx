@@ -91,7 +91,7 @@ export default class Admin extends React.Component {
     let userNodes = [];
     for (let user of this.state.users) {
       userNodes.push(
-        <div key={user.username}>
+        <div key={user.username} className="delete-user-form">
           <span>{user.username}</span>
           <MDCButtonReact
             onClick={this.deleteUser.bind(this, user.username)}
