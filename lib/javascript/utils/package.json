@@ -6,18 +6,25 @@
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "scripts": {
-    "build": "pnpm run es:build",
-    "dev": "pnpm run es:watch",
-    "es:build": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"production\\\"",
-    "es:watch": "esbuild src/index.js --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap"
+    "build": "concurrently -n w: npm:*:build",
+    "dev": "concurrently -n w: npm:*:watch",
+    "lint": "concurrently -n w: npm:*:check",
+    "es:build": "esbuild src/index.ts --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"production\\\"",
+    "es:watch": "esbuild src/index.ts --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap",
+    "ts:build": "tsc --emitDeclarationOnly --outDir dist",
+    "ts:watch": "tsc --emitDeclarationOnly --outDir dist -w",
+    "ts:check": "tsc --noEmit"
   },
   "peerDependencies": {
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
+    "@types/react": "17.0.3",
+    "concurrently": "6.0.2",
     "esbuild": "0.8.44",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react-dom": "^16.13.1",
+    "typescript": "4.2.4"
   }
 }
