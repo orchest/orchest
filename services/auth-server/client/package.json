@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@orchest/auth-client",
+  "name": "@orchest/client-auth",
   "version": "1.0.0",
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",

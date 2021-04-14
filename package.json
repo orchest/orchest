@@ -4,7 +4,7 @@
     "build": "pnpm run build --r --stream",
     "dev": "pnpm run dev --r --stream",
     "format": "syncpack format",
-    "lint": "syncpack list-mismatches",
+    "lint": "syncpack list-mismatches && pnpm run lint --r --stream",
     "pre-commit": "pnpm run lint",
     "preinstall": "npx only-allow pnpm",
     "setup": "npm i -g pnpm@6.0.0"

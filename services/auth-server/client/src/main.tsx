@@ -7,4 +7,8 @@ import "./styles/main.scss";
 let view = window.location.href.split("/").slice(-1)[0];
 let reactRoot = document.getElementById("root");
 
-ReactDOM.render(<App view={view} />, reactRoot);
+ReactDOM.render(
+  // @ts-ignore
+  <App view={view} />,
+  reactRoot
+);
