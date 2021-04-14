@@ -14,6 +14,7 @@ Building
 Since Orchest is a fully containerized application you will first have to build the containers.
 
 .. code-block:: bash
+
    # Ensure you've installed orchest
    ./orchest install
 
@@ -34,7 +35,7 @@ make code changes that are instantly reflected, without having to build the cont
    # Before Orchest can be run in "dev" mode the front-end code has to
    # be compiled
    # (for the first time you may need to add the `--install` flag)
-   
+
    # First time setup
    npm run setup
    pnpm i
