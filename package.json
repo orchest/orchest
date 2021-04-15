@@ -23,7 +23,11 @@
       "version",
       "author",
       "license",
-      "scripts"
+      "main",
+      "scripts",
+      "peerDependencies",
+      "dependencies",
+      "devDependencies"
     ]
   }
 }
