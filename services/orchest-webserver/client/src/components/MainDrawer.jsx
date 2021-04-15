@@ -13,6 +13,13 @@ class MainDrawer extends React.Component {
     this.refManager = new RefManager();
   }
 
+  updateIntercomWidget() {
+    if (orchest.config["CLOUD"] === true && window.Intercom !== undefined) {
+      // show Intercom widget
+      window.Intercom("update", { hide_default_launcher: !this.drawer.open });
+    }
+  }
+
   componentDidMount() {
     this.drawer = new MDCDrawer(this.refManager.refs.mainDrawer);
     this.drawer.list.singleSelection = true;
@@ -31,13 +38,21 @@ class MainDrawer extends React.Component {
       }
     });
 
+    if (!this.props.open) {
+      this.updateIntercomWidget();
+    }
+
     this.drawer.listen("MDCDrawer:opened", () => {
       document.body.focus();
       orchest.browserConfig.set("topAppBar.open", "true");
+
+      this.updateIntercomWidget();
     });
 
     this.drawer.listen("MDCDrawer:closed", () => {
       orchest.browserConfig.set("topAppBar.open", "false");
+
+      this.updateIntercomWidget();
     });
 
     // Avoid anchor link clicking default behavior.
