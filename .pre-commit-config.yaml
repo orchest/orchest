@@ -4,7 +4,7 @@ repos:
       - id: "pnpm-install"
         name: "pnpm install"
         language: "system"
-        entry: "pnpm install"
+        entry: "pnpm install --reporter=ndjson"
         pass_filenames: false
         files: \.(js|jsx|json|ts|tsx|html|css|scss)$
       - id: "pnpm-pre-commit"
