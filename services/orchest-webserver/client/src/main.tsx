@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import App from "./App";
 import { makeRequest } from "@orchest/lib-utils";
 import "./styles/main.scss";
+import { ConfigProvider } from "./hooks/config";
 
 declare global {
   interface Document {
@@ -23,9 +24,13 @@ window.addEventListener("load", () => {
       window.ORCHEST_CONFIG = config.config;
       window.ORCHEST_USER_CONFIG = config.user_config;
 
+      console.log(config);
+
       ReactDOM.render(
         <React.StrictMode>
-          <App />
+          <ConfigProvider {...config}>
+            <App />
+          </ConfigProvider>
         </React.StrictMode>,
         document.querySelector("#root")
       );
