@@ -527,7 +527,7 @@ c.ContentsManager.allow_hidden = True
 #  authentication and security checks, with the full knowledge of what that
 #  implies.
 #  Default: False
-# c.ServerApp.disable_check_xsrf = False
+c.ServerApp.disable_check_xsrf = True
 
 ## handlers that should be loaded at higher priority than the default services
 #  Default: []

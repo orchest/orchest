@@ -1,6 +1,29 @@
 import os
+import subprocess
 
 from _orchest.internals import config as _config
+
+
+def get_dev_server_url():
+    if os.environ.get("HOST_OS") == "darwin":
+        # Use Docker for Desktop
+        CLIENT_DEV_SERVER_URL = "http://host.docker.internal"
+    else:
+        # Find gateway IP (e.g. 172.18.0.1) to connect
+        # to host.
+        CLIENT_DEV_SERVER_URL = (
+            "http://"
+            + subprocess.check_output(
+                ["bash", "-c", "/sbin/ip route|awk '/default/ { print $3 }'"]
+            )
+            .decode()
+            .strip()
+        )
+
+    # Client debug server assumed to be running on 3000
+    CLIENT_DEV_SERVER_URL += ":3000"
+
+    return CLIENT_DEV_SERVER_URL
 
 
 class Config:
@@ -16,7 +39,7 @@ class Config:
     PROJECTS_DIR = os.path.join(USER_DIR, "projects")
     HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
-    STATIC_DIR = os.path.join(dir_path, "..", "static")
+    STATIC_DIR = os.path.join(dir_path, "..", "..", "client", "dist")
 
     DEFAULT_ENVIRONMENTS = _config.DEFAULT_ENVIRONMENTS
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
@@ -48,8 +71,6 @@ class Config:
 
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
 
-    DEBUG = True
-
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
 
@@ -75,6 +96,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    CLIENT_DEV_SERVER_URL = get_dev_server_url()
 
 
 class TestingConfig(Config):
@@ -84,7 +106,8 @@ class TestingConfig(Config):
 
 # ---- CONFIGURATIONS ----
 # Production
-# CONFIG_CLASS = Config
+CONFIG_CLASS = Config
 
 # Development
-CONFIG_CLASS = DevelopmentConfig
+if os.environ.get("FLASK_ENV") == "development":
+    CONFIG_CLASS = DevelopmentConfig

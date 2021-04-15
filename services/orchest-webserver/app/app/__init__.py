@@ -24,7 +24,7 @@ from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import is_werkzeug_parent
+from _orchest.internals.utils import _proxy, is_werkzeug_parent
 from app.analytics import analytics_ping
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
@@ -141,9 +141,18 @@ def create_app():
         )
 
     # static file serving
-    @app.route("/public/<path:path>")
-    def send_files(path):
-        return send_from_directory("../static", path)
+    @app.route("/", defaults={"path": ""}, methods=["GET"])
+    @app.route("/<path:path>", methods=["GET"])
+    def index(path):
+        # in Debug mode proxy to CLIENT_DEV_SERVER_URL
+        if os.environ.get("FLASK_ENV") == "development":
+            return _proxy(request, app.config["CLIENT_DEV_SERVER_URL"] + "/")
+        else:
+            file_path = os.path.join(app.config["STATIC_DIR"], path)
+            if os.path.isfile(file_path):
+                return send_from_directory(app.config["STATIC_DIR"], path)
+            else:
+                return send_from_directory(app.config["STATIC_DIR"], "index.html")
 
     register_views(app, db)
     register_orchest_api_views(app, db)

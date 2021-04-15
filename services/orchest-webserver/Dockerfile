@@ -19,13 +19,21 @@ WORKDIR /orchest/services/orchest-webserver
 RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 
 # Static application files.
-COPY ./app/static ./app/static
-COPY ./lib/javascript ./app/static/js/src/lib
+COPY ./client ./client
+COPY ./lib/javascript /orchest/lib/javascript
+
+# PNPM files
+COPY ./pnpm_files/* /orchest/
+
 
 # Compile front-end code with npx and compile style.
-WORKDIR /orchest/services/orchest-webserver/app/static
-RUN npm install --quiet; ./compile-js.sh & ./compile-sass.sh & wait && \
-  rm -rf node_modules/
+WORKDIR /orchest
+
+RUN npm run setup
+RUN pnpm i && \
+  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/client-orchest"
+
+# TODO: cleanup node_modules/ across the /orchest
 
 # Application files.
 WORKDIR /orchest/services/orchest-webserver/

@@ -14,6 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Read .nvmrc
+        run: echo ::set-output name=NVMRC::$(cat .nvmrc)
+        id: nvm
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2.1.5
+        with:
+          node-version: "${{ steps.nvm.outputs.NVMRC }}"
+
+      - name: Setup pnpm
+        run: npm run setup && pnpm i
+
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:

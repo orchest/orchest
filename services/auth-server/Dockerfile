@@ -4,7 +4,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 # Refresh SSL certificates
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
 
-# Install nodejs for jupyterextension install support
+# Install nodejs for frontend client build
 RUN curl -sL https://deb.nodesource.com/setup_15.x | bash - && apt-get install -y nodejs
 
 # Get all Python requirements in place and install them.
@@ -14,13 +14,20 @@ WORKDIR /orchest/services/auth-server
 RUN pip3 install -r requirements.txt
 
 # Get the internal JS library
-COPY ./app/static ./app/static
-COPY ./lib/javascript/ app/static/js/src/lib/
+COPY ./client ./client
+COPY ./lib/javascript /orchest/lib/javascript
 
-# Compile front-end code with npx and compile style
-WORKDIR /orchest/services/auth-server/app/static
-RUN npm install --quiet; ./compile-js.sh & ./compile-sass.sh & wait && \
-  rm -rf node_modules/
+# PNPM files
+COPY ./pnpm_files/* /orchest/
+
+# Compile front-end code with npx and compile style.
+WORKDIR /orchest
+
+RUN npm run setup
+RUN pnpm i && \
+  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/auth-client"
+
+# TODO: cleanup node_modules/ across the /orchest
 
 # Application files.
 WORKDIR /orchest/services/auth-server

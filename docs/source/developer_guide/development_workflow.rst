@@ -15,6 +15,9 @@ Since Orchest is a fully containerized application you will first have to build 
 
 .. code-block:: bash
 
+   # Ensure you've installed orchest
+   ./orchest install
+
    # It is also possible to specify certain flags, running it without
    # any will build all containers in parallel. Due to Docker's
    # layering system this should be rather quick.
@@ -30,8 +33,15 @@ make code changes that are instantly reflected, without having to build the cont
 .. code-block:: bash
 
    # Before Orchest can be run in "dev" mode the front-end code has to
-   # be compiled.
-   scripts/dev_compile_frontend.sh
+   # be compiled
+   # (for the first time you may need to add the `--install` flag)
+
+   # First time setup
+   npm run setup
+   pnpm i
+
+   # Every time
+   pnpm run dev
 
    ./orchest start --dev
 
@@ -57,6 +67,10 @@ Install all development dependencies using:
 
 .. code-block:: bash
 
+   # if not run in prior development step
+   npm run setup
+   pnpm i
+   
    pre-commit install
 
 Run formatters, linters and tests with:
