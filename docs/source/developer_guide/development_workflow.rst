@@ -67,6 +67,10 @@ Install all development dependencies using:
 
 .. code-block:: bash
 
+   # if not run in prior development step
+   npm run setup
+   pnpm i
+   
    pre-commit install
 
 Run formatters, linters and tests with:
