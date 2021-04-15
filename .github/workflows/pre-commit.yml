@@ -10,6 +10,8 @@ on:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    env:
+      SKIP: pnpm-pre-commit
 
     steps:
       - uses: actions/checkout@v2
@@ -41,4 +43,4 @@ jobs:
 
       - uses: pre-commit/action@v2.0.0
         with:
-          extra_args: --skip pnpm-pre-commit --files ${{ steps.file_changes.outputs.files }}
+          extra_args: --files ${{ steps.file_changes.outputs.files }}
