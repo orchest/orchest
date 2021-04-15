@@ -26,7 +26,7 @@ export default class App extends React.Component {
   render() {
     if (this.state.config) {
       switch (this.props.view) {
-        case "":
+        case "login":
           return (
             <Login
               cloud={this.state.config.cloud}

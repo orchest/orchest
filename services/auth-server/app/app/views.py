@@ -26,11 +26,15 @@ def register_views(app):
         )
 
     # static file serving
-    @app.route("/login/", defaults={"path": ""}, methods=["GET"])
+    @app.route("/login", defaults={"path": ""}, methods=["GET"])
     @app.route("/login/<path:path>", methods=["GET"])
     def login_static(path):
         # in Debug mode proxy to CLIENT_DEV_SERVER_URL
         if os.environ.get("FLASK_ENV") == "development":
+            # Dev mode requires trailing slash
+            if path == "" and not request.url.endswith("/"):
+                request.url = request.url + "/"
+
             return _proxy(request, app.config["CLIENT_DEV_SERVER_URL"] + "/")
         else:
             file_path = os.path.join(app.config["STATIC_DIR"], path)
@@ -98,7 +102,7 @@ def register_views(app):
     def login():
         return handle_login()
 
-    @app.route("/login/", methods=["POST"])
+    @app.route("/login", methods=["POST"])
     def login_post():
         return handle_login(redirect_type="server")
 
