@@ -2,9 +2,9 @@ repos:
   - repo: local
     hooks:
       - id: "pnpm-install"
-        name: "pnpm i"
+        name: "pnpm install"
         language: "system"
-        entry: "pnpm i"
+        entry: "pnpm install"
         pass_filenames: false
         files: \.(js|jsx|json|ts|tsx|html|css|scss)$
       - id: "pnpm-pre-commit"
