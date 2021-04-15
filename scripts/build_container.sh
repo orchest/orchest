@@ -83,6 +83,7 @@ PNPM_FILES=(
     "pnpm-lock.yaml"
     "pnpm-workspace.yaml"
     "package.json"
+    "tsconfig.json"
     ".npmrc"
 )
 
