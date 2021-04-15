@@ -24,7 +24,10 @@ jobs:
           node-version: "${{ steps.nvm.outputs.NVMRC }}"
 
       - name: Setup pnpm
-        run: npm run setup && pnpm i
+        run: npm run setup && pnpm
+
+      - name: Custom pre-commit scripts
+        run: pnpm run pre-commit
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
@@ -38,4 +41,4 @@ jobs:
 
       - uses: pre-commit/action@v2.0.0
         with:
-          extra_args: --files ${{ steps.file_changes.outputs.files }}
+          extra_args: --skip pnpm-pre-commit --files ${{ steps.file_changes.outputs.files }}
