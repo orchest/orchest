@@ -16,12 +16,13 @@ export default class Login extends React.Component {
   submitLogin(e) {
     e.preventDefault();
 
+    let formData = new FormData();
+    formData.append("username", this.state.username);
+    formData.append("password", this.state.password);
+
     makeRequest("POST", "/login/submit", {
-      type: "json",
-      content: {
-        username: this.state.username,
-        password: this.state.password,
-      },
+      type: "FormData",
+      content: formData,
     })
       .then((response) => {
         let result = JSON.parse(response);
@@ -32,9 +33,15 @@ export default class Login extends React.Component {
       .catch((response) => {
         let result = JSON.parse(response.body);
         this.setState({
-          loginFailure: result.reason,
+          loginFailure: result.error,
         });
       });
+  }
+
+  handleInput(key, value) {
+    let data = {};
+    data[key] = value;
+    this.setState(data);
   }
 
   render() {
@@ -46,12 +53,14 @@ export default class Login extends React.Component {
             <MDCTextFieldReact
               label="Username"
               value={this.state.username}
+              onChange={this.handleInput.bind(this, "username")}
               name="username"
             />
             <br />
             <MDCTextFieldReact
               label="Password"
               value={this.state.password}
+              onChange={this.handleInput.bind(this, "password")}
               inputType="password"
               name="password"
             />
