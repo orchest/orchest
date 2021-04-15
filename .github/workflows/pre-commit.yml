@@ -10,6 +10,9 @@ on:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    env:
+      # Skip our pnpm pre-commit hook
+      SKIP: pnpm-pre-commit
 
     steps:
       - uses: actions/checkout@v2
@@ -23,6 +26,7 @@ jobs:
         with:
           node-version: "${{ steps.nvm.outputs.NVMRC }}"
 
+      # Run our pnpm hook manually, with additional build checks
       - name: Setup pnpm
         run: npm run setup && pnpm install && pnpm run build
 
