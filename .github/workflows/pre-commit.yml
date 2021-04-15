@@ -10,8 +10,6 @@ on:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
-    env:
-      SKIP: pnpm-pre-commit
 
     steps:
       - uses: actions/checkout@v2
@@ -26,10 +24,7 @@ jobs:
           node-version: "${{ steps.nvm.outputs.NVMRC }}"
 
       - name: Setup pnpm
-        run: npm run setup && pnpm install
-
-      - name: Custom pre-commit scripts
-        run: pnpm run pre-commit
+        run: npm run setup && pnpm install && pnpm run build
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
