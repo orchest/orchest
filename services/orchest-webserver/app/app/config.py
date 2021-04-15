@@ -74,6 +74,8 @@ class Config:
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
 
+    # The port nginx will listen on. Necessary for a proper restart.
+    PORT = os.environ["PORT"]
     CLOUD = _config.CLOUD
     GPU_REQUEST_URL = "https://www.orchest.io/redirect-request-gpu"
 

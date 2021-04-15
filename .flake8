@@ -11,6 +11,9 @@ ignore =
     # Ignore invalid escape sequences.
     W605
 
+per-file-ignores =
+    orchest-sdk/python/orchest/__init__.py: F401
+
 # black is set to 88
 max-line-length = 88
 

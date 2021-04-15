@@ -97,6 +97,7 @@ def filter_container_config(
 
 
 def get_container_config(
+    port: int = 8000,
     cloud: bool = False,
     dev: bool = False,
     log_level: Optional[LogLevel] = None,
@@ -117,6 +118,7 @@ def get_container_config(
             * ``"ORCHEST_HOST_GID"``
 
     Args:
+        port: The port the Orchest webserver will listen on.
         cloud: If the configuration should be setup for running in the
             cloud.
         dev: If the configuration should be setup for running in dev
@@ -126,7 +128,7 @@ def get_container_config(
             construct the container configurations.
 
     """
-    config = get_reg_container_config(env)
+    config = get_reg_container_config(port, env)
 
     if cloud:
         update_container_config_with_cloud(config, env)
@@ -140,7 +142,7 @@ def get_container_config(
     return config
 
 
-def get_reg_container_config(env: Optional[dict] = None) -> dict:
+def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
     """Constructs the container config to run Orchest.
 
     Note:
@@ -153,6 +155,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
         https://docs.docker.com/engine/api/v1.41/#operation/ContainerCreate
 
     Args:
+        port: The port the Orchest webserver will listen on.
         env: Refer to :meth:`get_container_config`.
 
     Returns:
@@ -184,6 +187,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
         "orchest-webserver": {
             "Image": "orchest/orchest-webserver:latest",
             "Env": [
+                f"PORT={port}",
                 f'HOST_USER_DIR={env["HOST_USER_DIR"]}',
                 f'HOST_CONFIG_DIR={env["HOST_CONFIG_DIR"]}',
                 f'HOST_REPO_DIR={env["HOST_REPO_DIR"]}',
@@ -259,7 +263,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
             "HostConfig": {
                 "PortBindings": {
                     # Exposure of 443 is injected based on certs.
-                    "80/tcp": [{"HostPort": "8000"}],
+                    "80/tcp": [{"HostPort": f"{port}"}],
                 },
                 # Injected based on presence of certs on host.
                 "Binds": [],
@@ -283,6 +287,7 @@ def get_reg_container_config(env: Optional[dict] = None) -> dict:
         "update-server": {
             "Image": "orchest/update-server:latest",
             "Env": [
+                f"PORT={port}",
                 f'HOST_USER_DIR={env["HOST_USER_DIR"]}',
                 f'HOST_CONFIG_DIR={env["HOST_CONFIG_DIR"]}',
                 f'HOST_REPO_DIR={env["HOST_REPO_DIR"]}',

@@ -4,7 +4,7 @@ from typing import Optional
 import typer
 
 from app.orchest import OrchestApp
-from app.spec import LogLevel, get_container_config, inject_dict
+from app.spec import LogLevel, get_container_config
 
 logger = logging.getLogger(__name__)
 
@@ -88,18 +88,7 @@ def reg(
     \b
         orchest start [OPTIONS]
     """
-    container_config = get_container_config(cloud, dev, log_level)
-
-    port_bind: dict = {
-        "nginx-proxy": {
-            "HostConfig": {
-                "PortBindings": {
-                    "80/tcp": [{"HostPort": f"{port}"}],
-                },
-            },
-        },
-    }
-    inject_dict(container_config, port_bind, overwrite=True)
+    container_config = get_container_config(port, cloud, dev, log_level)
 
     if dev:
         logger.info(

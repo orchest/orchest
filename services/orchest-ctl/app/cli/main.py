@@ -7,7 +7,7 @@ import typer
 
 from app.cli import start as cli_start
 from app.orchest import OrchestApp
-from app.spec import get_container_config, inject_dict
+from app.spec import get_container_config
 from app.utils import echo
 
 
@@ -238,17 +238,7 @@ def restart(
     """
 
     dev = dev or (mode == "dev")
-    container_config = get_container_config(cloud=cloud, dev=dev)
-    port_bind: dict = {
-        "nginx-proxy": {
-            "HostConfig": {
-                "PortBindings": {
-                    "80/tcp": [{"HostPort": f"{port}"}],
-                },
-            },
-        },
-    }
-    inject_dict(container_config, port_bind, overwrite=True)
+    container_config = get_container_config(port, cloud=cloud, dev=dev)
     app.restart(container_config)
 
 
@@ -256,6 +246,9 @@ def restart(
 def updateserver(
     # Necessary to make it so that the update server restarts Orchest
     # with the correct settings.
+    port: Optional[int] = typer.Option(
+        8000, help="The port the Orchest webserver will listen on."
+    ),
     cloud: bool = typer.Option(
         False,
         show_default="--no-cloud",
@@ -269,7 +262,7 @@ def updateserver(
     """
     Update Orchest through the update-server.
     """
-    app._updateserver(cloud, dev)
+    app._updateserver(port, cloud, dev)
 
 
 @typer_app.command(hidden=True)
