@@ -5,10 +5,15 @@ import {
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import { RefManager, makeRequest } from "@orchest/lib-utils";
+
+import { OrchestContext } from "@/lib/orchest";
+
 import { checkGate } from "../utils/webserver-utils";
 import EnvironmentsView from "../views/EnvironmentsView";
 
 class BuildPendingDialog extends React.Component {
+  static contextType = OrchestContext;
+
   constructor(props) {
     super(props);
 
@@ -119,6 +124,8 @@ class BuildPendingDialog extends React.Component {
   }
 
   onViewBuildStatus() {
+    const orchest = this.context;
+
     orchest.setProject(this.props.project_uuid);
     orchest.loadView(EnvironmentsView);
     this.close();
