@@ -20,7 +20,7 @@ def register_views(app):
     def server_config():
         return jsonify(
             {
-                "CLOUD": str(app.config.get("CLOUD")).lower(),
+                "CLOUD": app.config.get("CLOUD"),
                 "CLOUD_URL": app.config.get("CLOUD_URL"),
             }
         )
