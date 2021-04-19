@@ -1176,28 +1176,30 @@ class PipelineView extends React.Component {
       this.promiseManager
     );
 
-    fetchPipelinePromise.promise.catch(() => {
-      if (this.props.queryArgs.job_uuid) {
-        // This case is hit when a user tries to load a pipeline that belongs
-        // to a run that has not started yet. The project files are only
-        // copied when the run starts. Before start, the pipeline.json thus
-        // cannot be found. Alert the user about missing pipeline and return
-        // to JobView.
+    fetchPipelinePromise.promise.catch((error) => {
+      if (!error.isCanceled) {
+        if (this.props.queryArgs.job_uuid) {
+          // This case is hit when a user tries to load a pipeline that belongs
+          // to a run that has not started yet. The project files are only
+          // copied when the run starts. Before start, the pipeline.json thus
+          // cannot be found. Alert the user about missing pipeline and return
+          // to JobView.
 
-        orchest.alert(
-          "Error",
-          "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-          () => {
-            orchest.loadView(JobView, {
-              queryArgs: {
-                job_uuid: this.props.queryArgs.job_uuid,
-              },
-            });
-          }
-        );
-      } else {
-        console.error("Could not load pipeline.json");
-        console.error(result);
+          orchest.alert(
+            "Error",
+            "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+            () => {
+              orchest.loadView(JobView, {
+                queryArgs: {
+                  job_uuid: this.props.queryArgs.job_uuid,
+                },
+              });
+            }
+          );
+        } else {
+          console.error("Could not load pipeline.json");
+          console.error(error);
+        }
       }
     });
 

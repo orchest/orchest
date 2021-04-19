@@ -8,9 +8,6 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
   },
-  define: {
-    global: "window",
-  },
   resolve: {
     alias: {
       "@material": path.resolve(__dirname, "../../../node_modules/@material/"),
