@@ -31,9 +31,9 @@ WORKDIR /orchest
 
 RUN npm run setup
 RUN pnpm i && \
-  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/client-orchest"
-
-# TODO: cleanup node_modules/ across the /orchest
+  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/client-orchest" && \
+  # Clean node_modules to reduce image size
+  find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +
 
 # Application files.
 WORKDIR /orchest/services/orchest-webserver/

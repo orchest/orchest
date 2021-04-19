@@ -29,8 +29,8 @@ export default class App extends React.Component {
         case "login":
           return (
             <Login
-              cloud={this.state.config.cloud}
-              cloudURL={this.state.config.cloudURL}
+              cloud={this.state.config.CLOUD}
+              cloudURL={this.state.config.CLOUD_URL}
             />
           );
         case "admin":
