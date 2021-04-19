@@ -23,20 +23,19 @@ Orchest is a browser based IDE for Data Science. It integrates your favorite Dat
 
 ## Features
 
-Orchest lets you:
+> For a complete list of Orchest's features, check out the 
+> [overview](https://orchest.readthedocs.io/en/stable/getting_started/overview.html) in our docs!
 
 - Visually construct pipelines.
-- Write code using JupyterLab.
-- Write code using any other editor of choice.
-- Run any subset of a pipeline.
-- Skip certain cells when executing a notebook top-to-bottom.
+- Run any subset of a pipeline directly or on a cron-like schedule.
 - Parametrize your data science pipelines to try out different modeling ideas.
-- Integrate commonly used data-sources.
-- Easily define your custom runtime environment.
-- Version your pipelines through Git.
-- Run your pipelines on a cron-like schedule.
+- Easily define your custom runtime environment that runs on any machine.
 
-Check out the [overview](https://orchest.readthedocs.io/en/stable/getting_started/overview.html) in our docs!
+#### Who should use Orchest?
+
+* Data Scientists who want to rapidly prototype.
+* Data Scientists who like to work in Notebooks.
+* Data Scientists who are looking to create pipelines through a visual interface instead of YAML.
 
 ## Installation
 
