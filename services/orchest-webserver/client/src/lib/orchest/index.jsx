@@ -34,7 +34,7 @@ import Jupyter from "@/jupyter/Jupyter";
 export const OrchestContext = React.createContext(null);
 
 /**
- * @type { (props?: {refs?: any}) => IOrchestContext }
+ * @type { (props?: ?{refs?: any}) => IOrchestContext }
  */
 export const useOrchest = ({ refs }) => {
   const ctx = React.useContext(OrchestContext);
@@ -48,10 +48,70 @@ export const useOrchest = ({ refs }) => {
  */
 
 /**
- * @type { React.FC<IOrchestContext> }
+ * @type { React.FC<IOrchestProviderProps> }
  */
 export const OrchestProvider = ({ children, config, user_config }) => {
   const [isLoading, setIsLoading] = React.useState(true);
+
+  /**
+   * Pipelines
+   *
+   * @type [IOrchestContext['pipeline'], IOrchestContext['setPipeline']]
+   */
+  const [pipeline, setPipelineState] = React.useState({
+    pipeline_uuid: undefined,
+    project_uuid: undefined,
+    sessionActive: false,
+    readOnlyPipeline: false,
+    viewShowing: "pipeline",
+    pipelineSaveStatus: "saved",
+    onSessionStateChange: undefined,
+    onSessionShutdown: undefined,
+    onSessionFetch: undefined,
+  });
+
+  const setPipeline = (pipeline_uuid, project_uuid, pipelineName) => {
+    setPipelineState((prevState) => ({
+      ...prevState,
+      pipeline_uuid,
+      project_uuid,
+      pipelineName,
+      pipelineFetchHash: uuidv4(),
+    }));
+  };
+  const clearPipeline = () =>
+    setPipelineState((prevState) => ({
+      ...prevState,
+      pipeline_uuid: undefined,
+      project_uuid: undefined,
+      pipelineName: undefined,
+    }));
+  const clearSessionListeners = () =>
+    setPipelineState((prevState) => ({
+      ...prevState,
+      onSessionStateChange: undefined,
+      onSessionShutdown: undefined,
+      onSessionFetch: undefined,
+    }));
+  const setSessionListeners = (
+    onSessionStateChange,
+    onSessionShutdown,
+    onSessionFetch
+  ) =>
+    setPipelineState((prevState) => ({
+      ...prevState,
+      onSessionStateChange,
+      onSessionShutdown,
+      onSessionFetch,
+    }));
+  const updateCurrentView = () => null;
+  const toggleSession = () => null;
+  const pipelineSaveStatus = () => null;
+  const updateReadOnlyState = () => null;
+
+  /**
+   * Misc
+   */
   const [unsavedChanges, setUnsavedChangesState] = React.useState(false);
 
   const KEEP_PIPELINE_VIEWS = [
@@ -134,7 +194,7 @@ export const OrchestProvider = ({ children, config, user_config }) => {
   });
 
   const refManager = new RefManager();
-  const headerBarComponent = refManager.refs.headerBar;
+  const headerBarComponent = refManager?.refs?.headerBar;
 
   const _loadView = (TagName, dynamicProps) => {
     let viewName = componentName(TagName);
@@ -255,14 +315,14 @@ export const OrchestProvider = ({ children, config, user_config }) => {
     // Analytics call
     sendEvent("alert show", { title: title, content: content });
 
-    refManager.refs?.["dialogs"].alert(title, content, onClose);
+    refManager?.refs?.["dialogs"].alert(title, content, onClose);
   };
 
   const confirm = (title, content, onConfirm, onCancel) => {
     // Analytics call
     sendEvent("confirm show", { title: title, content: content });
 
-    refManager.refs?.["dialogs"].confirm(title, content, onConfirm, onCancel);
+    refManager?.refs?.["dialogs"].confirm(title, content, onConfirm, onCancel);
   };
 
   const requestBuild = (
@@ -277,7 +337,7 @@ export const OrchestProvider = ({ children, config, user_config }) => {
       requestedFromView: requestedFromView,
     });
 
-    refManager.refs?.["dialogs"].requestBuild(
+    refManager?.refs?.["dialogs"].requestBuild(
       project_uuid,
       environmentValidationData,
       requestedFromView,
@@ -287,8 +347,8 @@ export const OrchestProvider = ({ children, config, user_config }) => {
   };
 
   React.useEffect(() => {
-    // this.jupyter = new Jupyter(refManager.refs.jupyter);
-    // this.headerBarComponent = refManager.refs.headerBar;
+    // this.jupyter = new Jupyter(refManager?.refs?.jupyter);
+    // this.headerBarComponent = refManager?.refs?.headerBar;
     // setUnsavedChanges(false);
     initializeFirstView();
   }, []);
@@ -371,6 +431,8 @@ export const OrchestProvider = ({ children, config, user_config }) => {
         isLoading,
         config,
         user_config,
+        pipeline,
+        setPipeline,
         browserConfig,
         loadView,
         alert,

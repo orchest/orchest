@@ -1,5 +1,6 @@
 import React from "react";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/lib/orchest";
 import {
   MDCButtonReact,
   MDCCircularProgressReact,
@@ -13,6 +14,8 @@ import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
 
 class HeaderBar extends React.Component {
+  static contextType = OrchestContext;
+
   constructor(props) {
     super(props);
 
@@ -31,74 +34,13 @@ class HeaderBar extends React.Component {
     this.refManager = new RefManager();
   }
 
-  showPipeline() {
-    this.updateCurrentView("pipeline");
-    orchest.loadView(PipelineView, {
-      queryArgs: {
-        pipeline_uuid: this.state.pipeline_uuid,
-        project_uuid: this.state.project_uuid,
-      },
-    });
-  }
-
   showJupyter() {
-    this.updateCurrentView("jupyter");
-    orchest.loadView(JupyterLabView, {
+    this.context.updateCurrentView("jupyter");
+    this.context.loadView(JupyterLabView, {
       queryArgs: {
-        pipeline_uuid: this.state.pipeline_uuid,
-        project_uuid: this.state.project_uuid,
+        pipeline_uuid: this.context.pipeline.pipeline_uuid,
+        project_uuid: this.context.pipeline.project_uuid,
       },
-    });
-  }
-
-  updateCurrentView(view) {
-    this.setState({
-      viewShowing: view,
-    });
-  }
-
-  updateReadOnlyState(readOnly) {
-    this.setState({
-      readOnlyPipeline: readOnly,
-    });
-  }
-
-  setSessionListeners(onSessionStateChange, onSessionShutdown, onSessionFetch) {
-    this.setState({
-      onSessionStateChange,
-      onSessionShutdown,
-      onSessionFetch,
-    });
-  }
-
-  clearSessionListeners() {
-    this.setState({
-      onSessionStateChange: undefined,
-      onSessionShutdown: undefined,
-      onSessionFetch: undefined,
-    });
-  }
-
-  clearPipeline() {
-    this.setState({
-      pipeline_uuid: undefined,
-      project_uuid: undefined,
-      pipelineName: undefined,
-    });
-  }
-
-  setPipeline(pipeline_uuid, project_uuid, pipelineName) {
-    this.setState({
-      pipeline_uuid,
-      project_uuid,
-      pipelineName,
-      pipelineFetchHash: uuidv4(),
-    });
-  }
-
-  pipelineSaveStatus(status) {
-    this.setState({
-      pipelineSaveStatus: status,
     });
   }
 
@@ -133,25 +75,37 @@ class HeaderBar extends React.Component {
       sessionActive: running,
     });
 
-    if (this.state.onSessionStateChange) {
-      this.state.onSessionStateChange(working, running, session_details);
+    if (this.context.pipeline.onSessionStateChange) {
+      this.context.setPipelineState((prevState) => ({
+        ...prevState,
+        sessionActive: running,
+      }));
+
+      this.context.pipeline.onSessionStateChange(
+        working,
+        running,
+        session_details
+      );
     }
   }
 
   onSessionFetch(session_details) {
-    if (this.state.onSessionFetch) {
-      this.state.onSessionFetch(session_details);
+    if (this.context.pipeline.onSessionFetch) {
+      this.context.pipeline.onSessionFetch(session_details);
     }
   }
 
   onSessionShutdown() {
-    if (this.state.onSessionShutdown) {
-      this.state.onSessionShutdown();
+    if (this.context.pipeline.onSessionShutdown) {
+      this.context.pipeline.onSessionShutdown();
     }
   }
 
   componentDidUpdate(_, prevState) {
-    if (prevState.pipelineFetchHash != this.state.pipelineFetchHash) {
+    if (
+      this.context.pipeline.pipelineFetchHash !=
+      this.context.pipeline.pipelineFetchHash
+    ) {
       this.fetchSessionStatus();
     }
   }
@@ -174,11 +128,11 @@ class HeaderBar extends React.Component {
           />
         </div>
 
-        {this.state.pipelineName && (
+        {this.context.pipeline.pipelineName && (
           <div className="pipeline-header-component">
             <div className="pipeline-name">
               <div className="pipelineStatusIndicator">
-                {this.state.pipelineSaveStatus == "saved" ? (
+                {this.context.pipeline.pipelineSaveStatus == "saved" ? (
                   <i title="Pipeline saved" className="material-icons">
                     check_circle
                   </i>
@@ -187,37 +141,39 @@ class HeaderBar extends React.Component {
                 )}
               </div>
 
-              {this.state.pipelineName}
+              {this.context.pipeline.pipelineName}
             </div>
           </div>
         )}
 
         <div className="header-actions">
-          {this.state.pipelineName && !this.state.readOnlyPipeline && (
-            <SessionToggleButton
-              ref={this.refManager.nrefs.sessionToggleButton}
-              pipeline_uuid={this.state.pipeline_uuid}
-              project_uuid={this.state.project_uuid}
-              onSessionStateChange={this.onSessionStateChange.bind(this)}
-              onSessionFetch={this.onSessionFetch.bind(this)}
-              onSessionShutdown={this.onSessionShutdown.bind(this)}
-            />
-          )}
+          {this.context.pipeline.pipelineName &&
+            !this.context.pipeline.readOnlyPipeline && (
+              <SessionToggleButton
+                ref={this.refManager.nrefs.sessionToggleButton}
+                pipeline_uuid={this.context.pipeline.pipeline_uuid}
+                project_uuid={this.context.pipeline.project_uuid}
+                onSessionStateChange={this.onSessionStateChange.bind(this)}
+                onSessionFetch={this.onSessionFetch.bind(this)}
+                onSessionShutdown={this.onSessionShutdown.bind(this)}
+              />
+            )}
 
-          {this.state.pipelineName && this.state.viewShowing == "jupyter" && (
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
-              onClick={this.showPipeline.bind(this)}
-              icon="device_hub"
-              label="Switch to Pipeline"
-            />
-          )}
-
-          {this.state.pipelineName &&
-            !this.state.readOnlyPipeline &&
-            this.state.viewShowing == "pipeline" && (
+          {this.context.pipeline.pipelineName &&
+            this.context.pipeline.viewShowing == "jupyter" && (
               <MDCButtonReact
-                disabled={!this.state.sessionActive}
+                classNames={["mdc-button--outlined"]}
+                onClick={this.context.showPipeline.bind(this)}
+                icon="device_hub"
+                label="Switch to Pipeline"
+              />
+            )}
+
+          {this.context.pipeline.pipelineName &&
+            !this.context.pipeline.readOnlyPipeline &&
+            this.context.pipeline.viewShowing == "pipeline" && (
+              <MDCButtonReact
+                disabled={!this.context.pipeline.sessionActive}
                 classNames={["mdc-button--outlined"]}
                 onClick={this.showJupyter.bind(this)}
                 icon="science"

@@ -38,6 +38,18 @@ export interface IOrchestContext extends IOrchestConfig {
   isLoading: boolean;
   refManager: RefManager;
   browserConfig: PersistentLocalConfig;
+  pipeline: {
+    pipeline_uuid: string;
+    project_uuid: string;
+    sessionActive: boolean;
+    readOnlyPipeline: boolean;
+    viewShowing: "jupyter" | "pipeline" | (string & {});
+    pipelineSaveStatus: "saved" | (string & {});
+    onSessionStateChange: (working, running, session_details) => void;
+    onSessionShutdown: () => void;
+    onSessionFetch: (session_details) => void;
+  };
+  setPipeline: React.Dispatch<any>;
   loadView: (TagName, dynamicProps, onCancelled) => void;
   alert: (title, content, onClose) => void;
   confirm: (title, content, onConfirm, onCancel) => void;
@@ -62,4 +74,5 @@ export interface IOrchestContext extends IOrchestConfig {
   dynamicProps: any;
 }
 
-export interface IOrchestProviderProps extends IOrchestConfig {}
+export interface IOrchestProviderProps
+  extends Pick<IOrchestConfig, "config" | "user_config"> {}
