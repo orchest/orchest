@@ -13,15 +13,18 @@ import {
   MDCDialogReact,
   MDCDataTableReact,
 } from "@orchest/lib-mdc";
+import { OrchestContext } from "@/lib/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";
 
 class PipelineList extends React.Component {
+  static contextType = OrchestContext;
+
   componentWillUnmount() {}
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       loading: true,
@@ -44,8 +47,7 @@ class PipelineList extends React.Component {
       });
     });
 
-    // set headerbar
-    orchest.headerBarComponent.clearPipeline();
+    this.context.dispatch({ type: "clearPipeline" });
   }
 
   processListData(pipelines) {

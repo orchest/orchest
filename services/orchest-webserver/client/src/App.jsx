@@ -7,6 +7,8 @@ import {
   uuidv4,
 } from "@orchest/lib-utils";
 
+import { OrchestContext } from "@/lib/orchest";
+
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
@@ -34,8 +36,10 @@ import "./utils/overflowing";
 window.$ = $;
 
 class App extends React.Component {
-  constructor() {
-    super();
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.KEEP_PIPELINE_VIEWS = [
       PipelineView,
@@ -132,7 +136,7 @@ class App extends React.Component {
     }
 
     if (this.KEEP_PIPELINE_VIEWS.indexOf(TagName) === -1) {
-      this.headerBarComponent.clearPipeline();
+      this.context.dispatch({ type: "clearPipeline" });
     }
 
     // select menu if menu tag is selected
@@ -352,14 +356,9 @@ class App extends React.Component {
           projectSelectorHash={this.state.projectSelectorHash}
           changeSelectedProject={this.setProject.bind(this)}
           ref={this.refManager.nrefs.headerBar}
-          toggleDrawer={this.handleToggleDrawer.bind(this)}
         />
         <div className="app-container">
-          <MainDrawer
-            open={this.state.drawerOpen}
-            setDrawerOpen={this.handleDrawerOpen.bind(this)}
-            selectedElement={this.state.activeViewName}
-          />
+          <MainDrawer selectedElement={this.state.activeViewName} />
           <main className="main-content" id="main-content">
             {view}
             <div

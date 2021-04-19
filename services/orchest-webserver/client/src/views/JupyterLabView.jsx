@@ -8,13 +8,16 @@ import {
   uuidv4,
   collapseDoubleDots,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/lib/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 
 class JupyterLabView extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       backend: {
@@ -132,11 +135,14 @@ class JupyterLabView extends React.Component {
             this.onSessionStateChange.bind(this)
           );
 
-          orchest.headerBarComponent.setPipeline(
-            this.props.queryArgs.pipeline_uuid,
-            this.props.queryArgs.project_uuid,
-            pipeline.name
-          );
+          this.context.dispatch({
+            type: "setPipeline",
+            payload: {
+              pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+              project_uuid: this.props.queryArgs.project_uuid,
+              pipelineName: pipeline.name,
+            },
+          });
 
           orchest.headerBarComponent.updateCurrentView("jupyter");
         } else {

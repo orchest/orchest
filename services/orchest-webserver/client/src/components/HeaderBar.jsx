@@ -5,6 +5,7 @@ import {
   MDCCircularProgressReact,
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
+import { OrchestContext } from "@/lib/orchest";
 import PipelineView from "../views/PipelineView";
 import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
@@ -13,8 +14,10 @@ import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
 
 class HeaderBar extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       pipeline_uuid: undefined,
@@ -79,23 +82,6 @@ class HeaderBar extends React.Component {
     });
   }
 
-  clearPipeline() {
-    this.setState({
-      pipeline_uuid: undefined,
-      project_uuid: undefined,
-      pipelineName: undefined,
-    });
-  }
-
-  setPipeline(pipeline_uuid, project_uuid, pipelineName) {
-    this.setState({
-      pipeline_uuid,
-      project_uuid,
-      pipelineName,
-      pipelineFetchHash: uuidv4(),
-    });
-  }
-
   pipelineSaveStatus(status) {
     this.setState({
       pipelineSaveStatus: status,
@@ -104,10 +90,6 @@ class HeaderBar extends React.Component {
 
   logoutHandler() {
     window.location.href = "/login/clear";
-  }
-
-  handleMenuButton() {
-    this.props.toggleDrawer();
   }
 
   onChangeProject(projectUUID) {
@@ -161,7 +143,10 @@ class HeaderBar extends React.Component {
       <header>
         <div className="header-left">
           <button
-            onClick={this.handleMenuButton.bind(this)}
+            onClick={(e) => {
+              e.preventDefault();
+              this.context.dispatch({ type: "toggleDrawer" });
+            }}
             className="material-icons mdc-icon-button"
           >
             menu

@@ -14,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-
+import { OrchestContext } from "@/lib/orchest";
 import {
   checkGate,
   getScrollLineHeight,
@@ -211,6 +211,8 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 }
 
 class PipelineView extends React.Component {
+  static contextType = OrchestContext;
+
   componentWillUnmount() {
     $(document).off("mouseup.initializePipeline");
     $(document).off("keyup.initializePipeline");
@@ -225,8 +227,8 @@ class PipelineView extends React.Component {
     this._ismounted = false;
   }
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     // class constants
     this.STATUS_POLL_FREQUENCY = 1000;
@@ -1227,11 +1229,14 @@ class PipelineView extends React.Component {
             this.onSessionFetch.bind(this)
           );
 
-          orchest.headerBarComponent.setPipeline(
-            this.props.queryArgs.pipeline_uuid,
-            this.props.queryArgs.project_uuid,
-            this.state.pipelineJson.name
-          );
+          this.context.dispatch({
+            type: "setPipeline",
+            payload: {
+              pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+              project_uuid: this.props.queryArgs.project_uuid,
+              pipelineName: this.state.pipelineJson.name,
+            },
+          });
 
           this.initializePipeline();
         } else {
