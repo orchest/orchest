@@ -1230,9 +1230,10 @@ class PipelineView extends React.Component {
             payload: "pipeline",
           });
 
-          orchest.headerBarComponent.updateReadOnlyState(
-            this.props.queryArgs.read_only === "true"
-          );
+          this.context.dispatch({
+            type: "updateReadOnlyState",
+            payload: this.props.queryArgs.read_only === "true",
+          });
 
           this.context.dispatch({
             type: "setSessionListeners",

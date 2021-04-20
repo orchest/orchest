@@ -42,5 +42,6 @@ export type TOrchestAction =
       >;
     }
   | { type: "clearSessionListeners" }
-  | { type: "toggleSession" }
-  | { type: "toggleDrawer" };
+  | { type: "updateReadOnlyState"; payload: TOrchestState["readOnlyPipeline"] }
+  | { type: "toggleDrawer" }
+  | { type: "toggleSession" };

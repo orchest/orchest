@@ -56,12 +56,6 @@ class HeaderBar extends React.Component {
     });
   }
 
-  updateReadOnlyState(readOnly) {
-    this.setState({
-      readOnlyPipeline: readOnly,
-    });
-  }
-
   clearSessionListeners() {
     this.setState({
       onSessionStateChange: undefined,

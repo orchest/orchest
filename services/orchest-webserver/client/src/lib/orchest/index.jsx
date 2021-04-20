@@ -33,9 +33,6 @@ function reducer(state, action) {
   switch (action.type) {
     case "isLoaded":
       return { ...state, isLoading: false };
-    case "toggleDrawer":
-      // @TODO HANDLE BROSWERCONFIG CHECK
-      return { ...state, isDrawerOpen: !state.isDrawerOpen };
     case "clearPipeline":
       return {
         ...state,
@@ -49,6 +46,8 @@ function reducer(state, action) {
       return { ...state, pipelineSaveStatus: action.payload };
     case "updateCurrentView":
       return { ...state, viewShowing: action.payload };
+    case "updateReadOnlyState":
+      return { ...state, readOnlyPipeline: action.payload };
     case "setSessionListeners":
       return { ...state, ...action.payload };
     case "clearSessionListeners":
@@ -58,6 +57,9 @@ function reducer(state, action) {
         onSessionShutdown: undefined,
         onSessionFetch: undefined,
       };
+    case "toggleDrawer":
+      // @TODO HANDLE BROSWERCONFIG CHECK
+      return { ...state, isDrawerOpen: !state.isDrawerOpen };
     case "toggleSession":
       return { ...state };
     default:
