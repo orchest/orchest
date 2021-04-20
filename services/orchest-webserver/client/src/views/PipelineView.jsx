@@ -437,7 +437,10 @@ class PipelineView extends React.Component {
         clearTimeout(this.saveIndicatorTimeout);
         this.currentOngoingSaves++;
         this.saveIndicatorTimeout = setTimeout(() => {
-          orchest.headerBarComponent.pipelineSaveStatus("saving");
+          this.context.dispatch({
+            type: "setPipelineSaveStatus",
+            payload: "saving",
+          });
         }, 100);
 
         // perform POST to save
@@ -455,7 +458,10 @@ class PipelineView extends React.Component {
             this.currentOngoingSaves--;
             if (this.currentOngoingSaves === 0) {
               clearTimeout(this.saveIndicatorTimeout);
-              orchest.headerBarComponent.pipelineSaveStatus("saved");
+              this.context.dispatch({
+                type: "setPipelineSaveStatus",
+                payload: "saved",
+              });
             }
           });
       }
@@ -1217,7 +1223,10 @@ class PipelineView extends React.Component {
         if (result.success) {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
-          orchest.headerBarComponent.updateCurrentView("pipeline");
+          this.context.dispatch({
+            type: "updateCurrentView",
+            payload: "pipeline",
+          });
 
           orchest.headerBarComponent.updateReadOnlyState(
             this.props.queryArgs.read_only === "true"

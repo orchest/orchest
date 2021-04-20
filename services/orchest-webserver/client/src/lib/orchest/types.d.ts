@@ -8,7 +8,14 @@ export type TOrchestState = {
   sessionActive: boolean;
   readOnlyPipeline: boolean;
   viewShowing: "pipeline" | "jupyter" | ({} & string);
-  pipelineSaveStatus: "saved" | ({} & string);
+  pipelineSaveStatus: "saved" | "saving" | ({} & string);
+  onSessionStateChange: (
+    working?: boolean,
+    running?: boolean,
+    session_details?: any
+  ) => void;
+  onSessionFetch: (session_details?: any) => void;
+  onSessionShutdown: () => void;
 };
 
 export type TOrchestAction =
@@ -20,7 +27,18 @@ export type TOrchestAction =
         Pick<TOrchestState, "pipeline_uuid" | "project_uuid" | "pipelineName">
       >;
     }
-  | { type: "onSessionStateChange" }
+  | {
+      type: "setPipelineSaveStatus";
+      payload: TOrchestState["pipelineSaveStatus"];
+    }
+  | { type: "updateCurrentView"; payload: TOrchestState["viewShowing"] }
+  | {
+      type: "setSessionListeners";
+      payload: Partial<
+        Pick<TOrchestState, "pipeline_uuid" | "project_uuid" | "pipelineName">
+      >;
+    }
   | { type: "onSessionShutdown" }
   | { type: "onSessionFetch" }
+  | { type: "toggleSession" }
   | { type: "toggleDrawer" };

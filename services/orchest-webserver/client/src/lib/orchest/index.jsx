@@ -1,5 +1,10 @@
 // @ts-check
-import { uuidv4 } from "@orchest/lib-utils";
+import {
+  uuidv4,
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+} from "@orchest/lib-utils";
 import * as React from "react";
 
 /**
@@ -40,11 +45,17 @@ function reducer(state, action) {
       };
     case "setPipeline":
       return { ...state, pipelineFetchHash: uuidv4(), ...action.payload };
+    case "setPipelineSaveStatus":
+      return { ...state, pipelineSaveStatus: action.payload };
+    case "updateCurrentView":
+      return { ...state, viewShowing: action.payload };
     case "onSessionStateChange":
       return { ...state };
     case "onSessionShutdown":
       return { ...state };
     case "onSessionFetch":
+      return { ...state };
+    case "toggleSession":
       return { ...state };
     default:
       throw new Error();

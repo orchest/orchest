@@ -144,7 +144,10 @@ class JupyterLabView extends React.Component {
             },
           });
 
-          orchest.headerBarComponent.updateCurrentView("jupyter");
+          this.context.dispatch({
+            type: "updateCurrentView",
+            payload: "jupyter",
+          });
         } else {
           console.error("Could not load pipeline.json");
           console.error(result);
