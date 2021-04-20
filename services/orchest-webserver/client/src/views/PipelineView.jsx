@@ -221,7 +221,9 @@ class PipelineView extends React.Component {
     clearInterval(this.pipelineStepStatusPollingInterval);
     clearInterval(this.sessionPollingInterval);
 
-    orchest.headerBarComponent.clearSessionListeners();
+    this.context.dispatch({
+      type: "clearSessionListeners",
+    });
 
     this.promiseManager.cancelCancelablePromises();
     this._ismounted = false;
@@ -1232,11 +1234,14 @@ class PipelineView extends React.Component {
             this.props.queryArgs.read_only === "true"
           );
 
-          orchest.headerBarComponent.setSessionListeners(
-            this.onSessionStateChange.bind(this),
-            this.onSessionShutdown.bind(this),
-            this.onSessionFetch.bind(this)
-          );
+          this.context.dispatch({
+            type: "setSessionListeners",
+            payload: {
+              onSessionStateChange: this.onSessionStateChange.bind(this),
+              onSessionShutdown: this.onSessionShutdown.bind(this),
+              onSessionFetch: this.onSessionFetch.bind(this),
+            },
+          });
 
           this.context.dispatch({
             type: "setPipeline",

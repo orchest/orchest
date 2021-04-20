@@ -62,14 +62,6 @@ class HeaderBar extends React.Component {
     });
   }
 
-  setSessionListeners(onSessionStateChange, onSessionShutdown, onSessionFetch) {
-    this.setState({
-      onSessionStateChange,
-      onSessionShutdown,
-      onSessionFetch,
-    });
-  }
-
   clearSessionListeners() {
     this.setState({
       onSessionStateChange: undefined,

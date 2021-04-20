@@ -70,7 +70,9 @@ class JupyterLabView extends React.Component {
   componentWillUnmount() {
     orchest.jupyter.hide();
 
-    orchest.headerBarComponent.clearSessionListeners();
+    this.context.dispatch({
+      type: "clearSessionListeners",
+    });
 
     clearInterval(this.verifyKernelsRetryInterval);
   }
@@ -131,9 +133,12 @@ class JupyterLabView extends React.Component {
 
           this.verifyKernelsCallback(pipeline);
 
-          orchest.headerBarComponent.setSessionListeners(
-            this.onSessionStateChange.bind(this)
-          );
+          this.context.dispatch({
+            type: "setSessionListeners",
+            payload: {
+              onSessionStateChange: this.onSessionStateChange.bind(this),
+            },
+          });
 
           this.context.dispatch({
             type: "setPipeline",

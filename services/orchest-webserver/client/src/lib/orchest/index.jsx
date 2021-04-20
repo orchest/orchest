@@ -49,12 +49,15 @@ function reducer(state, action) {
       return { ...state, pipelineSaveStatus: action.payload };
     case "updateCurrentView":
       return { ...state, viewShowing: action.payload };
-    case "onSessionStateChange":
-      return { ...state };
-    case "onSessionShutdown":
-      return { ...state };
-    case "onSessionFetch":
-      return { ...state };
+    case "setSessionListeners":
+      return { ...state, ...action.payload };
+    case "clearSessionListeners":
+      return {
+        ...state,
+        onSessionStageChange: undefined,
+        onSessionShutdown: undefined,
+        onSessionFetch: undefined,
+      };
     case "toggleSession":
       return { ...state };
     default:
