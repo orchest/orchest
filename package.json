@@ -5,7 +5,7 @@
     "dev": "pnpm run dev --r --stream",
     "format": "syncpack format",
     "lint": "syncpack list-mismatches && pnpm run lint --r --stream",
-    "pre-commit": "if [ -z \"$SKIP_PRE_COMMIT_BUILD\" ]; then pnpm run build; fi && pnpm run lint",
+    "pre-commit": "if [ -z \"$SKIP_PRE_COMMIT_BUILD\" ]; then pnpm run build --filter '@orchest/lib-*'; fi && pnpm run lint",
     "preinstall": "npx only-allow pnpm",
     "setup": "npm i -g pnpm@6.0.0"
   },
