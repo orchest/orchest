@@ -25,7 +25,7 @@ WORKDIR /orchest
 
 RUN npm run setup
 RUN pnpm i && \
-  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/auth-client" && \
+  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/client-auth" && \
   # Clean node_modules to reduce image size
   find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +
 

@@ -5,8 +5,8 @@ repos:
         name: "pnpm pre-commit"
         language: "system"
         entry: "pnpm run pre-commit"
-        always_run: true
         pass_filenames: false
+        files: \.(js|jsx|json|ts|tsx|html|css|scss)$
   - repo: https://github.com/pycqa/isort
     rev: 5.6.4
     hooks:
