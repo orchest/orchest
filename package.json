@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "build": "pnpm run build --r --stream",
-    "dev": "pnpm run dev --r --stream",
+    "dev": "pnpm run build --filter '@orchest/lib-*' && pnpm run dev --r --parallel",
     "format": "syncpack format",
     "lint": "syncpack list-mismatches && pnpm run lint --r --stream",
     "pre-commit": "pnpm run build --filter '@orchest/lib-*' && pnpm run lint",
