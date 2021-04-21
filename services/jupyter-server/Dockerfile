@@ -33,6 +33,11 @@ RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/vis
 
 COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 
+# Display warning message when running `pip` or `pip3` in the Jupyter
+# terminal.
+COPY ./pip ./pip3 /usr/local/orchest/bin/
+ENV PATH=/usr/local/orchest/bin:$PATH
+
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir
 
