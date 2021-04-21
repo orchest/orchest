@@ -1,14 +1,13 @@
 export type TOrchestState = {
   isLoading: boolean;
-  isDrawerOpen: boolean;
+  drawerIsOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipeline_uuid: string;
   project_uuid: string;
   sessionActive: boolean;
-  readOnlyPipeline: boolean;
-  viewShowing: "pipeline" | "jupyter" | ({} & string);
-  pipelineSaveStatus: "saved" | "saving" | ({} & string);
+  sessionWorking?: boolean;
+  sessionRunning?: boolean;
   onSessionStateChange?: (
     working?: boolean,
     running?: boolean,
@@ -16,24 +15,27 @@ export type TOrchestState = {
   ) => void;
   onSessionFetch?: (session_details?: any) => void;
   onSessionShutdown?: () => void;
+  pipelineIsReadOnly: boolean;
+  viewCurrent: "pipeline" | "jupyter" | ({} & string);
+  pipelineSaveStatus: "saved" | "saving" | ({} & string);
 };
 
 export type TOrchestAction =
   | { type: "isLoaded" }
-  | { type: "clearPipeline" }
+  | { type: "pipelineClear" }
   | {
-      type: "setPipeline";
+      type: "pipelineSet";
       payload: Partial<
         Pick<TOrchestState, "pipeline_uuid" | "project_uuid" | "pipelineName">
       >;
     }
   | {
-      type: "setPipelineSaveStatus";
+      type: "pipelineSetSaveStatus";
       payload: TOrchestState["pipelineSaveStatus"];
     }
-  | { type: "updateCurrentView"; payload: TOrchestState["viewShowing"] }
+  | { type: "viewUpdateCurrent"; payload: TOrchestState["viewCurrent"] }
   | {
-      type: "setSessionListeners";
+      type: "sessionSetListeners";
       payload: Partial<
         Pick<
           TOrchestState,
@@ -41,7 +43,13 @@ export type TOrchestAction =
         >
       >;
     }
-  | { type: "clearSessionListeners" }
-  | { type: "updateReadOnlyState"; payload: TOrchestState["readOnlyPipeline"] }
-  | { type: "toggleDrawer" }
-  | { type: "toggleSession" };
+  | { type: "sessionClearListeners" }
+  | {
+      type: "pipelineUpdateReadOnlyState";
+      payload: TOrchestState["pipelineIsReadOnly"];
+    }
+  | { type: "drawerToggle" }
+  | { type: "sessionCancelPromises" }
+  | {
+      type: "sessionToggle";
+    };

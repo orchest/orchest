@@ -136,7 +136,7 @@ class App extends React.Component {
     }
 
     if (this.KEEP_PIPELINE_VIEWS.indexOf(TagName) === -1) {
-      this.context.dispatch({ type: "clearPipeline" });
+      this.context.dispatch({ type: "pipelineClear" });
     }
 
     // select menu if menu tag is selected
@@ -276,13 +276,12 @@ class App extends React.Component {
   componentDidMount() {
     // create Jupyter manager
     this.jupyter = new Jupyter(this.refManager.refs.jupyter);
-    this.headerBarComponent = this.refManager.refs.headerBar;
 
     this.setUnsavedChanges(false);
     this.initializeFirstView();
   }
 
-  handleToggleDrawer() {
+  handledrawerToggle() {
     this.setState((state) => {
       return {
         drawerOpen: !state.drawerOpen,

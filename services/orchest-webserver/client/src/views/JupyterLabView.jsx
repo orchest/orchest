@@ -71,7 +71,7 @@ class JupyterLabView extends React.Component {
     orchest.jupyter.hide();
 
     this.context.dispatch({
-      type: "clearSessionListeners",
+      type: "sessionClearListeners",
     });
 
     clearInterval(this.verifyKernelsRetryInterval);
@@ -134,14 +134,14 @@ class JupyterLabView extends React.Component {
           this.verifyKernelsCallback(pipeline);
 
           this.context.dispatch({
-            type: "setSessionListeners",
+            type: "sessionSetListeners",
             payload: {
               onSessionStateChange: this.onSessionStateChange.bind(this),
             },
           });
 
           this.context.dispatch({
-            type: "setPipeline",
+            type: "pipelineSet",
             payload: {
               pipeline_uuid: this.props.queryArgs.pipeline_uuid,
               project_uuid: this.props.queryArgs.project_uuid,
@@ -150,7 +150,7 @@ class JupyterLabView extends React.Component {
           });
 
           this.context.dispatch({
-            type: "updateCurrentView",
+            type: "viewUpdateCurrent",
             payload: "jupyter",
           });
         } else {
@@ -175,7 +175,7 @@ class JupyterLabView extends React.Component {
       // Schedule as callback to avoid calling setState
       // from within React render call.
       setTimeout(() => {
-        orchest.headerBarComponent.toggleSession();
+        this.context.dispatch({ type: "sessionToggle" });
       }, 1);
     }
 

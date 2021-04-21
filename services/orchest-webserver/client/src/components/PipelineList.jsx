@@ -47,7 +47,7 @@ class PipelineList extends React.Component {
       });
     });
 
-    this.context.dispatch({ type: "clearPipeline" });
+    this.context.dispatch({ type: "pipelineClear" });
   }
 
   processListData(pipelines) {
@@ -61,8 +61,6 @@ class PipelineList extends React.Component {
           fetchOnInit={true}
           switch={true}
           classNames={["consume-click"]}
-          pipeline_uuid={pipeline.uuid}
-          project_uuid={this.props.project_uuid}
         />,
       ]);
     }

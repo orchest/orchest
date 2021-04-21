@@ -222,7 +222,7 @@ class PipelineView extends React.Component {
     clearInterval(this.sessionPollingInterval);
 
     this.context.dispatch({
-      type: "clearSessionListeners",
+      type: "sessionClearListeners",
     });
 
     this.promiseManager.cancelCancelablePromises();
@@ -440,7 +440,7 @@ class PipelineView extends React.Component {
         this.currentOngoingSaves++;
         this.saveIndicatorTimeout = setTimeout(() => {
           this.context.dispatch({
-            type: "setPipelineSaveStatus",
+            type: "pipelineSetSaveStatus",
             payload: "saving",
           });
         }, 100);
@@ -461,7 +461,7 @@ class PipelineView extends React.Component {
             if (this.currentOngoingSaves === 0) {
               clearTimeout(this.saveIndicatorTimeout);
               this.context.dispatch({
-                type: "setPipelineSaveStatus",
+                type: "pipelineSetSaveStatus",
                 payload: "saved",
               });
             }
@@ -604,7 +604,7 @@ class PipelineView extends React.Component {
 
   initializeResizeHandlers() {
     $(window).resize(() => {
-      this.setPipelineHolderSize();
+      this.pipelineSetHolderSize();
     });
   }
 
@@ -1103,7 +1103,7 @@ class PipelineView extends React.Component {
     // called after render, assumed dom elements are also available
     // (required by i.e. connections)
 
-    this.setPipelineHolderSize();
+    this.pipelineSetHolderSize();
     this.renderPipelineHolder();
 
     if (this.initializedPipeline) {
@@ -1160,7 +1160,7 @@ class PipelineView extends React.Component {
       this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
     ) {
       this.fetchPipelineAndInitialize();
-      this.setPipelineHolderSize();
+      this.pipelineSetHolderSize();
     }
   }
 
@@ -1226,17 +1226,17 @@ class PipelineView extends React.Component {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
           this.context.dispatch({
-            type: "updateCurrentView",
+            type: "viewUpdateCurrent",
             payload: "pipeline",
           });
 
           this.context.dispatch({
-            type: "updateReadOnlyState",
+            type: "pipelineUpdateReadOnlyState",
             payload: this.props.queryArgs.read_only === "true",
           });
 
           this.context.dispatch({
-            type: "setSessionListeners",
+            type: "sessionSetListeners",
             payload: {
               onSessionStateChange: this.onSessionStateChange.bind(this),
               onSessionShutdown: this.onSessionShutdown.bind(this),
@@ -1245,7 +1245,7 @@ class PipelineView extends React.Component {
           });
 
           this.context.dispatch({
-            type: "setPipeline",
+            type: "pipelineSet",
             payload: {
               pipeline_uuid: this.props.queryArgs.pipeline_uuid,
               project_uuid: this.props.queryArgs.project_uuid,
@@ -1620,7 +1620,7 @@ class PipelineView extends React.Component {
     this.pipelineOffset[1] = this.INITIAL_PIPELINE_POSITION[1];
     this.scaleFactor = 1;
 
-    this.setPipelineHolderOrigin([0, 0]);
+    this.pipelineSetHolderOrigin([0, 0]);
 
     $(this.refManager.refs.pipelineStepsHolder).css({
       left: 0,
@@ -1654,7 +1654,7 @@ class PipelineView extends React.Component {
       ),
     ];
 
-    this.setPipelineHolderOrigin(centerOrigin);
+    this.pipelineSetHolderOrigin(centerOrigin);
   }
 
   zoomOut() {
@@ -1674,7 +1674,7 @@ class PipelineView extends React.Component {
     return position;
   }
 
-  setPipelineHolderOrigin(newOrigin) {
+  pipelineSetHolderOrigin(newOrigin) {
     this.pipelineOrigin = newOrigin;
 
     let pipelineStepsHolderOffset = $(
@@ -1708,7 +1708,7 @@ class PipelineView extends React.Component {
       pipelineMousePosition[0] != this.pipelineOrigin[0] ||
       pipelineMousePosition[1] != this.pipelineOrigin[1]
     ) {
-      this.setPipelineHolderOrigin(pipelineMousePosition);
+      this.pipelineSetHolderOrigin(pipelineMousePosition);
     }
 
     /* mouseWheel contains information about the deltaY variable
@@ -1981,12 +1981,12 @@ class PipelineView extends React.Component {
   onSessionFetch(session_details) {
     if (this.props.queryArgs.read_only !== "true") {
       if (session_details === undefined) {
-        orchest.headerBarComponent.toggleSession();
+        this.context.dispatch({ type: "sessionToggle" });
       }
     }
   }
 
-  setPipelineHolderSize() {
+  pipelineSetHolderSize() {
     // TODO: resize canvas based on pipeline size
     let jElStepOuterHolder = $(this.refManager.refs.pipelineStepsOuterHolder);
 

@@ -5,16 +5,13 @@ import {
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/lib/orchest";
 
 class SessionToggleButton extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
 
-    this.state = {
-      working: false,
-      running: false,
-      session_details: undefined,
-    };
+  constructor(props, context) {
+    super(props, context);
 
     this.promiseManager = new PromiseManager();
     this.STATUS_POLL_FREQUENCY = 1000;
@@ -25,6 +22,7 @@ class SessionToggleButton extends React.Component {
   }
 
   componentWillUnmount() {
+    this.context.dispatch({ type: "sessionCancelPromises" });
     this.promiseManager.cancelCancelablePromises();
     clearInterval(this.sessionPollingInterval);
   }
@@ -72,9 +70,9 @@ class SessionToggleButton extends React.Component {
               },
               () => {
                 this.props.onSessionStateChange(
-                  this.state.working,
-                  this.state.running,
-                  this.state.session_details
+                  this.context.state.sessionWorking,
+                  this.context.state.sessionRunning,
+                  this.context.state.session_details
                 );
               }
             );
@@ -90,8 +88,8 @@ class SessionToggleButton extends React.Component {
               },
               () => {
                 this.props.onSessionStateChange(
-                  this.state.working,
-                  this.state.running
+                  this.context.state.sessionWorking,
+                  this.context.state.sessionRunning
                 );
               }
             );
@@ -122,8 +120,8 @@ class SessionToggleButton extends React.Component {
             },
             () => {
               this.props.onSessionStateChange(
-                this.state.working,
-                this.state.running
+                this.context.state.sessionWorking,
+                this.context.state.sessionRunning
               );
             }
           );
@@ -138,179 +136,14 @@ class SessionToggleButton extends React.Component {
       });
   }
 
-  toggleSession() {
-    if (this.state.working) {
-      let statusText = "launching";
-      if (this.state.running) {
-        statusText = "shutting down";
-      }
-      orchest.alert(
-        "Error",
-        "Please wait, the pipeline session is still " + statusText + "."
-      );
-      return;
-    }
-
-    if (!this.state.running) {
-      // send launch request to API
-      let data = {
-        pipeline_uuid: this.props.pipeline_uuid,
-        project_uuid: this.props.project_uuid,
-      };
-
-      this.setState(
-        () => {
-          return {
-            working: true,
-          };
-        },
-        () => {
-          this.props.onSessionStateChange(
-            this.state.working,
-            this.state.running
-          );
-        }
-      );
-
-      let launchPromise = makeCancelable(
-        makeRequest("POST", "/catch/api-proxy/api/sessions/", {
-          type: "json",
-          content: data,
-        }),
-        this.promiseManager
-      );
-
-      launchPromise.promise
-        .then((response) => {
-          let session_details = JSON.parse(response);
-
-          this.setState(
-            () => {
-              return {
-                working: false,
-                running: true,
-                session_details,
-              };
-            },
-            () => {
-              this.props.onSessionStateChange(
-                this.state.working,
-                this.state.running,
-                this.state.session_details
-              );
-            }
-          );
-        })
-        .catch((e) => {
-          if (!e.isCanceled) {
-            let error = JSON.parse(e.body);
-            if (error.message == "JupyterBuildInProgress") {
-              orchest.alert(
-                "Error",
-                "Cannot start session. A JupyterLab build is still in progress."
-              );
-            }
-
-            this.setState(
-              () => {
-                return {
-                  working: false,
-                  running: false,
-                };
-              },
-              () => {
-                this.props.onSessionStateChange(
-                  this.state.working,
-                  this.state.running
-                );
-              }
-            );
-          }
-        });
-    } else {
-      this.setState(
-        () => {
-          return {
-            working: true,
-          };
-        },
-        () => {
-          this.props.onSessionStateChange(
-            this.state.working,
-            this.state.running
-          );
-          this.props.onSessionShutdown();
-        }
-      );
-
-      let deletePromise = makeCancelable(
-        makeRequest(
-          "DELETE",
-          `/catch/api-proxy/api/sessions/${this.props.project_uuid}/${this.props.pipeline_uuid}`
-        ),
-        this.promiseManager
-      );
-
-      deletePromise.promise
-        .then(() => {
-          this.setState(
-            () => {
-              return {
-                working: false,
-                running: false,
-              };
-            },
-            () => {
-              this.props.onSessionStateChange(
-                this.state.working,
-                this.state.running
-              );
-            }
-          );
-        })
-        .catch((err) => {
-          if (!err.isCanceled) {
-            console.log(
-              "Error during request DELETEing launch to orchest-api."
-            );
-            console.log(err);
-
-            let error = JSON.parse(e.body);
-            if (error.message == "MemoryServerRestartInProgress") {
-              orchest.alert(
-                "The session can't be stopped while the memory server is being restarted."
-              );
-            }
-
-            if (err === undefined || (err && err.isCanceled !== true)) {
-              this.setState(
-                () => {
-                  return {
-                    working: false,
-                    running: true,
-                  };
-                },
-                () => {
-                  this.props.onSessionStateChange(
-                    this.state.working,
-                    this.state.running
-                  );
-                }
-              );
-            }
-          }
-        });
-    }
-  }
-
   getPowerButtonClasses() {
     let classes = ["mdc-button--outlined", "session-state-button"];
 
-    if (this.state.running) {
+    if (this.context.state.sessionRunning) {
       classes.push("active");
     }
 
-    if (this.state.working) {
+    if (this.context.state.sessionWorking) {
       classes.push("working");
     }
 
@@ -320,11 +153,20 @@ class SessionToggleButton extends React.Component {
   render() {
     let label = "Start session";
 
-    if (this.state.running && this.state.working) {
+    if (
+      this.context.state.sessionRunning &&
+      this.context.state.sessionWorking
+    ) {
       label = "Session stopping...";
-    } else if (!this.state.running && this.state.working) {
+    } else if (
+      !this.context.state.sessionRunning &&
+      this.context.state.sessionWorking
+    ) {
       label = "Session starting...";
-    } else if (this.state.running && !this.state.working) {
+    } else if (
+      this.context.state.sessionRunning &&
+      !this.context.state.sessionWorking
+    ) {
       label = "Stop session";
     }
 
@@ -338,9 +180,12 @@ class SessionToggleButton extends React.Component {
       return (
         <MDCSwitchReact
           classNames={classes.join(" ")}
-          disabled={this.state.working}
-          on={this.state.running}
-          onChange={this.toggleSession.bind(this)}
+          disabled={this.context.state.sessionWorking}
+          on={this.context.state.sessionRunning}
+          onChange={(e) => {
+            e.preventDefault();
+            this.context.dispatch({ type: "sessionToggle" });
+          }}
           label={label}
         />
       );
@@ -348,11 +193,14 @@ class SessionToggleButton extends React.Component {
       classes = classes.concat(this.getPowerButtonClasses());
       return (
         <MDCButtonReact
-          onClick={this.toggleSession.bind(this)}
+          onClick={(e) => {
+            e.preventDefault();
+            this.context.dispatch({ type: "sessionToggle" });
+          }}
           classNames={classes.join(" ")}
           label={label}
-          disabled={this.state.working}
-          icon={this.state.running ? "stop" : "play_arrow"}
+          disabled={this.context.state.sessionWorking}
+          icon={this.context.state.sessionRunning ? "stop" : "play_arrow"}
         />
       );
     }

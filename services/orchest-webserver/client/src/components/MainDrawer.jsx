@@ -26,7 +26,7 @@ class MainDrawer extends React.Component {
   componentDidMount() {
     this.drawer = new MDCDrawer(this.refManager.refs.mainDrawer);
     this.drawer.list.singleSelection = true;
-    this.drawer.open = this.context.state.isDrawerOpen;
+    this.drawer.open = this.context.state.drawerIsOpen;
     this.drawer.listen("MDCList:action", (e) => {
       let selectedIndex = e.detail.index;
 
@@ -41,7 +41,7 @@ class MainDrawer extends React.Component {
       }
     });
 
-    if (!this.context.state.isDrawerOpen) {
+    if (!this.context.state.drawerIsOpen) {
       this.updateIntercomWidget();
     }
 
@@ -74,8 +74,8 @@ class MainDrawer extends React.Component {
     }
 
     // handle drawer open prop
-    if (prevProps.open != this.context.state.isDrawerOpen) {
-      this.drawer.open = this.context.state.isDrawerOpen;
+    if (prevProps.open != this.context.state.drawerIsOpen) {
+      this.drawer.open = this.context.state.drawerIsOpen;
     }
   }
 

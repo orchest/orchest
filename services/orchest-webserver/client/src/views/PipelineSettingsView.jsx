@@ -51,7 +51,7 @@ class PipelineSettingsView extends React.Component {
 
   setHeaderComponent(pipelineName) {
     this.context.dispatch({
-      type: "setPipeline",
+      type: "pipelineSet",
       payload: {
         pipeline_uuid: this.props.queryArgs.pipeline_uuid,
         project_uuid: this.props.queryArgs.project_uuid,

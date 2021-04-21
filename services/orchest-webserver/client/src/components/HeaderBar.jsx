@@ -35,7 +35,7 @@ class HeaderBar extends React.Component {
   }
 
   showPipeline() {
-    this.context.dispatch({ type: "updateCurrentView", payload: "pipeline" });
+    this.context.dispatch({ type: "viewUpdateCurrent", payload: "pipeline" });
 
     orchest.loadView(PipelineView, {
       queryArgs: {
@@ -46,7 +46,7 @@ class HeaderBar extends React.Component {
   }
 
   showJupyter() {
-    this.context.dispatch({ type: "updateCurrentView", payload: "jupyter" });
+    this.context.dispatch({ type: "viewUpdateCurrent", payload: "jupyter" });
 
     orchest.loadView(JupyterLabView, {
       queryArgs: {
@@ -56,26 +56,12 @@ class HeaderBar extends React.Component {
     });
   }
 
-  clearSessionListeners() {
-    this.setState({
-      onSessionStateChange: undefined,
-      onSessionShutdown: undefined,
-      onSessionFetch: undefined,
-    });
-  }
-
   logoutHandler() {
     window.location.href = "/login/clear";
   }
 
   onChangeProject(projectUUID) {
     this.props.changeSelectedProject(projectUUID);
-  }
-
-  toggleSession() {
-    if (this.refManager.refs.sessionToggleButton) {
-      this.refManager.refs.sessionToggleButton.toggleSession();
-    }
   }
 
   fetchSessionStatus() {
@@ -91,25 +77,29 @@ class HeaderBar extends React.Component {
       sessionActive: running,
     });
 
-    if (this.state.onSessionStateChange) {
-      this.state.onSessionStateChange(working, running, session_details);
+    if (this.context.state.onSessionStateChange) {
+      this.context.state.onSessionStateChange(
+        working,
+        running,
+        session_details
+      );
     }
   }
 
   onSessionFetch(session_details) {
-    if (this.state.onSessionFetch) {
-      this.state.onSessionFetch(session_details);
+    if (this.context.state.onSessionFetch) {
+      this.context.state.onSessionFetch(session_details);
     }
   }
 
   onSessionShutdown() {
-    if (this.state.onSessionShutdown) {
-      this.state.onSessionShutdown();
+    if (this.context.state.onSessionShutdown) {
+      this.context.state.onSessionShutdown();
     }
   }
 
   componentDidUpdate(_, prevState) {
-    if (prevState.pipelineFetchHash != this.context.state.pipelineFetchHash) {
+    if (prevState?.pipelineFetchHash != this.context.state.pipelineFetchHash) {
       this.fetchSessionStatus();
     }
   }
@@ -121,7 +111,7 @@ class HeaderBar extends React.Component {
           <button
             onClick={(e) => {
               e.preventDefault();
-              this.context.dispatch({ type: "toggleDrawer" });
+              this.context.dispatch({ type: "drawerToggle" });
             }}
             className="material-icons mdc-icon-button"
           >
@@ -155,19 +145,14 @@ class HeaderBar extends React.Component {
 
         <div className="header-actions">
           {this.context.state.pipelineName &&
-            !this.context.state.readOnlyPipeline && (
+            !this.context.state.pipelineIsReadOnly && (
               <SessionToggleButton
                 ref={this.refManager.nrefs.sessionToggleButton}
-                pipeline_uuid={this.context.state.pipeline_uuid}
-                project_uuid={this.context.state.project_uuid}
-                onSessionStateChange={this.onSessionStateChange.bind(this)}
-                onSessionFetch={this.onSessionFetch.bind(this)}
-                onSessionShutdown={this.onSessionShutdown.bind(this)}
               />
             )}
 
           {this.context.state.pipelineName &&
-            this.context.state.viewShowing == "jupyter" && (
+            this.context.state.viewCurrent == "jupyter" && (
               <MDCButtonReact
                 classNames={["mdc-button--outlined"]}
                 onClick={this.showPipeline.bind(this)}
@@ -177,8 +162,8 @@ class HeaderBar extends React.Component {
             )}
 
           {this.context.state.pipelineName &&
-            !this.context.state.readOnlyPipeline &&
-            this.context.state.viewShowing == "pipeline" && (
+            !this.context.state.pipelineIsReadOnly &&
+            this.context.state.viewCurrent == "pipeline" && (
               <MDCButtonReact
                 disabled={!this.context.state.sessionActive}
                 classNames={["mdc-button--outlined"]}
