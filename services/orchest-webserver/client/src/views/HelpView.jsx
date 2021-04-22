@@ -12,6 +12,8 @@ class HelpView extends React.Component {
       slack_url: orchest.config.ORCHEST_WEB_URLS.slack,
       github_url: orchest.config.ORCHEST_WEB_URLS.github,
       website_url: orchest.config.ORCHEST_WEB_URLS.website,
+      knowledge_base_url:
+        orchest.config.ORCHEST_WEB_URLS.website + "/knowledge-base",
     };
   }
 
@@ -44,6 +46,16 @@ class HelpView extends React.Component {
               <img src="/image/readthedocs.png" width="100%" />
             </i>
             <span className="mdc-list-item__text">Documentation</span>
+          </a>
+          <a
+            className="mdc-list-item"
+            href={this.state.knowledge_base_url}
+            target="_blank"
+          >
+            <i className="mdc-list-item__graphic" aria-hidden="true">
+              <img src="/image/favicon.png" width="100%" />
+            </i>
+            <span className="mdc-list-item__text">Knowledge base videos</span>
           </a>
           <a
             className="mdc-list-item"

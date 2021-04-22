@@ -1,8 +1,3 @@
-.. Orchest documentation master file, created by
-   sphinx-quickstart on Thu May  7 19:17:11 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Orchest
 =======
 
@@ -11,7 +6,9 @@ Orchest
 -- `Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_
 
 .. tip::
-   👉 Get started with the :ref:`overview <overview>` to see Orchest's key features!
+   👉 Get started with the :ref:`overview <overview>` to see Orchest's key features! Or if you like
+   watching short informative videos checkout our `knowledge base
+   <https://www.orchest.io/knowledge-base>`_.
 
 Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
 your models on the cloud without any knowledge of cloud infrastructure.

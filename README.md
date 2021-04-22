@@ -23,7 +23,7 @@ Orchest is a browser based IDE for Data Science. It integrates your favorite Dat
 
 ## Features
 
-> For a complete list of Orchest's features, check out the 
+> For a complete list of Orchest's features, check out the
 > [overview](https://orchest.readthedocs.io/en/stable/getting_started/overview.html) in our docs!
 
 - Visually construct pipelines.
@@ -33,9 +33,9 @@ Orchest is a browser based IDE for Data Science. It integrates your favorite Dat
 
 #### Who should use Orchest?
 
-* Data Scientists who want to rapidly prototype.
-* Data Scientists who like to work in Notebooks.
-* Data Scientists who are looking to create pipelines through a visual interface instead of YAML.
+- Data Scientists who want to rapidly prototype.
+- Data Scientists who like to work in Notebooks.
+- Data Scientists who are looking to create pipelines through a visual interface instead of YAML.
 
 ## Installation
 
@@ -69,9 +69,10 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ```
 
 Now that you have installed Orchest, get started with our
-[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial or
+[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial,
 check out [pipelines](https://github.com/orchest/awesome-orchest-pipelines) made by your fellow
-users.
+users, or have a look out our [knowledge base](https://www.orchest.io/knowledge-base) videos
+explaining and showing some of Orchest's core concepts.
 
 ## License
 
@@ -109,4 +110,3 @@ Not sure where to start? [Book a free, no-pressure pairing session](mailto:rick@
 <a href="https://github.com/FanaHOVA"><img src="https://avatars.githubusercontent.com/u/6490430?v=4" title="FanaHOVA" width="50" height="50"></a>
 <a href="https://github.com/mitchglass97"><img src="https://avatars.githubusercontent.com/u/52224377?v=4" title="mitchglass97" width="50" height="50"></a>
 <a href="https://github.com/joe-bell"><img src="https://avatars.githubusercontent.com/u/7349341?v=4" title="joe-bell" width="50" height="50"></a>
-
