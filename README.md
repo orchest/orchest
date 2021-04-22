@@ -13,7 +13,9 @@
 
 [![Join us on Slack](https://img.shields.io/badge/%20-Join%20us%20on%20Slack-blue?style=for-the-badge&logo=slack&labelColor=5c5c5c)](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
-Orchest is a browser based IDE for Data Science. It integrates your favorite Data Science tools out of the box, so you don’t have to. The application is easy to use and can run on your laptop as well as on a large scale cloud cluster.
+Orchest is a browser based IDE for Data Science. It integrates your favorite Data Science tools out
+of the box, so you don’t have to. The application is easy to use and can run on your laptop as well
+as on a large scale cloud cluster.
 
 <p align="center">
 <a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/111806797-a2c10300-88d2-11eb-9f21-bf1544f95b34.gif" width="868px" alt="orchest-0.3.0-demo" /></a/></p>
@@ -71,7 +73,7 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 Now that you have installed Orchest, get started with our
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial,
 check out [pipelines](https://github.com/orchest/awesome-orchest-pipelines) made by your fellow
-users, or have a look out our [knowledge base](https://www.orchest.io/knowledge-base) videos
+users, or have a look at our [knowledge base](https://www.orchest.io/knowledge-base) videos
 explaining and showing some of Orchest's core concepts.
 
 ## License
