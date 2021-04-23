@@ -25,14 +25,19 @@ class BuildPendingDialog extends React.Component {
     }
 
     let environmentsToBeBuilt = [];
+    let buildHasFailed = false;
     for (let x = 0; x < props.environmentValidationData.actions.length; x++) {
       if (props.environmentValidationData.actions[x] == "BUILD") {
         environmentsToBeBuilt.push(props.environmentValidationData.fail[x]);
+      } else if (props.environmentValidationData.actions[x] == "FAILURE") {
+        buildHasFailed = true;
       }
     }
 
     let message = "";
-    if (environmentsToBeBuilt.length > 0) {
+    if (buildHasFailed) {
+      message = `Some environment builds of this project have failed.`;
+    } else if (environmentsToBeBuilt.length > 0) {
       message =
         `Not all environments of this project have been built. Would you like to build them?` +
         messageSuffix;
@@ -44,6 +49,7 @@ class BuildPendingDialog extends React.Component {
 
     this.state = {
       building: environmentsToBeBuilt.length == 0,
+      buildHasFailed: buildHasFailed,
       environmentsToBeBuilt: environmentsToBeBuilt,
       message: message,
       showBuildStatus: environmentsToBeBuilt.length == 0,
@@ -78,13 +84,25 @@ class BuildPendingDialog extends React.Component {
           this.close();
         }
       })
-      .catch(() => {
-        // gate check failed, do nothing
+      .catch((error) => {
+        // gate check failed, check why it failed and act
+        // accordingly
+
+        // Environment failed to build.
+        if (error.data.actions.includes("FAILURE")) {
+          const message = "One of the environment builds has failed.";
+          this.setState({
+            buildHasFailed: true,
+            message: message,
+          });
+          clearInterval(this.gateInterval);
+        }
       });
   }
 
   componentDidMount() {
-    if (this.state.environmentsToBeBuilt.length == 0) {
+    if (this.state.buildHasFailed) {
+    } else if (this.state.environmentsToBeBuilt.length == 0) {
       this.startPollingGate();
     }
   }
