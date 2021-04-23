@@ -64,14 +64,6 @@ class HeaderBar extends React.Component {
     this.props.changeSelectedProject(projectUUID);
   }
 
-  fetchSessionStatus() {
-    // Make sure all renders have been flushed,
-    // such that SessionToggleButton is available.
-    if (this.refManager.refs.sessionToggleButton) {
-      this.refManager.refs.sessionToggleButton.fetchSessionStatus();
-    }
-  }
-
   onSessionStateChange(working, running, session_details) {
     this.setState({
       sessionActive: running,
@@ -95,12 +87,6 @@ class HeaderBar extends React.Component {
   onSessionShutdown() {
     if (this.context.state.onSessionShutdown) {
       this.context.state.onSessionShutdown();
-    }
-  }
-
-  componentDidUpdate(_, prevState) {
-    if (prevState?.pipelineFetchHash != this.context.state.pipelineFetchHash) {
-      this.fetchSessionStatus();
     }
   }
 

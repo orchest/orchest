@@ -1,20 +1,28 @@
+type TFetchStatus = "IDLE" | "FETCHING" | "SUCCESS" | "ERROR";
+
 export type TOrchestState = {
+  alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipeline_uuid: string;
   project_uuid: string;
-  sessionActive: boolean;
-  sessionWorking?: boolean;
-  sessionRunning?: boolean;
-  onSessionStateChange?: (
-    working?: boolean,
-    running?: boolean,
-    session_details?: any
-  ) => void;
-  onSessionFetch?: (session_details?: any) => void;
-  onSessionShutdown?: () => void;
+  sessionLaunchStatus?: TFetchStatus;
+  sessionDeleteStatus?: TFetchStatus;
+  sessionFetchStatus?: TFetchStatus;
+  sessions?:
+    | [
+        {
+          // id
+          // concatenated uuid : project_uuid + pipeline_uuid
+          project_uuid: TOrchestState["project_uuid"];
+          pipeline_uuid: TOrchestState["pipeline_uuid"];
+          status: "RUNNING" | "LAUNCHING" | "STOPPED" | "STOPPING";
+          baseUrl: string;
+        }
+      ]
+    | [];
   pipelineIsReadOnly: boolean;
   viewCurrent: "pipeline" | "jupyter" | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
@@ -49,7 +57,19 @@ export type TOrchestAction =
       payload: TOrchestState["pipelineIsReadOnly"];
     }
   | { type: "drawerToggle" }
-  | { type: "sessionCancelPromises" }
+  | { type: "sessionFetch" }
+  | {
+      type: "sessionUpdate";
+      payload: Pick<
+        TOrchestState,
+        "sessionDeleteStatus" | "sessionFetchStatus" | "sessionLaunchStatus"
+      > & {
+        session?: Omit<
+          Partial<TOrchestState["sessions"][number]>,
+          "pipeline_uuid" | "project_uuid"
+        >;
+      };
+    }
   | {
       type: "sessionToggle";
     };

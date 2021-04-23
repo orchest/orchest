@@ -1,11 +1,8 @@
 // @ts-check
-import {
-  uuidv4,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
 import * as React from "react";
+import useSWR from "swr";
+import { uuidv4 } from "@orchest/lib-utils";
+import { fetcher } from "@/lib/fetcher";
 
 /**
  * @type {import("./types").TOrchestState}
@@ -20,9 +17,28 @@ const initialState = {
   pipelineSaveStatus: "saved",
   pipeline_uuid: undefined,
   project_uuid: undefined,
-  sessionActive: false,
+  sessionFetchStatus: null,
+  sessionDeleteStatus: null,
+  sessionLaunchStatus: null,
+  sessions: [],
   viewCurrent: "pipeline",
 };
+
+/**
+ * @param {import("./types").TOrchestState['sessions'][number]} session
+ * @param {import("./types").TOrchestState} state
+ * @returns
+ */
+const isCurrentSession = (session, state) =>
+  session.project_uuid === state.project_uuid &&
+  session.pipeline_uuid === state.pipeline_uuid;
+
+/**
+ * @param {import("./types").TOrchestState} state
+ * @returns
+ */
+export const getCurrentSession = (state) =>
+  state?.sessions.find((session) => isCurrentSession(session, state));
 
 /**
  * @param {*} state
@@ -30,14 +46,15 @@ const initialState = {
  * @returns
  */
 function reducer(state, action) {
-  // @ts-ignore
-  const orchest = window.orchest;
-  const sessionPromiseManager = new PromiseManager();
+  const currentSession = state.sessions.find((session) =>
+    isCurrentSession(session, state)
+  );
 
   switch (action.type) {
     case "isLoaded":
       return { ...state, isLoading: false };
     case "drawerToggle":
+      console.log(state);
       // @TODO HANDLE BROSWERCONFIG CHECK
       return { ...state, drawerIsOpen: !state.drawerIsOpen };
     case "pipelineClear":
@@ -53,9 +70,6 @@ function reducer(state, action) {
       return { ...state, pipelineSaveStatus: action.payload };
     case "pipelineUpdateReadOnlyState":
       return { ...state, pipelineIsReadOnly: action.payload };
-    case "sessionCancelPromises":
-      sessionPromiseManager.cancelCancelablePromises();
-      return { ...state };
     case "sessionSetListeners":
       return { ...state, ...action.payload };
     case "sessionClearListeners":
@@ -65,137 +79,73 @@ function reducer(state, action) {
         onSessionShutdown: undefined,
         onSessionFetch: undefined,
       };
-    case "sessionToggle":
-      if (state.sessionWorking) {
-        let statusText = "launching";
-        if (state.sessionRunning) {
-          statusText = "shutting down";
-        }
-        orchest.alert(
-          "Error",
-          "Please wait, the pipeline session is still " + statusText + "."
-        );
-        return;
-      }
+    case "sessionFetch":
+      return { ...state, sessionFetchStatus: "FETCHING" };
+    case "sessionUpdate":
+      const { session, ...sessionStatuses } = action.payload;
 
-      if (!state.sessionRunning) {
-        // send launch request to API
-        let data = {
-          pipeline_uuid: state.pipeline_uuid,
-          project_uuid: state.project_uuid,
+      if (!session) {
+        return {
+          ...state,
+          ...sessionStatuses,
         };
-
-        state?.onSessionStateChange(true, state.sessionRunning);
-
-        let launchPromise = makeCancelable(
-          makeRequest("POST", "/catch/api-proxy/api/sessions/", {
-            type: "json",
-            content: data,
-          }),
-          sessionPromiseManager
-        );
-
-        launchPromise.promise
-          .then((response) => {
-            let session_details = JSON.parse(response);
-
-            const updatedState = {
-              sessionWorking: false,
-              sessionRunning: true,
-            };
-
-            state?.onSessionStateChange(
-              updatedState.sessionWorking,
-              updatedState.sessionRunning,
-              session_details
-            );
-
-            return { ...state, ...updatedState };
-          })
-          .catch((e) => {
-            if (!e.isCanceled) {
-              let error = JSON.parse(e.body);
-              if (error.message == "JupyterBuildInProgress") {
-                orchest.alert(
-                  "Error",
-                  "Cannot start session. A JupyterLab build is still in progress."
-                );
-              }
-
-              const updatedState = {
-                sessionWorking: false,
-                sessionRunning: false,
-              };
-
-              state?.onSessionStateChange(
-                updatedState.sessionWorking,
-                updatedState.sessionRunning
-              );
-
-              return { ...state, ...updatedState };
-            }
-          });
-      } else {
-        state?.onSessionStateChange(true, state.sessionRunning);
-        state?.onSessionShutdown();
-
-        let deletePromise = makeCancelable(
-          makeRequest(
-            "DELETE",
-            `/catch/api-proxy/api/sessions/${state.project_uuid}/${state.pipeline_uuid}`
-          ),
-          sessionPromiseManager
-        );
-
-        deletePromise.promise
-          .then(() => {
-            const updatedState = {
-              sessionWorking: false,
-              sessionRunning: false,
-            };
-
-            state?.onSessionStateChange(
-              updatedState.sessionWorking,
-              updatedState.sessionRunning
-            );
-
-            return { ...state, ...updatedState };
-          })
-          .catch((err) => {
-            if (!err.isCanceled) {
-              console.log(
-                "Error during request DELETEing launch to orchest-api."
-              );
-              console.log(err);
-
-              let error = JSON.parse(err.body);
-              if (error.message == "MemoryServerRestartInProgress") {
-                orchest.alert(
-                  "The session can't be stopped while the memory server is being restarted."
-                );
-              }
-
-              if (err === undefined || (err && err.isCanceled !== true)) {
-                const updatedState = {
-                  sessionWorking: false,
-                  sessionRunning: true,
-                };
-
-                state?.onSessionStateChange(
-                  updatedState.sessionWorking,
-                  updatedState.sessionRunning
-                );
-
-                return { ...state, ...updatedState };
-              }
-            }
-          });
       }
 
-      return { ...state };
+      const currentSessionWithPayload = {
+        ...currentSession,
+        project_uuid: state.project_uuid,
+        pipeline_uuid: state.pipeline_uuid,
+        ...session,
+      };
+
+      const sessions = !currentSession
+        ? [currentSessionWithPayload, ...state.sessions]
+        : state.sessions.map((session) =>
+            isCurrentSession(session, state)
+              ? currentSessionWithPayload
+              : session
+          );
+
+      return {
+        ...state,
+        sessions,
+        ...sessionStatuses,
+      };
+    case "sessionToggle":
+      console.log(currentSession);
+
+      if (!currentSession?.status || currentSession.status === "STOPPED") {
+        return {
+          ...state,
+          sessionLaunchStatus: "FETCHING",
+        };
+      }
+
+      if (["STARTING", "STOPPING"].includes(currentSession.status)) {
+        return {
+          ...state,
+          alert: [
+            "Error",
+            "Please wait, the pipeline session is still " +
+              { STARTING: "launching", STOPPING: "shutting down" }[
+                currentSession.status
+              ] +
+              ".",
+          ],
+        };
+      }
+
+      if (currentSession.status === "RUNNING") {
+        console.log("it's already running ya drongo");
+        return { ...state, sessionCancelStatus: "FETCHING" };
+      }
+
+      return state;
+
     case "viewUpdateCurrent":
       return { ...state, viewCurrent: action.payload };
     default:
+      console.log(action);
       throw new Error();
   }
 }
@@ -203,7 +153,12 @@ function reducer(state, action) {
 export const OrchestContext = React.createContext(null);
 
 export const OrchestProvider = ({ config, user_config, children }) => {
+  // @ts-ignore
+  const orchest = window.orchest;
+
   const [state, dispatch] = React.useReducer(reducer, initialState);
+
+  console.log("State === ", state);
 
   React.useEffect(() => {
     if (config && user_config) {
@@ -211,8 +166,146 @@ export const OrchestProvider = ({ config, user_config, children }) => {
     }
   }, [config, user_config]);
 
+  React.useEffect(() => {
+    if (state.alert) {
+      orchest.alert(...state.alert);
+    }
+  }, [state]);
+
+  /**
+   * Session Launches
+   */
+  React.useEffect(() => {
+    if (state.sessionLaunchStatus === "FETCHING") {
+      console.log("launching");
+
+      fetcher("/catch/api-proxy/api/sessions/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json;charset=UTF-8",
+        },
+        body: JSON.stringify({
+          pipeline_uuid: state.pipeline_uuid,
+          project_uuid: state.project_uuid,
+        }),
+      })
+        .then((session) => {
+          console.log("value =", session);
+
+          dispatch({
+            type: "sessionUpdate",
+            payload: { sessionLaunchStatus: "SUCCESS", session },
+          });
+        })
+        .catch((err) => {
+          if (!err.isCancelled) {
+            console.log(
+              "Error during request DELETEing launch to orchest-api."
+            );
+            console.log(err);
+
+            let error = JSON.parse(err.body);
+            if (error.message == "MemoryServerRestartInProgress") {
+              orchest.alert(
+                "The session can't be stopped while the memory server is being restarted."
+              );
+            }
+          }
+
+          dispatch({
+            type: "sessionUpdate",
+            payload: { sessionLaunchStatus: "ERROR" },
+          });
+        });
+    }
+  }, [state.sessionLaunchStatus]);
+
+  /**
+   * Session Deletions
+   */
+  React.useEffect(() => {
+    console.log("deleting session");
+
+    fetcher(
+      "/catch/api-proxy/api/sessions/${state.project_uuid}/${state.pipeline_uuid}",
+      {
+        method: "DELETE",
+      }
+    )
+      .then(() =>
+        dispatch({
+          type: "sessionUpdate",
+          payload: {
+            sessionDeleteStatus: "SUCCESS",
+            session: {
+              status: "STOPPED",
+            },
+          },
+        })
+      )
+      .catch((err) => {
+        if (!err.isCancelled) {
+          console.log("Error during request DELETEing launch to orchest-api.");
+          console.log(err);
+
+          if (err?.message === "MemoryServerRestartInProgress") {
+            orchest.alert(
+              "The session can't be stopped while the memory server is being restarted."
+            );
+          }
+
+          if (err === undefined || (err && err.isCanceled !== true)) {
+            dispatch({
+              type: "sessionUpdate",
+              payload: {
+                sessionDeleteStatus: "ERROR",
+              },
+            });
+          }
+        }
+      });
+  }, [state.sessionDeleteStatus]);
+
+  /**
+   * Session Fetches
+   */
+  useSWR(
+    state.sessionFetchStatus === "FETCHING"
+      ? `/catch/api-proxy/api/sessions/?project_uuid=${state.project_uuid}&pipeline_uuid=${state.pipeline_uuid}`
+      : null,
+    fetcher,
+    {
+      onError: (e) => {
+        if (!e.isCanceled) console.log(e);
+
+        dispatch({
+          type: "sessionUpdate",
+          payload: {
+            sessionFetchStatus: "ERROR",
+          },
+        });
+      },
+      onSuccess: (data) =>
+        dispatch({
+          type: "sessionUpdate",
+          payload: {
+            sessionFetchStatus: "SUCCESS",
+            session:
+              data?.sessions?.length > 0
+                ? data.sessions[0]
+                : { status: "STOPPED" },
+          },
+        }),
+    }
+  );
+
   return (
-    <OrchestContext.Provider value={{ state, dispatch }}>
+    <OrchestContext.Provider
+      value={{
+        state,
+        dispatch,
+      }}
+    >
       {children}
     </OrchestContext.Provider>
   );
