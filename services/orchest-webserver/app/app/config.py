@@ -45,7 +45,7 @@ class Config:
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
 
     POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
-    POSTHOG_HOST = "https://analytics.orchestapp.com"
+    POSTHOG_HOST = "https://analytics.orchest.io"
 
     # TODO: point readthedocs to stable instead of latest once stable
     #  is up
