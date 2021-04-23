@@ -226,44 +226,48 @@ export const OrchestProvider = ({ config, user_config, children }) => {
   React.useEffect(() => {
     console.log("deleting session");
 
-    fetcher(
-      "/catch/api-proxy/api/sessions/${state.project_uuid}/${state.pipeline_uuid}",
-      {
-        method: "DELETE",
-      }
-    )
-      .then(() =>
-        dispatch({
-          type: "sessionUpdate",
-          payload: {
-            sessionDeleteStatus: "SUCCESS",
-            session: {
-              status: "STOPPED",
-            },
-          },
-        })
-      )
-      .catch((err) => {
-        if (!err.isCancelled) {
-          console.log("Error during request DELETEing launch to orchest-api.");
-          console.log(err);
-
-          if (err?.message === "MemoryServerRestartInProgress") {
-            orchest.alert(
-              "The session can't be stopped while the memory server is being restarted."
-            );
-          }
-
-          if (err === undefined || (err && err.isCanceled !== true)) {
-            dispatch({
-              type: "sessionUpdate",
-              payload: {
-                sessionDeleteStatus: "ERROR",
-              },
-            });
-          }
+    if (state.sessionDeleteStatus === "FETCHING") {
+      fetcher(
+        "/catch/api-proxy/api/sessions/${state.project_uuid}/${state.pipeline_uuid}",
+        {
+          method: "DELETE",
         }
-      });
+      )
+        .then(() =>
+          dispatch({
+            type: "sessionUpdate",
+            payload: {
+              sessionDeleteStatus: "SUCCESS",
+              session: {
+                status: "STOPPED",
+              },
+            },
+          })
+        )
+        .catch((err) => {
+          if (!err.isCancelled) {
+            console.log(
+              "Error during request DELETEing launch to orchest-api."
+            );
+            console.log(err);
+
+            if (err?.message === "MemoryServerRestartInProgress") {
+              orchest.alert(
+                "The session can't be stopped while the memory server is being restarted."
+              );
+            }
+
+            if (err === undefined || (err && err.isCanceled !== true)) {
+              dispatch({
+                type: "sessionUpdate",
+                payload: {
+                  sessionDeleteStatus: "ERROR",
+                },
+              });
+            }
+          }
+        });
+    }
   }, [state.sessionDeleteStatus]);
 
   /**
