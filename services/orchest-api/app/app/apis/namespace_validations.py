@@ -33,7 +33,7 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
 
         `check` is "pass" or "fail".
 
-        `action` is one of ["BUILD", "WAIT", "RETRY", None]
+        `action` is one of ["BUILD", "WAIT", "RETRY", "FAILURE", None]
 
     """
     # Check the docker namespace.
