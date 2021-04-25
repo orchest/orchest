@@ -1,10 +1,9 @@
-#!/bin/sh
+## PATCH MARKER: uh9999x ##
 
-/usr/local/bin/pip "$@"
+import atexit
 
-cat << "EOF"
-
- __          __              _
+def orchest_notice():
+    print("""
  \ \        / /             (_)
   \ \  /\  / /_ _ _ __ _ __  _ _ __   __ _
    \ \/  \/ / _` | '__| '_ \| | '_ \ / _` |
@@ -16,5 +15,6 @@ cat << "EOF"
 # Please use Orchest environments to install pip packages.
 # NOTE: This only applies to installing packages inside Jupyter
 # kernels, not when installing Jupyter extensions.
+""")
 
-EOF
+atexit.register(orchest_notice)

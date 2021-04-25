@@ -35,14 +35,8 @@ COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
 
 # Display warning message when running `pip` or `pip3` in the Jupyter
 # terminal.
-# NOTE: Putting the executables in the sbin makes sure they are used in
-# the Jupyter terminal as it does not adhere to modifying the $PATH in
-# the parent process. As a fun benefit the executables are not used in the
-# Jupyter configuration as this Docker base image modifies the $PATH.
-# COPY ./pip ./pip3 /usr/local/orchest/bin/
-# ENV PATH /usr/local/orchest/bin:$PATH
-COPY ./pip ./pip3 /usr/local/sbin/
-
+COPY patch-pip.sh pip-warning.py /
+RUN bash /patch-pip.sh
 
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir
