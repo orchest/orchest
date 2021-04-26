@@ -101,8 +101,10 @@ class BuildPendingDialog extends React.Component {
   }
 
   componentDidMount() {
-    if (this.state.buildHasFailed) {
-    } else if (this.state.environmentsToBeBuilt.length == 0) {
+    if (
+      !this.state.buildHasFailed &&
+      this.state.environmentsToBeBuilt.length == 0
+    ) {
       this.startPollingGate();
     }
   }
