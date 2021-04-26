@@ -6,11 +6,14 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/lib/orchest";
 import ProjectsView from "../views/ProjectsView";
 
 class ProjectSelector extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       projects: undefined,
@@ -37,6 +40,7 @@ class ProjectSelector extends React.Component {
   onChangeProject(project_uuid) {
     if (this.props.onChangeProject) {
       this.props.onChangeProject(project_uuid);
+      this.context.dispatch({ type: "projectSet", payload: project_uuid });
     }
   }
 
@@ -55,6 +59,8 @@ class ProjectSelector extends React.Component {
       // selected project doesn't exist anymore
       project_uuid = undefined;
     }
+
+    console.log(project_uuid);
 
     this.onChangeProject(project_uuid);
   }

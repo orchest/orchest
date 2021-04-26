@@ -46,21 +46,21 @@ class PipelineList extends React.Component {
         loading: false,
       });
     });
-
-    this.context.dispatch({ type: "pipelineClear" });
   }
 
   processListData(pipelines) {
     let listData = [];
 
     for (let pipeline of pipelines) {
+      // @TODO Get the current Project on the Pipelines page
       listData.push([
         <span>{pipeline.name}</span>,
         <span>{pipeline.path}</span>,
         <SessionToggleButton
-          fetchOnInit={true}
+          project_uuid={this.context.state.project_uuid}
+          pipeline_uuid={pipeline.uuid}
           switch={true}
-          classNames={["consume-click"]}
+          className="consume-click"
         />,
       ]);
     }

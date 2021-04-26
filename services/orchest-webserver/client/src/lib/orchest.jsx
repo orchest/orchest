@@ -5,7 +5,16 @@ import { uuidv4 } from "@orchest/lib-utils";
 import { fetcher } from "@/lib/fetcher";
 
 /**
- * @type {import("./types").TOrchestState}
+ * @typedef {import("@/types").TOrchestAction} TOrchestAction
+ * @typedef {import("@/types").IOrchestGet} IOrchestGet
+ * @typedef {import("@/types").IOrchestSessionUuid} IOrchestSessionUuid
+ * @typedef {import("@/types").IOrchestSession} IOrchestSession
+ * @typedef {import("@/types").IOrchestState} IOrchestState
+ * @typedef {import("@/types").IOrchestContext} IOrchestContext
+ */
+
+/**
+ * @type {IOrchestState}
  */
 const initialState = {
   isLoading: true,
@@ -17,6 +26,7 @@ const initialState = {
   pipelineSaveStatus: "saved",
   pipeline_uuid: undefined,
   project_uuid: undefined,
+  _sessionApiFetch: null,
   sessionFetchStatus: null,
   sessionDeleteStatus: null,
   sessionLaunchStatus: null,
@@ -25,24 +35,21 @@ const initialState = {
 };
 
 /**
- * @param {import("./types").TOrchestState['sessions'][number]} session
- * @param {import("./types").TOrchestState} state
- * @returns
+ * @param {Partial<IOrchestSessionUuid>} a
+ * @param {Partial<IOrchestSessionUuid>} b
  */
-const isCurrentSession = (session, state) =>
-  session.project_uuid === state.project_uuid &&
-  session.pipeline_uuid === state.pipeline_uuid;
+const isSession = (a, b) =>
+  a?.project_uuid === b?.project_uuid && a?.pipeline_uuid === b?.pipeline_uuid;
 
 /**
- * @param {import("./types").TOrchestState} state
- * @returns
+ * @param {IOrchestSession} session
+ * @param {IOrchestState} state
  */
-export const getCurrentSession = (state) =>
-  state?.sessions.find((session) => isCurrentSession(session, state));
+const isCurrentSession = (session, state) => isSession(session, state);
 
 /**
- * @param {*} state
- * @param {import("./types").TOrchestAction} action
+ * @param {IOrchestState} state
+ * @param {TOrchestAction} action
  * @returns
  */
 function reducer(state, action) {
@@ -61,7 +68,6 @@ function reducer(state, action) {
       return {
         ...state,
         pipeline_uuid: undefined,
-        project_uuid: undefined,
         pipelineName: undefined,
       };
     case "pipelineSet":
@@ -70,6 +76,8 @@ function reducer(state, action) {
       return { ...state, pipelineSaveStatus: action.payload };
     case "pipelineUpdateReadOnlyState":
       return { ...state, pipelineIsReadOnly: action.payload };
+    case "projectSet":
+      return { ...state, project_uuid: action.payload };
     case "sessionSetListeners":
       return { ...state, ...action.payload };
     case "sessionClearListeners":
@@ -80,36 +88,38 @@ function reducer(state, action) {
         onSessionFetch: undefined,
       };
     case "sessionFetch":
-      return { ...state, sessionFetchStatus: "FETCHING" };
-    case "sessionUpdate":
-      const { session, ...sessionStatuses } = action.payload;
-
-      if (!session) {
+      return {
+        ...state,
+        _sessionApiFetch: {
+          status: "FETCHING",
+          session: action.payload,
+        },
+      };
+    case "_sessionApiUpdate":
+      if (!action.payload?.session) {
         return {
           ...state,
-          ...sessionStatuses,
+          _sessionApiFetch: action.payload,
         };
       }
 
-      const currentSessionWithPayload = {
-        ...currentSession,
-        project_uuid: state.project_uuid,
-        pipeline_uuid: state.pipeline_uuid,
-        ...session,
-      };
+      const hasPayloadSession = state.sessions.find((session) =>
+        isSession(session, action.payload.session)
+      );
 
-      const sessions = !currentSession
-        ? [currentSessionWithPayload, ...state.sessions]
-        : state.sessions.map((session) =>
-            isCurrentSession(session, state)
-              ? currentSessionWithPayload
-              : session
-          );
+      const sessions =
+        typeof hasPayloadSession === "undefined"
+          ? [action.payload.session, ...state.sessions]
+          : state.sessions.map((session) =>
+              isSession(session, action.payload.session)
+                ? { ...session, ...action.payload.session }
+                : session
+            );
 
       return {
         ...state,
         sessions,
-        ...sessionStatuses,
+        _sessionApiFetch: action.payload,
       };
     case "sessionToggle":
       console.log(currentSession);
@@ -150,22 +160,40 @@ function reducer(state, action) {
   }
 }
 
+/**
+ * @type {React.Context<IOrchestContext>}
+ */
 export const OrchestContext = React.createContext(null);
+export const useOrchest = () => React.useContext(OrchestContext);
 
 export const OrchestProvider = ({ config, user_config, children }) => {
   // @ts-ignore
   const orchest = window.orchest;
-
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
   console.log("State === ", state);
 
+  /** @type {IOrchestGet} */
+  const get = {
+    session: (session) =>
+      state?.sessions.find((stateSession) => isSession(session, stateSession)),
+    currentSession: state?.sessions.find((session) =>
+      isCurrentSession(session, state)
+    ),
+  };
+
+  /**
+   * Loading
+   */
   React.useEffect(() => {
     if (config && user_config) {
       dispatch({ type: "isLoaded" });
     }
   }, [config, user_config]);
 
+  /**
+   * Alerts
+   */
   React.useEffect(() => {
     if (state.alert) {
       orchest.alert(...state.alert);
@@ -274,8 +302,13 @@ export const OrchestProvider = ({ config, user_config, children }) => {
    * Session Fetches
    */
   useSWR(
-    state.sessionFetchStatus === "FETCHING"
-      ? `/catch/api-proxy/api/sessions/?project_uuid=${state.project_uuid}&pipeline_uuid=${state.pipeline_uuid}`
+    state?._sessionApiFetch?.status === "FETCHING"
+      ? [
+          `/catch/api-proxy/api/sessions/?project_uuid=`,
+          state?._sessionApiFetch.session?.project_uuid,
+          `&pipeline_uuid=`,
+          state?._sessionApiFetch.session?.pipeline_uuid,
+        ].join("")
       : null,
     fetcher,
     {
@@ -283,23 +316,28 @@ export const OrchestProvider = ({ config, user_config, children }) => {
         if (!e.isCanceled) console.log(e);
 
         dispatch({
-          type: "sessionUpdate",
+          type: "_sessionApiUpdate",
           payload: {
-            sessionFetchStatus: "ERROR",
+            status: "ERROR",
           },
         });
       },
-      onSuccess: (data) =>
+      onSuccess: (data) => {
+        console.log("data", data);
         dispatch({
-          type: "sessionUpdate",
+          type: "_sessionApiUpdate",
           payload: {
-            sessionFetchStatus: "SUCCESS",
-            session:
-              data?.sessions?.length > 0
+            status: "SUCCESS",
+            session: {
+              ...(data?.sessions?.length > 0
                 ? data.sessions[0]
-                : { status: "STOPPED" },
+                : { status: "STOPPED" }),
+              project_uuid: state?._sessionApiFetch.session?.project_uuid,
+              pipeline_uuid: state?._sessionApiFetch.session?.pipeline_uuid,
+            },
           },
-        }),
+        });
+      },
     }
   );
 
@@ -308,6 +346,7 @@ export const OrchestProvider = ({ config, user_config, children }) => {
       value={{
         state,
         dispatch,
+        get,
       }}
     >
       {children}

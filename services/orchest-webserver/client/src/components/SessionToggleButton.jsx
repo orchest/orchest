@@ -1,100 +1,80 @@
 import React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
-import {
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
-import { getCurrentSession, OrchestContext } from "@/lib/orchest";
+import { useOrchest } from "@/lib/orchest";
 
-class SessionToggleButton extends React.Component {
-  static contextType = OrchestContext;
+/**
+ * @typedef {import("@/types").IOrchestSession} IOrchestSession
+ */
 
-  constructor(props, context) {
-    super(props, context);
+/**
+ * @typedef {Object} SessionToggleButtonProps
+ * @property {IOrchestSession['pipeline_uuid']} pipeline_uuid
+ * @property {IOrchestSession['project_uuid']} project_uuid
+ * @property {string} [className]
+ * @property {boolean} [fetchOnInit]
+ * @property {boolean} [switch]
+ */
 
-    this.promiseManager = new PromiseManager();
-    this.STATUS_POLL_FREQUENCY = 1000;
-  }
+/**
+ * @type {React.FC<SessionToggleButtonProps>}
+ */
+const SessionToggleButton = (props) => {
+  const [isLoading, setIsLoading] = React.useState(true);
+  const { dispatch, get } = useOrchest();
 
-  onClick(e) {
-    e.stopPropagation();
-  }
+  const session = get.session(props);
+  // console.log("session ======", session, props);
 
-  componentWillUnmount() {
-    // this.context.dispatch({ type: "sessionCancelPromises" });
-    this.promiseManager.cancelCancelablePromises();
-  }
-
-  componentDidMount() {
-    if (this.props.fetchOnInit) {
-      this.context.dispatch({ type: "sessionFetch" });
-    }
-  }
-
-  getPowerButtonClasses() {
-    const currentSession = getCurrentSession(this.context.state);
-
-    let classes = ["mdc-button--outlined", "session-state-button"];
-
-    if (currentSession?.status === "RUNNING") {
-      classes.push("active");
-    }
-
-    if (currentSession?.status === "LAUNCHING") {
-      classes.push("working");
-    }
-
-    return classes;
-  }
-
-  render() {
-    const currentSession = getCurrentSession(this.context.state);
-
-    const label =
+  const sharedProps = {
+    disabled:
+      isLoading ||
+      !session?.status ||
+      ["STOPPING", "LAUNCHING"].includes(session?.status),
+    label:
       {
         STOPPING: "Session stopping…",
         STARTING: "Session starting…",
         RUNNING: "Stop session",
-      }[currentSession?.status] || "Start session";
+      }[session?.status] || "Start session",
+  };
 
-    let classes = [];
-    if (this.props.classNames) {
-      classes = classes.concat(this.props.classNames);
-    }
+  const handleEvent = (e) => {
+    e.preventDefault();
+    dispatch({ type: "sessionToggle" });
+  };
 
-    // This component can be rendered as a switch or button
-    if (this.props.switch === true) {
-      return (
-        <MDCSwitchReact
-          classNames={classes.join(" ")}
-          disabled={["STOPPING", "LAUNCHING"].includes(currentSession?.status)}
-          on={currentSession?.status === "RUNNING"}
-          onChange={(e) => {
-            e.preventDefault();
-            this.context.dispatch({ type: "sessionToggle" });
-          }}
-          label={label}
-        />
-      );
-    } else {
-      classes = classes.concat(this.getPowerButtonClasses());
-      return (
-        <MDCButtonReact
-          onClick={(e) => {
-            e.preventDefault();
-            /// temporary
-            // this.context.dispatch({ type: "sessionFetch" });
-            this.context.dispatch({ type: "sessionToggle" });
-          }}
-          classNames={classes.join(" ")}
-          label={label}
-          disabled={["STOPPING", "LAUNCHING"].includes(currentSession?.status)}
-          icon={currentSession?.status === "RUNNING" ? "stop" : "play_arrow"}
-        />
-      );
-    }
-  }
-}
+  React.useEffect(() => {
+    console.log("running dispatch for ", props);
+    dispatch({ type: "sessionFetch", payload: props });
+    setIsLoading(false);
+  }, [props.pipeline_uuid, props.project_uuid]);
+
+  return props.switch ? (
+    <MDCSwitchReact
+      {...sharedProps}
+      onChange={handleEvent}
+      classNames={props.className}
+      on={session?.status === "RUNNING"}
+    />
+  ) : (
+    <MDCButtonReact
+      {...sharedProps}
+      onClick={handleEvent}
+      classNames={[
+        props.className,
+        "mdc-button--outlined",
+        "session-state-button",
+        // @rick do we need these?
+        {
+          RUNNING: "active",
+          LAUNCHING: "working",
+          STOPPING: "working",
+          STOPPED: "active",
+        }[session?.status] || "",
+      ]}
+      icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
+    />
+  );
+};
 
 export default SessionToggleButton;

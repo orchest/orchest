@@ -133,6 +133,8 @@ class HeaderBar extends React.Component {
           {this.context.state.pipelineName &&
             !this.context.state.pipelineIsReadOnly && (
               <SessionToggleButton
+                pipeline_uuid={this.context.state.pipeline_uuid}
+                project_uuid={this.context.state.project_uuid}
                 ref={this.refManager.nrefs.sessionToggleButton}
               />
             )}
