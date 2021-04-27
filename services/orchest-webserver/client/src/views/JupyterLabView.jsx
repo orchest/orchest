@@ -70,10 +70,6 @@ class JupyterLabView extends React.Component {
   componentWillUnmount() {
     orchest.jupyter.hide();
 
-    this.context.dispatch({
-      type: "sessionClearListeners",
-    });
-
     clearInterval(this.verifyKernelsRetryInterval);
   }
 
@@ -132,13 +128,6 @@ class JupyterLabView extends React.Component {
           let pipeline = JSON.parse(result.pipeline_json);
 
           this.verifyKernelsCallback(pipeline);
-
-          this.context.dispatch({
-            type: "sessionSetListeners",
-            payload: {
-              onSessionStateChange: this.onSessionStateChange.bind(this),
-            },
-          });
 
           this.context.dispatch({
             type: "pipelineSet",

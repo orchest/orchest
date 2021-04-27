@@ -21,6 +21,7 @@ export interface IOrchestSession extends IOrchestSessionUuid {
 
 interface IOrchestSessionApi {
   status: TOrchestFetchStatus;
+  operation: "LAUNCH" | "READ" | "DELETE" | ({} & string);
   session?: Partial<IOrchestSession>;
 }
 
@@ -31,14 +32,11 @@ export interface IOrchestState
   drawerIsOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
-  sessionLaunchStatus?: TOrchestFetchStatus;
-  sessionDeleteStatus?: TOrchestFetchStatus;
-  sessionFetchStatus?: TOrchestFetchStatus;
-  _sessionApiFetch?: IOrchestSessionApi;
   sessions?: IOrchestSession[] | [];
   pipelineIsReadOnly: boolean;
   viewCurrent: "pipeline" | "jupyter" | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
+  _sessionApi?: IOrchestSessionApi;
 }
 
 export type TOrchestAction =
@@ -60,39 +58,18 @@ export type TOrchestAction =
     }
   | { type: "viewUpdateCurrent"; payload: IOrchestState["viewCurrent"] }
   | {
-      type: "sessionSetListeners";
-      payload: Partial<
-        Pick<
-          IOrchestState,
-          "onSessionStateChange" | "onSessionFetch" | "onSessionShutdown"
-        >
-      >;
-    }
-  | { type: "sessionClearListeners" }
-  | {
       type: "pipelineUpdateReadOnlyState";
       payload: IOrchestState["pipelineIsReadOnly"];
     }
   | { type: "drawerToggle" }
   | { type: "sessionFetch"; payload: IOrchestSessionUuid }
   | {
-      type: "sessionUpdate";
-      payload: Pick<
-        IOrchestState,
-        "sessionDeleteStatus" | "sessionFetchStatus" | "sessionLaunchStatus"
-      > & {
-        session?: Omit<
-          Partial<IOrchestState["sessions"][number]>,
-          "pipeline_uuid" | "project_uuid"
-        >;
-      };
+      type: "sessionToggle";
+      payload: IOrchestSessionUuid;
     }
   | {
       type: "_sessionApiUpdate";
       payload: IOrchestSessionApi;
-    }
-  | {
-      type: "sessionToggle";
     };
 
 export interface IOrchestGet {

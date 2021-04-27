@@ -221,10 +221,6 @@ class PipelineView extends React.Component {
     clearInterval(this.pipelineStepStatusPollingInterval);
     clearInterval(this.sessionPollingInterval);
 
-    this.context.dispatch({
-      type: "sessionClearListeners",
-    });
-
     this.promiseManager.cancelCancelablePromises();
     this._ismounted = false;
   }
@@ -1233,15 +1229,6 @@ class PipelineView extends React.Component {
           this.context.dispatch({
             type: "pipelineUpdateReadOnlyState",
             payload: this.props.queryArgs.read_only === "true",
-          });
-
-          this.context.dispatch({
-            type: "sessionSetListeners",
-            payload: {
-              onSessionStateChange: this.onSessionStateChange.bind(this),
-              onSessionShutdown: this.onSessionShutdown.bind(this),
-              onSessionFetch: this.onSessionFetch.bind(this),
-            },
           });
 
           this.context.dispatch({

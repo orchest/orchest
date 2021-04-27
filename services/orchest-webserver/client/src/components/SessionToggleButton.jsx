@@ -22,8 +22,9 @@ const SessionToggleButton = (props) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const { dispatch, get } = useOrchest();
 
-  const session = get.session(props);
-  // console.log("session ======", session, props);
+  const { pipeline_uuid, project_uuid } = props;
+
+  const session = get.session({ pipeline_uuid, project_uuid });
 
   const sharedProps = {
     disabled:
@@ -40,14 +41,24 @@ const SessionToggleButton = (props) => {
 
   const handleEvent = (e) => {
     e.preventDefault();
-    dispatch({ type: "sessionToggle" });
+    dispatch({
+      type: "sessionToggle",
+      payload: { pipeline_uuid, project_uuid },
+    });
   };
 
   React.useEffect(() => {
+    if (session) setIsLoading(false);
+  }, [session]);
+
+  React.useEffect(() => {
     console.log("running dispatch for ", props);
-    dispatch({ type: "sessionFetch", payload: props });
-    setIsLoading(false);
-  }, [props.pipeline_uuid, props.project_uuid]);
+    dispatch({
+      type: "sessionFetch",
+      payload: { pipeline_uuid, project_uuid },
+    });
+    if (session) setIsLoading(false);
+  }, [pipeline_uuid, project_uuid]);
 
   return props.switch ? (
     <MDCSwitchReact

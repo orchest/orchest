@@ -26,12 +26,9 @@ const initialState = {
   pipelineSaveStatus: "saved",
   pipeline_uuid: undefined,
   project_uuid: undefined,
-  _sessionApiFetch: null,
-  sessionFetchStatus: null,
-  sessionDeleteStatus: null,
-  sessionLaunchStatus: null,
   sessions: [],
   viewCurrent: "pipeline",
+  _sessionApi: null,
 };
 
 /**
@@ -78,19 +75,11 @@ function reducer(state, action) {
       return { ...state, pipelineIsReadOnly: action.payload };
     case "projectSet":
       return { ...state, project_uuid: action.payload };
-    case "sessionSetListeners":
-      return { ...state, ...action.payload };
-    case "sessionClearListeners":
-      return {
-        ...state,
-        onSessionStageChange: undefined,
-        onSessionShutdown: undefined,
-        onSessionFetch: undefined,
-      };
     case "sessionFetch":
       return {
         ...state,
-        _sessionApiFetch: {
+        _sessionApi: {
+          operation: "READ",
           status: "FETCHING",
           session: action.payload,
         },
@@ -99,7 +88,7 @@ function reducer(state, action) {
       if (!action.payload?.session) {
         return {
           ...state,
-          _sessionApiFetch: action.payload,
+          _sessionApi: action.payload,
         };
       }
 
@@ -119,35 +108,53 @@ function reducer(state, action) {
       return {
         ...state,
         sessions,
-        _sessionApiFetch: action.payload,
+        _sessionApi: action.payload,
       };
     case "sessionToggle":
-      console.log(currentSession);
+      const sessionToToggle = state.sessions.find((session) =>
+        isSession(session, action.payload)
+      );
 
-      if (!currentSession?.status || currentSession.status === "STOPPED") {
+      if (
+        !sessionToToggle ||
+        !sessionToToggle?.status ||
+        sessionToToggle.status === "STOPPED"
+      ) {
+        console.log("launch me");
+
         return {
           ...state,
-          sessionLaunchStatus: "FETCHING",
+          _sessionApi: {
+            operation: "LAUNCH",
+            status: "FETCHING",
+            session: action.payload,
+          },
         };
       }
 
-      if (["STARTING", "STOPPING"].includes(currentSession.status)) {
+      if (["STARTING", "STOPPING"].includes(sessionToToggle.status)) {
         return {
           ...state,
           alert: [
             "Error",
             "Please wait, the pipeline session is still " +
               { STARTING: "launching", STOPPING: "shutting down" }[
-                currentSession.status
+                sessionToToggle.status
               ] +
               ".",
           ],
         };
       }
 
-      if (currentSession.status === "RUNNING") {
-        console.log("it's already running ya drongo");
-        return { ...state, sessionCancelStatus: "FETCHING" };
+      if (sessionToToggle.status === "RUNNING") {
+        return {
+          ...state,
+          _sessionApi: {
+            operation: "DELETE",
+            status: "FETCHING",
+            session: action.payload,
+          },
+        };
       }
 
       return state;
@@ -169,6 +176,8 @@ export const useOrchest = () => React.useContext(OrchestContext);
 export const OrchestProvider = ({ config, user_config, children }) => {
   // @ts-ignore
   const orchest = window.orchest;
+
+  /** @type {[IOrchestState, React.Dispatch<TOrchestAction>]} */
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
   console.log("State === ", state);
@@ -201,11 +210,18 @@ export const OrchestProvider = ({ config, user_config, children }) => {
   }, [state]);
 
   /**
-   * Session Launches
+   * Session Launches and Deletions
    */
   React.useEffect(() => {
-    if (state.sessionLaunchStatus === "FETCHING") {
-      console.log("launching");
+    if (
+      state._sessionApi?.status !== "FETCHING" ||
+      state._sessionApi?.operation === "READ"
+    ) {
+      return;
+    }
+
+    if (state._sessionApi?.operation === "LAUNCH") {
+      console.log("launching session");
 
       fetcher("/catch/api-proxy/api/sessions/", {
         method: "POST",
@@ -217,19 +233,21 @@ export const OrchestProvider = ({ config, user_config, children }) => {
           project_uuid: state.project_uuid,
         }),
       })
-        .then((session) => {
-          console.log("value =", session);
+        .then((sessionDetails) => {
+          console.log("value =", sessionDetails);
 
           dispatch({
-            type: "sessionUpdate",
-            payload: { sessionLaunchStatus: "SUCCESS", session },
+            type: "_sessionApiUpdate",
+            payload: {
+              ...state?._sessionApi,
+              status: "SUCCESS",
+              session: { ...state?._sessionApi.session, ...sessionDetails },
+            },
           });
         })
         .catch((err) => {
           if (!err.isCancelled) {
-            console.log(
-              "Error during request DELETEing launch to orchest-api."
-            );
+            console.log("Error during request LAUNCHing to orchest-api.");
             console.log(err);
 
             let error = JSON.parse(err.body);
@@ -241,20 +259,18 @@ export const OrchestProvider = ({ config, user_config, children }) => {
           }
 
           dispatch({
-            type: "sessionUpdate",
-            payload: { sessionLaunchStatus: "ERROR" },
+            type: "_sessionApiUpdate",
+            payload: {
+              ...state?._sessionApi,
+              status: "ERROR",
+            },
           });
         });
     }
-  }, [state.sessionLaunchStatus]);
 
-  /**
-   * Session Deletions
-   */
-  React.useEffect(() => {
-    console.log("deleting session");
+    if (state._sessionApi.operation === "DELETE") {
+      console.log("deleting session");
 
-    if (state.sessionDeleteStatus === "FETCHING") {
       fetcher(
         "/catch/api-proxy/api/sessions/${state.project_uuid}/${state.pipeline_uuid}",
         {
@@ -263,10 +279,12 @@ export const OrchestProvider = ({ config, user_config, children }) => {
       )
         .then(() =>
           dispatch({
-            type: "sessionUpdate",
+            type: "_sessionApiUpdate",
             payload: {
-              sessionDeleteStatus: "SUCCESS",
+              ...state._sessionApi,
+              status: "SUCCESS",
               session: {
+                ...state._sessionApi.session,
                 status: "STOPPED",
               },
             },
@@ -287,27 +305,29 @@ export const OrchestProvider = ({ config, user_config, children }) => {
 
             if (err === undefined || (err && err.isCanceled !== true)) {
               dispatch({
-                type: "sessionUpdate",
+                type: "_sessionApiUpdate",
                 payload: {
-                  sessionDeleteStatus: "ERROR",
+                  ...state._sessionApi,
+                  status: "ERROR",
                 },
               });
             }
           }
         });
     }
-  }, [state.sessionDeleteStatus]);
+  }, [state._sessionApi]);
 
   /**
    * Session Fetches
    */
   useSWR(
-    state?._sessionApiFetch?.status === "FETCHING"
+    state?._sessionApi?.operation === "READ" &&
+      state?._sessionApi?.status === "FETCHING"
       ? [
           `/catch/api-proxy/api/sessions/?project_uuid=`,
-          state?._sessionApiFetch.session?.project_uuid,
+          state?._sessionApi.session?.project_uuid,
           `&pipeline_uuid=`,
-          state?._sessionApiFetch.session?.pipeline_uuid,
+          state?._sessionApi.session?.pipeline_uuid,
         ].join("")
       : null,
     fetcher,
@@ -318,22 +338,24 @@ export const OrchestProvider = ({ config, user_config, children }) => {
         dispatch({
           type: "_sessionApiUpdate",
           payload: {
+            operation: state._sessionApi.operation,
             status: "ERROR",
           },
         });
       },
       onSuccess: (data) => {
-        console.log("data", data);
+        console.log("updated data ", data);
         dispatch({
           type: "_sessionApiUpdate",
           payload: {
+            operation: state._sessionApi.operation,
             status: "SUCCESS",
             session: {
               ...(data?.sessions?.length > 0
                 ? data.sessions[0]
                 : { status: "STOPPED" }),
-              project_uuid: state?._sessionApiFetch.session?.project_uuid,
-              pipeline_uuid: state?._sessionApiFetch.session?.pipeline_uuid,
+              project_uuid: state?._sessionApi.session?.project_uuid,
+              pipeline_uuid: state?._sessionApi.session?.pipeline_uuid,
             },
           },
         });
