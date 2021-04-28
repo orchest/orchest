@@ -2,6 +2,12 @@
 
 Jobs
 ====
+
+.. tip::
+    👉 Would you rather watch a short video tutorial? Check it our here: `adding parameters to a
+    pipeline <https://app.tella.tv/story/cknrahyn9000409kyf4s2d3xm>`_ and `running a pipeline as a
+    job <https://app.tella.tv/story/cknr9nq1u000609kz9h0advvk>`_.
+
 .. tip::
    For reproducibility Orchest makes a full snapshot by copying the project directory. So make sure
    to write data to ``/data`` in your scripts, otherwise the data will be included in the snapshot.
