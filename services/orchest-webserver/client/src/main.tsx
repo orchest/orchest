@@ -23,12 +23,9 @@ window.addEventListener("load", () => {
       window.ORCHEST_CONFIG = config.config;
       window.ORCHEST_USER_CONFIG = config.user_config;
 
-      ReactDOM.render(
-        <React.StrictMode>
-          <App />
-        </React.StrictMode>,
-        document.querySelector("#root")
-      );
+      // TODO: <React.StrictMode>
+      // Make <App /> side effect free.
+      ReactDOM.render(<App />, document.querySelector("#root"));
     });
   });
 });

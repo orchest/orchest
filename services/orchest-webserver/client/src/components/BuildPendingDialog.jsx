@@ -8,12 +8,22 @@ import { RefManager, makeRequest } from "@orchest/lib-utils";
 import { checkGate } from "../utils/webserver-utils";
 import EnvironmentsView from "../views/EnvironmentsView";
 
+const buildFailMessage = `Some environment builds of this project have failed. 
+  You can try building them again, 
+  but you might need to change the environment setup script in 
+  order for the build to succeed.`;
+
 class BuildPendingDialog extends React.Component {
   constructor(props) {
     super(props);
 
+    this.state = {};
+    this.refManager = new RefManager();
+  }
+
+  processValidationData(data) {
     let messageSuffix = "";
-    switch (props.requestedFromView) {
+    switch (this.props.requestedFromView) {
       case "Pipeline":
         messageSuffix =
           " You can cancel to open the pipeline in read-only mode.";
@@ -26,17 +36,24 @@ class BuildPendingDialog extends React.Component {
 
     let environmentsToBeBuilt = [];
     let buildHasFailed = false;
-    for (let x = 0; x < props.environmentValidationData.actions.length; x++) {
-      if (props.environmentValidationData.actions[x] == "BUILD") {
-        environmentsToBeBuilt.push(props.environmentValidationData.fail[x]);
-      } else if (props.environmentValidationData.actions[x] == "FAILURE") {
-        buildHasFailed = true;
+    let environmentsBuilding = 0;
+    let building = false;
+    for (let x = 0; x < data.actions.length; x++) {
+      if (data.actions[x] == "BUILD" || data.actions[x] == "RETRY") {
+        environmentsToBeBuilt.push(data.fail[x]);
+
+        if (data.actions[x] == "RETRY") {
+          buildHasFailed = true;
+        }
+      } else if (data.actions[x] == "WAIT") {
+        building = true;
+        environmentsBuilding++;
       }
     }
 
     let message = "";
     if (buildHasFailed) {
-      message = `Some environment builds of this project have failed.`;
+      message = buildFailMessage;
     } else if (environmentsToBeBuilt.length > 0) {
       message =
         `Not all environments of this project have been built. Would you like to build them?` +
@@ -47,16 +64,21 @@ class BuildPendingDialog extends React.Component {
         messageSuffix;
     }
 
-    this.state = {
-      building: environmentsToBeBuilt.length == 0,
-      buildHasFailed: buildHasFailed,
-      environmentsToBeBuilt: environmentsToBeBuilt,
-      message: message,
+    this.setState({
+      building,
+      buildHasFailed,
+      environmentsToBeBuilt,
+      message,
+      environmentsBuilding,
       showBuildStatus: environmentsToBeBuilt.length == 0,
       allowBuild: environmentsToBeBuilt.length > 0,
-    };
+    });
 
-    this.refManager = new RefManager();
+    if (environmentsBuilding > 0) {
+      this.startPollingGate();
+    } else {
+      clearInterval(this.gateInterval);
+    }
   }
 
   close() {
@@ -85,28 +107,14 @@ class BuildPendingDialog extends React.Component {
         }
       })
       .catch((error) => {
-        // gate check failed, check why it failed and act
+        // Gate check failed, check why it failed and act
         // accordingly
-
-        // Environment failed to build.
-        if (error.data.actions.includes("FAILURE")) {
-          const message = "One of the environment builds has failed.";
-          this.setState({
-            buildHasFailed: true,
-            message: message,
-          });
-          clearInterval(this.gateInterval);
-        }
+        this.processValidationData(error.data);
       });
   }
 
   componentDidMount() {
-    if (
-      !this.state.buildHasFailed &&
-      this.state.environmentsToBeBuilt.length == 0
-    ) {
-      this.startPollingGate();
-    }
+    this.processValidationData(this.props.environmentValidationData);
   }
 
   onBuild() {

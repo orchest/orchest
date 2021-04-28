@@ -33,7 +33,7 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
 
         `check` is "pass" or "fail".
 
-        `action` is one of ["BUILD", "WAIT", "RETRY", "FAILURE", None]
+        `action` is one of ["BUILD", "WAIT", "RETRY", None]
 
     """
     # Check the docker namespace.
@@ -59,7 +59,7 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
             models.EnvironmentBuild.status.in_(["FAILURE"])
         ).count()
         if num_failed_builds > 0:
-            return "fail", "FAILURE"
+            return "fail", "RETRY"
 
         return "fail", "BUILD"
 
