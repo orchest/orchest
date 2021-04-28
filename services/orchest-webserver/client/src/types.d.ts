@@ -19,10 +19,9 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   baseUrl: string;
 }
 
-interface IOrchestSessionApi {
-  status: TOrchestFetchStatus;
+interface IOrchestSessionToggle {
   operation: "LAUNCH" | "READ" | "DELETE" | ({} & string);
-  session?: Partial<IOrchestSession>;
+  session: Partial<IOrchestSessionUuid>;
 }
 
 export interface IOrchestState
@@ -32,11 +31,11 @@ export interface IOrchestState
   drawerIsOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
-  sessions?: IOrchestSession[] | [];
   pipelineIsReadOnly: boolean;
   viewCurrent: "pipeline" | "jupyter" | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
-  _sessionApi?: IOrchestSessionApi;
+  _useSessionsUuids?: IOrchestSessionUuid[] | [];
+  _useSessionsToggle?: IOrchestSessionUuid;
 }
 
 export type TOrchestAction =
@@ -66,10 +65,6 @@ export type TOrchestAction =
   | {
       type: "sessionToggle";
       payload: IOrchestSessionUuid;
-    }
-  | {
-      type: "_sessionApiUpdate";
-      payload: IOrchestSessionApi;
     };
 
 export interface IOrchestGet {

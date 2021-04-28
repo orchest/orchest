@@ -3,6 +3,9 @@ import React from "react";
 import { OrchestContext } from "./context";
 import { initialState, reducer, isSession, isCurrentSession } from "./reducer";
 import { OrchestSideEffects } from "./side-effects";
+import { useSessions } from "./api/sessions";
+import useSWR from "swr";
+import { fetcher } from "../fetcher";
 
 /**
  * @typedef {import("@/types").TOrchestAction} TOrchestAction
@@ -14,13 +17,13 @@ export const OrchestProvider = ({ config, user_config, children }) => {
   /** @type {[IOrchestState, React.Dispatch<TOrchestAction>]} */
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
-  console.log("State === ", state);
+  const { sessions } = useSessions(state);
 
   /** @type {IOrchestGet} */
   const get = {
     session: (session) =>
-      state?.sessions.find((stateSession) => isSession(session, stateSession)),
-    currentSession: state?.sessions.find((session) =>
+      sessions?.find((stateSession) => isSession(session, stateSession)),
+    currentSession: sessions?.find((session) =>
       isCurrentSession(session, state)
     ),
   };

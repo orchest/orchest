@@ -36,9 +36,9 @@ export const initialState = {
   pipelineSaveStatus: "saved",
   pipeline_uuid: undefined,
   project_uuid: undefined,
-  sessions: [],
   viewCurrent: "pipeline",
-  _sessionApi: null,
+  _useSessionsUuids: [],
+  _useSessionsToggle: null,
 };
 
 /**
@@ -71,87 +71,18 @@ export const reducer = (state, action) => {
     case "sessionFetch":
       return {
         ...state,
-        _sessionApi: {
-          operation: "READ",
-          status: "FETCHING",
-          session: action.payload,
-        },
-      };
-    case "_sessionApiUpdate":
-      if (!action.payload?.session) {
-        return {
-          ...state,
-          _sessionApi: action.payload,
-        };
-      }
-
-      const hasPayloadSession = state.sessions.find((session) =>
-        isSession(session, action.payload.session)
-      );
-
-      const sessions =
-        typeof hasPayloadSession === "undefined"
-          ? [action.payload.session, ...state.sessions]
-          : state.sessions.map((session) =>
-              isSession(session, action.payload.session)
-                ? { ...session, ...action.payload.session }
-                : session
-            );
-
-      return {
-        ...state,
-        sessions,
-        _sessionApi: action.payload,
+        _useSessionsUuids: state._useSessionsUuids?.find((stateSession) =>
+          isSession(stateSession, action.payload)
+        )
+          ? state._useSessionsUuids.map((stateSession) =>
+              isSession(stateSession, action.payload)
+                ? action.payload
+                : stateSession
+            )
+          : [action.payload, ...state._useSessionsUuids],
       };
     case "sessionToggle":
-      const sessionToToggle = state.sessions.find((session) =>
-        isSession(session, action.payload)
-      );
-
-      if (
-        !sessionToToggle ||
-        !sessionToToggle?.status ||
-        sessionToToggle.status === "STOPPED"
-      ) {
-        console.log("launch me");
-
-        return {
-          ...state,
-          _sessionApi: {
-            operation: "LAUNCH",
-            status: "FETCHING",
-            session: action.payload,
-          },
-        };
-      }
-
-      if (["STARTING", "STOPPING"].includes(sessionToToggle.status)) {
-        return {
-          ...state,
-          alert: [
-            "Error",
-            "Please wait, the pipeline session is still " +
-              { STARTING: "launching", STOPPING: "shutting down" }[
-                sessionToToggle.status
-              ] +
-              ".",
-          ],
-        };
-      }
-
-      if (sessionToToggle.status === "RUNNING") {
-        return {
-          ...state,
-          _sessionApi: {
-            operation: "DELETE",
-            status: "FETCHING",
-            session: action.payload,
-          },
-        };
-      }
-
-      return state;
-
+      return { ...state, _useSessionsToggle: action.payload };
     case "viewUpdateCurrent":
       return { ...state, viewCurrent: action.payload };
     default:
