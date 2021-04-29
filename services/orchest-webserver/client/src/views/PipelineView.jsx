@@ -1960,12 +1960,15 @@ class PipelineView extends React.Component {
     }
   }
 
+  // @TODO REPLACE WITH COMPONENTDIDMOUNT/UPDATE
+
   onSessionShutdown() {
     // unload Jupyter
     orchest.jupyter.unload();
   }
 
   onSessionFetch(session_details) {
+    console.log("onSessionFetch triggered", session_details);
     if (this.props.queryArgs.read_only !== "true") {
       if (session_details === undefined) {
         this.context.dispatch({ type: "sessionToggle" });
