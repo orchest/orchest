@@ -1,11 +1,11 @@
+// @ts-check
 import React from "react";
-import { RefManager, uuidv4 } from "@orchest/lib-utils";
 import {
   MDCButtonReact,
   MDCCircularProgressReact,
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/lib/orchest";
+import { useOrchest } from "@/lib/orchest";
 import PipelineView from "../views/PipelineView";
 import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
@@ -13,175 +13,141 @@ import SettingsView from "../views/SettingsView";
 import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
 
-class HeaderBar extends React.Component {
-  static contextType = OrchestContext;
+/**
+ * @typedef {import("@/types").IOrchestSession} IOrchestSession
+ *
+ * @TODO Remove props and handle project switching inside useOrchest
+ * @typedef {Object} HeaderBarProps
+ * @property {(projectUUID) => void} changeSelectedProject
+ * @property {string} projectSelectorHash
+ * @property {string} selectedProject
+ */
 
-  constructor(props, context) {
-    super(props, context);
+/**
+ * @type {React.FC<HeaderBarProps>}
+ */
+export const HeaderBar = React.forwardRef((props, ref) => {
+  const orchest = window.orchest;
 
-    this.state = {
-      pipeline_uuid: undefined,
-      project_uuid: undefined,
-      sessionActive: false,
-      readOnlyPipeline: false,
-      viewShowing: "pipeline",
-      pipelineSaveStatus: "saved",
-      onSessionStateChange: undefined,
-      onSessionShutdown: undefined,
-      onSessionFetch: undefined,
-    };
+  const { state, dispatch, get } = useOrchest();
 
-    this.refManager = new RefManager();
-  }
-
-  showPipeline() {
-    this.context.dispatch({ type: "viewUpdateCurrent", payload: "pipeline" });
+  const showPipeline = () => {
+    dispatch({ type: "viewUpdateCurrent", payload: "pipeline" });
 
     orchest.loadView(PipelineView, {
       queryArgs: {
-        pipeline_uuid: this.context.state.pipeline_uuid,
-        project_uuid: this.context.state.project_uuid,
+        pipeline_uuid: state.pipeline_uuid,
+        project_uuid: state.project_uuid,
       },
     });
-  }
+  };
 
-  showJupyter() {
-    this.context.dispatch({ type: "viewUpdateCurrent", payload: "jupyter" });
+  const showJupyter = () => {
+    dispatch({ type: "viewUpdateCurrent", payload: "jupyter" });
 
     orchest.loadView(JupyterLabView, {
       queryArgs: {
-        pipeline_uuid: this.context.state.pipeline_uuid,
-        project_uuid: this.context.state.project_uuid,
+        pipeline_uuid: state.pipeline_uuid,
+        project_uuid: state.project_uuid,
       },
     });
-  }
+  };
 
-  logoutHandler() {
+  const logoutHandler = () => {
     window.location.href = "/login/clear";
-  }
+  };
 
-  onChangeProject(projectUUID) {
-    this.props.changeSelectedProject(projectUUID);
-  }
+  const onChangeProject = (projectUUID) => {
+    props.changeSelectedProject(projectUUID);
+  };
 
-  onSessionStateChange(working, running, session_details) {
-    this.setState({
-      sessionActive: running,
-    });
+  return (
+    <header ref={ref}>
+      <div className="header-left">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            dispatch({ type: "drawerToggle" });
+          }}
+          className="material-icons mdc-icon-button"
+        >
+          menu
+        </button>
+        <img src="/image/logo.svg" className="logo" />
+        <ProjectSelector
+          key={props.projectSelectorHash}
+          onChangeProject={onChangeProject.bind(this)}
+          project_uuid={props.selectedProject}
+        />
+      </div>
 
-    if (this.context.state.onSessionStateChange) {
-      this.context.state.onSessionStateChange(
-        working,
-        running,
-        session_details
-      );
-    }
-  }
-
-  onSessionFetch(session_details) {
-    if (this.context.state.onSessionFetch) {
-      this.context.state.onSessionFetch(session_details);
-    }
-  }
-
-  onSessionShutdown() {
-    if (this.context.state.onSessionShutdown) {
-      this.context.state.onSessionShutdown();
-    }
-  }
-
-  render() {
-    return (
-      <header>
-        <div className="header-left">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              this.context.dispatch({ type: "drawerToggle" });
-            }}
-            className="material-icons mdc-icon-button"
-          >
-            menu
-          </button>
-          <img src="/image/logo.svg" className="logo" />
-          <ProjectSelector
-            key={this.props.projectSelectorHash}
-            onChangeProject={this.onChangeProject.bind(this)}
-            project_uuid={this.props.selectedProject}
-          />
-        </div>
-
-        {this.context.state.pipelineName && (
-          <div className="pipeline-header-component">
-            <div className="pipeline-name">
-              <div className="pipelineStatusIndicator">
-                {this.context.state.pipelineSaveStatus == "saved" ? (
-                  <i title="Pipeline saved" className="material-icons">
-                    check_circle
-                  </i>
-                ) : (
-                  <MDCCircularProgressReact />
-                )}
-              </div>
-
-              {this.context.state.pipelineName}
+      {state.pipelineName && (
+        <div className="pipeline-header-component">
+          <div className="pipeline-name">
+            <div className="pipelineStatusIndicator">
+              {state.pipelineSaveStatus == "saved" ? (
+                <i title="Pipeline saved" className="material-icons">
+                  check_circle
+                </i>
+              ) : (
+                <MDCCircularProgressReact />
+              )}
             </div>
+
+            {state.pipelineName}
           </div>
+        </div>
+      )}
+
+      <div className="header-actions">
+        {state.pipelineName && !state.pipelineIsReadOnly && (
+          <SessionToggleButton
+            pipeline_uuid={state.pipeline_uuid}
+            project_uuid={state.project_uuid}
+          />
         )}
 
-        <div className="header-actions">
-          {this.context.state.pipelineName &&
-            !this.context.state.pipelineIsReadOnly && (
-              <SessionToggleButton
-                pipeline_uuid={this.context.state.pipeline_uuid}
-                project_uuid={this.context.state.project_uuid}
-                ref={this.refManager.nrefs.sessionToggleButton}
-              />
-            )}
+        {state.pipelineName && state.viewCurrent == "jupyter" && (
+          <MDCButtonReact
+            classNames={["mdc-button--outlined"]}
+            onClick={showPipeline.bind(this)}
+            icon="device_hub"
+            label="Switch to Pipeline"
+          />
+        )}
 
-          {this.context.state.pipelineName &&
-            this.context.state.viewCurrent == "jupyter" && (
-              <MDCButtonReact
-                classNames={["mdc-button--outlined"]}
-                onClick={this.showPipeline.bind(this)}
-                icon="device_hub"
-                label="Switch to Pipeline"
-              />
-            )}
-
-          {this.context.state.pipelineName &&
-            !this.context.state.pipelineIsReadOnly &&
-            this.context.state.viewCurrent == "pipeline" && (
-              <MDCButtonReact
-                disabled={!this.context.state.sessionActive}
-                classNames={["mdc-button--outlined"]}
-                onClick={this.showJupyter.bind(this)}
-                icon="science"
-                label="Switch to JupyterLab"
-              />
-            )}
-
-          {orchest.user_config.AUTH_ENABLED && (
-            <MDCIconButtonToggleReact
-              icon="logout"
-              tooltipText="Logout"
-              onClick={this.logoutHandler.bind(this)}
+        {state.pipelineName &&
+          !state.pipelineIsReadOnly &&
+          state.viewCurrent == "pipeline" && (
+            <MDCButtonReact
+              disabled={get.currentSession.status !== "RUNNING"}
+              classNames={["mdc-button--outlined"]}
+              onClick={showJupyter.bind(this)}
+              icon="science"
+              label="Switch to JupyterLab"
             />
           )}
+
+        {state?.user_config.AUTH_ENABLED && (
           <MDCIconButtonToggleReact
-            icon="settings"
-            tooltipText="Settings"
-            onClick={orchest.loadView.bind(orchest, SettingsView)}
+            icon="logout"
+            tooltipText="Logout"
+            onClick={logoutHandler.bind(this)}
           />
-          <MDCIconButtonToggleReact
-            icon="help"
-            tooltipText="Help"
-            onClick={orchest.loadView.bind(orchest, HelpView)}
-          />
-        </div>
-      </header>
-    );
-  }
-}
+        )}
+        <MDCIconButtonToggleReact
+          icon="settings"
+          tooltipText="Settings"
+          onClick={orchest.loadView.bind(orchest, SettingsView)}
+        />
+        <MDCIconButtonToggleReact
+          icon="help"
+          tooltipText="Help"
+          onClick={orchest.loadView.bind(orchest, HelpView)}
+        />
+      </div>
+    </header>
+  );
+});
 
 export default HeaderBar;

@@ -354,7 +354,6 @@ class App extends React.Component {
           selectedProject={this.state.selectedProject}
           projectSelectorHash={this.state.projectSelectorHash}
           changeSelectedProject={this.setProject.bind(this)}
-          ref={this.refManager.nrefs.headerBar}
         />
         <div className="app-container">
           <MainDrawer selectedElement={this.state.activeViewName} />

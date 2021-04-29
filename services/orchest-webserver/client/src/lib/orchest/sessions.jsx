@@ -22,7 +22,7 @@ const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
 export const SessionsProvider = ({ children }) => {
   const { state, dispatch } = useOrchest();
 
-  const sessionsToFetch = state?._useSessionsUuids;
+  const sessionsToFetch = state?._sessionsUuids;
 
   /**
    * SWR is designed to fetch data from endpoints in a parallel/async manner,
@@ -72,7 +72,7 @@ export const SessionsProvider = ({ children }) => {
    * Push SWR sessions to the Orchest Context
    */
   React.useEffect(() => {
-    dispatch({ type: "_useSessionsSet", payload: data });
+    dispatch({ type: "_sessionsSet", payload: data });
   }, [data]);
 
   /**
@@ -80,11 +80,11 @@ export const SessionsProvider = ({ children }) => {
    */
   React.useEffect(() => {
     const session = data?.find((dataSession) => {
-      return isSession(dataSession, state?._useSessionsToggle);
+      return isSession(dataSession, state?._sessionsToggle);
     });
 
     if (!session) {
-      dispatch({ type: "_useSessionsToggleClear" });
+      dispatch({ type: "_sessionsToggleClear" });
       return;
     }
 
@@ -140,7 +140,7 @@ export const SessionsProvider = ({ children }) => {
           }
         });
 
-      dispatch({ type: "_useSessionsToggleClear" });
+      dispatch({ type: "_sessionsToggleClear" });
       return;
     }
 
@@ -161,7 +161,7 @@ export const SessionsProvider = ({ children }) => {
             ".",
         ],
       });
-      dispatch({ type: "_useSessionsToggleClear" });
+      dispatch({ type: "_sessionsToggleClear" });
       return;
     }
 
@@ -199,12 +199,12 @@ export const SessionsProvider = ({ children }) => {
             }
           }
         });
-      dispatch({ type: "_useSessionsToggleClear" });
+      dispatch({ type: "_sessionsToggleClear" });
       return;
     }
 
-    dispatch({ type: "_useSessionsToggleClear" });
-  }, [state._useSessionsToggle]);
+    dispatch({ type: "_sessionsToggleClear" });
+  }, [state._sessionsToggle]);
 
   return <React.Fragment>{children}</React.Fragment>;
 };

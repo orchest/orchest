@@ -1,11 +1,37 @@
 import React from "react";
 
-type TOrchestFetchStatus =
-  | "IDLE"
-  | "FETCHING"
-  | "SUCCESS"
-  | "ERROR"
-  | ({} & string);
+export interface IOrchestConfig {
+  CLOUD: boolean;
+  CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
+  ENVIRONMENT_DEFAULTS: {
+    base_image: string;
+    gpu_support: boolean;
+    language: string;
+    name: string;
+    setup_script: string;
+  };
+  FLASK_ENV: string;
+  GPU_ENABLED_INSTANCE: boolean;
+  GPU_REQUEST_URL: string;
+  INTERCOM_APP_ID: string;
+  INTERCOM_DEFAULT_SIGNUP_DATE: string;
+  INTERCOM_USER_EMAIL: string;
+  ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE: string;
+  ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE: string;
+  ORCHEST_WEB_URLS: {
+    github: string;
+    readthedocs: string;
+    slack: string;
+    website: string;
+  };
+  PIPELINE_PARAMETERS_RESERVED_KEY: string;
+  TELEMETRY_DISABLED: boolean;
+}
+
+export interface IOrchestUserConfig {
+  AUTH_ENABLED?: boolean;
+  TELEMETRY_UUID: string;
+}
 
 export interface IOrchestSessionUuid {
   project_uuid: string;
@@ -19,11 +45,6 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   baseUrl: string;
 }
 
-interface IOrchestSessionToggle {
-  operation: "LAUNCH" | "READ" | "DELETE" | ({} & string);
-  session: Partial<IOrchestSessionUuid>;
-}
-
 export interface IOrchestState
   extends Pick<IOrchestSession, "project_uuid" | "pipeline_uuid"> {
   alert?: string[];
@@ -35,8 +56,10 @@ export interface IOrchestState
   viewCurrent: "pipeline" | "jupyter" | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
   sessions?: IOrchestSession[] | [];
-  _useSessionsUuids?: IOrchestSessionUuid[] | [];
-  _useSessionsToggle?: IOrchestSessionUuid;
+  config: IOrchestConfig;
+  user_config: IOrchestUserConfig;
+  _sessionsUuids?: IOrchestSessionUuid[] | [];
+  _sessionsToggle?: IOrchestSessionUuid;
 }
 
 export type TOrchestAction =
@@ -68,8 +91,8 @@ export type TOrchestAction =
       type: "sessionToggle";
       payload: IOrchestSessionUuid;
     }
-  | { type: "_useSessionsSet"; payload: IOrchestSession[] }
-  | { type: "_useSessionsToggleClear" };
+  | { type: "_sessionsSet"; payload: IOrchestSession[] }
+  | { type: "_sessionsToggleClear" };
 
 export interface IOrchestGet {
   currentSession: IOrchestSession;

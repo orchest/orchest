@@ -1,24 +1,22 @@
+// @ts-check
 import React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
 import { useOrchest } from "@/lib/orchest";
 
 /**
  * @typedef {import("@/types").IOrchestSession} IOrchestSession
- */
-
-/**
+ *
  * @typedef {Object} SessionToggleButtonProps
  * @property {IOrchestSession['pipeline_uuid']} pipeline_uuid
  * @property {IOrchestSession['project_uuid']} project_uuid
  * @property {string} [className]
- * @property {boolean} [fetchOnInit]
  * @property {boolean} [switch]
  */
 
 /**
  * @type {React.FC<SessionToggleButtonProps>}
  */
-const SessionToggleButton = (props) => {
+const SessionToggleButton = React.forwardRef((props, ref) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const { dispatch, get } = useOrchest();
 
@@ -42,7 +40,7 @@ const SessionToggleButton = (props) => {
     label:
       {
         STOPPING: "Session stopping…",
-        STARTING: "Session starting…",
+        LAUNCHING: "Session starting…",
         RUNNING: "Stop session",
       }[session?.status] || "Start session",
   };
@@ -57,6 +55,7 @@ const SessionToggleButton = (props) => {
 
   return props.switch ? (
     <MDCSwitchReact
+      ref={ref}
       {...sharedProps}
       onChange={handleEvent}
       classNames={props.className}
@@ -64,6 +63,7 @@ const SessionToggleButton = (props) => {
     />
   ) : (
     <MDCButtonReact
+      ref={ref}
       {...sharedProps}
       onClick={handleEvent}
       classNames={[
@@ -81,6 +81,6 @@ const SessionToggleButton = (props) => {
       icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
     />
   );
-};
+});
 
 export default SessionToggleButton;

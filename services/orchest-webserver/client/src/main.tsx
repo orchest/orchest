@@ -11,6 +11,9 @@ declare global {
   }
 
   interface Window {
+    /** Deprecated */
+    orchest: any;
+    /** Deprecated */
     ORCHEST_CONFIG: any;
     ORCHEST_USER_CONFIG: any;
   }

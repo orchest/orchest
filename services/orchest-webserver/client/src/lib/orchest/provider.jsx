@@ -15,25 +15,6 @@ import { isSession, isCurrentSession } from "./utils";
  */
 
 /**
- * @type {IOrchestState}
- */
-const initialState = {
-  isLoading: true,
-  // @TODO ADD BROWSERCONFIG CHECK (from App.jsx)
-  drawerIsOpen: true,
-  pipelineFetchHash: null,
-  pipelineName: null,
-  pipelineIsReadOnly: false,
-  pipelineSaveStatus: "saved",
-  pipeline_uuid: undefined,
-  project_uuid: undefined,
-  sessions: [],
-  viewCurrent: "pipeline",
-  _useSessionsUuids: [],
-  _useSessionsToggle: null,
-};
-
-/**
  * @param {IOrchestState} state
  * @param {TOrchestAction} action
  * @returns
@@ -45,7 +26,6 @@ const reducer = (state, action) => {
     case "isLoaded":
       return { ...state, isLoading: false };
     case "drawerToggle":
-      console.log(state);
       // @TODO HANDLE BROSWERCONFIG CHECK
       return { ...state, drawerIsOpen: !state.drawerIsOpen };
     case "pipelineClear":
@@ -65,24 +45,24 @@ const reducer = (state, action) => {
     case "sessionFetch":
       return {
         ...state,
-        _useSessionsUuids: state._useSessionsUuids?.find((stateSession) =>
+        _sessionsUuids: state._sessionsUuids?.find((stateSession) =>
           isSession(stateSession, action.payload)
         )
-          ? state._useSessionsUuids.map((stateSession) =>
+          ? state._sessionsUuids.map((stateSession) =>
               isSession(stateSession, action.payload)
                 ? action.payload
                 : stateSession
             )
-          : [action.payload, ...state._useSessionsUuids],
+          : [action.payload, ...state._sessionsUuids],
       };
     case "sessionToggle":
-      return { ...state, _useSessionsToggle: action.payload };
+      return { ...state, _sessionsToggle: action.payload };
     case "viewUpdateCurrent":
       return { ...state, viewCurrent: action.payload };
-    case "_useSessionsSet":
+    case "_sessionsSet":
       return { ...state, sessions: action.payload };
-    case "_useSessionsToggleClear":
-      return { ...state, _useSessionToggle: null };
+    case "_sessionsToggleClear":
+      return { ...state, _sessionToggle: null };
     default:
       console.log(action);
       throw new Error();
@@ -91,7 +71,23 @@ const reducer = (state, action) => {
 
 export const OrchestProvider = ({ config, user_config, children }) => {
   /** @type {[IOrchestState, React.Dispatch<TOrchestAction>]} */
-  const [state, dispatch] = React.useReducer(reducer, initialState);
+  const [state, dispatch] = React.useReducer(reducer, {
+    isLoading: true,
+    // @TODO ADD BROWSERCONFIG CHECK (from App.jsx)
+    drawerIsOpen: true,
+    pipelineFetchHash: null,
+    pipelineName: null,
+    pipelineIsReadOnly: false,
+    pipelineSaveStatus: "saved",
+    pipeline_uuid: undefined,
+    project_uuid: undefined,
+    sessions: [],
+    viewCurrent: "pipeline",
+    config,
+    user_config,
+    _sessionsUuids: [],
+    _sessionsToggle: null,
+  });
 
   /** @type {IOrchestGet} */
   const get = {
@@ -102,7 +98,9 @@ export const OrchestProvider = ({ config, user_config, children }) => {
     ),
   };
 
-  // @ts-ignore
+  if (process.env.NODE_ENV === "development")
+    console.log("(Dev Mode) useOrchest: state updated", state);
+
   const orchest = window.orchest;
 
   /**
