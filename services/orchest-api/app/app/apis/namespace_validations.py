@@ -52,10 +52,16 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
             models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
         ).count()
 
-        if num_building_builds:
+        if num_building_builds > 0:
             return "fail", "WAIT"
-        else:
-            return "fail", "BUILD"
+
+        num_failed_builds = env_builds.filter(
+            models.EnvironmentBuild.status.in_(["FAILURE"])
+        ).count()
+        if num_failed_builds > 0:
+            return "fail", "RETRY"
+
+        return "fail", "BUILD"
 
     except docker.errors.APIError:
         # We cannot determine what happened, so better be safe than
@@ -75,7 +81,9 @@ class Gate(Resource):
         description="Validation of environments",
     )
     def post(self):
-        """Checks whether the given environments have been built and are ready.
+        """Checks readiness of the given environments.
+
+        Have the environments been built and are they ready.
 
         NOTE: The order of ``["fail"]`` and ``["action"]`` indicates the
         required action to convert the "fail" to a "pass".
