@@ -2,7 +2,8 @@
 import React from "react";
 
 /**
- * @type {React.Context<import("@/types").IOrchestContext>}
+ * @typedef {import("@/types").IOrchestContext} IOrchestContext
+ * @type {React.Context<IOrchestContext>}
  */
 export const OrchestContext = React.createContext(null);
 

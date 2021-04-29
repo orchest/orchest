@@ -34,11 +34,13 @@ export interface IOrchestState
   pipelineIsReadOnly: boolean;
   viewCurrent: "pipeline" | "jupyter" | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
+  sessions?: IOrchestSession[] | [];
   _useSessionsUuids?: IOrchestSessionUuid[] | [];
   _useSessionsToggle?: IOrchestSessionUuid;
 }
 
 export type TOrchestAction =
+  | { type: "alert"; payload: IOrchestState["alert"] }
   | { type: "isLoaded" }
   | { type: "pipelineClear" }
   | {
@@ -65,7 +67,9 @@ export type TOrchestAction =
   | {
       type: "sessionToggle";
       payload: IOrchestSessionUuid;
-    };
+    }
+  | { type: "_useSessionsSet"; payload: IOrchestSession[] }
+  | { type: "_useSessionsToggleClear" };
 
 export interface IOrchestGet {
   currentSession: IOrchestSession;
