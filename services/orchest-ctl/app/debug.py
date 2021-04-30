@@ -18,7 +18,10 @@ health_check_command = {
     "orchest/celery-worker:latest": "celery inspect ping -A app.core.tasks",
     "orchest/file-manager:latest": "wget localhost -T 2 -t 2 --spider",
     "postgres:13.1": "pg_isready --username postgres",
-    "rabbitmq:3": "rabbitmq-diagnostics -q check_port_connectivity",
+    "rabbitmq:3": (
+        'su rabbitmq -c "/opt/rabbitmq/sbin/rabbitmq-diagnostics '
+        '-q check_port_connectivity"'
+    ),
 }
 
 logger = logging.getLogger(__name__)
