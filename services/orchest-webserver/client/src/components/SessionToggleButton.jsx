@@ -23,15 +23,6 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
   const { pipeline_uuid, project_uuid } = props;
   const session = get.session({ pipeline_uuid, project_uuid });
 
-  React.useEffect(() => setIsLoading(session ? false : true), [session]);
-
-  React.useEffect(() => {
-    dispatch({
-      type: "sessionFetch",
-      payload: { pipeline_uuid, project_uuid },
-    });
-  }, [pipeline_uuid, project_uuid]);
-
   const sharedProps = {
     disabled:
       isLoading ||
@@ -52,6 +43,15 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
       payload: { pipeline_uuid, project_uuid },
     });
   };
+
+  React.useEffect(() => setIsLoading(session ? false : true), [session]);
+
+  React.useEffect(() => {
+    dispatch({
+      type: "sessionFetch",
+      payload: { pipeline_uuid, project_uuid },
+    });
+  }, [pipeline_uuid, project_uuid]);
 
   return props.switch ? (
     <MDCSwitchReact

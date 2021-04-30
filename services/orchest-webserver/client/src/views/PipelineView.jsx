@@ -289,10 +289,7 @@ class PipelineView extends React.Component {
       stepExecutionState: {},
       steps: {},
       defaultDetailViewIndex: 0,
-      backend: {
-        running: false,
-        working: false,
-      },
+      shouldAutoStart: false,
       // The save hash is used to propagate a save's side-effects
       // to components.
       saveHash: "",
@@ -590,11 +587,50 @@ class PipelineView extends React.Component {
 
   componentDidMount() {
     if (this.areQueryArgsValid()) {
+      // If the sessions are undefined then we **know** this is going to be the
+      // the first time someone has visited the page – as `useOrchest` should be
+      // defined as empty/with sessions when navigating from elsewhere
+      //
+      // It's not the most elegant solution but it does the job for now
+      if (!this.context.state?.sessions) {
+        this.setState({ shouldAutoStart: true });
+      }
+
       this.fetchPipelineAndInitialize();
       this.connectSocketIO();
       this.initializeResizeHandlers();
     } else {
       this.loadDefaultPipeline();
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    // fetch pipeline when uuid changed
+    if (
+      this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
+    ) {
+      this.fetchPipelineAndInitialize();
+      this.pipelineSetHolderSize();
+    }
+
+    const session = this.context.get.currentSession;
+    if (!session) return;
+
+    if (
+      this.props.queryArgs.read_only !== "true" &&
+      this.state.shouldAutoStart === true &&
+      (!session.status || session.status === "STOPPED")
+    ) {
+      this.setState({ shouldAutoStart: false });
+      this.context.dispatch({ type: "sessionToggle", payload: session });
+    }
+
+    if (session?.status === "STOPPING") {
+      orchest.jupyter.unload();
+    }
+
+    if (session?.notebook_server_info) {
+      this.updateJupyterInstance();
     }
   }
 
@@ -1150,16 +1186,6 @@ class PipelineView extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps, prevState, snapshot) {
-    // fetch pipeline when uuid changed
-    if (
-      this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
-    ) {
-      this.fetchPipelineAndInitialize();
-      this.pipelineSetHolderSize();
-    }
-  }
-
   fetchPipelineAndInitialize() {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       this.props.queryArgs.pipeline_uuid,
@@ -1252,11 +1278,13 @@ class PipelineView extends React.Component {
   }
 
   updateJupyterInstance() {
-    let baseAddress =
-      "//" +
-      window.location.host +
-      this.state.backend.notebook_server_info.base_url;
-    orchest.jupyter.updateJupyterInstance(baseAddress);
+    const base_url = this.context?.get?.currentSession?.notebook_server_info
+      ?.base_url;
+
+    if (base_url) {
+      let baseAddress = "//" + window.location.host + base_url;
+      orchest.jupyter.updateJupyterInstance(baseAddress);
+    }
   }
 
   newStep() {
@@ -1492,7 +1520,9 @@ class PipelineView extends React.Component {
   }
 
   openNotebook(stepUUID) {
-    if (this.state.backend.running && !this.state.backend.working) {
+    const session = this.context?.get?.currentSession;
+
+    if (session.status === "RUNNING") {
       orchest.loadView(JupyterLabView, {
         queryArgs: {
           pipeline_uuid: this.props.queryArgs.pipeline_uuid,
@@ -1800,7 +1830,9 @@ class PipelineView extends React.Component {
   }
 
   runStepUUIDs(uuids, type) {
-    if (!this.state.backend.running) {
+    const session = this.context?.get?.currentSession;
+
+    if (session.status !== "RUNNING") {
       orchest.alert(
         "Error",
         "There is no active session. Please start the session first."
@@ -1873,12 +1905,14 @@ class PipelineView extends React.Component {
   }
 
   getPowerButtonClasses() {
+    const session = this.context?.get?.currentSession;
+
     let classes = ["mdc-power-button", "mdc-button--raised"];
 
-    if (this.state.backend.running) {
+    if (session?.status === "RUNNING") {
       classes.push("active");
     }
-    if (this.state.backend.working) {
+    if (session?.status && ["STOPPING", "LAUNCHING"].includes(session.status)) {
       classes.push("working");
     }
 
@@ -1940,40 +1974,6 @@ class PipelineView extends React.Component {
     }
 
     return selectedSteps;
-  }
-
-  onSessionStateChange(working, running, session_details) {
-    this.state.backend.working = working;
-    this.state.backend.running = running;
-
-    if (session_details) {
-      this.state.backend.notebook_server_info =
-        session_details.notebook_server_info;
-    }
-
-    this.setState({
-      backend: this.state.backend,
-    });
-
-    if (session_details) {
-      this.updateJupyterInstance();
-    }
-  }
-
-  // @TODO REPLACE WITH COMPONENTDIDMOUNT/UPDATE
-
-  onSessionShutdown() {
-    // unload Jupyter
-    orchest.jupyter.unload();
-  }
-
-  onSessionFetch(session_details) {
-    console.log("onSessionFetch triggered", session_details);
-    if (this.props.queryArgs.read_only !== "true") {
-      if (session_details === undefined) {
-        this.context.dispatch({ type: "sessionToggle" });
-      }
-    }
   }
 
   pipelineSetHolderSize() {
