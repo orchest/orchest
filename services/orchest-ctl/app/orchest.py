@@ -156,7 +156,7 @@ class OrchestApp:
                 utils.wait_for_zero_exitcode(
                     self.docker_client,
                     stdouts["rabbitmq-server"]["id"],
-                    "rabbitmqctl node_health_check",
+                    "rabbitmq-diagnostics -q check_port_connectivity",
                 )
 
         # Get the port on which Orchest is running.
