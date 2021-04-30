@@ -261,6 +261,7 @@ def test_start(
     docker_client.run_containers = MagicMock(
         return_value={
             "orchest-database": {"id": None},
+            "rabbitmq-server": {"id": None},
         }
     )
     docker_client.is_network_installed = MagicMock(return_value=True)
