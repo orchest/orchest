@@ -133,7 +133,7 @@ export const SessionsProvider = ({ children }) => {
               dispatch({
                 type: "alert",
                 payload: [
-                  "The session can't be stopped while the memory server is being restarted.",
+                  "The session can't be launched while the memory server is being restarted.",
                 ],
               });
             }

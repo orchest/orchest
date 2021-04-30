@@ -15,7 +15,7 @@ import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 
 const JupyterLabView = (props) => {
-  const { dispatch, get } = useOrchest();
+  const { state, dispatch, get } = useOrchest();
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
     1000
   );
@@ -31,9 +31,9 @@ const JupyterLabView = (props) => {
   const promiseManager = new PromiseManager();
 
   React.useEffect(() => {
-    console.log("mount");
+    // mount
     checkEnvironmentGate();
-
+    // dismount
     return () => {
       orchest.jupyter.hide();
       setVerifyKernelsInterval(null);
@@ -61,7 +61,7 @@ const JupyterLabView = (props) => {
 
     updateJupyterInstance();
     conditionalRenderingOfJupyterLab();
-  }, [get]);
+  }, [state]);
 
   const checkEnvironmentGate = () => {
     checkGate(props.queryArgs.project_uuid)
@@ -145,7 +145,6 @@ const JupyterLabView = (props) => {
       let result = JSON.parse(fetchPipelinePromiseResult);
       if (result.success) {
         let pipeline = JSON.parse(result.pipeline_json);
-
         verifyKernelsCallback(pipeline);
 
         dispatch({
