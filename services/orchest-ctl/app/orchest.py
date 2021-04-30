@@ -153,6 +153,12 @@ class OrchestApp:
                     "pg_isready --username postgres",
                 )
 
+                utils.wait_for_zero_exitcode(
+                    self.docker_client,
+                    stdouts["rabbitmq-server"]["id"],
+                    "rabbitmqctl node_health_check",
+                )
+
         # Get the port on which Orchest is running.
         nginx_proxy = container_config.get("nginx-proxy")
         if nginx_proxy is not None:
