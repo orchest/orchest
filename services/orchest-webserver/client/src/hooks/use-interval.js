@@ -1,23 +1,19 @@
-import { useRef, useEffect } from "react";
+// @ts-check
+import React from "react";
 
 /**
  * @param {() => void} callback
  * @param {number | null} delay
  */
 export const useInterval = (callback, delay) => {
-  const savedCallback = useRef(callback);
+  const savedCallback = React.useRef(callback);
 
-  // Remember the latest callback if it changes.
-  useEffect(() => {
+  React.useEffect(() => {
     savedCallback.current = callback;
   }, [callback]);
 
-  // Set up the interval.
-  useEffect(() => {
-    // Don't schedule if no delay is specified.
-    if (delay === null) {
-      return;
-    }
+  React.useEffect(() => {
+    if (delay === null) return;
 
     const id = setInterval(() => savedCallback.current(), delay);
 

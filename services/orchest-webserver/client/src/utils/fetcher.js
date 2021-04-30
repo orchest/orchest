@@ -1,3 +1,4 @@
+// @ts-check
 import fetch from "isomorphic-unfetch";
 
 export const fetcher = (input, init) =>
