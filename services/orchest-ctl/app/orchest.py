@@ -11,6 +11,7 @@ TODO:
 """
 import logging
 import os
+import time
 from functools import reduce
 from typing import List, Optional, Set, Tuple
 
@@ -30,17 +31,6 @@ class OrchestApp:
     def __init__(self):
         self.resource_manager = OrchestResourceManager()
         self.docker_client = DockerWrapper()
-
-    def is_running(self, running_containers) -> bool:
-        """Check whether Orchest is running"""
-
-        # Don't count orchest-ctl when checking whether Orchest is
-        # running.
-        running_containers = [
-            c for c in running_containers if c not in ["orchest/orchest-ctl:latest"]
-        ]
-
-        return len(running_containers) > 0
 
     def install(self, language: str, gpu: bool = False):
         """Installs Orchest for the given language.
@@ -179,7 +169,7 @@ class OrchestApp:
         """
 
         ids, running_containers = self.resource_manager.get_containers(state="running")
-        if not self.is_running(running_containers):
+        if not utils.is_orchest_running(running_containers):
             utils.echo("Orchest is not running.")
             return
 
@@ -234,7 +224,7 @@ class OrchestApp:
             state="running"
         )
 
-        if not self.is_running(running_containers_names):
+        if not utils.is_orchest_running(running_containers_names):
             utils.echo("Orchest is not running.")
             raise typer.Exit(code=1)
 
@@ -284,8 +274,25 @@ class OrchestApp:
         utils.echo("Updating...")
 
         _, running_containers = self.resource_manager.get_containers(state="running")
-        if self.is_running(running_containers):
-            utils.echo("Using Orchest whilst updating is NOT recommended.")
+        if utils.is_orchest_running(running_containers):
+            utils.echo(
+                "Using Orchest whilst updating is NOT supported and will be shut"
+                " down, killing all active pipeline runs and session. You have 2s"
+                " to cancel the update operation."
+            )
+
+            # Give the user the option to cancel the update operation
+            # using a keyboard interrupt.
+            time.sleep(2)
+
+            self.stop(
+                skip_containers=[
+                    "orchest/update-server:latest",
+                    "orchest/auth-server:latest",
+                    "orchest/nginx-proxy:latest",
+                    "postgres:13.1",
+                ]
+            )
 
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.

@@ -199,10 +199,8 @@ def update(
     """
     Update Orchest.
 
-    Will always update the core dependencies of Orchest. Using the
-    '--lang' flag you can specify the language dependencies to update,
-    where '--lang=none' will only get you the services that Orchest
-    uses.
+    Note: when updating Orchest all running sessions and pipeline runs
+    will be killed. Orchest can not be running during update.
     """
     app.update(mode=mode)
 

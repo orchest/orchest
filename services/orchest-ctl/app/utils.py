@@ -111,3 +111,14 @@ def update_git_repo():
     exit_code = script_process.wait()
 
     return exit_code
+
+
+def is_orchest_running(running_containers) -> bool:
+    """Check whether Orchest is considered to be running."""
+    # Don't count orchest-ctl when checking whether Orchest is
+    # running.
+    running_containers = [
+        c for c in running_containers if c not in ["orchest/orchest-ctl:latest"]
+    ]
+
+    return bool(running_containers)
