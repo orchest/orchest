@@ -13,7 +13,7 @@ import {
   MDCDialogReact,
   MDCDataTableReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/lib/orchest";
+import { OrchestContext } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";

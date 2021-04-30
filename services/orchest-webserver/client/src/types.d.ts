@@ -42,7 +42,11 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   project_uuid: string;
   pipeline_uuid: string;
   status: "RUNNING" | "LAUNCHING" | "STOPPED" | "STOPPING";
-  baseUrl: string;
+  jupyter_server_ip?: string;
+  notebook_server_info?: {
+    port: number;
+    base_url: string;
+  };
 }
 
 export interface IOrchestState

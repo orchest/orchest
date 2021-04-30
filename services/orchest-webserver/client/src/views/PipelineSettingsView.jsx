@@ -13,7 +13,7 @@ import {
   MDCTabBarReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/lib/orchest";
+import { OrchestContext } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,

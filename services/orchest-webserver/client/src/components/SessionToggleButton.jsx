@@ -1,7 +1,7 @@
 // @ts-check
 import React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
-import { useOrchest } from "@/lib/orchest";
+import { useOrchest } from "@/hooks/orchest";
 
 /**
  * @typedef {import("@/types").IOrchestSession} IOrchestSession

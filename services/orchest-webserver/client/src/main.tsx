@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 import App from "./App";
 import { makeRequest } from "@orchest/lib-utils";
 import "./styles/main.scss";
-import { OrchestProvider } from "./lib/orchest";
+import { OrchestProvider } from "./hooks/orchest";
 
 declare global {
   interface Document {

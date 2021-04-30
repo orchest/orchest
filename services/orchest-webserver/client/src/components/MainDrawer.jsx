@@ -1,7 +1,7 @@
 import React from "react";
 import { MDCDrawer } from "@material/drawer";
 import { RefManager } from "@orchest/lib-utils";
-import { OrchestContext } from "@/lib/orchest";
+import { OrchestContext } from "@/hooks/orchest";
 import {
   getViewDrawerParentViewName,
   nameToComponent,

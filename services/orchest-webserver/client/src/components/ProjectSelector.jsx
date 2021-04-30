@@ -6,7 +6,7 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-import { OrchestContext } from "@/lib/orchest";
+import { OrchestContext } from "@/hooks/orchest";
 import ProjectsView from "../views/ProjectsView";
 
 class ProjectSelector extends React.Component {

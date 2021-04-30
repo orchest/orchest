@@ -14,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/lib/orchest";
+import { OrchestContext } from "@/hooks/orchest";
 import {
   checkGate,
   getScrollLineHeight,

@@ -7,7 +7,7 @@ import {
   uuidv4,
 } from "@orchest/lib-utils";
 
-import { OrchestContext } from "@/lib/orchest";
+import { OrchestContext } from "@/hooks/orchest";
 
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";

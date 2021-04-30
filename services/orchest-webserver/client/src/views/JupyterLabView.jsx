@@ -9,7 +9,7 @@ import {
   collapseDoubleDots,
 } from "@orchest/lib-utils";
 import { useInterval } from "@/hooks/use-interval";
-import { useOrchest } from "@/lib/orchest";
+import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
@@ -182,8 +182,6 @@ const JupyterLabView = (props) => {
     let baseAddress =
       "//" +
       window.location.host +
-      // @TODO
-      // @ts-ignore
       get.currentSession?.notebook_server_info?.base_url;
     orchest.jupyter.updateJupyterInstance(baseAddress);
   };
