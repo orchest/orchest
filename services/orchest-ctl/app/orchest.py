@@ -3,7 +3,7 @@
 TODO:
     * Improve the start/stop so that containers are not removed. Instead
       containers can just be restarted (preserving their logs). Update
-      should then remove old containers to make sure the updated once
+      should then remove old containers to make sure the updated ones
       are used.
     * In Python3.9 PEP585 will be introduced, deprecating certain typing
       functionality. See: https://www.python.org/dev/peps/pep-0585/
