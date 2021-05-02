@@ -1,8 +1,9 @@
+import json
 import os
 import time
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Dict, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional
 from uuid import uuid4
 
 import docker
@@ -13,6 +14,7 @@ from flask import current_app
 
 from _orchest.internals import config as _config
 from app import utils
+from app.core.pipelines import Pipeline
 
 
 class IP(NamedTuple):
@@ -139,10 +141,28 @@ class Session:
                 interactive sessions).
             pipeline_path: Path to pipeline file (relative to
                 project_dir).
-            project_dir: Path to project directory.
+            project_dir: Path to project directory. (Absolute host path)
             host_userdir: Path to the userdir on the host
 
         """
+
+        # Load pipeline definition
+        try:
+            # Find project_dir from userdir
+            # NOTE: This assumes project_dir is always a child path of
+            # host_userdir!
+            userdir_path_component = "/userdir/"
+            relative_project_dir = project_dir[
+                project_dir.find(userdir_path_component) + len(userdir_path_component) :
+            ]
+            with open(
+                os.path.join("/userdir", relative_project_dir, pipeline_path), "r"
+            ) as f:
+                self.pipeline = Pipeline.from_json(json.load(f))
+        except (IOError, Exception) as e:
+            current_app.logger.error("Failed to read pipeline %s [%s]." % (e, type(e)))
+            self.pipeline = Pipeline([], {})
+
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
         container_specs = _get_container_specs(
             uuid,
@@ -151,10 +171,19 @@ class Session:
             project_dir,
             host_userdir,
             self.network,
+            self.pipeline,
         )
-        for resource in self._resources:
-            container = self.client.containers.run(**container_specs[resource])
-            self._containers[resource] = container
+
+        services = [key for key in container_specs.keys() if key.startswith("service-")]
+
+        for resource in self._resources + services:
+            try:
+                container = self.client.containers.run(**container_specs[resource])
+                self._containers[resource] = container
+            except Exception as e:
+                current_app.logger.error(
+                    "Failed to start container %s [%s]." % (e, type(e))
+                )
 
         return
 
@@ -566,6 +595,59 @@ def _get_mounts(
     return mounts
 
 
+def _get_services_specs(
+    services: List[Dict], project_dir, project_uuid, pipeline_uuid, network
+):
+    specs = {}
+
+    for service in services:
+
+        # Container name
+        # Note: increased collision probablity,
+        # but short names are required.
+        container_name = (
+            f'service-{service["name"]}'
+            f'-{project_uuid.split("-")[0]}-{pipeline_uuid.split("-")[0]}'
+        )
+        service_base_url = f"/{container_name}"
+
+        # Replace $BASE_PATH with service_base_url.
+        environment = service.get("environment", {})
+        for key, value in environment.items():
+            environment[key] = value.replace("$BASE_PATH", service_base_url)
+
+        spec_key = "service-" + service["name"]
+        specs[spec_key] = {
+            "image": service["image"],
+            "detach": True,
+            "mounts": [
+                Mount(
+                    target=service.get("project_directory", "/project-dir"),
+                    source=project_dir,
+                    type="bind",
+                )
+            ],
+            "name": container_name,
+            "network": network,
+            "environment": environment,
+            # Labels are used to have a way of keeping track of the
+            # containers attributes through
+            # ``Session.from_container_IDs``
+            "labels": {
+                "session_identity_uuid": pipeline_uuid,
+                "project_uuid": project_uuid,
+            },
+        }
+
+        if "entrypoint" in service:
+            specs[spec_key]["entrypoint"] = service["entrypoint"]
+
+        if "command" in service:
+            specs[spec_key]["command"] = service["command"]
+
+    return specs
+
+
 def _get_container_specs(
     uuid: str,
     project_uuid: str,
@@ -573,6 +655,7 @@ def _get_container_specs(
     project_dir: str,
     host_userdir: str,
     network: str,
+    pipeline: "Pipeline",
 ) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
 
@@ -719,5 +802,17 @@ def _get_container_specs(
         # containers attributes through ``Session.from_container_IDs``
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
+
+    # Add user specified services to container_specs list
+    if "services" in pipeline.properties:
+        container_specs.update(
+            _get_services_specs(
+                pipeline.properties["services"],
+                project_dir,
+                project_uuid,
+                uuid,
+                network,
+            )
+        )
 
     return container_specs

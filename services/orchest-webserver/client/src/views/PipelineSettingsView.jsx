@@ -31,6 +31,7 @@ class PipelineSettingsView extends React.Component {
     this.state = {
       selectedTabIndex: 0,
       inputParameters: JSON.stringify({}, null, 2),
+      inputServices: JSON.stringify({}, null, 2),
       restartingMemoryServer: false,
       unsavedChanges: false,
       pipeline_path: undefined,
@@ -112,15 +113,17 @@ class PipelineSettingsView extends React.Component {
         if (pipelineJson.settings.data_passing_memory_size === undefined) {
           pipelineJson.settings.data_passing_memory_size = this.state.dataPassingMemorySize;
         }
-
-        this.state.inputParameters = JSON.stringify(
-          pipelineJson.parameters,
-          null,
-          2
-        );
+        if (pipelineJson.parameters === undefined) {
+          pipelineJson.parameters = {};
+        }
+        if (pipelineJson.services === undefined) {
+          pipelineJson.services = [];
+        }
 
         this.setHeaderComponent(pipelineJson.name);
         this.setState({
+          inputParameters: JSON.stringify(pipelineJson.parameters, null, 2),
+          inputServices: JSON.stringify(pipelineJson.services, null, 2),
           pipelineJson: pipelineJson,
           dataPassingMemorySize: pipelineJson.settings.data_passing_memory_size,
         });
@@ -227,8 +230,22 @@ class PipelineSettingsView extends React.Component {
     });
   }
 
+  onChangePipelineServices(editor, data, value) {
+    this.setState({
+      inputServices: value,
+    });
+
+    try {
+      this.state.pipelineJson.services = JSON.parse(value);
+      this.setState({
+        unsavedChanges: true,
+      });
+    } catch (err) {
+      // console.log("JSON did not parse")
+    }
+  }
+
   onChangePipelineParameters(editor, data, value) {
-    this.state.inputParameters = value;
     this.setState({
       inputParamaters: value,
     });
@@ -474,6 +491,37 @@ class PipelineSettingsView extends React.Component {
                     {(() => {
                       try {
                         JSON.parse(this.state.inputParameters);
+                      } catch {
+                        return (
+                          <div className="warning push-up push-down">
+                            <i className="material-icons">warning</i> Your input
+                            is not valid JSON.
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                  <div className="clear"></div>
+                </div>
+
+                <div className="columns">
+                  <div className="column">
+                    <h3>Services</h3>
+                  </div>
+                  <div className="column">
+                    <CodeMirror
+                      value={this.state.inputServices}
+                      options={{
+                        mode: "application/json",
+                        theme: "jupyter",
+                        lineNumbers: true,
+                        readOnly: this.props.queryArgs.read_only === "true",
+                      }}
+                      onBeforeChange={this.onChangePipelineServices.bind(this)}
+                    />
+                    {(() => {
+                      try {
+                        JSON.parse(this.state.inputServices);
                       } catch {
                         return (
                           <div className="warning push-up push-down">
