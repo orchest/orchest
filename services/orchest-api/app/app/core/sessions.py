@@ -168,7 +168,7 @@ class Session:
                 os.path.join("/userdir", relative_project_dir, pipeline_path), "r"
             ) as f:
                 self.pipeline = Pipeline.from_json(json.load(f))
-        except (IOError, Exception) as e:
+        except Exception as e:
             logging.error("Failed to read pipeline %s [%s]." % (e, type(e)))
             self.pipeline = Pipeline([], {})
 
