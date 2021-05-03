@@ -1,0 +1,15 @@
+{
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    ".venv"
+  ],
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+
+  "pythonVersion": "3.6",
+  "pythonPlatform": "Linux",
+  "venvPath": "../../.venvs",
+  "venv": "orchest-sdk"
+}

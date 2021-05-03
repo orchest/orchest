@@ -17,3 +17,6 @@
 
 # State
 **/*.db
+
+# Pyright / VSCode
+**/pyrightconfig.json
