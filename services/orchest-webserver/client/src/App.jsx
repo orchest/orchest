@@ -1,11 +1,6 @@
 import React from "react";
 
-import {
-  RefManager,
-  PersistentLocalConfig,
-  makeRequest,
-  uuidv4,
-} from "@orchest/lib-utils";
+import { RefManager, makeRequest } from "@orchest/lib-utils";
 
 import { OrchestContext } from "@/hooks/orchest";
 
@@ -70,8 +65,6 @@ class App extends React.Component {
       );
     }
 
-    this.browserConfig = new PersistentLocalConfig("orchest");
-
     this.sendEvent = function (event, properties) {
       if (!orchest.config["TELEMETRY_DISABLED"]) {
         makeRequest("POST", "/analytics", {
@@ -108,15 +101,8 @@ class App extends React.Component {
       }
     };
 
-    // load drawerOpen state
-    let topAppBarOpen = this.browserConfig.get("topAppBar.open");
-
     this.state = {
       activeViewName: "",
-      // Default drawer state is open.
-      drawerOpen: topAppBarOpen === undefined || topAppBarOpen === "true",
-      selectedProject: this.browserConfig.get("selected_project_uuid"),
-      projectSelectorHash: uuidv4(),
     };
 
     this.refManager = new RefManager();
@@ -150,7 +136,7 @@ class App extends React.Component {
   _generateView(TagName, dynamicProps) {
     // add selectedProject to ProjectBasedView
     if (this.INJECT_PROJECT_UUID_VIEWS.indexOf(TagName) !== -1) {
-      dynamicProps.project_uuid = this.state.selectedProject;
+      dynamicProps.project_uuid = this.context.state.project_uuid;
     }
 
     return <TagName {...dynamicProps} />;
@@ -281,32 +267,6 @@ class App extends React.Component {
     this.initializeFirstView();
   }
 
-  handledrawerToggle() {
-    this.setState((state) => {
-      return {
-        drawerOpen: !state.drawerOpen,
-      };
-    });
-  }
-
-  handleDrawerOpen(open) {
-    this.setState({
-      drawerOpen: open,
-    });
-  }
-
-  setProject(projectUUID) {
-    if (projectUUID === undefined) {
-      this.browserConfig.remove("selected_project_uuid");
-    } else {
-      this.browserConfig.set("selected_project_uuid", projectUUID);
-    }
-
-    this.setState({
-      selectedProject: projectUUID,
-    });
-  }
-
   getProject() {
     return new Promise((resolve, reject) => {
       // Use this to get the currently selected project outside
@@ -336,12 +296,6 @@ class App extends React.Component {
     });
   }
 
-  invalidateProjects() {
-    this.setState({
-      projectSelectorHash: uuidv4(),
-    });
-  }
-
   render() {
     let view;
     if (this.state.TagName) {
@@ -350,11 +304,7 @@ class App extends React.Component {
 
     return (
       <>
-        <HeaderBar
-          selectedProject={this.state.selectedProject}
-          projectSelectorHash={this.state.projectSelectorHash}
-          changeSelectedProject={this.setProject.bind(this)}
-        />
+        <HeaderBar />
         <div className="app-container">
           <MainDrawer selectedElement={this.state.activeViewName} />
           <main className="main-content" id="main-content">

@@ -13,20 +13,7 @@ import SettingsView from "../views/SettingsView";
 import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
 
-/**
- * @typedef {import("@/types").IOrchestSession} IOrchestSession
- *
- * @TODO Remove props and handle project switching inside useOrchest
- * @typedef {Object} HeaderBarProps
- * @property {(projectUUID) => void} changeSelectedProject
- * @property {string} projectSelectorHash
- * @property {string} selectedProject
- */
-
-/**
- * @type {React.FC<HeaderBarProps>}
- */
-export const HeaderBar = React.forwardRef((props, ref) => {
+export const HeaderBar = React.forwardRef((_, ref) => {
   const orchest = window.orchest;
 
   const { state, dispatch, get } = useOrchest();
@@ -57,10 +44,6 @@ export const HeaderBar = React.forwardRef((props, ref) => {
     window.location.href = "/login/clear";
   };
 
-  const onChangeProject = (projectUUID) => {
-    props.changeSelectedProject(projectUUID);
-  };
-
   return (
     <header ref={ref}>
       <div className="header-left">
@@ -74,11 +57,7 @@ export const HeaderBar = React.forwardRef((props, ref) => {
           menu
         </button>
         <img src="/image/logo.svg" className="logo" />
-        <ProjectSelector
-          key={props.projectSelectorHash}
-          onChangeProject={onChangeProject.bind(this)}
-          project_uuid={props.selectedProject}
-        />
+        <ProjectSelector />
       </div>
 
       {state.pipelineName && (

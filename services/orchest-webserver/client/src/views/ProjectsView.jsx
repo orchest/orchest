@@ -123,8 +123,6 @@ class ProjectsView extends React.Component {
         loading: false,
       });
 
-      orchest.invalidateProjects();
-
       if (this.refManager.refs.projectListView) {
         this.refManager.refs.projectListView.setSelectedRowIds([]);
       }

@@ -19,7 +19,9 @@ class MainDrawer extends React.Component {
   updateIntercomWidget() {
     if (orchest.config["CLOUD"] === true && window.Intercom !== undefined) {
       // show Intercom widget
-      window.Intercom("update", { hide_default_launcher: !this.drawer.open });
+      window.Intercom("update", {
+        hide_default_launcher: !this.context.state?.drawerIsOpen,
+      });
     }
   }
 
@@ -47,14 +49,11 @@ class MainDrawer extends React.Component {
 
     this.drawer.listen("MDCDrawer:opened", () => {
       document.body.focus();
-      orchest.browserConfig.set("topAppBar.open", "true");
 
       this.updateIntercomWidget();
     });
 
     this.drawer.listen("MDCDrawer:closed", () => {
-      orchest.browserConfig.set("topAppBar.open", "false");
-
       this.updateIntercomWidget();
     });
 

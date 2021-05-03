@@ -4,6 +4,7 @@ import { uuidv4 } from "@orchest/lib-utils";
 import { OrchestContext } from "./context";
 import { SessionsProvider } from "./sessions";
 import { isSession, isCurrentSession } from "./utils";
+import { useLocalStorage } from "../local-storage";
 
 /**
  * @typedef {import("@/types").TOrchestAction} TOrchestAction
@@ -26,7 +27,6 @@ const reducer = (state, action) => {
     case "isLoaded":
       return { ...state, isLoading: false };
     case "drawerToggle":
-      // @TODO HANDLE BROSWERCONFIG CHECK
       return { ...state, drawerIsOpen: !state.drawerIsOpen };
     case "pipelineClear":
       return {
@@ -69,24 +69,36 @@ const reducer = (state, action) => {
   }
 };
 
+const initialState = {
+  isLoading: true,
+  pipelineFetchHash: null,
+  pipelineName: null,
+  pipelineIsReadOnly: false,
+  pipelineSaveStatus: "saved",
+  pipeline_uuid: undefined,
+  project_uuid: undefined,
+  sessions: [],
+  viewCurrent: "pipeline",
+  _sessionsUuids: [],
+  _sessionsToggle: null,
+};
+
 export const OrchestProvider = ({ config, user_config, children }) => {
+  const orchest = window.orchest;
+
+  const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
+  const [project_uuid, setProject_uuid] = useLocalStorage(
+    "selected_project_uuid",
+    undefined
+  );
+
   /** @type {[IOrchestState, React.Dispatch<TOrchestAction>]} */
   const [state, dispatch] = React.useReducer(reducer, {
-    isLoading: true,
-    // @TODO ADD BROWSERCONFIG CHECK (from App.jsx)
-    drawerIsOpen: true,
-    pipelineFetchHash: null,
-    pipelineName: null,
-    pipelineIsReadOnly: false,
-    pipelineSaveStatus: "saved",
-    pipeline_uuid: undefined,
-    project_uuid: undefined,
-    sessions: [],
-    viewCurrent: "pipeline",
+    ...initialState,
+    drawerIsOpen,
+    project_uuid,
     config,
     user_config,
-    _sessionsUuids: [],
-    _sessionsToggle: null,
   });
 
   /** @type {IOrchestGet} */
@@ -98,13 +110,13 @@ export const OrchestProvider = ({ config, user_config, children }) => {
     ),
   };
 
-  if (process.env.NODE_ENV === "development")
-    console.log("(Dev Mode) useOrchest: state updated", state);
-
-  const orchest = window.orchest;
+  /**
+   * Side Effects
+   * ========================================= */
 
   /**
-   * Loading
+   * Complete loading once config has been provided and local storage values
+   * have been achieved
    */
   React.useEffect(() => {
     if (config && user_config) {
@@ -113,13 +125,26 @@ export const OrchestProvider = ({ config, user_config, children }) => {
   }, [config, user_config]);
 
   /**
-   * Alerts
+   * Sync Local Storage
+   */
+  React.useEffect(() => {
+    setDrawerIsOpen(state?.drawerIsOpen);
+  }, [state.drawerIsOpen]);
+  React.useEffect(() => {
+    setProject_uuid(state?.project_uuid);
+  }, [state.project_uuid]);
+
+  /**
+   * Handle Alerts
    */
   React.useEffect(() => {
     if (state.alert) {
       orchest.alert(...state.alert);
     }
   }, [state.alert]);
+
+  if (process.env.NODE_ENV === "development")
+    console.log("(Dev Mode) useOrchest: state updated", state);
 
   return (
     <OrchestContext.Provider

@@ -55,7 +55,7 @@ export const SessionsProvider = ({ children }) => {
                 : { pipeline_uuid, project_uuid, status: "STOPPED" }
             )
             .catch((e) => {
-              if (!e.isCancelled) console.log(e);
+              console.error(e);
             })
         )
       ).then(
@@ -124,19 +124,16 @@ export const SessionsProvider = ({ children }) => {
       })
         .then((sessionDetails) => mutateSession(sessionDetails))
         .catch((err) => {
-          if (!err.isCancelled) {
-            console.log("Error during request LAUNCHing to orchest-api.");
-            console.log(err);
-
-            let error = JSON.parse(err.body);
-            if (error.message == "MemoryServerRestartInProgress") {
-              dispatch({
-                type: "alert",
-                payload: [
-                  "The session can't be launched while the memory server is being restarted.",
-                ],
-              });
-            }
+          let errorBody = JSON.parse(err.body);
+          if (errorBody?.message == "MemoryServerRestartInProgress") {
+            dispatch({
+              type: "alert",
+              payload: [
+                "The session can't be launched while the memory server is being restarted.",
+              ],
+            });
+          } else {
+            console.error(err);
           }
         });
 
@@ -179,24 +176,15 @@ export const SessionsProvider = ({ children }) => {
       )
         .then(() => mutateSession({ status: "STOPPED" }))
         .catch((err) => {
-          if (!err.isCancelled) {
-            console.log(
-              "Error during request DELETEing launch to orchest-api."
-            );
-            console.log(err);
-
-            if (err?.message === "MemoryServerRestartInProgress") {
-              dispatch({
-                type: "alert",
-                payload: [
-                  "The session can't be stopped while the memory server is being restarted.",
-                ],
-              });
-            }
-
-            if (err === undefined || (err && err.isCanceled !== true)) {
-              console.error("Error");
-            }
+          if (err?.message === "MemoryServerRestartInProgress") {
+            dispatch({
+              type: "alert",
+              payload: [
+                "The session can't be stopped while the memory server is being restarted.",
+              ],
+            });
+          } else {
+            console.error(err);
           }
         });
       dispatch({ type: "_sessionsToggleClear" });

@@ -1,2 +1,4 @@
-export function useLocalStorage<T>(key: string, initialValue: T);
-export function setValue<T>(value: T | ((val: T) => T));
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T
+): [T, (value: T | ((val: T) => T)) => void];
