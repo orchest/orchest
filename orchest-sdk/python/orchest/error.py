@@ -77,6 +77,12 @@ class DataInvalidNameError(Error):
     pass
 
 
+class ServiceNotFound(Error):
+    """Error when a service (specified by name, cannot be found)."""
+
+    pass
+
+
 class InvalidMetaDataError(Error):
     """Metadata is invalid."""
 

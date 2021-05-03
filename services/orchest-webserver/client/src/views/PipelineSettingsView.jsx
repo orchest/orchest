@@ -233,6 +233,7 @@ class PipelineSettingsView extends React.Component {
   onChangePipelineServices(editor, data, value) {
     this.setState({
       inputServices: value,
+      servicesChanged: true,
     });
 
     try {
@@ -247,7 +248,7 @@ class PipelineSettingsView extends React.Component {
 
   onChangePipelineParameters(editor, data, value) {
     this.setState({
-      inputParamaters: value,
+      inputParameters: value,
     });
 
     try {
@@ -419,6 +420,36 @@ class PipelineSettingsView extends React.Component {
     }
   }
 
+  _get_service_urls(service) {
+    let urls = [];
+
+    if (service.ports === undefined) {
+      return urls;
+    }
+
+    let serviceUUID = this.props.queryArgs.pipeline_uuid;
+    if (this.props.queryArgs.run_uuid !== undefined) {
+      serviceUUID = this.props.queryArgs.run_uuid;
+    }
+
+    for (let port of service.ports) {
+      urls.push(
+        window.location.origin +
+          "/service-" +
+          service.name +
+          "-" +
+          this.props.queryArgs.project_uuid.split("-")[0] +
+          "-" +
+          serviceUUID.split("-")[0] +
+          "_" +
+          port +
+          "_"
+      );
+    }
+
+    return urls;
+  }
+
   render() {
     let rootView = undefined;
     updateGlobalUnsavedChanges(this.state.unsavedChanges);
@@ -520,17 +551,80 @@ class PipelineSettingsView extends React.Component {
                       onBeforeChange={this.onChangePipelineServices.bind(this)}
                     />
                     {(() => {
+                      let message;
+                      let parsedServices;
+
                       try {
-                        JSON.parse(this.state.inputServices);
+                        parsedServices = JSON.parse(this.state.inputServices);
+
+                        if (!Array.isArray(parsedServices)) {
+                          message = "Top level element needs to be an array.";
+                        }
+
+                        for (let service of parsedServices) {
+                          let nameReg = /^[0-9a-zA-Z]{1,36}$/;
+                          if (!service.name || !nameReg.test(service.name)) {
+                            message =
+                              "Invalid service name. Valid names satisfy: " +
+                              nameReg.toString();
+                            break;
+                          }
+
+                          if (service.image === undefined) {
+                            message = "Missing required field: image";
+                            break;
+                          }
+                        }
                       } catch {
+                        if (message === undefined) {
+                          message = "Your input is not valid JSON.";
+                        }
+                      }
+
+                      if (message != undefined) {
                         return (
                           <div className="warning push-up push-down">
-                            <i className="material-icons">warning</i> Your input
-                            is not valid JSON.
+                            <i className="material-icons">warning</i> {message}
                           </div>
                         );
                       }
                     })()}
+
+                    <div className="service-urls push-up">
+                      {(() => {
+                        let serviceUrlsBlocks = [];
+
+                        for (let service of this.state.pipelineJson.services) {
+                          let urlElements = [];
+
+                          let urls = this._get_service_urls(service);
+
+                          for (let url of urls) {
+                            urlElements.push(
+                              <li key={url}>
+                                <a href={url}>{url}</a>
+                              </li>
+                            );
+                          }
+
+                          serviceUrlsBlocks.push(
+                            <div key={service.name}>
+                              <b>{service.name}</b>
+                              <ul>{urlElements}</ul>
+                            </div>
+                          );
+                        }
+
+                        return serviceUrlsBlocks;
+                      })()}
+                    </div>
+
+                    {this.state.servicesChanged && (
+                      <div className="warning push-up">
+                        <i className="material-icons">warning</i>
+                        Note: changes to services require a session restart.
+                      </div>
+                    )}
                   </div>
                   <div className="clear"></div>
                 </div>

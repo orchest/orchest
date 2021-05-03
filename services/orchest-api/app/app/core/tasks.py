@@ -7,7 +7,6 @@ import aiohttp
 from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
-from config import CONFIG_CLASS
 
 from app import create_app
 from app.celery_app import make_celery
@@ -16,6 +15,7 @@ from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
 from app.core.pipelines import Pipeline, PipelineDefinition
 from app.core.sessions import launch_noninteractive_session
+from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
 
@@ -255,6 +255,7 @@ def start_non_interactive_pipeline_run(
         project_uuid,
         run_config["pipeline_path"],
         run_config["project_dir"],
+        run_config,
     ):
         status = run_pipeline(
             pipeline_definition, project_uuid, run_config, task_id=self.request.id

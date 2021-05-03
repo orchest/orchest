@@ -259,6 +259,7 @@ class PipelineStepRunner:
             "Env": user_env_variables
             + [
                 f'ORCHEST_STEP_UUID={self.properties["uuid"]}',
+                f"ORCHEST_RUN_UUID={task_id}",
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
                 f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
