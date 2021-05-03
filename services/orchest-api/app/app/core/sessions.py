@@ -170,7 +170,7 @@ class Session:
                 self.pipeline = Pipeline.from_json(json.load(f))
         except Exception as e:
             logging.error("Failed to read pipeline %s [%s]." % (e, type(e)))
-            self.pipeline = Pipeline([], {})
+            raise e
 
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
         container_specs = _get_container_specs(
