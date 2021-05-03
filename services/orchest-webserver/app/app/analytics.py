@@ -11,6 +11,67 @@ from app.utils import write_config
 
 
 # Analytics related functions
+def send_job_create(app, job):
+    # Anonymize .
+    job = copy.deepcopy(job)
+    job.pop("name", None)
+    job.pop("pipeline_name", None)
+    job.pop("pipeline_definition", None)
+    run_spec = job["pipeline_run_spec"]
+    run_spec.pop("pipeline_run_spec", {}).pop("host_user_dir", None)
+    run_spec.pop("pipeline_run_spec", {}).pop("project_dir", None)
+    run_spec.pop("pipeline_run_spec", {}).pop("pipeline_path", None)
+    job_parameterized_runs_count = len(job.pop("parameters", []))
+
+    props = {
+        "definition": job,
+        "parameterized_runs_count": job_parameterized_runs_count,
+    }
+    send_event(app, "job create", props)
+
+
+def send_job_update(app, job_uuid, update_payload):
+    # Anonymize.
+    up = copy.deepcopy(update_payload)
+    env_variables_count = len(up.pop("env_variables", {}))
+    parameterized_runs_count = len(up.pop("parameters", []))
+    # Redundant info.
+    up.pop("strategy_json", {})
+
+    props = {
+        "uuid": job_uuid,
+        # So that we can distinguish between jobs to be run immediately,
+        # one time scheduled jobs, cron jobs.
+        "definition": up,
+        "env_variables_count": env_variables_count,
+        "parameterized_runs_count": parameterized_runs_count,
+    }
+    send_event(app, "job update", props)
+
+
+def send_job_cancel(app, job_uuid):
+    props = {"uuid": job_uuid}
+    send_event(app, "job cancel", props)
+
+
+def send_job_delete(app, job_uuid):
+    props = {"uuid": job_uuid}
+    send_event(app, "job delete", props)
+
+
+def send_env_build_start(app, environment_build_request):
+    # Anonymize.
+    req = copy.deepcopy(environment_build_request)
+    req.pop("project_path")
+    props = {"uuid": req["environment_uuid"], "project_uuid": req["project_uuid"]}
+    send_event(app, "environment-build start", props)
+
+
+def send_env_build_cancel(app, uuid):
+    props = {"uuid": uuid}
+    send_event(app, "environment-build cancel", props)
+
+
 def send_anonymized_pipeline_definition(app, pipeline):
     """Sends anonymized pings of an anonymized pipeline definition.
 
@@ -68,16 +129,27 @@ def send_anonymized_pipeline_definition(app, pipeline):
     )
 
 
-def send_pipeline_run(app, pipeline_identifier, project_path, run_type):
+def send_pipeline_run_start(app, pipeline_identifier, project_path, run_type):
     project_size = sum(
         d.stat().st_size for d in os.scandir(project_path) if d.is_file()
     )
     send_event(
         app,
-        "pipeline run",
+        "pipeline_run start",
         {
             "identifier": pipeline_identifier,
             "project_size": project_size,
+            "run_type": run_type,
+        },
+    )
+
+
+def send_pipeline_run_cancel(app, pipeline_identifier, run_type):
+    send_event(
+        app,
+        "pipeline_run cancel",
+        {
+            "identifier": pipeline_identifier,
             "run_type": run_type,
         },
     )

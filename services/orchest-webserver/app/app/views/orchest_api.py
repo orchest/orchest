@@ -3,7 +3,17 @@ import uuid
 import requests
 from flask import current_app, jsonify, request
 
-from app.analytics import send_pipeline_run
+from app.analytics import (
+    send_env_build_cancel,
+    send_env_build_start,
+    send_event,
+    send_job_cancel,
+    send_job_create,
+    send_job_delete,
+    send_job_update,
+    send_pipeline_run_cancel,
+    send_pipeline_run_start,
+)
 from app.utils import (
     create_job_directory,
     get_environments,
@@ -82,6 +92,7 @@ def register_orchest_api_views(app, db):
             + "/api/environment-builds/%s" % (environment_build_uuid),
         )
 
+        send_env_build_cancel(app, environment_build_uuid)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -112,6 +123,8 @@ def register_orchest_api_views(app, db):
             environment_build_requests, app.config["ORCHEST_API_ADDRESS"]
         )
 
+        for environment_build_request in environment_build_requests:
+            send_env_build_start(app, environment_build_request)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -134,6 +147,7 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jupyter-builds/",
         )
+        send_event(app, "jupyter-build start", {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds/<build_uuid>", methods=["DELETE"])
@@ -143,6 +157,7 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jupyter-builds/%s" % build_uuid,
         )
+        send_event(app, "jupyter-build cancel", {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -215,19 +230,13 @@ def register_orchest_api_views(app, db):
             job_uuid, json_obj["pipeline_uuid"], json_obj["project_uuid"]
         )
 
-        # Analytics call
-        send_pipeline_run(
-            app,
-            f"{json_obj['project_uuid']}-{json_obj['pipeline_uuid']}",
-            get_project_directory(json_obj["project_uuid"]),
-            "noninteractive",
-        )
-
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
             json=json_obj,
         )
 
+        # Analytics call
+        send_job_create(app, json_obj)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["GET"])
@@ -254,6 +263,11 @@ def register_orchest_api_views(app, db):
             + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
         )
 
+        tel_props = {
+            "project_uuid": project_uuid,
+            "pipeline_uuid": pipeline_uuid,
+        }
+        send_event(app, "session stop", tel_props)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
@@ -277,6 +291,11 @@ def register_orchest_api_views(app, db):
             json=json_obj,
         )
 
+        tel_props = {
+            "project_uuid": json_obj["project_uuid"],
+            "pipeline_uuid": json_obj["pipeline_uuid"],
+        }
+        send_event(app, "session start", tel_props)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -301,6 +320,14 @@ def register_orchest_api_views(app, db):
                     active_runs = True
 
             if active_runs:
+                tel_props = {
+                    "project_uuid": "project_uuid",
+                    "pipeline_uuid": "pipeline_uuid",
+                    # So that we know when users attempt to restart a
+                    # session without success.
+                    "active_runs": True,
+                }
+                send_event(app, "session restart", tel_props)
                 return (
                     jsonify(
                         {
@@ -319,6 +346,12 @@ def register_orchest_api_views(app, db):
                     + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
                 )
 
+                tel_props = {
+                    "project_uuid": "project_uuid",
+                    "pipeline_uuid": "pipeline_uuid",
+                    "active_runs": False,
+                }
+                send_event(app, "session restart", tel_props)
                 return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
             app.logger.error(
@@ -347,17 +380,17 @@ def register_orchest_api_views(app, db):
                 ),
             }
 
+            resp = requests.post(
+                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
+                json=json_obj,
+            )
+
             # Analytics call
-            send_pipeline_run(
+            send_pipeline_run_start(
                 app,
                 f"{json_obj['project_uuid']}-{json_obj['pipeline_definition']['uuid']}",
                 get_project_directory(json_obj["project_uuid"]),
                 "interactive",
-            )
-
-            resp = requests.post(
-                "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
-                json=json_obj,
             )
 
             return resp.content, resp.status_code, resp.headers.items()
@@ -394,6 +427,11 @@ def register_orchest_api_views(app, db):
                 + "/api/runs/%s" % run_uuid,
             )
 
+            send_pipeline_run_cancel(
+                app,
+                run_uuid,
+                "interactive",
+            )
             return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["DELETE"])
@@ -403,6 +441,7 @@ def register_orchest_api_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/%s" % (job_uuid),
         )
 
+        send_job_cancel(app, job_uuid)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["PUT"])
@@ -413,6 +452,7 @@ def register_orchest_api_views(app, db):
             json=request.json,
         )
 
+        send_job_update(app, job_uuid, request.json)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])
@@ -473,6 +513,7 @@ def register_orchest_api_views(app, db):
                 )
 
                 remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
+                send_job_delete(app, job_uuid)
                 return resp.content, resp.status_code, resp.headers.items()
 
             elif resp.status_code == 404:
