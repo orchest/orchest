@@ -16,14 +16,17 @@ import {
   RefManager,
   validURL,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import { BackgroundTaskPoller } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 
 class ProjectsView extends React.Component {
+  static contextType = OrchestContext;
+
   componentWillUnmount() {}
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       createModal: false,
@@ -139,7 +142,10 @@ class ProjectsView extends React.Component {
 
   onClickListItem(row, idx, e) {
     let project = this.state.projects[idx];
-    orchest.setProject(project.uuid);
+    this.context.dispatch({
+      type: "projectSet",
+      payload: project.uuid,
+    });
     orchest.loadView(PipelinesView);
   }
 
