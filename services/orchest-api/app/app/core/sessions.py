@@ -611,6 +611,7 @@ def _get_mounts(
 def _get_services_specs(
     services: List[Dict],
     project_dir,
+    host_userdir,
     project_uuid,
     pipeline_uuid,
     network,
@@ -627,6 +628,8 @@ def _get_services_specs(
         services: List of services as defined in the Orchest pipeline
             file.
         project_dir: Project directory w.r.t. the host. Needed to
+            construct the mounts.
+        host_userdir: userdir/ path w.r.t. the host. Needed to
             construct the mounts.
         project_uuid: UUID of the project.
         pipeline_uuid: UUID of pipeline.
@@ -713,7 +716,12 @@ def _get_services_specs(
                     target=service.get("project_directory", "/project-dir"),
                     source=project_dir,
                     type="bind",
-                )
+                ),
+                Mount(  # data directory
+                    target="/data",
+                    source=os.path.join(host_userdir, "data"),
+                    type="bind",
+                ),
             ],
             "name": container_name,
             "network": network,
@@ -910,6 +918,7 @@ def _get_container_specs(
             _get_services_specs(
                 pipeline.properties["services"],
                 project_dir,
+                host_userdir,
                 project_uuid,
                 pipeline_uuid,
                 network,
