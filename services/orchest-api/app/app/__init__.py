@@ -25,7 +25,14 @@ from app.apis import blueprint as api
 from app.apis.namespace_jupyter_builds import CreateJupyterBuild
 from app.connections import db
 from app.core.scheduler import Scheduler
-from app.models import InteractivePipelineRun, InteractiveSession, JupyterBuild
+from app.models import (
+    EnvironmentBuild,
+    InteractivePipelineRun,
+    InteractiveSession,
+    Job,
+    JupyterBuild,
+    NonInteractivePipelineRun,
+)
 
 
 def create_app(config_class=None, use_db=True, be_scheduler=False):
@@ -110,6 +117,24 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
                 # in sqlalchemy unfortunately.
                 for jupyer_build in jupyter_builds:
                     db.session.delete(jupyer_build)
+
+                # Fix job and respective pipeline run states.
+                Job.query.filter_by(schedule=None, status="STARTED").update(
+                    {"status": "ABORTED"}
+                )
+                # TODO: for some reason the non-interactive runs are
+                # deleted. Even when running as part of a cron-scheduled
+                # job the non-interactive run does not show up (and its
+                # ID is reused by the next run). PipelineSteps need to
+                # be set to ABORTED as well.
+                NonInteractivePipelineRun.query.filter(
+                    NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"])
+                ).update({"status": "ABORTED"}, synchronize_session="fetch")
+
+                # Fix environment builds status.
+                EnvironmentBuild.query.filter(
+                    EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+                ).update({"status": "ABORTED"}, synchronize_session="fetch")
 
                 db.session.commit()
 
