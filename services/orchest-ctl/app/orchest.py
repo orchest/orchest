@@ -17,8 +17,7 @@ from typing import List, Optional, Set, Tuple
 
 import typer
 
-from app import spec, utils
-from app.config import ORCHEST_IMAGES, _on_start_images
+from app import config, spec, utils
 from app.debug import debug_dump, health_check
 from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
@@ -77,7 +76,9 @@ class OrchestApp:
         # Check whether the minimal set of images is present for Orchest
         # to be started.
         pulled_images = self.resource_manager.get_images()
-        req_images: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
+        req_images: Set[str] = reduce(
+            lambda x, y: x.union(y), config.ORCHEST_IMAGES["minimal"], set()
+        )
         missing_images = req_images - set(pulled_images)
 
         if missing_images or not self.resource_manager.is_network_installed():
@@ -87,7 +88,7 @@ class OrchestApp:
 
         # Check whether the container config contains the set of
         # required images.
-        present_imgs = set(config["Image"] for config in container_config.values())
+        present_imgs = set(c["Image"] for c in container_config.values())
         if present_imgs < req_images:  # proper subset
             raise ValueError(
                 "The container_config does not contain a configuration for "
@@ -126,11 +127,11 @@ class OrchestApp:
 
         # Start the containers in the correct order, keeping in mind
         # dependencies between containers.
-        for i, to_start_imgs in enumerate(_on_start_images):
+        for i, to_start_imgs in enumerate(config.ORCHEST_IMAGES["minimal"]):
             filter_ = {"Image": to_start_imgs}
-            config = spec.filter_container_config(container_config, filter=filter_)
+            config_ = spec.filter_container_config(container_config, filter=filter_)
             stdouts = self.docker_client.run_containers(
-                config, use_name=True, detach=True
+                config_, use_name=True, detach=True
             )
 
             # TODO: Abstract version of when the next set of images can
@@ -212,11 +213,11 @@ class OrchestApp:
         """Starts the update-server service."""
         logger.info("Starting Orchest update service...")
 
-        config = {}
+        config_ = {}
         container_config = spec.get_container_config(port=port, cloud=cloud, dev=dev)
-        config["update-server"] = container_config["update-server"]
+        config_["update-server"] = container_config["update-server"]
 
-        self.docker_client.run_containers(config, use_name=True, detach=True)
+        self.docker_client.run_containers(config_, use_name=True, detach=True)
 
     def status(self, ext=False):
 
@@ -230,7 +231,9 @@ class OrchestApp:
 
         # Minimal set of containers to be running for Orchest to be in
         # a valid state.
-        valid_set: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
+        valid_set: Set[str] = reduce(
+            lambda x, y: x.union(y), config.ORCHEST_IMAGES["minimal"], set()
+        )
 
         if valid_set - set(running_containers_names):
             utils.echo("Orchest is running, but has reached an invalid state. Run:")
@@ -264,13 +267,6 @@ class OrchestApp:
                 update is invoked through the update-server.
 
         """
-        # Get all installed containers.
-        pulled_images = self.resource_manager.get_images()
-
-        # Pull images. It is possible to pull new image whilst the older
-        # versions of those images are running.
-        # TODO: remove the warning from the orchest.sh script that
-        #       containers will be shut down.
         utils.echo("Updating...")
 
         _, running_containers = self.resource_manager.get_containers(state="running")
@@ -285,6 +281,8 @@ class OrchestApp:
             # using a keyboard interrupt.
             time.sleep(2)
 
+            # It is possible to pull new image whilst the older versions
+            # of those images are running.
             self.stop(
                 skip_containers=[
                     "orchest/update-server:latest",
@@ -307,8 +305,13 @@ class OrchestApp:
             logger.error("Failed update due to unstaged changes.")
             return
 
-        logger.info("Updating images:\n" + "\n".join(pulled_images))
-        self.docker_client.pull_images(pulled_images, prog_bar=True, force=True)
+        # Get all installed images and pull new versions. The pulled
+        # images are checked to make sure optional images, e.g. lang
+        # specific images, are updated as well.
+        pulled_images = self.resource_manager.get_images()
+        to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(pulled_images)
+        logger.info("Updating images:\n" + "\n".join(to_pull_images))
+        self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
 
         # Delete user-built environment images to avoid the issue of
         # having environments with mismatching Orchest SDK versions.
@@ -427,7 +430,7 @@ def get_required_images(language: Optional[str], gpu: bool = False) -> List[str]
         "python": ["orchest/base-kernel-py-gpu:latest"],
     }
 
-    required_images = ORCHEST_IMAGES["minimal"]
+    required_images = config.ORCHEST_IMAGES["minimal"]
 
     if language == "all":
         for lang, _ in language_images.items():
