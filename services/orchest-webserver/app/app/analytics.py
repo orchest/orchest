@@ -17,10 +17,7 @@ def send_job_create(app, job):
     job.pop("name", None)
     job.pop("pipeline_name", None)
     job.pop("pipeline_definition", None)
-    run_spec = job["pipeline_run_spec"]
-    run_spec.pop("pipeline_run_spec", {}).pop("host_user_dir", None)
-    run_spec.pop("pipeline_run_spec", {}).pop("project_dir", None)
-    run_spec.pop("pipeline_run_spec", {}).pop("pipeline_path", None)
+    job["pipeline_run_spec"].pop("run_config")
     job_parameterized_runs_count = len(job.pop("parameters", []))
 
     props = {
@@ -62,7 +59,6 @@ def send_job_delete(app, job_uuid):
 def send_env_build_start(app, environment_build_request):
     # Anonymize.
     req = copy.deepcopy(environment_build_request)
-    req.pop("project_path")
     props = {"uuid": req["environment_uuid"], "project_uuid": req["project_uuid"]}
     send_event(app, "environment-build start", props)
 
