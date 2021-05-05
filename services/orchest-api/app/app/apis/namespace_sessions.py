@@ -280,6 +280,47 @@ class StopInteractiveSession(TwoPhaseFunction):
 
         return True
 
+    @classmethod
+    def _background_session_stop(
+        cls,
+        app,
+        project_uuid: str,
+        pipeline_uuid: str,
+        container_ids: Dict[str, str],
+        notebook_server_info: Dict[str, str] = None,
+    ):
+
+        with app.app_context():
+            try:
+                session_obj = InteractiveSession.from_container_IDs(
+                    docker_client,
+                    container_IDs=container_ids,
+                    network=_config.DOCKER_NETWORK,
+                    notebook_server_info=notebook_server_info,
+                )
+
+                # TODO: error handling?
+                session_obj.shutdown()
+
+                # Deletion happens here and not in the transactional
+                # phase because this way we can show the session
+                # STOPPING to the user.
+                models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).delete()
+                db.session.commit()
+            except Exception as e:
+                current_app.logger.error(e)
+
+                # Make sure that the session is deleted in any case,
+                # because otherwise the user will not be able to have an
+                # active session for the given pipeline.
+                session = models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).one()
+                db.session.delete(session)
+                db.session.commit()
+
     def _collateral(
         self,
         project_uuid: str,
@@ -294,36 +335,13 @@ class StopInteractiveSession(TwoPhaseFunction):
         if project_uuid is None or pipeline_uuid is None:
             return
 
-        session_obj = InteractiveSession.from_container_IDs(
-            docker_client,
-            container_IDs=container_ids,
-            network=_config.DOCKER_NETWORK,
-            notebook_server_info=notebook_server_info,
+        current_app.config["SCHEDULER"].add_job(
+            StopInteractiveSession._background_session_stop,
+            args=[
+                current_app._get_current_object(),
+                project_uuid,
+                pipeline_uuid,
+                container_ids,
+                notebook_server_info,
+            ],
         )
-
-        # TODO: error handling?
-        # TODO: If we can do this task in the background then the
-        # request can return. The session shutting down should not
-        # depend on the existence of the object in the DB. Need to make
-        # sure if it is indeed possible, e.g. if there are no race
-        # conditions when shutting down and starting another interactive
-        # session at the same time.
-        session_obj.shutdown()
-
-        # Deletion happens here and not in the transactional phase
-        # because this way we can show the session STOPPING to the user.
-        models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).delete()
-        db.session.commit()
-
-    def _revert(self):
-        # Make sure that the session is deleted in any case, because
-        # otherwise the user will not be able to have an active session
-        # for the given pipeline.
-        session = models.InteractiveSession.query.filter_by(
-            project_uuid=self.collateral_kwargs["project_uuid"],
-            pipeline_uuid=self.collateral_kwargs["pipeline_uuid"],
-        ).one()
-        db.session.delete(session)
-        db.session.commit()

@@ -180,5 +180,5 @@ def test_session_delete_revert(
 
     resp2 = client.get(f"/api/sessions/{pipeline.project.uuid}/{pipeline.uuid}")
 
-    assert resp1.status_code == 500
+    assert resp1.status_code == 200
     assert resp2.status_code == 404
