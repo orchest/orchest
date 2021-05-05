@@ -66,6 +66,12 @@ class SessionList(Resource):
             pipeline_uuid=post_data["pipeline_uuid"],
         ).one_or_none()
 
+        # Can't rely on the 2PE raising an exception because the
+        # collateral effect is invoking a background job, if that fails,
+        # it will clean up the session.
+        if isess is None:
+            return {"message": "Could not start session."}, 500
+
         return marshal(isess.as_dict(), schema.session), 201
 
 
@@ -173,47 +179,72 @@ class CreateInteractiveSession(TwoPhaseFunction):
         self.collateral_kwargs["project_dir"] = project_dir
         self.collateral_kwargs["host_userdir"] = host_userdir
 
-    def _collateral(
-        self,
+    @classmethod
+    def _background_session_start(
+        cls,
+        app,
         project_uuid: str,
         pipeline_uuid: str,
         pipeline_path: str,
         project_dir: str,
         host_userdir: str,
     ):
-        session = InteractiveSession(docker_client, network=_config.DOCKER_NETWORK)
-        session.launch(
-            pipeline_uuid,
-            project_uuid,
-            pipeline_path,
-            project_dir,
-            host_userdir,
+
+        with app.app_context():
+            try:
+                session = InteractiveSession(
+                    docker_client, network=_config.DOCKER_NETWORK
+                )
+                session.launch(
+                    pipeline_uuid,
+                    project_uuid,
+                    pipeline_path,
+                    project_dir,
+                    host_userdir,
+                )
+
+                # Update the database entry with information to connect
+                # to the launched resources.
+                IP = session.get_containers_IP()
+                status = {
+                    "status": "RUNNING",
+                    "container_ids": session.get_container_IDs(),
+                    "jupyter_server_ip": IP.jupyter_server,
+                    "notebook_server_info": session.notebook_server_info,
+                }
+
+                models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).update(status)
+                db.session.commit()
+            except Exception as e:
+                current_app.logger.error(e)
+
+                # Error handling. If it does not succeed then the
+                # initial entry has to be removed from the database as
+                # otherwise no session can be started in the future due
+                # to the uniqueness constraint.
+                models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).delete()
+                db.session.commit()
+
+    def _collateral(
+        self,
+        *args,
+        **kwargs,
+    ):
+
+        current_app.config["SCHEDULER"].add_job(
+            CreateInteractiveSession._background_session_start,
+            # From the docs:
+            # Return the current object.  This is useful if you want the
+            # real object behind the proxy at a time for performance
+            # reasons or because you want to pass the object into a
+            # different context.
+            args=[current_app._get_current_object(), *args],
+            kwargs=kwargs,
         )
-
-        # Update the database entry with information to connect to the
-        # launched resources.
-        IP = session.get_containers_IP()
-        status = {
-            "status": "RUNNING",
-            "container_ids": session.get_container_IDs(),
-            "jupyter_server_ip": IP.jupyter_server,
-            "notebook_server_info": session.notebook_server_info,
-        }
-        models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).update(status)
-        db.session.commit()
-
-    def _revert(self):
-        # Error handling. If it does not succeed then the initial
-        # entry has to be removed from the database as otherwise no
-        # session can be started in the future due to the uniqueness
-        # constraint.
-        models.InteractiveSession.query.filter_by(
-            project_uuid=self.collateral_kwargs["project_uuid"],
-            pipeline_uuid=self.collateral_kwargs["pipeline_uuid"],
-        ).delete()
-        db.session.commit()
 
 
 class StopInteractiveSession(TwoPhaseFunction):
