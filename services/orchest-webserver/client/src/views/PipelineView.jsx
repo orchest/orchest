@@ -587,21 +587,37 @@ class PipelineView extends React.Component {
 
   componentDidMount() {
     if (this.areQueryArgsValid()) {
-      // If the sessions are undefined then we **know** this is going to be the
-      // the first time someone has visited the page – as `useOrchest` should be
-      // defined as empty/with sessions when navigating from elsewhere
-      //
-      // It's not the most elegant solution but it does the job for now
-      if (!this.context.state?.sessions) {
-        this.setState({ shouldAutoStart: true });
-      }
-
+      this.setState({ shouldAutoStart: true });
+      this.handleSession();
       this.fetchPipelineAndInitialize();
       this.connectSocketIO();
       this.initializeResizeHandlers();
     } else {
       this.loadDefaultPipeline();
     }
+  }
+
+  handleSession() {
+    const session = this.context.get.currentSession;
+    if (!session) return;
+
+    if (
+      this.props.queryArgs.read_only !== "true" &&
+      this.state.shouldAutoStart === true &&
+      (!session.status || session.status === "STOPPED")
+    ) {
+      this.context.dispatch({ type: "sessionToggle", payload: session });
+    }
+
+    if (session?.status === "STOPPING") {
+      orchest.jupyter.unload();
+    }
+
+    if (session?.notebook_server_info) {
+      this.updateJupyterInstance();
+    }
+
+    this.setState({ shouldAutoStart: false });
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
@@ -613,25 +629,7 @@ class PipelineView extends React.Component {
       this.pipelineSetHolderSize();
     }
 
-    const session = this.context.get.currentSession;
-    if (!session) return;
-
-    if (
-      this.props.queryArgs.read_only !== "true" &&
-      this.state.shouldAutoStart === true &&
-      (!session.status || session.status === "STOPPED")
-    ) {
-      this.setState({ shouldAutoStart: false });
-      this.context.dispatch({ type: "sessionToggle", payload: session });
-    }
-
-    if (session?.status === "STOPPING") {
-      orchest.jupyter.unload();
-    }
-
-    if (session?.notebook_server_info) {
-      this.updateJupyterInstance();
-    }
+    this.handleSession();
   }
 
   initializeResizeHandlers() {
