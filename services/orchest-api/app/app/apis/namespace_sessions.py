@@ -46,6 +46,13 @@ class SessionList(Resource):
         """Launches an interactive session."""
         post_data = request.get_json()
 
+        isess = models.InteractiveSession.query.filter_by(
+            project_uuid=post_data["project_uuid"],
+            pipeline_uuid=post_data["pipeline_uuid"],
+        ).one_or_none()
+        if isess is not None:
+            return {"message": "Session already exists."}, 409
+
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 CreateInteractiveSession(tpe).transaction(
