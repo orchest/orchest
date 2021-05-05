@@ -1,5 +1,1 @@
-SQLAlchemy
-boto3
-pandas 
-pyarrow>=2.0.0,<3.0.0
-requests
+pyarrow==4.0.0

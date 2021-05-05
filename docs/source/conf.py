@@ -52,7 +52,7 @@ exclude_patterns = [""]
 
 # Autodoc configurations.
 # Mock dependencies that are not available at build time.
-autodoc_mock_imports = ["boto3", "pyarrow", "sqlalchemy"]
+autodoc_mock_imports = ["pyarrow"]
 # The first line of the docstring can be considered to be the function's
 # signature (if it looks like one).
 autodoc_docstring_signature = True
