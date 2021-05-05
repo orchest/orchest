@@ -346,10 +346,4 @@ class RestartMemoryServer(TwoPhaseFunction):
         # Note: The entry in the database does not have to be updated
         # since restarting the `memory-server` does not change its
         # Docker ID.
-        try:
-            session_obj.restart_resource(resource_name="memory-server")
-        except Exception as e:
-            current_app.logger.error(
-                "Failed to restart the memory server %s [%s]" % (e, type(e))
-            )
-            raise e
+        session_obj.restart_resource(resource_name="memory-server")
