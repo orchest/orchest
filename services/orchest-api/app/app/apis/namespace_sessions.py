@@ -9,6 +9,7 @@ import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 from app.errors import JupyterBuildInProgressException
@@ -233,6 +234,15 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["notebook_server_info"] = None
             return False
         else:
+            # Abort interactive run if it was PENDING/STARTED.
+            run = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.project_uuid == project_uuid,
+                models.InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
+                models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+            ).one_or_none()
+            if run is not None:
+                AbortPipelineRun(self.tpe).transaction(run.uuid)
+
             session.status = "STOPPING"
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
