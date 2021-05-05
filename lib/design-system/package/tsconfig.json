@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      // required to prevent transient dependency warnings
+      "@stitches/core": ["node_modules/@stitches/core"]
+    }
+  },
+  "exclude": ["node_modules"],
+  "include": ["src/**/*.ts"],
+}

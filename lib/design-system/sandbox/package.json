@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "name": "@orchest/design-system-sandbox",
+  "version": "1.0.0",
+  "author": "Orchest B.V.",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "next dev"
+  },
+  "dependencies": {
+    "@orchest/design-system": "workspace:*",
+    "next": "10.2.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "15.0.1",
+    "@types/react": "17.0.3",
+    "typescript": "4.2.4"
+  }
+}

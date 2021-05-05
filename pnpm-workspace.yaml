@@ -1,6 +1,5 @@
 packages:
-  # all packages in subdirs of packages/ and components/
+  - "lib/design-system/*"
   - "lib/javascript/*"
   - "services/*/client"
-  # exclude packages that are inside test directories
   - "!**/test/**"

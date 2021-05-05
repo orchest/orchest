@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@orchest/design-system": "workspace:*",
     "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
     "codemirror": "^5.55.0",
