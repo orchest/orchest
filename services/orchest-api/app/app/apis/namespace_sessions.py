@@ -119,7 +119,7 @@ class Session(Resource):
         if could_shutdown:
             return {"message": "Session shutdown was successful."}, 200
         else:
-            return {"message": "Session not found."}, 400
+            return {"message": "Session not found."}, 404
 
     @api.doc("restart_memory_server_of_session")
     @api.response(200, "Session resource memory-server restarted")
