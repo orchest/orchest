@@ -1,8 +1,18 @@
 import * as React from "react";
-import { Alert } from "@orchest/design-system";
+import { flex, Alert, IconLightBulb } from "@orchest/design-system";
 
 const Index = () => (
-  <main>
+  <main
+    className={flex({
+      css: {
+        margin: "0 auto",
+        padding: "$4",
+        maxWidth: "$3xl",
+        flexDirection: "column",
+        gap: "$4",
+      },
+    })}
+  >
     <h1>Design System Sandbox</h1>
 
     <h2>Components</h2>
@@ -14,6 +24,7 @@ const Index = () => (
       description="A project is simply a directory of files. It can even be fully versioned using git!"
     />
     <Alert
+      icon={<IconLightBulb />}
       status="info"
       title="Info"
       description={[
@@ -21,6 +32,16 @@ const Index = () => (
       ]}
     />
     <Alert
+      status="info"
+      title="Info"
+      description={[
+        "Use the integrated file manager to upload and download your files.",
+        "You can import your existing projects and make them into pipelines.",
+        "Private git repositories can be managed in Orchest using local git credentials.",
+      ]}
+    />
+    <Alert
+      icon={<IconLightBulb />}
       status="info"
       title="Info"
       description={[

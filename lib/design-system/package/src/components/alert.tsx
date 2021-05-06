@@ -1,6 +1,8 @@
 import * as React from "react";
 import { StitchesVariants } from "@stitches/react";
-import { css, CSS } from "../core";
+import { css } from "../core";
+import { ICSSProp } from "../types";
+import { Link } from "./link";
 
 const alert = css({
   padding: "$4",
@@ -46,8 +48,7 @@ const alertPagination = css({ color: "$gray700" });
 
 export interface IAlertRef extends HTMLDivElement {}
 
-export interface IAlertProps extends StitchesVariants<typeof alert> {
-  css?: CSS;
+export interface IAlertProps extends ICSSProp, StitchesVariants<typeof alert> {
   title?: string;
   description?: string | string[];
   icon?: React.ReactNode;
@@ -86,11 +87,15 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
                 <p className={alertPagination()}>
                   {descriptionIndex + 1}/{description.length}
                 </p>
-                <button className="" onClick={() => cycleDescriptionIndex()}>
+                <Link
+                  as="button"
+                  variant="inline"
+                  onClick={() => cycleDescriptionIndex()}
+                >
                   {descriptionIndex + 1 === description.length
                     ? "Start again"
                     : "Next"}
-                </button>
+                </Link>
               </div>
             )}
           </React.Fragment>

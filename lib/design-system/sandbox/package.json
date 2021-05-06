@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@orchest/design-system-sandbox",
+  "name": "@orchest/sandbox",
   "version": "1.0.0",
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
