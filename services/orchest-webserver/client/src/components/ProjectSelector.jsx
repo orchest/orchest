@@ -86,7 +86,7 @@ const ProjectSelector = React.forwardRef((_, ref) => {
     return () => {
       promiseManager.cancelCancelablePromises();
     };
-  }, []);
+  }, [state.project_uuid]);
 
   return projects ? (
     <MDCSelectReact

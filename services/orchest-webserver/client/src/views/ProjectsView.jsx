@@ -111,7 +111,7 @@ class ProjectsView extends React.Component {
     return listData;
   }
 
-  fetchList() {
+  fetchList(cb) {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
@@ -120,11 +120,19 @@ class ProjectsView extends React.Component {
 
     fetchListPromise.promise.then((response) => {
       let projects = JSON.parse(response);
-      this.setState({
-        listData: this.processListData(projects),
-        projects: projects,
-        loading: false,
-      });
+
+      this.setState(
+        {
+          listData: this.processListData(projects),
+          projects: projects,
+          loading: false,
+        },
+        () => {
+          if (cb) {
+            cb();
+          }
+        }
+      );
 
       if (this.refManager.refs.projectListView) {
         this.refManager.refs.projectListView.setSelectedRowIds([]);
@@ -180,6 +188,13 @@ class ProjectsView extends React.Component {
   }
 
   deleteProjectRequest(project_uuid) {
+    if (this.context.state.project_uuid == project_uuid) {
+      this.context.dispatch({
+        type: "projectSet",
+        payload: undefined,
+      });
+    }
+
     let deletePromise = makeRequest("DELETE", "/async/projects", {
       type: "json",
       content: {
@@ -232,7 +247,16 @@ class ProjectsView extends React.Component {
     })
       .then((_) => {
         // reload list once creation succeeds
-        this.fetchList();
+        this.fetchList(() => {
+          let createdProject = this.state.projects.filter((proj) => {
+            return proj.path == projectName;
+          })[0];
+
+          this.context.dispatch({
+            type: "projectSet",
+            payload: createdProject.uuid,
+          });
+        });
       })
       .catch((response) => {
         try {
