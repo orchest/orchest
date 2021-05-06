@@ -50,14 +50,10 @@ $pipelineStepWidth: 190px;
   outline: none;
 }
 
-// html,
-// body {
-//   font-size: 17px;
-//   font-family: typography.$font-family;
-//   height: 100%;
-//   padding: 0;
-//   margin: 0;
-// }
+html,
+body {
+  height: 100%;
+}
 
 p {
   font-size: $defaultFontSize;

@@ -148,6 +148,7 @@ importers:
       swr: 0.5.5
       typescript: 4.2.4
       vite: 2.1.5
+      vite-plugin-stitches: 0.0.1
       xterm-addon-fit: ^0.4.0
       xterm-for-react: ^1.0.4
     dependencies:
@@ -169,6 +170,7 @@ importers:
       react-dom: 16.13.1_react@16.13.1
       socket.io-client: 2.4.0
       swr: 0.5.5_react@16.13.1
+      vite-plugin-stitches: 0.0.1_vite@2.1.5
       xterm-addon-fit: 0.4.0
       xterm-for-react: 1.0.4_react-dom@16.13.1+react@16.13.1
     devDependencies:
@@ -5438,6 +5440,18 @@ packages:
       spdx-correct: 3.1.1
       spdx-expression-parse: 3.0.1
     dev: true
+
+  /vite-plugin-stitches/0.0.1_vite@2.1.5:
+    resolution:
+      {
+        integrity: sha512-P4wm6NziiXgujnTw+RrWZUAqV9X4GgottMgluEP0ixg46irwWQgnlJmwoPW5CMH3S4bX7Ji+7AvQ2E/0POXAYA==,
+      }
+    peerDependencies:
+      "@stitches/core": ">= 0.1.0"
+      vite: ">= 2.1.5"
+    dependencies:
+      vite: 2.1.5
+    dev: false
 
   /vite/2.1.5:
     resolution:
