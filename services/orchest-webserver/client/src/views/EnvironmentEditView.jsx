@@ -19,17 +19,20 @@ import {
   LANGUAGE_MAP,
   DEFAULT_BASE_IMAGES,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 import EnvironmentsView from "./EnvironmentsView";
 import ImageBuildLog from "../components/ImageBuildLog";
 
 class EnvironmentEditView extends React.Component {
+  static contextType = OrchestContext;
+
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
   }
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -150,7 +153,10 @@ class EnvironmentEditView extends React.Component {
   }
 
   returnToEnvironments() {
-    orchest.setProject(this.props.queryArgs.project_uuid);
+    this.context.dispatch({
+      type: "projectSet",
+      payload: this.props.queryArgs.project_uuid,
+    });
     orchest.loadView(EnvironmentsView);
   }
 

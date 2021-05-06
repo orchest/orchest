@@ -259,35 +259,6 @@ export function makeRequest(method, url, body?, onprogressCallback?, timeout?) {
 }
 
 // used in orchest-webserver only
-export class PersistentLocalConfig {
-  localStoragePrefix: string;
-
-  constructor(localStoragePrefix) {
-    this.localStoragePrefix = localStoragePrefix;
-  }
-
-  set(key, value) {
-    return window.localStorage.setItem(
-      `${this.localStoragePrefix}.${key}`,
-      value
-    );
-  }
-
-  get(key) {
-    let value = window.localStorage.getItem(
-      `${this.localStoragePrefix}.${key}`
-    );
-    if (value === null) {
-      value = undefined;
-    }
-    return value;
-  }
-  remove(key) {
-    window.localStorage.removeItem(`${this.localStoragePrefix}.${key}`);
-  }
-}
-
-// used in orchest-webserver only
 export function globalMDCVars() {
   return {
     mdcthemeprimary: "#000000",

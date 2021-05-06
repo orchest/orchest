@@ -58,5 +58,5 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
 
    developer_guide/contributing
    developer_guide/development_workflow
-   developer_guide/architecture
+   developer_guide/front-end
    developer_guide/implementation_details

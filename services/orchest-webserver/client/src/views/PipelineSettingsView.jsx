@@ -13,6 +13,7 @@ import {
   MDCTabBarReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
+import { OrchestContext } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
@@ -25,8 +26,10 @@ import EnvVarList from "../components/EnvVarList";
 import "codemirror/mode/javascript/javascript";
 
 class PipelineSettingsView extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       selectedTabIndex: 0,
@@ -47,11 +50,14 @@ class PipelineSettingsView extends React.Component {
   }
 
   setHeaderComponent(pipelineName) {
-    orchest.headerBarComponent.setPipeline(
-      this.props.queryArgs.pipeline_uuid,
-      this.props.queryArgs.project_uuid,
-      pipelineName
-    );
+    this.context.dispatch({
+      type: "pipelineSet",
+      payload: {
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        project_uuid: this.props.queryArgs.project_uuid,
+        pipelineName: pipelineName,
+      },
+    });
   }
 
   init() {

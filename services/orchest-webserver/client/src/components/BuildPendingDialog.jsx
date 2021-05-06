@@ -5,6 +5,7 @@ import {
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import { RefManager, makeRequest } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import EnvironmentsView from "../views/EnvironmentsView";
 
@@ -14,8 +15,10 @@ const buildFailMessage = `Some environment builds of this project have failed.
   order for the build to succeed.`;
 
 class BuildPendingDialog extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {};
     this.refManager = new RefManager();
@@ -147,7 +150,10 @@ class BuildPendingDialog extends React.Component {
   }
 
   onViewBuildStatus() {
-    orchest.setProject(this.props.project_uuid);
+    this.context.dispatch({
+      type: "projectSet",
+      payload: this.props.project_uuid,
+    });
     orchest.loadView(EnvironmentsView);
     this.close();
   }
