@@ -1,5 +1,10 @@
 from _orchest.internals.test_utils import raise_exception_function
-from app.apis.namespace_sessions import CreateInteractiveSession, StopInteractiveSession
+from app.apis.namespace_sessions import (
+    AbortPipelineRun,
+    CreateInteractiveSession,
+    RestartMemoryServer,
+    StopInteractiveSession,
+)
 from app.core.sessions import InteractiveSession
 
 
@@ -97,9 +102,36 @@ def test_session_put(client, pipeline, monkeypatch_interactive_session, monkeypa
     assert r.restarted
 
 
+def test_session_put_aborts_interactive_run(
+    client, interactive_run, monkeypatch_interactive_session, monkeypatch
+):
+    pr_uuid = interactive_run.project.uuid
+    pl_uuid = interactive_run.pipeline.uuid
+    pipeline_spec = {
+        "project_uuid": pr_uuid,
+        "pipeline_uuid": pl_uuid,
+        "pipeline_path": "pip_path",
+        "project_dir": "project_dir",
+        "host_userdir": "host_userdir",
+    }
+
+    client.post("/api/sessions/", json=pipeline_spec)
+
+    monkeypatch.setattr(
+        RestartMemoryServer, "_collateral", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(AbortPipelineRun, "_collateral", lambda *args, **kwargs: None)
+    resp = client.put(f"/api/sessions/{pr_uuid}/{pl_uuid}")
+    assert resp.status_code == 200
+
+    query = {"project_uuid": pr_uuid, "pipeline_uuid": pl_uuid}
+    data = client.get("/api/runs/", query_string=query).get_json()
+    assert data["runs"][0]["status"] == "ABORTED"
+
+
 def test_session_put_non_existent(client):
     resp = client.put("/api/sessions/hello/world")
-    assert resp.status_code == 404
+    assert resp.status_code == 500
 
 
 def test_session_delete_is_stopping(
@@ -126,6 +158,33 @@ def test_session_delete_is_stopping(
 
     assert resp.status_code == 200
     assert data["status"] == "STOPPING"
+
+
+def test_session_delete_aborts_interactive_run(
+    client, interactive_run, monkeypatch_interactive_session, monkeypatch
+):
+    pr_uuid = interactive_run.project.uuid
+    pl_uuid = interactive_run.pipeline.uuid
+    pipeline_spec = {
+        "project_uuid": pr_uuid,
+        "pipeline_uuid": pl_uuid,
+        "pipeline_path": "pip_path",
+        "project_dir": "project_dir",
+        "host_userdir": "host_userdir",
+    }
+
+    client.post("/api/sessions/", json=pipeline_spec)
+
+    monkeypatch.setattr(
+        StopInteractiveSession, "_collateral", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(AbortPipelineRun, "_collateral", lambda *args, **kwargs: None)
+    resp = client.delete(f"/api/sessions/{pr_uuid}/{pl_uuid}")
+    assert resp.status_code == 200
+
+    query = {"project_uuid": pr_uuid, "pipeline_uuid": pl_uuid}
+    data = client.get("/api/runs/", query_string=query).get_json()
+    assert data["runs"][0]["status"] == "ABORTED"
 
 
 def test_session_delete(client, pipeline, monkeypatch_interactive_session, monkeypatch):

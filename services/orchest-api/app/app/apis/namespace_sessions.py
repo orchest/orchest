@@ -9,6 +9,7 @@ import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 from app.errors import JupyterBuildInProgressException
@@ -113,29 +114,17 @@ class Session(Resource):
     @api.response(404, "Session not found")
     def put(self, project_uuid, pipeline_uuid):
         """Restarts the memory-server of the session."""
-        session = models.InteractiveSession.query.get_or_404(
-            ident=(project_uuid, pipeline_uuid), description="Session not found"
-        )
 
-        if session.status != "RUNNING":
-            return {"message": "SessionNotRunning"}, 500
-
-        session_obj = InteractiveSession.from_container_IDs(
-            docker_client,
-            container_IDs=session.container_ids,
-            network=_config.DOCKER_NETWORK,
-            notebook_server_info=session.notebook_server_info,
-        )
-
-        # Note: The entry in the database does not have to be updated
-        # since restarting the `memory-server` does not change its
-        # Docker ID.
         try:
-            session_obj.restart_resource(resource_name="memory-server")
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_restart = RestartMemoryServer(tpe).transaction(
+                    project_uuid, pipeline_uuid
+                )
         except Exception as e:
-            current_app.logger.error(
-                "Failed to restart the memory server %s [%s]" % (e, type(e))
-            )
+            return {"message": str(e)}, 500
+
+        if not could_restart:
+            return {"message": "SessionNotRunning"}, 500
 
         return {"message": "Session restart was successful."}, 200
 
@@ -233,6 +222,15 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["notebook_server_info"] = None
             return False
         else:
+            # Abort interactive run if it was PENDING/STARTED.
+            run = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.project_uuid == project_uuid,
+                models.InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
+                models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+            ).one_or_none()
+            if run is not None:
+                AbortPipelineRun(self.tpe).transaction(run.uuid)
+
             session.status = "STOPPING"
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
@@ -296,3 +294,56 @@ class StopInteractiveSession(TwoPhaseFunction):
         ).one()
         db.session.delete(session)
         db.session.commit()
+
+
+class RestartMemoryServer(TwoPhaseFunction):
+    def _transaction(
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+    ):
+
+        session = models.InteractiveSession.query.filter_by(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid, status="RUNNING"
+        ).one_or_none()
+
+        if session is None:
+            self.collateral_kwargs["container_ids"] = None
+            self.collateral_kwargs["notebook_server_info"] = None
+            return False
+        else:
+            # Abort interactive run if it was PENDING/STARTED.
+            run = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.project_uuid == project_uuid,
+                models.InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
+                models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+            ).one_or_none()
+            if run is not None:
+                AbortPipelineRun(self.tpe).transaction(run.uuid)
+
+            self.collateral_kwargs["container_ids"] = session.container_ids
+            self.collateral_kwargs[
+                "notebook_server_info"
+            ] = session.notebook_server_info
+
+        return True
+
+    def _collateral(
+        self,
+        container_ids: Dict[str, str],
+        notebook_server_info: Dict[str, str] = None,
+    ):
+        if container_ids is None:
+            return
+
+        session_obj = InteractiveSession.from_container_IDs(
+            docker_client,
+            container_IDs=container_ids,
+            network=_config.DOCKER_NETWORK,
+            notebook_server_info=notebook_server_info,
+        )
+
+        # Note: The entry in the database does not have to be updated
+        # since restarting the `memory-server` does not change its
+        # Docker ID.
+        session_obj.restart_resource(resource_name="memory-server")
