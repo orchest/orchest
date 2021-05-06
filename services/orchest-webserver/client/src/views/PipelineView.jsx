@@ -609,6 +609,10 @@ class PipelineView extends React.Component {
       this.context.dispatch({ type: "sessionToggle", payload: session });
     }
 
+    if (session.status == "RUNNING" && this.state.shouldAutoStart === true) {
+      this.setState({ shouldAutoStart: false });
+    }
+
     if (session?.status === "STOPPING") {
       orchest.jupyter.unload();
     }
@@ -616,8 +620,6 @@ class PipelineView extends React.Component {
     if (session?.notebook_server_info) {
       this.updateJupyterInstance();
     }
-
-    this.setState({ shouldAutoStart: false });
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
