@@ -13,15 +13,18 @@ import {
   MDCDialogReact,
   MDCDataTableReact,
 } from "@orchest/lib-mdc";
+import { OrchestContext } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";
 
 class PipelineList extends React.Component {
+  static contextType = OrchestContext;
+
   componentWillUnmount() {}
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       loading: true,
@@ -43,24 +46,21 @@ class PipelineList extends React.Component {
         loading: false,
       });
     });
-
-    // set headerbar
-    orchest.headerBarComponent.clearPipeline();
   }
 
   processListData(pipelines) {
     let listData = [];
 
     for (let pipeline of pipelines) {
+      // @TODO Get the current Project on the Pipelines page
       listData.push([
         <span>{pipeline.name}</span>,
         <span>{pipeline.path}</span>,
         <SessionToggleButton
-          fetchOnInit={true}
-          switch={true}
-          classNames={["consume-click"]}
+          project_uuid={this.context.state.project_uuid}
           pipeline_uuid={pipeline.uuid}
-          project_uuid={this.props.project_uuid}
+          switch={true}
+          className="consume-click"
         />,
       ]);
     }

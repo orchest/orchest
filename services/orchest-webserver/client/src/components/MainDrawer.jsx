@@ -1,14 +1,17 @@
 import React from "react";
 import { MDCDrawer } from "@material/drawer";
 import { RefManager } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import {
   getViewDrawerParentViewName,
   nameToComponent,
 } from "../utils/webserver-utils";
 
 class MainDrawer extends React.Component {
-  constructor() {
-    super();
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.refManager = new RefManager();
   }
@@ -16,14 +19,16 @@ class MainDrawer extends React.Component {
   updateIntercomWidget() {
     if (orchest.config["CLOUD"] === true && window.Intercom !== undefined) {
       // show Intercom widget
-      window.Intercom("update", { hide_default_launcher: !this.drawer.open });
+      window.Intercom("update", {
+        hide_default_launcher: !this.context.state?.drawerIsOpen,
+      });
     }
   }
 
   componentDidMount() {
     this.drawer = new MDCDrawer(this.refManager.refs.mainDrawer);
     this.drawer.list.singleSelection = true;
-    this.drawer.open = this.props.open;
+    this.drawer.open = this.context.state.drawerIsOpen;
     this.drawer.listen("MDCList:action", (e) => {
       let selectedIndex = e.detail.index;
 
@@ -38,20 +43,17 @@ class MainDrawer extends React.Component {
       }
     });
 
-    if (!this.props.open) {
+    if (!this.context.state.drawerIsOpen) {
       this.updateIntercomWidget();
     }
 
     this.drawer.listen("MDCDrawer:opened", () => {
       document.body.focus();
-      orchest.browserConfig.set("topAppBar.open", "true");
 
       this.updateIntercomWidget();
     });
 
     this.drawer.listen("MDCDrawer:closed", () => {
-      orchest.browserConfig.set("topAppBar.open", "false");
-
       this.updateIntercomWidget();
     });
 
@@ -71,8 +73,8 @@ class MainDrawer extends React.Component {
     }
 
     // handle drawer open prop
-    if (prevProps.open != this.props.open) {
-      this.drawer.open = this.props.open;
+    if (prevProps.open != this.context.state.drawerIsOpen) {
+      this.drawer.open = this.context.state.drawerIsOpen;
     }
   }
 

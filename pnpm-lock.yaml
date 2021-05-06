@@ -78,6 +78,7 @@ importers:
     specifiers:
       "@orchest/lib-mdc": workspace:*
       "@orchest/lib-utils": workspace:*
+      "@types/node": 15.0.1
       "@types/react": 17.0.3
       "@vitejs/plugin-react-refresh": 1.3.1
       codemirror: ^5.55.0
@@ -86,6 +87,7 @@ importers:
       dashify: ^2.0.0
       date-fns: 2.20.1
       esbuild: 0.8.44
+      isomorphic-unfetch: 3.1.0
       jquery: ^3.5.1
       lodash: ^4.17.20
       material-components-web: 10.0.0
@@ -96,6 +98,7 @@ importers:
       react-dom: ^16.13.1
       sass: 1.32.8
       socket.io-client: ^2.3.0
+      swr: 0.5.5
       typescript: 4.2.4
       vite: 2.1.5
       xterm-addon-fit: ^0.4.0
@@ -108,6 +111,7 @@ importers:
       cronstrue: 1.111.0
       dashify: 2.0.0
       date-fns: 2.20.1
+      isomorphic-unfetch: 3.1.0
       jquery: 3.6.0
       lodash: 4.17.21
       material-components-web: 10.0.0
@@ -116,9 +120,11 @@ importers:
       react-codemirror2: 7.2.1_codemirror@5.60.0+react@16.13.1
       react-dom: 16.13.1_react@16.13.1
       socket.io-client: 2.4.0
+      swr: 0.5.5_react@16.13.1
       xterm-addon-fit: 0.4.0
       xterm-for-react: 1.0.4_react-dom@16.13.1+react@16.13.1
     devDependencies:
+      "@types/node": 15.0.1
       "@types/react": 17.0.3
       "@vitejs/plugin-react-refresh": 1.3.1
       esbuild: 0.8.44
@@ -1104,6 +1110,13 @@ packages:
       defer-to-connect: 1.1.3
     dev: true
 
+  /@types/node/15.0.1:
+    resolution:
+      {
+        integrity: sha512-TMkXt0Ck1y0KKsGr9gJtWGjttxlZnnvDtphxUOSd0bfaR6Q1jle+sPvrzNR1urqYTWMinoKvjKfXUGsumaO1PA==,
+      }
+    dev: true
+
   /@types/normalize-package-data/2.4.0:
     resolution:
       {
@@ -1773,6 +1786,14 @@ packages:
       object-keys: 1.1.1
     dev: false
 
+  /dequal/2.0.2:
+    resolution:
+      {
+        integrity: sha512-q9K8BlJVxK7hQYqa6XISGmBZbtQQWVXSrRrWreHC94rMt1QL/Impruc+7p2CYSYuVIUr+YCt6hjrs1kkdJRTug==,
+      }
+    engines: { node: ">=6" }
+    dev: false
+
   /dot-prop/5.3.0:
     resolution:
       {
@@ -2366,6 +2387,16 @@ packages:
     resolution: { integrity: sha1-o32U7ZzaLVmGXJ92/llu4fM4dB4= }
     dev: false
 
+  /isomorphic-unfetch/3.1.0:
+    resolution:
+      {
+        integrity: sha512-geDJjpoZ8N0kWexiwkX8F9NkTsXhetLPVbZFQ+JTW239QNOwvB0gniuR1Wc6f0AMTn7/mFGyXvHTifrCp/GH8Q==,
+      }
+    dependencies:
+      node-fetch: 2.6.1
+      unfetch: 4.2.0
+    dev: false
+
   /jquery/3.6.0:
     resolution:
       {
@@ -2664,6 +2695,14 @@ packages:
     engines: { node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1 }
     hasBin: true
     dev: true
+
+  /node-fetch/2.6.1:
+    resolution:
+      {
+        integrity: sha512-V4aYg89jEoVRxRb2fJdAg8FHvI7cEyYdVAh94HH0UIK8oJxUfkjlDQN9RbMx+bEjP7+ggMiFRprSti032Oipxw==,
+      }
+    engines: { node: 4.x || >=6.0.0 }
+    dev: false
 
   /node-releases/1.1.71:
     resolution:
@@ -3415,6 +3454,18 @@ packages:
       has-flag: 4.0.0
     dev: true
 
+  /swr/0.5.5_react@16.13.1:
+    resolution:
+      {
+        integrity: sha512-u4mUorK9Ipt+6LEITvWRWiRWAQjAysI6cHxbMmMV1dIdDzxMnswWo1CyGoyBHXX91CchxcuoqgFZ/ycx+YfhCA==,
+      }
+    peerDependencies:
+      react: ^16.11.0 || ^17.0.0
+    dependencies:
+      dequal: 2.0.2
+      react: 16.13.1
+    dev: false
+
   /syncpack/5.7.11:
     resolution:
       {
@@ -3572,6 +3623,13 @@ packages:
     dependencies:
       debug: 2.6.9
     dev: true
+
+  /unfetch/4.2.0:
+    resolution:
+      {
+        integrity: sha512-F9p7yYCn6cIW9El1zi0HI6vqpeIvBsr3dSuRO6Xuppb1u5rXpCPmMvLSyECLhybr9isec8Ohl0hPekMVrEinDA==,
+      }
+    dev: false
 
   /unique-string/2.0.0:
     resolution:

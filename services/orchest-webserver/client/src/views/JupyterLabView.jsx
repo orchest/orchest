@@ -1,57 +1,85 @@
+// @ts-check
 import React from "react";
 import { MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   PromiseManager,
-  RefManager,
   makeCancelable,
   makeRequest,
   uuidv4,
   collapseDoubleDots,
 } from "@orchest/lib-utils";
+import { useInterval } from "@/hooks/use-interval";
+import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 
-class JupyterLabView extends React.Component {
-  constructor(props) {
-    super(props);
+const JupyterLabView = (props) => {
+  const { state, dispatch, get } = useOrchest();
+  const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
+    1000
+  );
+  const [pipeline, setPipeline] = React.useState(null);
+  const [pipelineCwd, setPipelineCwd] = React.useState(undefined);
+  const [
+    hasEnvironmentCheckCompleted,
+    setHasEnvironmentCheckCompleted,
+  ] = React.useState(false);
 
-    this.state = {
-      backend: {
-        working: false,
-        running: false,
-      },
-      environmentCheckCompleted: false,
+  const orchest = window.orchest;
+
+  const promiseManager = new PromiseManager();
+
+  React.useEffect(() => {
+    // mount
+    checkEnvironmentGate();
+    // dismount
+    return () => {
+      orchest.jupyter.hide();
+      setVerifyKernelsInterval(null);
     };
+  }, []);
 
-    this.refManager = new RefManager();
-    this.promiseManager = new PromiseManager();
-  }
+  React.useEffect(() => {
+    const session = get.currentSession;
 
-  componentDidMount() {
-    this.checkEnvironmentGate();
-  }
+    if (!session) return;
 
-  checkEnvironmentGate() {
-    checkGate(this.props.queryArgs.project_uuid)
+    if (!session.status || session.status === "STOPPED") {
+      // Schedule as callback to avoid calling setState
+      // from within React render call.
+      setTimeout(() => {
+        dispatch({ type: "sessionToggle", payload: session });
+      }, 1);
+      console.log("should start session");
+    }
+
+    if (session?.status === "STOPPING") {
+      console.log("should redirect to pipelines");
+      orchest.loadView(PipelinesView);
+    }
+
+    updateJupyterInstance();
+    conditionalRenderingOfJupyterLab();
+  }, [state]);
+
+  const checkEnvironmentGate = () => {
+    checkGate(props.queryArgs.project_uuid)
       .then(() => {
-        this.state.environmentCheckCompleted = true;
-        this.setState({
-          environmentCheckCompleted: this.state.environmentCheckCompleted,
-        });
-        this.conditionalRenderingOfJupyterLab();
-        this.fetchPipeline();
+        setHasEnvironmentCheckCompleted(true);
+        conditionalRenderingOfJupyterLab();
+        fetchPipeline();
       })
       .catch((result) => {
         if (result.reason === "gate-failed") {
           orchest.requestBuild(
-            this.props.queryArgs.project_uuid,
+            props.queryArgs.project_uuid,
             result.data,
             "JupyterLab",
             () => {
               // force view reload
               orchest.loadView(JupyterLabView, {
-                ...this.props,
+                ...props,
                 key: uuidv4(),
               });
             },
@@ -62,140 +90,106 @@ class JupyterLabView extends React.Component {
           );
         }
       });
-  }
+  };
 
-  componentWillUnmount() {
-    orchest.jupyter.hide();
+  const verifyKernelsCallback = (pipeline) => setPipeline(pipeline);
 
-    orchest.headerBarComponent.clearSessionListeners();
-
-    clearInterval(this.verifyKernelsRetryInterval);
-  }
-
-  verifyKernelsCallback(pipeline) {
-    this.verifyKernelsRetryInterval = setInterval(() => {
+  useInterval(
+    () => {
       if (orchest.jupyter.isJupyterLoaded()) {
         for (let stepUUID in pipeline.steps) {
           let step = pipeline.steps[stepUUID];
 
           if (step.file_path.length > 0 && step.environment.length > 0) {
             orchest.jupyter.setNotebookKernel(
-              collapseDoubleDots(this.state.pipelineCwd + step.file_path).slice(
-                1
-              ),
+              collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
               `orchest-kernel-${step.environment}`
             );
           }
         }
 
-        clearInterval(this.verifyKernelsRetryInterval);
+        setVerifyKernelsInterval(null);
       }
-    }, 1000);
-  }
+    },
+    pipeline ? verifyKernelsInterval : null
+  );
 
-  fetchPipeline() {
+  const fetchPipeline = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      this.props.queryArgs.pipeline_uuid,
-      this.props.queryArgs.project_uuid
+      props.queryArgs.pipeline_uuid,
+      props.queryArgs.project_uuid
     );
 
     let fetchPipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
-      this.promiseManager
+      promiseManager
     );
 
     // fetch pipeline cwd
     let cwdFetchPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/async/file-picker-tree/pipeline-cwd/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
+        `/async/file-picker-tree/pipeline-cwd/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
       ),
-      this.promiseManager
+      promiseManager
     );
 
-    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise]).then(
-      ([fetchCwdResult, fetchPipelinePromiseResult]) => {
-        // relativeToAbsolutePath expects trailing / for directories
-        let cwd = JSON.parse(fetchCwdResult)["cwd"] + "/";
-        this.state.pipelineCwd = cwd;
-        this.setState({
-          pipelineCwd: cwd,
+    Promise.all(
+      // @ts-ignore
+      [cwdFetchPromise.promise, fetchPipelinePromise.promise]
+    ).then(([fetchCwdResult, fetchPipelinePromiseResult]) => {
+      // relativeToAbsolutePath expects trailing / for directories
+      let cwd = JSON.parse(fetchCwdResult)["cwd"] + "/";
+      setPipelineCwd(cwd);
+
+      let result = JSON.parse(fetchPipelinePromiseResult);
+      if (result.success) {
+        let pipeline = JSON.parse(result.pipeline_json);
+        verifyKernelsCallback(pipeline);
+
+        dispatch({
+          type: "pipelineSet",
+          payload: {
+            pipeline_uuid: props.queryArgs.pipeline_uuid,
+            project_uuid: props.queryArgs.project_uuid,
+            pipelineName: pipeline.name,
+          },
         });
 
-        let result = JSON.parse(fetchPipelinePromiseResult);
-        if (result.success) {
-          let pipeline = JSON.parse(result.pipeline_json);
-
-          this.verifyKernelsCallback(pipeline);
-
-          orchest.headerBarComponent.setSessionListeners(
-            this.onSessionStateChange.bind(this)
-          );
-
-          orchest.headerBarComponent.setPipeline(
-            this.props.queryArgs.pipeline_uuid,
-            this.props.queryArgs.project_uuid,
-            pipeline.name
-          );
-
-          orchest.headerBarComponent.updateCurrentView("jupyter");
-        } else {
-          console.error("Could not load pipeline.json");
-          console.error(result);
-        }
+        dispatch({
+          type: "viewUpdateCurrent",
+          payload: "jupyter",
+        });
+      } else {
+        console.error("Could not load pipeline.json");
+        console.error(result);
       }
-    );
-  }
-
-  onSessionStateChange(working, running, session_details) {
-    this.state.backend.working = working;
-    this.state.backend.running = running;
-
-    if (session_details) {
-      this.state.backend.notebook_server_info =
-        session_details.notebook_server_info;
-    }
-
-    // Start session if it's not running
-    if (!working && !running) {
-      // Schedule as callback to avoid calling setState
-      // from within React render call.
-      setTimeout(() => {
-        orchest.headerBarComponent.toggleSession();
-      }, 1);
-    }
-
-    this.setState({
-      backend: this.state.backend,
     });
+  };
 
-    if (session_details) {
-      this.updateJupyterInstance();
-    }
-
-    this.conditionalRenderingOfJupyterLab();
-  }
-
-  conditionalRenderingOfJupyterLab() {
-    if (this.state.backend.running && this.state.environmentCheckCompleted) {
+  const conditionalRenderingOfJupyterLab = () => {
+    if (
+      get.currentSession?.status === "RUNNING" &&
+      hasEnvironmentCheckCompleted
+    ) {
       orchest.jupyter.show();
     } else {
       orchest.jupyter.hide();
     }
-  }
+  };
 
-  updateJupyterInstance() {
+  const updateJupyterInstance = () => {
     let baseAddress =
       "//" +
       window.location.host +
-      this.state.backend.notebook_server_info.base_url;
+      get.currentSession?.notebook_server_info?.base_url;
     orchest.jupyter.updateJupyterInstance(baseAddress);
-  }
+  };
 
-  render() {
-    return (
-      <div className="view-page jupyter no-padding">
-        {!this.state.backend.running && this.state.environmentCheckCompleted && (
+  return (
+    <div className="view-page jupyter no-padding">
+      {get.currentSession?.status !== "RUNNING" &&
+        hasEnvironmentCheckCompleted && (
           <div className="lab-loader">
             <div>
               <h2>Setting up JupyterLab…</h2>
@@ -203,9 +197,8 @@ class JupyterLabView extends React.Component {
             </div>
           </div>
         )}
-      </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default JupyterLabView;

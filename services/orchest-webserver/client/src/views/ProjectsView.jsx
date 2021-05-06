@@ -16,14 +16,17 @@ import {
   RefManager,
   validURL,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import { BackgroundTaskPoller } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 
 class ProjectsView extends React.Component {
+  static contextType = OrchestContext;
+
   componentWillUnmount() {}
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       createModal: false,
@@ -108,7 +111,7 @@ class ProjectsView extends React.Component {
     return listData;
   }
 
-  fetchList() {
+  fetchList(cb) {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
@@ -117,13 +120,19 @@ class ProjectsView extends React.Component {
 
     fetchListPromise.promise.then((response) => {
       let projects = JSON.parse(response);
-      this.setState({
-        listData: this.processListData(projects),
-        projects: projects,
-        loading: false,
-      });
 
-      orchest.invalidateProjects();
+      this.setState(
+        {
+          listData: this.processListData(projects),
+          projects: projects,
+          loading: false,
+        },
+        () => {
+          if (cb) {
+            cb();
+          }
+        }
+      );
 
       if (this.refManager.refs.projectListView) {
         this.refManager.refs.projectListView.setSelectedRowIds([]);
@@ -141,7 +150,10 @@ class ProjectsView extends React.Component {
 
   onClickListItem(row, idx, e) {
     let project = this.state.projects[idx];
-    orchest.setProject(project.uuid);
+    this.context.dispatch({
+      type: "projectSet",
+      payload: project.uuid,
+    });
     orchest.loadView(PipelinesView);
   }
 
@@ -176,6 +188,13 @@ class ProjectsView extends React.Component {
   }
 
   deleteProjectRequest(project_uuid) {
+    if (this.context.state.project_uuid == project_uuid) {
+      this.context.dispatch({
+        type: "projectSet",
+        payload: undefined,
+      });
+    }
+
     let deletePromise = makeRequest("DELETE", "/async/projects", {
       type: "json",
       content: {
@@ -228,7 +247,16 @@ class ProjectsView extends React.Component {
     })
       .then((_) => {
         // reload list once creation succeeds
-        this.fetchList();
+        this.fetchList(() => {
+          let createdProject = this.state.projects.filter((proj) => {
+            return proj.path == projectName;
+          })[0];
+
+          this.context.dispatch({
+            type: "projectSet",
+            payload: createdProject.uuid,
+          });
+        });
       })
       .catch((response) => {
         try {

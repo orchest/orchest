@@ -14,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-
+import { OrchestContext } from "@/hooks/orchest";
 import {
   checkGate,
   getScrollLineHeight,
@@ -211,6 +211,8 @@ function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
 }
 
 class PipelineView extends React.Component {
+  static contextType = OrchestContext;
+
   componentWillUnmount() {
     $(document).off("mouseup.initializePipeline");
     $(document).off("keyup.initializePipeline");
@@ -219,14 +221,12 @@ class PipelineView extends React.Component {
     clearInterval(this.pipelineStepStatusPollingInterval);
     clearInterval(this.sessionPollingInterval);
 
-    orchest.headerBarComponent.clearSessionListeners();
-
     this.promiseManager.cancelCancelablePromises();
     this._ismounted = false;
   }
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     // class constants
     this.STATUS_POLL_FREQUENCY = 1000;
@@ -289,10 +289,7 @@ class PipelineView extends React.Component {
       stepExecutionState: {},
       steps: {},
       defaultDetailViewIndex: 0,
-      backend: {
-        running: false,
-        working: false,
-      },
+      shouldAutoStart: false,
       // The save hash is used to propagate a save's side-effects
       // to components.
       saveHash: "",
@@ -435,7 +432,10 @@ class PipelineView extends React.Component {
         clearTimeout(this.saveIndicatorTimeout);
         this.currentOngoingSaves++;
         this.saveIndicatorTimeout = setTimeout(() => {
-          orchest.headerBarComponent.pipelineSaveStatus("saving");
+          this.context.dispatch({
+            type: "pipelineSetSaveStatus",
+            payload: "saving",
+          });
         }, 100);
 
         // perform POST to save
@@ -453,7 +453,10 @@ class PipelineView extends React.Component {
             this.currentOngoingSaves--;
             if (this.currentOngoingSaves === 0) {
               clearTimeout(this.saveIndicatorTimeout);
-              orchest.headerBarComponent.pipelineSaveStatus("saved");
+              this.context.dispatch({
+                type: "pipelineSetSaveStatus",
+                payload: "saved",
+              });
             }
           });
       }
@@ -584,6 +587,8 @@ class PipelineView extends React.Component {
 
   componentDidMount() {
     if (this.areQueryArgsValid()) {
+      this.setState({ shouldAutoStart: true });
+      this.handleSession();
       this.fetchPipelineAndInitialize();
       this.connectSocketIO();
       this.initializeResizeHandlers();
@@ -592,9 +597,46 @@ class PipelineView extends React.Component {
     }
   }
 
+  handleSession() {
+    const session = this.context.get.currentSession;
+    if (!session) return;
+
+    if (
+      this.props.queryArgs.read_only !== "true" &&
+      this.state.shouldAutoStart === true &&
+      (!session.status || session.status === "STOPPED")
+    ) {
+      this.context.dispatch({ type: "sessionToggle", payload: session });
+    }
+
+    if (session.status == "RUNNING" && this.state.shouldAutoStart === true) {
+      this.setState({ shouldAutoStart: false });
+    }
+
+    if (session?.status === "STOPPING") {
+      orchest.jupyter.unload();
+    }
+
+    if (session?.notebook_server_info) {
+      this.updateJupyterInstance();
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    // fetch pipeline when uuid changed
+    if (
+      this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
+    ) {
+      this.fetchPipelineAndInitialize();
+      this.pipelineSetHolderSize();
+    }
+
+    this.handleSession();
+  }
+
   initializeResizeHandlers() {
     $(window).resize(() => {
-      this.setPipelineHolderSize();
+      this.pipelineSetHolderSize();
     });
   }
 
@@ -1093,7 +1135,7 @@ class PipelineView extends React.Component {
     // called after render, assumed dom elements are also available
     // (required by i.e. connections)
 
-    this.setPipelineHolderSize();
+    this.pipelineSetHolderSize();
     this.renderPipelineHolder();
 
     if (this.initializedPipeline) {
@@ -1141,16 +1183,6 @@ class PipelineView extends React.Component {
     if (this.props.queryArgs.read_only !== "true") {
       // initialize all listeners related to editing the pipeline
       this.initializePipelineEditListeners();
-    }
-  }
-
-  componentDidUpdate(prevProps, prevState, snapshot) {
-    // fetch pipeline when uuid changed
-    if (
-      this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
-    ) {
-      this.fetchPipelineAndInitialize();
-      this.setPipelineHolderSize();
     }
   }
 
@@ -1215,23 +1247,24 @@ class PipelineView extends React.Component {
         if (result.success) {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
 
-          orchest.headerBarComponent.updateCurrentView("pipeline");
+          this.context.dispatch({
+            type: "viewUpdateCurrent",
+            payload: "pipeline",
+          });
 
-          orchest.headerBarComponent.updateReadOnlyState(
-            this.props.queryArgs.read_only === "true"
-          );
+          this.context.dispatch({
+            type: "pipelineUpdateReadOnlyState",
+            payload: this.props.queryArgs.read_only === "true",
+          });
 
-          orchest.headerBarComponent.setSessionListeners(
-            this.onSessionStateChange.bind(this),
-            this.onSessionShutdown.bind(this),
-            this.onSessionFetch.bind(this)
-          );
-
-          orchest.headerBarComponent.setPipeline(
-            this.props.queryArgs.pipeline_uuid,
-            this.props.queryArgs.project_uuid,
-            this.state.pipelineJson.name
-          );
+          this.context.dispatch({
+            type: "pipelineSet",
+            payload: {
+              pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+              project_uuid: this.props.queryArgs.project_uuid,
+              pipelineName: this.state.pipelineJson.name,
+            },
+          });
 
           this.initializePipeline();
         } else {
@@ -1245,11 +1278,13 @@ class PipelineView extends React.Component {
   }
 
   updateJupyterInstance() {
-    let baseAddress =
-      "//" +
-      window.location.host +
-      this.state.backend.notebook_server_info.base_url;
-    orchest.jupyter.updateJupyterInstance(baseAddress);
+    const base_url = this.context?.get?.currentSession?.notebook_server_info
+      ?.base_url;
+
+    if (base_url) {
+      let baseAddress = "//" + window.location.host + base_url;
+      orchest.jupyter.updateJupyterInstance(baseAddress);
+    }
   }
 
   newStep() {
@@ -1485,7 +1520,9 @@ class PipelineView extends React.Component {
   }
 
   openNotebook(stepUUID) {
-    if (this.state.backend.running && !this.state.backend.working) {
+    const session = this.context?.get?.currentSession;
+
+    if (session.status === "RUNNING") {
       orchest.loadView(JupyterLabView, {
         queryArgs: {
           pipeline_uuid: this.props.queryArgs.pipeline_uuid,
@@ -1600,7 +1637,7 @@ class PipelineView extends React.Component {
     this.pipelineOffset[1] = this.INITIAL_PIPELINE_POSITION[1];
     this.scaleFactor = 1;
 
-    this.setPipelineHolderOrigin([0, 0]);
+    this.pipelineSetHolderOrigin([0, 0]);
 
     $(this.refManager.refs.pipelineStepsHolder).css({
       left: 0,
@@ -1634,7 +1671,7 @@ class PipelineView extends React.Component {
       ),
     ];
 
-    this.setPipelineHolderOrigin(centerOrigin);
+    this.pipelineSetHolderOrigin(centerOrigin);
   }
 
   zoomOut() {
@@ -1654,7 +1691,7 @@ class PipelineView extends React.Component {
     return position;
   }
 
-  setPipelineHolderOrigin(newOrigin) {
+  pipelineSetHolderOrigin(newOrigin) {
     this.pipelineOrigin = newOrigin;
 
     let pipelineStepsHolderOffset = $(
@@ -1688,7 +1725,7 @@ class PipelineView extends React.Component {
       pipelineMousePosition[0] != this.pipelineOrigin[0] ||
       pipelineMousePosition[1] != this.pipelineOrigin[1]
     ) {
-      this.setPipelineHolderOrigin(pipelineMousePosition);
+      this.pipelineSetHolderOrigin(pipelineMousePosition);
     }
 
     /* mouseWheel contains information about the deltaY variable
@@ -1793,7 +1830,9 @@ class PipelineView extends React.Component {
   }
 
   runStepUUIDs(uuids, type) {
-    if (!this.state.backend.running) {
+    const session = this.context?.get?.currentSession;
+
+    if (session.status !== "RUNNING") {
       orchest.alert(
         "Error",
         "There is no active session. Please start the session first."
@@ -1866,12 +1905,14 @@ class PipelineView extends React.Component {
   }
 
   getPowerButtonClasses() {
+    const session = this.context?.get?.currentSession;
+
     let classes = ["mdc-power-button", "mdc-button--raised"];
 
-    if (this.state.backend.running) {
+    if (session?.status === "RUNNING") {
       classes.push("active");
     }
-    if (this.state.backend.working) {
+    if (session?.status && ["STOPPING", "LAUNCHING"].includes(session.status)) {
       classes.push("working");
     }
 
@@ -1935,38 +1976,7 @@ class PipelineView extends React.Component {
     return selectedSteps;
   }
 
-  onSessionStateChange(working, running, session_details) {
-    this.state.backend.working = working;
-    this.state.backend.running = running;
-
-    if (session_details) {
-      this.state.backend.notebook_server_info =
-        session_details.notebook_server_info;
-    }
-
-    this.setState({
-      backend: this.state.backend,
-    });
-
-    if (session_details) {
-      this.updateJupyterInstance();
-    }
-  }
-
-  onSessionShutdown() {
-    // unload Jupyter
-    orchest.jupyter.unload();
-  }
-
-  onSessionFetch(session_details) {
-    if (this.props.queryArgs.read_only !== "true") {
-      if (session_details === undefined) {
-        orchest.headerBarComponent.toggleSession();
-      }
-    }
-  }
-
-  setPipelineHolderSize() {
+  pipelineSetHolderSize() {
     // TODO: resize canvas based on pipeline size
     let jElStepOuterHolder = $(this.refManager.refs.pipelineStepsOuterHolder);
 
