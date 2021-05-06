@@ -149,7 +149,7 @@ do
     if [ $SERVICE == "orchest-sdk" ]; then
         TEST_DIR=$DIR/../orchest-sdk/python
         REQ_DIR=$TEST_DIR
-        REQ_FILE=$REQ_DIR/requirements.txt
+        REQ_FILE=$REQ_DIR/requirements-dev.txt
     fi
     if [ $SERVICE == "orchest-ctl" ]; then
         TEST_DIR=$DIR/../services/orchest-ctl
