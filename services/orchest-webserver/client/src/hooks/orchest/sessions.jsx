@@ -21,6 +21,7 @@ const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
 
 export const SessionsProvider = ({ children }) => {
   const { state, dispatch } = useOrchest();
+  const [isPolling, setIsPolling] = React.useState(false);
 
   const sessionsToFetch = state?._sessionsUuids;
 
@@ -61,7 +62,20 @@ export const SessionsProvider = ({ children }) => {
       ).then(
         /** @param {IOrchestSession[]} values */
         (values) => values
-      )
+      ),
+    {
+      onSuccess: (values) => {
+        const hasWorkingSession = values.find((value) =>
+          ["LAUNCHING", "STOPPING"].includes(value.status)
+        );
+
+        const shouldPoll =
+          typeof hasWorkingSession === "undefined" ? false : true;
+
+        setIsPolling(shouldPoll);
+      },
+      refreshInterval: isPolling ? 1000 : 0,
+    }
   );
 
   if (error) {
@@ -91,13 +105,14 @@ export const SessionsProvider = ({ children }) => {
     /**
      * Any cache mutations must be made with this helper to ensure we're only
      * mutating the requested session
-     * @param {Partial<IOrchestSession>} newSessionData
+     * @param {Partial<IOrchestSession>} [newSessionData]
      * @param {boolean} [shouldRevalidate]
      * @returns
      */
     const mutateSession = (newSessionData, shouldRevalidate) =>
       mutate(
         (sessionsData) =>
+          newSessionData &&
           sessionsData.map((sessionData) =>
             isSession(session, sessionData)
               ? { ...sessionData, ...newSessionData }
@@ -174,7 +189,7 @@ export const SessionsProvider = ({ children }) => {
           method: "DELETE",
         }
       )
-        .then(() => mutateSession({ status: "STOPPED" }))
+        .then(() => mutateSession())
         .catch((err) => {
           if (err?.message === "MemoryServerRestartInProgress") {
             dispatch({
