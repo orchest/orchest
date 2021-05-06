@@ -595,18 +595,8 @@ class PipelineView extends React.Component {
       payload: "pipeline",
     });
     if (this.areQueryArgsValid()) {
-      const session = this.context.get.currentSession;
-      if (!session) return;
-
       this.setState({ shouldAutoStart: true });
-
-      if (
-        this.props.queryArgs.readOnly !== true &&
-        this.state.shouldAutoStart === true
-      ) {
-      }
-
-      // this.handleSession();
+      this.handleSession();
       this.fetchPipelineAndInitialize();
       this.connectSocketIO();
       this.initializeResizeHandlers();
@@ -624,7 +614,6 @@ class PipelineView extends React.Component {
       this.state.shouldAutoStart === true &&
       (!session.status || session.status === "STOPPED")
     ) {
-      this.setState({ shouldAutoStart: false });
       this.context.dispatch({ type: "sessionToggle", payload: session });
     }
 
