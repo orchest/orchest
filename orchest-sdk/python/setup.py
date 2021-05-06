@@ -10,13 +10,7 @@ setuptools.setup(
     version="0.2.0",
     packages=setuptools.find_packages(),
     install_requires=[
-        "pyarrow>=2.0.0,<3.0.0",
-        "boto3>=1.13.26",
-        "requests>=2.23.0",
-        "SQLAlchemy>=1.3.18",
-        "mysqlclient>=2.0.1",
-        "psycopg2-binary>=2.8.6",
-        "sqlalchemy-redshift>=0.8.1",
+        "pyarrow>=1.0.0,<=4.0.0",
     ],
     # Metadata to display on PyPI.
     author="Rick Lamers",
