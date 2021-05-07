@@ -18,8 +18,14 @@ export const HeaderBar = React.forwardRef((_, ref) => {
 
   const { state, dispatch, get } = useOrchest();
 
+  const isProjectSelectorVisible = [
+    "jobs",
+    "environments",
+    "pipelines",
+  ].includes(state?.view);
+
   const showPipeline = () => {
-    dispatch({ type: "viewUpdateCurrent", payload: "pipeline" });
+    dispatch({ type: "setView", payload: "pipeline" });
 
     orchest.loadView(PipelineView, {
       queryArgs: {
@@ -30,7 +36,7 @@ export const HeaderBar = React.forwardRef((_, ref) => {
   };
 
   const showJupyter = () => {
-    dispatch({ type: "viewUpdateCurrent", payload: "jupyter" });
+    dispatch({ type: "setView", payload: "jupyter" });
 
     orchest.loadView(JupyterLabView, {
       queryArgs: {
@@ -57,7 +63,8 @@ export const HeaderBar = React.forwardRef((_, ref) => {
           menu
         </button>
         <img src="/image/logo.svg" className="logo" />
-        <ProjectSelector />
+
+        {isProjectSelectorVisible && <ProjectSelector />}
       </div>
 
       {state.pipelineName && (
@@ -86,7 +93,7 @@ export const HeaderBar = React.forwardRef((_, ref) => {
           />
         )}
 
-        {state.pipelineName && state.viewCurrent == "jupyter" && (
+        {state.pipelineName && state.view == "jupyter" && (
           <MDCButtonReact
             classNames={["mdc-button--outlined"]}
             onClick={showPipeline.bind(this)}
@@ -97,7 +104,7 @@ export const HeaderBar = React.forwardRef((_, ref) => {
 
         {state.pipelineName &&
           !state.pipelineIsReadOnly &&
-          state.viewCurrent == "pipeline" && (
+          state.view == "pipeline" && (
             <MDCButtonReact
               disabled={get.currentSession?.status !== "RUNNING"}
               classNames={["mdc-button--outlined"]}

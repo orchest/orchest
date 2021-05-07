@@ -57,8 +57,10 @@ const reducer = (state, action) => {
       };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
-    case "viewUpdateCurrent":
-      return { ...state, viewCurrent: action.payload };
+    case "setView":
+      return { ...state, view: action.payload };
+    case "clearView":
+      return { ...state, view: null };
     case "_sessionsSet":
       return { ...state, sessions: action.payload };
     case "_sessionsToggleClear":
@@ -78,7 +80,7 @@ const initialState = {
   pipeline_uuid: undefined,
   project_uuid: undefined,
   sessions: [],
-  viewCurrent: "pipeline",
+  view: "pipeline",
   _sessionsUuids: [],
   _sessionsToggle: null,
 };
