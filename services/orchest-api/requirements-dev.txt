@@ -6,7 +6,7 @@ celery==4.4.2
 croniter==1.0.2
 docker>=4.3.0
 Flask==1.1.1
-Flask-Cors==3.0.8
+Flask-Cors==3.0.9
 flask-restx==0.2.0
 Flask-SQLAlchemy==2.4.1
 flask-migrate==2.5.3
