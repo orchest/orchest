@@ -153,14 +153,37 @@ class DockerWrapper:
         """
         return asyncio.run(self._do_images_exist(images))
 
-    async def _list_image_ids(self, all: bool = False, label: Optional[str] = None):
-        images = await self.aclient.images.list(all=all, filters={"label": [label]})
+    async def _list_image_ids(
+        self,
+        all: bool = False,
+        label: Optional[str] = None,
+        dangling: Optional[bool] = None,
+    ):
+
+        kwargs = {
+            "all": all,
+        }
+
+        if label is not None:
+            kwargs["filters"] = {"label": [label]}
+
+        images = await self.aclient.images.list(**kwargs)
+
         await self.close_aclient()
+        # Seems like the "dangling" argument in filters cannot be used
+        # in aiodocker, same for the kwarg "name".
+        if dangling is None:
+            return [img["Id"] for img in images]
+        else:
+            return [img["Id"] for img in images if dangling == utils.is_dangling(img)]
 
-        return [img["Id"] for img in images]
-
-    def list_image_ids(self, all: bool = False, label: Optional[str] = None):
-        return asyncio.run(self._list_image_ids(all=all, label=label))
+    def list_image_ids(
+        self,
+        all: bool = False,
+        label: Optional[str] = None,
+        dangling: Optional[bool] = None,
+    ):
+        return asyncio.run(self._list_image_ids(all, label, dangling))
 
     async def _remove_image(self, image: Iterable[str], force: bool = False):
         await self.aclient.images.delete(image, force=force)
@@ -466,6 +489,11 @@ class OrchestResourceManager:
             label="_orchest_jupyter_build_task_uuid"
         )
 
+    def get_orchest_dangling_imgs(self):
+        return self.docker_client.list_image_ids(
+            label="maintainer=Orchest B.V. https://www.orchest.io", dangling=True
+        )
+
     def remove_env_build_imgs(self):
         env_build_imgs = self.get_env_build_imgs()
         self.docker_client.remove_images(env_build_imgs, force=True)
@@ -473,6 +501,10 @@ class OrchestResourceManager:
     def remove_jupyter_build_imgs(self):
         jupyter_build_imgs = self.get_jupyter_build_imgs()
         self.docker_client.remove_images(jupyter_build_imgs, force=True)
+
+    def remove_orchest_dangling_imgs(self):
+        orchest_dangling_imgs = self.get_orchest_dangling_imgs()
+        self.docker_client.remove_images(orchest_dangling_imgs, force=True)
 
     def containers_version(self):
         pulled_images = self.get_images(orchest_owned=True)

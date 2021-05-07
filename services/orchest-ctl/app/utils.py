@@ -111,3 +111,8 @@ def update_git_repo():
     exit_code = script_process.wait()
 
     return exit_code
+
+
+def is_dangling(image):
+    tags = image["RepoTags"]
+    return not tags or (len(tags) == 1 and tags[0] == "<none>:<none>")
