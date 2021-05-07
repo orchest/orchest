@@ -73,31 +73,32 @@ class OrchestApp:
                 on start.
 
         """
-        # Check whether the minimal set of images is present for Orchest
-        # to be started.
+        # Check that all images required for Orchest to be running are
+        # in the system.
         pulled_images = self.resource_manager.get_images()
-        req_images: Set[str] = reduce(
-            lambda x, y: x.union(y), config.ORCHEST_IMAGES["minimal"], set()
-        )
-        missing_images = req_images - set(pulled_images)
+        installation_req_images: Set[str] = set(config.ORCHEST_IMAGES["minimal"])
+        missing_images = installation_req_images - set(pulled_images)
 
         if missing_images or not self.resource_manager.is_network_installed():
             utils.echo("Before starting Orchest, make sure Orchest is installed. Run:")
             utils.echo("\torchest install")
             return
 
-        # Check whether the container config contains the set of
-        # required images.
+        # Check that all images required for Orchest to start are in the
+        # container_config.
+        start_req_images: Set[str] = reduce(
+            lambda x, y: x.union(y), config._on_start_images, set()
+        )
         present_imgs = set(c["Image"] for c in container_config.values())
-        if present_imgs < req_images:  # proper subset
+        if present_imgs < start_req_images:  # proper subset
             raise ValueError(
                 "The container_config does not contain a configuration for "
-                " every required image: " + ", ".join(req_images)
+                "every image required on start: " + ", ".join(start_req_images)
             )
 
         # Orchest is already running
         ids, running_containers = self.resource_manager.get_containers(state="running")
-        if not (req_images - set(running_containers)):
+        if not (start_req_images - set(running_containers)):
             # TODO: Ideally this would print the port on which Orchest
             #       is running. (Was started before and so we do not
             #       simply know.)
@@ -123,11 +124,11 @@ class OrchestApp:
         logger.info("Fixing permissions on the 'userdir/'.")
 
         utils.echo("Starting Orchest...")
-        logger.info("Starting containers:\n" + "\n".join(req_images))
+        logger.info("Starting containers:\n" + "\n".join(start_req_images))
 
         # Start the containers in the correct order, keeping in mind
         # dependencies between containers.
-        for i, to_start_imgs in enumerate(config.ORCHEST_IMAGES["minimal"]):
+        for i, to_start_imgs in enumerate(config._on_start_images):
             filter_ = {"Image": to_start_imgs}
             config_ = spec.filter_container_config(container_config, filter=filter_)
             stdouts = self.docker_client.run_containers(
