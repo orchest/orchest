@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import useSWR from "swr";
+import useSWR, { cache } from "swr";
 import { fetcher } from "@/utils/fetcher";
 import { useOrchest } from "./context";
 import { isSession } from "./utils";
@@ -45,11 +45,23 @@ export const SessionsProvider = ({ children }) => {
 
   const { data, mutate, error } = useSWR(
     sessionsToFetch ? sessionsKey : null,
-    () =>
+    () => {
+      const cachedSessions = cache.get(sessionsKey);
       /* [2] */
-      Promise.all(
-        sessionsToFetch.map(({ pipeline_uuid, project_uuid }) =>
-          fetcher(getSessionEndpoint({ pipeline_uuid, project_uuid }))
+      return Promise.all(
+        sessionsToFetch.map(({ pipeline_uuid, project_uuid }) => {
+          const key = getSessionEndpoint({ pipeline_uuid, project_uuid });
+
+          const cachedSession = cachedSessions?.find((session) =>
+            isSession(session, { pipeline_uuid, project_uuid })
+          );
+
+          /* Ensure only "LAUNCHING" and "STOPPING" statuses are polled */
+          if (["RUNNING", "STOPPED"].includes(cachedSession?.status)) {
+            return cachedSession;
+          }
+
+          return fetcher(key)
             .then((value) =>
               value?.sessions?.length > 0
                 ? value.sessions[0]
@@ -57,12 +69,13 @@ export const SessionsProvider = ({ children }) => {
             )
             .catch((e) => {
               console.error(e);
-            })
-        )
+            });
+        })
       ).then(
         /** @param {IOrchestSession[]} values */
         (values) => values
-      ),
+      );
+    },
     {
       onSuccess: (values) => {
         const hasWorkingSession = values.find((value) =>
