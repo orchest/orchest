@@ -58,8 +58,14 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
   ({ css, status, title, description, icon, ...props }, ref) => {
     const isOnlyDescription = !Array.isArray(description);
     const [descriptionIndex, setDescriptionIndex] = React.useState(0);
-    const cycleDescriptionIndex = () =>
-      setDescriptionIndex((prevIndex) => (prevIndex + 1) % description.length);
+    const cycleDescriptionIndex = (direction: "forwards" | "backwards") =>
+      setDescriptionIndex(
+        (prevIndex) =>
+          ({
+            forwards: prevIndex + 1,
+            backwards: prevIndex <= 0 ? description.length - 1 : prevIndex - 1,
+          }[direction] % description.length)
+      );
 
     return (
       <div
@@ -87,15 +93,23 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
                 <p className={alertPagination()}>
                   {descriptionIndex + 1}/{description.length}
                 </p>
-                <Link
-                  as="button"
-                  variant="inline"
-                  onClick={() => cycleDescriptionIndex()}
-                >
-                  {descriptionIndex + 1 === description.length
-                    ? "Start again"
-                    : "Next"}
-                </Link>
+                <div role="group">
+                  <Link
+                    as="button"
+                    variant="inline"
+                    onClick={() => cycleDescriptionIndex("backwards")}
+                  >
+                    Back
+                  </Link>
+
+                  <Link
+                    as="button"
+                    variant="inline"
+                    onClick={() => cycleDescriptionIndex("forwards")}
+                  >
+                    Next
+                  </Link>
+                </div>
               </div>
             )}
           </React.Fragment>
