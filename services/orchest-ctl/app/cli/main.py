@@ -195,6 +195,9 @@ def install(
 @typer_app.command()
 def update(
     mode: Optional[str] = typer.Option(None, hidden=True),
+    dev: bool = typer.Option(
+        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
+    ),
 ):
     """
     Update Orchest.
@@ -202,7 +205,7 @@ def update(
     Note: when updating Orchest all running sessions and pipeline runs
     will be killed. Orchest can not be running during update.
     """
-    app.update(mode=mode)
+    app.update(mode=mode, dev=dev)
 
 
 @typer_app.command()

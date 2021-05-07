@@ -258,7 +258,7 @@ class OrchestApp:
                 else:
                     raise typer.Exit(code=3)
 
-    def update(self, mode=None):
+    def update(self, mode=None, dev: bool = False):
         """Update Orchest.
 
         Args:
@@ -294,16 +294,17 @@ class OrchestApp:
 
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.
-        exit_code = utils.update_git_repo()
-        if exit_code != 0:
-            utils.echo("Cancelling update...")
-            utils.echo(
-                "It seems like you have unstaged changes in the 'orchest'"
-                " repository. Please commit or stash them as 'orchest update'"
-                " pulls the newest changes to the 'userdir/' using a rebase.",
-            )
-            logger.error("Failed update due to unstaged changes.")
-            return
+        if not dev:
+            exit_code = utils.update_git_repo()
+            if exit_code != 0:
+                utils.echo("Cancelling update...")
+                utils.echo(
+                    "It seems like you have unstaged changes in the 'orchest'"
+                    " repository. Please commit or stash them as 'orchest update'"
+                    " pulls the newest changes to the 'userdir/' using a rebase.",
+                )
+                logger.error("Failed update due to unstaged changes.")
+                return
 
         # Get all installed images and pull new versions. The pulled
         # images are checked to make sure optional images, e.g. lang

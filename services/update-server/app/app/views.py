@@ -29,19 +29,26 @@ def background_task():
 
     client = docker.from_env()
 
+    dev_mode = CONFIG_CLASS.FLASK_ENV == "development"
+    cloud_mode = CONFIG_CLASS.CLOUD
+
     try:
         log_update("Starting update ...\n")
 
-        # get latest orchest-ctl
-        log_update("Pulling orchest-ctl ...\n")
-        try:
-            client.images.pull("orchest/orchest-ctl:latest")
-        except docker.errors.APIError as e:
-            logging.error(e)
-        log_update("Pulled orchest-ctl. Starting update ...\n")
+        if not dev_mode:
+            # get latest orchest-ctl
+            log_update("Pulling orchest-ctl ...\n")
+            try:
+                client.images.pull("orchest/orchest-ctl:latest")
+            except docker.errors.APIError as e:
+                logging.error(e)
+            log_update("Pulled orchest-ctl. Starting update ...\n")
 
         try:
-            container = run_orchest_ctl(client, ["update", "--mode=web"])
+            cmd = ["update", "--mode=web"]
+            if dev_mode:
+                cmd.append("--dev")
+            container = run_orchest_ctl(client, cmd)
 
             for line in container.logs(stream=True):
                 log_update(line.decode())
@@ -73,10 +80,10 @@ def background_task():
         # Note that it won't work as --port {port}.
         ctl_command.append(f"--port={CONFIG_CLASS.PORT}")
 
-        if CONFIG_CLASS.FLASK_ENV == "development":
+        if dev_mode:
             ctl_command.append("--dev")
 
-        if CONFIG_CLASS.CLOUD:
+        if cloud_mode:
             ctl_command.append("--cloud")
 
         # Note: this depends on the detached Docker orchest_ctl

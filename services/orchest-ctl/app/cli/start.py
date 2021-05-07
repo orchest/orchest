@@ -20,7 +20,9 @@ __DEV_HELP_MESSAGE = (
     "Starting Orchest with --dev mounts the repository code from the "
     "filesystem (and thus adhering to branches) to the appropriate paths in "
     "the Docker containers. This allows for active code changes being "
-    "reflected inside the application."
+    "reflected inside the application. Moreover, updating in dev mode "
+    "makes it so that the git repository and the orchest-ctl image are"
+    "not updated."
 )
 
 
