@@ -84,6 +84,8 @@ class OrchestApp:
                 on start.
 
         """
+        self.resource_manager.remove_orchest_dangling_imgs()
+
         # Check whether the minimal set of images is present for Orchest
         # to be started.
         pulled_images = self.resource_manager.get_images()
