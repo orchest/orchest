@@ -2,9 +2,9 @@ import copy
 import os
 
 import pytest
-from config import CONFIG_CLASS
 from sqlalchemy_utils import drop_database
 from tests.test_utils import (
+    EagerScheduler,
     EnvironmentBuild,
     InteractiveRun,
     InteractiveSession,
@@ -23,6 +23,7 @@ from app.apis import (
     namespace_runs,
 )
 from app.connections import db
+from config import CONFIG_CLASS
 
 
 @pytest.fixture()
@@ -88,6 +89,16 @@ def test_app():
 
     config.TESTING = True
     app = create_app(config, use_db=True, be_scheduler=False)
+    scheduler = EagerScheduler(
+        job_defaults={
+            # Same settings as the "real" scheduler.
+            "misfire_grace_time": 2 ** 31,
+            "coalesce": False,
+            "max_instances": 2 ** 31,
+        }
+    )
+    app.config["SCHEDULER"] = scheduler
+    scheduler.start()
     yield app
 
     drop_database(app.config["SQLALCHEMY_DATABASE_URI"])

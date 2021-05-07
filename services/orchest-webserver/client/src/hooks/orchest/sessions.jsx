@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import useSWR from "swr";
+import useSWR, { cache } from "swr";
 import { fetcher } from "@/utils/fetcher";
 import { useOrchest } from "./context";
 import { isSession } from "./utils";
@@ -21,6 +21,7 @@ const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
 
 export const SessionsProvider = ({ children }) => {
   const { state, dispatch } = useOrchest();
+  const [isPolling, setIsPolling] = React.useState(false);
 
   const sessionsToFetch = state?._sessionsUuids;
 
@@ -44,11 +45,23 @@ export const SessionsProvider = ({ children }) => {
 
   const { data, mutate, error } = useSWR(
     sessionsToFetch ? sessionsKey : null,
-    () =>
+    () => {
+      const cachedSessions = cache.get(sessionsKey);
       /* [2] */
-      Promise.all(
-        sessionsToFetch.map(({ pipeline_uuid, project_uuid }) =>
-          fetcher(getSessionEndpoint({ pipeline_uuid, project_uuid }))
+      return Promise.all(
+        sessionsToFetch.map(({ pipeline_uuid, project_uuid }) => {
+          const key = getSessionEndpoint({ pipeline_uuid, project_uuid });
+
+          const cachedSession = cachedSessions?.find((session) =>
+            isSession(session, { pipeline_uuid, project_uuid })
+          );
+
+          /* Ensure only "LAUNCHING" and "STOPPING" statuses are polled */
+          if (["RUNNING", "STOPPED"].includes(cachedSession?.status)) {
+            return cachedSession;
+          }
+
+          return fetcher(key)
             .then((value) =>
               value?.sessions?.length > 0
                 ? value.sessions[0]
@@ -56,12 +69,26 @@ export const SessionsProvider = ({ children }) => {
             )
             .catch((e) => {
               console.error(e);
-            })
-        )
+            });
+        })
       ).then(
         /** @param {IOrchestSession[]} values */
         (values) => values
-      )
+      );
+    },
+    {
+      onSuccess: (values) => {
+        const hasWorkingSession = values.find((value) =>
+          ["LAUNCHING", "STOPPING"].includes(value.status)
+        );
+
+        const shouldPoll =
+          typeof hasWorkingSession === "undefined" ? false : true;
+
+        setIsPolling(shouldPoll);
+      },
+      refreshInterval: isPolling ? 1000 : 0,
+    }
   );
 
   if (error) {
@@ -91,13 +118,14 @@ export const SessionsProvider = ({ children }) => {
     /**
      * Any cache mutations must be made with this helper to ensure we're only
      * mutating the requested session
-     * @param {Partial<IOrchestSession>} newSessionData
+     * @param {Partial<IOrchestSession>} [newSessionData]
      * @param {boolean} [shouldRevalidate]
      * @returns
      */
     const mutateSession = (newSessionData, shouldRevalidate) =>
       mutate(
         (sessionsData) =>
+          newSessionData &&
           sessionsData.map((sessionData) =>
             isSession(session, sessionData)
               ? { ...sessionData, ...newSessionData }
@@ -174,7 +202,7 @@ export const SessionsProvider = ({ children }) => {
           method: "DELETE",
         }
       )
-        .then(() => mutateSession({ status: "STOPPED" }))
+        .then(() => mutateSession())
         .catch((err) => {
           if (err?.message === "MemoryServerRestartInProgress") {
             dispatch({

@@ -33,10 +33,15 @@ const JupyterLabView = (props) => {
   React.useEffect(() => {
     // mount
     checkEnvironmentGate();
+    dispatch({
+      type: "setView",
+      payload: "jupyter",
+    });
     // dismount
     return () => {
       orchest.jupyter.hide();
       setVerifyKernelsInterval(null);
+      dispatch({ type: "clearView" });
     };
   }, []);
 
@@ -154,11 +159,6 @@ const JupyterLabView = (props) => {
             project_uuid: props.queryArgs.project_uuid,
             pipelineName: pipeline.name,
           },
-        });
-
-        dispatch({
-          type: "viewUpdateCurrent",
-          payload: "jupyter",
         });
       } else {
         console.error("Could not load pipeline.json");
