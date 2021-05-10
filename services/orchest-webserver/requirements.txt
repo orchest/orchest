@@ -5,7 +5,7 @@ flask_sqlalchemy==2.4.4
 Flask-RESTful==0.3.8
 flask-marshmallow==0.14.0
 Flask-SocketIO==4.3.2
-eventlet==0.31.0
+eventlet==0.30.2
 marshmallow-sqlalchemy==0.24.1
 Flask-Migrate==2.5.3
 flask-script==2.0.6
