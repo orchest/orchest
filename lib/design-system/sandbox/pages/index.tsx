@@ -1,5 +1,5 @@
 import * as React from "react";
-import { flex, Alert, IconLightBulb } from "@orchest/design-system";
+import { flex, Alert, IconLightBulb, Link } from "@orchest/design-system";
 
 const Index = () => (
   <main
@@ -35,7 +35,10 @@ const Index = () => (
       status="info"
       title="Info"
       description={[
-        "Use the integrated file manager to upload and download your files.",
+        <>
+          Use the integrated <Link href="#">file manager</Link> to upload and
+          download your files.
+        </>,
         "You can import your existing projects and make them into pipelines.",
         "Private git repositories can be managed in Orchest using local git credentials.",
       ]}
@@ -45,7 +48,10 @@ const Index = () => (
       status="info"
       title="Info"
       description={[
-        "Use the integrated file manager to upload and download your files.",
+        <>
+          Use the integrated <Link href="#">file manager</Link> to upload and
+          download your files.
+        </>,
         "You can import your existing projects and make them into pipelines.",
         "Private git repositories can be managed in Orchest using local git credentials.",
       ]}

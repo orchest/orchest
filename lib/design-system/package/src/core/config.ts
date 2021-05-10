@@ -1,4 +1,4 @@
-import { createCss, StitchesCss } from "@stitches/react";
+import { createCss } from "@stitches/react";
 import { mixins } from "stitches-mixins";
 
 const colors = {
@@ -119,8 +119,6 @@ export const stitches = createCss({
     }),
   },
 });
-
-export type CSS = StitchesCss<typeof stitches>;
 
 export const {
   styled,

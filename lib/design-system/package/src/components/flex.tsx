@@ -1,4 +1,5 @@
-import { css, styled, CSS } from "../core";
+import { css, styled } from "../core";
+import { CSS } from "../types";
 
 const style: CSS = { include: "box", display: "flex" };
 

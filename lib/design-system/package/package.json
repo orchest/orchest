@@ -11,16 +11,17 @@
     "build": "concurrently -n w: npm:*:build",
     "dev": "concurrently -n w: npm:*:watch",
     "lint": "concurrently -n w: npm:*:check",
-    "cjs:build": "esbuild src/index.ts --bundle --loader:.js=jsx --external:react* --outfile=dist/index.cjs --format=cjs",
-    "cjs:watch": "esbuild src/index.ts --bundle --loader:.js=jsx --external:react* --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
-    "esm:build": "esbuild src/index.ts --bundle --loader:.js=jsx --external:react* --outfile=dist/index.js --format=esm",
-    "esm:watch": "esbuild src/index.ts --bundle --loader:.js=jsx --external:react* --outfile=dist/index.js --format=esm --watch --log-level=error",
+    "cjs:build": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.cjs --format=cjs",
+    "cjs:watch": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
+    "esm:build": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.js --format=esm",
+    "esm:watch": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.js --format=esm --watch --log-level=error",
     "ts:build": "tsc --emitDeclarationOnly --outDir dist",
     "ts:watch": "tsc --emitDeclarationOnly --outDir dist -w",
     "ts:check": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-id": "0.0.6",
+    "@radix-ui/react-polymorphic": "0.0.11",
     "@stitches/react": "0.1.9",
     "stitches-mixins": "0.2.1"
   },

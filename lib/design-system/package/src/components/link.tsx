@@ -7,6 +7,7 @@ export const Link = styled("a", {
         appearance: "none",
         backgroundColor: "transparent",
         border: 0,
+        padding: 0,
         flexShrink: 0,
         color: "$link",
         WebkitTapHighlightColor: "rgba(0,0,0,0)",

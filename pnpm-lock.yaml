@@ -10,6 +10,7 @@ importers:
   lib/design-system/package:
     specifiers:
       "@radix-ui/react-id": 0.0.6
+      "@radix-ui/react-polymorphic": 0.0.11
       "@stitches/core": 0.1.9
       "@stitches/react": 0.1.9
       "@types/node": 15.0.1
@@ -22,6 +23,7 @@ importers:
       typescript: 4.2.4
     dependencies:
       "@radix-ui/react-id": 0.0.6_react@16.13.1
+      "@radix-ui/react-polymorphic": 0.0.11_react@16.13.1
       "@stitches/react": 0.1.9_react@16.13.1
       stitches-mixins: 0.2.1_@stitches+core@0.1.9
     devDependencies:
@@ -1281,6 +1283,18 @@ packages:
     resolution:
       {
         integrity: sha512-PzmraF34fYggsYvTIZVJ5S68WMp3aKUN3HkSmGnz4zn9zpRjkAbbg7Xn3ueQI3FQsLWKgyUfnpsmWFDndpcqYg==,
+      }
+    peerDependencies:
+      react: ^16.8 || ^17.0
+    dependencies:
+      "@babel/runtime": 7.14.0
+      react: 16.13.1
+    dev: false
+
+  /@radix-ui/react-polymorphic/0.0.11_react@16.13.1:
+    resolution:
+      {
+        integrity: sha512-CztM4962esOx3i1ls6GuY9RBYIY2Df1Bmp5emHRTxZi8owyCZwZYPctYaDuMO0qIGikPiKD8HBion/m7VWUyEA==,
       }
     peerDependencies:
       react: ^16.8 || ^17.0

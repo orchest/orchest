@@ -1,13 +1,19 @@
 import * as React from "react";
+import { useId } from "@radix-ui/react-id";
 import { StitchesVariants } from "@stitches/react";
 import { css } from "../core";
+import { IconChevronLeft, IconChevronRight } from "../icons";
 import { ICSSProp } from "../types";
-import { Link } from "./link";
+import { IconButton } from "./icon-button";
 
 const alert = css({
+  $$gap: "$space$2",
   padding: "$4",
   borderRadius: "$sm",
   textAlign: "left",
+  "> * + *": {
+    marginTop: "$$gap",
+  },
   variants: {
     status: {
       info: {
@@ -18,24 +24,24 @@ const alert = css({
 });
 
 const alertHeader = css({
-  display: "inline-flex",
+  display: "flex",
   alignItems: "center",
   fontWeight: "$bold",
 });
 
 const alertIcon = css({
+  display: "inline-flex",
+  flexShrink: 0,
+  alignSelf: "center",
   "> svg": {
     width: "$fontSizes$base",
     height: "auto",
     color: "$text",
-    verticalAlign: "unset",
-    marginRight: "$2",
+    marginRight: "$$gap",
   },
 });
 
 const alertTitle = css({ fontWeight: "$bold" });
-
-const alertBody = css({ marginTop: "$1" });
 
 const alertFooter = css({
   display: "flex",
@@ -50,15 +56,18 @@ export interface IAlertRef extends HTMLDivElement {}
 
 export interface IAlertProps extends ICSSProp, StitchesVariants<typeof alert> {
   title?: string;
-  description?: string | string[];
+  description?: React.ReactNode | React.ReactNode[];
   icon?: React.ReactNode;
 }
 
 export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
   ({ css, status, title, description, icon, ...props }, ref) => {
-    const isOnlyDescription = !Array.isArray(description);
+    const titleId = useId();
+    const descriptionId = useId();
+
     const [descriptionIndex, setDescriptionIndex] = React.useState(0);
     const cycleDescriptionIndex = (direction: "forwards" | "backwards") =>
+      Array.isArray(description) &&
       setDescriptionIndex(
         (prevIndex) =>
           ({
@@ -72,11 +81,13 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
         ref={ref}
         role="alert"
         aria-live="polite"
+        aria-labelledby={title && titleId}
+        aria-describedby={description && descriptionId}
         className={alert({ css, status })}
         {...props}
       >
         {title && (
-          <p className={alertHeader()}>
+          <p id={titleId} className={alertHeader()}>
             {icon && <span className={alertIcon()}>{icon}</span>}
             <span className={alertTitle()}>{title}</span>
           </p>
@@ -84,31 +95,35 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
 
         {description && (
           <React.Fragment>
-            <p className={alertBody()}>
-              {isOnlyDescription ? description : description[descriptionIndex]}
+            <p id={descriptionId}>
+              {!Array.isArray(description)
+                ? description
+                : description[descriptionIndex]}
             </p>
-            {console.log("farts")}
-            {!isOnlyDescription && description.length > 1 && (
+
+            {Array.isArray(description) && description.length > 1 && (
               <div className={alertFooter()}>
                 <p className={alertPagination()}>
                   {descriptionIndex + 1}/{description.length}
                 </p>
                 <div role="group">
-                  <Link
-                    as="button"
-                    variant="inline"
-                    onClick={() => cycleDescriptionIndex("backwards")}
-                  >
-                    Back
-                  </Link>
-
-                  <Link
-                    as="button"
-                    variant="inline"
+                  <IconButton
+                    label="Back"
+                    variant="ghost"
+                    bleed="bottom"
                     onClick={() => cycleDescriptionIndex("forwards")}
                   >
-                    Next
-                  </Link>
+                    <IconChevronLeft />
+                  </IconButton>
+
+                  <IconButton
+                    label="Next"
+                    variant="ghost"
+                    bleed="bottomRight"
+                    onClick={() => cycleDescriptionIndex("forwards")}
+                  >
+                    <IconChevronRight />
+                  </IconButton>
                 </div>
               </div>
             )}
