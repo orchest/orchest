@@ -246,7 +246,7 @@ def test_start(
         return res
 
     def mocked_get_containers(
-        state: Literal["all", "running", "exited"] = "running",
+        state: Literal["all", "running", "exited"] = "running", full_info: bool = False
     ):
         if state == "running":
             return running_containers, running_containers
@@ -255,6 +255,7 @@ def test_start(
 
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_images = MagicMock(return_value=installed_images)
+    resource_manager.remove_orchest_dangling_imgs = MagicMock(return_value=None)
     monkeypatch.setattr(resource_manager, "get_containers", mocked_get_containers)
     docker_client = orchest.DockerWrapper()
     docker_client.remove_containers = MagicMock(return_value=None)
