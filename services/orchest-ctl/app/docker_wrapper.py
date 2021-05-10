@@ -170,6 +170,7 @@ class DockerWrapper:
         images = await self.aclient.images.list(**kwargs)
 
         await self.close_aclient()
+
         # Seems like the "dangling" argument in filters cannot be used
         # in aiodocker, same for the kwarg "name".
         if dangling is None:
@@ -183,7 +184,9 @@ class DockerWrapper:
         label: Optional[str] = None,
         dangling: Optional[bool] = None,
     ):
-        return asyncio.run(self._list_image_ids(all, label, dangling))
+        return asyncio.run(
+            self._list_image_ids(all=all, label=label, dangling=dangling)
+        )
 
     async def _remove_image(self, image: Iterable[str], force: bool = False):
         await self.aclient.images.delete(image, force=force)
@@ -210,6 +213,7 @@ class DockerWrapper:
         self,
         state: Literal["all", "running", "exited"] = "running",
         network: Optional[str] = None,
+        full_info: bool = False,
     ) -> Tuple[List[str], List[Optional[str]]]:
         all_ = True if state in ["all", "exited"] else False
         containers = await self.aclient.containers.list(
@@ -217,24 +221,24 @@ class DockerWrapper:
         )
         await self.close_aclient()
 
-        ids = []
+        info = []
         img_names = []
         for c in containers:
             if state == "exited":
                 if c._container.get("State") != "running":
                     img_names.append(c._container.get("Image"))
-                    ids.append(c.id)
-
+                    info.append(c._container if full_info else c.id)
             else:
                 img_names.append(c._container.get("Image"))
-                ids.append(c.id)
+                info.append(c._container if full_info else c.id)
 
-        return ids, img_names
+        return info, img_names
 
     def get_containers(
         self,
         state: Literal["all", "running", "exited"] = "running",
         network: Optional[str] = None,
+        full_info: bool = False,
     ) -> Tuple[List[str], List[Optional[str]]]:
         """Returns runnings containers (on a network).
 
@@ -249,7 +253,9 @@ class DockerWrapper:
             containers.
 
         """
-        return asyncio.run(self._get_containers(state=state, network=network))
+        return asyncio.run(
+            self._get_containers(state=state, network=network, full_info=full_info)
+        )
 
     async def _remove_containers(self, container_ids: Iterable[str]):
         async def remove_container(id_: str) -> None:
@@ -398,7 +404,7 @@ class DockerWrapper:
         await self.close_aclient()
 
     def copy_files_from_containers(self, files: List[Tuple[str, str, str]]) -> None:
-        """AI is creating summary for copy_files_from_containers
+        """Copy files from containers.
 
         Args:
             files: A list of triples where, for each triple, the first
@@ -472,6 +478,7 @@ class OrchestResourceManager:
     def get_containers(
         self,
         state: Literal["all", "running", "exited"] = "running",
+        full_info: bool = False,
     ) -> Tuple[List[str], List[Optional[str]]]:
         """
 
@@ -479,7 +486,9 @@ class OrchestResourceManager:
             state: The state of the container to be in in order for it
                 to be returned.
         """
-        return self.docker_client.get_containers(state=state, network=self.network)
+        return self.docker_client.get_containers(
+            state=state, network=self.network, full_info=full_info
+        )
 
     def get_env_build_imgs(self):
         return self.docker_client.list_image_ids(label="_orchest_env_build_task_uuid")
@@ -503,7 +512,10 @@ class OrchestResourceManager:
         self.docker_client.remove_images(jupyter_build_imgs, force=True)
 
     def remove_orchest_dangling_imgs(self):
-        orchest_dangling_imgs = self.get_orchest_dangling_imgs()
+        orchest_dangling_imgs = set(self.get_orchest_dangling_imgs())
+        containers, _ = self.get_containers(full_info=True)
+        images_in_use = {c["ImageID"] for c in containers}
+        orchest_dangling_imgs = orchest_dangling_imgs - images_in_use
         self.docker_client.remove_images(orchest_dangling_imgs, force=True)
 
     def containers_version(self):

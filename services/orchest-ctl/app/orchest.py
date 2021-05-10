@@ -315,6 +315,9 @@ class OrchestApp:
         logger.info("Deleting user-built Jupyter image.")
         self.resource_manager.remove_jupyter_build_imgs()
 
+        # Delete Orchest dangling images.
+        self.resource_manager.remove_orchest_dangling_imgs()
+
         # We invoke the Orchest restart from the webserver ui-updater.
         # Hence we do not show the message to restart manually.
         if mode == "web":
