@@ -23,9 +23,9 @@ const alert = css({
         backgroundColor: "$gray50",
       },
       warning: {
-        $$textColor: "$yellow900",
+        $$textColor: "$colors$yellow900",
         $$paginationColor: "$colors$yellow800",
-        backgroundColor: "$yellow50",
+        backgroundColor: "$colors$yellow50",
       },
     },
   },
