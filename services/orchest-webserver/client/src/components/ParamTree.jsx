@@ -1,6 +1,6 @@
 import React from "react";
 import _ from "lodash";
-import { Alert, IconWarning, Link } from "@orchest/design-system";
+import { Alert, IconLightBulb, Link } from "@orchest/design-system";
 
 class ParamTree extends React.Component {
   truncateParameterValue(value) {
@@ -100,16 +100,15 @@ class ParamTree extends React.Component {
           if (Object.keys(this.props.strategyJSON).length == 0) {
             return (
               <Alert
-                icon={<IconWarning />}
-                status="warning"
+                icon={<IconLightBulb />}
+                status="info"
                 title="This pipeline doesn't have any parameters defined"
                 description={
                   <>
-                    To learn more about paramterizing your pipelines and steps,{" "}
                     <Link href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps">
-                      see the docs
-                    </Link>
-                    .
+                      Learn more
+                    </Link>{" "}
+                    about paramterizing your pipelines and steps.
                   </>
                 }
               />
