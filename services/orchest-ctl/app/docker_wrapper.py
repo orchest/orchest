@@ -246,6 +246,8 @@ class DockerWrapper:
             state: The state of the container to be in in order for it
                 to be returned.
             network: The network on which to filter the containers.
+            full_info: If True returns the complete info for each
+                container, else only the id.
 
         Returns:
             (container_ids, img_names) in respective order. Where the
@@ -485,6 +487,8 @@ class OrchestResourceManager:
         Args:
             state: The state of the container to be in in order for it
                 to be returned.
+            full_info: If True returns the complete info for each
+                container, else only the id.
         """
         return self.docker_client.get_containers(
             state=state, network=self.network, full_info=full_info
