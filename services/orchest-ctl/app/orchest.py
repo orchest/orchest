@@ -180,22 +180,34 @@ class OrchestApp:
             skip_containers = []
         skip_containers += ["orchest/orchest-ctl:latest"]
 
-        ids: Tuple[str]
-        running_containers: Tuple[Optional[str]]
-        ids, running_containers = list(
-            zip(
-                *[
-                    (id_, c)
-                    for id_, c in zip(ids, running_containers)
-                    if c not in skip_containers
-                ]
-            )
-        )
-
         utils.echo("Shutting down...")
-        logger.info("Shutting down containers:\n" + "\n".join(running_containers))
+        # This is necessary because some of our containers might spawn
+        # other containers, leading to a possible race condition where
+        # the listed running containers are not up to date with the
+        # real state anymore.
+        n = 2
+        for _ in range(n):
 
-        self.docker_client.remove_containers(ids)
+            ids: Tuple[str]
+            running_containers: Tuple[Optional[str]]
+            ids, running_containers = list(
+                zip(
+                    *[
+                        (id_, c)
+                        for id_, c in zip(ids, running_containers)
+                        if c not in skip_containers
+                    ]
+                )
+            )
+            logger.info("Shutting down containers:\n" + "\n".join(running_containers))
+            self.docker_client.remove_containers(ids)
+
+            ids, running_containers = self.resource_manager.get_containers(
+                state="running"
+            )
+            if not ids:
+                break
+
         utils.echo("Shutdown successful.")
 
     def restart(self, container_config: dict):
