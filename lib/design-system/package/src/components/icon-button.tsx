@@ -37,6 +37,8 @@ const StyledIconButton = styled(DEFAULT_ELEMENT, {
     },
     variant: {
       ghost: {
+        color: "currentcolor",
+        mixBlendMode: "multiply",
         backgroundColor: "transparent",
         "&:hover": {
           backgroundColor: "$gray200",

@@ -1,5 +1,11 @@
 import * as React from "react";
-import { flex, Alert, IconLightBulb, Link } from "@orchest/design-system";
+import {
+  flex,
+  Alert,
+  IconLightBulb,
+  Link,
+  IconWarning,
+} from "@orchest/design-system";
 
 const Index = () => (
   <main
@@ -18,6 +24,7 @@ const Index = () => (
     <h2>Components</h2>
 
     <h3>Alert</h3>
+    <h4>Info</h4>
     <Alert
       status="info"
       title="Info"
@@ -47,6 +54,45 @@ const Index = () => (
       icon={<IconLightBulb />}
       status="info"
       title="Info"
+      description={[
+        <>
+          Use the integrated <Link href="#">file manager</Link> to upload and
+          download your files.
+        </>,
+        "You can import your existing projects and make them into pipelines.",
+        "Private git repositories can be managed in Orchest using local git credentials.",
+      ]}
+    />
+    <h4>Warning</h4>
+    <Alert
+      status="warning"
+      title="Warning"
+      description="A project is simply a directory of files. It can even be fully versioned using git!"
+    />
+    <Alert
+      icon={<IconWarning />}
+      status="warning"
+      title="Warning"
+      description={[
+        "Put data in the /data directory to share data between pipelines.",
+      ]}
+    />
+    <Alert
+      status="warning"
+      title="Warning"
+      description={[
+        <>
+          Use the integrated <Link href="#">file manager</Link> to upload and
+          download your files.
+        </>,
+        "You can import your existing projects and make them into pipelines.",
+        "Private git repositories can be managed in Orchest using local git credentials.",
+      ]}
+    />
+    <Alert
+      icon={<IconWarning />}
+      status="warning"
+      title="Warning"
       description={[
         <>
           Use the integrated <Link href="#">file manager</Link> to upload and

@@ -8,6 +8,7 @@ import { IconButton } from "./icon-button";
 
 const alert = css({
   $$gap: "$space$2",
+  color: "$$textColor",
   padding: "$4",
   borderRadius: "$sm",
   textAlign: "left",
@@ -17,7 +18,14 @@ const alert = css({
   variants: {
     status: {
       info: {
+        $$textColor: "$colors$black",
+        $$paginationColor: "$colors$gray700",
         backgroundColor: "$gray50",
+      },
+      warning: {
+        $$textColor: "$yellow900",
+        $$paginationColor: "$colors$yellow800",
+        backgroundColor: "$yellow50",
       },
     },
   },
@@ -33,12 +41,7 @@ const alertIcon = css({
   display: "inline-flex",
   flexShrink: 0,
   alignSelf: "center",
-  "> svg": {
-    width: "$fontSizes$base",
-    height: "auto",
-    color: "$text",
-    marginRight: "$$gap",
-  },
+  marginRight: "$$gap",
 });
 
 const alertTitle = css({ fontWeight: "$bold" });
@@ -50,7 +53,7 @@ const alertFooter = css({
   marginTop: "$2",
 });
 
-const alertPagination = css({ color: "$gray700" });
+const alertPagination = css({ color: "$$paginationColor" });
 
 export interface IAlertRef extends HTMLDivElement {}
 
