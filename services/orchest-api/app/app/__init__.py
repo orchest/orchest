@@ -22,7 +22,10 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import is_werkzeug_parent
 from app import utils
 from app.apis import blueprint as api
-from app.apis.namespace_jupyter_builds import CreateJupyterBuild
+from app.apis.namespace_environment_builds import AbortEnvironmentBuild
+from app.apis.namespace_jobs import AbortJob
+from app.apis.namespace_jupyter_builds import AbortJupyterBuild, CreateJupyterBuild
+from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
 from app.core.scheduler import Scheduler
 from app.models import (
@@ -99,9 +102,6 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
             try:
                 os.mkdir("/tmp/cleanup_done")
                 InteractiveSession.query.delete()
-                InteractivePipelineRun.query.filter(
-                    InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
-                ).delete(synchronize_session="fetch")
 
                 # Delete old JupyterBuilds on start to avoid
                 # accumulation in the DB. Leave the latest such that the
@@ -113,35 +113,54 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
                     .all()
                 )
 
-                # Can't use offset and .delete in conjunction
-                # in sqlalchemy unfortunately.
+                # Can't use offset and .delete in conjunction in
+                # sqlalchemy unfortunately.
                 for jupyer_build in jupyter_builds:
                     db.session.delete(jupyer_build)
 
-                # Fix job and respective pipeline run states.
-                Job.query.filter_by(schedule=None, status="STARTED").update(
-                    {"status": "ABORTED"}
-                )
-                # TODO: for some reason the non-interactive runs are
-                # deleted. Even when running as part of a cron-scheduled
-                # job the non-interactive run does not show up (and its
-                # ID is reused by the next run). PipelineSteps need to
-                # be set to ABORTED as well.
-                NonInteractivePipelineRun.query.filter(
-                    NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"])
-                ).update({"status": "ABORTED"}, synchronize_session="fetch")
-
-                # Fix environment builds status.
-                EnvironmentBuild.query.filter(
-                    EnvironmentBuild.status.in_(["PENDING", "STARTED"])
-                ).update({"status": "ABORTED"}, synchronize_session="fetch")
-
                 db.session.commit()
 
-                # Trigger a build of JupyterLab if no
-                # JupyterLab image is found
-                # for this version and JupyterLab
-                # setup_script is non-empty.
+                # Fix interactive runs.
+                runs = InteractivePipelineRun.query.filter(
+                    InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
+                ).all()
+                with TwoPhaseExecutor(db.session) as tpe:
+                    for run in runs:
+                        AbortPipelineRun(tpe).transaction(run.uuid)
+
+                # Fix one off jobs (and their pipeline runs).
+                jobs = Job.query.filter_by(schedule=None, status="STARTED").all()
+                with TwoPhaseExecutor(db.session) as tpe:
+                    for job in jobs:
+                        AbortJob(tpe).transaction(job.uuid)
+
+                # This is to fix the state of cron jobs pipeline runs.
+                runs = NonInteractivePipelineRun.query.filter(
+                    NonInteractivePipelineRun.status.in_(["STARTED"])
+                ).all()
+                with TwoPhaseExecutor(db.session) as tpe:
+                    for run in runs:
+                        AbortPipelineRun(tpe).transaction(run.uuid)
+
+                # Fix env builds.
+                builds = EnvironmentBuild.query.filter(
+                    EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+                ).all()
+                with TwoPhaseExecutor(db.session) as tpe:
+                    for build in builds:
+                        AbortEnvironmentBuild(tpe).transaction(build.uuid)
+
+                # Fix jupyter builds.
+                builds = JupyterBuild.query.filter(
+                    JupyterBuild.status.in_(["PENDING", "STARTED"])
+                ).all()
+                with TwoPhaseExecutor(db.session) as tpe:
+                    for build in builds:
+                        AbortJupyterBuild(tpe).transaction(build.uuid)
+
+                # Trigger a build of JupyterLab if no JupyterLab image
+                # is found for this version and JupyterLab setup_script
+                # is non-empty.
                 trigger_conditional_jupyter_build(app)
 
             except FileExistsError:
