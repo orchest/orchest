@@ -241,3 +241,16 @@ class EnvironmentBuild:
 
         data = client.post("/api/environment-builds/", json=req).get_json()
         self.uuid = data["environment_builds"][0]["uuid"]
+
+
+class EagerScheduler:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def start(self):
+        pass
+
+    def add_job(self, func, args=None, kwargs=None, *myargs, **mykwargs):
+        args = () if args is None else args
+        kwargs = {} if kwargs is None else kwargs
+        func(*args, **kwargs)

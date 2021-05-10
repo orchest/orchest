@@ -214,6 +214,10 @@ class PipelineView extends React.Component {
   static contextType = OrchestContext;
 
   componentWillUnmount() {
+    this.context.dispatch({
+      type: "clearView",
+    });
+
     $(document).off("mouseup.initializePipeline");
     $(document).off("keyup.initializePipeline");
     $(document).off("keydown.initializePipeline");
@@ -586,6 +590,10 @@ class PipelineView extends React.Component {
   }
 
   componentDidMount() {
+    this.context.dispatch({
+      type: "setView",
+      payload: "pipeline",
+    });
     if (this.areQueryArgsValid()) {
       this.setState({ shouldAutoStart: true });
       this.handleSession();
@@ -1246,11 +1254,6 @@ class PipelineView extends React.Component {
         let result = JSON.parse(fetchPipelinePromiseResult);
         if (result.success) {
           this.decodeJSON(JSON.parse(result["pipeline_json"]));
-
-          this.context.dispatch({
-            type: "viewUpdateCurrent",
-            payload: "pipeline",
-          });
 
           this.context.dispatch({
             type: "pipelineUpdateReadOnlyState",

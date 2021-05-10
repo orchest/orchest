@@ -57,7 +57,13 @@ export interface IOrchestState
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
-  viewCurrent: "pipeline" | "jupyter" | ({} & string);
+  view:
+    | "pipeline"
+    | "jupyter"
+    | "jobs"
+    | "environments"
+    | "pipelines"
+    | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
   sessions?: IOrchestSession[] | [];
   config: IOrchestConfig;
@@ -84,7 +90,8 @@ export type TOrchestAction =
       type: "projectSet";
       payload: IOrchestState["project_uuid"];
     }
-  | { type: "viewUpdateCurrent"; payload: IOrchestState["viewCurrent"] }
+  | { type: "setView"; payload: IOrchestState["view"] }
+  | { type: "clearView" }
   | {
       type: "pipelineUpdateReadOnlyState";
       payload: IOrchestState["pipelineIsReadOnly"];

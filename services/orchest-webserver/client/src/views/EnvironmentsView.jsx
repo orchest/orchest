@@ -1,24 +1,31 @@
+// @ts-check
 import React from "react";
+import { useOrchest } from "@/hooks/orchest";
 import EnvironmentList from "../components/EnvironmentList";
 import ProjectBasedView from "../components/ProjectBasedView";
 
-class EnvironmentsView extends React.Component {
-  render() {
-    let childViewProperties = {};
+const EnvironmentsView = (props) => {
+  const { dispatch } = useOrchest();
 
-    if (this.props.project_uuid) {
-      childViewProperties.project_uuid = this.props.project_uuid;
-    }
+  React.useEffect(() => {
+    dispatch({ type: "setView", payload: "environments" });
+    return () => dispatch({ type: "clearView" });
+  }, []);
 
-    return (
-      <ProjectBasedView
-        project_uuid={this.props.project_uuid}
-        childView={EnvironmentList}
-        childViewProperties={childViewProperties}
-      />
-    );
+  let childViewProperties = {};
+
+  if (props.project_uuid) {
+    childViewProperties.project_uuid = props.project_uuid;
   }
-}
+
+  return (
+    <ProjectBasedView
+      project_uuid={props.project_uuid}
+      childView={EnvironmentList}
+      childViewProperties={childViewProperties}
+    />
+  );
+};
 
 EnvironmentsView.defaultProps = {
   queryArgs: {},
