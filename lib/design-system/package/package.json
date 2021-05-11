@@ -1,5 +1,4 @@
 {
-  "private": true,
   "name": "@orchest/design-system",
   "version": "0.0.1",
   "author": "Orchest B.V.",
@@ -7,7 +6,9 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "typings": "dist/index.d.ts",
-
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prepublishOnly": "pnpm run build",
     "build": "pnpm run pre-build && concurrently -n w: npm:*:build",
