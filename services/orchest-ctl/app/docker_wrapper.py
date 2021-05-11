@@ -158,7 +158,7 @@ class DockerWrapper:
         all: bool = False,
         label: Optional[str] = None,
         dangling: Optional[bool] = None,
-    ):
+    ) -> List[str]:
 
         kwargs = {
             "all": all,
@@ -183,7 +183,7 @@ class DockerWrapper:
         all: bool = False,
         label: Optional[str] = None,
         dangling: Optional[bool] = None,
-    ):
+    ) -> List[str]:
         return asyncio.run(
             self._list_image_ids(all=all, label=label, dangling=dangling)
         )
