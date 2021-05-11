@@ -10,6 +10,7 @@ export const Link = styled("a", {
         padding: 0,
         flexShrink: 0,
         color: "$link",
+        textAlign: "inherit",
         WebkitTapHighlightColor: "rgba(0,0,0,0)",
         textDecorationLine: "underline",
         textUnderlineOffset: "3px",

@@ -17,9 +17,12 @@ importers:
       "@types/react": 17.0.3
       concurrently: 6.0.2
       esbuild: 0.8.44
+      fs-extra: 10.0.0
       react: ^16.13.1
       react-dom: ^16.13.1
       stitches-mixins: 0.2.1
+      ts-node: 9.1.1
+      tsconfig-paths: 3.9.0
       typescript: 4.2.4
     dependencies:
       "@radix-ui/react-id": 0.0.6_react@16.13.1
@@ -32,8 +35,11 @@ importers:
       "@types/react": 17.0.3
       concurrently: 6.0.2
       esbuild: 0.8.44
+      fs-extra: 10.0.0
       react: 16.13.1
       react-dom: 16.13.1_react@16.13.1
+      ts-node: 9.1.1_typescript@4.2.4
+      tsconfig-paths: 3.9.0
       typescript: 4.2.4
 
   lib/design-system/sandbox:
@@ -41,9 +47,12 @@ importers:
       "@orchest/design-system": workspace:*
       "@types/node": 15.0.1
       "@types/react": 17.0.3
+      fs-extra: 10.0.0
       next: 10.2.0
       react: ^16.13.1
       react-dom: ^16.13.1
+      ts-node: 9.1.1
+      tsconfig-paths: 3.9.0
       typescript: 4.2.4
     dependencies:
       "@orchest/design-system": link:../package
@@ -53,6 +62,9 @@ importers:
     devDependencies:
       "@types/node": 15.0.1
       "@types/react": 17.0.3
+      fs-extra: 10.0.0
+      ts-node: 9.1.1_typescript@4.2.4
+      tsconfig-paths: 3.9.0
       typescript: 4.2.4
 
   lib/javascript/mdc:
@@ -1339,6 +1351,10 @@ packages:
       defer-to-connect: 1.1.3
     dev: true
 
+  /@types/json5/0.0.29:
+    resolution: { integrity: sha1-7ihweulOEdK4J7y+UnC86n8+ce4= }
+    dev: true
+
   /@types/node/15.0.1:
     resolution:
       {
@@ -1468,6 +1484,13 @@ packages:
     dependencies:
       normalize-path: 3.0.0
       picomatch: 2.2.3
+
+  /arg/4.1.3:
+    resolution:
+      {
+        integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==,
+      }
+    dev: true
 
   /argparse/1.0.10:
     resolution:
@@ -1757,6 +1780,13 @@ packages:
       electron-to-chromium: 1.3.712
       escalade: 3.1.1
       node-releases: 1.1.71
+    dev: true
+
+  /buffer-from/1.1.1:
+    resolution:
+      {
+        integrity: sha512-MQcXEUbCKtEo7bhqEs6560Hyd4XaovZlO/k9V3hjVUF/zwW7KBVdSK4gIt/bzwS9MbR5qob+F5jusZsb0YQK2A==,
+      }
     dev: true
 
   /buffer-xor/1.0.3:
@@ -2183,6 +2213,13 @@ packages:
       sha.js: 2.4.11
     dev: false
 
+  /create-require/1.1.1:
+    resolution:
+      {
+        integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==,
+      }
+    dev: true
+
   /cron-parser/3.3.0:
     resolution:
       {
@@ -2386,6 +2423,14 @@ packages:
       inherits: 2.0.4
       minimalistic-assert: 1.0.1
     dev: false
+
+  /diff/4.0.2:
+    resolution:
+      {
+        integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==,
+      }
+    engines: { node: ">=0.3.1" }
+    dev: true
 
   /diffie-hellman/5.0.3:
     resolution:
@@ -2717,6 +2762,18 @@ packages:
   /foreach/2.0.5:
     resolution: { integrity: sha1-C+4AUBiusmDQo6865ljdATbsG5k= }
     dev: false
+
+  /fs-extra/10.0.0:
+    resolution:
+      {
+        integrity: sha512-C5owb14u9eJwizKGdchcDUQeFtlSHHthBk8pbX9Vc1PFZrLombudjDnNns88aYslCyF6IY5SUw3Roz6xShcEIQ==,
+      }
+    engines: { node: ">=12" }
+    dependencies:
+      graceful-fs: 4.2.6
+      jsonfile: 6.1.0
+      universalify: 2.0.0
+    dev: true
 
   /fs-extra/9.1.0:
     resolution:
@@ -3434,7 +3491,6 @@ packages:
     hasBin: true
     dependencies:
       minimist: 1.2.5
-    dev: false
 
   /json5/2.2.0:
     resolution:
@@ -3456,7 +3512,6 @@ packages:
       universalify: 2.0.0
     optionalDependencies:
       graceful-fs: 4.2.6
-    dev: false
 
   /jxLoader/0.1.1:
     resolution: { integrity: sha1-ATTqUUTlM7WU/B/yX/GU4jXFPs0= }
@@ -3592,6 +3647,13 @@ packages:
     engines: { node: ">=8" }
     dependencies:
       semver: 6.3.0
+
+  /make-error/1.3.6:
+    resolution:
+      {
+        integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==,
+      }
+    dev: true
 
   /makeerror/1.0.11:
     resolution: { integrity: sha1-4BpckQnyr3lmDk6LlYd5AYT1qWw= }
@@ -4779,6 +4841,16 @@ packages:
       isarray: 2.0.1
     dev: false
 
+  /source-map-support/0.5.19:
+    resolution:
+      {
+        integrity: sha512-Wonm7zOCIJzBGQdB+thsPar0kYuCIzYvxZwlBa87yi/Mdjv7Tip2cyVbLj5o0cFPN4EVkuTwb3GDDyUx2DGnGw==,
+      }
+    dependencies:
+      buffer-from: 1.1.1
+      source-map: 0.6.1
+    dev: true
+
   /source-map/0.5.7:
     resolution: { integrity: sha1-igOdLRAh0i0eoUyA2OpGi6LvP8w= }
     engines: { node: ">=0.10.0" }
@@ -5016,6 +5088,11 @@ packages:
     dependencies:
       ansi-regex: 5.0.0
 
+  /strip-bom/3.0.0:
+    resolution: { integrity: sha1-IzTBjpx1n3vdVv3vfprj1YjmjtM= }
+    engines: { node: ">=4" }
+    dev: true
+
   /strip-bom/4.0.0:
     resolution:
       {
@@ -5235,6 +5312,25 @@ packages:
       }
     dev: false
 
+  /ts-node/9.1.1_typescript@4.2.4:
+    resolution:
+      {
+        integrity: sha512-hPlt7ZACERQGf03M253ytLY3dHbGNGrAq9qIHWUY9XHYl1z7wYngSr3OQ5xmui8o2AaxsONxIzjafLUiWBo1Fg==,
+      }
+    engines: { node: ">=10.0.0" }
+    hasBin: true
+    peerDependencies:
+      typescript: ">=2.7"
+    dependencies:
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.2
+      make-error: 1.3.6
+      source-map-support: 0.5.19
+      typescript: 4.2.4
+      yn: 3.1.1
+    dev: true
+
   /ts-pnp/1.2.0_typescript@4.2.4:
     resolution:
       {
@@ -5249,6 +5345,18 @@ packages:
     dependencies:
       typescript: 4.2.4
     dev: false
+
+  /tsconfig-paths/3.9.0:
+    resolution:
+      {
+        integrity: sha512-dRcuzokWhajtZWkQsDVKbWyY+jgcLC5sqJhg2PSgf4ZkH2aHPvaOY8YWGhmjb68b5qqTfasSsDO9k7RUiEmZAw==,
+      }
+    dependencies:
+      "@types/json5": 0.0.29
+      json5: 1.0.1
+      minimist: 1.2.5
+      strip-bom: 3.0.0
+    dev: true
 
   /tslib/1.14.1:
     resolution:
@@ -5358,7 +5466,6 @@ packages:
         integrity: sha512-hAZsKq7Yy11Zu1DE0OzWjw7nnLZmJZYTDZZyEFHZdUhV8FkH5MCfoU1XMaxXovpyW5nq5scPqq0ZDP9Zyl04oQ==,
       }
     engines: { node: ">= 10.0.0" }
-    dev: false
 
   /unpipe/1.0.0:
     resolution: { integrity: sha1-sr9O6FFKrmFltIF4KdIbLvSZBOw= }
@@ -5743,6 +5850,14 @@ packages:
   /yeast/0.1.2:
     resolution: { integrity: sha1-AI4G2AlDIMNy28L47XagymyKxBk= }
     dev: false
+
+  /yn/3.1.1:
+    resolution:
+      {
+        integrity: sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==,
+      }
+    engines: { node: ">=6" }
+    dev: true
 
   /yocto-queue/0.1.0:
     resolution:

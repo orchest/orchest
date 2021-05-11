@@ -13,7 +13,7 @@ const svgSize = (size: string) => ({
 const DEFAULT_ELEMENT = "button";
 
 const StyledIconButton = styled(DEFAULT_ELEMENT, {
-  apperance: "none",
+  appearance: "none",
   display: "inline-flex",
   borderWidth: 0,
   flexShrink: 0,

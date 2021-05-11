@@ -9,7 +9,6 @@ import { Text } from "./text";
 
 const AlertRoot = styled("div", {
   $$gap: "$space$2",
-  color: "$$textColor",
   padding: "$4",
   borderRadius: "$sm",
   textAlign: "left",
@@ -19,16 +18,19 @@ const AlertRoot = styled("div", {
   variants: {
     status: {
       info: {
-        $$textColor: "$colors$black",
-        $$paginationColor: "$colors$gray700",
-        backgroundColor: "$gray50",
+        $$paginationColor: "$colors$alertTextSecondaryInfo",
+        color: "$colors$alertTextInfo",
+        backgroundColor: "$alertBackgroundInfo",
       },
       warning: {
-        $$textColor: "$colors$yellow900",
-        $$paginationColor: "$colors$yellow800",
-        backgroundColor: "$colors$yellow50",
+        $$paginationColor: "$colors$alertTextSecondaryWarning",
+        color: "$colors$alertTextWarning",
+        backgroundColor: "$alertBackgroundWarning",
       },
     },
+  },
+  defaultVariants: {
+    status: "info",
   },
 });
 

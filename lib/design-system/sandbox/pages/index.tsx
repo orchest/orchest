@@ -5,6 +5,11 @@ import {
   Link,
   IconWarning,
   Flex,
+  Text,
+  IconButton,
+  IconChevronRight,
+  Box,
+  IconChevronLeft,
 } from "@orchest/design-system";
 
 const Index = () => (
@@ -19,9 +24,7 @@ const Index = () => (
     }}
   >
     <h1>Design System Sandbox</h1>
-
     <h2>Components</h2>
-
     <h3>Alert</h3>
     <h4>Info</h4>
     <Alert
@@ -101,6 +104,46 @@ const Index = () => (
         "Private git repositories can be managed in Orchest using local git credentials.",
       ]}
     />
+    <h3>Flex</h3>
+    <Text>A basic flex-layout primitive</Text>
+    <Flex
+      css={{
+        gap: "$4",
+        "> *": {
+          backgroundColor: "$primary",
+          width: "$space$12",
+          height: "$space$12",
+        },
+      }}
+    >
+      <Box />
+      <Box />
+      <Box />
+      <Box />
+    </Flex>
+    <h3>Icon Button</h3>
+    <h4>Ghost</h4>
+    <Box role="group">
+      <IconButton variant="ghost" label="Previous">
+        <IconChevronLeft />
+      </IconButton>
+      <IconButton variant="ghost" label="Next">
+        <IconChevronRight />
+      </IconButton>
+    </Box>
+    <h3>Link</h3>
+    <Link href="#">Traditional anchor tag</Link>{" "}
+    <Link as="button" onClick={() => alert("hello!")}>
+      Button disguised as a link
+    </Link>
+    <h3>Text</h3>
+    <Text size="xs">xs</Text>
+    <Text size="sm">sm</Text>
+    <Text size="md">md</Text>
+    <Text>base</Text>
+    <Text size="lg">lg</Text>
+    <Text size="xl">xl</Text>
+    <Text size="2xl">2xl</Text>
   </Flex>
 );
 
