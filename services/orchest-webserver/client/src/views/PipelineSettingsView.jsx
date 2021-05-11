@@ -448,8 +448,7 @@ class PipelineSettingsView extends React.Component {
           "-" +
           serviceUUID.split("-")[0] +
           "_" +
-          port +
-          "_"
+          port
       );
     }
 
@@ -568,7 +567,7 @@ class PipelineSettingsView extends React.Component {
                         }
 
                         for (let service of parsedServices) {
-                          let nameReg = /^[0-9a-zA-Z]{1,36}$/;
+                          let nameReg = /^[0-9a-zA-Z\-]{1,36}$/;
                           if (!service.name || !nameReg.test(service.name)) {
                             message =
                               "Invalid service name. Valid names satisfy: " +
@@ -608,7 +607,9 @@ class PipelineSettingsView extends React.Component {
                           for (let url of urls) {
                             urlElements.push(
                               <li key={url}>
-                                <a href={url}>{url}</a>
+                                <a target="_blank" href={url}>
+                                  {url}
+                                </a>
                               </li>
                             );
                           }

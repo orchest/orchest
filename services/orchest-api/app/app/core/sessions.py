@@ -676,12 +676,12 @@ def _get_services_specs(
         )
         service_base_url = f"/{container_name}"
 
-        # Replace $BASE_PATH with service_base_url.
+        # Replace $BASE_PATH_PREFIX with service_base_url.
         # NOTE: this substitution happens after
         # service["name"] is read, so that JSON entry
-        # does not support $BASE_PATH substitution.
+        # does not support $BASE_PATH_PREFIX substitution.
         service_str = json.dumps(service)
-        service_str = service_str.replace("$BASE_PATH", service_base_url)
+        service_str = service_str.replace("$BASE_PATH_PREFIX", service_base_url)
         service = json.loads(service_str)
 
         # Get user configured environment variables

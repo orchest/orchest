@@ -34,7 +34,6 @@ def _generate_urls(service, pipeline):
         + service_uuid.split("-")[0]
         + "_"
         + "{port}"
-        + "_"
     )
 
     service["internal_urls"] = [
