@@ -17,7 +17,8 @@ from typing import List, Optional, Set, Tuple
 
 import typer
 
-from app import config, spec, utils
+from app import spec, utils
+from app.config import ORCHEST_IMAGES, _on_start_images
 from app.debug import debug_dump, health_check
 from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
@@ -76,7 +77,7 @@ class OrchestApp:
         # Check that all images required for Orchest to be running are
         # in the system.
         pulled_images = self.resource_manager.get_images()
-        installation_req_images: Set[str] = set(config.ORCHEST_IMAGES["minimal"])
+        installation_req_images: Set[str] = set(ORCHEST_IMAGES["minimal"])
         missing_images = installation_req_images - set(pulled_images)
 
         if missing_images or not self.resource_manager.is_network_installed():
@@ -87,7 +88,7 @@ class OrchestApp:
         # Check that all images required for Orchest to start are in the
         # container_config.
         start_req_images: Set[str] = reduce(
-            lambda x, y: x.union(y), config._on_start_images, set()
+            lambda x, y: x.union(y), _on_start_images, set()
         )
         present_imgs = set(c["Image"] for c in container_config.values())
         if present_imgs < start_req_images:  # proper subset
@@ -128,7 +129,7 @@ class OrchestApp:
 
         # Start the containers in the correct order, keeping in mind
         # dependencies between containers.
-        for i, to_start_imgs in enumerate(config._on_start_images):
+        for i, to_start_imgs in enumerate(_on_start_images):
             filter_ = {"Image": to_start_imgs}
             config_ = spec.filter_container_config(container_config, filter=filter_)
             stdouts = self.docker_client.run_containers(
@@ -244,9 +245,7 @@ class OrchestApp:
 
         # Minimal set of containers to be running for Orchest to be in
         # a valid state.
-        valid_set: Set[str] = reduce(
-            lambda x, y: x.union(y), config.ORCHEST_IMAGES["minimal"], set()
-        )
+        valid_set: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
 
         if valid_set - set(running_containers_names):
             utils.echo("Orchest is running, but has reached an invalid state. Run:")
@@ -323,7 +322,7 @@ class OrchestApp:
         # images are checked to make sure optional images, e.g. lang
         # specific images, are updated as well.
         pulled_images = self.resource_manager.get_images()
-        to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(pulled_images)
+        to_pull_images = set(ORCHEST_IMAGES["minimal"]) | set(pulled_images)
         logger.info("Updating images:\n" + "\n".join(to_pull_images))
         self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
 
@@ -444,7 +443,7 @@ def get_required_images(language: Optional[str], gpu: bool = False) -> List[str]
         "python": ["orchest/base-kernel-py-gpu:latest"],
     }
 
-    required_images = config.ORCHEST_IMAGES["minimal"]
+    required_images = ORCHEST_IMAGES["minimal"]
 
     if language == "all":
         for lang, _ in language_images.items():
