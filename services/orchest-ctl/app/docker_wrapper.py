@@ -516,6 +516,7 @@ class OrchestResourceManager:
         self.docker_client.remove_images(jupyter_build_imgs, force=True)
 
     def remove_orchest_dangling_imgs(self):
+        """Remove Orchest dangling images that are not in use."""
         orchest_dangling_imgs = set(self.get_orchest_dangling_imgs())
 
         # This will pick up both orchest-ctl (which is not in the
