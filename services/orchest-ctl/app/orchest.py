@@ -233,12 +233,12 @@ class OrchestApp:
 
     def status(self, ext=False):
 
-        if self.is_restarting():
-            utils.echo("Orchest is restarting.")
+        if self._is_restarting():
+            utils.echo("Orchest is currently restarting.")
             raise typer.Exit(code=4)
 
-        if self.is_updating():
-            utils.echo("Orchest is updating.")
+        if self._is_updating():
+            utils.echo("Orchest is currently updating.")
             raise typer.Exit(code=5)
 
         _, running_containers_names = self.resource_manager.get_containers(
@@ -421,11 +421,12 @@ class OrchestApp:
 
         raise typer.Exit(code=exit_code)
 
-    def is_restarting(self) -> bool:
+    def _is_restarting(self) -> bool:
         """Check if Orchest is restarting.
 
-        Returns: True if there is another instance of orchest-ctl
-        issuing a restart, False otherwise.
+        Returns:
+            True if there is another instance of orchest-ctl issuing a
+            restart, False otherwise.
         """
         containers, _ = self.docker_client.get_containers(
             full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"
@@ -443,11 +444,12 @@ class OrchestApp:
                 return True
         return False
 
-    def is_updating(self) -> bool:
+    def _is_updating(self) -> bool:
         """Check if Orchest is updating.
 
-        Returns: True if there is another instance of orchest-ctl
-        issuing an update, False otherwise.
+        Returns:
+            True if there is another instance of orchest-ctl issuing an
+            update, False otherwise.
         """
         containers, _ = self.docker_client.get_containers(
             full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"

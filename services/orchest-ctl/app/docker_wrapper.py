@@ -255,8 +255,8 @@ class DockerWrapper:
             network: The network on which to filter the containers.
             full_info: If True returns the complete info for each
                 container, else only the id.
-            label: Label through which filter containers, can be None,
-                a tag key or of the form key=value.
+            label: Label through which to filter containers, can be None
+                , a tag key or of the form key=value.
 
         Returns:
             (container_ids, img_names) in respective order. Where the
