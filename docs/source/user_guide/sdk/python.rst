@@ -76,7 +76,7 @@ Parameters
    import orchest
 
    # Get the parameters of the current step and the pipeline.
-   step_params, pipeline_params = orchest.get_params()  # e.g. ({"vegetable": "carrot"}, {})
+   step_params, pipeline_params = orchest.parameters.get_params()  # e.g. ({"vegetable": "carrot"}, {})
 
    # Update both the step parameters and the pipeline parameters. The
    # updated parameters will be visible in the GUI, in the properties
