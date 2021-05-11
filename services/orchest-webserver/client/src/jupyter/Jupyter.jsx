@@ -113,7 +113,11 @@ class Jupyter {
         this.iframe.contentWindow._orchest_app.shell.node.querySelector(
           "#jp-main-content-panel"
         ).clientWidth ===
-        this.iframe.contentWindow._orchest_app.shell.node.clientWidth
+        this.iframe.contentWindow._orchest_app.shell.node.clientWidth ||
+
+        this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+          "#jp-main-content-panel"
+        ).clientWidth > 500
       );
     } catch {
       return false;
