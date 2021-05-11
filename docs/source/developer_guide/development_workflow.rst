@@ -79,3 +79,24 @@ Run formatters, linters and tests with:
 
     pre-commit run
     scripts/run_tests.sh
+
+Updating the docs
+-----------------
+
+Our docs are handled by `Read the Docs
+<https://docs.readthedocs.io/>`_ with Sphinx.
+
+Content can be written in `.md` or `.rst` – whatever you feel meets the specific
+needs of your content. 
+
+To update, run:
+
+.. code-block:: bash
+
+   cd docs
+
+   # First time setup
+   python3 -m pip install -r requirements.txt
+
+   # Build
+   make html

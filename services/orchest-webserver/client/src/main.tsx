@@ -1,8 +1,10 @@
+// @ts-check
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
 import { makeRequest } from "@orchest/lib-utils";
 import "./styles/main.scss";
+import { OrchestProvider } from "./hooks/orchest";
 
 declare global {
   interface Document {
@@ -10,6 +12,9 @@ declare global {
   }
 
   interface Window {
+    /** Deprecated */
+    orchest: any;
+    /** Deprecated */
     ORCHEST_CONFIG: any;
     ORCHEST_USER_CONFIG: any;
   }
@@ -23,9 +28,12 @@ window.addEventListener("load", () => {
       window.ORCHEST_CONFIG = config.config;
       window.ORCHEST_USER_CONFIG = config.user_config;
 
-      // TODO: <React.StrictMode>
-      // Make <App /> side effect free.
-      ReactDOM.render(<App />, document.querySelector("#root"));
+      ReactDOM.render(
+        <OrchestProvider {...config}>
+          <App />
+        </OrchestProvider>,
+        document.querySelector("#root")
+      );
     });
   });
 });

@@ -9,9 +9,16 @@ export default defineConfig({
     host: "0.0.0.0",
   },
   resolve: {
-    alias: {
-      "@material": path.resolve(__dirname, "../../../node_modules/@material/"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "src") },
+      {
+        find: "@material",
+        replacement: path.resolve(
+          __dirname,
+          "../../../node_modules/@material/"
+        ),
+      },
+    ],
   },
   css: {
     preprocessOptions: {

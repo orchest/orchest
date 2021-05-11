@@ -9,6 +9,7 @@ import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 from app.errors import JupyterBuildInProgressException
@@ -46,6 +47,13 @@ class SessionList(Resource):
         """Launches an interactive session."""
         post_data = request.get_json()
 
+        isess = models.InteractiveSession.query.filter_by(
+            project_uuid=post_data["project_uuid"],
+            pipeline_uuid=post_data["pipeline_uuid"],
+        ).one_or_none()
+        if isess is not None:
+            return {"message": "Session already exists."}, 409
+
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 CreateInteractiveSession(tpe).transaction(
@@ -65,6 +73,12 @@ class SessionList(Resource):
             project_uuid=post_data["project_uuid"],
             pipeline_uuid=post_data["pipeline_uuid"],
         ).one_or_none()
+
+        # Can't rely on the 2PE raising an exception because the
+        # collateral effect is invoking a background job, if that fails,
+        # it will clean up the session.
+        if isess is None:
+            return {"message": "Could not start session."}, 500
 
         return marshal(isess.as_dict(), schema.session), 201
 
@@ -106,36 +120,24 @@ class Session(Resource):
         if could_shutdown:
             return {"message": "Session shutdown was successful."}, 200
         else:
-            return {"message": "Session not found."}, 400
+            return {"message": "Session not found."}, 404
 
     @api.doc("restart_memory_server_of_session")
     @api.response(200, "Session resource memory-server restarted")
     @api.response(404, "Session not found")
     def put(self, project_uuid, pipeline_uuid):
         """Restarts the memory-server of the session."""
-        session = models.InteractiveSession.query.get_or_404(
-            ident=(project_uuid, pipeline_uuid), description="Session not found"
-        )
 
-        if session.status != "RUNNING":
-            return {"message": "SessionNotRunning"}, 500
-
-        session_obj = InteractiveSession.from_container_IDs(
-            docker_client,
-            container_IDs=session.container_ids,
-            network=_config.DOCKER_NETWORK,
-            notebook_server_info=session.notebook_server_info,
-        )
-
-        # Note: The entry in the database does not have to be updated
-        # since restarting the `memory-server` does not change its
-        # Docker ID.
         try:
-            session_obj.restart_resource(resource_name="memory-server")
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_restart = RestartMemoryServer(tpe).transaction(
+                    project_uuid, pipeline_uuid
+                )
         except Exception as e:
-            current_app.logger.error(
-                "Failed to restart the memory server %s [%s]" % (e, type(e))
-            )
+            return {"message": str(e)}, 500
+
+        if not could_restart:
+            return {"message": "SessionNotRunning"}, 500
 
         return {"message": "Session restart was successful."}, 200
 
@@ -173,47 +175,72 @@ class CreateInteractiveSession(TwoPhaseFunction):
         self.collateral_kwargs["project_dir"] = project_dir
         self.collateral_kwargs["host_userdir"] = host_userdir
 
-    def _collateral(
-        self,
+    @classmethod
+    def _background_session_start(
+        cls,
+        app,
         project_uuid: str,
         pipeline_uuid: str,
         pipeline_path: str,
         project_dir: str,
         host_userdir: str,
     ):
-        session = InteractiveSession(docker_client, network=_config.DOCKER_NETWORK)
-        session.launch(
-            pipeline_uuid,
-            project_uuid,
-            pipeline_path,
-            project_dir,
-            host_userdir,
+
+        with app.app_context():
+            try:
+                session = InteractiveSession(
+                    docker_client, network=_config.DOCKER_NETWORK
+                )
+                session.launch(
+                    pipeline_uuid,
+                    project_uuid,
+                    pipeline_path,
+                    project_dir,
+                    host_userdir,
+                )
+
+                # Update the database entry with information to connect
+                # to the launched resources.
+                IP = session.get_containers_IP()
+                status = {
+                    "status": "RUNNING",
+                    "container_ids": session.get_container_IDs(),
+                    "jupyter_server_ip": IP.jupyter_server,
+                    "notebook_server_info": session.notebook_server_info,
+                }
+
+                models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).update(status)
+                db.session.commit()
+            except Exception as e:
+                current_app.logger.error(e)
+
+                # Error handling. If it does not succeed then the
+                # initial entry has to be removed from the database as
+                # otherwise no session can be started in the future due
+                # to the uniqueness constraint.
+                models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).delete()
+                db.session.commit()
+
+    def _collateral(
+        self,
+        *args,
+        **kwargs,
+    ):
+
+        current_app.config["SCHEDULER"].add_job(
+            CreateInteractiveSession._background_session_start,
+            # From the docs:
+            # Return the current object.  This is useful if you want the
+            # real object behind the proxy at a time for performance
+            # reasons or because you want to pass the object into a
+            # different context.
+            args=[current_app._get_current_object(), *args],
+            kwargs=kwargs,
         )
-
-        # Update the database entry with information to connect to the
-        # launched resources.
-        IP = session.get_containers_IP()
-        status = {
-            "status": "RUNNING",
-            "container_ids": session.get_container_IDs(),
-            "jupyter_server_ip": IP.jupyter_server,
-            "notebook_server_info": session.notebook_server_info,
-        }
-        models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).update(status)
-        db.session.commit()
-
-    def _revert(self):
-        # Error handling. If it does not succeed then the initial
-        # entry has to be removed from the database as otherwise no
-        # session can be started in the future due to the uniqueness
-        # constraint.
-        models.InteractiveSession.query.filter_by(
-            project_uuid=self.collateral_kwargs["project_uuid"],
-            pipeline_uuid=self.collateral_kwargs["pipeline_uuid"],
-        ).delete()
-        db.session.commit()
 
 
 class StopInteractiveSession(TwoPhaseFunction):
@@ -233,6 +260,15 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["notebook_server_info"] = None
             return False
         else:
+            # Abort interactive run if it was PENDING/STARTED.
+            run = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.project_uuid == project_uuid,
+                models.InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
+                models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+            ).one_or_none()
+            if run is not None:
+                AbortPipelineRun(self.tpe).transaction(run.uuid)
+
             session.status = "STOPPING"
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
@@ -249,6 +285,47 @@ class StopInteractiveSession(TwoPhaseFunction):
 
         return True
 
+    @classmethod
+    def _background_session_stop(
+        cls,
+        app,
+        project_uuid: str,
+        pipeline_uuid: str,
+        container_ids: Dict[str, str],
+        notebook_server_info: Dict[str, str] = None,
+    ):
+
+        with app.app_context():
+            try:
+                session_obj = InteractiveSession.from_container_IDs(
+                    docker_client,
+                    container_IDs=container_ids,
+                    network=_config.DOCKER_NETWORK,
+                    notebook_server_info=notebook_server_info,
+                )
+
+                # TODO: error handling?
+                session_obj.shutdown()
+
+                # Deletion happens here and not in the transactional
+                # phase because this way we can show the session
+                # STOPPING to the user.
+                models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).delete()
+                db.session.commit()
+            except Exception as e:
+                current_app.logger.error(e)
+
+                # Make sure that the session is deleted in any case,
+                # because otherwise the user will not be able to have an
+                # active session for the given pipeline.
+                session = models.InteractiveSession.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).one()
+                db.session.delete(session)
+                db.session.commit()
+
     def _collateral(
         self,
         project_uuid: str,
@@ -263,6 +340,58 @@ class StopInteractiveSession(TwoPhaseFunction):
         if project_uuid is None or pipeline_uuid is None:
             return
 
+        current_app.config["SCHEDULER"].add_job(
+            StopInteractiveSession._background_session_stop,
+            args=[
+                current_app._get_current_object(),
+                project_uuid,
+                pipeline_uuid,
+                container_ids,
+                notebook_server_info,
+            ],
+        )
+
+
+class RestartMemoryServer(TwoPhaseFunction):
+    def _transaction(
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+    ):
+
+        session = models.InteractiveSession.query.filter_by(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid, status="RUNNING"
+        ).one_or_none()
+
+        if session is None:
+            self.collateral_kwargs["container_ids"] = None
+            self.collateral_kwargs["notebook_server_info"] = None
+            return False
+        else:
+            # Abort interactive run if it was PENDING/STARTED.
+            run = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.project_uuid == project_uuid,
+                models.InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
+                models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+            ).one_or_none()
+            if run is not None:
+                AbortPipelineRun(self.tpe).transaction(run.uuid)
+
+            self.collateral_kwargs["container_ids"] = session.container_ids
+            self.collateral_kwargs[
+                "notebook_server_info"
+            ] = session.notebook_server_info
+
+        return True
+
+    def _collateral(
+        self,
+        container_ids: Dict[str, str],
+        notebook_server_info: Dict[str, str] = None,
+    ):
+        if container_ids is None:
+            return
+
         session_obj = InteractiveSession.from_container_IDs(
             docker_client,
             container_IDs=container_ids,
@@ -270,29 +399,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             notebook_server_info=notebook_server_info,
         )
 
-        # TODO: error handling?
-        # TODO: If we can do this task in the background then the
-        # request can return. The session shutting down should not
-        # depend on the existence of the object in the DB. Need to make
-        # sure if it is indeed possible, e.g. if there are no race
-        # conditions when shutting down and starting another interactive
-        # session at the same time.
-        session_obj.shutdown()
-
-        # Deletion happens here and not in the transactional phase
-        # because this way we can show the session STOPPING to the user.
-        models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).delete()
-        db.session.commit()
-
-    def _revert(self):
-        # Make sure that the session is deleted in any case, because
-        # otherwise the user will not be able to have an active session
-        # for the given pipeline.
-        session = models.InteractiveSession.query.filter_by(
-            project_uuid=self.collateral_kwargs["project_uuid"],
-            pipeline_uuid=self.collateral_kwargs["pipeline_uuid"],
-        ).one()
-        db.session.delete(session)
-        db.session.commit()
+        # Note: The entry in the database does not have to be updated
+        # since restarting the `memory-server` does not change its
+        # Docker ID.
+        session_obj.restart_resource(resource_name="memory-server")

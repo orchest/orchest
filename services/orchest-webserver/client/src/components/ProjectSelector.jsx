@@ -1,30 +1,21 @@
+// @ts-check
 import React from "react";
 import { MDCLinearProgressReact, MDCSelectReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
-import ProjectsView from "../views/ProjectsView";
+import { useOrchest } from "@/hooks/orchest";
 
-class ProjectSelector extends React.Component {
-  constructor(props) {
-    super(props);
+const ProjectSelector = React.forwardRef((_, ref) => {
+  const { state, dispatch } = useOrchest();
+  const [selectItems, setSelectItems] = React.useState(null);
+  const [projects, setProjects] = React.useState(null);
 
-    this.state = {
-      projects: undefined,
-    };
+  const promiseManager = new PromiseManager();
 
-    this.refManager = new RefManager();
-    this.promiseManager = new PromiseManager();
-  }
-
-  componentDidMount() {
-    this.fetchProjects();
-  }
-
-  listProcess(projects) {
+  const listProcess = (projects) => {
     let options = [];
 
     for (let project of projects) {
@@ -32,19 +23,19 @@ class ProjectSelector extends React.Component {
     }
 
     return options;
-  }
+  };
 
-  onChangeProject(project_uuid) {
-    if (this.props.onChangeProject) {
-      this.props.onChangeProject(project_uuid);
+  const onChangeProject = (project_uuid) => {
+    if (project_uuid) {
+      dispatch({ type: "projectSet", payload: project_uuid });
     }
-  }
+  };
 
   // check whether selected project is valid
-  validatePreSelectedProject(project_uuid, projects) {
+  const validatePreSelectedProject = (project_uuid, projectsToValidate) => {
     let foundProjectUUID = false;
 
-    for (let project of projects) {
+    for (let project of projectsToValidate) {
       if (project.uuid === project_uuid) {
         foundProjectUUID = true;
         break;
@@ -56,60 +47,60 @@ class ProjectSelector extends React.Component {
       project_uuid = undefined;
     }
 
-    this.onChangeProject(project_uuid);
-  }
+    onChangeProject(project_uuid);
+  };
 
-  fetchProjects() {
+  const fetchProjects = () => {
     let fetchProjectsPromise = makeCancelable(
       makeRequest("GET", "/async/projects?skip_discovery=true"),
-      this.promiseManager
+      promiseManager
     );
 
+    // @ts-ignore
     fetchProjectsPromise.promise.then((response) => {
-      let projects = JSON.parse(response);
+      let projectsRes = JSON.parse(response);
 
       // validate the currently selected project, if its invalid
       // it will be set to undefined
-      let project_uuid = this.props.project_uuid;
+      let project_uuid = state.project_uuid;
       if (project_uuid !== undefined) {
-        this.validatePreSelectedProject(project_uuid, projects);
+        validatePreSelectedProject(project_uuid, projectsRes);
       }
 
       // either there was no selected project or the selection
       // was invalid, set the selection to the first project if possible
-      project_uuid = this.props.project_uuid;
-      if (project_uuid === undefined && projects.length > 0) {
-        project_uuid = projects[0].uuid;
-        this.onChangeProject(project_uuid);
+      project_uuid = state.project_uuid;
+      if (project_uuid === undefined && projectsRes.length > 0) {
+        project_uuid = projectsRes[0].uuid;
+        onChangeProject(project_uuid);
       }
 
-      this.setState({
-        selectItems: this.listProcess(projects),
-        projects: projects,
-      });
+      setSelectItems(listProcess(projectsRes));
+      setProjects(projectsRes);
     });
-  }
+  };
 
-  openProjects() {
-    orchest.loadView(ProjectsView);
-  }
+  React.useEffect(() => {
+    fetchProjects();
 
-  render() {
-    if (this.state.projects) {
-      return (
-        <MDCSelectReact
-          label="Project"
-          notched={true}
-          classNames={["project-selector", "fullwidth"]}
-          options={this.state.selectItems}
-          onChange={this.onChangeProject.bind(this)}
-          value={this.props.project_uuid}
-        />
-      );
-    } else {
-      return <MDCLinearProgressReact />;
-    }
-  }
-}
+    return () => {
+      promiseManager.cancelCancelablePromises();
+    };
+  }, [state.project_uuid]);
+
+  return projects ? (
+    <MDCSelectReact
+      ref={ref}
+      label="Project"
+      notched={true}
+      classNames={["project-selector", "fullwidth"]}
+      options={selectItems}
+      onChange={onChangeProject.bind(this)}
+      value={state?.project_uuid}
+    />
+  ) : (
+    <MDCLinearProgressReact ref={ref} />
+  );
+});
 
 export default ProjectSelector;

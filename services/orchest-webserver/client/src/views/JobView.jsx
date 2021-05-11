@@ -13,6 +13,7 @@ import {
   makeCancelable,
   RefManager,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import ParamTree from "../components/ParamTree";
 import PipelineView from "./PipelineView";
 import EditJobView from "./EditJobView";
@@ -25,8 +26,10 @@ import EnvVarList from "../components/EnvVarList";
 import JobsView from "./JobsView";
 
 class JobView extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       selectedTabIndex: 0,
@@ -229,7 +232,10 @@ class JobView extends React.Component {
   }
 
   returnToJobs() {
-    orchest.setProject(this.state.job.project_uuid);
+    this.context.dispatch({
+      type: "projectSet",
+      payload: this.state.job.project_uuid,
+    });
     orchest.loadView(JobsView);
   }
 

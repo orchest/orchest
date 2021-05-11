@@ -1,11 +1,8 @@
 import React from "react";
 
-import {
-  RefManager,
-  PersistentLocalConfig,
-  makeRequest,
-  uuidv4,
-} from "@orchest/lib-utils";
+import { RefManager, makeRequest } from "@orchest/lib-utils";
+
+import { OrchestContext } from "@/hooks/orchest";
 
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
@@ -34,8 +31,10 @@ import "./utils/overflowing";
 window.$ = $;
 
 class App extends React.Component {
-  constructor() {
-    super();
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.KEEP_PIPELINE_VIEWS = [
       PipelineView,
@@ -65,8 +64,6 @@ class App extends React.Component {
         this.config["INTERCOM_DEFAULT_SIGNUP_DATE"]
       );
     }
-
-    this.browserConfig = new PersistentLocalConfig("orchest");
 
     this.sendEvent = function (event, properties) {
       if (!orchest.config["TELEMETRY_DISABLED"]) {
@@ -104,15 +101,8 @@ class App extends React.Component {
       }
     };
 
-    // load drawerOpen state
-    let topAppBarOpen = this.browserConfig.get("topAppBar.open");
-
     this.state = {
       activeViewName: "",
-      // Default drawer state is open.
-      drawerOpen: topAppBarOpen === undefined || topAppBarOpen === "true",
-      selectedProject: this.browserConfig.get("selected_project_uuid"),
-      projectSelectorHash: uuidv4(),
     };
 
     this.refManager = new RefManager();
@@ -132,7 +122,7 @@ class App extends React.Component {
     }
 
     if (this.KEEP_PIPELINE_VIEWS.indexOf(TagName) === -1) {
-      this.headerBarComponent.clearPipeline();
+      this.context.dispatch({ type: "pipelineClear" });
     }
 
     // select menu if menu tag is selected
@@ -146,7 +136,7 @@ class App extends React.Component {
   _generateView(TagName, dynamicProps) {
     // add selectedProject to ProjectBasedView
     if (this.INJECT_PROJECT_UUID_VIEWS.indexOf(TagName) !== -1) {
-      dynamicProps.project_uuid = this.state.selectedProject;
+      dynamicProps.project_uuid = this.context.state.project_uuid;
     }
 
     return <TagName {...dynamicProps} />;
@@ -272,36 +262,9 @@ class App extends React.Component {
   componentDidMount() {
     // create Jupyter manager
     this.jupyter = new Jupyter(this.refManager.refs.jupyter);
-    this.headerBarComponent = this.refManager.refs.headerBar;
 
     this.setUnsavedChanges(false);
     this.initializeFirstView();
-  }
-
-  handleToggleDrawer() {
-    this.setState((state) => {
-      return {
-        drawerOpen: !state.drawerOpen,
-      };
-    });
-  }
-
-  handleDrawerOpen(open) {
-    this.setState({
-      drawerOpen: open,
-    });
-  }
-
-  setProject(projectUUID) {
-    if (projectUUID === undefined) {
-      this.browserConfig.remove("selected_project_uuid");
-    } else {
-      this.browserConfig.set("selected_project_uuid", projectUUID);
-    }
-
-    this.setState({
-      selectedProject: projectUUID,
-    });
   }
 
   getProject() {
@@ -333,12 +296,6 @@ class App extends React.Component {
     });
   }
 
-  invalidateProjects() {
-    this.setState({
-      projectSelectorHash: uuidv4(),
-    });
-  }
-
   render() {
     let view;
     if (this.state.TagName) {
@@ -347,19 +304,9 @@ class App extends React.Component {
 
     return (
       <>
-        <HeaderBar
-          selectedProject={this.state.selectedProject}
-          projectSelectorHash={this.state.projectSelectorHash}
-          changeSelectedProject={this.setProject.bind(this)}
-          ref={this.refManager.nrefs.headerBar}
-          toggleDrawer={this.handleToggleDrawer.bind(this)}
-        />
+        <HeaderBar />
         <div className="app-container">
-          <MainDrawer
-            open={this.state.drawerOpen}
-            setDrawerOpen={this.handleDrawerOpen.bind(this)}
-            selectedElement={this.state.activeViewName}
-          />
+          <MainDrawer selectedElement={this.state.activeViewName} />
           <main className="main-content" id="main-content">
             {view}
             <div

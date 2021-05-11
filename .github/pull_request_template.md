@@ -18,6 +18,6 @@ You can check a box by adding an X, i.e. "- [X]", or by clicking on the check bo
 -->
 
 - [ ] The documentation reflects the changes.
-- [ ] I have manually tested the application to make sure the changes don’t cause any downstream issues.
+- [ ] I have manually tested the application to make sure the changes don’t cause any downstream issues, which includes making sure `./orchest status --ext` is not reporting failures when Orchest is running.
 <!-- For the item below, refer to: `scripts/migration_manager.sh` -->
 - [ ] In case I changed one of the services’ `models.py` I have performed the appropriate database migrations.

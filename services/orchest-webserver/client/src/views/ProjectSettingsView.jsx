@@ -6,6 +6,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import { OrchestContext } from "@/hooks/orchest";
 import EnvVarList from "../components/EnvVarList";
 import {
   envVariablesArrayToDict,
@@ -18,8 +19,10 @@ import JobsView from "./JobsView";
 import EnvironmentsView from "./EnvironmentsView";
 
 class ProjectSettingsView extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       unsavedChanges: false,
@@ -134,7 +137,10 @@ class ProjectSettingsView extends React.Component {
 
   onClickProjectEntity(view, projectUUID, e) {
     e.preventDefault();
-    orchest.setProject(projectUUID);
+    this.context.dispatch({
+      type: "projectSet",
+      payload: projectUUID,
+    });
     orchest.loadView(view);
   }
 
