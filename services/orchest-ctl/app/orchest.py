@@ -11,6 +11,7 @@ TODO:
 """
 import logging
 import os
+import re
 from functools import reduce
 from typing import List, Optional, Set, Tuple
 
@@ -232,6 +233,14 @@ class OrchestApp:
 
     def status(self, ext=False):
 
+        if self.is_restarting():
+            utils.echo("Orchest is restarting.")
+            raise typer.Exit(code=4)
+
+        if self.is_updating():
+            utils.echo("Orchest is updating.")
+            raise typer.Exit(code=5)
+
         _, running_containers_names = self.resource_manager.get_containers(
             state="running"
         )
@@ -411,6 +420,52 @@ class OrchestApp:
             )
 
         raise typer.Exit(code=exit_code)
+
+    def is_restarting(self) -> bool:
+        """Check if Orchest is restarting.
+
+        Returns: True if there is another instance of orchest-ctl
+        issuing a restart, False otherwise.
+        """
+        containers, _ = self.docker_client.get_containers(
+            full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"
+        )
+        for cont in containers:
+            if (
+                # Ignore the container in which we are running.
+                not cont["Id"].startswith(os.environ["HOSTNAME"])
+                and
+                # re: orchest -vvv restart <any following argument>
+                re.match(
+                    "^orchest(\s+-v*)?\s+restart(\s+.*)?$", cont["Command"].strip()
+                )
+            ):
+                return True
+        return False
+
+    def is_updating(self) -> bool:
+        """Check if Orchest is updating.
+
+        Returns: True if there is another instance of orchest-ctl
+        issuing an update, False otherwise.
+        """
+        containers, _ = self.docker_client.get_containers(
+            full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"
+        )
+        for cont in containers:
+            if (
+                # Ignore the container in which we are running.
+                not cont["Id"].startswith(os.environ["HOSTNAME"])
+                and
+                # Can't check through the image name because if the
+                # image has become dangling/outdated while the container
+                # is running the name will be an hash instead of
+                # "orchest-ctl".
+                # re: orchest -vvv update <any following argument>
+                re.match("^orchest(\s+-v*)?\s+update(\s+.*)?$", cont["Command"].strip())
+            ):
+                return True
+        return False
 
 
 # TODO: Could potentially make this into set as well.

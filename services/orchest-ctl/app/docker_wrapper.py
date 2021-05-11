@@ -214,11 +214,17 @@ class DockerWrapper:
         state: Literal["all", "running", "exited"] = "running",
         network: Optional[str] = None,
         full_info: bool = False,
+        label: Optional[str] = None,
     ) -> Tuple[List[str], List[Optional[str]]]:
         all_ = True if state in ["all", "exited"] else False
-        containers = await self.aclient.containers.list(
-            all=all_, filters={"network": [network]}
-        )
+
+        filters = {}
+        if network is not None:
+            filters["network"] = [network]
+        if label is not None:
+            filters["label"] = [label]
+
+        containers = await self.aclient.containers.list(all=all_, filters=filters)
         await self.close_aclient()
 
         info = []
@@ -239,6 +245,7 @@ class DockerWrapper:
         state: Literal["all", "running", "exited"] = "running",
         network: Optional[str] = None,
         full_info: bool = False,
+        label: Optional[str] = None,
     ) -> Tuple[List[str], List[Optional[str]]]:
         """Returns runnings containers (on a network).
 
@@ -248,6 +255,8 @@ class DockerWrapper:
             network: The network on which to filter the containers.
             full_info: If True returns the complete info for each
                 container, else only the id.
+            label: Label through which filter containers, can be None,
+                a tag key or of the form key=value.
 
         Returns:
             (container_ids, img_names) in respective order. Where the
@@ -256,7 +265,9 @@ class DockerWrapper:
 
         """
         return asyncio.run(
-            self._get_containers(state=state, network=network, full_info=full_info)
+            self._get_containers(
+                state=state, network=network, full_info=full_info, label=label
+            )
         )
 
     async def _remove_containers(self, container_ids: Iterable[str]):
@@ -481,6 +492,7 @@ class OrchestResourceManager:
         self,
         state: Literal["all", "running", "exited"] = "running",
         full_info: bool = False,
+        label: Optional[str] = None,
     ) -> Tuple[List[str], List[Optional[str]]]:
         """
 
@@ -491,7 +503,7 @@ class OrchestResourceManager:
                 container, else only the id.
         """
         return self.docker_client.get_containers(
-            state=state, network=self.network, full_info=full_info
+            state=state, network=self.network, full_info=full_info, label=label
         )
 
     def get_env_build_imgs(self):
