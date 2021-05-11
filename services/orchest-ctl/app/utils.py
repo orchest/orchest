@@ -3,6 +3,7 @@ import os
 import subprocess
 import textwrap
 import time
+from collections.abc import Mapping
 from typing import List, Union
 
 import typer
@@ -113,6 +114,7 @@ def update_git_repo():
     return exit_code
 
 
-def is_dangling(image):
+def is_dangling(image: Mapping) -> bool:
+    """Checks whether the given image is to be considered dangling."""
     tags = image["RepoTags"]
     return not tags or (len(tags) == 1 and tags[0] == "<none>:<none>")
