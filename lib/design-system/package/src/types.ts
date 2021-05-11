@@ -1,4 +1,4 @@
-import { StitchesCss } from "@stitches/react";
+import type { StitchesCss } from "@stitches/react";
 import { stitches } from "./core";
 
 export type CSS = StitchesCss<typeof stitches>;

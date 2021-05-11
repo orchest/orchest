@@ -1,9 +1,9 @@
+import { StitchesVariants } from "@stitches/core";
 import * as React from "react";
 import { css } from "../core";
 import { ICSSProp } from "../types";
 
 export const icon = css({
-  $$iconSize: "1rem",
   color: "currentcolor",
   width: "$$iconSize",
   height: "$$iconSize",
@@ -21,17 +21,20 @@ export const icon = css({
 });
 
 export type IIconRef = SVGSVGElement;
-export interface IIconProps extends ICSSProp, React.SVGProps<IIconRef> {}
+export interface IIconProps
+  extends StitchesVariants<typeof icon>,
+    ICSSProp,
+    React.SVGProps<IIconRef> {}
 
 export const IconChevronLeft = React.forwardRef<IIconRef, IIconProps>(
-  ({ css, className, ...props }, ref) => (
+  ({ className, css, size, ...props }, ref) => (
     <svg
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
-      className={icon({ className, css })}
+      className={icon({ className, css, size })}
       {...props}
     >
       <path
@@ -45,14 +48,14 @@ export const IconChevronLeft = React.forwardRef<IIconRef, IIconProps>(
 );
 
 export const IconChevronRight = React.forwardRef<IIconRef, IIconProps>(
-  ({ css, className, ...props }, ref) => (
+  ({ className, css, size, ...props }, ref) => (
     <svg
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
-      className={icon({ className, css })}
+      className={icon({ className, css, size })}
       {...props}
     >
       <path

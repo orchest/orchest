@@ -2,7 +2,7 @@ import * as React from "react";
 import { StitchesVariants } from "@stitches/react";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { styled } from "../core";
-import { ICSSProp } from "../types";
+import type { ICSSProp } from "../types";
 
 const svgSize = (size: string) => ({
   "> svg": {

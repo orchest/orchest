@@ -1,7 +1,3 @@
-import { css, styled } from "../core";
-import { CSS } from "../types";
+import { styled } from "../core";
 
-const style: CSS = { include: "box" };
-
-export const box = css(style);
-export const Box = styled("div", style);
+export const Box = styled("div", { include: "box" });

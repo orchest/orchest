@@ -92,6 +92,7 @@ export const stitches = createCss({
     },
     lineHeights: {
       base: "1.5rem",
+      xs: "1rem",
       sm: "1.25rem",
       lg: "1.75rem",
       xl: "1.75rem",

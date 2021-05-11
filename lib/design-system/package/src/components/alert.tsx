@@ -1,12 +1,13 @@
 import * as React from "react";
 import { useId } from "@radix-ui/react-id";
 import { StitchesVariants } from "@stitches/react";
-import { css } from "../core";
+import { styled } from "../core";
 import { IconChevronLeft, IconChevronRight } from "../icons";
-import { ICSSProp } from "../types";
+import type { ICSSProp } from "../types";
 import { IconButton } from "./icon-button";
+import { Text } from "./text";
 
-const alert = css({
+const AlertRoot = styled("div", {
   $$gap: "$space$2",
   color: "$$textColor",
   padding: "$4",
@@ -31,40 +32,42 @@ const alert = css({
   },
 });
 
-const alertHeader = css({
+const AlertHeader = styled("p", {
   display: "flex",
   alignItems: "center",
   fontWeight: "$bold",
 });
 
-const alertIcon = css({
+const AlertIcon = styled("span", {
   display: "inline-flex",
   flexShrink: 0,
   alignSelf: "center",
   marginRight: "$$gap",
 });
 
-const alertTitle = css({ fontWeight: "$bold" });
+const AlertTitle = styled(Text, { fontWeight: "$bold" });
 
-const alertFooter = css({
+const AlertFooter = styled("div", {
   display: "flex",
   width: "100%",
   justifyContent: "space-between",
   marginTop: "$2",
 });
 
-const alertPagination = css({ color: "$$paginationColor" });
+const AlertPagination = styled(Text, { color: "$$paginationColor" });
 
 export interface IAlertRef extends HTMLDivElement {}
 
-export interface IAlertProps extends ICSSProp, StitchesVariants<typeof alert> {
+export interface IAlertProps
+  extends ICSSProp,
+    StitchesVariants<typeof AlertRoot> {
   title?: string;
   description?: React.ReactNode | React.ReactNode[];
   icon?: React.ReactNode;
 }
 
 export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
-  ({ css, status, title, description, icon, ...props }, ref) => {
+  ({ title, description, icon, ...props }, ref) => {
     const titleId = useId();
     const descriptionId = useId();
 
@@ -80,35 +83,34 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
       );
 
     return (
-      <div
+      <AlertRoot
         ref={ref}
         role="alert"
         aria-live="polite"
         aria-labelledby={title && titleId}
         aria-describedby={description && descriptionId}
-        className={alert({ css, status })}
         {...props}
       >
         {title && (
-          <p id={titleId} className={alertHeader()}>
-            {icon && <span className={alertIcon()}>{icon}</span>}
-            <span className={alertTitle()}>{title}</span>
-          </p>
+          <AlertHeader id={titleId}>
+            {icon && <AlertIcon>{icon}</AlertIcon>}
+            <AlertTitle as="span">{title}</AlertTitle>
+          </AlertHeader>
         )}
 
         {description && (
           <React.Fragment>
-            <p id={descriptionId}>
+            <Text id={descriptionId}>
               {!Array.isArray(description)
                 ? description
                 : description[descriptionIndex]}
-            </p>
+            </Text>
 
             {Array.isArray(description) && description.length > 1 && (
-              <div className={alertFooter()}>
-                <p className={alertPagination()}>
+              <AlertFooter>
+                <AlertPagination as="p">
                   {descriptionIndex + 1}/{description.length}
-                </p>
+                </AlertPagination>
                 <div role="group">
                   <IconButton
                     label="Back"
@@ -128,11 +130,11 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
                     <IconChevronRight />
                   </IconButton>
                 </div>
-              </div>
+              </AlertFooter>
             )}
           </React.Fragment>
         )}
-      </div>
+      </AlertRoot>
     );
   }
 );

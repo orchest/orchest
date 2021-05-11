@@ -1,23 +1,22 @@
 import * as React from "react";
 import {
-  flex,
   Alert,
   IconLightBulb,
   Link,
   IconWarning,
+  Flex,
 } from "@orchest/design-system";
 
 const Index = () => (
-  <main
-    className={flex({
-      css: {
-        margin: "0 auto",
-        padding: "$4",
-        maxWidth: "$3xl",
-        flexDirection: "column",
-        gap: "$4",
-      },
-    })}
+  <Flex
+    as="main"
+    css={{
+      margin: "0 auto",
+      padding: "$4",
+      maxWidth: "$3xl",
+      flexDirection: "column",
+      gap: "$4",
+    }}
   >
     <h1>Design System Sandbox</h1>
 
@@ -102,7 +101,7 @@ const Index = () => (
         "Private git repositories can be managed in Orchest using local git credentials.",
       ]}
     />
-  </main>
+  </Flex>
 );
 
 export default Index;
