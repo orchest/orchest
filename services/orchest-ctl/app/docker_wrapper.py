@@ -517,9 +517,15 @@ class OrchestResourceManager:
 
     def remove_orchest_dangling_imgs(self):
         orchest_dangling_imgs = set(self.get_orchest_dangling_imgs())
-        containers, _ = self.get_containers(full_info=True)
+
+        # This will pick up both orchest-ctl (which is not in the
+        # orchest network) and the other orchest containers.
+        containers, _ = self.docker_client.get_containers(full_info=True, network=None)
+
+        # Do not try to delete images that are in use.
         images_in_use = {c["ImageID"] for c in containers}
         orchest_dangling_imgs = orchest_dangling_imgs - images_in_use
+
         self.docker_client.remove_images(orchest_dangling_imgs, force=True)
 
     def containers_version(self):
