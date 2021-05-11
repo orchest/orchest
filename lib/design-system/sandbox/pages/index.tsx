@@ -10,6 +10,7 @@ import {
   IconChevronRight,
   Box,
   IconChevronLeft,
+  LogoBrand,
 } from "@orchest/design-system";
 
 const Index = () => (
@@ -139,11 +140,12 @@ const Index = () => (
     <h3>Text</h3>
     <Text size="xs">xs</Text>
     <Text size="sm">sm</Text>
-    <Text size="md">md</Text>
     <Text>base</Text>
     <Text size="lg">lg</Text>
     <Text size="xl">xl</Text>
     <Text size="2xl">2xl</Text>
+    <h2>Logos</h2>
+    <LogoBrand />
   </Flex>
 );
 
