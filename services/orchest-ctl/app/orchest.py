@@ -203,6 +203,11 @@ class OrchestApp:
             logger.info("Shutting down containers:\n" + "\n".join(running_containers))
             self.docker_client.remove_containers(ids)
 
+            # This is a safeguard against the fact that docker might be
+            # buffering the start of a container, which translates to
+            # the fact that we could "miss" the container and leave it
+            # dangling. See #239 for more info.
+            time.sleep(2)
             ids, running_containers = self.resource_manager.get_containers(
                 state="running"
             )
