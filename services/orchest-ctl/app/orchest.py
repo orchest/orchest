@@ -245,7 +245,7 @@ class OrchestApp:
         # Minimal set of containers to be running for Orchest to be in
         # a valid state.
         valid_set: Set[str] = reduce(
-            lambda x, y: x.union(y), config.ORCHEST_IMAGES["minimal"], set()
+            lambda x, y: x.union(y), config._on_start_images, set()
         )
 
         if valid_set - set(running_containers_names):
