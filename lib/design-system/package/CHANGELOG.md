@@ -1,6 +1,12 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file
+
+# 0.0.2 (2021-05-12)
+
+## Bug Fixes
+
+- `LogoBrand` now supports a `css` prop
 
 # 0.0.1 (2021-05-11)
 
