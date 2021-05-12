@@ -49,22 +49,38 @@ def test_install(installed_images, expected_stdout, install_orchest, capsys):
 
 
 @pytest.mark.parametrize(
-    ("running_containers", "expected_stdout", "expected_exit_code"),
+    (
+        "running_containers",
+        "restarting",
+        "updating",
+        "expected_stdout",
+        "expected_exit_code",
+    ),
     [
-        (["A", "B"], "Orchest is running.", 0),
-        (["A"], "has reached an invalid state", 2),
-        ([], "Orchest is not running.", 1),
+        (["A", "B"], False, False, "Orchest is running.", 0),
+        (["A"], False, False, "has reached an invalid state", 2),
+        ([], False, False, "Orchest is not running.", 1),
+        ([], True, False, "Orchest is currently restarting.", 4),
+        ([], False, True, "Orchest is currently updating.", 5),
     ],
-    ids=["running", "partially-running", "not-running"],
+    ids=["running", "partially-running", "not-running", "restartig", "updating"],
 )
 def test_status(
-    running_containers, expected_stdout, expected_exit_code, capsys, monkeypatch
+    running_containers,
+    restarting,
+    updating,
+    expected_stdout,
+    expected_exit_code,
+    capsys,
+    monkeypatch,
 ):
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_containers = MagicMock(return_value=(None, running_containers))
 
     app = orchest.OrchestApp()
     app.resource_manager = resource_manager
+    app._is_restarting = MagicMock(return_value=restarting)
+    app._is_updating = MagicMock(return_value=updating)
     monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
 
     exit_code = 0
@@ -77,7 +93,8 @@ def test_status(
     captured = capsys.readouterr()
     assert expected_stdout in captured.out
 
-    resource_manager.get_containers.assert_called_once_with(state="running")
+    if not restarting and not updating:
+        resource_manager.get_containers.assert_called_once_with(state="running")
 
 
 @pytest.mark.parametrize(
