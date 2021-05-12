@@ -431,15 +431,17 @@ class OrchestApp:
         containers, _ = self.docker_client.get_containers(
             full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"
         )
+        cmd = utils.ctl_command_pattern.format(cmd="restart")
         for cont in containers:
             if (
                 # Ignore the container in which we are running.
                 not cont["Id"].startswith(os.environ["HOSTNAME"])
                 and
-                # re: orchest -vvv restart <any following argument>
-                re.match(
-                    "^orchest(\s+-v*)?\s+restart(\s+.*)?$", cont["Command"].strip()
-                )
+                # Can't check through the image name because if the
+                # image has become dangling/outdated while the container
+                # is running the name will be an hash instead of
+                # "orchest-ctl".
+                re.match(cmd, cont["Command"].strip())
             ):
                 return True
         return False
@@ -454,17 +456,12 @@ class OrchestApp:
         containers, _ = self.docker_client.get_containers(
             full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"
         )
+        cmd = utils.ctl_command_pattern.format(cmd="update")
         for cont in containers:
             if (
                 # Ignore the container in which we are running.
                 not cont["Id"].startswith(os.environ["HOSTNAME"])
-                and
-                # Can't check through the image name because if the
-                # image has become dangling/outdated while the container
-                # is running the name will be an hash instead of
-                # "orchest-ctl".
-                # re: orchest -vvv update <any following argument>
-                re.match("^orchest(\s+-v*)?\s+update(\s+.*)?$", cont["Command"].strip())
+                and re.match(cmd, cont["Command"].strip())
             ):
                 return True
         return False
