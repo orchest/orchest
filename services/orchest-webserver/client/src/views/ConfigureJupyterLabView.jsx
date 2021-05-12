@@ -9,12 +9,15 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import { OrchestContext } from "@/hooks/orchest";
 import ImageBuildLog from "../components/ImageBuildLog";
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 
 class ConfigureJupyterLabView extends React.Component {
-  constructor() {
-    super();
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -115,43 +118,8 @@ class ConfigureJupyterLabView extends React.Component {
       messagePrefix +
         "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
       () => {
-        this.setState({
-          sessionKillInProgress: true,
-        });
-        // Get all sessions
-        makeRequest("GET", "/catch/api-proxy/api/sessions/")
-          .then((result) => {
-            let sessions = JSON.parse(result)["sessions"];
-
-            let promises = [];
-            for (let session of sessions) {
-              promises.push(
-                // deleting the job will also
-                // take care of aborting it if necessary
-                makeRequest(
-                  "DELETE",
-                  `/catch/api-proxy/api/sessions/${session.project_uuid}/${session.pipeline_uuid}`
-                )
-              );
-
-              Promise.all(promises)
-                .then(() => {
-                  if (successCallback) {
-                    successCallback();
-                  }
-                })
-                .finally(() => {
-                  this.setState({
-                    sessionKillInProgress: false,
-                  });
-                });
-            }
-          })
-          .catch(() => {
-            this.setState({
-              sessionKillInProgress: false,
-            });
-          });
+        this.context.dispatch({ type: "sessionsKillAll" });
+        successCallback();
       }
     );
   }

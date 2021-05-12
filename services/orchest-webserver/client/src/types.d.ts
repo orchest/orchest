@@ -70,6 +70,7 @@ export interface IOrchestState
   user_config: IOrchestUserConfig;
   _sessionsUuids?: IOrchestSessionUuid[] | [];
   _sessionsToggle?: IOrchestSessionUuid;
+  _sessionsKillAll?: boolean;
 }
 
 export type TOrchestAction =
@@ -103,7 +104,9 @@ export type TOrchestAction =
       payload: IOrchestSessionUuid;
     }
   | { type: "_sessionsSet"; payload: IOrchestSession[] }
-  | { type: "_sessionsToggleClear" };
+  | { type: "_sessionsToggleClear" }
+  | { type: "sessionsKillAll" }
+  | { type: "_sessionsKillAllClear" };
 
 export interface IOrchestGet {
   currentSession: IOrchestSession;

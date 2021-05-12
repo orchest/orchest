@@ -6,10 +6,13 @@ import { useOrchest } from "./context";
 import { isSession } from "./utils";
 
 /**
+ * @typedef {import("@/types").IOrchestSessionUuid } IOrchestSessionUuid
  * @typedef {import("@/types").IOrchestSession} IOrchestSession
  */
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
+
+/** @param {IOrchestSessionUuid} props */
 const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
   [
     ENDPOINT,
@@ -18,6 +21,21 @@ const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
     "&pipeline_uuid=",
     pipeline_uuid,
   ].join("");
+
+/**
+ * @param {IOrchestSessionUuid} props
+ */
+const fetchStopSession = ({ pipeline_uuid, project_uuid }) =>
+  fetcher(ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json;charset=UTF-8",
+    },
+    body: JSON.stringify({
+      pipeline_uuid,
+      project_uuid,
+    }),
+  });
 
 export const SessionsProvider = ({ children }) => {
   const { state, dispatch } = useOrchest();
@@ -102,6 +120,31 @@ export const SessionsProvider = ({ children }) => {
     dispatch({ type: "_sessionsSet", payload: data });
   }, [data]);
 
+  React.useEffect(() => {
+    if (state._sessionsKillAll) {
+      mutate((sessionsData) =>
+        sessionsData.map((sessionData) => ({
+          ...sessionData,
+          status: "STOPPING",
+        }))
+      );
+
+      Promise.all(
+        data.map((sessionData) =>
+          fetchStopSession(sessionData).catch((err) => {
+            throw err;
+          })
+        )
+      )
+        .then((stoppedSessions) => mutate(stoppedSessions))
+        .catch((err) => {
+          console.error(err);
+        });
+
+      dispatch({ type: "_sessionsKillAllClear" });
+    }
+  }, [state._sessionsKillAll]);
+
   /**
    * Handle Toggle Events
    */
@@ -140,16 +183,7 @@ export const SessionsProvider = ({ children }) => {
     if (!session.status || session.status === "STOPPED") {
       mutateSession({ status: "LAUNCHING" }, false);
 
-      fetcher(ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json;charset=UTF-8",
-        },
-        body: JSON.stringify({
-          pipeline_uuid: session.pipeline_uuid,
-          project_uuid: session.project_uuid,
-        }),
-      })
+      fetchStopSession({ ...session })
         .then((sessionDetails) => mutateSession(sessionDetails))
         .catch((err) => {
           let errorBody = JSON.parse(err.body);

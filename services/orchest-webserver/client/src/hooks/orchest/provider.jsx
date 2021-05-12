@@ -57,14 +57,19 @@ const reducer = (state, action) => {
       };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
-    case "setView":
-      return { ...state, view: action.payload };
-    case "clearView":
-      return { ...state, view: null };
     case "_sessionsSet":
       return { ...state, sessions: action.payload };
     case "_sessionsToggleClear":
       return { ...state, _sessionToggle: null };
+    case "sessionsKillAll":
+      return { ...state, _sessionsKillAll: true };
+    case "_sessionsKillAllClear":
+      return { ...state, _sessionsKillAll: false };
+    case "setView":
+      return { ...state, view: action.payload };
+    case "clearView":
+      return { ...state, view: null };
+
     default:
       console.log(action);
       throw new Error();
