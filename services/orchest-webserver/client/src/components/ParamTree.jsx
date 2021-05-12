@@ -108,7 +108,7 @@ class ParamTree extends React.Component {
                     <Link href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps">
                       Learn more
                     </Link>{" "}
-                    about paramterizing your pipelines and steps.
+                    about parametrizing your pipelines and steps.
                   </>
                 }
               />
