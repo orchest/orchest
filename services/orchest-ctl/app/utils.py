@@ -114,7 +114,24 @@ def update_git_repo():
     return exit_code
 
 
+def is_orchest_running(running_containers) -> bool:
+    """Check whether Orchest is considered to be running."""
+    # Don't count orchest-ctl when checking whether Orchest is
+    # running.
+    running_containers = [
+        c for c in running_containers if c not in ["orchest/orchest-ctl:latest"]
+    ]
+
+    return bool(running_containers)
+
+
 def is_dangling(image: Mapping) -> bool:
     """Checks whether the given image is to be considered dangling."""
     tags = image["RepoTags"]
     return not tags or "<none>:<none>" in tags
+
+
+# orchest <arguments> cmd <arguments>, excluding the use of cmd as an
+# argument, so that "orchest --update update" would match but
+# "orchest update update" would not.
+ctl_command_pattern = r"^orchest(\s+(?!{cmd}\b)\S+)*\s+{cmd}(\s+(?!{cmd}\b)\S+)*\s*$"
