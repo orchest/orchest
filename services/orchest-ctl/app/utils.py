@@ -128,7 +128,7 @@ def is_orchest_running(running_containers) -> bool:
 def is_dangling(image: Mapping) -> bool:
     """Checks whether the given image is to be considered dangling."""
     tags = image["RepoTags"]
-    return not tags or (len(tags) == 1 and tags[0] == "<none>:<none>")
+    return not tags or "<none>:<none>" in tags
 
 
 # orchest <arguments> cmd <arguments>, excluding the use of cmd as an
