@@ -3,7 +3,7 @@
 TODO:
     * Improve the start/stop so that containers are not removed. Instead
       containers can just be restarted (preserving their logs). Update
-      should then remove old containers to make sure the updated once
+      should then remove old containers to make sure the updated ones
       are used.
     * In Python3.9 PEP585 will be introduced, deprecating certain typing
       functionality. See: https://www.python.org/dev/peps/pep-0585/
@@ -11,6 +11,7 @@ TODO:
 """
 import logging
 import os
+import time
 from functools import reduce
 from typing import List, Optional, Set, Tuple
 
@@ -30,17 +31,6 @@ class OrchestApp:
     def __init__(self):
         self.resource_manager = OrchestResourceManager()
         self.docker_client = DockerWrapper()
-
-    def is_running(self, running_containers) -> bool:
-        """Check whether Orchest is running"""
-
-        # Don't count orchest-ctl when checking whether Orchest is
-        # running.
-        running_containers = [
-            c for c in running_containers if c not in ["orchest/orchest-ctl:latest"]
-        ]
-
-        return len(running_containers) > 0
 
     def install(self, language: str, gpu: bool = False):
         """Installs Orchest for the given language.
@@ -84,29 +74,32 @@ class OrchestApp:
                 on start.
 
         """
-        # Check whether the minimal set of images is present for Orchest
-        # to be started.
+        # Check that all images required for Orchest to be running are
+        # in the system.
         pulled_images = self.resource_manager.get_images()
-        req_images: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
-        missing_images = req_images - set(pulled_images)
+        installation_req_images: Set[str] = set(ORCHEST_IMAGES["minimal"])
+        missing_images = installation_req_images - set(pulled_images)
 
         if missing_images or not self.resource_manager.is_network_installed():
             utils.echo("Before starting Orchest, make sure Orchest is installed. Run:")
             utils.echo("\torchest install")
             return
 
-        # Check whether the container config contains the set of
-        # required images.
-        present_imgs = set(config["Image"] for config in container_config.values())
-        if present_imgs < req_images:  # proper subset
+        # Check that all images required for Orchest to start are in the
+        # container_config.
+        start_req_images: Set[str] = reduce(
+            lambda x, y: x.union(y), _on_start_images, set()
+        )
+        present_imgs = set(c["Image"] for c in container_config.values())
+        if present_imgs < start_req_images:  # proper subset
             raise ValueError(
                 "The container_config does not contain a configuration for "
-                " every required image: " + ", ".join(req_images)
+                "every image required on start: " + ", ".join(start_req_images)
             )
 
         # Orchest is already running
         ids, running_containers = self.resource_manager.get_containers(state="running")
-        if not (req_images - set(running_containers)):
+        if not (start_req_images - set(running_containers)):
             # TODO: Ideally this would print the port on which Orchest
             #       is running. (Was started before and so we do not
             #       simply know.)
@@ -132,15 +125,15 @@ class OrchestApp:
         logger.info("Fixing permissions on the 'userdir/'.")
 
         utils.echo("Starting Orchest...")
-        logger.info("Starting containers:\n" + "\n".join(req_images))
+        logger.info("Starting containers:\n" + "\n".join(start_req_images))
 
         # Start the containers in the correct order, keeping in mind
         # dependencies between containers.
         for i, to_start_imgs in enumerate(_on_start_images):
             filter_ = {"Image": to_start_imgs}
-            config = spec.filter_container_config(container_config, filter=filter_)
+            config_ = spec.filter_container_config(container_config, filter=filter_)
             stdouts = self.docker_client.run_containers(
-                config, use_name=True, detach=True
+                config_, use_name=True, detach=True
             )
 
             # TODO: Abstract version of when the next set of images can
@@ -179,7 +172,7 @@ class OrchestApp:
         """
 
         ids, running_containers = self.resource_manager.get_containers(state="running")
-        if not self.is_running(running_containers):
+        if not utils.is_orchest_running(running_containers):
             utils.echo("Orchest is not running.")
             return
 
@@ -188,22 +181,39 @@ class OrchestApp:
             skip_containers = []
         skip_containers += ["orchest/orchest-ctl:latest"]
 
-        ids: Tuple[str]
-        running_containers: Tuple[Optional[str]]
-        ids, running_containers = list(
-            zip(
-                *[
-                    (id_, c)
-                    for id_, c in zip(ids, running_containers)
-                    if c not in skip_containers
-                ]
-            )
-        )
-
         utils.echo("Shutting down...")
-        logger.info("Shutting down containers:\n" + "\n".join(running_containers))
+        # This is necessary because some of our containers might spawn
+        # other containers, leading to a possible race condition where
+        # the listed running containers are not up to date with the
+        # real state anymore.
+        n = 2
+        for _ in range(n):
 
-        self.docker_client.remove_containers(ids)
+            ids: Tuple[str]
+            running_containers: Tuple[Optional[str]]
+            ids, running_containers = list(
+                zip(
+                    *[
+                        (id_, c)
+                        for id_, c in zip(ids, running_containers)
+                        if c not in skip_containers
+                    ]
+                )
+            )
+            logger.info("Shutting down containers:\n" + "\n".join(running_containers))
+            self.docker_client.remove_containers(ids)
+
+            # This is a safeguard against the fact that docker might be
+            # buffering the start of a container, which translates to
+            # the fact that we could "miss" the container and leave it
+            # dangling. See #239 for more info.
+            time.sleep(2)
+            ids, running_containers = self.resource_manager.get_containers(
+                state="running"
+            )
+            if not ids:
+                break
+
         utils.echo("Shutdown successful.")
 
     def restart(self, container_config: dict):
@@ -222,11 +232,11 @@ class OrchestApp:
         """Starts the update-server service."""
         logger.info("Starting Orchest update service...")
 
-        config = {}
+        config_ = {}
         container_config = spec.get_container_config(port=port, cloud=cloud, dev=dev)
-        config["update-server"] = container_config["update-server"]
+        config_["update-server"] = container_config["update-server"]
 
-        self.docker_client.run_containers(config, use_name=True, detach=True)
+        self.docker_client.run_containers(config_, use_name=True, detach=True)
 
     def status(self, ext=False):
 
@@ -234,7 +244,7 @@ class OrchestApp:
             state="running"
         )
 
-        if not self.is_running(running_containers_names):
+        if not utils.is_orchest_running(running_containers_names):
             utils.echo("Orchest is not running.")
             raise typer.Exit(code=1)
 
@@ -265,7 +275,7 @@ class OrchestApp:
                 else:
                     raise typer.Exit(code=3)
 
-    def update(self, mode=None):
+    def update(self, mode=None, dev: bool = False):
         """Update Orchest.
 
         Args:
@@ -274,34 +284,52 @@ class OrchestApp:
                 update is invoked through the update-server.
 
         """
-        # Get all installed containers.
-        pulled_images = self.resource_manager.get_images()
-
-        # Pull images. It is possible to pull new image whilst the older
-        # versions of those images are running.
-        # TODO: remove the warning from the orchest.sh script that
-        #       containers will be shut down.
         utils.echo("Updating...")
 
         _, running_containers = self.resource_manager.get_containers(state="running")
-        if self.is_running(running_containers):
-            utils.echo("Using Orchest whilst updating is NOT recommended.")
+        if utils.is_orchest_running(running_containers):
+            utils.echo(
+                "Using Orchest whilst updating is NOT supported and will be shut"
+                " down, killing all active pipeline runs and session. You have 2s"
+                " to cancel the update operation."
+            )
+
+            # Give the user the option to cancel the update operation
+            # using a keyboard interrupt.
+            time.sleep(2)
+
+            # It is possible to pull new image whilst the older versions
+            # of those images are running.
+            self.stop(
+                skip_containers=[
+                    "orchest/update-server:latest",
+                    "orchest/auth-server:latest",
+                    "orchest/nginx-proxy:latest",
+                    "postgres:13.1",
+                ]
+            )
 
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.
-        exit_code = utils.update_git_repo()
-        if exit_code != 0:
-            utils.echo("Cancelling update...")
-            utils.echo(
-                "It seems like you have unstaged changes in the 'orchest'"
-                " repository. Please commit or stash them as 'orchest update'"
-                " pulls the newest changes to the 'userdir/' using a rebase.",
-            )
-            logger.error("Failed update due to unstaged changes.")
-            return
+        if not dev:
+            exit_code = utils.update_git_repo()
+            if exit_code != 0:
+                utils.echo("Cancelling update...")
+                utils.echo(
+                    "It seems like you have unstaged changes in the 'orchest'"
+                    " repository. Please commit or stash them as 'orchest update'"
+                    " pulls the newest changes to the 'userdir/' using a rebase.",
+                )
+                logger.error("Failed update due to unstaged changes.")
+                return
 
-        logger.info("Updating images:\n" + "\n".join(pulled_images))
-        self.docker_client.pull_images(pulled_images, prog_bar=True, force=True)
+        # Get all installed images and pull new versions. The pulled
+        # images are checked to make sure optional images, e.g. lang
+        # specific images, are updated as well.
+        pulled_images = self.resource_manager.get_images()
+        to_pull_images = set(ORCHEST_IMAGES["minimal"]) | set(pulled_images)
+        logger.info("Updating images:\n" + "\n".join(to_pull_images))
+        self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
 
         # Delete user-built environment images to avoid the issue of
         # having environments with mismatching Orchest SDK versions.

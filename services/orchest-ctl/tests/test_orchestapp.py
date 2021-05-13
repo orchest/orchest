@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-from app import orchest, spec, utils
+from app import config, orchest, spec, utils
 
 
 @pytest.mark.parametrize(
@@ -148,7 +148,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     app = orchest.OrchestApp()
     app.resource_manager = resource_manager
     app.docker_client = docker_client
-    app.restart = MagicMock(return_value=None)
+    app.stop = MagicMock(return_value=None)
 
     app.update(mode=mode)
 
@@ -161,8 +161,9 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     resource_manager.remove_env_build_imgs.assert_called_once()
     resource_manager.remove_jupyter_build_imgs.assert_called_once()
 
+    to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(installed_images)
     docker_client.pull_images.assert_called_once_with(
-        installed_images, prog_bar=True, force=True
+        to_pull_images, prog_bar=True, force=True
     )
 
 
@@ -180,7 +181,7 @@ def test_stop(
 ):
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_containers = MagicMock(
-        return_value=(running_containers, running_containers)
+        side_effect=[(running_containers, running_containers), ([], [])]
     )
     docker_client = orchest.DockerWrapper()
     docker_client.remove_containers = MagicMock(return_value=None)
@@ -197,7 +198,7 @@ def test_stop(
     if not running_containers:
         return
 
-    resource_manager.get_containers.assert_called_once_with(state="running")
+    resource_manager.get_containers.assert_called_with(state="running")
     docker_client.remove_containers.assert_called_once_with(tuple(stopped_containers))
 
 
@@ -269,7 +270,8 @@ def test_start(
     utils.wait_for_zero_exitcode = MagicMock(return_value=None)
 
     app = orchest.OrchestApp()
-    monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
+    monkeypatch.setattr(orchest, "_on_start_images", [set("A"), set("B")])
+    monkeypatch.setattr(orchest, "ORCHEST_IMAGES", {"minimal": ["A", "B"]})
     resource_manager.docker_client = docker_client
     app.resource_manager = resource_manager
     app.docker_client = docker_client
