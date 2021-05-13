@@ -199,7 +199,6 @@ export const SessionsProvider = ({ children }) => {
      * LAUNCH
      */
     if (!session.status || session.status === "STOPPED") {
-      console.log("launching!");
       mutateSession({ status: "LAUNCHING" }, false);
 
       fetcher(ENDPOINT, {

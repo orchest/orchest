@@ -56,11 +56,9 @@ const JupyterLabView = (props) => {
       setTimeout(() => {
         dispatch({ type: "sessionToggle", payload: session });
       }, 1);
-      console.log("should start session");
     }
 
     if (session?.status === "STOPPING") {
-      console.log("should redirect to pipelines");
       orchest.loadView(PipelinesView);
     }
 

@@ -21,6 +21,7 @@ RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 # Static application files.
 COPY ./client ./client
 COPY ./lib/javascript /orchest/lib/javascript
+COPY ./lib/design-system /orchest/lib/design-system
 
 # PNPM files
 COPY ./pnpm_files/* /orchest/
@@ -31,7 +32,7 @@ WORKDIR /orchest
 
 RUN npm run setup
 RUN pnpm i && \
-  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/client-orchest" && \
+  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/design-*" --filter="@orchest/client-orchest" && \
   # Clean node_modules to reduce image size
   find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +
 
