@@ -7,7 +7,8 @@
 
 [Website](https://www.orchest.io) —
 [Docs](https://orchest.readthedocs.io/en/stable/) —
-[Quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html)
+[Quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) —
+[Video tutorials](https://www.orchest.io/knowledge-base)
 
 ---
 
