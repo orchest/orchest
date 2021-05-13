@@ -138,8 +138,6 @@ export const SessionsProvider = ({ children }) => {
           false
         );
 
-        console.log("sessions to kill", values);
-
         Promise.all(
           values.sessions.map((sessionData) => fetchStopSession(sessionData))
         )
@@ -151,21 +149,19 @@ export const SessionsProvider = ({ children }) => {
               }))
             );
 
-            console.log("sessions killed successfully");
-
             dispatch({
               type: "_sessionsKillAllClear",
             });
           })
           .catch((err) => {
-            console.error(err);
+            console.error("Unable to stop all sessions", err);
             dispatch({
               type: "_sessionsKillAllClear",
             });
           });
       })
       .catch((err) => {
-        console.error("Unable to kill all sessions", err);
+        console.error("Unable to stop all sessions", err);
         dispatch({
           type: "_sessionsKillAllClear",
         });
@@ -208,6 +204,7 @@ export const SessionsProvider = ({ children }) => {
      * LAUNCH
      */
     if (!session.status || session.status === "STOPPED") {
+      console.log("launching!");
       mutateSession({ status: "LAUNCHING" }, false);
 
       fetcher(ENDPOINT, {

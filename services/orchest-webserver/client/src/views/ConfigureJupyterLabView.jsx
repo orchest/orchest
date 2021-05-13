@@ -45,7 +45,7 @@ class ConfigureJupyterLabView extends React.Component {
     this.getSetupScript();
   }
 
-  componentDidUpdate(_, prevState) {
+  componentDidUpdate() {
     if (
       this.context.state.sessionsKillAllInProgress &&
       this.state.sessionKillStatus === "WAITING"
@@ -118,7 +118,6 @@ class ConfigureJupyterLabView extends React.Component {
 
             try {
               let resp = JSON.parse(e.body);
-              console.log(resp);
 
               if (resp.message == "SessionInProgressException") {
                 orchest.confirm(

@@ -69,7 +69,6 @@ const reducer = (state, action) => {
       return { ...state, view: action.payload };
     case "clearView":
       return { ...state, view: null };
-
     default:
       console.log(action);
       throw new Error();
