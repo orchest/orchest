@@ -25,7 +25,7 @@ const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
 /**
  * @param {IOrchestSessionUuid} props
  */
-const fetchStopSession = ({ pipeline_uuid, project_uuid }) =>
+const stopSession = ({ pipeline_uuid, project_uuid }) =>
   fetcher([ENDPOINT, project_uuid, "/", pipeline_uuid].join(""), {
     method: "DELETE",
   });
@@ -139,15 +139,10 @@ export const SessionsProvider = ({ children }) => {
         );
 
         Promise.all(
-          values.sessions.map((sessionData) => fetchStopSession(sessionData))
+          values.sessions.map((sessionData) => stopSession(sessionData))
         )
           .then(() => {
-            mutate((sessionsData) =>
-              sessionsData.map((sessionData) => ({
-                ...sessionData,
-                status: "STOPPED",
-              }))
-            );
+            mutate();
 
             dispatch({
               type: "_sessionsKillAllClear",
@@ -263,7 +258,7 @@ export const SessionsProvider = ({ children }) => {
     if (session.status === "RUNNING") {
       mutateSession({ status: "STOPPING" }, false);
 
-      fetchStopSession(session)
+      stopSession(session)
         .then(() => mutateSession())
         .catch((err) => {
           if (err?.message === "MemoryServerRestartInProgress") {

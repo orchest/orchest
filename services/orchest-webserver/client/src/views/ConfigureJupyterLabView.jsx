@@ -24,7 +24,7 @@ class ConfigureJupyterLabView extends React.Component {
     this.state = {
       unsavedChanges: false,
       building: false,
-      sessionKillStatus: false,
+      sessionKillStatus: undefined,
       buildRequestInProgress: false,
       cancelBuildRequestInProgress: false,
       ignoreIncomingLogs: false,
@@ -67,7 +67,7 @@ class ConfigureJupyterLabView extends React.Component {
 
       if (!hasActiveSessions) {
         this.setState({
-          sessionKillStatus: false,
+          sessionKillStatus: undefined,
         });
         this.buildImage();
       }
@@ -298,7 +298,7 @@ class ConfigureJupyterLabView extends React.Component {
                 label="Build"
                 disabled={
                   this.state.buildRequestInProgress ||
-                  this.state.sessionKillStatus
+                  typeof this.state.sessionKillStatus !== "undefined"
                 }
                 icon="memory"
                 classNames={["mdc-button--raised"]}
