@@ -2,7 +2,8 @@
   "private": true,
   "scripts": {
     "build": "pnpm run build --r --stream",
-    "dev": "pnpm run build --filter '@orchest/lib-*' && pnpm run dev --r --parallel",
+    "dev": "pnpm run build --filter '@orchest/client-*^...' && pnpm run dev --filter '@orchest/client-*...' --r --parallel",
+    "sandbox": "pnpm run build --filter '@orchest/sandbox^...' && pnpm run dev --filter '@orchest/sandbox...' --r --parallel",
     "format": "syncpack format",
     "lint": "syncpack list-mismatches && pnpm run lint --r --stream",
     "pre-commit": "pnpm run build --filter '@orchest/lib-*' && pnpm run lint",

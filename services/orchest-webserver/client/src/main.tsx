@@ -2,6 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
+import { DesignSystemProvider } from "@orchest/design-system";
 import { makeRequest } from "@orchest/lib-utils";
 import "./styles/main.scss";
 import { OrchestProvider } from "./hooks/orchest";
@@ -29,9 +30,11 @@ window.addEventListener("load", () => {
       window.ORCHEST_USER_CONFIG = config.user_config;
 
       ReactDOM.render(
-        <OrchestProvider {...config}>
-          <App />
-        </OrchestProvider>,
+        <DesignSystemProvider>
+          <OrchestProvider {...config}>
+            <App />
+          </OrchestProvider>
+        </DesignSystemProvider>,
         document.querySelector("#root")
       );
     });

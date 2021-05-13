@@ -1,0 +1,49 @@
+{
+  "name": "@orchest/design-system",
+  "version": "0.0.2",
+  "author": "Orchest B.V.",
+  "license": "AGPL-3.0-only",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepublishOnly": "pnpm run build",
+    "build": "pnpm run pre-build && concurrently -n w: npm:*:build",
+    "dev": "pnpm run pre-build && concurrently -n w: npm:*:watch",
+    "lint": "concurrently -n w: npm:*:check",
+    "pre-build": "ts-node -r tsconfig-paths/register src/scripts/pre-build.ts",
+    "cjs:build": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.cjs --format=cjs",
+    "cjs:watch": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
+    "esm:build": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.js --format=esm",
+    "esm:watch": "esbuild src/index.ts --bundle --external:react* --outfile=dist/index.js --format=esm --watch --log-level=error",
+    "ts:build": "tsc --emitDeclarationOnly --outDir dist",
+    "ts:watch": "tsc --emitDeclarationOnly --outDir dist -w",
+    "ts:check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@radix-ui/react-id": "0.0.6",
+    "@radix-ui/react-polymorphic": "0.0.11",
+    "@stitches/react": "0.1.9",
+    "stitches-mixins": "0.2.1"
+  },
+  "peerDependencies": {
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
+  },
+  "devDependencies": {
+    "@stitches/core": "0.1.9",
+    "@types/node": "15.0.1",
+    "@types/react": "17.0.3",
+    "concurrently": "6.0.2",
+    "esbuild": "0.8.44",
+    "fs-extra": "10.0.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "tsconfig-paths": "3.9.0",
+    "ts-node": "9.1.1",
+    "typescript": "4.2.4"
+  }
+}

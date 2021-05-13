@@ -1,5 +1,60 @@
 # Front-end
 
+## Design System
+
+### Usage
+
+#### Consuming Components
+
+All components are available as named exports:
+
+```js
+import React from "react";
+import { Link } from "@orchest/design-system";
+
+const SomePage = () => (
+  <div>
+    <Link href="/link-to-another-page" />
+  <div>
+);
+```
+
+#### Creating Custom Components
+
+The design system houses components that we'll **need to use everywhere**, not the a place for _all_ of our components.
+
+For one-off styles or project-specific use-cases, the design system exports two options: `css` and `styled`.
+
+Both offer strongly-typed access to our [CSS-variable-driven design tokens](https://github.com/orchest/orchest/blob/master/lib/design-system/package/src/core/config.ts) (e.g. `$colors$primary`), and the ability to use Stitches' powerful [variant](https://stitches.dev/docs/variants) system:
+
+```ts
+import { css, styled } from "@orchest/design-system";
+
+// with the `styled` API
+// https://stitches.dev/docs/api#styled
+const CustomStyledComponent = styled("div", { color: "$primary" });
+
+// with the `css` API
+// https://stitches.dev/docs/api#css
+const customClassName = css({ color: "$primary" });
+
+const CustomClassNameComponent = () => (
+  <div className={customClassName()}>
+    Hello
+  <div>
+);
+```
+
+### Sandbox
+
+For fast local-development, the sandbox offers a hot-reloading environment to build and test our components.
+
+To get started, run:
+
+```sh
+pnpm run sandbox
+```
+
 ## Style Guide
 
 ### React.js

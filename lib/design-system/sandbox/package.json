@@ -1,0 +1,27 @@
+{
+  "private": true,
+  "name": "@orchest/sandbox",
+  "version": "1.0.0",
+  "author": "Orchest B.V.",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "pre-build": "ts-node -r tsconfig-paths/register scripts/sync-assets.ts",
+    "build": "pnpm run pre-build && next build",
+    "dev": "pnpm run pre-build && next dev",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@orchest/design-system": "workspace:*",
+    "next": "10.2.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "15.0.1",
+    "@types/react": "17.0.3",
+    "fs-extra": "10.0.0",
+    "tsconfig-paths": "3.9.0",
+    "ts-node": "9.1.1",
+    "typescript": "4.2.4"
+  }
+}
