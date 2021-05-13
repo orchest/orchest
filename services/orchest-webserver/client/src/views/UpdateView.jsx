@@ -28,7 +28,7 @@ class UpdateView extends React.Component {
   startUpdateTrigger() {
     orchest.confirm(
       "Warning",
-      "Are you sure you want to update Orchest?",
+      "Are you sure you want to update Orchest? This will kill all active sessions and ongoing runs.",
       () => {
         this.setState({
           updating: true,

@@ -43,7 +43,7 @@ const JupyterLabView = (props) => {
       setVerifyKernelsInterval(null);
       dispatch({ type: "clearView" });
     };
-  }, [state.sessions]);
+  }, []);
 
   React.useEffect(() => {
     const session = get.currentSession;
@@ -66,7 +66,7 @@ const JupyterLabView = (props) => {
 
     updateJupyterInstance();
     conditionalRenderingOfJupyterLab();
-  }, [state.sessions]);
+  }, [state]);
 
   const checkEnvironmentGate = () => {
     checkGate(props.queryArgs.project_uuid)

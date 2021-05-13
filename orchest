@@ -28,7 +28,10 @@ function update_orchest_ctl {
 
 # Before running an update, update the orchest-ctl as the latest
 # orchest-ctl should be used to update the application.
-[[ "$1" == "update" ]] && [[ "$@" != *"--help"* ]] && update_orchest_ctl
+[[ ( "$1" == "update" ) || ( "$1" =~ ^-v*$ && "$2" == "update" ) ]] && \
+[[ "$@" != *"--help"* ]] && \
+[[ "$@" != *"--dev"* ]] && \
+update_orchest_ctl
 
 HOST_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/orchest"
 HOST_USER_DIR=$DIR/userdir
