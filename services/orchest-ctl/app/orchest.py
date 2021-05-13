@@ -11,6 +11,7 @@ TODO:
 """
 import logging
 import os
+import re
 import time
 from functools import reduce
 from typing import List, Optional, Set, Tuple
@@ -240,6 +241,14 @@ class OrchestApp:
 
     def status(self, ext=False):
 
+        if self._is_restarting():
+            utils.echo("Orchest is currently restarting.")
+            raise typer.Exit(code=4)
+
+        if self._is_updating():
+            utils.echo("Orchest is currently updating.")
+            raise typer.Exit(code=5)
+
         _, running_containers_names = self.resource_manager.get_containers(
             state="running"
         )
@@ -341,6 +350,9 @@ class OrchestApp:
         logger.info("Deleting user-built Jupyter image.")
         self.resource_manager.remove_jupyter_build_imgs()
 
+        # Delete Orchest dangling images.
+        self.resource_manager.remove_orchest_dangling_imgs()
+
         # We invoke the Orchest restart from the webserver ui-updater.
         # Hence we do not show the message to restart manually.
         if mode == "web":
@@ -434,6 +446,51 @@ class OrchestApp:
             )
 
         raise typer.Exit(code=exit_code)
+
+    def _is_restarting(self) -> bool:
+        """Check if Orchest is restarting.
+
+        Returns:
+            True if there is another instance of orchest-ctl issuing a
+            restart, False otherwise.
+        """
+        containers, _ = self.docker_client.get_containers(
+            full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"
+        )
+        cmd = utils.ctl_command_pattern.format(cmd="restart")
+        for cont in containers:
+            if (
+                # Ignore the container in which we are running.
+                not cont["Id"].startswith(os.environ["HOSTNAME"])
+                and
+                # Can't check through the image name because if the
+                # image has become dangling/outdated while the container
+                # is running the name will be an hash instead of
+                # "orchest-ctl".
+                re.match(cmd, cont["Command"].strip())
+            ):
+                return True
+        return False
+
+    def _is_updating(self) -> bool:
+        """Check if Orchest is updating.
+
+        Returns:
+            True if there is another instance of orchest-ctl issuing an
+            update, False otherwise.
+        """
+        containers, _ = self.docker_client.get_containers(
+            full_info=True, label="maintainer=Orchest B.V. https://www.orchest.io"
+        )
+        cmd = utils.ctl_command_pattern.format(cmd="update")
+        for cont in containers:
+            if (
+                # Ignore the container in which we are running.
+                not cont["Id"].startswith(os.environ["HOSTNAME"])
+                and re.match(cmd, cont["Command"].strip())
+            ):
+                return True
+        return False
 
 
 # TODO: Could potentially make this into set as well.

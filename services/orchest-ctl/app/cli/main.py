@@ -129,6 +129,10 @@ def status(
 
     - 3: Orchest is running, but some required service is not passing a
     health check.
+
+    - 4: Orchest is restarting.
+
+    - 5: Orchest is updating.
     """
     app.status(ext=ext)
 

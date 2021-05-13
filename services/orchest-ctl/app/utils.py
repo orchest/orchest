@@ -3,6 +3,7 @@ import os
 import subprocess
 import textwrap
 import time
+from collections.abc import Mapping
 from typing import List, Union
 
 import typer
@@ -122,3 +123,15 @@ def is_orchest_running(running_containers) -> bool:
     ]
 
     return bool(running_containers)
+
+
+def is_dangling(image: Mapping) -> bool:
+    """Checks whether the given image is to be considered dangling."""
+    tags = image["RepoTags"]
+    return not tags or (len(tags) == 1 and tags[0] == "<none>:<none>")
+
+
+# orchest <arguments> cmd <arguments>, excluding the use of cmd as an
+# argument, so that "orchest --update update" would match but
+# "orchest update update" would not.
+ctl_command_pattern = r"^orchest(\s+(?!{cmd}\b)\S+)*\s+{cmd}(\s+(?!{cmd}\b)\S+)*\s*$"
