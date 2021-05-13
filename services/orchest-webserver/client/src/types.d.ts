@@ -66,11 +66,11 @@ export interface IOrchestState
     | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
   sessions?: IOrchestSession[] | [];
+  sessionsKillAllInProgress?: boolean;
   config: IOrchestConfig;
   user_config: IOrchestUserConfig;
   _sessionsUuids?: IOrchestSessionUuid[] | [];
   _sessionsToggle?: IOrchestSessionUuid;
-  _sessionsKillAll?: boolean;
 }
 
 export type TOrchestAction =

@@ -26,17 +26,13 @@ const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
  * @param {IOrchestSessionUuid} props
  */
 const fetchStopSession = ({ pipeline_uuid, project_uuid }) =>
-  fetcher(ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json;charset=UTF-8",
-    },
-    body: JSON.stringify({
-      pipeline_uuid,
-      project_uuid,
-    }),
+  fetcher([ENDPOINT, project_uuid, "/", pipeline_uuid].join(""), {
+    method: "DELETE",
   });
 
+/**
+ * SessionsProvider
+ */
 export const SessionsProvider = ({ children }) => {
   const { state, dispatch } = useOrchest();
   const [isPolling, setIsPolling] = React.useState(false);
@@ -120,30 +116,61 @@ export const SessionsProvider = ({ children }) => {
     dispatch({ type: "_sessionsSet", payload: data });
   }, [data]);
 
+  /**
+   * Handle `sessionsKillAll`
+   */
   React.useEffect(() => {
-    if (state._sessionsKillAll) {
-      mutate((sessionsData) =>
-        sessionsData.map((sessionData) => ({
-          ...sessionData,
-          status: "STOPPING",
-        }))
-      );
+    if (state.sessionsKillAllInProgress !== true) return;
 
-      Promise.all(
-        data.map((sessionData) =>
-          fetchStopSession(sessionData).catch((err) => {
-            throw err;
-          })
+    fetcher(ENDPOINT)
+      .then((values) => {
+        if (!values.sessions) {
+          return;
+        }
+
+        mutate(
+          values.sessions.map((sessionValue) => ({
+            ...sessionValue,
+            status: ["STOPPED", "STOPPING"].includes(sessionValue?.status)
+              ? sessionValue.status
+              : "STOPPING",
+          })),
+          false
+        );
+
+        console.log("sessions to kill", values);
+
+        Promise.all(
+          values.sessions.map((sessionData) => fetchStopSession(sessionData))
         )
-      )
-        .then((stoppedSessions) => mutate(stoppedSessions))
-        .catch((err) => {
-          console.error(err);
-        });
+          .then(() => {
+            mutate((sessionsData) =>
+              sessionsData.map((sessionData) => ({
+                ...sessionData,
+                status: "STOPPED",
+              }))
+            );
 
-      dispatch({ type: "_sessionsKillAllClear" });
-    }
-  }, [state._sessionsKillAll]);
+            console.log("sessions killed successfully");
+
+            dispatch({
+              type: "_sessionsKillAllClear",
+            });
+          })
+          .catch((err) => {
+            console.error(err);
+            dispatch({
+              type: "_sessionsKillAllClear",
+            });
+          });
+      })
+      .catch((err) => {
+        console.error("Unable to kill all sessions", err);
+        dispatch({
+          type: "_sessionsKillAllClear",
+        });
+      });
+  }, [state.sessionsKillAllInProgress]);
 
   /**
    * Handle Toggle Events
@@ -183,7 +210,16 @@ export const SessionsProvider = ({ children }) => {
     if (!session.status || session.status === "STOPPED") {
       mutateSession({ status: "LAUNCHING" }, false);
 
-      fetchStopSession({ ...session })
+      fetcher(ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json;charset=UTF-8",
+        },
+        body: JSON.stringify({
+          pipeline_uuid: session.pipeline_uuid,
+          project_uuid: session.project_uuid,
+        }),
+      })
         .then((sessionDetails) => mutateSession(sessionDetails))
         .catch((err) => {
           let errorBody = JSON.parse(err.body);
@@ -230,12 +266,7 @@ export const SessionsProvider = ({ children }) => {
     if (session.status === "RUNNING") {
       mutateSession({ status: "STOPPING" }, false);
 
-      fetcher(
-        [ENDPOINT, session.project_uuid, "/", session.pipeline_uuid].join(""),
-        {
-          method: "DELETE",
-        }
-      )
+      fetchStopSession(session)
         .then(() => mutateSession())
         .catch((err) => {
           if (err?.message === "MemoryServerRestartInProgress") {
