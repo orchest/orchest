@@ -8,7 +8,7 @@
     "lint": "syncpack list-mismatches && pnpm run lint --r --stream",
     "pre-commit": "pnpm run build --filter '@orchest/lib-*' && pnpm run lint",
     "preinstall": "npx only-allow pnpm",
-    "setup": "npm i -g pnpm@6.0.0"
+    "setup": "npm i -g pnpm@6.0.1"
   },
   "dependencies": {
     "syncpack": "^5.7.11"

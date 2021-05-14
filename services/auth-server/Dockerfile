@@ -16,6 +16,7 @@ RUN pip3 install -r requirements.txt
 # Get the internal JS library
 COPY ./client ./client
 COPY ./lib/javascript /orchest/lib/javascript
+COPY ./lib/design-system /orchest/lib/design-system
 
 # PNPM files
 COPY ./pnpm_files/* /orchest/
@@ -25,7 +26,7 @@ WORKDIR /orchest
 
 RUN npm run setup
 RUN pnpm i && \
-  pnpm run build --r --stream --filter="@orchest/lib-*" --filter="@orchest/client-auth" && \
+  pnpm run build --r --stream --filter "@orchest/client-auth..." && \
   # Clean node_modules to reduce image size
   find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +
 
