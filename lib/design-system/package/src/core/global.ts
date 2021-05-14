@@ -15,7 +15,7 @@ export const globalStyles = global({
     include: "minHeightScreen",
     backgroundColor: "$background",
     fontSize: "$base",
-    lineHeight: "$base",
+    lineHeight: "normal",
     fontFamily: "$inter",
     color: "$text",
     overflowY: "scroll",

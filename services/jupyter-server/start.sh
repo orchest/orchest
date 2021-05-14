@@ -45,7 +45,7 @@ userdir_path=/usr/local/share/jupyter/lab
 userdir_version=$(jq .jupyterlab.version "$userdir_path/static/package.json" 2>/dev/null)
 if [ -z "$userdir_version" ]; then
     cp -rfT "$build_path" "$userdir_path"
-    jupyter lab --LabApp.app_dir="$userdir_path" "$@"
+    jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
     exit 0
 fi
 
@@ -85,7 +85,7 @@ cp -rnT "$build_path/extensions" "$userdir_path/extensions"
 
 if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     # We don't have to do anything.
-    jupyter lab --LabApp.app_dir="$userdir_path" "$@"
+    jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
     exit 0
 fi
 
@@ -93,4 +93,4 @@ fi
 # from the build. Otherwise JupyterLab cannot start as part of Orchest.
 rm -rf "$userdir_path/static" && cp -r "$build_path/static" "$userdir_path/static"
 
-jupyter lab --LabApp.app_dir="$userdir_path" "$@"
+jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
