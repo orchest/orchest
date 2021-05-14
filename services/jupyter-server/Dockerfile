@@ -26,7 +26,7 @@ RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/vis
     && jupyter labextension install /jupyter-extensions/orchest-integration \
         --no-build \
         --BaseExtensionApp.app_dir=$extension_dir \
-    && pip3 install jupyterlab-git==0.30.0b2 \
+    && pip3 install jupyterlab-git==0.30.1 \
     && cp -rfT $pip_jupyter_extension_dir $extension_dir/extensions \
     && jupyter lab build --dev-build=False --LabBuildApp.app_dir=$extension_dir \
     && jupyter lab clean --LabCleanApp.app_dir=$extension_dir
