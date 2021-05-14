@@ -190,17 +190,19 @@ class OrchestApp:
         n = 2
         for _ in range(n):
 
+            id_containers = [
+                (id_, c)
+                for id_, c in zip(ids, running_containers)
+                if c not in skip_containers
+            ]
+            # It might be that there are no containers to shut down
+            # after filtering through skip_containers.
+            if not id_containers:
+                break
             ids: Tuple[str]
             running_containers: Tuple[Optional[str]]
-            ids, running_containers = list(
-                zip(
-                    *[
-                        (id_, c)
-                        for id_, c in zip(ids, running_containers)
-                        if c not in skip_containers
-                    ]
-                )
-            )
+            ids, running_containers = list(zip(*id_containers))
+
             logger.info("Shutting down containers:\n" + "\n".join(running_containers))
             self.docker_client.remove_containers(ids)
 
