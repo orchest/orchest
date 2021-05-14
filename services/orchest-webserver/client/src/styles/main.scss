@@ -1254,6 +1254,7 @@ span.code {
       height: $pipelineStepHeight;
       text-align: center;
       z-index: 2;
+      line-height: normal;
 
       &.hidden {
         display: none;
