@@ -105,7 +105,10 @@ class ParamTree extends React.Component {
                 title="This pipeline doesn't have any parameters defined"
                 description={
                   <>
-                    <Link href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps">
+                    <Link
+                      target="_blank"
+                      href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
+                    >
                       Learn more
                     </Link>{" "}
                     about parametrizing your pipelines and steps.
