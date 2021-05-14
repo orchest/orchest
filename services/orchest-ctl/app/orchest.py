@@ -357,7 +357,10 @@ class OrchestApp:
         # Delete Orchest dangling images.
         self.resource_manager.remove_orchest_dangling_imgs()
 
-        utils.echo("Update completed.")
+        if mode == "web":
+            utils.echo("Update completed.")
+        else:
+            utils.echo("Update completed. Run ./orchest start to start Orchest.")
 
     def version(self, ext=False):
         """Returns the version of Orchest.
