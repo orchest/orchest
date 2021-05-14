@@ -54,14 +54,14 @@ class ConfigureJupyterLabView extends React.Component {
     }
 
     if (
-      !this.context.state.sessionKillInProgress &&
+      !this.context.state.sessionsKillAllInProgress &&
       this.state.sessionKillStatus === "VALIDATING"
     ) {
       const hasActiveSessions = this.context.state?.sessions
         .map((session) => {
           if (!session.status) return false;
 
-          return session.status === "STOPPED" ? false : true;
+          return session.status !== "STOPPED";
         })
         .find((isActive) => isActive === true);
 

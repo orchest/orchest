@@ -128,22 +128,28 @@ export const SessionsProvider = ({ children }) => {
           return;
         }
 
+        const shouldStop = (status) =>
+          ["RUNNING", "LAUNCHING"].includes(status);
+
+        // Mutate all "RUNNING" sessions from the endpoint to "STOPPING"
         mutate(
           values.sessions.map((sessionValue) => ({
             ...sessionValue,
-            status: ["STOPPED", "STOPPING"].includes(sessionValue?.status)
-              ? sessionValue.status
-              : "STOPPING",
+            status: shouldStop(sessionValue.status)
+              ? "STOPPING"
+              : sessionValue.status,
           })),
           false
         );
 
+        // Send delete requests for all "RUNNING" sessions from the endpoint
         Promise.all(
-          values.sessions.map((sessionData) => stopSession(sessionData))
+          values.sessions
+            .filter((sessionData) => shouldStop(sessionData.status))
+            .map((sessionData) => stopSession(sessionData))
         )
           .then(() => {
             mutate();
-
             dispatch({
               type: "_sessionsKillAllClear",
             });
