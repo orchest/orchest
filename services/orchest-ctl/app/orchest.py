@@ -296,6 +296,7 @@ class OrchestApp:
         utils.echo("Updating...")
 
         _, running_containers = self.resource_manager.get_containers(state="running")
+
         if utils.is_orchest_running(running_containers):
             utils.echo(
                 "Using Orchest whilst updating is NOT supported and will be shut"
@@ -307,16 +308,19 @@ class OrchestApp:
             # using a keyboard interrupt.
             time.sleep(2)
 
-            # It is possible to pull new image whilst the older versions
-            # of those images are running.
-            self.stop(
-                skip_containers=[
+            skip_containers = []
+            if mode == "web":
+                # It is possible to pull new images whilst the older
+                # versions of those images are running. We will invoke
+                # Orchest restart from the webserver ui-updater.
+                skip_containers = [
                     "orchest/update-server:latest",
                     "orchest/auth-server:latest",
                     "orchest/nginx-proxy:latest",
                     "postgres:13.1",
                 ]
-            )
+
+            self.stop(skip_containers=skip_containers)
 
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.
@@ -353,19 +357,11 @@ class OrchestApp:
         # Delete Orchest dangling images.
         self.resource_manager.remove_orchest_dangling_imgs()
 
-        # We invoke the Orchest restart from the webserver ui-updater.
-        # Hence we do not show the message to restart manually.
         if mode == "web":
             utils.echo("Update completed.")
         else:
-            # Let the user know they need to restart the application
-            # for the changes to take effect. NOTE: otherwise Orchest
-            # might also be running a mix of containers on different
-            # versions.
-            utils.echo(
-                "Don't forget to restart Orchest for the changes to take effect:"
-            )
-            utils.echo("\torchest restart")
+            utils.echo("Update completed. To start Orchest again, run:")
+            utils.echo("\torchest start")
 
     def version(self, ext=False):
         """Returns the version of Orchest.

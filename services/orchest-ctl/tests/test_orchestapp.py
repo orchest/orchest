@@ -143,8 +143,8 @@ def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch):
 @pytest.mark.parametrize(
     ("installed_images", "update_exit_code", "mode", "expected_stdout"),
     [
-        (["A", "B"], 0, None, "Don't forget to restart Orchest"),
-        (["A"], 0, None, "Don't forget to restart Orchest"),
+        (["A", "B"], 0, None, "Update completed. To start Orchest again, run:"),
+        (["A"], 0, None, "Update completed. To start Orchest again, run:"),
         (["A"], 1, None, "Cancelling update..."),
         (["A"], 0, "web", "Update completed."),
     ],
