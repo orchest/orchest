@@ -360,7 +360,8 @@ class OrchestApp:
         if mode == "web":
             utils.echo("Update completed.")
         else:
-            utils.echo("Update completed. Run ./orchest start to start Orchest.")
+            utils.echo("Update completed. To start Orchest again, run:")
+            utils.echo("\torchest start")
 
     def version(self, ext=False):
         """Returns the version of Orchest.
