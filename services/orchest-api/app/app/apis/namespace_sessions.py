@@ -296,8 +296,8 @@ class StopInteractiveSession(TwoPhaseFunction):
         project_uuid: str,
         pipeline_uuid: str,
         container_ids: Dict[str, str],
-        notebook_server_info: Dict[str, str] = None,
-        previous_state: str = None,
+        notebook_server_info: Dict[str, str],
+        previous_state: str,
     ):
 
         with app.app_context():
