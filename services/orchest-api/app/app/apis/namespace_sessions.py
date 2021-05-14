@@ -352,6 +352,7 @@ class StopInteractiveSession(TwoPhaseFunction):
         pipeline_uuid: str,
         container_ids: Dict[str, str],
         notebook_server_info: Dict[str, str] = None,
+        previous_state: str = None,
     ):
         # Could be none when the _transaction call sets them to None
         # because there is no session to shutdown. This is a way that
@@ -368,6 +369,7 @@ class StopInteractiveSession(TwoPhaseFunction):
                 pipeline_uuid,
                 container_ids,
                 notebook_server_info,
+                previous_state,
             ],
         )
 
