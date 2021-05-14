@@ -1,3 +1,4 @@
+import time
 from typing import Dict
 
 from flask import request
@@ -258,6 +259,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["pipeline_uuid"] = None
             self.collateral_kwargs["container_ids"] = None
             self.collateral_kwargs["notebook_server_info"] = None
+            self.collateral_kwargs["previous_state"] = None
             return False
         else:
             # Abort interactive run if it was PENDING/STARTED.
@@ -269,6 +271,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             if run is not None:
                 AbortPipelineRun(self.tpe).transaction(run.uuid)
 
+            previous_state = session.status
             session.status = "STOPPING"
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
@@ -282,6 +285,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs[
                 "notebook_server_info"
             ] = session.notebook_server_info
+            self.collateral_kwargs["previous_state"] = previous_state
 
         return True
 
@@ -293,10 +297,26 @@ class StopInteractiveSession(TwoPhaseFunction):
         pipeline_uuid: str,
         container_ids: Dict[str, str],
         notebook_server_info: Dict[str, str] = None,
+        previous_state: str = None,
     ):
 
         with app.app_context():
             try:
+                # Wait for the session to be STARTED before killing it.
+                if previous_state == "LAUNCHING":
+                    n = 600
+                    for _ in range(n):
+                        session = models.InteractiveSession.query.filter_by(
+                            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                        ).one_or_none()
+                        # The session has been deleted because the
+                        # launch failed.
+                        if session is None:
+                            return
+                        if session.status == "RUNNING":
+                            break
+                        time.sleep(1)
+
                 session_obj = InteractiveSession.from_container_IDs(
                     docker_client,
                     container_IDs=container_ids,
