@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import useSWR, { cache } from "swr";
+import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import { useOrchest } from "./context";
 import { isSession } from "./utils";
@@ -11,16 +11,6 @@ import { isSession } from "./utils";
  */
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
-
-/** @param {IOrchestSessionUuid} props */
-const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
-  [
-    ENDPOINT,
-    "?project_uuid=",
-    project_uuid,
-    "&pipeline_uuid=",
-    pipeline_uuid,
-  ].join("");
 
 /**
  * @param {IOrchestSessionUuid} props
@@ -48,48 +38,9 @@ export const SessionsProvider = ({ children }) => {
    * 1. Creates a unique cache key for *all* our current sessions
    * 2. Uses Promise.all to batch *all* responses into a single sessions array.
    */
-
-  /* [1] */
-  const sessionsKey = [
-    ENDPOINT,
-    sessionsToFetch
-      ?.map((session) => Object.keys(session).map((key) => session[key]))
-      .toString(),
-  ].join("");
-
   const { data, mutate, error } = useSWR(
-    sessionsToFetch ? sessionsKey : null,
-    () => {
-      const cachedSessions = cache.get(sessionsKey);
-      /* [2] */
-      return Promise.all(
-        sessionsToFetch.map(({ pipeline_uuid, project_uuid }) => {
-          const key = getSessionEndpoint({ pipeline_uuid, project_uuid });
-
-          const cachedSession = cachedSessions?.find((session) =>
-            isSession(session, { pipeline_uuid, project_uuid })
-          );
-
-          /* Ensure only "LAUNCHING" and "STOPPING" statuses are polled */
-          if (["RUNNING", "STOPPED"].includes(cachedSession?.status)) {
-            return cachedSession;
-          }
-
-          return fetcher(key)
-            .then((value) =>
-              value?.sessions?.length > 0
-                ? value.sessions[0]
-                : { pipeline_uuid, project_uuid, status: "STOPPED" }
-            )
-            .catch((e) => {
-              console.error(e);
-            });
-        })
-      ).then(
-        /** @param {IOrchestSession[]} values */
-        (values) => values
-      );
-    },
+    sessionsToFetch.length > 0 ? ENDPOINT : null,
+    (...args) => fetcher(...args).then((value) => value.sessions || []),
     {
       onSuccess: (values) => {
         const hasWorkingSession = values.find((value) =>
@@ -110,56 +61,66 @@ export const SessionsProvider = ({ children }) => {
   }
 
   /**
-   * Push SWR sessions to the Orchest Context
+   * Sync SWR sessions to the Orchest Context
    */
   React.useEffect(() => {
     dispatch({ type: "_sessionsSet", payload: data });
   }, [data]);
 
   /**
+   * Handle new sessions
+   *
+   * Add new sessions to the SWR cache that don't already exist in the endpoint
+   * (e.g. if they're `STOPPED`)
+   */
+  React.useEffect(() => {
+    if (data && sessionsToFetch.length > 0) {
+      mutate((cache) => {
+        const nonexistentSessionsToFetch = sessionsToFetch.filter(
+          (session) =>
+            typeof cache.find((sessionFetched) =>
+              isSession(session, sessionFetched)
+            ) === "undefined"
+        );
+
+        return [].concat(cache, nonexistentSessionsToFetch).map((session) => ({
+          ...session,
+          status: session.status || "STOPPED",
+        }));
+      }, false);
+    }
+  }, [data, sessionsToFetch]);
+
+  /**
    * Handle `sessionsKillAll`
    */
   React.useEffect(() => {
-    if (state.sessionsKillAllInProgress !== true) return;
+    if (state.sessionsKillAllInProgress !== true || !data) return;
 
-    fetcher(ENDPOINT)
-      .then((values) => {
-        if (!values.sessions) {
-          return;
-        }
+    const shouldStop = (status) => ["RUNNING", "LAUNCHING"].includes(status);
 
-        const shouldStop = (status) =>
-          ["RUNNING", "LAUNCHING"].includes(status);
+    // Mutate sessions that `shouldStop` to "STOPPING"
+    mutate(
+      data.map((sessionValue) => ({
+        ...sessionValue,
+        status: shouldStop(sessionValue.status)
+          ? "STOPPING"
+          : sessionValue.status,
+      })),
+      false
+    );
 
-        // Mutate all "RUNNING" sessions from the endpoint to "STOPPING"
-        mutate(
-          values.sessions.map((sessionValue) => ({
-            ...sessionValue,
-            status: shouldStop(sessionValue.status)
-              ? "STOPPING"
-              : sessionValue.status,
-          })),
-          false
-        );
-
-        // Send delete requests for all "RUNNING" sessions from the endpoint
-        Promise.all(
-          values.sessions
-            .filter((sessionData) => shouldStop(sessionData.status))
-            .map((sessionData) => stopSession(sessionData))
-        )
-          .then(() => {
-            mutate();
-            dispatch({
-              type: "_sessionsKillAllClear",
-            });
-          })
-          .catch((err) => {
-            console.error("Unable to stop all sessions", err);
-            dispatch({
-              type: "_sessionsKillAllClear",
-            });
-          });
+    // Send delete requests for all sessions that `shouldStop`
+    Promise.all(
+      data
+        .filter((sessionData) => shouldStop(sessionData.status))
+        .map((sessionData) => stopSession(sessionData))
+    )
+      .then(() => {
+        mutate();
+        dispatch({
+          type: "_sessionsKillAllClear",
+        });
       })
       .catch((err) => {
         console.error("Unable to stop all sessions", err);
