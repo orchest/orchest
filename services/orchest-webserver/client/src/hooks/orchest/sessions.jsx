@@ -8,12 +8,25 @@ import { isSession } from "./utils";
 /**
  * @typedef {import("@/types").IOrchestSessionUuid } IOrchestSessionUuid
  * @typedef {import("@/types").IOrchestSession} IOrchestSession
+ * @typedef {IOrchestSession['status']} TSessionStatus
  */
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
 
-/**  @param {IOrchestSession['status']} status */
+/* Matchers
+  =========================================== */
+
+/**  @param {TSessionStatus} status */
+const isLaunchable = (status) => !status || status === "STOPPED";
+
+/**  @param {TSessionStatus} status */
 const isStoppable = (status) => ["RUNNING", "LAUNCHING"].includes(status);
+
+/**  @param {TSessionStatus} status */
+const isWorking = (status) => ["LAUNCHING", "STOPPING"].includes(status);
+
+/* Fetchers
+  =========================================== */
 
 /**  @param {IOrchestSessionUuid} props */
 const stopSession = ({ pipeline_uuid, project_uuid }) =>
@@ -21,35 +34,33 @@ const stopSession = ({ pipeline_uuid, project_uuid }) =>
     method: "DELETE",
   });
 
-/**
- * SessionsProvider
- */
+/* Provider
+  =========================================== */
+
 export const SessionsProvider = ({ children }) => {
   const { state, dispatch } = useOrchest();
   const [isPolling, setIsPolling] = React.useState(false);
 
-  const sessionsToFetch = state?._sessionsUuids;
+  const { _sessionsToFetch } = state;
 
   /**
-   * SWR is designed to fetch data from endpoints in a parallel/async manner,
-   * but as our flask server only supports one request at-a-time in dev mode we
-   * have to do things slightly differently
+   * Use SWR to fetch and cache the data from our sessions endpoint
    *
-   * Our implementation works as follows:
-   * 1. Creates a unique cache key for *all* our current sessions
-   * 2. Uses Promise.all to batch *all* responses into a single sessions array.
+   * Note: the endpoint does **not** return `STOPPED` sessions. This is handled
+   * in a later side-effect.
    */
   const { data, mutate, error } = useSWR(
-    sessionsToFetch.length > 0 ? ENDPOINT : null,
+    _sessionsToFetch.length > 0 ? ENDPOINT : null,
     (...args) => fetcher(...args).then((value) => value.sessions || []),
     {
       onSuccess: (values) => {
-        const hasWorkingSession = values.find((value) =>
-          ["LAUNCHING", "STOPPING"].includes(value.status)
-        );
-
+        /*
+         * Poll until **all** session statuses are in a non-working state
+         * (i.e. not `LAUNCHING` or `STOPPING`)
+         */
         const shouldPoll =
-          typeof hasWorkingSession === "undefined" ? false : true;
+          typeof values.find((value) => isWorking(value.status)) !==
+          "undefined";
 
         setIsPolling(shouldPoll);
       },
@@ -58,79 +69,48 @@ export const SessionsProvider = ({ children }) => {
   );
 
   if (error) {
-    console.error("Unable to fetch sessions");
+    console.error("Unable to fetch sessions", error);
   }
 
   /**
-   * Sync SWR sessions to the Orchest Context
+   * SYNC
+   *
+   * Push SWR changes to Orchest Context
    */
   React.useEffect(() => {
     dispatch({ type: "_sessionsSet", payload: data });
   }, [data]);
 
   /**
-   * Handle new sessions
+   * CREATE
    *
    * Add new sessions to the SWR cache that don't already exist in the endpoint
    * (e.g. if they're `STOPPED`)
    */
   React.useEffect(() => {
-    if (data && sessionsToFetch.length > 0) {
-      mutate((cache) => {
-        const nonexistentSessionsToFetch = sessionsToFetch.filter(
-          (session) =>
-            typeof cache.find((sessionFetched) =>
-              isSession(session, sessionFetched)
+    if (data && _sessionsToFetch.length > 0) {
+      mutate((cachedSessions) => {
+        /* Collect sessions that **don't** already exist in the cache */
+        const nonexistentSessionsToFetch = _sessionsToFetch.filter(
+          (sessionToFetch) =>
+            typeof cachedSessions.find((cachedSession) =>
+              isSession(sessionToFetch, cachedSession)
             ) === "undefined"
         );
 
-        return [].concat(cache, nonexistentSessionsToFetch).map((session) => ({
-          ...session,
-          status: session.status || "STOPPED",
-        }));
+        /* Merge nonexisting sessions with existing ones */
+        return []
+          .concat(cachedSessions, nonexistentSessionsToFetch)
+          .map((session) => ({
+            ...session,
+            status: session.status || "STOPPED",
+          }));
       }, false);
     }
-  }, [data, sessionsToFetch]);
+  }, [data, _sessionsToFetch]);
 
   /**
-   * Handle `sessionsKillAll`
-   */
-  React.useEffect(() => {
-    if (state.sessionsKillAllInProgress !== true || !data) return;
-
-    // Mutate `isStoppable` sessions to "STOPPING"
-    mutate(
-      data.map((sessionValue) => ({
-        ...sessionValue,
-        status: isStoppable(sessionValue.status)
-          ? "STOPPING"
-          : sessionValue.status,
-      })),
-      false
-    );
-
-    // Send delete requests for `isStoppable` sessions
-    Promise.all(
-      data
-        .filter((sessionData) => isStoppable(sessionData.status))
-        .map((sessionData) => stopSession(sessionData))
-    )
-      .then(() => {
-        mutate();
-        dispatch({
-          type: "_sessionsKillAllClear",
-        });
-      })
-      .catch((err) => {
-        console.error("Unable to stop all sessions", err);
-        dispatch({
-          type: "_sessionsKillAllClear",
-        });
-      });
-  }, [state.sessionsKillAllInProgress]);
-
-  /**
-   * Handle Toggle Events
+   * TOGGLE
    */
   React.useEffect(() => {
     const session = data?.find((dataSession) => {
@@ -164,7 +144,7 @@ export const SessionsProvider = ({ children }) => {
     /**
      * LAUNCH
      */
-    if (!session.status || session.status === "STOPPED") {
+    if (isLaunchable(session.status)) {
       mutateSession({ status: "LAUNCHING" }, false);
 
       fetcher(ENDPOINT, {
@@ -201,7 +181,7 @@ export const SessionsProvider = ({ children }) => {
      * Note: Our UI should prevent users from ever seeing this error – e.g. by
      * disabling buttons – but it's here just in case.
      */
-    if (["STARTING", "STOPPING"].includes(session.status)) {
+    if (isWorking(session.status)) {
       dispatch({
         type: "alert",
         payload: [
@@ -243,6 +223,43 @@ export const SessionsProvider = ({ children }) => {
 
     dispatch({ type: "_sessionsToggleClear" });
   }, [state._sessionsToggle]);
+
+  /**
+   * DELETE ALL
+   */
+  React.useEffect(() => {
+    if (state.sessionsKillAllInProgress !== true || !data) return;
+
+    // Mutate `isStoppable` sessions to "STOPPING"
+    mutate(
+      data.map((sessionValue) => ({
+        ...sessionValue,
+        status: isStoppable(sessionValue.status)
+          ? "STOPPING"
+          : sessionValue.status,
+      })),
+      false
+    );
+
+    // Send delete requests for `isStoppable` sessions
+    Promise.all(
+      data
+        .filter((sessionData) => isStoppable(sessionData.status))
+        .map((sessionData) => stopSession(sessionData))
+    )
+      .then(() => {
+        mutate();
+        dispatch({
+          type: "_sessionsKillAllClear",
+        });
+      })
+      .catch((err) => {
+        console.error("Unable to stop all sessions", err);
+        dispatch({
+          type: "_sessionsKillAllClear",
+        });
+      });
+  }, [state.sessionsKillAllInProgress]);
 
   return <React.Fragment>{children}</React.Fragment>;
 };

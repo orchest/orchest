@@ -45,15 +45,15 @@ const reducer = (state, action) => {
     case "sessionFetch":
       return {
         ...state,
-        _sessionsUuids: state._sessionsUuids?.find((stateSession) =>
+        _sessionsToFetch: state._sessionsToFetch?.find((stateSession) =>
           isSession(stateSession, action.payload)
         )
-          ? state._sessionsUuids.map((stateSession) =>
+          ? state._sessionsToFetch.map((stateSession) =>
               isSession(stateSession, action.payload)
                 ? action.payload
                 : stateSession
             )
-          : [action.payload, ...state._sessionsUuids],
+          : [action.payload, ...state._sessionsToFetch],
       };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
@@ -86,7 +86,7 @@ const initialState = {
   sessions: [],
   sessionsKillAllInProgress: false,
   view: "pipeline",
-  _sessionsUuids: [],
+  _sessionsToFetch: [],
   _sessionsToggle: null,
 };
 

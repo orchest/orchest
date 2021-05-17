@@ -69,7 +69,7 @@ export interface IOrchestState
   sessionsKillAllInProgress?: boolean;
   config: IOrchestConfig;
   user_config: IOrchestUserConfig;
-  _sessionsUuids?: IOrchestSessionUuid[] | [];
+  _sessionsToFetch?: IOrchestSessionUuid[] | [];
   _sessionsToggle?: IOrchestSessionUuid;
 }
 
