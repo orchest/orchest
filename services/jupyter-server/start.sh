@@ -89,8 +89,26 @@ if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     exit 0
 fi
 
+# In case JupyterLab was upgraded we need to remove all files that
+# could potentially cause compatibility issues with the new version.
+find "$userdir_path" \
+    -maxdepth 1 \
+    ! \( \
+        -type d -a \( -name "extensions" -o -name "themes" \) \
+        -o -name ".gitignore" \
+        -o -wholename "$userdir_path" \
+    \) \
+    -exec rm -rf {} \;
+
 # Overwrite the static files from the userdir with the static files
 # from the build. Otherwise JupyterLab cannot start as part of Orchest.
-rm -rf "$userdir_path/static" && cp -r "$build_path/static" "$userdir_path/static"
+find "$build_path" \
+    -maxdepth 1 \
+    ! \( \
+        -type d -a \( -name "extensions" -o -name "themes" \) \
+        -o -name ".gitignore" \
+        -o -wholename "$build_path" \
+    \) \
+    -exec cp -r {} "$userdir_path" \;
 
 jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
