@@ -251,9 +251,16 @@ class StopInteractiveSession(TwoPhaseFunction):
         pipeline_uuid: str,
     ):
 
-        session = models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).one_or_none()
+        # The with for update is to avoid a race condition where
+        # updating the status to STOPPING would overwrite a RUNNING
+        # status after reading the previous_state as LAUNCHING, which
+        # would then cause the collateral effect to wait the full time
+        # before shutting down the session.
+        session = (
+            models.InteractiveSession.query.with_for_update()
+            .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
+            .one_or_none()
+        )
         if session is None:
             self.collateral_kwargs["project_uuid"] = None
             self.collateral_kwargs["pipeline_uuid"] = None
@@ -310,11 +317,17 @@ class StopInteractiveSession(TwoPhaseFunction):
                             project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
                         ).one_or_none()
                         # The session has been deleted because the
-                        # launch failed.
+                        # launch failed or because of another failure
+                        # reason.
                         if session is None:
                             return
                         if session.status == "RUNNING":
+                            container_ids = session.container_ids
+                            notebook_server_info = session.notebook_server_info
                             break
+                        # Otherwise we will get an old version of
+                        # the session data.
+                        db.session.close()
                         time.sleep(1)
 
                 session_obj = InteractiveSession.from_container_IDs(
