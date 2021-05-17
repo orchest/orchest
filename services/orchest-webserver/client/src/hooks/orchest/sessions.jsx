@@ -12,9 +12,10 @@ import { isSession } from "./utils";
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
 
-/**
- * @param {IOrchestSessionUuid} props
- */
+/**  @param {IOrchestSession['status']} status */
+const isStoppable = (status) => ["RUNNING", "LAUNCHING"].includes(status);
+
+/**  @param {IOrchestSessionUuid} props */
 const stopSession = ({ pipeline_uuid, project_uuid }) =>
   fetcher([ENDPOINT, project_uuid, "/", pipeline_uuid].join(""), {
     method: "DELETE",
@@ -97,23 +98,21 @@ export const SessionsProvider = ({ children }) => {
   React.useEffect(() => {
     if (state.sessionsKillAllInProgress !== true || !data) return;
 
-    const shouldStop = (status) => ["RUNNING", "LAUNCHING"].includes(status);
-
-    // Mutate sessions that `shouldStop` to "STOPPING"
+    // Mutate `isStoppable` sessions to "STOPPING"
     mutate(
       data.map((sessionValue) => ({
         ...sessionValue,
-        status: shouldStop(sessionValue.status)
+        status: isStoppable(sessionValue.status)
           ? "STOPPING"
           : sessionValue.status,
       })),
       false
     );
 
-    // Send delete requests for all sessions that `shouldStop`
+    // Send delete requests for `isStoppable` sessions
     Promise.all(
       data
-        .filter((sessionData) => shouldStop(sessionData.status))
+        .filter((sessionData) => isStoppable(sessionData.status))
         .map((sessionData) => stopSession(sessionData))
     )
       .then(() => {
@@ -221,7 +220,7 @@ export const SessionsProvider = ({ children }) => {
     /**
      * DELETE
      */
-    if (session.status === "RUNNING") {
+    if (isStoppable(session.status)) {
       mutateSession({ status: "STOPPING" }, false);
 
       stopSession(session)
