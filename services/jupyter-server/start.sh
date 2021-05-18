@@ -19,6 +19,44 @@
 
 umask 002
 
+# This is where the Docker image puts pre-installed extensions during build
+build_path=/jupyterlab-orchest-build
+
+# This is the default path JupyterLab uses as the application directory.
+userdir_path=/usr/local/share/jupyter/lab
+
+###
+# The lockfile is used to make sure
+# that this JupyterLab start script
+# is only executed for one instance
+# at a time.
+###
+lockfile=$userdir_path/.bootlock
+
+await_lock() {
+    until [ ! -f $lockfile ]
+    do
+        echo "Awaiting boot lock..."
+        sleep 1
+    done
+}
+
+write_lock() {
+    touch $lockfile
+}
+
+release_lock() {
+    rm -f $lockfile
+}
+
+start_jupyterlab(){
+    release_lock
+    jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
+}
+
+await_lock
+write_lock
+
 pre_installed_extensions=("orchest-integration" "visual-tags" "nbdime-jupyterlab")
 
 check_ext_versions() {
@@ -35,17 +73,11 @@ check_ext_versions() {
     return 0
 }
 
-# This is where the Docker image puts pre-installed extensions during build
-build_path=/jupyterlab-orchest-build
-
-# This is the default path JupyterLab uses as the application directory.
-userdir_path=/usr/local/share/jupyter/lab
-
 # Check whether this is the first time ever JupyterLab is started.
 userdir_version=$(jq .jupyterlab.version "$userdir_path/static/package.json" 2>/dev/null)
 if [ -z "$userdir_version" ]; then
     cp -rfT "$build_path" "$userdir_path"
-    jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
+    start_jupyterlab
     exit 0
 fi
 
@@ -85,7 +117,7 @@ cp -rnT "$build_path/extensions" "$userdir_path/extensions"
 
 if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     # We don't have to do anything.
-    jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
+    start_jupyterlab
     exit 0
 fi
 
@@ -114,4 +146,4 @@ find "$build_path" \
     \) \
     -exec cp -r {} "$userdir_path" \;
 
-jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
+start_jupyterlab
