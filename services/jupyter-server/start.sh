@@ -77,7 +77,7 @@ check_ext_versions() {
 userdir_version=$(jq .jupyterlab.version "$userdir_path/static/package.json" 2>/dev/null)
 if [ -z "$userdir_version" ]; then
     cp -rfT "$build_path" "$userdir_path"
-    start_jupyterlab
+    start_jupyterlab "$@"
     exit 0
 fi
 
@@ -117,7 +117,7 @@ cp -rnT "$build_path/extensions" "$userdir_path/extensions"
 
 if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     # We don't have to do anything.
-    start_jupyterlab
+    start_jupyterlab "$@"
     exit 0
 fi
 
@@ -146,4 +146,4 @@ find "$build_path" \
     \) \
     -exec cp -r {} "$userdir_path" \;
 
-start_jupyterlab
+start_jupyterlab "$@"
