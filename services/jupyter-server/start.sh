@@ -51,10 +51,15 @@ release_lock() {
 
 start_jupyterlab(){
     release_lock
+    # Don't release the lock again on exit.
+    trap - EXIT
     jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
 }
 
 acquire_lock
+# Make sure the lock is released if, for some reason, the process does
+# not get to release the lock. Does not cover the case of SIGKILL.
+trap release_lock EXIT
 
 pre_installed_extensions=("orchest-integration" "visual-tags" "nbdime-jupyterlab")
 
