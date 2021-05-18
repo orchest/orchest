@@ -1,5 +1,6 @@
 typer
 docker
+six>=1.13.0
 aiodocker @ git+https://github.com/yannickperrenet/aiodocker.git
 tqdm==4.53.0
 -e ../../lib/python/orchest-internals
