@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import { useOrchest } from "@/hooks/orchest";
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import PipelineList from "../components/PipelineList";
 import ProjectBasedView from "../components/ProjectBasedView";
 
@@ -13,10 +13,12 @@ const PipelinesView = (props) => {
   }, []);
 
   return (
-    <ProjectBasedView
-      project_uuid={props.project_uuid}
-      childView={PipelineList}
-    />
+    <OrchestSessionsConsumer>
+      <ProjectBasedView
+        project_uuid={props.project_uuid}
+        childView={PipelineList}
+      />
+    </OrchestSessionsConsumer>
   );
 };
 

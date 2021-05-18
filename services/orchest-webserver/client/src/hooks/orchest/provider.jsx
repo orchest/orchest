@@ -2,7 +2,7 @@
 import React from "react";
 import { uuidv4 } from "@orchest/lib-utils";
 import { OrchestContext } from "./context";
-import { SessionsProvider } from "./sessions";
+import { OrchestSessionsProvider } from "./sessions";
 import { isSession, isCurrentSession } from "./utils";
 import { useLocalStorage } from "../local-storage";
 
@@ -57,10 +57,14 @@ const reducer = (state, action) => {
       };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
-    case "_sessionsSet":
-      return { ...state, sessions: action.payload };
     case "_sessionsToggleClear":
       return { ...state, _sessionToggle: null };
+    case "_sessionsSet":
+      return { ...state, sessions: action.payload };
+    case "_sessionsPollingStart":
+      return { ...state, _sessionsIsPolling: true };
+    case "_sessionsPollingClear":
+      return { ...state, _sessionsIsPolling: false };
     case "sessionsKillAll":
       return { ...state, sessionsKillAllInProgress: true };
     case "_sessionsKillAllClear":
@@ -111,7 +115,9 @@ export const OrchestProvider = ({ config, user_config, children }) => {
   /** @type {IOrchestGet} */
   const get = {
     session: (session) =>
-      state?.sessions?.find((stateSession) => isSession(session, stateSession)),
+      state?.sessions?.find((stateSession) =>
+        isSession(session, stateSession)
+      ) || session,
     currentSession: state?.sessions?.find((session) =>
       isCurrentSession(session, state)
     ),
@@ -161,7 +167,7 @@ export const OrchestProvider = ({ config, user_config, children }) => {
         get,
       }}
     >
-      <SessionsProvider>{children}</SessionsProvider>
+      <OrchestSessionsProvider>{children}</OrchestSessionsProvider>
     </OrchestContext.Provider>
   );
 };

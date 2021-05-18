@@ -1,7 +1,7 @@
 // @ts-check
 import React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
-import { useOrchest } from "@/hooks/orchest";
+import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 
 /**
  * @typedef {import("@/types").IOrchestSession} IOrchestSession
@@ -22,12 +22,8 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
 
   const { pipeline_uuid, project_uuid } = props;
   const session = get.session({ pipeline_uuid, project_uuid });
-
   const sharedProps = {
-    disabled:
-      isLoading ||
-      !session?.status ||
-      ["STOPPING", "LAUNCHING"].includes(session?.status),
+    disabled: isLoading || ["STOPPING", "LAUNCHING"].includes(session?.status),
     label:
       {
         STOPPING: "Session stopping…",
@@ -53,33 +49,35 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
     });
   }, [pipeline_uuid, project_uuid]);
 
-  return props.switch ? (
-    <MDCSwitchReact
-      ref={ref}
-      {...sharedProps}
-      onChange={handleEvent}
-      classNames={props.className}
-      on={session?.status === "RUNNING"}
-    />
-  ) : (
-    <MDCButtonReact
-      ref={ref}
-      {...sharedProps}
-      onClick={handleEvent}
-      classNames={[
-        props.className,
-        "mdc-button--outlined",
-        "session-state-button",
-        // @rick do we need these?
-        {
-          RUNNING: "active",
-          LAUNCHING: "working",
-          STOPPING: "working",
-          STOPPED: "active",
-        }[session?.status] || "",
-      ]}
-      icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
-    />
+  return (
+    <OrchestSessionsConsumer>
+      {props.switch ? (
+        <MDCSwitchReact
+          ref={ref}
+          {...sharedProps}
+          onChange={handleEvent}
+          classNames={props.className}
+          on={session?.status === "RUNNING"}
+        />
+      ) : (
+        <MDCButtonReact
+          ref={ref}
+          {...sharedProps}
+          onClick={handleEvent}
+          classNames={[
+            props.className,
+            "mdc-button--outlined",
+            "session-state-button",
+            // @rick do we need these?
+            {
+              LAUNCHING: "working",
+              STOPPING: "working",
+            }[session?.status] || "active",
+          ]}
+          icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
+        />
+      )}
+    </OrchestSessionsConsumer>
   );
 });
 

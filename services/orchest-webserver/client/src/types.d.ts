@@ -41,7 +41,7 @@ export interface IOrchestSessionUuid {
 export interface IOrchestSession extends IOrchestSessionUuid {
   project_uuid: string;
   pipeline_uuid: string;
-  status: "RUNNING" | "LAUNCHING" | "STOPPED" | "STOPPING";
+  status?: "RUNNING" | "LAUNCHING" | "STOPPING";
   jupyter_server_ip?: string;
   notebook_server_info?: {
     port: number;
@@ -71,6 +71,7 @@ export interface IOrchestState
   user_config: IOrchestUserConfig;
   _sessionsToFetch?: IOrchestSessionUuid[] | [];
   _sessionsToggle?: IOrchestSessionUuid;
+  _sessionsIsPolling?: boolean;
 }
 
 export type TOrchestAction =
@@ -103,10 +104,12 @@ export type TOrchestAction =
       type: "sessionToggle";
       payload: IOrchestSessionUuid;
     }
-  | { type: "_sessionsSet"; payload: IOrchestSession[] }
   | { type: "_sessionsToggleClear" }
+  | { type: "_sessionsSet"; payload: IOrchestSession[] }
   | { type: "sessionsKillAll" }
-  | { type: "_sessionsKillAllClear" };
+  | { type: "_sessionsKillAllClear" }
+  | { type: "_sessionsPollingStart" }
+  | { type: "_sessionsPollingClear" };
 
 export interface IOrchestGet {
   currentSession: IOrchestSession;

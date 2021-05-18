@@ -9,7 +9,7 @@ import {
   collapseDoubleDots,
 } from "@orchest/lib-utils";
 import { useInterval } from "@/hooks/use-interval";
-import { useOrchest } from "@/hooks/orchest";
+import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
@@ -50,7 +50,7 @@ const JupyterLabView = (props) => {
 
     if (!session) return;
 
-    if (!session.status || session.status === "STOPPED") {
+    if (!session.status) {
       // Schedule as callback to avoid calling setState
       // from within React render call.
       setTimeout(() => {
@@ -185,17 +185,19 @@ const JupyterLabView = (props) => {
   };
 
   return (
-    <div className="view-page jupyter no-padding">
-      {get.currentSession?.status !== "RUNNING" &&
-        hasEnvironmentCheckCompleted && (
-          <div className="lab-loader">
-            <div>
-              <h2>Setting up JupyterLab…</h2>
-              <MDCLinearProgressReact />
+    <OrchestSessionsConsumer>
+      <div className="view-page jupyter no-padding">
+        {get.currentSession?.status !== "RUNNING" &&
+          hasEnvironmentCheckCompleted && (
+            <div className="lab-loader">
+              <div>
+                <h2>Setting up JupyterLab…</h2>
+                <MDCLinearProgressReact />
+              </div>
             </div>
-          </div>
-        )}
-    </div>
+          )}
+      </div>
+    </OrchestSessionsConsumer>
   );
 };
 
