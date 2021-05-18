@@ -26,27 +26,27 @@ build_path=/jupyterlab-orchest-build
 userdir_path=/usr/local/share/jupyter/lab
 
 ###
-# The lockfile is used to make sure
+# The lockdir is used to make sure
 # that this JupyterLab start script
 # is only executed for one instance
 # at a time.
 ###
-lockfile=$userdir_path/.bootlock
+lockdir=$userdir_path/.bootlock
 
-await_lock() {
-    until [ ! -f $lockfile ]
+acquire_lock() {
+    while :
     do
+        if mkdir $lockdir 2>/dev/null; then
+            break
+        fi
+
         echo "Awaiting boot lock..."
         sleep 1
     done
 }
 
-write_lock() {
-    touch $lockfile
-}
-
 release_lock() {
-    rm -f $lockfile
+    rm -rf $lockdir
 }
 
 start_jupyterlab(){
@@ -54,8 +54,7 @@ start_jupyterlab(){
     jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
 }
 
-await_lock
-write_lock
+acquire_lock
 
 pre_installed_extensions=("orchest-integration" "visual-tags" "nbdime-jupyterlab")
 
