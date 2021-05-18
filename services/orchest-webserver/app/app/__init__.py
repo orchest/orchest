@@ -132,7 +132,7 @@ def create_app():
             )
             if os.path.exists(lock_path):
                 app.logger.info("Removing dangling jupyter boot lock.")
-                os.remove(lock_path)
+                os.rmdir(lock_path)
 
         except FileExistsError:
             app.logger.info(
