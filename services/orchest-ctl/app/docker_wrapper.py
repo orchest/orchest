@@ -274,18 +274,29 @@ class DockerWrapper:
         async def remove_container(id_: str) -> None:
             container = self.aclient.containers.container(id_)
 
-            # If the container is running, kill it before removing it
-            # and remove anonymous volumes associated with the
-            # container.
-            await container.delete(force=True, v=True)
-
             try:
+                # Might raise a 409
+                # If the container is running, kill it before removing
+                # it and remove anonymous volumes associated with the
+                # container.
+                await container.delete(force=True, v=True)
+
+                # Might raise a 404
                 # Block until the container is deleted.
                 await container.wait(condition="removed")
-            except aiodocker.exceptions.DockerError:
+            except aiodocker.exceptions.DockerError as de:
+                # 404
                 # The container was removed so fast that the wait
                 # condition was unable to find the container.
-                pass
+                # 409 + already in progress check
+                # The container is already being removed. This can
+                # happen if a container is being removed after a step
+                # has completed and Orchest is stopped.
+                if not (
+                    de.status == 404
+                    or (de.status == 409 and "is already in progress" in de.message)
+                ):
+                    raise de
 
         await asyncio.gather(*[remove_container(id_) for id_ in container_ids])
         await self.close_aclient()
