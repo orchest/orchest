@@ -131,6 +131,7 @@ find "$userdir_path" \
         -type d -a \( -name "extensions" -o -name "themes" \) \
         -o -name ".gitignore" \
         -o -wholename "$userdir_path" \
+        -o -wholename "$lockdir" \
     \) \
     -exec rm -rf {} \;
 
