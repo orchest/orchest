@@ -123,6 +123,22 @@ def create_app():
                         % (proj.uuid, e, type(e))
                     )
 
+        # To avoid multiple removals in case of a flask --reload, so
+        # that this code runs once per container.
+        try:
+            os.mkdir("/tmp/jupyter_lock_removed")
+            lock_path = os.path.join(
+                "/userdir", _config.JUPYTER_USER_CONFIG, "lab", ".bootlock"
+            )
+            if os.path.exists(lock_path):
+                app.logger.info("Removing dangling jupyter boot lock.")
+                os.rmdir(lock_path)
+
+        except FileExistsError:
+            app.logger.info(
+                "/tmp/jupyter_lock_removed exists. " " Not removing the lock again."
+            )
+
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:
         # initialize posthog
