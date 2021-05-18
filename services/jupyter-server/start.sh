@@ -89,6 +89,9 @@ if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     exit 0
 fi
 
+echo "Pre installed extensions have changed, partially clearing \
+JupyterLab userdir config."
+
 # In case JupyterLab was upgraded we need to remove all files that
 # could potentially cause compatibility issues with the new version.
 find "$userdir_path" \
