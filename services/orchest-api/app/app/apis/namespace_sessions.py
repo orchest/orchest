@@ -203,16 +203,27 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 # Update the database entry with information to connect
                 # to the launched resources.
                 IP = session.get_containers_IP()
-                status = {
-                    "status": "RUNNING",
-                    "container_ids": session.get_container_IDs(),
-                    "jupyter_server_ip": IP.jupyter_server,
-                    "notebook_server_info": session.notebook_server_info,
-                }
 
-                models.InteractiveSession.query.filter_by(
-                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-                ).update(status)
+                # with for update to avoid overwriting the state of a
+                # STOPPING instance.
+                session_entry = (
+                    models.InteractiveSession.query.with_for_update()
+                    .populate_existing()
+                    .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
+                    .one_or_none()
+                )
+                if session_entry is None:
+                    return
+
+                session_entry.container_ids = session.get_container_IDs()
+                session_entry.jupyter_server_ip = IP.jupyter_server
+                session_entry.notebook_server_info = session.notebook_server_info
+
+                # Do not overwrite the STOPPING status if the session is
+                # stopping.
+                if session_entry.status == "LAUNCHING":
+                    session_entry.status = "RUNNING"
+
                 db.session.commit()
             except Exception as e:
                 current_app.logger.error(e)
@@ -258,6 +269,7 @@ class StopInteractiveSession(TwoPhaseFunction):
         # before shutting down the session.
         session = (
             models.InteractiveSession.query.with_for_update()
+            .populate_existing()
             .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
             .one_or_none()
         )
@@ -321,7 +333,12 @@ class StopInteractiveSession(TwoPhaseFunction):
                         # reason.
                         if session is None:
                             return
-                        if session.status == "RUNNING":
+                        # We have to rely on the container ids and not
+                        # on status because a session that is STOPPED
+                        # while LAUNCHING will never reach a RUNNING
+                        # state because the background task will
+                        # explicitly avoid doing so.
+                        if session.container_ids is not None:
                             container_ids = session.container_ids
                             notebook_server_info = session.notebook_server_info
                             break
