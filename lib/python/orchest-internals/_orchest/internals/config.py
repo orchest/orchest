@@ -35,7 +35,8 @@ KERNEL_NAME = "orchest-kernel-{environment_uuid}"
 PIPELINE_STEP_CONTAINER_NAME = "orchest-step-{run_uuid}-{step_uuid}"
 JUPYTER_SERVER_NAME = "jupyter-server-{project_uuid}-{pipeline_uuid}"
 JUPYTER_EG_SERVER_NAME = "jupyter-EG-{project_uuid}-{pipeline_uuid}"
-JUPYTER_SETUP_SCRIPT = ".orchest/user-configurations/jupyterlab/setup_script.sh"
+JUPYTER_USER_CONFIG = ".orchest/user-configurations/jupyterlab"
+JUPYTER_SETUP_SCRIPT = f"{JUPYTER_USER_CONFIG}/setup_script.sh"
 JUPYTER_IMAGE_NAME = "orchest-jupyter-server-user-configured"
 
 # Whenever UUIDs take up too much space in an identifier the UUIDs are

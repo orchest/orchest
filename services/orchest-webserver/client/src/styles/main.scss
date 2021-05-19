@@ -52,16 +52,10 @@ $pipelineStepWidth: 190px;
 
 html,
 body {
-  font-size: 17px;
-  font-family: typography.$font-family;
   height: 100%;
-  padding: 0;
-  margin: 0;
 }
 
 p {
-  font-size: $defaultFontSize;
-
   &.padding-top {
     padding-top: $generalPadding;
   }
@@ -1265,6 +1259,7 @@ span.code {
       height: $pipelineStepHeight;
       text-align: center;
       z-index: 2;
+      line-height: normal;
 
       &.hidden {
         display: none;

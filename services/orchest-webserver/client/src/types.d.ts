@@ -66,6 +66,7 @@ export interface IOrchestState
     | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
   sessions?: IOrchestSession[] | [];
+  sessionsKillAllInProgress?: boolean;
   config: IOrchestConfig;
   user_config: IOrchestUserConfig;
   _sessionsUuids?: IOrchestSessionUuid[] | [];
@@ -103,7 +104,9 @@ export type TOrchestAction =
       payload: IOrchestSessionUuid;
     }
   | { type: "_sessionsSet"; payload: IOrchestSession[] }
-  | { type: "_sessionsToggleClear" };
+  | { type: "_sessionsToggleClear" }
+  | { type: "sessionsKillAll" }
+  | { type: "_sessionsKillAllClear" };
 
 export interface IOrchestGet {
   currentSession: IOrchestSession;

@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@orchest/design-system": "workspace:*",
     "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
     "codemirror": "^5.55.0",
@@ -29,7 +30,8 @@
     "socket.io-client": "^2.3.0",
     "swr": "0.5.5",
     "xterm-addon-fit": "^0.4.0",
-    "xterm-for-react": "^1.0.4"
+    "xterm-for-react": "^1.0.4",
+    "vite-plugin-stitches": "0.0.1"
   },
   "devDependencies": {
     "@types/node": "15.0.1",

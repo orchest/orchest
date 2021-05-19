@@ -295,6 +295,10 @@ class StopInteractiveSession(TwoPhaseFunction):
         notebook_server_info: Dict[str, str] = None,
     ):
 
+        # Note that a session that is still LAUNCHING should not be
+        # killed until it has done launching, because the jupyterlab
+        # user configuration is managed through a lock that is removed
+        # by the jupyterlab start script. See PR #254.
         with app.app_context():
             try:
                 session_obj = InteractiveSession.from_container_IDs(

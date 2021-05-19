@@ -9,19 +9,22 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import { OrchestContext } from "@/hooks/orchest";
 import ImageBuildLog from "../components/ImageBuildLog";
 import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 
 class ConfigureJupyterLabView extends React.Component {
-  constructor() {
-    super();
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
     this.state = {
       unsavedChanges: false,
       building: false,
-      sessionKillInProgress: false,
+      sessionKillStatus: undefined,
       buildRequestInProgress: false,
       cancelBuildRequestInProgress: false,
       ignoreIncomingLogs: false,
@@ -40,6 +43,35 @@ class ConfigureJupyterLabView extends React.Component {
 
   componentDidMount() {
     this.getSetupScript();
+  }
+
+  componentDidUpdate() {
+    if (
+      this.context.state.sessionsKillAllInProgress &&
+      this.state.sessionKillStatus === "WAITING"
+    ) {
+      this.setState({ sessionKillStatus: "VALIDATING" });
+    }
+
+    if (
+      !this.context.state.sessionKillInProgress &&
+      this.state.sessionKillStatus === "VALIDATING"
+    ) {
+      const hasActiveSessions = this.context.state?.sessions
+        .map((session) => {
+          if (!session.status) return false;
+
+          return session.status === "STOPPED" ? false : true;
+        })
+        .find((isActive) => isActive === true);
+
+      if (!hasActiveSessions) {
+        this.setState({
+          sessionKillStatus: undefined,
+        });
+        this.buildImage();
+      }
+    }
   }
 
   onBuildStart() {
@@ -88,11 +120,13 @@ class ConfigureJupyterLabView extends React.Component {
               let resp = JSON.parse(e.body);
 
               if (resp.message == "SessionInProgressException") {
-                this.stopAllSession(
-                  "You must stop all active sessions in order to build a new JupyerLab image. \n\n",
+                orchest.confirm(
+                  "Warning",
+                  "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
+                    "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
                   () => {
-                    // Try again after killing sessions
-                    this.buildImage();
+                    this.context.dispatch({ type: "sessionsKillAll" });
+                    this.setState({ sessionKillStatus: "WAITING" });
                   }
                 );
               }
@@ -107,53 +141,6 @@ class ConfigureJupyterLabView extends React.Component {
           });
         });
     });
-  }
-
-  stopAllSession(messagePrefix, successCallback) {
-    orchest.confirm(
-      "Warning",
-      messagePrefix +
-        "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
-      () => {
-        this.setState({
-          sessionKillInProgress: true,
-        });
-        // Get all sessions
-        makeRequest("GET", "/catch/api-proxy/api/sessions/")
-          .then((result) => {
-            let sessions = JSON.parse(result)["sessions"];
-
-            let promises = [];
-            for (let session of sessions) {
-              promises.push(
-                // deleting the job will also
-                // take care of aborting it if necessary
-                makeRequest(
-                  "DELETE",
-                  `/catch/api-proxy/api/sessions/${session.project_uuid}/${session.pipeline_uuid}`
-                )
-              );
-
-              Promise.all(promises)
-                .then(() => {
-                  if (successCallback) {
-                    successCallback();
-                  }
-                })
-                .finally(() => {
-                  this.setState({
-                    sessionKillInProgress: false,
-                  });
-                });
-            }
-          })
-          .catch(() => {
-            this.setState({
-              sessionKillInProgress: false,
-            });
-          });
-      }
-    );
   }
 
   cancelImageBuild() {
@@ -311,7 +298,7 @@ class ConfigureJupyterLabView extends React.Component {
                 label="Build"
                 disabled={
                   this.state.buildRequestInProgress ||
-                  this.state.sessionKillInProgress
+                  typeof this.state.sessionKillStatus !== "undefined"
                 }
                 icon="memory"
                 classNames={["mdc-button--raised"]}

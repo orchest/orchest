@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-from app import orchest, spec, utils
+from app import config, orchest, spec, utils
 
 
 @pytest.mark.parametrize(
@@ -49,22 +49,38 @@ def test_install(installed_images, expected_stdout, install_orchest, capsys):
 
 
 @pytest.mark.parametrize(
-    ("running_containers", "expected_stdout", "expected_exit_code"),
+    (
+        "running_containers",
+        "restarting",
+        "updating",
+        "expected_stdout",
+        "expected_exit_code",
+    ),
     [
-        (["A", "B"], "Orchest is running.", 0),
-        (["A"], "has reached an invalid state", 2),
-        ([], "Orchest is not running.", 1),
+        (["A", "B"], False, False, "Orchest is running.", 0),
+        (["A"], False, False, "has reached an invalid state", 2),
+        ([], False, False, "Orchest is not running.", 1),
+        ([], True, False, "Orchest is currently restarting.", 4),
+        ([], False, True, "Orchest is currently updating.", 5),
     ],
-    ids=["running", "partially-running", "not-running"],
+    ids=["running", "partially-running", "not-running", "restartig", "updating"],
 )
 def test_status(
-    running_containers, expected_stdout, expected_exit_code, capsys, monkeypatch
+    running_containers,
+    restarting,
+    updating,
+    expected_stdout,
+    expected_exit_code,
+    capsys,
+    monkeypatch,
 ):
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_containers = MagicMock(return_value=(None, running_containers))
 
     app = orchest.OrchestApp()
     app.resource_manager = resource_manager
+    app._is_restarting = MagicMock(return_value=restarting)
+    app._is_updating = MagicMock(return_value=updating)
     monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
 
     exit_code = 0
@@ -77,7 +93,8 @@ def test_status(
     captured = capsys.readouterr()
     assert expected_stdout in captured.out
 
-    resource_manager.get_containers.assert_called_once_with(state="running")
+    if not restarting and not updating:
+        resource_manager.get_containers.assert_called_once_with(state="running")
 
 
 @pytest.mark.parametrize(
@@ -126,8 +143,8 @@ def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch):
 @pytest.mark.parametrize(
     ("installed_images", "update_exit_code", "mode", "expected_stdout"),
     [
-        (["A", "B"], 0, None, "Don't forget to restart Orchest"),
-        (["A"], 0, None, "Don't forget to restart Orchest"),
+        (["A", "B"], 0, None, "Update completed. To start Orchest again, run:"),
+        (["A"], 0, None, "Update completed. To start Orchest again, run:"),
         (["A"], 1, None, "Cancelling update..."),
         (["A"], 0, "web", "Update completed."),
     ],
@@ -148,7 +165,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     app = orchest.OrchestApp()
     app.resource_manager = resource_manager
     app.docker_client = docker_client
-    app.restart = MagicMock(return_value=None)
+    app.stop = MagicMock(return_value=None)
 
     app.update(mode=mode)
 
@@ -161,8 +178,9 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     resource_manager.remove_env_build_imgs.assert_called_once()
     resource_manager.remove_jupyter_build_imgs.assert_called_once()
 
+    to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(installed_images)
     docker_client.pull_images.assert_called_once_with(
-        installed_images, prog_bar=True, force=True
+        to_pull_images, prog_bar=True, force=True
     )
 
 
@@ -180,7 +198,7 @@ def test_stop(
 ):
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_containers = MagicMock(
-        return_value=(running_containers, running_containers)
+        side_effect=[(running_containers, running_containers), ([], [])]
     )
     docker_client = orchest.DockerWrapper()
     docker_client.remove_containers = MagicMock(return_value=None)
@@ -197,7 +215,7 @@ def test_stop(
     if not running_containers:
         return
 
-    resource_manager.get_containers.assert_called_once_with(state="running")
+    resource_manager.get_containers.assert_called_with(state="running")
     docker_client.remove_containers.assert_called_once_with(tuple(stopped_containers))
 
 
@@ -246,7 +264,7 @@ def test_start(
         return res
 
     def mocked_get_containers(
-        state: Literal["all", "running", "exited"] = "running",
+        state: Literal["all", "running", "exited"] = "running", full_info: bool = False
     ):
         if state == "running":
             return running_containers, running_containers
@@ -255,6 +273,7 @@ def test_start(
 
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_images = MagicMock(return_value=installed_images)
+    resource_manager.remove_orchest_dangling_imgs = MagicMock(return_value=None)
     monkeypatch.setattr(resource_manager, "get_containers", mocked_get_containers)
     docker_client = orchest.DockerWrapper()
     docker_client.remove_containers = MagicMock(return_value=None)
@@ -269,7 +288,8 @@ def test_start(
     utils.wait_for_zero_exitcode = MagicMock(return_value=None)
 
     app = orchest.OrchestApp()
-    monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
+    monkeypatch.setattr(orchest, "_on_start_images", [set("A"), set("B")])
+    monkeypatch.setattr(orchest, "ORCHEST_IMAGES", {"minimal": ["A", "B"]})
     resource_manager.docker_client = docker_client
     app.resource_manager = resource_manager
     app.docker_client = docker_client

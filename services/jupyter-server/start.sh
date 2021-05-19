@@ -19,6 +19,48 @@
 
 umask 002
 
+# This is where the Docker image puts pre-installed extensions during build
+build_path=/jupyterlab-orchest-build
+
+# This is the default path JupyterLab uses as the application directory.
+userdir_path=/usr/local/share/jupyter/lab
+
+###
+# The lockdir is used to make sure
+# that this JupyterLab start script
+# is only executed for one instance
+# at a time.
+###
+lockdir=$userdir_path/.bootlock
+
+acquire_lock() {
+    while :
+    do
+        if mkdir $lockdir 2>/dev/null; then
+            break
+        fi
+
+        echo "Awaiting boot lock..."
+        sleep 1
+    done
+}
+
+release_lock() {
+    rm -rf $lockdir
+}
+
+start_jupyterlab(){
+    release_lock
+    # Don't release the lock again on exit.
+    trap - EXIT
+    jupyter lab --LabApp.app_dir="$userdir_path" "$@" --collaborative
+}
+
+acquire_lock
+# Make sure the lock is released if, for some reason, the process does
+# not get to release the lock. Does not cover the case of SIGKILL.
+trap release_lock EXIT
+
 pre_installed_extensions=("orchest-integration" "visual-tags" "nbdime-jupyterlab")
 
 check_ext_versions() {
@@ -35,17 +77,11 @@ check_ext_versions() {
     return 0
 }
 
-# This is where the Docker image puts pre-installed extensions during build
-build_path=/jupyterlab-orchest-build
-
-# This is the default path JupyterLab uses as the application directory.
-userdir_path=/usr/local/share/jupyter/lab
-
 # Check whether this is the first time ever JupyterLab is started.
 userdir_version=$(jq .jupyterlab.version "$userdir_path/static/package.json" 2>/dev/null)
 if [ -z "$userdir_version" ]; then
     cp -rfT "$build_path" "$userdir_path"
-    jupyter lab --LabApp.app_dir="$userdir_path" "$@"
+    start_jupyterlab "$@"
     exit 0
 fi
 
@@ -85,12 +121,34 @@ cp -rnT "$build_path/extensions" "$userdir_path/extensions"
 
 if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     # We don't have to do anything.
-    jupyter lab --LabApp.app_dir="$userdir_path" "$@"
+    start_jupyterlab "$@"
     exit 0
 fi
 
+echo "Pre installed extensions have changed, partially clearing \
+JupyterLab userdir config."
+
+# In case JupyterLab was upgraded we need to remove all files that
+# could potentially cause compatibility issues with the new version.
+find "$userdir_path" \
+    -maxdepth 1 \
+    ! \( \
+        -type d -a \( -name "extensions" -o -name "themes" \) \
+        -o -name ".gitignore" \
+        -o -wholename "$userdir_path" \
+        -o -wholename "$lockdir" \
+    \) \
+    -exec rm -rf {} \;
+
 # Overwrite the static files from the userdir with the static files
 # from the build. Otherwise JupyterLab cannot start as part of Orchest.
-rm -rf "$userdir_path/static" && cp -r "$build_path/static" "$userdir_path/static"
+find "$build_path" \
+    -maxdepth 1 \
+    ! \( \
+        -type d -a \( -name "extensions" -o -name "themes" \) \
+        -o -name ".gitignore" \
+        -o -wholename "$build_path" \
+    \) \
+    -exec cp -r {} "$userdir_path" \;
 
-jupyter lab --LabApp.app_dir="$userdir_path" "$@"
+start_jupyterlab "$@"
