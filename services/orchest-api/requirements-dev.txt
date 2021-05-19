@@ -5,6 +5,7 @@ amqp==2.6.0
 celery==4.4.2
 croniter==1.0.2
 docker>=4.3.0
+six>=1.13.0
 Flask==1.1.1
 Flask-Cors==3.0.9
 flask-restx==0.2.0

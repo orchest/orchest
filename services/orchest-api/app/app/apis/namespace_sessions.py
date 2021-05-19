@@ -319,6 +319,10 @@ class StopInteractiveSession(TwoPhaseFunction):
         previous_state: str,
     ):
 
+        # Note that a session that is still LAUNCHING should not be
+        # killed until it has done launching, because the jupyterlab
+        # user configuration is managed through a lock that is removed
+        # by the jupyterlab start script. See PR #254.
         with app.app_context():
             try:
                 # Wait for the session to be STARTED before killing it.
