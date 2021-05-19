@@ -5,7 +5,7 @@ definition file e.g. ``pipeline.orchest``.
 
 """
 import json
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from orchest.config import Config
 from orchest.error import ServiceNotFound
@@ -58,16 +58,27 @@ def _generate_urls(service, pipeline):
     return service
 
 
-def get_service(name) -> Dict:
-    """Gets the service of the pipeline.
+def get_service(name) -> Dict[str, List[Any]]:
+    """Gets the service of the pipeline by name.
 
     Returns:
-        A service. THe service contains the following:
+        A dictionary describing a service.
 
-        {"internal_urls": [], "external_urls": [],
-            ... user specified service fields}
+        Example::
 
-        one for each port specified in the service specification.
+            {
+                "internal_urls": [],
+                "external_urls": [],
+                ... # user specified service fields
+            }
+
+        where each port specified in the service specification
+        constitutes to one element in the lists.
+
+    Raises:
+        ServiceNotFoundError: The service given by name ``name``
+            could not be found.
+
     """
     pipeline = _get_pipeline()
 
@@ -78,16 +89,13 @@ def get_service(name) -> Dict:
     raise ServiceNotFound("Could not find service with name %s" % name)
 
 
-def get_services() -> List:
+def get_services() -> List[Dict[str, List[Any]]]:
     """Gets the services of the pipeline.
 
     Returns:
-        A list of services. Each service contains the following:
+        A list of services. For an example of a service dictionary, see
+        :meth:`get_service`.
 
-        {"internal_urls": [], "external_urls": [],
-            ... user specified service fields}
-
-        one for each port specified in the service specification.
     """
     pipeline = _get_pipeline()
 

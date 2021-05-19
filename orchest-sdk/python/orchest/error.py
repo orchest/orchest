@@ -66,7 +66,7 @@ class StepUUIDResolveError(Error):
 
 
 class InputNameCollisionError(Error):
-    """Multiple input data objects have the same name"""
+    """Multiple input data objects have the same name."""
 
     pass
 
@@ -78,7 +78,7 @@ class DataInvalidNameError(Error):
 
 
 class ServiceNotFound(Error):
-    """Error when a service (specified by name, cannot be found)."""
+    """Error when a service could not be found by name."""
 
     pass
 

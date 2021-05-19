@@ -87,7 +87,7 @@ class PipelineStep:
 
 
 class Pipeline:
-    def __init__(self, steps: List[PipelineStep], properties: Dict[str, str]) -> None:
+    def __init__(self, steps: List[PipelineStep], properties: Dict[str, Any]) -> None:
         self.steps = steps
         self.properties = properties
 
