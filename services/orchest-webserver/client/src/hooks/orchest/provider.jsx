@@ -42,25 +42,12 @@ const reducer = (state, action) => {
       return { ...state, pipelineIsReadOnly: action.payload };
     case "projectSet":
       return { ...state, project_uuid: action.payload };
-    case "sessionFetch":
-      return {
-        ...state,
-        _sessionsToFetch: state._sessionsToFetch?.find((stateSession) =>
-          isSession(stateSession, action.payload)
-        )
-          ? state._sessionsToFetch.map((stateSession) =>
-              isSession(stateSession, action.payload)
-                ? action.payload
-                : stateSession
-            )
-          : [action.payload, ...state._sessionsToFetch],
-      };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
     case "_sessionsToggleClear":
       return { ...state, _sessionToggle: null };
     case "_sessionsSet":
-      return { ...state, sessions: action.payload };
+      return { ...state, ...action.payload };
     case "_sessionsPollingStart":
       return { ...state, _sessionsIsPolling: true };
     case "_sessionsPollingClear":
@@ -88,6 +75,7 @@ const initialState = {
   pipeline_uuid: undefined,
   project_uuid: undefined,
   sessions: [],
+  sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
   view: "pipeline",
   _sessionsToFetch: [],
@@ -115,9 +103,7 @@ export const OrchestProvider = ({ config, user_config, children }) => {
   /** @type {IOrchestGet} */
   const get = {
     session: (session) =>
-      state?.sessions?.find((stateSession) =>
-        isSession(session, stateSession)
-      ) || session,
+      state?.sessions?.find((stateSession) => isSession(session, stateSession)),
     currentSession: state?.sessions?.find((session) =>
       isCurrentSession(session, state)
     ),

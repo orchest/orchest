@@ -66,6 +66,7 @@ export interface IOrchestState
     | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
   sessions?: IOrchestSession[] | [];
+  sessionsIsLoading?: boolean;
   sessionsKillAllInProgress?: boolean;
   config: IOrchestConfig;
   user_config: IOrchestUserConfig;
@@ -99,13 +100,15 @@ export type TOrchestAction =
       payload: IOrchestState["pipelineIsReadOnly"];
     }
   | { type: "drawerToggle" }
-  | { type: "sessionFetch"; payload: IOrchestSessionUuid }
   | {
       type: "sessionToggle";
       payload: IOrchestSessionUuid;
     }
   | { type: "_sessionsToggleClear" }
-  | { type: "_sessionsSet"; payload: IOrchestSession[] }
+  | {
+      type: "_sessionsSet";
+      payload: Pick<IOrchestState, "sessions" | "sessionsIsLoading">;
+    }
   | { type: "sessionsKillAll" }
   | { type: "_sessionsKillAllClear" }
   | { type: "_sessionsPollingStart" }

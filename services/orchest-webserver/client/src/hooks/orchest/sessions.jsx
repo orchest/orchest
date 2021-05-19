@@ -64,10 +64,11 @@ export const OrchestSessionsProvider = ({ children }) => {
    * Push SWR changes to Orchest Context when at least one session exists
    */
   React.useEffect(() => {
-    if (isLoaded) {
-      dispatch({ type: "_sessionsSet", payload: data.sessions });
-    }
-  }, [isLoaded, data]);
+    dispatch({
+      type: "_sessionsSet",
+      payload: { sessions: data?.sessions || [], sessionsIsLoading: isLoading },
+    });
+  }, [data, isLoading]);
 
   /**
    * TOGGLE

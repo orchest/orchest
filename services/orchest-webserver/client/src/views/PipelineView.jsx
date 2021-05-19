@@ -606,27 +606,34 @@ class PipelineView extends React.Component {
   }
 
   handleSession() {
-    const session = this.context.get.currentSession;
-    if (!session) return;
+    if (!this.context.state.sessionsIsLoading) {
+      const session = this.context.get.session(this.props.queryArgs);
 
-    if (
-      this.props.queryArgs.read_only !== "true" &&
-      this.state.shouldAutoStart === true &&
-      !session.status
-    ) {
-      this.context.dispatch({ type: "sessionToggle", payload: session });
-    }
+      // If session doesn't exist and first load
+      if (
+        this.props.queryArgs.read_only !== "true" &&
+        this.state.shouldAutoStart === true &&
+        typeof session === "undefined"
+      ) {
+        this.context.dispatch({
+          type: "sessionToggle",
+          payload: this.props.queryArgs,
+        });
+        this.setState({ shouldAutoStart: false });
+        return;
+      }
 
-    if (session.status == "RUNNING" && this.state.shouldAutoStart === true) {
-      this.setState({ shouldAutoStart: false });
-    }
+      if (session?.status == "RUNNING" && this.state.shouldAutoStart === true) {
+        this.setState({ shouldAutoStart: false });
+      }
 
-    if (session?.status === "STOPPING") {
-      orchest.jupyter.unload();
-    }
+      if (session?.status === "STOPPING") {
+        orchest.jupyter.unload();
+      }
 
-    if (session?.notebook_server_info) {
-      this.updateJupyterInstance();
+      if (session?.notebook_server_info) {
+        this.updateJupyterInstance();
+      }
     }
   }
 

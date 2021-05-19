@@ -18,10 +18,14 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
  */
 const SessionToggleButton = React.forwardRef((props, ref) => {
   const [isLoading, setIsLoading] = React.useState(true);
-  const { dispatch, get } = useOrchest();
+  const { state, dispatch, get } = useOrchest();
 
   const { pipeline_uuid, project_uuid } = props;
-  const session = get.session({ pipeline_uuid, project_uuid });
+  const session = get.session({
+    pipeline_uuid,
+    project_uuid,
+  });
+
   const sharedProps = {
     disabled: isLoading || ["STOPPING", "LAUNCHING"].includes(session?.status),
     label:
@@ -40,17 +44,12 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
     });
   };
 
-  React.useEffect(() => setIsLoading(session ? false : true), [session]);
-
-  React.useEffect(() => {
-    dispatch({
-      type: "sessionFetch",
-      payload: { pipeline_uuid, project_uuid },
-    });
-  }, [pipeline_uuid, project_uuid]);
+  React.useEffect(() => setIsLoading(state.sessionsIsLoading), [
+    state.sessionsIsLoading,
+  ]);
 
   return (
-    <OrchestSessionsConsumer>
+    <React.Fragment>
       {props.switch ? (
         <MDCSwitchReact
           ref={ref}
@@ -77,7 +76,7 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
           icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
         />
       )}
-    </OrchestSessionsConsumer>
+    </React.Fragment>
   );
 });
 
