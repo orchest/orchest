@@ -1,6 +1,6 @@
 {
   "name": "@orchest/design-system",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "main": "dist/index.cjs",
