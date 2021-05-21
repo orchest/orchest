@@ -1,7 +1,7 @@
 // @ts-check
 import React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
-import { useOrchest } from "@/hooks/orchest";
+import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 
 /**
  * @typedef {import("@/types").IOrchestSession} IOrchestSession
@@ -18,16 +18,16 @@ import { useOrchest } from "@/hooks/orchest";
  */
 const SessionToggleButton = React.forwardRef((props, ref) => {
   const [isLoading, setIsLoading] = React.useState(true);
-  const { dispatch, get } = useOrchest();
+  const { state, dispatch, get } = useOrchest();
 
   const { pipeline_uuid, project_uuid } = props;
-  const session = get.session({ pipeline_uuid, project_uuid });
+  const session = get.session({
+    pipeline_uuid,
+    project_uuid,
+  });
 
   const sharedProps = {
-    disabled:
-      isLoading ||
-      !session?.status ||
-      ["STOPPING", "LAUNCHING"].includes(session?.status),
+    disabled: isLoading || ["STOPPING", "LAUNCHING"].includes(session?.status),
     label:
       {
         STOPPING: "Session stopping…",
@@ -44,42 +44,39 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
     });
   };
 
-  React.useEffect(() => setIsLoading(session ? false : true), [session]);
+  React.useEffect(() => setIsLoading(state.sessionsIsLoading), [
+    state.sessionsIsLoading,
+  ]);
 
-  React.useEffect(() => {
-    dispatch({
-      type: "sessionFetch",
-      payload: { pipeline_uuid, project_uuid },
-    });
-  }, [pipeline_uuid, project_uuid]);
-
-  return props.switch ? (
-    <MDCSwitchReact
-      ref={ref}
-      {...sharedProps}
-      onChange={handleEvent}
-      classNames={props.className}
-      on={session?.status === "RUNNING"}
-    />
-  ) : (
-    <MDCButtonReact
-      ref={ref}
-      {...sharedProps}
-      onClick={handleEvent}
-      classNames={[
-        props.className,
-        "mdc-button--outlined",
-        "session-state-button",
-        // @rick do we need these?
-        {
-          RUNNING: "active",
-          LAUNCHING: "working",
-          STOPPING: "working",
-          STOPPED: "active",
-        }[session?.status] || "",
-      ]}
-      icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
-    />
+  return (
+    <React.Fragment>
+      {props.switch ? (
+        <MDCSwitchReact
+          ref={ref}
+          {...sharedProps}
+          onChange={handleEvent}
+          classNames={props.className}
+          on={session?.status === "RUNNING"}
+        />
+      ) : (
+        <MDCButtonReact
+          ref={ref}
+          {...sharedProps}
+          onClick={handleEvent}
+          classNames={[
+            props.className,
+            "mdc-button--outlined",
+            "session-state-button",
+            // @rick do we need these?
+            {
+              LAUNCHING: "working",
+              STOPPING: "working",
+            }[session?.status] || "active",
+          ]}
+          icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
+        />
+      )}
+    </React.Fragment>
   );
 });
 

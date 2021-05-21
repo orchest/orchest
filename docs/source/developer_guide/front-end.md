@@ -89,7 +89,7 @@ const {
 } = useOrchest();
 ```
 
-Under-the-hood, `useOrchest` uses [`React.useReducer()`](https://reactjs.org/docs/hooks-reference.html#usereducer) to handle state, with a private `SessionProvider` (which fetches/updates sessions via [SWR](https://swr.vercel.app/)).
+Under-the-hood, `useOrchest` uses [`React.useReducer()`](https://reactjs.org/docs/hooks-reference.html#usereducer) to handle state.
 
 It can be consumed in a functional component like so:
 
@@ -98,12 +98,26 @@ It can be consumed in a functional component like so:
 import React from "react";
 import { useOrchest } from "@/hooks/orchest";
 
-const SessionsListFC = () => {
+const ExampleFC = () => {
   const { state, dispatch } = useOrchest();
 
   return (
     // <your-component>
   );
+};
+```
+
+In sessions-dependent views, the additional `SessionsConsumer` should wrap your component. This will trigger fetching and polling for updates via [SWR](https://swr.vercel.app/)).
+
+```js
+// @ts-check
+import React from "react";
+import { useOrchest, SessionsConsumer } from "@/hooks/orchest";
+
+const SessionsExampleFC = () => {
+  const { state, dispatch } = useOrchest();
+
+  return <SessionsConsumer>{/* <your-component> */}</SessionsConsumer>;
 };
 ```
 

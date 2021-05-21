@@ -41,7 +41,7 @@ export interface IOrchestSessionUuid {
 export interface IOrchestSession extends IOrchestSessionUuid {
   project_uuid: string;
   pipeline_uuid: string;
-  status: "RUNNING" | "LAUNCHING" | "STOPPED" | "STOPPING";
+  status?: "RUNNING" | "LAUNCHING" | "STOPPING";
   jupyter_server_ip?: string;
   notebook_server_info?: {
     port: number;
@@ -66,11 +66,13 @@ export interface IOrchestState
     | ({} & string);
   pipelineSaveStatus: "saved" | "saving" | ({} & string);
   sessions?: IOrchestSession[] | [];
+  sessionsIsLoading?: boolean;
   sessionsKillAllInProgress?: boolean;
   config: IOrchestConfig;
   user_config: IOrchestUserConfig;
-  _sessionsUuids?: IOrchestSessionUuid[] | [];
+  _sessionsToFetch?: IOrchestSessionUuid[] | [];
   _sessionsToggle?: IOrchestSessionUuid;
+  _sessionsIsPolling?: boolean;
 }
 
 export type TOrchestAction =
@@ -98,15 +100,19 @@ export type TOrchestAction =
       payload: IOrchestState["pipelineIsReadOnly"];
     }
   | { type: "drawerToggle" }
-  | { type: "sessionFetch"; payload: IOrchestSessionUuid }
   | {
       type: "sessionToggle";
       payload: IOrchestSessionUuid;
     }
-  | { type: "_sessionsSet"; payload: IOrchestSession[] }
   | { type: "_sessionsToggleClear" }
+  | {
+      type: "_sessionsSet";
+      payload: Pick<IOrchestState, "sessions" | "sessionsIsLoading">;
+    }
   | { type: "sessionsKillAll" }
-  | { type: "_sessionsKillAllClear" };
+  | { type: "_sessionsKillAllClear" }
+  | { type: "_sessionsPollingStart" }
+  | { type: "_sessionsPollingClear" };
 
 export interface IOrchestGet {
   currentSession: IOrchestSession;

@@ -14,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/hooks/orchest";
+import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   checkGate,
   getScrollLineHeight,
@@ -606,27 +606,34 @@ class PipelineView extends React.Component {
   }
 
   handleSession() {
-    const session = this.context.get.currentSession;
-    if (!session) return;
+    if (!this.context.state.sessionsIsLoading) {
+      const session = this.context.get.session(this.props.queryArgs);
 
-    if (
-      this.props.queryArgs.read_only !== "true" &&
-      this.state.shouldAutoStart === true &&
-      (!session.status || session.status === "STOPPED")
-    ) {
-      this.context.dispatch({ type: "sessionToggle", payload: session });
-    }
+      // If session doesn't exist and first load
+      if (
+        this.props.queryArgs.read_only !== "true" &&
+        this.state.shouldAutoStart === true &&
+        typeof session === "undefined"
+      ) {
+        this.context.dispatch({
+          type: "sessionToggle",
+          payload: this.props.queryArgs,
+        });
+        this.setState({ shouldAutoStart: false });
+        return;
+      }
 
-    if (session.status == "RUNNING" && this.state.shouldAutoStart === true) {
-      this.setState({ shouldAutoStart: false });
-    }
+      if (session?.status == "RUNNING" && this.state.shouldAutoStart === true) {
+        this.setState({ shouldAutoStart: false });
+      }
 
-    if (session?.status === "STOPPING") {
-      orchest.jupyter.unload();
-    }
+      if (session?.status === "STOPPING") {
+        orchest.jupyter.unload();
+      }
 
-    if (session?.notebook_server_info) {
-      this.updateJupyterInstance();
+      if (session?.notebook_server_info) {
+        this.updateJupyterInstance();
+      }
     }
   }
 
@@ -2202,178 +2209,186 @@ class PipelineView extends React.Component {
     }
 
     return (
-      <div className="pipeline-view">
-        <div className="pane pipeline-view-pane">
-          {this.props.queryArgs.job_uuid &&
-            this.props.queryArgs.read_only == "true" && (
-              <div className="pipeline-actions top-left">
-                <MDCButtonReact
-                  classNames={["mdc-button--outlined"]}
-                  label="Back to job"
-                  icon="arrow_back"
-                  onClick={this.returnToJob.bind(
-                    this,
-                    this.props.queryArgs.job_uuid
-                  )}
-                />
-              </div>
-            )}
+      <OrchestSessionsConsumer>
+        <div className="pipeline-view">
+          <div className="pane pipeline-view-pane">
+            {this.props.queryArgs.job_uuid &&
+              this.props.queryArgs.read_only == "true" && (
+                <div className="pipeline-actions top-left">
+                  <MDCButtonReact
+                    classNames={["mdc-button--outlined"]}
+                    label="Back to job"
+                    icon="arrow_back"
+                    onClick={this.returnToJob.bind(
+                      this,
+                      this.props.queryArgs.job_uuid
+                    )}
+                  />
+                </div>
+              )}
 
-          <div className="pipeline-actions bottom-left">
-            <div className="navigation-buttons">
-              <MDCButtonReact
-                onClick={this.centerView.bind(this)}
-                icon="crop_free"
-              />
-              <MDCButtonReact onClick={this.zoomOut.bind(this)} icon="remove" />
-              <MDCButtonReact onClick={this.zoomIn.bind(this)} icon="add" />
-            </div>
-            {(() => {
-              if (
-                this.state.selectedSteps.length > 0 &&
-                !this.state.stepSelector.active &&
-                this.props.queryArgs.read_only !== "true"
-              ) {
-                if (!this.state.pipelineRunning) {
-                  return (
-                    <div className="selection-buttons">
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        onClick={this.runSelectedSteps.bind(this)}
-                        label="Run selected steps"
-                      />
-                      {selectedStepsHasIncoming && (
+            <div className="pipeline-actions bottom-left">
+              <div className="navigation-buttons">
+                <MDCButtonReact
+                  onClick={this.centerView.bind(this)}
+                  icon="crop_free"
+                />
+                <MDCButtonReact
+                  onClick={this.zoomOut.bind(this)}
+                  icon="remove"
+                />
+                <MDCButtonReact onClick={this.zoomIn.bind(this)} icon="add" />
+              </div>
+              {(() => {
+                if (
+                  this.state.selectedSteps.length > 0 &&
+                  !this.state.stepSelector.active &&
+                  this.props.queryArgs.read_only !== "true"
+                ) {
+                  if (!this.state.pipelineRunning) {
+                    return (
+                      <div className="selection-buttons">
                         <MDCButtonReact
                           classNames={[
                             "mdc-button--raised",
                             "themed-secondary",
                           ]}
-                          onClick={this.onRunIncoming.bind(this)}
-                          label="Run incoming steps"
+                          onClick={this.runSelectedSteps.bind(this)}
+                          label="Run selected steps"
                         />
-                      )}
+                        {selectedStepsHasIncoming && (
+                          <MDCButtonReact
+                            classNames={[
+                              "mdc-button--raised",
+                              "themed-secondary",
+                            ]}
+                            onClick={this.onRunIncoming.bind(this)}
+                            label="Run incoming steps"
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+                }
+                if (
+                  this.state.pipelineRunning &&
+                  this.props.queryArgs.read_only !== "true"
+                ) {
+                  return (
+                    <div className="selection-buttons">
+                      <MDCButtonReact
+                        classNames={["mdc-button--raised"]}
+                        onClick={this.cancelRun.bind(this)}
+                        icon="close"
+                        disabled={this.state.waitingOnCancel}
+                        label="Cancel run"
+                      />
                     </div>
                   );
                 }
-              }
-              if (
-                this.state.pipelineRunning &&
-                this.props.queryArgs.read_only !== "true"
-              ) {
+              })()}
+            </div>
+
+            {(() => {
+              if (this.props.queryArgs.read_only !== "true") {
                 return (
-                  <div className="selection-buttons">
+                  <div className={"pipeline-actions"}>
                     <MDCButtonReact
                       classNames={["mdc-button--raised"]}
-                      onClick={this.cancelRun.bind(this)}
-                      icon="close"
-                      disabled={this.state.waitingOnCancel}
-                      label="Cancel run"
+                      onClick={this.newStep.bind(this)}
+                      icon={"add"}
+                      label={"NEW STEP"}
+                    />
+
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised"]}
+                      onClick={this.openSettings.bind(this)}
+                      label={"Settings"}
+                      icon="tune"
+                    />
+                  </div>
+                );
+              } else {
+                // maintain the look and feel of actually using a <button>
+                // tag but make it "disabled" through the inline styling
+                return (
+                  <div className={"pipeline-actions"}>
+                    <MDCButtonReact
+                      label={"Read only"}
+                      disabled={true}
+                      icon={"visibility"}
+                    />
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised"]}
+                      onClick={this.openSettings.bind(this)}
+                      label={"Settings"}
+                      icon="tune"
                     />
                   </div>
                 );
               }
             })()}
+
+            <div
+              className="pipeline-steps-outer-holder"
+              ref={this.refManager.nrefs.pipelineStepsOuterHolder}
+              onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
+              onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
+              onWheel={this.onPipelineStepsOuterHolderWheel.bind(this)}
+            >
+              <div
+                className="pipeline-steps-holder"
+                ref={this.refManager.nrefs.pipelineStepsHolder}
+              >
+                {stepSelectorComponent}
+                {pipelineSteps}
+              </div>
+            </div>
           </div>
 
           {(() => {
-            if (this.props.queryArgs.read_only !== "true") {
+            if (this.state.openedStep) {
               return (
-                <div className={"pipeline-actions"}>
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
-                    onClick={this.newStep.bind(this)}
-                    icon={"add"}
-                    label={"NEW STEP"}
-                  />
-
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
-                    onClick={this.openSettings.bind(this)}
-                    label={"Settings"}
-                    icon="tune"
-                  />
-                </div>
+                <PipelineDetails
+                  onSave={this.onSaveDetails.bind(this)}
+                  onNameUpdate={this.stepNameUpdate.bind(this)}
+                  onDelete={this.onDetailsDelete.bind(this)}
+                  onClose={this.onCloseDetails.bind(this)}
+                  onOpenFilePreviewView={this.onOpenFilePreviewView.bind(this)}
+                  onOpenNotebook={this.onOpenNotebook.bind(this)}
+                  onChangeView={this.onDetailsChangeView.bind(this)}
+                  connections={connections_list}
+                  defaultViewIndex={this.state.defaultDetailViewIndex}
+                  pipeline={this.state.pipelineJson}
+                  pipelineCwd={this.state.pipelineCwd}
+                  project_uuid={this.props.queryArgs.project_uuid}
+                  job_uuid={this.props.queryArgs.job_uuid}
+                  run_uuid={this.props.queryArgs.run_uuid}
+                  sio={this.sio}
+                  readOnly={this.props.queryArgs.read_only === "true"}
+                  step={this.state.steps[this.state.openedStep]}
+                  saveHash={this.state.saveHash}
+                />
               );
-            } else {
-              // maintain the look and feel of actually using a <button>
-              // tag but make it "disabled" through the inline styling
+            }
+            if (
+              this.state.openedMultistep &&
+              this.props.queryArgs.read_only !== "true"
+            ) {
               return (
-                <div className={"pipeline-actions"}>
-                  <MDCButtonReact
-                    label={"Read only"}
-                    disabled={true}
-                    icon={"visibility"}
-                  />
+                <div className={"pipeline-actions bottom-right"}>
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
-                    onClick={this.openSettings.bind(this)}
-                    label={"Settings"}
-                    icon="tune"
+                    label={"Delete"}
+                    onClick={this.onDeleteMultistep.bind(this)}
+                    icon={"delete"}
                   />
                 </div>
               );
             }
           })()}
-
-          <div
-            className="pipeline-steps-outer-holder"
-            ref={this.refManager.nrefs.pipelineStepsOuterHolder}
-            onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
-            onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
-            onWheel={this.onPipelineStepsOuterHolderWheel.bind(this)}
-          >
-            <div
-              className="pipeline-steps-holder"
-              ref={this.refManager.nrefs.pipelineStepsHolder}
-            >
-              {stepSelectorComponent}
-              {pipelineSteps}
-            </div>
-          </div>
         </div>
-
-        {(() => {
-          if (this.state.openedStep) {
-            return (
-              <PipelineDetails
-                onSave={this.onSaveDetails.bind(this)}
-                onNameUpdate={this.stepNameUpdate.bind(this)}
-                onDelete={this.onDetailsDelete.bind(this)}
-                onClose={this.onCloseDetails.bind(this)}
-                onOpenFilePreviewView={this.onOpenFilePreviewView.bind(this)}
-                onOpenNotebook={this.onOpenNotebook.bind(this)}
-                onChangeView={this.onDetailsChangeView.bind(this)}
-                connections={connections_list}
-                defaultViewIndex={this.state.defaultDetailViewIndex}
-                pipeline={this.state.pipelineJson}
-                pipelineCwd={this.state.pipelineCwd}
-                project_uuid={this.props.queryArgs.project_uuid}
-                job_uuid={this.props.queryArgs.job_uuid}
-                run_uuid={this.props.queryArgs.run_uuid}
-                sio={this.sio}
-                readOnly={this.props.queryArgs.read_only === "true"}
-                step={this.state.steps[this.state.openedStep]}
-                saveHash={this.state.saveHash}
-              />
-            );
-          }
-          if (
-            this.state.openedMultistep &&
-            this.props.queryArgs.read_only !== "true"
-          ) {
-            return (
-              <div className={"pipeline-actions bottom-right"}>
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  label={"Delete"}
-                  onClick={this.onDeleteMultistep.bind(this)}
-                  icon={"delete"}
-                />
-              </div>
-            );
-          }
-        })()}
-      </div>
+      </OrchestSessionsConsumer>
     );
   }
 }
