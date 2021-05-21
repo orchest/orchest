@@ -18,6 +18,7 @@ import EditJobView from "../views/EditJobView";
 
 import JobView from "../views/JobView";
 import { formatServerDateTime } from "../utils/webserver-utils";
+import ProjectsView from "@/views/ProjectsView";
 
 class JobList extends React.Component {
   constructor(props) {
@@ -55,6 +56,9 @@ class JobList extends React.Component {
         });
       })
       .catch((e) => {
+        if (e && e.status == 404) {
+          orchest.loadView(ProjectsView);
+        }
         console.log(e);
       });
 
