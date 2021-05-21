@@ -570,7 +570,7 @@ class EnvironmentEditView extends React.Component {
                   }
                 })()}
 
-                <div className="push-down-7">
+                <div className="push-down">
                   <MDCButtonReact
                     label="Back to environments"
                     icon="arrow_back"
