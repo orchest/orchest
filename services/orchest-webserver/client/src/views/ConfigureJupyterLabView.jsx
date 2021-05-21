@@ -224,9 +224,12 @@ class ConfigureJupyterLabView extends React.Component {
                 below.
               </p>
               <p className="push-down">
-                For example, you can install the JupyterLab{" "}
-                <span className="code">git</span> extension by executing{" "}
-                <span className="code">pip install jupyterlab-git</span>.
+                For example, you can install the Jupyterlab Code Formatter
+                extension by executing{" "}
+                <span className="code">
+                  pip install jupyterlab_code_formatter
+                </span>
+                .
               </p>
 
               <p className="push-down">
