@@ -381,7 +381,7 @@ class EnvironmentEditView extends React.Component {
                   <Fragment>
                     <div className="environment-properties">
                       <MDCTextFieldReact
-                        classNames={["fullwidth", "push-down"]}
+                        classNames={["fullwidth", "push-down-7"]}
                         label="Environment name"
                         onChange={this.onChangeName.bind(this)}
                         value={this.state.environment.name}
@@ -403,7 +403,7 @@ class EnvironmentEditView extends React.Component {
                         />
                         <div className="clear"></div>
                       </div>
-                      <div className="form-helper-text push-down">
+                      <div className="form-helper-text push-down-7">
                         The base image will be the starting point from which the
                         environment will be built.
                       </div>
@@ -421,7 +421,7 @@ class EnvironmentEditView extends React.Component {
                         ]}
                         value={this.state.environment.language}
                       />
-                      <div className="form-helper-text push-down">
+                      <div className="form-helper-text push-down-7">
                         The language determines for which kernel language this
                         environment can be used. This only affects pipeline
                         steps that point to a Notebook.
@@ -430,7 +430,7 @@ class EnvironmentEditView extends React.Component {
                       {(() => {
                         if (this.state.languageDocsNotice === true) {
                           return (
-                            <div className="docs-notice push-down">
+                            <div className="docs-notice push-down-7">
                               Language explanation
                             </div>
                           );
@@ -440,7 +440,7 @@ class EnvironmentEditView extends React.Component {
                       <MDCCheckboxReact
                         onChange={this.onGPUChange.bind(this)}
                         label="GPU support"
-                        classNames={["push-down"]}
+                        classNames={["push-down-7"]}
                         value={this.state.environment.gpu_support}
                         ref={this.refManager.nrefs.environmentGPUSupport}
                       />
@@ -448,7 +448,7 @@ class EnvironmentEditView extends React.Component {
                       {(() => {
                         if (this.state.environment.gpu_support === true) {
                           let enabledBlock = (
-                            <p className="push-down">
+                            <p className="push-down-7">
                               If enabled, the environment will request GPU
                               capabilities when in use.
                             </p>
@@ -456,7 +456,7 @@ class EnvironmentEditView extends React.Component {
                           if (orchest.config["GPU_ENABLED_INSTANCE"] !== true) {
                             if (orchest.config["CLOUD"] === true) {
                               return (
-                                <div className="docs-notice push-down">
+                                <div className="docs-notice push-down-7">
                                   <p>
                                     This instance is not configured with a GPU.
                                     To request a GPU instance please fill out
@@ -473,7 +473,7 @@ class EnvironmentEditView extends React.Component {
                               );
                             } else {
                               return (
-                                <div className="docs-notice push-down">
+                                <div className="docs-notice push-down-7">
                                   {enabledBlock}
                                   <p>
                                     Check out{" "}
@@ -497,7 +497,7 @@ class EnvironmentEditView extends React.Component {
                             }
                           } else {
                             return (
-                              <div className="docs-notice push-down">
+                              <div className="docs-notice push-down-7">
                                 {enabledBlock}
                               </div>
                             );
@@ -512,11 +512,11 @@ class EnvironmentEditView extends React.Component {
                 subview = (
                   <>
                     <h3>Environment set-up script</h3>
-                    <div className="form-helper-text push-down">
+                    <div className="form-helper-text push-down-7">
                       This will execute when you build the environment. Use it
                       to include your dependencies.
                     </div>
-                    <div className="push-down">
+                    <div className="push-down-7">
                       <CodeMirror
                         value={this.state.environment.setup_script}
                         options={{
@@ -570,7 +570,7 @@ class EnvironmentEditView extends React.Component {
                   }
                 })()}
 
-                <div className="push-down">
+                <div className="push-down-7">
                   <MDCButtonReact
                     label="Back to environments"
                     icon="arrow_back"
@@ -578,7 +578,7 @@ class EnvironmentEditView extends React.Component {
                   />
                 </div>
 
-                <div className="push-down">
+                <div className="push-down-7">
                   <MDCTabBarReact
                     ref={this.refManager.nrefs.tabBar}
                     selectedIndex={this.state.subviewIndex}
