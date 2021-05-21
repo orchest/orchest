@@ -136,7 +136,7 @@ class ProjectsView extends React.Component {
           ) {
             this.context.dispatch({
               type: "projectSet",
-              payload: projects.length > 0 ? projects[0].uuid : undefined,
+              payload: projects.length > 0 ? projects[0].uuid : null,
             });
           }
 
@@ -203,7 +203,7 @@ class ProjectsView extends React.Component {
     if (this.context.state.project_uuid == project_uuid) {
       this.context.dispatch({
         type: "projectSet",
-        payload: undefined,
+        payload: null,
       });
     }
 
