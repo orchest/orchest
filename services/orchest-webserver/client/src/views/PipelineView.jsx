@@ -1387,7 +1387,11 @@ class PipelineView extends React.Component {
   }
 
   onDoubleClickStepHandler(stepUUID) {
-    this.openNotebook(stepUUID);
+    if (this.props.queryArgs.read_only === "true") {
+      this.onOpenFilePreviewView(stepUUID);
+    } else {
+      this.openNotebook(stepUUID);
+    }
   }
 
   stepNameUpdate(pipelineStepUUID, title, file_path) {
