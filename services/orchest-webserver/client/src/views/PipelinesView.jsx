@@ -4,6 +4,10 @@ import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import PipelineList from "../components/PipelineList";
 import ProjectBasedView from "../components/ProjectBasedView";
 
+/**
+ * @param {Object} props
+ * @param { import('../types').IOrchestState['project_uuid'] } props.project_uuid
+ */
 const PipelinesView = (props) => {
   const { dispatch } = useOrchest();
 
