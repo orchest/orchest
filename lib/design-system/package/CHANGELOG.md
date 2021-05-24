@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file
 
+# 0.0.4 (2021-05-24)
+
+## Bug Fixes
+
+- Remove forced scrollbar from `body` element.
+
 # 0.0.3 (2021-05-20)
 
 ## Bug Fixes
