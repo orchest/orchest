@@ -1,3 +1,4 @@
+// @ts-check
 import React from "react";
 import cronstrue from "cronstrue";
 import {
@@ -13,7 +14,7 @@ import {
   makeCancelable,
   RefManager,
 } from "@orchest/lib-utils";
-import { OrchestContext } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
 import ParamTree from "../components/ParamTree";
 import PipelineView from "./PipelineView";
 import EditJobView from "./EditJobView";
@@ -25,96 +26,99 @@ import {
 import EnvVarList from "../components/EnvVarList";
 import JobsView from "./JobsView";
 
-class JobView extends React.Component {
-  static contextType = OrchestContext;
+/**
+ * @param {Object} props
+ * @param {{job_uuid: string}} props.queryArgs
+ */
+const JobView = (props) => {
+  const orchest = window.orchest;
 
-  constructor(props, context) {
-    super(props, context);
+  const { dispatch } = useOrchest();
+  const [state, setState] = React.useState({
+    job: undefined,
+    envVariables: undefined,
+    selectedTabIndex: 0,
+    selectedIndices: [0, 0],
+    refreshing: false,
+    pipeline: undefined,
+  });
 
-    this.state = {
-      selectedTabIndex: 0,
-      selectedIndices: [0, 0],
-      refreshing: false,
-    };
+  const promiseManager = new PromiseManager();
+  const refManager = new RefManager();
 
-    this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
-  }
+  React.useEffect(() => {
+    fetchJob();
+    return () => promiseManager.cancelCancelablePromises();
+  }, []);
 
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-  }
+  const onSelectSubview = (index) => {
+    setState((prevState) => ({ ...prevState, selectedTabIndex: index }));
+  };
 
-  onSelectSubview(index) {
-    this.setState({
-      selectedTabIndex: index,
-    });
-  }
+  console.log(props);
 
-  fetchJob() {
+  const fetchJob = () => {
     makeRequest(
       "GET",
-      `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
-    ).then((response) => {
-      try {
-        let job = JSON.parse(response);
+      `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}`
+    ).then(
+      /** @param {string} response */
+      (response) => {
+        try {
+          let job = JSON.parse(response);
 
-        this.setState({
-          job: job,
-          refreshing: false,
-          envVariables: envVariablesDictToArray(job["env_variables"]),
-        });
+          console.log("job => ", job);
+          // pipeline status can be SUCCESS OR FAILURE
 
-        this.fetchPipeline();
-      } catch (error) {
-        this.setState({
-          refreshing: false,
-        });
-        console.error("Failed to fetch job.", error);
+          setState((prevState) => ({
+            ...prevState,
+            job,
+            refreshing: false,
+            envVariables: envVariablesDictToArray(job["env_variables"]),
+          }));
+
+          fetchPipeline(job);
+        } catch (error) {
+          setState((prevState) => ({ ...prevState, refreshing: false }));
+          console.error("Failed to fetch job.", error);
+        }
       }
-    });
-  }
+    );
+  };
 
-  fetchPipeline() {
+  const fetchPipeline = (job) => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      this.state.job.pipeline_uuid,
-      this.state.job.project_uuid,
-      this.state.job.uuid
+      job.pipeline_uuid,
+      job.project_uuid,
+      job.uuid
     );
 
-    makeRequest("GET", pipelineJSONEndpoint).then((response) => {
-      let result = JSON.parse(response);
-      if (result.success) {
-        let pipeline = JSON.parse(result["pipeline_json"]);
+    makeRequest("GET", pipelineJSONEndpoint).then(
+      /** @param {string} response */
+      (response) => {
+        let result = JSON.parse(response);
+        if (result.success) {
+          let pipeline = JSON.parse(result["pipeline_json"]);
 
-        this.setState({
-          pipeline: pipeline,
-        });
-      } else {
-        console.warn("Could not load pipeline.json");
-        console.log(result);
+          setState((prevState) => ({ ...prevState, pipeline }));
+        } else {
+          console.warn("Could not load pipeline.json");
+          console.log(result);
+        }
       }
-    });
-  }
+    );
+  };
 
-  componentDidMount() {
-    this.fetchJob();
-  }
+  const reload = () => {
+    setState((prevState) => ({ ...prevState, refreshing: true }));
+    fetchJob();
+  };
 
-  reload() {
-    this.setState({
-      refreshing: true,
-    });
-    this.fetchJob();
-  }
+  const onPipelineRunsSelectionChanged = (selectedIndices) => {
+    setState((prevState) => ({ ...prevState, selectedIndices }));
+  };
 
-  onPipelineRunsSelectionChanged(selectedIndices) {
-    this.setState({
-      selectedIndices: selectedIndices,
-    });
-  }
-
-  formatPipelineParams(parameters) {
+  const formatPipelineParams = (parameters) => {
     let keyValuePairs = [];
 
     for (let strategyJSONKey in parameters) {
@@ -132,23 +136,23 @@ class JobView extends React.Component {
     }
 
     return keyValuePairs.join(", ");
-  }
+  };
 
-  pipelineRunsToTableData(pipelineRuns) {
+  const pipelineRunsToTableData = (pipelineRuns) => {
     let rows = [];
 
     for (let x = 0; x < pipelineRuns.length; x++) {
       rows.push([
         pipelineRuns[x].pipeline_run_index,
-        this.formatPipelineParams(pipelineRuns[x].parameters),
+        formatPipelineParams(pipelineRuns[x].parameters),
         pipelineRuns[x].status,
       ]);
     }
 
     return rows;
-  }
+  };
 
-  parameterValueOverride(strategyJSON, parameters) {
+  const parameterValueOverride = (strategyJSON, parameters) => {
     for (let strategyJSONKey in parameters) {
       for (let parameter in parameters[strategyJSONKey]) {
         strategyJSON[strategyJSONKey]["parameters"][parameter] =
@@ -157,9 +161,9 @@ class JobView extends React.Component {
     }
 
     return strategyJSON;
-  }
+  };
 
-  onDetailPipelineView(pipelineRun) {
+  const onDetailPipelineView = (pipelineRun) => {
     if (pipelineRun.status == "PENDING") {
       orchest.alert(
         "Error",
@@ -177,28 +181,27 @@ class JobView extends React.Component {
         read_only: "true",
       },
     });
-  }
+  };
 
-  cancelJob() {
+  const cancelJob = () => {
     let deleteJobRequest = makeCancelable(
-      makeRequest("DELETE", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`),
-      this.promiseManager
+      makeRequest("DELETE", `/catch/api-proxy/api/jobs/${state.job.uuid}`),
+      promiseManager
     );
+    /** @ts-ignore */
     deleteJobRequest.promise
       .then(() => {
-        let job = this.state.job;
+        let job = state.job;
         job.status = "ABORTED";
 
-        this.setState({
-          job: job,
-        });
+        setState((prevState) => ({ ...prevState, job }));
       })
       .catch((error) => {
         console.error(error);
       });
-  }
+  };
 
-  generatedParametersToTableData(jobGeneratedParameters) {
+  const generatedParametersToTableData = (jobGeneratedParameters) => {
     let rows = [];
 
     for (let idx in jobGeneratedParameters) {
@@ -221,35 +224,33 @@ class JobView extends React.Component {
     }
 
     return rows;
-  }
+  };
 
-  editJob() {
+  const editJob = () => {
     orchest.loadView(EditJobView, {
       queryArgs: {
-        job_uuid: this.state.job.uuid,
+        job_uuid: state.job.uuid,
       },
     });
-  }
+  };
 
-  returnToJobs() {
-    this.context.dispatch({
+  const returnToJobs = () => {
+    dispatch({
       type: "projectSet",
-      payload: this.state.job.project_uuid,
+      payload: state.job.project_uuid,
     });
     orchest.loadView(JobsView);
-  }
+  };
 
-  detailRows(pipelineRuns) {
+  const detailRows = (pipelineRuns) => {
     let detailElements = [];
 
     // override values in fields through param fields
     for (let x = 0; x < pipelineRuns.length; x++) {
       let pipelineRun = pipelineRuns[x];
-      let strategyJSON = JSON.parse(
-        JSON.stringify(this.state.job.strategy_json)
-      );
+      let strategyJSON = JSON.parse(JSON.stringify(state.job.strategy_json));
 
-      strategyJSON = this.parameterValueOverride(
+      strategyJSON = parameterValueOverride(
         strategyJSON,
         pipelineRun.parameters
       );
@@ -258,191 +259,182 @@ class JobView extends React.Component {
         <div className="pipeline-run-detail">
           <ParamTree
             strategyJSON={strategyJSON}
-            pipelineName={this.state.pipeline.name}
+            pipelineName={state.pipeline.name}
           />
           <MDCButtonReact
             label="View pipeline"
             classNames={["mdc-button--raised", "themed-secondary"]}
             icon="visibility"
-            onClick={this.onDetailPipelineView.bind(this, pipelineRun)}
+            onClick={onDetailPipelineView.bind(this, pipelineRun)}
           />
         </div>
       );
     }
 
     return detailElements;
-  }
+  };
 
-  render() {
-    let rootView;
+  let rootView;
 
-    if (!this.state.pipeline || !this.state.job) {
-      rootView = <MDCLinearProgressReact />;
-    } else {
-      let tabView = undefined;
+  if (!state.pipeline || !state.job) {
+    rootView = <MDCLinearProgressReact />;
+  } else {
+    let tabView = undefined;
 
-      switch (this.state.selectedTabIndex) {
-        case 0:
-          tabView = (
-            <div className="pipeline-tab-view existing-pipeline-runs">
+    switch (state.selectedTabIndex) {
+      case 0:
+        tabView = (
+          <div className="pipeline-tab-view existing-pipeline-runs">
+            <SearchableTable
+              rows={pipelineRunsToTableData(state.job.pipeline_runs)}
+              detailRows={detailRows(state.job.pipeline_runs)}
+              headers={["ID", "Parameters", "Status"]}
+              selectedIndices={state.selectedIndices}
+              onSelectionChanged={onPipelineRunsSelectionChanged.bind(this)}
+            />
+          </div>
+        );
+
+        break;
+      case 1:
+        tabView = (
+          <div className="pipeline-tab-view">
+            <ParameterEditor
+              readOnly
+              pipelineName={state.pipeline.name}
+              strategyJSON={state.job.strategy_json}
+            />
+
+            <div className="pipeline-runs push-up">
               <SearchableTable
-                rows={this.pipelineRunsToTableData(
-                  this.state.job.pipeline_runs
-                )}
-                detailRows={this.detailRows(this.state.job.pipeline_runs)}
-                headers={["ID", "Parameters", "Status"]}
-                selectedIndices={this.state.selectedIndices}
-                onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(
-                  this
-                )}
+                selectable={false}
+                headers={["Run specification"]}
+                rows={generatedParametersToTableData(state.job.parameters)}
               />
             </div>
-          );
-
-          break;
-        case 1:
-          tabView = (
-            <div className="pipeline-tab-view">
-              <ParameterEditor
-                readOnly
-                pipelineName={this.state.pipeline.name}
-                strategyJSON={this.state.job.strategy_json}
-              />
-
-              <div className="pipeline-runs push-up">
-                <SearchableTable
-                  selectable={false}
-                  headers={["Run specification"]}
-                  rows={this.generatedParametersToTableData(
-                    this.state.job.parameters
-                  )}
-                />
-              </div>
-            </div>
-          );
-          break;
-
-        case 2:
-          tabView = (
-            <div className="pipeline-tab-view">
-              <EnvVarList value={this.state.envVariables} readOnly={true} />
-            </div>
-          );
-          break;
-      }
-
-      rootView = (
-        <div className="view-page job-view">
-          <div className="push-down">
-            <MDCButtonReact
-              label="Back to jobs"
-              icon="arrow_back"
-              onClick={this.returnToJobs.bind(this)}
-            />
           </div>
+        );
+        break;
 
-          <div className="columns top-labels">
-            <div>
-              <div className="column">
-                <label>Name</label>
-                <h3>{this.state.job.name}</h3>
-              </div>
-              <div className="column">
-                <label>Pipeline</label>
-                <h3>{this.state.pipeline.name}</h3>
-              </div>
-              <div className="clear"></div>
-            </div>
-            <div className="push-up">
-              <div className="column">
-                <label>Status</label>
-                <h3>{this.state.job.status}</h3>
-              </div>
-              <div className="column">
-                <label>Schedule</label>
-                <h3>
-                  {this.state.job.schedule === null
-                    ? "Run once"
-                    : this.state.job.schedule}
-                </h3>
-                {this.state.job.schedule !== null && (
-                  <p>
-                    <i>{cronstrue.toString(this.state.job.schedule)}</i>
-                  </p>
-                )}
-              </div>
-              <div className="clear"></div>
-            </div>
-            <div className="push-up">
-              <div className="column">
-                <label>Snapshot date</label>
-                <h3>{formatServerDateTime(this.state.job.created_time)}</h3>
-              </div>
-              <div className="column">
-                <label>Scheduled to run</label>
-                <h3>
-                  {this.state.job.next_scheduled_time
-                    ? formatServerDateTime(this.state.job.next_scheduled_time)
-                    : formatServerDateTime(this.state.job.last_scheduled_time)}
-                </h3>
-              </div>
-              <div className="clear"></div>
-            </div>
+      case 2:
+        tabView = (
+          <div className="pipeline-tab-view">
+            <EnvVarList value={state.envVariables} readOnly={true} />
           </div>
-
-          <MDCTabBarReact
-            selectedIndex={this.state.selectedTabIndex}
-            ref={this.refManager.nrefs.tabBar}
-            items={[
-              "Pipeline runs (" +
-                this.state.job.pipeline_runs.filter(({ status }) =>
-                  ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
-                ).length +
-                "/" +
-                +this.state.job.pipeline_runs.length +
-                ")",
-              "Parameters",
-              "Environment variables",
-            ]}
-            icons={["list", "tune", "view_comfy"]}
-            onChange={this.onSelectSubview.bind(this)}
-          />
-
-          <div className="tab-view">{tabView}</div>
-
-          <div className="separated">
-            <MDCButtonReact
-              disabled={this.state.refreshing}
-              label="Refresh"
-              icon="refresh"
-              onClick={this.reload.bind(this)}
-            />
-
-            {this.state.job.schedule !== null &&
-              ["STARTED", "PENDING"].includes(this.state.job.status) && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={this.editJob.bind(this)}
-                  icon="tune"
-                  label="Edit"
-                />
-              )}
-
-            {["STARTED", "PENDING"].includes(this.state.job.status) && (
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                label="Cancel job"
-                icon="close"
-                onClick={this.cancelJob.bind(this)}
-              />
-            )}
-          </div>
-        </div>
-      );
+        );
+        break;
     }
 
-    return <div className="view-page job-view">{rootView}</div>;
+    rootView = (
+      <div className="view-page job-view">
+        <div className="push-down">
+          <MDCButtonReact
+            label="Back to jobs"
+            icon="arrow_back"
+            onClick={returnToJobs.bind(this)}
+          />
+        </div>
+
+        <div className="columns top-labels">
+          <div>
+            <div className="column">
+              <label>Name</label>
+              <h3>{state.job.name}</h3>
+            </div>
+            <div className="column">
+              <label>Pipeline</label>
+              <h3>{state.pipeline.name}</h3>
+            </div>
+            <div className="clear"></div>
+          </div>
+          <div className="push-up">
+            <div className="column">
+              <label>Status</label>
+              <h3>{state.job.status}</h3>
+            </div>
+            <div className="column">
+              <label>Schedule</label>
+              <h3>
+                {state.job.schedule === null ? "Run once" : state.job.schedule}
+              </h3>
+              {state.job.schedule !== null && (
+                <p>
+                  <i>{cronstrue.toString(state.job.schedule)}</i>
+                </p>
+              )}
+            </div>
+            <div className="clear"></div>
+          </div>
+          <div className="push-up">
+            <div className="column">
+              <label>Snapshot date</label>
+              <h3>{formatServerDateTime(state.job.created_time)}</h3>
+            </div>
+            <div className="column">
+              <label>Scheduled to run</label>
+              <h3>
+                {state.job.next_scheduled_time
+                  ? formatServerDateTime(state.job.next_scheduled_time)
+                  : formatServerDateTime(state.job.last_scheduled_time)}
+              </h3>
+            </div>
+            <div className="clear"></div>
+          </div>
+        </div>
+
+        <MDCTabBarReact
+          selectedIndex={state.selectedTabIndex}
+          /** @ts-ignore */
+          ref={refManager.nrefs.tabBar}
+          items={[
+            "Pipeline runs (" +
+              state.job.pipeline_runs.filter(({ status }) =>
+                ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
+              ).length +
+              "/" +
+              +state.job.pipeline_runs.length +
+              ")",
+            "Parameters",
+            "Environment variables",
+          ]}
+          icons={["list", "tune", "view_comfy"]}
+          onChange={onSelectSubview.bind(this)}
+        />
+
+        <div className="tab-view">{tabView}</div>
+
+        <div className="separated">
+          <MDCButtonReact
+            disabled={state.refreshing}
+            label="Refresh"
+            icon="refresh"
+            onClick={reload.bind(this)}
+          />
+
+          {state.job.schedule !== null &&
+            ["STARTED", "PENDING"].includes(state.job.status) && (
+              <MDCButtonReact
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                onClick={editJob.bind(this)}
+                icon="tune"
+                label="Edit"
+              />
+            )}
+
+          {["STARTED", "PENDING"].includes(state.job.status) && (
+            <MDCButtonReact
+              classNames={["mdc-button--raised"]}
+              label="Cancel job"
+              icon="close"
+              onClick={cancelJob.bind(this)}
+            />
+          )}
+        </div>
+      </div>
+    );
   }
-}
+
+  return <div className="view-page job-view">{rootView}</div>;
+};
 
 export default JobView;
