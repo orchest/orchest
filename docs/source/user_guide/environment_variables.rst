@@ -22,7 +22,7 @@ at the pipeline level, the value of ``MY_VAR`` for :ref:`interactive pipeline ru
 pipeline run>` is ``PIP_VALUE``.
 
 .. note::
-   Keep in mind that environment variables are strings, and will be stored and injected as as such.
+   Keep in mind that environment variables are strings, and will be stored and injected as such.
    For example the values ``postgres`` and ``"postgres"`` (as specified in the UI) will be injected
    as ``postgres`` and ``"postgres"`` respectively.
 
