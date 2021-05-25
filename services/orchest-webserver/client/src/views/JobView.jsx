@@ -1,13 +1,20 @@
 // @ts-check
 import React from "react";
+import { PieChart } from "react-minimal-pie-chart";
+import {
+  Box,
+  Flex,
+  IconClockSolid,
+  IconCheckCircleSolid,
+  IconCrossCircleSolid,
+  Text,
+} from "@orchest/design-system";
 import cronstrue from "cronstrue";
 import {
   MDCButtonReact,
   MDCTabBarReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
-import ParameterEditor from "../components/ParameterEditor";
-import SearchableTable from "../components/SearchableTable";
 import {
   makeRequest,
   PromiseManager,
@@ -15,16 +22,148 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import { useOrchest } from "@/hooks/orchest";
-import ParamTree from "../components/ParamTree";
-import PipelineView from "./PipelineView";
-import EditJobView from "./EditJobView";
 import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
   envVariablesDictToArray,
 } from "../utils/webserver-utils";
+import { Status } from "../components/Status";
+import ParamTree from "../components/ParamTree";
+import ParameterEditor from "../components/ParameterEditor";
+import SearchableTable from "../components/SearchableTable";
 import EnvVarList from "../components/EnvVarList";
+import PipelineView from "./PipelineView";
+import EditJobView from "./EditJobView";
 import JobsView from "./JobsView";
+
+/**
+ * @typedef {{status: import('../components/Status').TStatus}} IPipelineRun
+ * @typedef {typeof JobView} Test
+ *
+ * @param {Object} props
+ * @param {import("../components/Status").TStatus} [props.status]
+ * @param {IPipelineRun[]} [props.pipeline_runs]
+ */
+const JobStatus = ({ status, pipeline_runs = [] }) => {
+  /**
+   * @typedef {Partial<Record<import("../components/Status").TStatus, number>>} IStatusCounts
+   *
+   * @type {IStatusCounts & {total: number}}
+   */
+  const count = pipeline_runs.reduce(
+    (acc, cv, i) =>
+      cv && {
+        ...acc,
+        [cv.status]: acc[cv.status] + 1,
+        total: i + 1,
+      },
+    {
+      ABORTED: 0,
+      DRAFT: 0,
+      PENDING: 0,
+      STARTED: 0,
+      SUCCESS: 0,
+      FAILURE: 0,
+      total: 0,
+    }
+  );
+
+  /** @return {"DONUT" | "PENDING" | "FAILURE" | "SUCCESS"} */
+  const variant = () => {
+    if (
+      (status === "PENDING" &&
+        (count.total === 0 || count.PENDING + count.STARTED === count.total)) ||
+      count.total === 0
+    )
+      return "PENDING";
+    if (count.FAILURE + count.ABORTED === count.total) return "FAILURE";
+    if (count.SUCCESS + count.ABORTED === count.total) return "SUCCESS";
+
+    return "DONUT";
+  };
+
+  console.log(variant());
+  return (
+    <Flex css={{ alignItems: "center" }}>
+      <Box css={{ flexShrink: 0 }}>
+        {
+          {
+            PENDING: <IconClockSolid size="6" css={{ color: "$warning" }} />,
+            FAILURE: (
+              <IconCrossCircleSolid size="6" css={{ color: "$error" }} />
+            ),
+            SUCCESS: (
+              <IconCheckCircleSolid size="6" css={{ color: "$success" }} />
+            ),
+            DONUT: (
+              <Box
+                css={{
+                  width: "$space$6",
+                  height: "$space$6",
+                  padding: "calc($1 / 2)",
+                }}
+              >
+                <PieChart
+                  background="var(--colors-background)"
+                  lineWidth={40}
+                  animate={true}
+                  data={[
+                    {
+                      title: "Draft",
+                      color: "var(--colors-gray500)",
+                      value: count.DRAFT,
+                    },
+                    {
+                      title: "Pending & Starting",
+                      color: "var(--colors-yellow300)",
+                      value: count.PENDING + count.STARTED,
+                    },
+                    {
+                      title: "Failed",
+                      color: "var(--colors-error)",
+                      value: count.FAILURE + count.ABORTED,
+                    },
+                    {
+                      title: "Success",
+                      color: "var(--colors-success)",
+                      value: count.SUCCESS,
+                    },
+                  ]}
+                />
+              </Box>
+            ),
+          }[variant()]
+        }
+      </Box>
+
+      <Box css={{ marginLeft: "$4" }}>
+        <Text css={{ fontSize: "$lg", lineHeight: "$base" }}>
+          {
+            {
+              PENDING: "Some pipeline runs haven't completed yet",
+              FAILURE: "All pipeline runs were unsuccessful",
+              SUCCESS: "All pipeline runs were successful",
+              DONUT: "Some pipeline runs were unsuccessful",
+            }[variant()]
+          }
+        </Text>
+        {variant() === "DONUT" && (
+          <p>
+            {[
+              [
+                count.SUCCESS && [count.SUCCESS, "successful"].join(" "),
+                count.FAILURE && [count.FAILURE, "failed"].join(" "),
+              ]
+                .filter(Boolean)
+                .join(" and "),
+              count.total > 1 ? "pipeline runs" : "pipeline run",
+            ].join(" ")}
+          </p>
+        )}
+      </Box>
+    </Flex>
+  );
+};
 
 /**
  * @param {Object} props
@@ -145,7 +284,7 @@ const JobView = (props) => {
       rows.push([
         pipelineRuns[x].pipeline_run_index,
         formatPipelineParams(pipelineRuns[x].parameters),
-        pipelineRuns[x].status,
+        <Status status={pipelineRuns[x].status} />,
       ]);
     }
 
@@ -350,7 +489,43 @@ const JobView = (props) => {
           <div className="push-up">
             <div className="column">
               <label>Status</label>
-              <h3>{state.job.status}</h3>
+
+              <Box
+                css={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "$4",
+                  marginTop: "$2",
+                }}
+              >
+                <JobStatus
+                  status="PENDING"
+                  pipeline_runs={[
+                    { status: "PENDING" },
+                    { status: "PENDING" },
+                    { status: "PENDING" },
+                  ]}
+                />
+                <JobStatus
+                  status="PENDING"
+                  pipeline_runs={[
+                    { status: "FAILURE" },
+                    { status: "ABORTED" },
+                    { status: "ABORTED" },
+                    { status: "PENDING" },
+                    { status: "SUCCESS" },
+                  ]}
+                />
+                <JobStatus
+                  status="FAILURE"
+                  pipeline_runs={[
+                    { status: "FAILURE" },
+                    { status: "FAILURE" },
+                    { status: "ABORTED" },
+                  ]}
+                />
+                <JobStatus {...state.job} />
+              </Box>
             </div>
             <div className="column">
               <label>Schedule</label>

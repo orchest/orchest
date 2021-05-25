@@ -242,8 +242,10 @@ a.button {
   overflow-y: auto;
   height: 100%;
 
-  p {
-    line-height: 1.5;
+  &:not(.job-view) {
+    p {
+      line-height: 1.5;
+    }
   }
 
   &.orchest-settings {
