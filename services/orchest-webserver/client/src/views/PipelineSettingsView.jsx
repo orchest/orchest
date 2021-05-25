@@ -34,7 +34,7 @@ class PipelineSettingsView extends React.Component {
     this.state = {
       selectedTabIndex: 0,
       inputParameters: JSON.stringify({}, null, 2),
-      inputServices: JSON.stringify({}, null, 2),
+      inputparsedServices: JSON.stringify({}, null, 2),
       restartingMemoryServer: false,
       unsavedChanges: false,
       pipeline_path: undefined,
@@ -123,7 +123,7 @@ class PipelineSettingsView extends React.Component {
           pipelineJson.parameters = {};
         }
         if (pipelineJson.services === undefined) {
-          pipelineJson.services = [];
+          pipelineJson.services = {};
         }
 
         this.setHeaderComponent(pipelineJson.name);
@@ -562,11 +562,9 @@ class PipelineSettingsView extends React.Component {
                       try {
                         parsedServices = JSON.parse(this.state.inputServices);
 
-                        if (!Array.isArray(parsedServices)) {
-                          message = "Top level element needs to be an array.";
-                        }
-
-                        for (let service of parsedServices) {
+                        for (let [name, service] of Object.entries(
+                          parsedServices
+                        )) {
                           let nameReg = /^[0-9a-zA-Z\-]{1,36}$/;
                           if (!service.name || !nameReg.test(service.name)) {
                             message =
@@ -598,8 +596,9 @@ class PipelineSettingsView extends React.Component {
                     <div className="service-urls push-up">
                       {(() => {
                         let serviceUrlsBlocks = [];
-
-                        for (let service of this.state.pipelineJson.services) {
+                        for (let [name, service] of Object.entries(
+                          this.state.pipelineJson.services
+                        )) {
                           let urlElements = [];
 
                           let urls = this._get_service_urls(service);

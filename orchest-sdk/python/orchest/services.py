@@ -82,9 +82,9 @@ def get_service(name) -> Dict[str, List[Any]]:
     """
     pipeline = _get_pipeline()
 
-    for service in pipeline.properties.get("services"):
-        if service["name"] == name:
-            return _generate_urls(service, pipeline)
+    services = pipeline.properties.get("services")
+    if name in services:
+        return _generate_urls(services["name"], pipeline)
 
     raise ServiceNotFound("Could not find service with name %s" % name)
 
@@ -93,15 +93,16 @@ def get_services() -> List[Dict[str, List[Any]]]:
     """Gets the services of the pipeline.
 
     Returns:
-        A list of services. For an example of a service dictionary, see
+        A dictionary of services, mapping service name to service
+        description. For an example of a service dictionary, see
         :meth:`get_service`.
 
     """
     pipeline = _get_pipeline()
 
-    services = []
+    services = {}
 
     for service in pipeline.properties.get("services"):
-        services.append(_generate_urls(service, pipeline))
+        services[service["name"]] = _generate_urls(service, pipeline)
 
     return services

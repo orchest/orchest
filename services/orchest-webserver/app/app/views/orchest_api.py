@@ -264,26 +264,35 @@ def register_orchest_api_views(app, db):
 
         json_obj = request.json
 
-        json_obj["project_dir"] = get_project_directory(
-            json_obj["project_uuid"], host_path=True
-        )
+        project_uuid = json_obj["project_uuid"]
+        pipeline_uuid = json_obj["pipeline_uuid"]
 
-        json_obj["pipeline_path"] = pipeline_uuid_to_path(
+        pipeline_path = pipeline_uuid_to_path(
             json_obj["pipeline_uuid"],
             json_obj["project_uuid"],
         )
 
-        json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
+        project_dir = get_project_directory(json_obj["project_uuid"], host_path=True)
+
+        services = get_pipeline_json(
+            json_obj["pipeline_uuid"], json_obj["project_uuid"]
+        ).get("services", {})
+
+        session_config = {
+            "project_uuid": project_uuid,
+            "pipeline_uuid": pipeline_uuid,
+            "pipeline_path": pipeline_path,
+            "project_dir": project_dir,
+            "host_userdir": app.config["HOST_USER_DIR"],
+            "services": services,
+        }
 
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
-            json=json_obj,
+            json=session_config,
         )
 
-        tel_props = {
-            "project_uuid": json_obj["project_uuid"],
-            "pipeline_uuid": json_obj["pipeline_uuid"],
-        }
+        tel_props = {"project_uuid": project_uuid, "pipeline_uuid": pipeline_uuid}
         analytics.send_event(app, "session start", tel_props)
         return resp.content, resp.status_code, resp.headers.items()
 

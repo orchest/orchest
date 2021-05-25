@@ -69,6 +69,48 @@ projects = Model(
     {"projects": fields.List(fields.Nested(project), description="All projects")},
 )
 
+service = Model(
+    "Service",
+    {
+        "image": fields.String(required=True, description="Image of the service"),
+        "name": fields.String(required=True, description="Name of the service"),
+        "command": fields.String(required=False, description="Docker command"),
+        "entrypoint": fields.String(required=False, description="Docker entrypoint"),
+        "ports": fields.List(
+            fields.String, required=True, description="List of service exposed ports"
+        ),
+        "scopes": fields.List(
+            fields.String, required=True, description="interactive/noninteractive"
+        ),
+        "env_variables": fields.Raw(
+            required=True,
+            description=(
+                "Environment variables of the service, supersedes environment "
+                "inherited variables"
+            ),
+        ),
+        "environment_inherit": fields.List(
+            fields.String,
+            required=True,
+            description=(
+                "List of env vars to inherit from project and pipeline env vars"
+            ),
+        ),
+        "project_directory": fields.List(
+            fields.String, required=True, description="List of service exposed ports"
+        ),
+        "binds": fields.Raw(
+            required=False, description=("Local fs to container mappings")
+        ),
+    },
+)
+
+# Needs to be defined here, see
+# https://flask-restx.readthedocs.io/en/latest/marshalling.html#wildcard-field
+service_wildcard = fields.Wildcard(fields.Nested(service))
+
+services = Model("Services", {"*": service_wildcard})
+
 pipeline = Model(
     "Pipeline",
     {
@@ -94,8 +136,9 @@ pipelines = Model(
     {"pipelines": fields.List(fields.Nested(pipeline), description="All pipelines")},
 )
 
-pipeline_spec = Model(
-    "PipelineSpec",
+
+session_config = Model(
+    "SessionConfig",
     {
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
@@ -108,6 +151,7 @@ pipeline_spec = Model(
         "host_userdir": fields.String(
             required=True, description="Host path to userdir"
         ),
+        "services": services,
     },
 )
 
