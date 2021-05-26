@@ -24,7 +24,7 @@ def main():
     if len(sys.argv) < 3:
         raise Exception(
             "Should pass in the working directory (relative to the project dir) and "
-            "filename (relative to the working directory) that you want to execute."
+            "filename (relative to the project dir) that you want to execute."
         )
 
     step_uuid = os.environ.get("ORCHEST_STEP_UUID")
