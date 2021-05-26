@@ -1,7 +1,12 @@
-import { StitchesVariants } from "@stitches/core";
+import { StitchesVariants, InternalCSS } from "@stitches/core";
 import * as React from "react";
-import { css } from "../core";
+import { css, config } from "../core";
 import { ICSSProp } from "../types";
+
+const getSizes = Object.keys(config.theme.space).reduce(
+  (acc, cv) => ({ ...acc, [`${cv}`]: { $$iconSize: `$space$${cv}` } }),
+  {}
+) as { [key in keyof typeof config.theme.space]: InternalCSS };
 
 export const icon = css({
   color: "currentcolor",
@@ -10,22 +15,12 @@ export const icon = css({
   verticalAlign: "middle",
   variants: {
     size: {
-      full: {
-        $$iconSize: "100%",
-      },
-      "4": {
-        $$iconSize: "$space$4",
-      },
-      "5": {
-        $$iconSize: "$space$5",
-      },
-      "6": {
-        $$iconSize: "$space$6",
-      },
+      ...getSizes,
+      full: { $$iconSize: "100%" },
     },
   },
   defaultVariants: {
-    size: "5",
+    size: 5,
   },
 });
 
@@ -200,14 +195,14 @@ export const IconChevronRightOutline = React.forwardRef<IIconRef, IIconProps>(
 export const IconChevronRight = IconChevronRightOutline;
 
 export const IconDraftOutline = React.forwardRef<IIconRef, IIconProps>(
-  ({ css, className, ...props }, ref) => (
+  ({ css, className, size, ...props }, ref) => (
     <svg
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
-      className={icon({ className, css })}
+      className={icon({ className, css, size })}
       {...props}
     >
       <path
@@ -220,15 +215,34 @@ export const IconDraftOutline = React.forwardRef<IIconRef, IIconProps>(
   )
 );
 
+export const IconDraftCircleSolid = React.forwardRef<IIconRef, IIconProps>(
+  ({ className, css, size, ...props }, ref) => (
+    <svg
+      ref={ref}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={icon({ className, css, size })}
+      {...props}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M15.6569 15.6569C14.1566 17.1571 12.1217 18 10 18c-2.12173 0-4.15656-.8429-5.65685-2.3431C2.84285 14.1566 2 12.1217 2 10c0-2.12173.84285-4.15656 2.34315-5.65685C5.84344 2.84285 7.87827 2 10 2c2.1217 0 4.1566.84285 5.6569 2.34315C17.1571 5.84344 18 7.87827 18 10c0 2.1217-.8429 4.1566-2.3431 5.6569zM13.707 6.29303c-.1875-.18747-.4418-.29279-.707-.29279-.2652 0-.5195.10532-.707.29279L8.5 10.086V11.5h1.414l3.793-3.79297c.1875-.18753.2928-.44184.2928-.707 0-.26516-.1053-.51947-.2928-.707zM6 8c0-.26522.10536-.51957.29289-.70711C6.48043 7.10536 6.73478 7 7 7h2c.13261 0 .25979.05268.35355.14645.09377.09376.14645.22094.14645.35355 0 .13261-.05268.25979-.14645.35355C9.25979 7.94732 9.13261 8 9 8H7v5h5v-2c0-.1326.0527-.2598.1464-.3536.0938-.0937.221-.1464.3536-.1464.1326 0 .2598.0527.3536.1464.0937.0938.1464.221.1464.3536v2c0 .2652-.1054.5196-.2929.7071S12.2652 14 12 14H7c-.26522 0-.51957-.1054-.70711-.2929C6.10536 13.5196 6 13.2652 6 13V8z"
+      />
+    </svg>
+  )
+);
+
 export const IconLightBulbOutline = React.forwardRef<IIconRef, IIconProps>(
-  ({ css, className, ...props }, ref) => (
+  ({ css, className, size, ...props }, ref) => (
     <svg
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
-      className={icon({ className, css })}
+      className={icon({ className, css, size })}
       {...props}
     >
       <path
@@ -245,14 +259,14 @@ export const IconLightBulbOutline = React.forwardRef<IIconRef, IIconProps>(
 export const IconLightBulb = IconLightBulbOutline;
 
 export const IconWarningOutline = React.forwardRef<IIconRef, IIconProps>(
-  ({ css, className, ...props }, ref) => (
+  ({ css, className, size, ...props }, ref) => (
     <svg
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
-      className={icon({ className, css })}
+      className={icon({ className, css, size })}
       {...props}
     >
       <path

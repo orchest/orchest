@@ -63,6 +63,7 @@ export const stitches = createCss({
       primary: colors.blue300,
       background: colors.white,
       text: colors.black,
+      textSecondary: colors.gray800,
       logo: colors.black,
       success: colors.green500,
       warning: colors.yellow500,
