@@ -35,7 +35,7 @@ def main():
     working_dir = os.path.join(Config.PROJECT_DIR, sys.argv[1])
 
     # sys.argv[2] contains the relative file path
-    # (relative to the pipeline file)
+    # (relative to the project directory)
     filename = sys.argv[2]
     file_extension = get_filename_extension(filename)
     file_path = os.path.join(Config.PROJECT_DIR, filename)
