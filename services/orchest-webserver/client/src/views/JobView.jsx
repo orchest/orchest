@@ -1,7 +1,7 @@
 // @ts-check
 import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
-import { Box } from "@orchest/design-system";
+import { Box, Flex, Text } from "@orchest/design-system";
 import cronstrue from "cronstrue";
 import {
   MDCButtonReact,
@@ -21,6 +21,7 @@ import {
   getPipelineJSONEndpoint,
   envVariablesDictToArray,
 } from "../utils/webserver-utils";
+import { DescriptionList } from "@/components/DescriptionList";
 import { StatusInline, StatusGroup } from "../components/Status";
 import ParamTree from "../components/ParamTree";
 import ParameterEditor from "../components/ParameterEditor";
@@ -70,12 +71,17 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
     }
   );
 
+  console.log("test", status, count);
+
   const getJobStatusVariant = () => {
     if (count.total === 0) return "DRAFT";
 
     if (status === "SUCCESS") return "ALL_SUCCESS";
 
-    if (status === "PENDING" && count.PENDING + count.STARTED === count.total)
+    if (
+      ["PENDING", "STARTED"].includes(status) &&
+      count.PENDING + count.STARTED === count.total
+    )
       return "ALL_PENDING";
 
     if (status === "FAILURE" && count.ABORTED + count.FAILURE === count.total)
@@ -462,53 +468,42 @@ const JobView = (props) => {
           />
         </div>
 
-        <div className="columns top-labels">
-          <div>
-            <div className="column">
-              <label>Name</label>
-              <h3>{state.job.name}</h3>
-            </div>
-            <div className="column">
-              <label>Pipeline</label>
-              <h3>{state.pipeline.name}</h3>
-            </div>
-            <div className="clear"></div>
-          </div>
-          <div className="push-up">
-            <div className="column">
-              <label>Status</label>
-
-              <JobStatus {...state.job} />
-            </div>
-            <div className="column">
-              <label>Schedule</label>
-              <h3>
-                {state.job.schedule === null ? "Run once" : state.job.schedule}
-              </h3>
-              {state.job.schedule !== null && (
-                <p>
-                  <i>{cronstrue.toString(state.job.schedule)}</i>
-                </p>
-              )}
-            </div>
-            <div className="clear"></div>
-          </div>
-          <div className="push-up">
-            <div className="column">
-              <label>Snapshot date</label>
-              <h3>{formatServerDateTime(state.job.created_time)}</h3>
-            </div>
-            <div className="column">
-              <label>Scheduled to run</label>
-              <h3>
-                {state.job.next_scheduled_time
-                  ? formatServerDateTime(state.job.next_scheduled_time)
-                  : formatServerDateTime(state.job.last_scheduled_time)}
-              </h3>
-            </div>
-            <div className="clear"></div>
-          </div>
-        </div>
+        <DescriptionList
+          gap="5"
+          columnGap="10"
+          columns={{ initial: 1, "@lg": 2 }}
+          css={{ marginBottom: "$5" }}
+          items={[
+            { term: "Name", details: state.job.name },
+            { term: "Pipeline", details: state.pipeline.name },
+            { term: "Status", details: <JobStatus {...state.job} /> },
+            {
+              term: "Schedule",
+              details: (
+                <Flex as="span" css={{ flexDirection: "column" }}>
+                  {state.job.schedule === null
+                    ? "Run once"
+                    : state.job.schedule}
+                  {state.job.schedule !== null && (
+                    <Text as="em" css={{ lineHeight: "normal" }}>
+                      {cronstrue.toString(state.job.schedule)}
+                    </Text>
+                  )}
+                </Flex>
+              ),
+            },
+            {
+              term: "Snapshot date",
+              details: formatServerDateTime(state.job.created_time),
+            },
+            {
+              term: "Scheduled to run",
+              details: state.job.next_scheduled_time
+                ? formatServerDateTime(state.job.next_scheduled_time)
+                : formatServerDateTime(state.job.last_scheduled_time),
+            },
+          ]}
+        />
 
         <MDCTabBarReact
           selectedIndex={state.selectedTabIndex}

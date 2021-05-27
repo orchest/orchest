@@ -19,6 +19,7 @@ import EditJobView from "../views/EditJobView";
 import JobView from "../views/JobView";
 import { formatServerDateTime } from "../utils/webserver-utils";
 import ProjectsView from "@/views/ProjectsView";
+import { StatusInline } from "./Status";
 
 class JobList extends React.Component {
   constructor(props) {
@@ -251,7 +252,7 @@ class JobList extends React.Component {
         jobs[x].name,
         jobs[x].pipeline_name,
         formatServerDateTime(jobs[x].created_time),
-        jobs[x].status,
+        <StatusInline status={jobs[x].status} />,
       ]);
     }
     return rows;
