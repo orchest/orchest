@@ -1,6 +1,11 @@
 Contributing
 ============
 
+.. tip::
+   👉 Is this your first time contributing to a project? Fear not! Find an easy step-by-step guide
+   at the `first contributions <https://github.com/firstcontributions/first-contributions>`_
+   repository.
+
 Awesome that you are willing to contribute! Feel free to pick up any of the issues on `GitHub
 <https://github.com/orchest/orchest/issues>`_ or create a custom pull request 💪.
 
