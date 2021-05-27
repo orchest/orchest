@@ -1,15 +1,7 @@
 // @ts-check
 import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
-import {
-  Box,
-  Flex,
-  IconClockSolid,
-  IconCheckCircleSolid,
-  IconCrossCircleSolid,
-  Text,
-  IconDraftCircleSolid,
-} from "@orchest/design-system";
+import { Box } from "@orchest/design-system";
 import cronstrue from "cronstrue";
 import {
   MDCButtonReact,
@@ -29,7 +21,7 @@ import {
   getPipelineJSONEndpoint,
   envVariablesDictToArray,
 } from "../utils/webserver-utils";
-import { InlineStatus, GroupStatus } from "../components/Status";
+import { StatusInline, StatusGroup } from "../components/Status";
 import ParamTree from "../components/ParamTree";
 import ParameterEditor from "../components/ParameterEditor";
 import SearchableTable from "../components/SearchableTable";
@@ -54,42 +46,6 @@ import JobsView from "./JobsView";
  * @typedef {Record<TPipelineRunStatus, number>} TPipelineRunStatusTotals
  * @typedef {{status: TPipelineRunStatus}} TPipelineRun
  */
-
-/**
- * @param {Object} props
- * @param {TPipelineRunStatusTotals} [props.values]
- */
-const JobStatusDonut = ({ values }) => (
-  <Box
-    css={{
-      padding: "calc($1 / 1.5)",
-    }}
-  >
-    <PieChart
-      startAngle={270}
-      background="var(--colors-background)"
-      lineWidth={30}
-      animate={true}
-      data={[
-        {
-          title: "Pending",
-          color: "var(--colors-yellow300)",
-          value: values.PENDING + values.STARTED,
-        },
-        {
-          title: "Failed",
-          color: "var(--colors-error)",
-          value: values.FAILURE + values.ABORTED,
-        },
-        {
-          title: "Success",
-          color: "var(--colors-success)",
-          value: values.SUCCESS,
-        },
-      ]}
-    />
-  </Box>
-);
 
 /**
  * @param {Object} props
@@ -134,16 +90,45 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
   const variant = getJobStatusVariant();
 
   return (
-    <GroupStatus
+    <StatusGroup
+      css={{ marginTop: "$2" }}
       status={status}
       icon={
         ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
-          <JobStatusDonut values={count} />
+          <Box
+            css={{
+              padding: "calc($1 / 1.5)",
+            }}
+          >
+            <PieChart
+              startAngle={270}
+              background="var(--colors-background)"
+              lineWidth={25}
+              animate={true}
+              data={[
+                {
+                  title: "Pending",
+                  color: "var(--colors-yellow300)",
+                  value: count.PENDING + count.STARTED,
+                },
+                {
+                  title: "Failed",
+                  color: "var(--colors-error)",
+                  value: count.FAILURE + count.ABORTED,
+                },
+                {
+                  title: "Success",
+                  color: "var(--colors-success)",
+                  value: count.SUCCESS,
+                },
+              ]}
+            />
+          </Box>
         )
       }
       title={
         {
-          DRAFT: "Pipeline runs haven't started yet",
+          DRAFT: "This job is still being drafted",
           ALL_PENDING: "Some pipeline runs haven't completed yet",
           ALL_FAILURE: "All pipeline runs were unsuccessful",
           ALL_SUCCESS: "All pipeline runs were successful",
@@ -287,7 +272,7 @@ const JobView = (props) => {
       rows.push([
         pipelineRuns[x].pipeline_run_index,
         formatPipelineParams(pipelineRuns[x].parameters),
-        <InlineStatus status={pipelineRuns[x].status} />,
+        <StatusInline status={pipelineRuns[x].status} />,
       ]);
     }
 
@@ -493,53 +478,7 @@ const JobView = (props) => {
             <div className="column">
               <label>Status</label>
 
-              <Box
-                css={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "$4",
-                  marginTop: "$2",
-                }}
-              >
-                <JobStatus status="DRAFT" />
-                <JobStatus
-                  status="PENDING"
-                  pipeline_runs={[
-                    { status: "PENDING" },
-                    { status: "PENDING" },
-                    { status: "PENDING" },
-                  ]}
-                />
-                <JobStatus
-                  status="PENDING"
-                  pipeline_runs={[
-                    { status: "FAILURE" },
-                    { status: "ABORTED" },
-                    { status: "ABORTED" },
-                    { status: "PENDING" },
-                    { status: "SUCCESS" },
-                  ]}
-                />
-                <JobStatus
-                  status="FAILURE"
-                  pipeline_runs={[
-                    { status: "FAILURE" },
-                    { status: "ABORTED" },
-                    { status: "ABORTED" },
-                    { status: "SUCCESS" },
-                    { status: "SUCCESS" },
-                  ]}
-                />
-                <JobStatus
-                  status="FAILURE"
-                  pipeline_runs={[
-                    { status: "FAILURE" },
-                    { status: "FAILURE" },
-                    { status: "ABORTED" },
-                  ]}
-                />
-                <JobStatus {...state.job} />
-              </Box>
+              <JobStatus {...state.job} />
             </div>
             <div className="column">
               <label>Schedule</label>
