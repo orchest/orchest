@@ -28,7 +28,7 @@ jobs:
 
       # Run our pnpm hook manually, with additional build checks
       - name: Setup pnpm
-        run: npm run setup && pnpm install && pnpm run build
+        run: npm run setup && pnpm install && pnpm run build && pnpm run lint
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
