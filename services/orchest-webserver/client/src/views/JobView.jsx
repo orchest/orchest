@@ -71,8 +71,6 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
     }
   );
 
-  console.log("test", status, count);
-
   const getJobStatusVariant = () => {
     if (count.total === 0) return "DRAFT";
 
@@ -103,13 +101,13 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
         ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
           <Box
             css={{
-              padding: "calc($1 / 1.5)",
+              padding: "calc($1 / 2)",
             }}
           >
             <PieChart
               startAngle={270}
               background="var(--colors-background)"
-              lineWidth={25}
+              lineWidth={30}
               animate={true}
               data={[
                 {
@@ -188,8 +186,6 @@ const JobView = (props) => {
     setState((prevState) => ({ ...prevState, selectedTabIndex: index }));
   };
 
-  console.log(props);
-
   const fetchJob = () => {
     makeRequest(
       "GET",
@@ -199,9 +195,6 @@ const JobView = (props) => {
       (response) => {
         try {
           let job = JSON.parse(response);
-
-          console.log("job => ", job);
-          // pipeline status can be SUCCESS OR FAILURE
 
           setState((prevState) => ({
             ...prevState,

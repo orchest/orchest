@@ -75,13 +75,17 @@ export const StatusInline = ({ status, size = "sm", ...props }) => (
   </StatusInlineRoot>
 );
 
-const StatusGroupIcon = styled("dt", { justifySelf: "center" });
+const StatusGroupIcon = styled("dt", {
+  justifySelf: "center",
+  "> svg": {
+    verticalAlign: "initial",
+  },
+});
 const StatusGroupRoot = styled("dl", {
   include: "box",
   display: "grid",
-  gridTemplateColumns: "$space$8 minmax(0, 1fr)",
-  gridAutoRows: "minmax(0,1fr)",
-  alignItems: "center",
+  gridTemplateColumns: "$space$6 minmax(0, 1fr)",
+  alignItems: "start",
   columnGap: "$2",
   [`${StatusGroupIcon}`]: { gridRow: "$$iconPosition" },
   variants: {
