@@ -252,7 +252,10 @@ class JobList extends React.Component {
         jobs[x].name,
         jobs[x].pipeline_name,
         formatServerDateTime(jobs[x].created_time),
-        <StatusInline status={jobs[x].status} />,
+        <StatusInline
+          css={{ verticalAlign: "bottom" }}
+          status={jobs[x].status}
+        />,
       ]);
     }
     return rows;
