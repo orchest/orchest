@@ -1,24 +1,26 @@
+// @ts-check
 import React from "react";
+import { css } from "@orchest/design-system";
 
-class FileManagerView extends React.Component {
-  componentWillUnmount() {}
+const fileManagerRoot = css({
+  include: "box",
+  padding: 0,
+  overflowY: "auto",
+  height: "100%",
+});
 
-  componentDidMount() {}
+const fileManagerIframe = css({
+  include: "box",
+  width: "100%",
+  height: "100%",
+  border: 0,
+  display: "block",
+});
 
-  constructor(props) {
-    super(props);
-  }
-
-  render() {
-    return (
-      <div className={"view-page no-padding"}>
-        <iframe
-          className={"borderless fullsize"}
-          src="/container-file-manager"
-        ></iframe>
-      </div>
-    );
-  }
-}
+const FileManagerView = () => (
+  <div className={fileManagerRoot()}>
+    <iframe className={fileManagerIframe()} src="/container-file-manager" />
+  </div>
+);
 
 export default FileManagerView;
