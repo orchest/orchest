@@ -40,9 +40,11 @@ make code changes that are instantly reflected, without having to build the cont
    npm run setup
    pnpm i
 
-   # Every time
+   # Run the Vite dev server to for hot reloading. Note: This command
+   # does not finish.
    pnpm run dev
 
+   # Run this command in a different terminal window.
    ./orchest start --dev
 
 .. note::
@@ -70,7 +72,7 @@ Install all development dependencies using:
    # if not run in prior development step
    npm run setup
    pnpm i
-   
+
    pre-commit install
 
 Run formatters, linters and tests with:
@@ -87,7 +89,7 @@ Our docs are handled by `Read the Docs
 <https://docs.readthedocs.io/>`_ with Sphinx.
 
 Content can be written in `.md` or `.rst` – whatever you feel meets the specific
-needs of your content. 
+needs of your content.
 
 To update, run:
 
