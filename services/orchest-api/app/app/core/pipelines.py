@@ -239,11 +239,13 @@ class PipelineStepRunner:
             form="docker-engine",
         )
 
-        # The working directory relative to the project directory is
-        # based on the location of the pipeline, e.g. if the pipeline is
-        # in /project-dir/my/project/path/mypipeline.orchest the working
-        # directory will be my/project/path/.
-        working_dir = os.path.split(run_config["pipeline_path"])[0]
+        # The working directory is the location of the file being
+        # executed.
+        project_relative_file_path = os.path.join(
+            os.path.split(run_config["pipeline_path"])[0], self.properties["file_path"]
+        )
+
+        working_dir = os.path.split(project_relative_file_path)[0]
 
         user_env_variables = [
             f"{key}={value}" for key, value in run_config["user_env_variables"].items()
@@ -284,7 +286,7 @@ class PipelineStepRunner:
                 "/orchest/bootscript.sh",
                 "runnable",
                 working_dir,
-                self.properties["file_path"],
+                project_relative_file_path,
             ],
             "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
             # NOTE: the `'tests-uuid'` key is only used for tests and
