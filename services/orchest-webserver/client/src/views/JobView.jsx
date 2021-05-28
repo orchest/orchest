@@ -72,23 +72,22 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
   );
 
   const getJobStatusVariant = () => {
-    if (count.total === 0) return "DRAFT";
-
-    if (status === "SUCCESS") return "ALL_SUCCESS";
+    console.log(status);
+    if (["STARTED", "SUCCESS", "ABORTED"].includes(status)) return status;
 
     if (
-      ["PENDING", "STARTED"].includes(status) &&
+      ["PENDING"].includes(status) &&
       count.PENDING + count.STARTED === count.total
     )
-      return "ALL_PENDING";
+      return "PENDING";
 
     if (status === "FAILURE" && count.ABORTED + count.FAILURE === count.total)
-      return "ALL_FAILURE";
+      return "FAILURE";
 
     if (status === "FAILURE") return "MIXED_FAILURE";
     if (status === "PENDING") return "MIXED_PENDING";
 
-    return "DRAFT";
+    return status;
   };
 
   const variant = getJobStatusVariant();
@@ -132,10 +131,11 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
       }
       title={
         {
-          DRAFT: "This job is still being drafted",
-          ALL_PENDING: "Some pipeline runs haven't completed yet",
-          ALL_FAILURE: "All pipeline runs were unsuccessful",
-          ALL_SUCCESS: "All pipeline runs were successful",
+          ABORTED: "This job was cancelled",
+          PENDING: "Some pipeline runs haven't completed yet",
+          FAILURE: "All pipeline runs were unsuccessful",
+          STARTED: "This job is running",
+          SUCCESS: "All pipeline runs were successful",
           MIXED_PENDING: "Some pipeline runs haven't completed yet",
           MIXED_FAILURE: "Some pipeline runs were unsuccessful",
         }[variant]

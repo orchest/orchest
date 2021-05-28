@@ -37,7 +37,7 @@ export const StatusInline = ({ status, size = "sm", ...props }) => (
         ABORTED: (
           <React.Fragment>
             <IconCrossSolid css={{ color: "$error" }} />
-            Aborted
+            Cancelled
           </React.Fragment>
         ),
         DRAFT: (
@@ -49,7 +49,7 @@ export const StatusInline = ({ status, size = "sm", ...props }) => (
         STARTED: (
           <React.Fragment>
             <IconClockOutline css={{ color: "$warning" }} />
-            Started…
+            Running…
           </React.Fragment>
         ),
         PENDING: (
