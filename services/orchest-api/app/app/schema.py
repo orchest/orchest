@@ -33,6 +33,9 @@ session = Model(
         "notebook_server_info": fields.Nested(
             server, required=True, description="Jupyter notebook server connection info"
         ),
+        "user_services": fields.Raw(
+            required=False, description="User services part of the session"
+        ),
     },
 )
 
