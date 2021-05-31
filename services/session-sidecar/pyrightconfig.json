@@ -1,0 +1,25 @@
+{
+  "extraPaths": [
+    "../../lib/python/orchest-internals/"
+  ],
+
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    ".venv"
+  ],
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+
+  "pythonVersion": "3.8",
+  "pythonPlatform": "Linux",
+  "venvPath": "../../.venvs",
+  "venv": "session-sidecar",
+
+  "executionEnvironments": [
+    {
+      "root": "app"
+    }
+  ]
+}

@@ -28,15 +28,22 @@ class LogFile:
         pipeline_uuid,
         project_uuid,
         project_path,
-        step_uuid,
+        step_uuid=None,
+        service_name=None,
         pipeline_run_uuid=None,
         job_uuid=None,
     ):
+        if step_uuid is None and service_name is None:
+            raise Exception("Either step_uuid or service_name must be defined.")
+        if step_uuid is not None and service_name is not None:
+            raise Exception("Can't define both step_uuid and service_name.")
+
         self.session_uuid = session_uuid
         self.pipeline_uuid = pipeline_uuid
         self.project_uuid = project_uuid
         self.project_path = project_path
         self.step_uuid = step_uuid
+        self.service_name = service_name
         self.pipeline_run_uuid = pipeline_run_uuid
         self.job_uuid = job_uuid
         self.log_uuid = ""
@@ -202,10 +209,14 @@ def get_log_path(log_file):
         log_file.job_uuid,
     )
 
+    format_input = (
+        log_file.step_uuid if log_file.step_uuid is not None else log_file.service_name
+    )
+
     return os.path.join(
         project_dir,
         _config.LOGS_PATH.format(pipeline_uuid=log_file.pipeline_uuid),
-        "%s.log" % log_file.step_uuid,
+        "%s.log" % format_input,
     )
 
 
@@ -281,12 +292,17 @@ def main():
                     "SocketIO action fetch-logs session_uuid %s" % data["session_uuid"]
                 )
 
+                kwargs = {
+                    "step_uuid": data.get("step_uuid"),
+                    "service_name": data.get("service_name"),
+                }
+
                 log_file = LogFile(
                     data["session_uuid"],
                     data["pipeline_uuid"],
                     data["project_uuid"],
                     data["project_path"],
-                    data["step_uuid"],
+                    **kwargs
                 )
 
                 if "pipeline_run_uuid" in data:

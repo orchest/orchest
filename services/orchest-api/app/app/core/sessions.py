@@ -12,10 +12,10 @@ from uuid import uuid4
 import docker
 import requests
 from docker.errors import APIError, ContainerError, NotFound
-from docker.types import Mount
+from docker.types import LogConfig, Mount
 
 from _orchest.internals import config as _config
-from app import utils
+from app import errors, utils
 
 
 class SessionType(Enum):
@@ -127,6 +127,22 @@ class Session:
 
         return res
 
+    def _get_container_IP(self, container) -> str:
+        """Get IP address of container.
+
+        Args:
+            container (docker.models.containers.Container): container of
+                which to get the IP address.
+
+        Returns:
+            The IP address of the container inside the network.
+
+        """
+        # The containers have to be reloaded as otherwise cached "attrs"
+        # is used, which might not be up-to-date.
+        container.reload()
+        return container.attrs["NetworkSettings"]["Networks"][self.network]["IPAddress"]
+
     def launch(
         self,
         uuid: str,
@@ -147,21 +163,61 @@ class Session:
         """
 
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
-        container_specs = _get_container_specs(
+        orchest_services = _get_orchest_services_specs(
             uuid,
             session_config,
             session_type,
             self.network,
         )
 
-        services = [key for key in container_specs.keys() if key.startswith("service-")]
-
-        for resource in self._resources + services:
+        for resource in self._resources:
             try:
-                container = self.client.containers.run(**container_specs[resource])
+                container = self.client.containers.run(**orchest_services[resource])
                 self._containers[resource] = container
             except Exception as e:
                 logging.error("Failed to start container %s [%s]." % (e, type(e)))
+                raise errors.SessionContainerError(
+                    "Could not start required containers."
+                )
+
+        # Wait for the sidecar to be ready so that all logs are captured
+        # , moreover, in TCP mode docker will not start a container if
+        # it can't connect to the logger. This is not an health check
+        # because an health check would have to run periodically, which
+        # is a waste.
+        sidecar_c = self._containers["session-sidecar"]
+        n = 50
+        for _ in range(n):
+            exit_code = sidecar_c.exec_run(
+                "netstat -plnt | grep ':1111'",
+            )[0]
+            if exit_code == 0:
+                break
+            else:
+                time.sleep(0.1)
+        else:
+            raise errors.SessionContainerError("Sidecar not listening.")
+
+        # Using the sidecar ip is necessary because docker won't do name
+        # resolution when passing a name to the log-driver.
+        sidecar_ip = self._get_container_IP(sidecar_c)
+        user_services = _get_services_specs(
+            uuid,
+            session_config,
+            session_type,
+            f"tcp://{sidecar_ip}:1111",
+            self.network,
+        )
+
+        for service_name, service_spec in user_services.items():
+            try:
+                container = self.client.containers.run(**service_spec)
+                self._containers[service_name] = container
+            except Exception as e:
+                logging.error("Failed to start container %s [%s]." % (e, type(e)))
+                raise errors.SessionContainerError(
+                    "Could not start required containers."
+                )
 
     @abstractmethod
     def shutdown(self) -> None:
@@ -237,6 +293,7 @@ class InteractiveSession(Session):
 
     _resources = [
         "memory-server",
+        "session-sidecar",
         "jupyter-EG",
         "jupyter-server",
     ]
@@ -254,22 +311,6 @@ class InteractiveSession(Session):
             pass
 
         return self._notebook_server_info
-
-    def _get_container_IP(self, container) -> str:
-        """Get IP address of container.
-
-        Args:
-            container (docker.models.containers.Container): container of
-                which to get the IP address.
-
-        Returns:
-            The IP address of the container inside the network.
-
-        """
-        # The containers have to be reloaded as otherwise cached "attrs"
-        # is used, which might not be up-to-date.
-        container.reload()
-        return container.attrs["NetworkSettings"]["Networks"][self.network]["IPAddress"]
 
     # TODO: rename to `get_resources_IP` ?
     # TODO: make into property? `.ips` Same goes for `get_container_IDs`
@@ -392,6 +433,7 @@ class NonInteractiveSession(Session):
 
     _resources = [
         "memory-server",
+        "session-sidecar",
     ]
 
     def __init__(self, client, network=None):
@@ -548,6 +590,7 @@ def _get_services_specs(
     uuid: str,
     session_config: Optional[Dict[str, Any]],
     session_type: SessionType,
+    sidecar_address,
     network: str,
 ) -> Dict[str, Any]:
     """Constructs the container specifications for all services.
@@ -647,7 +690,6 @@ def _get_services_specs(
                     type="bind",
                 ),
             )
-
         spec_key = "service-" + service_name
         specs[spec_key] = {
             "image": service["image"],
@@ -663,6 +705,17 @@ def _get_services_specs(
                 "session_identity_uuid": uuid,
                 "project_uuid": project_uuid,
             },
+            "log_config": LogConfig(
+                type=LogConfig.types.SYSLOG,
+                config={
+                    "mode": "non-blocking",
+                    "max-buffer-size": "10mb",
+                    "syslog-format": "rfc3164",
+                    "syslog-address": sidecar_address,
+                    # Used by the sidecar to detect who is sending logs.
+                    "tag": f"user-service-{service_name}-metadata-end",
+                },
+            ),
         }
 
         if "entrypoint" in service:
@@ -674,7 +727,7 @@ def _get_services_specs(
     return specs
 
 
-def _get_container_specs(
+def _get_orchest_services_specs(
     uuid: str,
     session_config: Dict[str, Any],
     session_type: SessionType,
@@ -698,6 +751,7 @@ def _get_container_specs(
         run method. The return dict looks as follows:
             container_specs = {
                 'memory-server': spec dict,
+                'session-sidecar': spec dict,
                 'jupyter-EG': spec dict,
                 'jupyter-server': spec dict,
             }
@@ -711,10 +765,10 @@ def _get_container_specs(
     host_userdir = session_config["host_userdir"]
 
     # TODO: possibly add ``auto_remove=True`` to the specs.
-    container_specs = {}
+    orchest_services_specs = {}
     mounts = _get_mounts(uuid, project_uuid, project_dir, host_userdir)
 
-    container_specs["memory-server"] = {
+    orchest_services_specs["memory-server"] = {
         "image": "orchest/memory-server:latest",
         "detach": True,
         "mounts": [mounts["project_dir"], mounts["temp_volume"]],
@@ -730,6 +784,21 @@ def _get_container_specs(
         ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
+        "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
+    }
+
+    orchest_services_specs["session-sidecar"] = {
+        "image": "orchest/session-sidecar:latest",
+        "detach": True,
+        "mounts": [mounts["project_dir"]],
+        "name": f"session-sidecar-{project_uuid}-{uuid}",
+        # It will try to create the logs directory for a given run if it
+        # does not exist, so this is needed to avoid permission issues.
+        "group_add": [os.environ.get("ORCHEST_HOST_GID")],
+        "network": network,
+        "environment": [
+            f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
+        ],
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
 
@@ -759,7 +828,7 @@ def _get_container_specs(
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
 
     if session_type == SessionType.INTERACTIVE:
-        container_specs["jupyter-EG"] = {
+        orchest_services_specs["jupyter-EG"] = {
             "image": "orchest/jupyter-enterprise-gateway",
             "detach": True,
             "mounts": [mounts.get("docker_sock"), mounts.get("kernelspec")],
@@ -802,7 +871,7 @@ def _get_container_specs(
             jupyer_server_image = user_jupyer_server_image
 
         # Run Jupyter server container.
-        container_specs["jupyter-server"] = {
+        orchest_services_specs["jupyter-server"] = {
             "image": jupyer_server_image,
             "detach": True,
             "mounts": [
@@ -828,14 +897,4 @@ def _get_container_specs(
             "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
         }
 
-    # Add user specified services to container_specs list
-    container_specs.update(
-        _get_services_specs(
-            uuid,
-            session_config,
-            session_type,
-            network,
-        )
-    )
-
-    return container_specs
+    return orchest_services_specs

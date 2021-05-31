@@ -4,3 +4,7 @@ class SessionInProgressException(Exception):
 
 class JupyterBuildInProgressException(Exception):
     pass
+
+
+class SessionContainerError(Exception):
+    pass

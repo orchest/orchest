@@ -252,11 +252,7 @@ def register_orchest_api_views(app, db):
             + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
         )
 
-        tel_props = {
-            "project_uuid": project_uuid,
-            "pipeline_uuid": pipeline_uuid,
-        }
-        analytics.send_event(app, "session stop", tel_props)
+        analytics.send_session_stop(app, project_uuid, pipeline_uuid)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
@@ -292,8 +288,7 @@ def register_orchest_api_views(app, db):
             json=session_config,
         )
 
-        tel_props = {"project_uuid": project_uuid, "pipeline_uuid": pipeline_uuid}
-        analytics.send_event(app, "session start", tel_props)
+        analytics.send_session_start(app, session_config)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -318,14 +313,14 @@ def register_orchest_api_views(app, db):
                     active_runs = True
 
             if active_runs:
-                tel_props = {
-                    "project_uuid": "project_uuid",
-                    "pipeline_uuid": "pipeline_uuid",
+                analytics.send_session_restart(
+                    app,
+                    project_uuid,
+                    pipeline_uuid,
                     # So that we know when users attempt to restart a
                     # session without success.
-                    "active_runs": True,
-                }
-                analytics.send_event(app, "session restart", tel_props)
+                    True,
+                )
                 return (
                     jsonify(
                         {
@@ -344,12 +339,7 @@ def register_orchest_api_views(app, db):
                     + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
                 )
 
-                tel_props = {
-                    "project_uuid": "project_uuid",
-                    "pipeline_uuid": "pipeline_uuid",
-                    "active_runs": False,
-                }
-                analytics.send_event(app, "session restart", tel_props)
+                analytics.send_session_restart(app, project_uuid, pipeline_uuid, False)
                 return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
             app.logger.error(
