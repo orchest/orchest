@@ -44,6 +44,14 @@ class TCPHandler(socketserver.StreamRequestHandler):
         # Use the first metadata to get the service name.
         logging.info(f"Received connection: {self.connection}")
         data = self.rfile.readline()
+        if data == b"":
+            logging.info(
+                "Received empty data from container, this can be caused by "
+                "the container not emitting any output and docker emitting an "
+                "empty output on container termination."
+            )
+            return
+
         service_name = get_service_name_from_log(bytes.decode(data))
         logging.info(f"{service_name} sent its first data.")
 
@@ -78,6 +86,21 @@ class TCPHandler(socketserver.StreamRequestHandler):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
+
+    # Cleanup old service logs on session start, so that if a container
+    # does not emit any output, both by design or because it failed to
+    # start, no old logs will be shown.
+    log_dir_path = get_log_dir_path()
+    for fname in os.listdir(log_dir_path):
+        path = os.path.join(log_dir_path, fname)
+        if (
+            # Pipeline steps logs are of no concern to the sidecar.
+            # NOTE: Should it take care of those as well?
+            not re.search(r"^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}\.log$", fname)
+            and os.path.isfile(path)
+            and path.endswith(".log")
+        ):
+            os.remove(path)
 
     logs_path = get_service_log_file_path("<service>")
     logging.info(f"Storing logs in {logs_path}")
