@@ -31,7 +31,8 @@ Orchest supports incremental development by starting Orchest with the ``--dev`` 
 make code changes that are instantly reflected, without having to build the containers again.
 
 .. note::
-   For incremental development to work in WSL2, docker must be installed within the linux WSL2 environment itself.
+   For incremental development to work in WSL2, Docker must be installed within the WSL2
+   environment itself.
 
 .. code-block:: bash
 
