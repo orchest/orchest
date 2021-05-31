@@ -30,6 +30,9 @@ Make sure Orchest is already installed first. See the :ref:`regular installation
 Orchest supports incremental development by starting Orchest with the ``--dev`` flag. This allows you to
 make code changes that are instantly reflected, without having to build the containers again.
 
+.. note::
+   For incremental development to work in WSL2, docker must be installed within the linux WSL2 environment itself.
+
 .. code-block:: bash
 
    # Before Orchest can be run in "dev" mode the front-end code has to
