@@ -328,7 +328,18 @@ class OrchestApp:
         # "userdir/" structure.
         if not dev:
             exit_code = utils.update_git_repo()
-            if exit_code != 0:
+            if exit_code == 0:
+                logger.info("Successfully updated git repo during update.")
+            elif exit_code == 21:
+                utils.echo("Cancelling update...")
+                utils.echo(
+                    "Make sure you have the master branch checked out before updating."
+                )
+                logger.error(
+                    "Failed update due to master branch not being checked out."
+                )
+                return
+            else:
                 utils.echo("Cancelling update...")
                 utils.echo(
                     "It seems like you have unstaged changes in the 'orchest'"
