@@ -1,3 +1,4 @@
+import { StitchesVariants } from "@stitches/core";
 import { config, styled } from "../core";
 import type { CSS } from "../types";
 
@@ -24,3 +25,5 @@ export const Text = styled("p", {
     size: "base",
   },
 });
+
+export type TTextVariants = StitchesVariants<typeof Text>;
