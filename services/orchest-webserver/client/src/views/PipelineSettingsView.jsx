@@ -120,7 +120,7 @@ const PipelineSettingsView = (props) => {
           pipelineJson.parameters = {};
         }
         if (pipelineJson?.services === undefined) {
-          pipelineJson.services = [];
+          pipelineJson.services = {};
         }
 
         setHeaderComponent(pipelineJson?.name);
@@ -602,11 +602,9 @@ const PipelineSettingsView = (props) => {
                   try {
                     parsedServices = JSON.parse(state.inputServices);
 
-                    if (!Array.isArray(parsedServices)) {
-                      message = "Top level element needs to be an array.";
-                    }
-
-                    for (let service of parsedServices) {
+                    for (let [name, service] of Object.entries(
+                      parsedServices
+                    )) {
                       let nameReg = /^[0-9a-zA-Z\-]{1,36}$/;
                       if (!service.name || !nameReg.test(service.name)) {
                         message =
@@ -637,10 +635,11 @@ const PipelineSettingsView = (props) => {
 
                 <div className="service-urls push-up">
                   {(() => {
-                    let serviceUrlsBlocks = [];
-
                     if (state.pipelineJson?.services) {
-                      for (let service of state.pipelineJson.services) {
+                      let serviceUrlsBlocks = [];
+                      for (let [name, service] of Object.entries(
+                        state.pipelineJson.services
+                      )) {
                         let urlElements = [];
 
                         let urls = _get_service_urls(service);
@@ -662,9 +661,9 @@ const PipelineSettingsView = (props) => {
                           </div>
                         );
                       }
-                    }
 
-                    return serviceUrlsBlocks;
+                      return serviceUrlsBlocks;
+                    }
                   })()}
                 </div>
 

@@ -166,6 +166,13 @@ class InteractiveSession(BaseModel):
         nullable=True,
     )
 
+    # Services defined by the user.
+    user_services = db.Column(
+        JSONB,
+        unique=False,
+        nullable=True,
+    )
+
     def __repr__(self):
         return f"<Launch {self.pipeline_uuid}>"
 

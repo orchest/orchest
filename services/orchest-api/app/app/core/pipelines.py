@@ -531,7 +531,7 @@ class Pipeline:
             "uuid": description["uuid"],
             "settings": description["settings"],
             "parameters": description.get("parameters", {}),
-            "services": description.get("services", []),
+            "services": description.get("services", {}),
         }
         return cls(list(steps.values()), properties)
 

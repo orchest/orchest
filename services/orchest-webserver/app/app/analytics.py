@@ -211,3 +211,29 @@ def check_active(app):
     except OSError as e:
         app.logger.debug("Exception while reading request log recency %s" % e)
         return False
+
+
+def send_session_start(app, session_config):
+    props = {
+        "project_uuid": session_config["project_uuid"],
+        "pipeline_uuid": session_config["pipeline_uuid"],
+        "services_count": len(session_config["services"]),
+    }
+    send_event(app, "session start", props)
+
+
+def send_session_stop(app, project_uuid, pipeline_uuid):
+    props = {
+        "project_uuid": project_uuid,
+        "pipeline_uuid": pipeline_uuid,
+    }
+    send_event(app, "session stop", props)
+
+
+def send_session_restart(app, project_uuid, pipeline_uuid, active_runs):
+    props = {
+        "project_uuid": project_uuid,
+        "pipeline_uuid": pipeline_uuid,
+        "active_runs": active_runs,
+    }
+    send_event(app, "session restart", props)

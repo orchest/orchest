@@ -100,6 +100,11 @@ class JobList(Resource):
                 "env_variables": get_proj_pip_env_variables(
                     post_data["project_uuid"], post_data["pipeline_uuid"]
                 ),
+                # NOTE: the definition of a service is currently
+                # persisted to disk and considered to be versioned,
+                # meaning that nothing in there is considered to be
+                # secret. If this changes, this dictionary needs to have
+                # secrets removed.
                 "pipeline_definition": post_data["pipeline_definition"],
                 "pipeline_run_spec": post_data["pipeline_run_spec"],
                 "total_scheduled_executions": 0,

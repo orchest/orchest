@@ -59,6 +59,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "orchest-webserver"
         "nginx-proxy"
         "memory-server"
+        "session-sidecar"
         "auth-server"
         "file-manager"
     )
@@ -73,6 +74,7 @@ LIB_IMAGES=(
     "orchest-api"
     "orchest-webserver"
     "memory-server"
+    "session-sidecar"
     "auth-server"
     "update-server"
     "celery-worker"
@@ -368,6 +370,16 @@ do
             -t "orchest/memory-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/memory-server/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    if [ $IMG == "session-sidecar" ]; then
+        build_ctx=$DIR/../services/session-sidecar
+        build=(docker build --progress=plain \
+            -t "orchest/session-sidecar:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/session-sidecar/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
