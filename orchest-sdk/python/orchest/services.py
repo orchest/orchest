@@ -4,18 +4,11 @@ Service specifications are stored in the corresponding pipeline
 definition file e.g. ``pipeline.orchest``.
 
 """
-import json
 from typing import Any, Dict, List
 
 from orchest.config import Config
 from orchest.error import ServiceNotFound
-from orchest.pipeline import Pipeline
-
-
-def _get_pipeline() -> Pipeline:
-    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
-        pipeline_definition = json.load(f)
-    return Pipeline.from_json(pipeline_definition)
+from orchest.utils import _get_pipeline
 
 
 def _generate_urls(service, pipeline):

@@ -10,13 +10,7 @@ from typing import Any, Optional, Tuple
 from orchest.config import Config
 from orchest.error import StepUUIDResolveError
 from orchest.pipeline import Pipeline, PipelineStep
-from orchest.utils import get_step_uuid
-
-
-def _get_pipeline() -> Pipeline:
-    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
-        pipeline_definition = json.load(f)
-    return Pipeline.from_json(pipeline_definition)
+from orchest.utils import _get_pipeline, get_step_uuid
 
 
 def _get_current_step(pipeline: Pipeline) -> PipelineStep:
