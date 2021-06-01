@@ -14,6 +14,7 @@ import HelpView from "../views/HelpView";
 import JobsView from "../views/JobsView";
 import JobView from "../views/JobView";
 import JupyterLabView from "../views/JupyterLabView";
+import LogsView from "../views/LogsView";
 import ManageUsersView from "../views/ManageUsersView";
 import PipelineSettingsView from "../views/PipelineSettingsView";
 import PipelinesView from "../views/PipelinesView";
@@ -38,6 +39,7 @@ function getComponentObject() {
     JobsView,
     JobView,
     JupyterLabView,
+    LogsView,
     ManageUsersView,
     PipelineSettingsView,
     PipelinesView,
@@ -73,6 +75,7 @@ export function getViewDrawerParentViewName(viewName) {
     PipelineSettingsView: PipelinesView,
     PipelinesView: PipelinesView,
     PipelineView: PipelinesView,
+    LogsView: PipelinesView,
     ProjectSettingsView: ProjectsView,
     ProjectsView: ProjectsView,
     SettingsView: SettingsView,

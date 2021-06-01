@@ -265,6 +265,64 @@ a.button {
     }
   }
 
+  &.logs-view {
+    .top-buttons {
+      button {
+        background-color: #fff;
+      }
+    }
+    .logs {
+      display: flex;
+      flex-direction: row;
+      height: 100%;
+
+      .log-title {
+        font-weight: 500;
+      }
+
+      h2 {
+        padding: 0px 8px;
+      }
+
+      .log-selector {
+        width: 20%;
+        min-width: 250px;
+        max-width: 400px;
+        padding: $generalPadding;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid $borderColor;
+
+        .mdc-drawer {
+          width: auto;
+          border: 0;
+          padding: 0;
+          flex: 1;
+
+          .mdc-list-item {
+            height: 56px;
+          }
+        }
+      }
+
+      .log-selector-divider {
+        border-bottom: 1px solid $borderColor;
+        width: 100%;
+        height: 0;
+      }
+
+      .logs-xterm-holder {
+        flex: 1;
+        div {
+          height: 100%;
+          > .xterm {
+            height: 100%;
+          }
+        }
+      }
+    }
+  }
+
   &.jupyter {
     .hiddenSession {
       display: none;

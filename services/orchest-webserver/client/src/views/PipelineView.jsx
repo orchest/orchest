@@ -23,6 +23,7 @@ import {
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
+import LogsView from "./LogsView";
 import PipelineDetails from "../components/PipelineDetails";
 import PipelineStep from "../components/PipelineStep";
 import io from "socket.io-client";
@@ -536,6 +537,18 @@ class PipelineView extends React.Component {
 
   openSettings() {
     orchest.loadView(PipelineSettingsView, {
+      queryArgs: {
+        project_uuid: this.props.queryArgs.project_uuid,
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        read_only: this.props.queryArgs.read_only,
+        job_uuid: this.props.queryArgs.job_uuid,
+        run_uuid: this.props.queryArgs.run_uuid,
+      },
+    });
+  }
+
+  openLogs() {
+    orchest.loadView(LogsView, {
       queryArgs: {
         project_uuid: this.props.queryArgs.project_uuid,
         pipeline_uuid: this.props.queryArgs.pipeline_uuid,
@@ -2293,45 +2306,38 @@ class PipelineView extends React.Component {
               })()}
             </div>
 
-            {(() => {
-              if (this.props.queryArgs.read_only !== "true") {
-                return (
-                  <div className={"pipeline-actions"}>
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.newStep.bind(this)}
-                      icon={"add"}
-                      label={"NEW STEP"}
-                    />
+            <div className={"pipeline-actions"}>
+              {this.props.queryArgs.read_only !== "true" && (
+                <MDCButtonReact
+                  classNames={["mdc-button--raised"]}
+                  onClick={this.newStep.bind(this)}
+                  icon={"add"}
+                  label={"NEW STEP"}
+                />
+              )}
 
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.openSettings.bind(this)}
-                      label={"Settings"}
-                      icon="tune"
-                    />
-                  </div>
-                );
-              } else {
-                // maintain the look and feel of actually using a <button>
-                // tag but make it "disabled" through the inline styling
-                return (
-                  <div className={"pipeline-actions"}>
-                    <MDCButtonReact
-                      label={"Read only"}
-                      disabled={true}
-                      icon={"visibility"}
-                    />
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.openSettings.bind(this)}
-                      label={"Settings"}
-                      icon="tune"
-                    />
-                  </div>
-                );
-              }
-            })()}
+              {this.props.queryArgs.read_only === "true" && (
+                <MDCButtonReact
+                  label={"Read only"}
+                  disabled={true}
+                  icon={"visibility"}
+                />
+              )}
+
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                onClick={this.openSettings.bind(this)}
+                label={"Settings"}
+                icon="tune"
+              />
+
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                onClick={this.openLogs.bind(this)}
+                label={"Logs"}
+                icon="view_headline"
+              />
+            </div>
 
             <div
               className="pipeline-steps-outer-holder"
