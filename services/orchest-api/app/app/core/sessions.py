@@ -211,7 +211,7 @@ class Session:
         # Using the sidecar ip is necessary because docker won't do name
         # resolution when passing a name to the log-driver.
         sidecar_ip = self._get_container_IP(sidecar_c)
-        user_services = _get_services_specs(
+        user_services = _get_user_services_specs(
             uuid,
             session_config,
             session_type,
@@ -609,7 +609,7 @@ def _get_mounts(
     return mounts
 
 
-def _get_services_specs(
+def _get_user_services_specs(
     uuid: str,
     session_config: Optional[Dict[str, Any]],
     session_type: SessionType,
