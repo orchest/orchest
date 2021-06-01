@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import socket
 import time
 import traceback
 from abc import abstractmethod
@@ -26,6 +27,15 @@ class SessionType(Enum):
 class IP(NamedTuple):
     jupyter_EG: str
     jupyter_server: str
+
+
+def _inject_message_as_service(ip, port, service, msg):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((ip, port))
+    # TODO: find a way to avoid having to fake being a syslog message.
+    msg = f"user-service-{service}-metadata-end[0000]: {msg}"
+    sock.send(msg.encode("utf-8"))
+    sock.close()
 
 
 # TODO: possibly make contextlib session by implementing __enter__ and
@@ -214,9 +224,22 @@ class Session:
                 container = self.client.containers.run(**service_spec)
                 self._containers[service_name] = container
             except Exception as e:
-                logging.error("Failed to start container %s [%s]." % (e, type(e)))
-                raise errors.SessionContainerError(
-                    "Could not start required containers."
+                logging.error(
+                    "Failed to start user service container %s [%s]." % (e, type(e))
+                )
+                try:
+                    container = self.client.containers.get(service_spec["name"])
+                    container.remove(force=True)
+                except NotFound:
+                    logging.warning("Did not find dangling user service container.")
+
+                # Necessary because the docker container won't emit any
+                # logs for SDK level errors.
+                _inject_message_as_service(
+                    sidecar_ip,
+                    1111,
+                    service_name,
+                    e.explanation if isinstance(e, APIError) else str(e),
                 )
 
     @abstractmethod
@@ -690,8 +713,7 @@ def _get_services_specs(
                     type="bind",
                 ),
             )
-        spec_key = "service-" + service_name
-        specs[spec_key] = {
+        specs[service_name] = {
             "image": service["image"],
             "detach": True,
             "mounts": mounts,
@@ -719,10 +741,10 @@ def _get_services_specs(
         }
 
         if "entrypoint" in service:
-            specs[spec_key]["entrypoint"] = service["entrypoint"]
+            specs[service_name]["entrypoint"] = service["entrypoint"]
 
         if "command" in service:
-            specs[spec_key]["command"] = service["command"]
+            specs[service_name]["command"] = service["command"]
 
     return specs
 
