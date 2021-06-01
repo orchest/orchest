@@ -92,7 +92,7 @@ service = Model(
                 "inherited variables"
             ),
         ),
-        "environment_inherit": fields.List(
+        "env_variables_inherit": fields.List(
             fields.String,
             required=True,
             description=(

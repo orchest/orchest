@@ -685,18 +685,18 @@ def _get_services_specs(
 
         environment = {}
 
-        for inherited_key in service.get("environment_inherit", []):
+        for inherited_key in service.get("env_variables_inherit", []):
             if inherited_key in user_env_variables:
                 environment[inherited_key] = user_env_variables[inherited_key]
 
         # User defined env vars superse inherited ones.
-        environment = environment.update(service.get("environment", {}))
+        environment = environment.update(service.get("env_variables", {}))
 
         mounts = []
         sbinds = service["binds"]
         # Can be later extended into adding a Mount for every "custom"
         # key, e.g. key != data and key != project_directory.
-        if "data" in sbinds:
+        if "/data" in sbinds:
             mounts.append(
                 Mount(  # data directory
                     target=sbinds["data"],
@@ -705,7 +705,7 @@ def _get_services_specs(
                 ),
             )
 
-        if "project_directory" in sbinds:
+        if "/project_directory" in sbinds:
             mounts.append(
                 Mount(
                     target=sbinds["project_directory"],
