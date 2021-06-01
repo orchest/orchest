@@ -171,6 +171,9 @@ class InteractiveSession(BaseModel):
         JSONB,
         unique=False,
         nullable=True,
+        # This way migrated entries that did not have this column will
+        # still be valid.
+        server_default="{}",
     )
 
     def __repr__(self):

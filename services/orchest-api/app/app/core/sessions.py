@@ -211,7 +211,7 @@ class Session:
         # Using the sidecar ip is necessary because docker won't do name
         # resolution when passing a name to the log-driver.
         sidecar_ip = self._get_container_IP(sidecar_c)
-        user_services = _get_services_specs(
+        user_services = _get_user_services_specs(
             uuid,
             session_config,
             session_type,
@@ -609,7 +609,7 @@ def _get_mounts(
     return mounts
 
 
-def _get_services_specs(
+def _get_user_services_specs(
     uuid: str,
     session_config: Optional[Dict[str, Any]],
     session_type: SessionType,
@@ -642,14 +642,14 @@ def _get_services_specs(
     pipeline_uuid = session_config["pipeline_uuid"]
     project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
-    services = session_config["services"]
+    services = session_config.get("services", {})
 
     specs = {}
 
     for service_name, service in services.items():
 
-        # Skip if a scope is defined, and doesn't match session_type
-        if "scope" in service and session_type.value not in service["scope"]:
+        # Skip if service_scope does not include this type of session.
+        if session_type.value not in service["scope"]:
             continue
 
         container_name = (
@@ -693,7 +693,7 @@ def _get_services_specs(
         environment = environment.update(service.get("env_variables", {}))
 
         mounts = []
-        sbinds = service["binds"]
+        sbinds = service.get("binds", {})
         # Can be later extended into adding a Mount for every "custom"
         # key, e.g. key != data and key != project_directory.
         if "/data" in sbinds:

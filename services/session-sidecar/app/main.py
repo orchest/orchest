@@ -86,6 +86,10 @@ class TCPHandler(socketserver.StreamRequestHandler):
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
 
+    # Needs to be here since the logs directory does not exists for
+    # project snapshots of jobs.
+    create_log_dir()
+
     # Cleanup old service logs on session start, so that if a container
     # does not emit any output, both by design or because it failed to
     # start, no old logs will be shown.
@@ -103,7 +107,6 @@ if __name__ == "__main__":
 
     logs_path = get_service_log_file_path("<service>")
     logging.info(f"Storing logs in {logs_path}")
-    create_log_dir()
 
     HOST = "0.0.0.0"
     PORT = 1111

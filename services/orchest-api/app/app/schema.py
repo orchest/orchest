@@ -75,18 +75,18 @@ projects = Model(
 service = Model(
     "Service",
     {
-        "image": fields.String(required=True, description="Image of the service"),
         "name": fields.String(required=True, description="Name of the service"),
-        "command": fields.String(required=False, description="Docker command"),
-        "entrypoint": fields.String(required=False, description="Docker entrypoint"),
-        "ports": fields.List(
-            fields.String, required=True, description="List of service exposed ports"
-        ),
+        "image": fields.String(required=True, description="Image of the service"),
         "scopes": fields.List(
             fields.String, required=True, description="interactive/noninteractive"
         ),
+        "command": fields.String(required=False, description="Docker command"),
+        "entrypoint": fields.String(required=False, description="Docker entrypoint"),
+        "ports": fields.List(
+            fields.String, required=False, description="List of service exposed ports"
+        ),
         "env_variables": fields.Raw(
-            required=True,
+            required=False,
             description=(
                 "Environment variables of the service, supersedes environment "
                 "inherited variables"
@@ -94,7 +94,7 @@ service = Model(
         ),
         "env_variables_inherit": fields.List(
             fields.String,
-            required=True,
+            required=False,
             description=(
                 "List of env vars to inherit from project and pipeline env vars"
             ),

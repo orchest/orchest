@@ -68,6 +68,21 @@ def send_env_build_cancel(app, uuid):
     send_event(app, "environment-build cancel", props)
 
 
+def anonymize_service(service):
+    service = copy.deepcopy(service)
+    service.pop("command", None)
+    service.pop("entrypoint", None)
+    service.pop("env_variables", None)
+    service.pop("env_variables_inherit", None)
+
+    binds = service.get("binds", {})
+    # Maps source to the depth of the target directory.
+    for source, target in list(binds.items()):
+        binds[source] = len(os.path.normpath(target).split(os.sep))
+
+    return service
+
+
 def send_anonymized_pipeline_definition(app, pipeline):
     """Sends anonymized pings of an anonymized pipeline definition.
 
@@ -111,6 +126,10 @@ def send_anonymized_pipeline_definition(app, pipeline):
         env = step.get("environment", "")
         if len(env):
             environments.add(env)
+
+    services = pipeline.get("services", {})
+    for sname, sdef in list(services.items()):
+        services[sname] = anonymize_service(sdef)
 
     send_event(
         app,
@@ -214,10 +233,16 @@ def check_active(app):
 
 
 def send_session_start(app, session_config):
+
+    services = {
+        sname: anonymize_service(sdef)
+        for sname, sdef in session_config.get("services", {}).items()
+    }
+
     props = {
         "project_uuid": session_config["project_uuid"],
         "pipeline_uuid": session_config["pipeline_uuid"],
-        "services_count": len(session_config["services"]),
+        "services": services,
     }
     send_event(app, "session start", props)
 

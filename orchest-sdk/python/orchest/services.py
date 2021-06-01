@@ -75,7 +75,7 @@ def get_service(name) -> Dict[str, List[Any]]:
     """
     pipeline = _get_pipeline()
 
-    services = pipeline.properties.get("services")
+    services = pipeline.properties.get("services", {})
     if name in services:
         return _generate_urls(services[name], pipeline)
 
@@ -95,7 +95,7 @@ def get_services() -> Dict[str, Dict[str, List[Any]]]:
 
     services = {}
 
-    for service in pipeline.properties.get("services"):
+    for service in pipeline.properties.get("services", {}):
         services[service["name"]] = _generate_urls(service, pipeline)
 
     return services
