@@ -9,8 +9,8 @@ Prerequisites
 * Docker: https://docs.docker.com/get-docker/
 * pre-commit: https://pre-commit.com/#installation
 
-Building
---------
+Building Orchest
+----------------
 Since Orchest is a fully containerized application you will first have to build the containers.
 
 .. code-block:: bash
@@ -68,16 +68,13 @@ development mode.
    giveaway is that a Vite start runs on ports other than ``3000/3001``). To fix the issue, run
    ``killall node`` and restart Vite.
 
-Updating the docs
+Building the docs
 -----------------
 
 Our docs are handled by `Read the Docs
-<https://docs.readthedocs.io/>`_ with Sphinx.
+<https://docs.readthedocs.io/>`_ with Sphinx and written in `reStructuredText`.
 
-Content can be written in `.md` or `.rst` – whatever you feel meets the specific
-needs of your content.
-
-To update, run:
+To build the docs, run:
 
 .. code-block:: bash
 
