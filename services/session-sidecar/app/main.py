@@ -20,11 +20,7 @@ def get_service_log_file_path(service):
 
 def create_log_dir():
     log_dir_path = get_log_dir_path()
-    if not os.path.exists(log_dir_path):
-        try:
-            os.makedirs(log_dir_path)
-        except OSError as exc:
-            raise exc
+    os.makedirs(log_dir_path, exist_ok=True)
 
 
 def get_service_name_from_log(log_line):

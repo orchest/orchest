@@ -84,12 +84,12 @@ def get_service(name) -> Dict[str, List[Any]]:
 
     services = pipeline.properties.get("services")
     if name in services:
-        return _generate_urls(services["name"], pipeline)
+        return _generate_urls(services[name], pipeline)
 
     raise ServiceNotFound("Could not find service with name %s" % name)
 
 
-def get_services() -> List[Dict[str, List[Any]]]:
+def get_services() -> Dict[str, Dict[str, List[Any]]]:
     """Gets the services of the pipeline.
 
     Returns:

@@ -99,9 +99,6 @@ service = Model(
                 "List of env vars to inherit from project and pipeline env vars"
             ),
         ),
-        "project_directory": fields.List(
-            fields.String, required=True, description="List of service exposed ports"
-        ),
         "binds": fields.Raw(
             required=False, description=("Local fs to container mappings")
         ),

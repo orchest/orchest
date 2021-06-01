@@ -237,10 +237,10 @@ def start_non_interactive_pipeline_run(
     host_userdir = run_config["host_user_dir"]
     host_base_user_dir = os.path.split(host_userdir)[0]
 
-    # To join the paths, the `run_dir` cannot start with `/userdir/...`
-    # but should start as `userdir/...`
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
+    # To join the paths, the `run_dir` cannot start with `/userdir/...`
+    # but should start as `userdir/...`
     run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config["run_endpoint"] = f"jobs/{job_uuid}"
 
