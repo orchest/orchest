@@ -54,6 +54,9 @@ class TCPHandler(socketserver.StreamRequestHandler):
         with open(get_service_log_file_path(service_name), "w") as log_file:
             # Used by the log_streamer.py to infer that a new session
             # has started, i.e. the previous logs can be discarded.
+            # The file streamer has this contract to understand that
+            # some logs belong to a different session, i.e. different
+            # UUID implies different session.
             log_file.write("%s\n" % str(uuid.uuid4()))
             log_file.flush()
 
