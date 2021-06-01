@@ -1,15 +1,13 @@
 import React from "react";
 import PipelineView from "./PipelineView";
+import LogViewer from "../components/LogViewer";
 import {
   makeRequest,
   PromiseManager,
   makeCancelable,
-  RefManager,
 } from "@orchest/lib-utils";
 
-import { XTerm } from "xterm-for-react";
-import { FitAddon } from "xterm-addon-fit";
-
+import io from "socket.io-client";
 import {
   MDCButtonReact,
   MDCLinearProgressReact,
@@ -24,21 +22,34 @@ class LogsView extends React.Component {
   constructor(props, context) {
     super(props, context);
 
-    this.state = {};
-    this.fitAddon = new FitAddon();
+    this.state = {
+      selectedLog: undefined,
+    };
+
     this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
+
+    this.connectSocketIO();
   }
 
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
+    this.disconnectSocketIO();
   }
 
   componentDidMount() {
     this.fetchPipeline();
   }
 
-  componentDidUpdate(prevProps) {}
+  connectSocketIO() {
+    // disable polling
+    this.sio = io.connect("/pty", { transports: ["websocket"] });
+  }
+
+  disconnectSocketIO() {
+    if (this.sio) {
+      this.sio.disconnect();
+    }
+  }
 
   setHeaderComponent(pipelineName) {
     this.context.dispatch({
@@ -74,6 +85,13 @@ class LogsView extends React.Component {
         this.setState({
           pipelineJson: pipelineJson,
         });
+
+        // set first step as selectedLog
+        if (pipelineJson.steps && Object.keys(pipelineJson.steps)) {
+          this.setState({
+            selectedLog: Object.keys(pipelineJson.steps)[0],
+          });
+        }
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -93,7 +111,11 @@ class LogsView extends React.Component {
     });
   }
 
-  clickLog(event, item) {}
+  clickLog(event, item) {
+    this.setState({
+      selectedLog: item.step.uuid,
+    });
+  }
 
   render() {
     let rootView = undefined;
@@ -104,7 +126,8 @@ class LogsView extends React.Component {
       for (let key of Object.keys(this.state.pipelineJson.steps)) {
         let step = this.state.pipelineJson.steps[key];
         steps.push({
-          icon: "panorama_fish_eye",
+          icon: "circle",
+          step: step,
           label: (
             <>
               <span className="log-title">{step.title}</span>
@@ -145,7 +168,17 @@ class LogsView extends React.Component {
             />
           </div>
           <div className="logs-xterm-holder">
-            <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
+            {this.state.selectedLog && (
+              <LogViewer
+                key={this.state.selectedLog}
+                sio={this.sio}
+                step_uuid={this.state.selectedLog}
+                pipeline_uuid={this.props.queryArgs.pipeline_uuid}
+                project_uuid={this.props.queryArgs.project_uuid}
+                job_uuid={this.props.queryArgs.job_uuid}
+                run_uuid={this.props.queryArgs.run_uuid}
+              />
+            )}
           </div>
 
           <div className="top-buttons">

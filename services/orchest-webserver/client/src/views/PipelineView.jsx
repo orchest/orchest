@@ -219,6 +219,8 @@ class PipelineView extends React.Component {
       type: "clearView",
     });
 
+    this.disconnectSocketIO();
+
     $(document).off("mouseup.initializePipeline");
     $(document).off("keyup.initializePipeline");
     $(document).off("keydown.initializePipeline");
@@ -671,6 +673,12 @@ class PipelineView extends React.Component {
   connectSocketIO() {
     // disable polling
     this.sio = io.connect("/pty", { transports: ["websocket"] });
+  }
+
+  disconnectSocketIO() {
+    if (this.sio) {
+      this.sio.disconnect();
+    }
   }
 
   getConnectionByUUIDs(startNodeUUID, endNodeUUID) {

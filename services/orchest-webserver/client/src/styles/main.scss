@@ -288,7 +288,7 @@ a.button {
         width: 20%;
         min-width: 250px;
         max-width: 400px;
-        padding: var(--space-5);
+        padding: calc(var(--space-5) / 2);
         display: flex;
         flex-direction: column;
         border-right: 1px solid $borderColor;
@@ -298,6 +298,10 @@ a.button {
           border: 0;
           padding: 0;
           flex: 1;
+
+          .mdc-list-item__graphic {
+            margin-right: 12px;
+          }
 
           .mdc-list-item {
             height: 56px;
