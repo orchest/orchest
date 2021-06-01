@@ -642,7 +642,7 @@ def _get_user_services_specs(
     pipeline_uuid = session_config["pipeline_uuid"]
     project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
-    services = session_config["services"]
+    services = session_config.get("services", {})
 
     specs = {}
 

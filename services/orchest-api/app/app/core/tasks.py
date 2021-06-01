@@ -257,7 +257,7 @@ def start_non_interactive_pipeline_run(
     session_config.pop("env_uuid_docker_id_mappings")
     session_config.pop("run_endpoint")
     session_config["host_userdir"] = host_userdir
-    session_config["services"] = pipeline_definition["services"]
+    session_config["services"] = pipeline_definition.get("services", {})
 
     with launch_noninteractive_session(
         docker_client,

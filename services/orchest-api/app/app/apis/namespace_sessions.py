@@ -163,6 +163,12 @@ class CreateInteractiveSession(TwoPhaseFunction):
             "project_uuid": session_config["project_uuid"],
             "pipeline_uuid": session_config["pipeline_uuid"],
             "status": "LAUNCHING",
+            # NOTE: the definition of a service is currently
+            # persisted to disk and considered to be versioned,
+            # meaning that nothing in there is considered to be
+            # secret. If this changes, this dictionary needs to
+            # have secrets removed.
+            "user_services": session_config.get("services", {}),
         }
         db.session.add(models.InteractiveSession(**interactive_session))
 
@@ -190,12 +196,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
                     "container_ids": session.get_container_IDs(),
                     "jupyter_server_ip": IP.jupyter_server,
                     "notebook_server_info": session.notebook_server_info,
-                    # NOTE: the definition of a service is currently
-                    # persisted to disk and considered to be versioned,
-                    # meaning that nothing in there is considered to be
-                    # secret. If this changes, this dictionary needs to
-                    # have secrets removed.
-                    "user_services": session_config["services"],
                 }
 
                 models.InteractiveSession.query.filter_by(
