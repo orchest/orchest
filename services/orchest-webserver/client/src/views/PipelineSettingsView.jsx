@@ -565,6 +565,8 @@ class PipelineSettingsView extends React.Component {
                         for (let [name, service] of Object.entries(
                           parsedServices
                         )) {
+                          // NOTE: this is enforced at the API level as
+                          // well, needs to be kept in sync.
                           let nameReg = /^[0-9a-zA-Z\-]{1,36}$/;
                           if (!service.name || !nameReg.test(service.name)) {
                             message =
