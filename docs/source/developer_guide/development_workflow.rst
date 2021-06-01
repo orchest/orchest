@@ -63,6 +63,31 @@ branches) to the appropriate paths in the Docker containers. This allows for act
 being reflected inside the application. With ``--dev`` the Flask applications are run in
 development mode.
 
+.. tip::
+   If the development mode hangs it's likely that Vite has left a daemon running that is stuck (the
+   giveaway is that a Vite start runs on ports other than ``3000/3001``). To fix the issue, run
+   ``killall node`` and restart Vite.
+
+Updating the docs
+-----------------
+
+Our docs are handled by `Read the Docs
+<https://docs.readthedocs.io/>`_ with Sphinx.
+
+Content can be written in `.md` or `.rst` – whatever you feel meets the specific
+needs of your content.
+
+To update, run:
+
+.. code-block:: bash
+
+   cd docs
+
+   # First time setup
+   python3 -m pip install -r requirements.txt
+
+   # Build
+   make html
 
 .. _before committing:
 
@@ -85,24 +110,3 @@ Run formatters, linters and tests with:
 
     pre-commit run
     scripts/run_tests.sh
-
-Updating the docs
------------------
-
-Our docs are handled by `Read the Docs
-<https://docs.readthedocs.io/>`_ with Sphinx.
-
-Content can be written in `.md` or `.rst` – whatever you feel meets the specific
-needs of your content.
-
-To update, run:
-
-.. code-block:: bash
-
-   cd docs
-
-   # First time setup
-   python3 -m pip install -r requirements.txt
-
-   # Build
-   make html
