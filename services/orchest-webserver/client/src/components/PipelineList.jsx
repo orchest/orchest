@@ -218,7 +218,7 @@ class PipelineList extends React.Component {
         });
       })
       .catch((response) => {
-        if (!e.isCanceled) {
+        if (!response.isCanceled) {
           try {
             let data = JSON.parse(response.body);
             orchest.alert(

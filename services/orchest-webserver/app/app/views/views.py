@@ -298,6 +298,11 @@ def register_views(app, db):
                 CreatePipeline(tpe).transaction(
                     project_uuid, pipeline_name, pipeline_path
                 )
+        except FileExistsError:
+            return (
+                jsonify({"message": "A pipeline with the given path already exists."}),
+                400,
+            )
         except Exception as e:
             return jsonify({"message": str(e)}), 409
 
