@@ -2326,16 +2326,16 @@ class PipelineView extends React.Component {
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={this.openSettings.bind(this)}
-                label={"Settings"}
-                icon="tune"
+                onClick={this.openLogs.bind(this)}
+                label={"Logs"}
+                icon="view_headline"
               />
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={this.openLogs.bind(this)}
-                label={"Logs"}
-                icon="view_headline"
+                onClick={this.openSettings.bind(this)}
+                label={"Settings"}
+                icon="tune"
               />
             </div>
 

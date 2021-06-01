@@ -15,7 +15,7 @@ import {
   MDCLinearProgressReact,
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/hooks/orchest";
+import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 
 class LogsView extends React.Component {
@@ -25,7 +25,6 @@ class LogsView extends React.Component {
     super(props, context);
 
     this.state = {};
-
     this.fitAddon = new FitAddon();
     this.promiseManager = new PromiseManager();
     this.refManager = new RefManager();
@@ -101,20 +100,39 @@ class LogsView extends React.Component {
 
     if (this.state.pipelineJson) {
       let steps = [];
-      let services = [];
 
       for (let key of Object.keys(this.state.pipelineJson.steps)) {
         let step = this.state.pipelineJson.steps[key];
         steps.push({
-          icon: "text_snippet",
+          icon: "panorama_fish_eye",
           label: (
             <>
               <span className="log-title">{step.title}</span>
               <br />
-              <span>({step.file_path})</span>
+              <span>{step.file_path}</span>
             </>
           ),
         });
+      }
+
+      let services = [];
+      const session = this.context.get.session(this.props.queryArgs);
+
+      if (session && session.user_services) {
+        for (let key of Object.keys(session.user_services)) {
+          let service = session.user_services[key];
+
+          services.push({
+            icon: "settings",
+            label: (
+              <>
+                <span className="log-title">{service.name}</span>
+                <br />
+                <span>{service.image}</span>
+              </>
+            ),
+          });
+        }
       }
 
       rootView = (
@@ -143,7 +161,11 @@ class LogsView extends React.Component {
       rootView = <MDCLinearProgressReact />;
     }
 
-    return <div className="view-page no-padding logs-view">{rootView}</div>;
+    return (
+      <OrchestSessionsConsumer>
+        <div className="view-page no-padding logs-view">{rootView}</div>
+      </OrchestSessionsConsumer>
+    );
   }
 }
 
