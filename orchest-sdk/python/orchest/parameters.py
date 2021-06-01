@@ -114,7 +114,7 @@ def update_step_param(name: str, value: Any) -> None:
         name: The step parameter to update/set.
         value: The value that will be set.
     """
-    update_params(step_params={name: value})
+    return update_params(step_params={name: value})
 
 
 def update_pipeline_param(name: str, value: Any) -> None:
@@ -132,4 +132,4 @@ def update_pipeline_param(name: str, value: Any) -> None:
         since different steps could be updating pipeline parameters at
         the same time.
     """
-    update_params(pipeline_params={name: value})
+    return update_params(pipeline_params={name: value})
