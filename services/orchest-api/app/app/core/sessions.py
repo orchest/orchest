@@ -648,8 +648,8 @@ def _get_services_specs(
 
     for service_name, service in services.items():
 
-        # Skip if a scope is defined, and doesn't match session_type
-        if "scope" in service and session_type.value not in service["scope"]:
+        # Skip if service_scope does not include this type of session.
+        if session_type.value not in service["scope"]:
             continue
 
         container_name = (
@@ -693,7 +693,7 @@ def _get_services_specs(
         environment = environment.update(service.get("env_variables", {}))
 
         mounts = []
-        sbinds = service["binds"]
+        sbinds = service.get("binds", {})
         # Can be later extended into adding a Mount for every "custom"
         # key, e.g. key != data and key != project_directory.
         if "/data" in sbinds:
