@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import useSWR, { cache } from "swr";
+import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import { useOrchest } from "./context";
 import { isSession } from "./utils";
@@ -8,168 +8,79 @@ import { isSession } from "./utils";
 /**
  * @typedef {import("@/types").IOrchestSessionUuid } IOrchestSessionUuid
  * @typedef {import("@/types").IOrchestSession} IOrchestSession
+ * @typedef {IOrchestSession['status']} TSessionStatus
  */
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
 
-/** @param {IOrchestSessionUuid} props */
-const getSessionEndpoint = ({ pipeline_uuid, project_uuid }) =>
-  [
-    ENDPOINT,
-    "?project_uuid=",
-    project_uuid,
-    "&pipeline_uuid=",
-    pipeline_uuid,
-  ].join("");
+/* Matchers
+  =========================================== */
 
-/**
- * @param {IOrchestSessionUuid} props
- */
+/**  @param {TSessionStatus} status */
+const isLaunchable = (status) => !status;
+
+/**  @param {TSessionStatus} status */
+const isStoppable = (status) => ["RUNNING", "LAUNCHING"].includes(status);
+
+/**  @param {TSessionStatus} status */
+const isWorking = (status) => ["LAUNCHING", "STOPPING"].includes(status);
+
+/* Fetchers
+  =========================================== */
+
+/**  @param {IOrchestSessionUuid} props */
 const stopSession = ({ pipeline_uuid, project_uuid }) =>
   fetcher([ENDPOINT, project_uuid, "/", pipeline_uuid].join(""), {
     method: "DELETE",
   });
 
-/**
- * SessionsProvider
- */
-export const SessionsProvider = ({ children }) => {
-  const { state, dispatch } = useOrchest();
-  const [isPolling, setIsPolling] = React.useState(false);
+/* Provider
+  =========================================== */
 
-  const sessionsToFetch = state?._sessionsUuids;
+export const OrchestSessionsProvider = ({ children }) => {
+  const { state, dispatch } = useOrchest();
+
+  const { _sessionsIsPolling } = state;
 
   /**
-   * SWR is designed to fetch data from endpoints in a parallel/async manner,
-   * but as our flask server only supports one request at-a-time in dev mode we
-   * have to do things slightly differently
+   * Use SWR to fetch and cache the data from our sessions endpoint
    *
-   * Our implementation works as follows:
-   * 1. Creates a unique cache key for *all* our current sessions
-   * 2. Uses Promise.all to batch *all* responses into a single sessions array.
+   * Note: the endpoint does **not** return `STOPPED` sessions. This is handled
+   * in a later side-effect.
    */
-
-  /* [1] */
-  const sessionsKey = [
-    ENDPOINT,
-    sessionsToFetch
-      ?.map((session) => Object.keys(session).map((key) => session[key]))
-      .toString(),
-  ].join("");
-
-  const { data, mutate, error } = useSWR(
-    sessionsToFetch ? sessionsKey : null,
-    () => {
-      const cachedSessions = cache.get(sessionsKey);
-      /* [2] */
-      return Promise.all(
-        sessionsToFetch.map(({ pipeline_uuid, project_uuid }) => {
-          const key = getSessionEndpoint({ pipeline_uuid, project_uuid });
-
-          const cachedSession = cachedSessions?.find((session) =>
-            isSession(session, { pipeline_uuid, project_uuid })
-          );
-
-          /* Ensure only "LAUNCHING" and "STOPPING" statuses are polled */
-          if (["RUNNING", "STOPPED"].includes(cachedSession?.status)) {
-            return cachedSession;
-          }
-
-          return fetcher(key)
-            .then((value) =>
-              value?.sessions?.length > 0
-                ? value.sessions[0]
-                : { pipeline_uuid, project_uuid, status: "STOPPED" }
-            )
-            .catch((e) => {
-              console.error(e);
-            });
-        })
-      ).then(
-        /** @param {IOrchestSession[]} values */
-        (values) => values
-      );
-    },
-    {
-      onSuccess: (values) => {
-        const hasWorkingSession = values.find((value) =>
-          ["LAUNCHING", "STOPPING"].includes(value.status)
-        );
-
-        const shouldPoll =
-          typeof hasWorkingSession === "undefined" ? false : true;
-
-        setIsPolling(shouldPoll);
-      },
-      refreshInterval: isPolling ? 1000 : 0,
-    }
-  );
+  const { data, mutate, error } = useSWR(ENDPOINT, fetcher, {
+    refreshInterval: _sessionsIsPolling ? 1000 : 0,
+  });
+  const isLoading = !data && !error;
+  const isLoaded = !isLoading;
 
   if (error) {
-    console.error("Unable to fetch sessions");
+    console.error("Unable to fetch sessions", error);
   }
 
   /**
-   * Push SWR sessions to the Orchest Context
+   * SYNC
+   *
+   * Push SWR changes to Orchest Context when at least one session exists
    */
   React.useEffect(() => {
-    dispatch({ type: "_sessionsSet", payload: data });
-  }, [data]);
-
-  /**
-   * Handle `sessionsKillAll`
-   */
-  React.useEffect(() => {
-    if (state.sessionsKillAllInProgress !== true) return;
-
-    fetcher(ENDPOINT)
-      .then((values) => {
-        if (!values.sessions) {
-          return;
-        }
-
-        mutate(
-          values.sessions.map((sessionValue) => ({
-            ...sessionValue,
-            status: ["STOPPED", "STOPPING"].includes(sessionValue?.status)
-              ? sessionValue.status
-              : "STOPPING",
-          })),
-          false
-        );
-
-        Promise.all(
-          values.sessions.map((sessionData) => stopSession(sessionData))
-        )
-          .then(() => {
-            mutate();
-
-            dispatch({
-              type: "_sessionsKillAllClear",
-            });
-          })
-          .catch((err) => {
-            console.error("Unable to stop all sessions", err);
-            dispatch({
-              type: "_sessionsKillAllClear",
-            });
-          });
-      })
-      .catch((err) => {
-        console.error("Unable to stop all sessions", err);
-        dispatch({
-          type: "_sessionsKillAllClear",
-        });
-      });
-  }, [state.sessionsKillAllInProgress]);
-
-  /**
-   * Handle Toggle Events
-   */
-  React.useEffect(() => {
-    const session = data?.find((dataSession) => {
-      return isSession(dataSession, state?._sessionsToggle);
+    dispatch({
+      type: "_sessionsSet",
+      payload: { sessions: data?.sessions || [], sessionsIsLoading: isLoading },
     });
+  }, [data, isLoading]);
+
+  /**
+   * TOGGLE
+   */
+  React.useEffect(() => {
+    /* If the session doesn't exist in the cache, use the toggle payload */
+    const session =
+      (isLoaded &&
+        data?.sessions?.find((dataSession) =>
+          isSession(dataSession, state?._sessionsToggle)
+        )) ||
+      state?._sessionsToggle;
 
     if (!session) {
       dispatch({ type: "_sessionsToggleClear" });
@@ -177,28 +88,30 @@ export const SessionsProvider = ({ children }) => {
     }
 
     /**
-     * Any cache mutations must be made with this helper to ensure we're only
-     * mutating the requested session
+     * Any session-specific cache mutations must be made with this helper to
+     * ensure we're only mutating the requested session
      * @param {Partial<IOrchestSession>} [newSessionData]
      * @param {boolean} [shouldRevalidate]
      * @returns
      */
     const mutateSession = (newSessionData, shouldRevalidate) =>
       mutate(
-        (sessionsData) =>
-          newSessionData &&
-          sessionsData.map((sessionData) =>
-            isSession(session, sessionData)
-              ? { ...sessionData, ...newSessionData }
-              : sessionData
-          ),
+        (cachedData) =>
+          newSessionData && {
+            ...cachedData,
+            sessions: cachedData?.sessions.map((sessionData) =>
+              sessionData && isSession(session, sessionData)
+                ? { ...sessionData, ...newSessionData }
+                : sessionData
+            ),
+          },
         shouldRevalidate
       );
 
     /**
      * LAUNCH
      */
-    if (!session.status || session.status === "STOPPED") {
+    if (isLaunchable(session.status)) {
       mutateSession({ status: "LAUNCHING" }, false);
 
       fetcher(ENDPOINT, {
@@ -235,7 +148,7 @@ export const SessionsProvider = ({ children }) => {
      * Note: Our UI should prevent users from ever seeing this error – e.g. by
      * disabling buttons – but it's here just in case.
      */
-    if (["STARTING", "STOPPING"].includes(session.status)) {
+    if (isWorking(session.status)) {
       dispatch({
         type: "alert",
         payload: [
@@ -254,11 +167,11 @@ export const SessionsProvider = ({ children }) => {
     /**
      * DELETE
      */
-    if (session.status === "RUNNING") {
+    if (isStoppable(session.status)) {
       mutateSession({ status: "STOPPING" }, false);
 
       stopSession(session)
-        .then(() => mutateSession())
+        .then(() => mutate())
         .catch((err) => {
           if (err?.message === "MemoryServerRestartInProgress") {
             dispatch({
@@ -277,6 +190,72 @@ export const SessionsProvider = ({ children }) => {
 
     dispatch({ type: "_sessionsToggleClear" });
   }, [state._sessionsToggle]);
+
+  /**
+   * DELETE ALL
+   */
+  React.useEffect(() => {
+    if (state.sessionsKillAllInProgress !== true || !data) return;
+
+    // Mutate `isStoppable` sessions to "STOPPING"
+    mutate(
+      (cachedData) => ({
+        ...cachedData,
+        sessions: cachedData?.sessions.map((sessionValue) => ({
+          ...sessionValue,
+          status: isStoppable(sessionValue.status)
+            ? "STOPPING"
+            : sessionValue.status,
+        })),
+      }),
+      false
+    );
+
+    // Send delete requests for `isStoppable` sessions
+    Promise.all(
+      data?.sessions
+        .filter((sessionData) => isStoppable(sessionData.status))
+        .map((sessionData) => stopSession(sessionData))
+    )
+      .then(() => {
+        mutate();
+        dispatch({
+          type: "_sessionsKillAllClear",
+        });
+      })
+      .catch((err) => {
+        console.error("Unable to stop all sessions", err);
+        dispatch({
+          type: "_sessionsKillAllClear",
+        });
+      });
+  }, [state.sessionsKillAllInProgress]);
+
+  return <React.Fragment>{children}</React.Fragment>;
+};
+
+/* Consumer
+  =========================================== */
+
+/**
+ * OrchestSessionsConsumer
+ *
+ * In an ideal scenario, we'd just use the SWR hook directly to only trigger
+ * polling where it's used. Unfortunately, that's not an option until all of our
+ * codebase has moved away from class-based components.
+ *
+ * In the meantime, we'll wrap this Component around session-dependent views or
+ * components to explicitly trigger polling.
+ */
+export const OrchestSessionsConsumer = ({ children }) => {
+  const { dispatch } = useOrchest();
+
+  React.useEffect(() => {
+    dispatch({ type: "_sessionsPollingStart" });
+    return () => {
+      dispatch({ type: "_sessionsPollingClear" });
+    };
+  }, []);
 
   return <React.Fragment>{children}</React.Fragment>;
 };

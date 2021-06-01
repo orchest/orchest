@@ -13,7 +13,7 @@ import {
   MDCTabBarReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/hooks/orchest";
+import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
@@ -825,7 +825,11 @@ class PipelineSettingsView extends React.Component {
       rootView = <MDCLinearProgressReact />;
     }
 
-    return <div className="view-page pipeline-settings-view">{rootView}</div>;
+    return (
+      <OrchestSessionsConsumer>
+        <div className="view-page pipeline-settings-view">{rootView}</div>
+      </OrchestSessionsConsumer>
+    );
   }
 }
 

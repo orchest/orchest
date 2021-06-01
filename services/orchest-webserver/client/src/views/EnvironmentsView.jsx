@@ -4,6 +4,10 @@ import { useOrchest } from "@/hooks/orchest";
 import EnvironmentList from "../components/EnvironmentList";
 import ProjectBasedView from "../components/ProjectBasedView";
 
+/**
+ * @param {Object} props
+ * @param { import('../types').IOrchestState['project_uuid'] } props.project_uuid
+ */
 const EnvironmentsView = (props) => {
   const { dispatch } = useOrchest();
 

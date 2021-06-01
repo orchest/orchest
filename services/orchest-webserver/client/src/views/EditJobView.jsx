@@ -11,6 +11,7 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
+import { DescriptionList } from "../components/DescriptionList";
 import ParameterEditor from "../components/ParameterEditor";
 import CronScheduleInput from "../components/CronScheduleInput";
 import DateTimeInput from "../components/DateTimeInput";
@@ -679,17 +680,16 @@ class EditJobView extends React.Component {
 
       rootView = (
         <Fragment>
-          <div className="columns top-labels">
-            <div className="column">
-              <label>Job</label>
-              <h3>{this.state.job.name}</h3>
-            </div>
-            <div className="column">
-              <label>Pipeline</label>
-              <h3>{this.state.pipeline.name}</h3>
-            </div>
-            <div className="clear"></div>
-          </div>
+          <DescriptionList
+            gap="5"
+            columnGap="10"
+            columns={{ initial: 1, "@lg": 2 }}
+            css={{ marginBottom: "$5" }}
+            items={[
+              { term: "Job", details: this.state.job.name },
+              { term: "pipeline", details: this.state.pipeline.name },
+            ]}
+          />
 
           <MDCTabBarReact
             selectedIndex={this.state.selectedTabIndex}
