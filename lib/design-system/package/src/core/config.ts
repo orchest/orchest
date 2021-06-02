@@ -135,7 +135,11 @@ export const stitches = createCss({
     },
     radii: {
       sm: "0.25rem",
+      md: "0.375rem",
       rounded: "9999px",
+    },
+    shadows: {
+      "2xl": "0 25px 50px -12px rgba(0,0,0,0.25)",
     },
   },
   media: {

@@ -11,6 +11,9 @@ import {
   Box,
   IconChevronLeft,
   LogoBrand,
+  Dialog,
+  DialogContent,
+  DialogTrigger,
 } from "@orchest/design-system";
 
 const Index = () => (
@@ -105,6 +108,11 @@ const Index = () => (
         "Private git repositories can be managed in Orchest using local git credentials.",
       ]}
     />
+    <h3>Dialog</h3>
+    <Dialog>
+      <DialogTrigger>Open Dialog</DialogTrigger>
+      <DialogContent>Test</DialogContent>
+    </Dialog>
     <h3>Flex</h3>
     <Text>A basic flex-layout primitive</Text>
     <Flex
