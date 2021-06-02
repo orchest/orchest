@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import socket
 import time
@@ -14,6 +13,7 @@ import docker
 import requests
 from docker.errors import APIError, ContainerError, NotFound
 from docker.types import LogConfig, Mount
+from flask import current_app
 
 from _orchest.internals import config as _config
 from app import errors, utils
@@ -185,7 +185,9 @@ class Session:
                 container = self.client.containers.run(**orchest_services[resource])
                 self._containers[resource] = container
             except Exception as e:
-                logging.error("Failed to start container %s [%s]." % (e, type(e)))
+                current_app.logger.error(
+                    "Failed to start container %s [%s]." % (e, type(e))
+                )
                 raise errors.SessionContainerError(
                     "Could not start required containers."
                 )
@@ -224,14 +226,16 @@ class Session:
                 container = self.client.containers.run(**service_spec)
                 self._containers[service_name] = container
             except Exception as e:
-                logging.error(
+                current_app.logger.error(
                     "Failed to start user service container %s [%s]." % (e, type(e))
                 )
                 try:
                     container = self.client.containers.get(service_spec["name"])
                     container.remove(force=True)
                 except NotFound:
-                    logging.warning("Did not find dangling user service container.")
+                    current_app.logger.warning(
+                        "Did not find dangling user service container."
+                    )
 
                 # Necessary because the docker container won't emit any
                 # logs for SDK level errors.
@@ -283,7 +287,7 @@ class Session:
                 APIError,
                 ContainerError,
             ) as e:
-                logging.error(
+                current_app.logger.error(
                     "Failed to kill/remove session container %s [%s]" % (e, type(e))
                 )
 
@@ -375,7 +379,7 @@ class InteractiveSession(Session):
 
         IP = self.get_containers_IP()
 
-        logging.info(
+        current_app.logger.info(
             "Starting Jupyter Server on %s with Enterprise "
             "Gateway on %s" % (IP.jupyter_server, IP.jupyter_EG)
         )
@@ -625,7 +629,7 @@ def _get_user_services_specs(
         uuid: Some UUID to identify the session with. For interactive
             runs using the pipeline UUID is required, for non-
             interactive runs we recommend using the pipeline run UUID.
-        session_type: Type of session: interactive, or noninteractive,
+        session_type: Type of session: interactive, or noninteractive.
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
 
@@ -677,7 +681,9 @@ def _get_user_services_specs(
                 )
         except Exception as e:
 
-            logging.error("Failed to fetch user_env_variables: %s [%s]" % (e, type(e)))
+            current_app.logger.error(
+                "Failed to fetch user_env_variables: %s [%s]" % (e, type(e))
+            )
 
             traceback.print_exc()
 

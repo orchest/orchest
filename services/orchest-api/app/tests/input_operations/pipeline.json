@@ -3,7 +3,7 @@
     "uuid": "pipeline-uuid",
     "settings": {},
     "parameters": {},
-    "services": [],
+    "services": {},
     "steps": {
         "uuid-1": {
             "incoming_connections": [],
