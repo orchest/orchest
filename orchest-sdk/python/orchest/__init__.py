@@ -5,5 +5,5 @@ from orchest.parameters import (
     update_pipeline_param,
     update_step_param,
 )
-from orchest.services import get_service
+from orchest.services import get_service, get_services
 from orchest.transfer import get_inputs, output
