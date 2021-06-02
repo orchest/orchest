@@ -111,7 +111,11 @@ export const stitches = createCss({
     },
     radii: {
       sm: "0.25rem",
+      md: "0.375rem",
       rounded: "9999px",
+    },
+    shadows: {
+      "2xl": "0 25px 50px -12px rgba(0,0,0,0.25)",
     },
   },
   media: {
@@ -125,26 +129,21 @@ export const stitches = createCss({
   },
   utils: {
     include: mixins(),
-    inset: (config) => (
-      value:
-        | keyof typeof config["theme"]["space"]
-        | (string & {})
-        | (number & {})
-    ) => ({
-      top: value,
-      right: value,
-      bottom: value,
-      left: value,
-    }),
+    inset:
+      (config) =>
+      (
+        value:
+          | keyof typeof config["theme"]["space"]
+          | (string & {})
+          | (number & {})
+      ) => ({
+        top: value,
+        right: value,
+        bottom: value,
+        left: value,
+      }),
   },
 });
 
-export const {
-  styled,
-  css,
-  theme,
-  getCssString,
-  global,
-  keyframes,
-  config,
-} = stitches;
+export const { styled, css, theme, getCssString, global, keyframes, config } =
+  stitches;
