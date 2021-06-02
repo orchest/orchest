@@ -74,12 +74,8 @@ def anonymize_service(service):
     service.pop("entrypoint", None)
     service.pop("env_variables", None)
     service.pop("env_variables_inherit", None)
-
-    binds = service.get("binds", {})
-    # Maps source to the depth of the target directory.
-    for source, target in list(binds.items()):
-        binds[source] = len(os.path.normpath(target).split(os.sep))
-
+    binds = service.pop("binds", {})
+    service["binds_count"] = len(binds)
     return service
 
 

@@ -21,7 +21,6 @@ from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
     get_env_uuids_missing_image,
     get_proj_pip_env_variables,
-    is_service_name_valid,
     lock_environment_images_for_run,
     register_schema,
     update_status_db,
@@ -62,17 +61,6 @@ class JobList(Resource):
 
         try:
             post_data = request.get_json()
-
-            valid_service_names = all(
-                [
-                    is_service_name_valid(service)
-                    for service in post_data["pipeline_definition"].get("services", {})
-                ]
-            )
-            if not valid_service_names:
-                raise ValueError(
-                    "The pipeline definition contains invalid service " "names."
-                )
 
             scheduled_start = post_data.get("scheduled_start", None)
             cron_schedule = post_data.get("cron_schedule", None)

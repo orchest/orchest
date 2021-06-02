@@ -1,4 +1,3 @@
-import re
 import time
 from datetime import datetime
 from typing import Dict, List, Set
@@ -431,9 +430,3 @@ def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[st
         .env_variables
     )
     return {**project_env_vars, **pipeline_env_vars}
-
-
-def is_service_name_valid(service_name: str) -> bool:
-    # NOTE: this is enforced at the GUI level as well, needs to be kept
-    # in sync.
-    return bool(re.match(r"^[0-9a-zA-Z\-]{1,36}$", service_name))
