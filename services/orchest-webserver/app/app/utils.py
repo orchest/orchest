@@ -10,6 +10,7 @@ import requests
 from flask import Response, current_app
 
 from _orchest.internals import config as _config
+from _orchest.internals.utils import is_services_definition_valid
 from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -744,5 +745,8 @@ def check_pipeline_correctness(pipeline_json):
         re.match(r"^\d+(\.\d+)?\s*(KB|MB|GB)$", mem_size) is None
     ):
         invalid_entries["data_passing_memory_size"] = "invalid_value"
+
+    if not is_services_definition_valid(pipeline_json.get("services", {})):
+        invalid_entries["services"] = "invalid_value"
 
     return invalid_entries

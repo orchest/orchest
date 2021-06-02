@@ -14,7 +14,7 @@ from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 from app.errors import JupyterBuildInProgressException
-from app.utils import is_service_name_valid, register_schema
+from app.utils import register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)
@@ -54,16 +54,6 @@ class SessionList(Resource):
         ).one_or_none()
         if isess is not None:
             return {"message": "Session already exists."}, 409
-
-        valid_service_names = all(
-            [
-                is_service_name_valid(service)
-                for service in session_config.get("services", {})
-            ]
-        )
-        if not valid_service_names:
-            msg = "The pipeline definition contains invalid service names."
-            return {"message": msg}, 400
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:

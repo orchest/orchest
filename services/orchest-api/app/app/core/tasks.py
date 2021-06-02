@@ -261,6 +261,7 @@ def start_non_interactive_pipeline_run(
 
     with launch_noninteractive_session(
         docker_client,
+        self.request.id,
         session_config,
     ):
         status = run_pipeline(
