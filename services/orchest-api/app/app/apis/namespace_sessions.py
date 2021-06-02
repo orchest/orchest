@@ -1,3 +1,4 @@
+import time
 from typing import Any, Dict
 
 from flask import request
@@ -191,16 +192,27 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 # Update the database entry with information to connect
                 # to the launched resources.
                 IP = session.get_containers_IP()
-                status = {
-                    "status": "RUNNING",
-                    "container_ids": session.get_container_IDs(),
-                    "jupyter_server_ip": IP.jupyter_server,
-                    "notebook_server_info": session.notebook_server_info,
-                }
 
-                models.InteractiveSession.query.filter_by(
-                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-                ).update(status)
+                # with for update to avoid overwriting the state of a
+                # STOPPING instance.
+                session_entry = (
+                    models.InteractiveSession.query.with_for_update()
+                    .populate_existing()
+                    .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
+                    .one_or_none()
+                )
+                if session_entry is None:
+                    return
+
+                session_entry.container_ids = session.get_container_IDs()
+                session_entry.jupyter_server_ip = IP.jupyter_server
+                session_entry.notebook_server_info = session.notebook_server_info
+
+                # Do not overwrite the STOPPING status if the session is
+                # stopping.
+                if session_entry.status == "LAUNCHING":
+                    session_entry.status = "RUNNING"
+
                 db.session.commit()
             except Exception as e:
                 current_app.logger.error(e)
@@ -239,14 +251,23 @@ class StopInteractiveSession(TwoPhaseFunction):
         pipeline_uuid: str,
     ):
 
-        session = models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-        ).one_or_none()
+        # The with for update is to avoid a race condition where
+        # updating the status to STOPPING would overwrite a RUNNING
+        # status after reading the previous_state as LAUNCHING, which
+        # would then cause the collateral effect to wait the full time
+        # before shutting down the session.
+        session = (
+            models.InteractiveSession.query.with_for_update()
+            .populate_existing()
+            .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
+            .one_or_none()
+        )
         if session is None:
             self.collateral_kwargs["project_uuid"] = None
             self.collateral_kwargs["pipeline_uuid"] = None
             self.collateral_kwargs["container_ids"] = None
             self.collateral_kwargs["notebook_server_info"] = None
+            self.collateral_kwargs["previous_state"] = None
             return False
         else:
             # Abort interactive run if it was PENDING/STARTED.
@@ -258,6 +279,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             if run is not None:
                 AbortPipelineRun(self.tpe).transaction(run.uuid)
 
+            previous_state = session.status
             session.status = "STOPPING"
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
@@ -271,6 +293,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs[
                 "notebook_server_info"
             ] = session.notebook_server_info
+            self.collateral_kwargs["previous_state"] = previous_state
 
         return True
 
@@ -281,7 +304,8 @@ class StopInteractiveSession(TwoPhaseFunction):
         project_uuid: str,
         pipeline_uuid: str,
         container_ids: Dict[str, str],
-        notebook_server_info: Dict[str, str] = None,
+        notebook_server_info: Dict[str, str],
+        previous_state: str,
     ):
 
         # Note that a session that is still LAUNCHING should not be
@@ -290,6 +314,32 @@ class StopInteractiveSession(TwoPhaseFunction):
         # by the jupyterlab start script. See PR #254.
         with app.app_context():
             try:
+                # Wait for the session to be STARTED before killing it.
+                if previous_state == "LAUNCHING":
+                    n = 600
+                    for _ in range(n):
+                        session = models.InteractiveSession.query.filter_by(
+                            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                        ).one_or_none()
+                        # The session has been deleted because the
+                        # launch failed or because of another failure
+                        # reason.
+                        if session is None:
+                            return
+                        # We have to rely on the container ids and not
+                        # on status because a session that is STOPPED
+                        # while LAUNCHING will never reach a RUNNING
+                        # state because the background task will
+                        # explicitly avoid doing so.
+                        if session.container_ids is not None:
+                            container_ids = session.container_ids
+                            notebook_server_info = session.notebook_server_info
+                            break
+                        # Otherwise we will get an old version of
+                        # the session data.
+                        db.session.close()
+                        time.sleep(1)
+
                 session_obj = InteractiveSession.from_container_IDs(
                     docker_client,
                     container_IDs=container_ids,
@@ -324,7 +374,8 @@ class StopInteractiveSession(TwoPhaseFunction):
         project_uuid: str,
         pipeline_uuid: str,
         container_ids: Dict[str, str],
-        notebook_server_info: Dict[str, str] = None,
+        notebook_server_info: Dict[str, str],
+        previous_state: str,
     ):
         # Could be none when the _transaction call sets them to None
         # because there is no session to shutdown. This is a way that
@@ -341,6 +392,7 @@ class StopInteractiveSession(TwoPhaseFunction):
                 pipeline_uuid,
                 container_ids,
                 notebook_server_info,
+                previous_state,
             ],
         )
 

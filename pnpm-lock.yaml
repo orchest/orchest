@@ -109,7 +109,7 @@ importers:
     specifiers:
       "@orchest/lib-mdc": workspace:*
       "@orchest/lib-utils": workspace:*
-      "@vitejs/plugin-react-refresh": 1.3.1
+      "@vitejs/plugin-react-refresh": 1.3.3
       build: ^0.1.4
       esbuild: 0.8.44
       material-components-web: 10.0.0
@@ -119,7 +119,7 @@ importers:
       run: ^1.4.0
       sass: 1.32.8
       typescript: 4.2.4
-      vite: 2.1.5
+      vite: 2.3.3
     dependencies:
       "@orchest/lib-mdc": link:../../../lib/javascript/mdc
       "@orchest/lib-utils": link:../../../lib/javascript/utils
@@ -129,12 +129,12 @@ importers:
       react-dom: 16.13.1_react@16.13.1
       run: 1.4.0
     devDependencies:
-      "@vitejs/plugin-react-refresh": 1.3.1
+      "@vitejs/plugin-react-refresh": 1.3.3
       esbuild: 0.8.44
       npm-watch: 0.7.0
       sass: 1.32.8
       typescript: 4.2.4
-      vite: 2.1.5
+      vite: 2.3.3
 
   services/orchest-webserver/client:
     specifiers:
@@ -143,7 +143,7 @@ importers:
       "@orchest/lib-utils": workspace:*
       "@types/node": 15.0.1
       "@types/react": 17.0.3
-      "@vitejs/plugin-react-refresh": 1.3.1
+      "@vitejs/plugin-react-refresh": 1.3.3
       codemirror: ^5.55.0
       cron-parser: ^3.3.0
       cronstrue: ^1.108.0
@@ -159,11 +159,12 @@ importers:
       react: ^16.13.1
       react-codemirror2: ^7.2.1
       react-dom: ^16.13.1
+      react-minimal-pie-chart: 8.2.0
       sass: 1.32.8
       socket.io-client: ^2.3.0
       swr: 0.5.5
       typescript: 4.2.4
-      vite: 2.1.5
+      vite: 2.3.3
       vite-plugin-stitches: 0.0.1
       xterm-addon-fit: ^0.4.0
       xterm-for-react: ^1.0.4
@@ -184,20 +185,21 @@ importers:
       react: 16.13.1
       react-codemirror2: 7.2.1_codemirror@5.60.0+react@16.13.1
       react-dom: 16.13.1_react@16.13.1
+      react-minimal-pie-chart: 8.2.0_react-dom@16.13.1+react@16.13.1
       socket.io-client: 2.4.0
       swr: 0.5.5_react@16.13.1
-      vite-plugin-stitches: 0.0.1_vite@2.1.5
+      vite-plugin-stitches: 0.0.1_vite@2.3.3
       xterm-addon-fit: 0.4.0
       xterm-for-react: 1.0.4_react-dom@16.13.1+react@16.13.1
     devDependencies:
       "@types/node": 15.0.1
       "@types/react": 17.0.3
-      "@vitejs/plugin-react-refresh": 1.3.1
+      "@vitejs/plugin-react-refresh": 1.3.3
       esbuild: 0.8.44
       npm-watch: 0.7.0
       sass: 1.32.8
       typescript: 4.2.4
-      vite: 2.1.5
+      vite: 2.3.3
 
 packages:
   /@babel/code-frame/7.12.11:
@@ -1611,10 +1613,10 @@ packages:
       }
     dev: true
 
-  /@vitejs/plugin-react-refresh/1.3.1:
+  /@vitejs/plugin-react-refresh/1.3.3:
     resolution:
       {
-        integrity: sha512-VxHkrvOOTnMGWq9BveEN5ufmfDfaGxfawCymlKdF+X0RApCr0jQFzOyewhmSSCgGHjqnpRj+7TTDebjBkB3qhg==,
+        integrity: sha512-J3KFwSQKrEK7fgOwTx0PMTlsolZORUch6BswjsM50q+Y7zSvX1ROIRn+tK2VE8SCvbYRHtzEKFlYW3vsWyTosQ==,
       }
     engines: { node: ">=12.0.0" }
     dependencies:
@@ -2850,19 +2852,19 @@ packages:
     resolution: { integrity: sha1-wsNYJlYkfDnqEHyx5mUrb58kUjw= }
     dev: false
 
-  /esbuild/0.8.44:
+  /esbuild/0.11.23:
     resolution:
       {
-        integrity: sha512-m9yyBZMgWuAB7e7tA2g9L4PovoLa5Xb73+Yg9uBBR2w3Fe4P9/nxqj/HLrw1k/rjdjF1eX1kNJRytboqOtRCCQ==,
+        integrity: sha512-iaiZZ9vUF5wJV8ob1tl+5aJTrwDczlvGP0JoMmnpC2B0ppiMCu8n8gmy5ZTGl5bcG081XBVn+U+jP+mPFm5T5Q==,
       }
     hasBin: true
     requiresBuild: true
     dev: true
 
-  /esbuild/0.9.7:
+  /esbuild/0.8.44:
     resolution:
       {
-        integrity: sha512-VtUf6aQ89VTmMLKrWHYG50uByMF4JQlVysb8dmg6cOgW8JnFCipmz7p+HNBl+RR3LLCuBxFGVauAe2wfnF9bLg==,
+        integrity: sha512-m9yyBZMgWuAB7e7tA2g9L4PovoLa5Xb73+Yg9uBBR2w3Fe4P9/nxqj/HLrw1k/rjdjF1eX1kNJRytboqOtRCCQ==,
       }
     hasBin: true
     requiresBuild: true
@@ -4542,18 +4544,6 @@ packages:
       - typescript
     dev: false
 
-  /postcss/8.2.10:
-    resolution:
-      {
-        integrity: sha512-b/h7CPV7QEdrqIxtAf2j31U5ef05uBDuvoXv6L51Q4rcS1jdlXAVKJv+atCFdUXYl9dyTHGyoMzIepwowRJjFw==,
-      }
-    engines: { node: ^10 || ^12 || >=14 }
-    dependencies:
-      colorette: 1.2.2
-      nanoid: 3.1.22
-      source-map: 0.6.1
-    dev: true
-
   /postcss/8.2.13:
     resolution:
       {
@@ -4564,7 +4554,6 @@ packages:
       colorette: 1.2.2
       nanoid: 3.1.22
       source-map: 0.6.1
-    dev: false
 
   /prepend-http/2.0.0:
     resolution: { integrity: sha1-6SQ0v6XqjBn0HN/UAddBo8gZ2Jc= }
@@ -4751,6 +4740,19 @@ packages:
       {
         integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==,
       }
+
+  /react-minimal-pie-chart/8.2.0_react-dom@16.13.1+react@16.13.1:
+    resolution:
+      {
+        integrity: sha512-RhrHzprJt3KfBe4L3sE0Ha6fj4kYcwQtesQgscnld9Umf64+nZnxxInycnbimKsbIjxJONv77JIZp+qRbJD+bA==,
+      }
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0
+      react-dom: ^16.8.0 || ^17.0.0
+    dependencies:
+      react: 16.13.1
+      react-dom: 16.13.1_react@16.13.1
+    dev: false
 
   /react-refresh/0.8.3:
     resolution:
@@ -5899,7 +5901,7 @@ packages:
       spdx-expression-parse: 3.0.1
     dev: true
 
-  /vite-plugin-stitches/0.0.1_vite@2.1.5:
+  /vite-plugin-stitches/0.0.1_vite@2.3.3:
     resolution:
       {
         integrity: sha512-P4wm6NziiXgujnTw+RrWZUAqV9X4GgottMgluEP0ixg46irwWQgnlJmwoPW5CMH3S4bX7Ji+7AvQ2E/0POXAYA==,
@@ -5908,19 +5910,19 @@ packages:
       "@stitches/core": ">= 0.1.0"
       vite: ">= 2.1.5"
     dependencies:
-      vite: 2.1.5
+      vite: 2.3.3
     dev: false
 
-  /vite/2.1.5:
+  /vite/2.3.3:
     resolution:
       {
-        integrity: sha512-tYU5iaYeUgQYvK/CNNz3tiJ8vYqPWfCE9IQ7K0iuzYovWw7lzty7KRYGWwV3CQPh0NKxWjOczAqiJsCL0Xb+Og==,
+        integrity: sha512-eO1iwRbn3/BfkNVMNJDeANAFCZ5NobYOFPu7IqfY7DcI7I9nFGjJIZid0EViTmLDGwwSUPmRAq3cRBbO3+DsMA==,
       }
     engines: { node: ">=12.0.0" }
     hasBin: true
     dependencies:
-      esbuild: 0.9.7
-      postcss: 8.2.10
+      esbuild: 0.11.23
+      postcss: 8.2.13
       resolve: 1.20.0
       rollup: 2.45.1
     optionalDependencies:

@@ -6,7 +6,7 @@
     "sandbox": "pnpm run build --filter '@orchest/sandbox^...' && pnpm run dev --filter '@orchest/sandbox...' --r --parallel",
     "format": "syncpack format",
     "lint": "syncpack list-mismatches && pnpm run lint --r --stream",
-    "pre-commit": "pnpm run build --filter '@orchest/lib-*' && pnpm run lint",
+    "pre-commit": "pnpm run build --filter '@orchest/client-*^...' && pnpm run lint",
     "preinstall": "npx only-allow pnpm",
     "setup": "npm i -g pnpm@6.0.1"
   },

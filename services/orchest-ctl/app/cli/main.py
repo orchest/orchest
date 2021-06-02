@@ -206,6 +206,9 @@ def update(
     """
     Update Orchest.
 
+    For the update to succeed, make sure you have the 'master' branch
+    checked out.
+
     Note: when updating Orchest all running sessions and pipeline runs
     will be killed. Orchest can not be running during update.
     """

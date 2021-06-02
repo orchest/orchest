@@ -42,6 +42,7 @@ from app.utils import (
     get_user_conf_raw,
     pipeline_set_notebook_kernels,
     project_entity_counts,
+    project_exists,
     save_user_conf_raw,
     serialize_environment_to_disk,
 )
@@ -62,6 +63,10 @@ def register_views(app, db):
     def register_environments(db, api):
         class EnvironmentsResource(Resource):
             def get(self, project_uuid):
+
+                if project_exists(project_uuid):
+                    return {"message": "Project could not be found."}, 404
+
                 return environments_schema.dump(
                     get_environments(
                         project_uuid, language=request.args.get("language")
@@ -293,6 +298,11 @@ def register_views(app, db):
                 CreatePipeline(tpe).transaction(
                     project_uuid, pipeline_name, pipeline_path
                 )
+        except FileExistsError:
+            return (
+                jsonify({"message": "A pipeline with the given path already exists."}),
+                400,
+            )
         except Exception as e:
             return jsonify({"message": str(e)}), 409
 
@@ -551,6 +561,9 @@ def register_views(app, db):
 
     @app.route("/async/pipelines/<project_uuid>", methods=["GET"])
     def pipelines_get(project_uuid):
+
+        if project_exists(project_uuid):
+            return jsonify({"message": "Project could not be found."}), 404
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:

@@ -14,16 +14,6 @@ const colors = {
   blue700: "#002a81",
   blue800: "#001950",
   blue900: "#000820",
-  yellow50: "#FFFBEB",
-  yellow100: "#FEF3C7",
-  yellow200: "#FDE68A",
-  yellow300: "#FCD34D",
-  yellow400: "#FBBF24",
-  yellow500: "#F59E0B",
-  yellow600: "#D97706",
-  yellow700: "#B45309",
-  yellow800: "#92400E",
-  yellow900: "#78350F",
   gray50: "#fafafa",
   gray100: "#f5f5f5",
   gray200: "#eeeeee",
@@ -34,6 +24,36 @@ const colors = {
   gray700: "#616161",
   gray800: "#424242",
   gray900: "#212121",
+  green50: "#ECFDF5",
+  green100: "#D1FAE5",
+  green200: "#A7F3D0",
+  green300: "#6EE7B7",
+  green400: "#34D399",
+  green500: "#10B981",
+  green600: "#059669",
+  green700: "#047857",
+  green800: "#065F46",
+  green900: "#064E3B",
+  red50: "#FEF2F2",
+  red100: "#FEE2E2",
+  red200: "#FECACA",
+  red300: "#FCA5A5",
+  red400: "#F87171",
+  red500: "#EF4444",
+  red600: "#DC2626",
+  red700: "#B91C1C",
+  red800: "#991B1B",
+  red900: "#7F1D1D",
+  yellow50: "#FFFBEB",
+  yellow100: "#FEF3C7",
+  yellow200: "#FDE68A",
+  yellow300: "#FCD34D",
+  yellow400: "#FBBF24",
+  yellow500: "#F59E0B",
+  yellow600: "#D97706",
+  yellow700: "#B45309",
+  yellow800: "#92400E",
+  yellow900: "#78350F",
 };
 
 export const stitches = createCss({
@@ -43,7 +63,11 @@ export const stitches = createCss({
       primary: colors.blue300,
       background: colors.white,
       text: colors.black,
+      textSecondary: colors.gray800,
       logo: colors.black,
+      success: colors.green500,
+      warning: colors.yellow500,
+      error: colors.red500,
       // components
       alertTextInfo: colors.black,
       alertTextWarning: colors.yellow900,
@@ -129,21 +153,26 @@ export const stitches = createCss({
   },
   utils: {
     include: mixins(),
-    inset:
-      (config) =>
-      (
-        value:
-          | keyof typeof config["theme"]["space"]
-          | (string & {})
-          | (number & {})
-      ) => ({
-        top: value,
-        right: value,
-        bottom: value,
-        left: value,
-      }),
+    inset: (config) => (
+      value:
+        | keyof typeof config["theme"]["space"]
+        | (string & {})
+        | (number & {})
+    ) => ({
+      top: value,
+      right: value,
+      bottom: value,
+      left: value,
+    }),
   },
 });
 
-export const { styled, css, theme, getCssString, global, keyframes, config } =
-  stitches;
+export const {
+  styled,
+  css,
+  theme,
+  getCssString,
+  global,
+  keyframes,
+  config,
+} = stitches;

@@ -30,7 +30,6 @@
 @import "ansi";
 @import "themes/jupyter";
 
-$generalPadding: 20px;
 $mdcComponentPadding: 16px;
 $codeSize: 14px;
 $defaultFontSize: 15px;
@@ -57,10 +56,10 @@ body {
 
 p {
   &.padding-top {
-    padding-top: $generalPadding;
+    padding-top: var(--space-5);
   }
   &.padding-bottom {
-    padding-bottom: $generalPadding;
+    padding-bottom: var(--space-5);
   }
 }
 
@@ -105,13 +104,13 @@ h2 {
 
 .create-job-modal {
   .mdc-linear-progress {
-    margin: $generalPadding 0;
+    margin: var(--space-5) 0;
   }
 }
 
 header {
   height: 80px;
-  padding: $generalPadding/2;
+  padding: calc(var(--space-5) / 2);
   border-bottom: 1px solid $borderColor;
   position: relative;
 
@@ -123,7 +122,7 @@ header {
 
   .header-actions {
     button {
-      margin-left: $generalPadding/2;
+      margin-left: calc(var(--space-5) / 2);
       &:first-child {
         margin-left: 0;
       }
@@ -141,7 +140,7 @@ header {
     height: auto;
     box-sizing: content-box;
     width: 50px;
-    padding-right: $generalPadding;
+    padding-right: var(--space-5);
     padding-left: 10px;
     display: inline-block;
   }
@@ -181,7 +180,7 @@ header {
 
     button {
       position: absolute;
-      right: $generalPadding;
+      right: var(--space-5);
       top: 50%;
       transform: translateY(-50%);
     }
@@ -239,18 +238,20 @@ a.button {
 }
 
 .view-page {
-  padding: $generalPadding;
+  padding: var(--space-5);
   overflow-y: auto;
   height: 100%;
 
-  p {
-    line-height: 1.5;
+  &:not(.job-view) {
+    p {
+      line-height: 1.5;
+    }
   }
 
   &.orchest-settings {
     h3 {
-      margin-top: $generalPadding * 2;
-      margin-bottom: $generalPadding/2;
+      margin-top: var(--space-10);
+      margin-bottom: calc(var(--space-5) / 2);
     }
     .columns {
       .column {
@@ -280,7 +281,7 @@ a.button {
         max-width: 400px;
 
         h2 {
-          margin-bottom: $generalPadding;
+          margin-bottom: var(--space-5);
           text-align: center;
         }
       }
@@ -292,7 +293,7 @@ a.button {
   }
 
   h2 {
-    padding-bottom: $generalPadding;
+    padding-bottom: var(--space-5);
   }
 
   &.update-page {
@@ -308,11 +309,11 @@ a.button {
     }
 
     .mdc-text-field--outlined.search {
-      margin-bottom: $generalPadding;
+      margin-bottom: var(--space-5);
     }
 
     .job-actions {
-      margin-bottom: $generalPadding;
+      margin-bottom: var(--space-5);
     }
   }
 }
@@ -374,7 +375,7 @@ p > i.material-icons.float-left {
 
 .datetime-input {
   > div {
-    margin-bottom: $generalPadding;
+    margin-bottom: var(--space-5);
   }
 }
 
@@ -445,7 +446,6 @@ p > i.material-icons.float-left {
 .form-helper-text {
   font-size: $codeSize;
   margin-top: 10px;
-  color: rgba(0, 0, 0, 0.6);
 }
 
 .CodeMirror {
@@ -518,21 +518,26 @@ p > i.material-icons.float-left {
     margin-right: 0;
   }
   > * {
-    margin-right: $generalPadding;
+    margin-right: var(--space-5);
   }
 }
 
 .push-down {
-  margin-bottom: $generalPadding;
+  margin-bottom: var(--space-5);
 }
+
+.push-down-7 {
+  margin-bottom: var(--space-7);
+}
+
 .push-up {
-  margin-top: $generalPadding;
+  margin-top: var(--space-5);
 }
 .push-left {
-  margin-left: $generalPadding;
+  margin-left: var(--space-5);
 }
 .push-right {
-  margin-right: $generalPadding;
+  margin-right: var(--space-5);
 }
 
 .persistent-view {
@@ -559,7 +564,7 @@ p > i.material-icons.float-left {
 .file-viewer {
   .file-description,
   p {
-    padding: $generalPadding;
+    padding: var(--space-5);
 
     h3 {
       font-weight: 500;
@@ -572,7 +577,7 @@ p > i.material-icons.float-left {
 
     .step-navigation {
       overflow: auto;
-      padding-top: $generalPadding;
+      padding-top: var(--space-5);
 
       .parents {
         float: left;
@@ -611,7 +616,7 @@ p > i.material-icons.float-left {
   }
 
   .react-codemirror2 {
-    padding: $generalPadding;
+    padding: var(--space-5);
 
     .CodeMirror {
       width: 100%;
@@ -648,8 +653,8 @@ button.text-button {
 
 .top-buttons {
   position: absolute;
-  top: $generalPadding;
-  right: $generalPadding;
+  top: var(--space-5);
+  right: var(--space-5);
   z-index: 99;
 
   button {
@@ -663,9 +668,9 @@ button.text-button {
 .bottom-buttons {
   background: #fff;
   width: 100%;
-  margin-left: -$generalPadding;
-  padding-left: $generalPadding;
-  padding-right: $generalPadding;
+  margin-left: -var(--space-5);
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
   box-sizing: content-box;
 
   &.overflowing {
@@ -673,8 +678,8 @@ button.text-button {
   }
 
   button {
-    margin-right: $generalPadding;
-    margin-top: $generalPadding;
+    margin-right: var(--space-5);
+    margin-top: var(--space-5);
 
     &:last-of-type {
       margin-right: 0;
@@ -707,7 +712,7 @@ button.text-button {
 
 .pipeline-settings-view {
   .tab-content {
-    padding: $generalPadding 0;
+    padding: var(--space-5) 0;
   }
 
   ul {
@@ -720,7 +725,7 @@ button.text-button {
 
   form {
     button {
-      margin-top: $generalPadding;
+      margin-top: var(--space-5);
     }
   }
 }
@@ -740,7 +745,7 @@ button.text-button {
 }
 
 h2.header {
-  padding: $generalPadding;
+  padding: var(--space-5);
   background: #f5f5f5;
   font-weight: normal;
 }
@@ -751,11 +756,11 @@ h2.header {
   }
 
   .steps {
-    padding: $generalPadding;
+    padding: var(--space-5);
   }
 
   .step {
-    margin-bottom: $generalPadding;
+    margin-bottom: var(--space-5);
   }
 
   .argument-set {
@@ -810,7 +815,7 @@ span.floating-button {
 
   .pipeline-tab-view {
     .search {
-      margin-bottom: $generalPadding;
+      margin-bottom: var(--space-5);
     }
   }
 
@@ -818,7 +823,7 @@ span.floating-button {
     background: #fff;
 
     button {
-      margin-right: $generalPadding;
+      margin-right: var(--space-5);
 
       &:last-of-type {
         margin-right: 0;
@@ -850,7 +855,7 @@ span.floating-button {
 
       .pipeline-run-detail {
         button {
-          margin-top: $generalPadding;
+          margin-top: var(--space-5);
         }
       }
 
@@ -870,18 +875,18 @@ span.floating-button {
     }
 
     button {
-      margin-top: $generalPadding;
+      margin-top: var(--space-5);
     }
   }
 
   .tab-view {
-    padding: $generalPadding 0;
+    padding: var(--space-5) 0;
     flex: 1;
     overflow: auto;
   }
 
   .top-labels {
-    padding-bottom: $generalPadding;
+    padding-bottom: var(--space-5);
     font-size: 14px;
 
     h3 {
@@ -890,12 +895,12 @@ span.floating-button {
   }
 
   .mdc-tab-bar {
-    margin-top: $generalPadding;
+    margin-top: var(--space-5);
   }
 }
 
 .warning {
-  padding: $generalPadding/2;
+  padding: calc(var(--space-5) / 2);
   border-radius: 3px;
   color: #fff;
   background: #b00020;
@@ -1003,7 +1008,7 @@ strong {
     .column:nth-child(1) {
       width: 30%;
     }
-    margin-bottom: $generalPadding;
+    margin-bottom: var(--space-5);
   }
 }
 
@@ -1030,7 +1035,7 @@ strong {
   font-size: 13px;
   background: #000;
   color: #fff;
-  padding: $generalPadding / 2;
+  padding: calc(var(--space-5) / 2);
   white-space: pre-line;
   overflow-x: auto;
 }
@@ -1109,7 +1114,7 @@ span.code {
     right: 0;
     top: 0;
     z-index: 9;
-    padding: $generalPadding;
+    padding: var(--space-5);
 
     &.bottom-right {
       top: auto;
@@ -1137,7 +1142,7 @@ span.code {
 
       button {
         margin-bottom: 0;
-        margin-top: $generalPadding;
+        margin-top: var(--space-5);
       }
 
       .navigation-buttons {
@@ -1146,7 +1151,7 @@ span.code {
 
       .selection-buttons {
         display: inline-block;
-        padding-left: $generalPadding;
+        padding-left: var(--space-5);
       }
     }
 
@@ -1155,8 +1160,8 @@ span.code {
         margin-right: 0;
       }
 
-      margin-right: $generalPadding;
-      margin-bottom: $generalPadding;
+      margin-right: var(--space-5);
+      margin-bottom: var(--space-5);
       min-width: 0;
     }
   }
@@ -1250,7 +1255,7 @@ span.code {
     .pipeline-step {
       position: absolute;
       background: #fff;
-      padding: $generalPadding/2 $generalPadding;
+      padding: calc(var(--space-5) / 2) var(--space-5);
       border: 1px solid $borderColor;
       border-radius: $stepBorderRadius;
       cursor: pointer;
@@ -1321,10 +1326,10 @@ span.code {
 
       .step-label {
         text-overflow: ellipsis;
-        height: $pipelineStepHeight - $generalPadding;
-        max-height: $pipelineStepHeight - $generalPadding;
-        width: $pipelineStepWidth - $generalPadding * 2;
-        max-width: $pipelineStepWidth - $generalPadding * 2;
+        height: calc(#{$pipelineStepHeight} - var(--space-5));
+        max-height: calc(#{$pipelineStepHeight} - var(--space-5));
+        width: calc(#{$pipelineStepWidth} - var(--space-5) * 2);
+        max-width: calc(#{$pipelineStepWidth} - var(--space-5) * 2);
         display: table-cell;
         vertical-align: middle;
         overflow: hidden;
@@ -1394,7 +1399,7 @@ span.code {
 
   .pipeline-details {
     height: 100%;
-    padding: $generalPadding 0;
+    padding: var(--space-5) 0;
     background: #fff;
     border-left: 1px solid $borderColor;
     z-index: 12;
@@ -1405,7 +1410,7 @@ span.code {
     }
 
     .overflowable {
-      padding: 0 $generalPadding;
+      padding: 0 var(--space-5);
     }
 
     .mdc-select__anchor {
@@ -1428,7 +1433,7 @@ span.code {
     }
 
     .input-group {
-      margin-bottom: $generalPadding;
+      margin-bottom: var(--space-5);
     }
 
     .connection-list {
@@ -1488,21 +1493,21 @@ span.code {
       flex-direction: column;
 
       &.overflown {
-        padding-right: $generalPadding;
+        padding-right: var(--space-5);
       }
     }
 
     .action-buttons-bottom {
-      padding: $generalPadding;
+      padding: var(--space-5);
       padding-bottom: 0;
 
       .file-actions {
-        margin-bottom: $generalPadding;
+        margin-bottom: var(--space-5);
 
         button {
           display: block;
 
-          margin-bottom: $generalPadding;
+          margin-bottom: var(--space-5);
           &:last-child {
             margin-bottom: 0;
           }
@@ -1510,7 +1515,7 @@ span.code {
       }
 
       button {
-        margin-right: $generalPadding;
+        margin-right: var(--space-5);
       }
     }
 
@@ -1551,7 +1556,7 @@ table {
   overflow: visible;
 
   .mdc-dialog__actions {
-    padding: $generalPadding;
+    padding: var(--space-5);
     padding-top: 0;
   }
 
@@ -1637,10 +1642,10 @@ table {
   .columns {
     &.inner-padded {
       .column:nth-child(1) {
-        padding-right: $generalPadding;
+        padding-right: var(--space-5);
       }
       .column:nth-child(2) {
-        padding-left: $generalPadding;
+        padding-left: var(--space-5);
       }
     }
   }
@@ -1666,7 +1671,7 @@ table {
     .column {
       width: 100%;
       padding: 0;
-      margin-bottom: $generalPadding;
+      margin-bottom: var(--space-5);
     }
     margin-bottom: 0;
   }

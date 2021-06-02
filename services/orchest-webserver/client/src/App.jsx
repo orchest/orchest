@@ -273,8 +273,8 @@ class App extends React.Component {
       // of a view that consumes it as props.
       // E.g. in the pipeline view that loads the selected project's
       // pipeline when no query arguments are passed.
-      if (this.state.selectedProject) {
-        resolve(this.state.selectedProject);
+      if (this.context.state.project_uuid) {
+        resolve(this.context.state.project_uuid);
       } else {
         // No project selected yet, fetch from server
         makeRequest(

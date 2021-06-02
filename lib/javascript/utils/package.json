@@ -10,7 +10,7 @@
     "dev": "concurrently -n w: npm:*:watch",
     "lint": "concurrently -n w: npm:*:check",
     "es:build": "esbuild src/index.ts --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"production\\\"",
-    "es:watch": "esbuild src/index.ts --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap",
+    "es:watch": "esbuild src/index.ts --bundle --outdir=dist --format=esm --loader:.js=jsx --external:react* --define:process.env.NODE_ENV=\\\"development\\\" --sourcemap --watch --log-level=error",
     "ts:build": "tsc --emitDeclarationOnly --outDir dist",
     "ts:watch": "tsc --emitDeclarationOnly --outDir dist -w",
     "ts:check": "tsc --noEmit"

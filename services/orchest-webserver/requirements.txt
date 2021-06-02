@@ -17,8 +17,7 @@ six>=1.13.0
 Werkzeug==0.16.0
 python-engineio==3.14.2
 python-socketio==4.6.1
-SQLAlchemy==1.3.23
-SQLAlchemy-Utils==0.36.8
+SQLAlchemy-Utils==0.37.4
 posthog==1.1.3
 psycopg2-binary==2.8.6
 -e ../../lib/python/orchest-internals

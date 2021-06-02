@@ -18,7 +18,6 @@ export const globalStyles = global({
     lineHeight: "normal",
     fontFamily: "$inter",
     color: "$text",
-    overflowY: "scroll",
     // textRendering: "optimizeSpeed",
     WebkitTextSizeAdjust: "100%",
     msTextSizeAdjust: "100%",

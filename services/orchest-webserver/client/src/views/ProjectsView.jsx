@@ -128,6 +128,18 @@ class ProjectsView extends React.Component {
           loading: false,
         },
         () => {
+          // Verify selected project UUID
+          if (
+            projects.filter(
+              (project) => project.uuid == this.context.project_uuid
+            ).length == 0
+          ) {
+            this.context.dispatch({
+              type: "projectSet",
+              payload: projects.length > 0 ? projects[0].uuid : null,
+            });
+          }
+
           if (cb) {
             cb();
           }
@@ -191,7 +203,7 @@ class ProjectsView extends React.Component {
     if (this.context.state.project_uuid == project_uuid) {
       this.context.dispatch({
         type: "projectSet",
-        payload: undefined,
+        payload: null,
       });
     }
 
