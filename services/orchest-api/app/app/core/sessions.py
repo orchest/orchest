@@ -560,7 +560,7 @@ class NonInteractiveSession(Session):
 
 @contextmanager
 def launch_noninteractive_session(
-    docker_client, session_config: Dict[str, Any]
+    docker_client, uuid: str, session_config: Dict[str, Any]
 ) -> NonInteractiveSession:
     """Launches a non-interactive session for a particular pipeline.
 
@@ -574,7 +574,7 @@ def launch_noninteractive_session(
 
     """
     session = NonInteractiveSession(docker_client, network=_config.DOCKER_NETWORK)
-    session.launch(None, session_config)
+    session.launch(uuid, session_config)
     try:
         yield session
     finally:
