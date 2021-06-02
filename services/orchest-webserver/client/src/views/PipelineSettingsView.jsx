@@ -23,6 +23,7 @@ import {
   envVariablesDictToArray,
   OverflowListener,
   updateGlobalUnsavedChanges,
+  getServiceURLs,
 } from "../utils/webserver-utils";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import EnvVarList from "../components/EnvVarList";
@@ -477,35 +478,6 @@ const PipelineSettingsView = (props) => {
     }
   };
 
-  const _get_service_urls = (service) => {
-    let urls = [];
-
-    if (service.ports === undefined) {
-      return urls;
-    }
-
-    let serviceUUID = props.queryArgs.pipeline_uuid;
-    if (props.queryArgs.run_uuid !== undefined) {
-      serviceUUID = props.queryArgs.run_uuid;
-    }
-
-    for (let port of service.ports) {
-      urls.push(
-        window.location.origin +
-          "/service-" +
-          service.name +
-          "-" +
-          props.queryArgs.project_uuid.split("-")[0] +
-          "-" +
-          serviceUUID.split("-")[0] +
-          "_" +
-          port
-      );
-    }
-
-    return urls;
-  };
-
   updateGlobalUnsavedChanges(state.unsavedChanges);
 
   return (
@@ -671,40 +643,6 @@ const PipelineSettingsView = (props) => {
                                 );
                               }
                             })()}
-
-                            <div className="service-urls push-up">
-                              {(() => {
-                                if (state.pipelineJson?.services) {
-                                  let serviceUrlsBlocks = [];
-                                  for (let [name, service] of Object.entries(
-                                    state.pipelineJson.services
-                                  )) {
-                                    let urlElements = [];
-
-                                    let urls = _get_service_urls(service);
-
-                                    for (let url of urls) {
-                                      urlElements.push(
-                                        <li key={url}>
-                                          <a target="_blank" href={url}>
-                                            {url}
-                                          </a>
-                                        </li>
-                                      );
-                                    }
-
-                                    serviceUrlsBlocks.push(
-                                      <div key={service.name}>
-                                        <b>{service.name}</b>
-                                        <ul>{urlElements}</ul>
-                                      </div>
-                                    );
-                                  }
-
-                                  return serviceUrlsBlocks;
-                                }
-                              })()}
-                            </div>
 
                             {state.servicesChanged && (
                               <div className="warning push-up">

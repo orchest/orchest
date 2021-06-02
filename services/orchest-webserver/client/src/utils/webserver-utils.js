@@ -98,6 +98,35 @@ export function componentName(TagName) {
   console.error("Was not able to get componentName for TagName" + TagName);
 }
 
+export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
+  let urls = [];
+
+  if (service.ports === undefined) {
+    return urls;
+  }
+
+  let serviceUUID = pipeline_uuid;
+  if (run_uuid !== undefined) {
+    serviceUUID = run_uuid;
+  }
+
+  for (let port of service.ports) {
+    urls.push(
+      window.location.origin +
+        "/service-" +
+        service.name +
+        "-" +
+        project_uuid.split("-")[0] +
+        "-" +
+        serviceUUID.split("-")[0] +
+        "_" +
+        port
+    );
+  }
+
+  return urls;
+}
+
 export function createOutgoingConnections(steps) {
   for (let step_uuid in steps) {
     if (steps.hasOwnProperty(step_uuid)) {
