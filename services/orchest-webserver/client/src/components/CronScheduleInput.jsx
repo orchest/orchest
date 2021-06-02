@@ -75,6 +75,13 @@ class CronScheduleInput extends React.Component {
             );
           })()}
         </div>
+        <div
+          className={
+            "form-helper-text" + (this.props.disabled ? " disabled-text" : "")
+          }
+        >
+          Note: the cron expression is evaluated in UTC time.
+        </div>
       </>
     );
   }

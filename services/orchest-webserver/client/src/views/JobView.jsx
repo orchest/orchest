@@ -479,7 +479,7 @@ const JobView = (props) => {
                     : state.job.schedule}
                   {state.job.schedule !== null && (
                     <Text as="em" css={{ lineHeight: "normal" }}>
-                      {cronstrue.toString(state.job.schedule)}
+                      {cronstrue.toString(state.job.schedule) + " (UTC)"}
                     </Text>
                   )}
                 </Flex>

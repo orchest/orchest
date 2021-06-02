@@ -23,7 +23,7 @@ class DateTimeInput extends React.Component {
 
   getISOString() {
     return parseISO(
-      this.state.dateValue + " " + this.state.timeValue + "Z"
+      this.state.dateValue + " " + this.state.timeValue
     ).toISOString();
   }
 
