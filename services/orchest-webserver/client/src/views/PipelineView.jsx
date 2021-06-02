@@ -974,6 +974,10 @@ class PipelineView extends React.Component {
           if (!e.ctrlKey) {
             stepClicked = true;
 
+            if (this.selectedConnection) {
+              this.deselectConnection();
+            }
+
             if (this.doubleClickFirstClick) {
               this.refManager.refs[this.selectedItem].props.onDoubleClick(
                 this.selectedItem
@@ -1098,6 +1102,10 @@ class PipelineView extends React.Component {
         if (e.button === 0 && !_this.keysDown[32]) {
           if (_this.selectedConnection) {
             _this.selectedConnection.deselectState();
+          }
+
+          if (!e.ctrlKey) {
+            _this.deselectSteps();
           }
 
           let connection = $(this).parents("svg").parents(".connection");
