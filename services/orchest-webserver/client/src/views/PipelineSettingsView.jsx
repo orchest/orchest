@@ -1,7 +1,19 @@
 // @ts-check
 import React from "react";
 import PipelineView from "./PipelineView";
-import { Box } from "@orchest/design-system";
+import {
+  Box,
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  IconLightBulbOutline,
+  Text,
+} from "@orchest/design-system";
 import {
   makeRequest,
   PromiseManager,
@@ -46,6 +58,10 @@ const PipelineSettingsView = (props) => {
     projectEnvVariables: [],
     servicesChanged: false,
   });
+  const [
+    isServiceCreateDialogOpen,
+    setIsServiceCreateDialogOpen,
+  ] = React.useState(false);
 
   const overflowListener = new OverflowListener();
   const promiseManager = new PromiseManager();
@@ -886,12 +902,80 @@ const PipelineSettingsView = (props) => {
                           </Box>
                         ))}
                       />
-                      <MDCButtonReact
-                        icon="add"
-                        classNames={["mdc-button--raised", "themed-primary"]}
-                        label="Add Service"
-                        onClick={() => console.log("add service")}
-                      />
+
+                      <Dialog
+                        open={isServiceCreateDialogOpen}
+                        onOpenChange={(open) =>
+                          setIsServiceCreateDialogOpen(open)
+                        }
+                      >
+                        <MDCButtonReact
+                          icon="add"
+                          classNames={["mdc-button--raised", "themed-primary"]}
+                          label="Add Service"
+                          onClick={() => setIsServiceCreateDialogOpen(true)}
+                        />
+
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Create a Service</DialogTitle>
+                          </DialogHeader>
+                          <DialogBody>
+                            <Box
+                              as="ul"
+                              role="list"
+                              css={{ listStyleType: "none" }}
+                            >
+                              {[
+                                "TensorBoard",
+                                "Streamlist",
+                                "VSCode",
+                                "PostgreSQL",
+                                "Redis",
+                                "PyTorch Tensorboard",
+                                "From Scratch",
+                              ].map((item) => (
+                                <Box
+                                  as="li"
+                                  key={item}
+                                  css={{
+                                    "& + &": {
+                                      marginTop: "$2",
+                                    },
+                                  }}
+                                >
+                                  <Box
+                                    as="button"
+                                    css={{
+                                      appearance: "none",
+                                      display: "inline-flex",
+                                      backgroundColor: "$background",
+                                      border: "1px solid $gray300",
+                                      borderRadius: "$sm",
+                                      width: "100%",
+                                      padding: "$3",
+                                    }}
+                                  >
+                                    <IconLightBulbOutline
+                                      css={{ marginRight: "$3" }}
+                                    />
+                                    {item}
+                                  </Box>
+                                </Box>
+                              ))}
+                            </Box>
+                          </DialogBody>
+                          <DialogFooter>
+                            <MDCButtonReact
+                              icon="close"
+                              label="Cancel"
+                              onClick={() =>
+                                setIsServiceCreateDialogOpen(false)
+                              }
+                            />
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </Box>
                   ),
                 }[state.selectedTabIndex]

@@ -108,19 +108,19 @@ h2 {
   }
 }
 
-header {
+.header-bar {
   height: 80px;
   padding: calc(var(--space-5) / 2);
   border-bottom: 1px solid $borderColor;
   position: relative;
 
-  .header-left,
-  .header-actions {
+  .header-bar-left,
+  .header-bar-actions {
     display: flex;
     align-items: center;
   }
 
-  .header-actions {
+  .header-bar-actions {
     button {
       margin-left: calc(var(--space-5) / 2);
       &:first-child {
@@ -129,7 +129,7 @@ header {
     }
   }
 
-  .header-left {
+  .header-bar-left {
     button.mdc-icon-button {
       font-size: 32px;
       padding: 8px;

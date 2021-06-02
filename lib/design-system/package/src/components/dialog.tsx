@@ -2,9 +2,14 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { styled } from "../core";
-import { IconButton } from "./icon-button";
+import { ExtractVariants, ICSSProp } from "../types";
+import { Heading, THeadingComponent } from "./heading";
 
-const StyledOverlay = styled(DialogPrimitive.Overlay, {
+export const DialogTrigger = DialogPrimitive.Trigger;
+export const DialogClose = DialogPrimitive.Close;
+
+const DialogOverlay = styled(DialogPrimitive.Overlay, {
+  include: "box",
   backgroundColor: "rgba(0, 0, 0, .32)",
   position: "fixed",
   top: 0,
@@ -13,64 +18,91 @@ const StyledOverlay = styled(DialogPrimitive.Overlay, {
   left: 0,
 });
 
-interface IDialogProps
+export interface IDialogProps
   extends React.ComponentProps<typeof DialogPrimitive.Root> {}
 
 export const Dialog: React.FC<IDialogProps> = ({ children, ...props }) => (
   <DialogPrimitive.Root {...props}>
-    <StyledOverlay />
+    <DialogOverlay />
     {children}
   </DialogPrimitive.Root>
 );
 
-const StyledContent = styled(DialogPrimitive.Content, {
+const DialogContentRoot = styled(DialogPrimitive.Content, {
+  include: "box",
+  $$margin: "$space$8",
+  $$padding: "$space$4",
+  $$fauxMargin: "$$margin * 2",
+  $$translate: "calc(-50% - ($$fauxMargin))",
+  $$inset: "calc(50% + $$fauxMargin)",
+  $$maxSize: "calc(100% - $$fauxMargin)",
+  padding: 0,
+  position: "fixed",
+  top: "$$inset",
+  left: "$$inset",
+  transform: "translate($$translate, $$translate)",
+  width: "$$maxSize",
+  maxHeight: "$$maxSize",
   backgroundColor: "$background",
   borderRadius: "$md",
   boxShadow: "$2xl",
-  position: "fixed",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  minWidth: "16rem",
-  maxHeight: "85vh",
-  padding: "$4",
-  marginTop: "-5vh",
+  overflowX: "hidden",
+  overflowY: "auto",
   "&:focus": {
     outline: "none",
   },
+  variants: {
+    size: {
+      sm: {
+        maxWidth: "$sm",
+      },
+    },
+  },
+  defaultVariants: {
+    size: "sm",
+  },
 });
 
-const StyledCloseButton = styled(IconButton, {
-  position: "absolute",
-  top: "$2",
-  right: "$2",
-});
+interface IDialogContentProps
+  extends ICSSProp,
+    ExtractVariants<typeof DialogContentRoot>,
+    Polymorphic.OwnProps<typeof DialogPrimitive.Content> {}
 
-type DialogContentOwnProps = Polymorphic.OwnProps<
-  typeof DialogPrimitive.Content
-> & {
-  css?: any;
-};
-
-type DialogContentComponent = Polymorphic.ForwardRefComponent<
+type TDialogContentComponent = Polymorphic.ForwardRefComponent<
   Polymorphic.IntrinsicElement<typeof DialogPrimitive.Content>,
-  DialogContentOwnProps
+  IDialogContentProps
 >;
 
 export const DialogContent = React.forwardRef(
   ({ children, ...props }, forwardedRef) => (
-    <StyledContent {...props} ref={forwardedRef}>
+    <DialogContentRoot {...props} ref={forwardedRef}>
       {children}
-      <DialogPrimitive.Close
-        as={StyledCloseButton}
-        label="Close"
-        variant="ghost"
-      >
-        x
-      </DialogPrimitive.Close>
-    </StyledContent>
+    </DialogContentRoot>
   )
-) as DialogContentComponent;
+) as TDialogContentComponent;
 
-export const DialogTrigger = DialogPrimitive.Trigger;
-export const DialogClose = DialogPrimitive.Close;
+export const DialogHeader = styled("header", {
+  include: "box",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  padding: "$$padding",
+});
+
+export const DialogTitle = React.forwardRef((props, forwardedRef) => (
+  <Heading ref={forwardedRef} size="xl" {...props} />
+)) as THeadingComponent;
+
+export const DialogBody = styled("div", {
+  include: "box",
+  paddingLeft: "$$padding",
+  paddingRight: "$$padding",
+});
+
+export const DialogFooter = styled("footer", {
+  include: "box",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  padding: "$$padding",
+});

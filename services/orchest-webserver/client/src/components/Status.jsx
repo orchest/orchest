@@ -27,7 +27,7 @@ const StatusInlineRoot = styled(Text, {
  * @param {Object} props
  * @param {TStatus} props.status
  * @param {string} [props.className],
- * @param {import('@orchest/design-system').TTextVariants['size']} [props.size]
+ * @param {import('@orchest/design-system').ITextProps['size']} [props.size]
  * @param {import('@orchest/design-system').CSS} [props.css]
  */
 export const StatusInline = ({ status, size = "sm", ...props }) => (
@@ -111,7 +111,7 @@ const StatusGroupDescription = styled(Text, {
  * @param {string} props.title
  * @param {string} [props.description]
  * @param {string} [props.className],
- * @param {import('@orchest/design-system').TTextVariants['size']} [props.size]
+ * @param {import('@orchest/design-system').ITextProps['size']} [props.size]
  * @param {import('@orchest/design-system').CSS} [props.css]
  */
 export const StatusGroup = ({ title, description, icon, status, ...props }) => (

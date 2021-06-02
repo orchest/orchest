@@ -1,20 +1,25 @@
-import * as React from "react";
 import {
   Alert,
-  IconLightBulb,
-  Link,
-  IconWarning,
-  Flex,
-  Text,
-  IconButton,
-  IconChevronRight,
   Box,
-  IconChevronLeft,
-  LogoBrand,
   Dialog,
+  DialogBody,
+  DialogClose,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
+  Flex,
+  IconButton,
+  IconChevronLeftOutline,
+  IconChevronRightOutline,
+  IconLightBulbOutline,
+  IconWarningOutline,
+  Link,
+  LogoBrand,
+  Text,
 } from "@orchest/design-system";
+import * as React from "react";
 
 const Index = () => (
   <Flex
@@ -37,7 +42,7 @@ const Index = () => (
       description="A project is simply a directory of files. It can even be fully versioned using git!"
     />
     <Alert
-      icon={<IconLightBulb />}
+      icon={<IconLightBulbOutline />}
       status="info"
       title="Info"
       description={[
@@ -57,7 +62,7 @@ const Index = () => (
       ]}
     />
     <Alert
-      icon={<IconLightBulb />}
+      icon={<IconLightBulbOutline />}
       status="info"
       title="Info"
       description={[
@@ -76,7 +81,7 @@ const Index = () => (
       description="A project is simply a directory of files. It can even be fully versioned using git!"
     />
     <Alert
-      icon={<IconWarning />}
+      icon={<IconWarningOutline />}
       status="warning"
       title="Warning"
       description={[
@@ -96,7 +101,7 @@ const Index = () => (
       ]}
     />
     <Alert
-      icon={<IconWarning />}
+      icon={<IconWarningOutline />}
       status="warning"
       title="Warning"
       description={[
@@ -111,7 +116,17 @@ const Index = () => (
     <h3>Dialog</h3>
     <Dialog>
       <DialogTrigger>Open Dialog</DialogTrigger>
-      <DialogContent>Test</DialogContent>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Dialog Title</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <Text>Some Content</Text>
+        </DialogBody>
+        <DialogFooter>
+          <DialogClose>Cancel</DialogClose>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
     <h3>Flex</h3>
     <Text>A basic flex-layout primitive</Text>
@@ -134,10 +149,10 @@ const Index = () => (
     <h4>Ghost</h4>
     <Box role="group">
       <IconButton variant="ghost" label="Previous">
-        <IconChevronLeft />
+        <IconChevronLeftOutline />
       </IconButton>
       <IconButton variant="ghost" label="Next">
-        <IconChevronRight />
+        <IconChevronRightOutline />
       </IconButton>
     </Box>
     <h3>Link</h3>
