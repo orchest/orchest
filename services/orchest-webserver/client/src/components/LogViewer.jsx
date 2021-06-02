@@ -16,12 +16,28 @@ class LogViewer extends React.Component {
 
     this.HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
   }
+
   componentDidMount() {
     // intialize socket.io listener
     this.initializeSocketIOListener();
     this.startLogSession();
 
     window.addEventListener("resize", this.fitTerminal.bind(this));
+    this.fitTerminal();
+  }
+
+  componentWillUnmount() {
+    this.stopLog();
+
+    this.props.sio.off("pty-output", this.onPtyOutputHandler);
+    this.props.sio.off("pty-reset", this.onPtyReset);
+
+    clearInterval(this.heartBeatInterval);
+
+    window.removeEventListener("resize", this.fitTerminal.bind(this));
+  }
+
+  componentDidUpdate() {
     this.fitTerminal();
   }
 
@@ -61,21 +77,6 @@ class LogViewer extends React.Component {
     }, this.HEARTBEAT_INTERVAL);
   }
 
-  componentWillUnmount() {
-    this.stopLog();
-
-    this.props.sio.off("pty-output", this.onPtyOutputHandler);
-    this.props.sio.off("pty-reset", this.onPtyReset);
-
-    clearInterval(this.heartBeatInterval);
-
-    window.removeEventListener("resize", this.fitTerminal.bind(this));
-  }
-
-  componentDidUpdate() {
-    this.fitTerminal();
-  }
-
   fitTerminal() {
     if (
       this.refManager.refs.term &&
@@ -108,55 +109,14 @@ class LogViewer extends React.Component {
       session_uuid: this.session_uuid,
       pipeline_uuid: this.props.pipeline_uuid,
       project_uuid: this.props.project_uuid,
-      step_uuid: this.props.step_uuid,
     };
 
-    if (this.props.run_uuid && this.props.job_uuid) {
-      data["pipeline_run_uuid"] = this.props.run_uuid;
-      data["job_uuid"] = this.props.job_uuid;
+    // LogViewer supports either a step_uuid or a service_name, never both.
+    if (this.props.step_uuid) {
+      data["step_uuid"] = this.props.step_uuid;
+    } else if (this.props.service_name) {
+      data["service_name"] = this.props.service_name;
     }
-
-    this.props.sio.emit("pty-log-manager", data);
-  }
-
-  componentDidUpdate() {
-    this.fitTerminal();
-  }
-
-  fitTerminal() {
-    if (
-      this.refManager.refs.term &&
-      this.refManager.refs.term.terminal.element.offsetParent != null
-    ) {
-      setTimeout(() => {
-        try {
-          this.fitAddon.fit();
-        } catch {
-          console.warn(
-            "fitAddon.fit() failed - Xterm only allows fit when element is visible."
-          );
-        }
-      });
-    }
-  }
-
-  stopLog() {
-    this.props.sio.emit("pty-log-manager", {
-      action: "stop-logs",
-      session_uuid: this.session_uuid,
-    });
-  }
-
-  startLogSession() {
-    this.session_uuid = uuidv4();
-
-    let data = {
-      action: "fetch-logs",
-      session_uuid: this.session_uuid,
-      pipeline_uuid: this.props.pipeline_uuid,
-      project_uuid: this.props.project_uuid,
-      step_uuid: this.props.step_uuid,
-    };
 
     if (this.props.run_uuid && this.props.job_uuid) {
       data["pipeline_run_uuid"] = this.props.run_uuid;

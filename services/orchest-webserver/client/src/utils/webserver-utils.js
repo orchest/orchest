@@ -98,6 +98,25 @@ export function componentName(TagName) {
   console.error("Was not able to get componentName for TagName" + TagName);
 }
 
+export function createOutgoingConnections(steps) {
+  for (let step_uuid in steps) {
+    if (steps.hasOwnProperty(step_uuid)) {
+      steps[step_uuid].outgoing_connections = [];
+    }
+  }
+
+  for (let step_uuid in steps) {
+    if (steps.hasOwnProperty(step_uuid)) {
+      let incoming_connections = steps[step_uuid].incoming_connections;
+      for (let x = 0; x < incoming_connections.length; x++) {
+        steps[incoming_connections[x]].outgoing_connections.push(step_uuid);
+      }
+    }
+  }
+
+  return steps;
+}
+
 export function checkGate(project_uuid) {
   return new Promise((resolve, reject) => {
     // we validate whether all environments have been built on the server

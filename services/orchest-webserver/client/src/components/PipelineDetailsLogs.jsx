@@ -1,7 +1,4 @@
 import React from "react";
-import { RefManager, uuidv4 } from "@orchest/lib-utils";
-import { XTerm } from "xterm-for-react";
-import { FitAddon } from "xterm-addon-fit";
 import LogViewer from "./LogViewer";
 
 class PipelineDetailsLogs extends React.Component {

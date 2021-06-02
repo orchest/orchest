@@ -13,66 +13,106 @@ import {
   MDCLinearProgressReact,
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
-import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
+import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
+import {
+  getPipelineJSONEndpoint,
+  createOutgoingConnections,
+} from "../utils/webserver-utils";
 
-class LogsView extends React.Component {
-  static contextType = OrchestContext;
+const LogsView = (props) => {
+  const { state, dispatch, get } = useOrchest();
+  const session = get.session(props.queryArgs);
+  const promiseManager = new PromiseManager();
 
-  constructor(props, context) {
-    super(props, context);
+  const [selectedLog, setSelectedLog] = React.useState(undefined);
+  const [logType, setLogType] = React.useState(undefined);
+  const [sortedSteps, setSortedSteps] = React.useState(undefined);
+  const [pipelineJson, setPipelineJson] = React.useState(undefined);
+  const [sio, setSio] = React.useState(undefined);
 
-    this.state = {
-      selectedLog: undefined,
+  React.useEffect(() => {
+    connectSocketIO();
+    fetchPipeline();
+
+    return () => {
+      promiseManager.cancelCancelablePromises();
+      disconnectSocketIO();
+    };
+  }, []);
+
+  const connectSocketIO = () => {
+    // disable polling
+    let socket = io.connect("/pty", { transports: ["websocket"] });
+
+    socket.on("connect", () => {
+      setSio(socket);
+    });
+  };
+
+  const disconnectSocketIO = () => {
+    if (sio) {
+      sio.disconnect();
+    }
+  };
+
+  const topologicalSort = (pipelineSteps) => {
+    let sortedStepKeys = [];
+
+    pipelineSteps = createOutgoingConnections(pipelineSteps);
+
+    // Add self and children (breadth first)
+    let addSelfAndChildren = (step) => {
+      if (sortedStepKeys.indexOf(step.uuid) == -1) {
+        sortedStepKeys.push(step.uuid);
+      }
+
+      for (let x = 0; x < step.outgoing_connections.length; x++) {
+        let childStepUUID = step.outgoing_connections[x];
+        if (sortedStepKeys.indexOf(childStepUUID) == -1) {
+          sortedStepKeys.push(childStepUUID);
+        }
+      }
+
+      // Recurse down
+      for (let x = 0; x < step.outgoing_connections.length; x++) {
+        let childStepUUID = step.outgoing_connections[x];
+        addSelfAndChildren(pipelineSteps[childStepUUID]);
+      }
     };
 
-    this.promiseManager = new PromiseManager();
-
-    this.connectSocketIO();
-  }
-
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-    this.disconnectSocketIO();
-  }
-
-  componentDidMount() {
-    this.fetchPipeline();
-  }
-
-  connectSocketIO() {
-    // disable polling
-    this.sio = io.connect("/pty", { transports: ["websocket"] });
-  }
-
-  disconnectSocketIO() {
-    if (this.sio) {
-      this.sio.disconnect();
+    // Find roots
+    for (let stepUUID in pipelineSteps) {
+      let step = pipelineSteps[stepUUID];
+      if (step.incoming_connections.length == 0) {
+        addSelfAndChildren(step);
+      }
     }
-  }
 
-  setHeaderComponent(pipelineName) {
-    this.context.dispatch({
+    return sortedStepKeys.map((stepUUID) => pipelineSteps[stepUUID]);
+  };
+
+  const setHeaderComponent = (pipelineName) => {
+    dispatch({
       type: "pipelineSet",
       payload: {
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        project_uuid: this.props.queryArgs.project_uuid,
+        pipeline_uuid: props.queryArgs.pipeline_uuid,
+        project_uuid: props.queryArgs.project_uuid,
         pipelineName: pipelineName,
       },
     });
-  }
+  };
 
-  fetchPipeline() {
+  const fetchPipeline = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      this.props.queryArgs.pipeline_uuid,
-      this.props.queryArgs.project_uuid,
-      this.props.queryArgs.job_uuid,
-      this.props.queryArgs.run_uuid
+      props.queryArgs.pipeline_uuid,
+      props.queryArgs.project_uuid,
+      props.queryArgs.job_uuid,
+      props.queryArgs.run_uuid
     );
 
     let pipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
-      this.promiseManager
+      promiseManager
     );
 
     pipelinePromise.promise.then((response) => {
@@ -80,126 +120,142 @@ class LogsView extends React.Component {
 
       if (result.success) {
         let pipelineJson = JSON.parse(result["pipeline_json"]);
+        setPipelineJson(pipelineJson);
 
-        this.setHeaderComponent(pipelineJson.name);
-        this.setState({
-          pipelineJson: pipelineJson,
-        });
+        let sortedSteps = topologicalSort(pipelineJson.steps);
+        setSortedSteps(sortedSteps);
+        setHeaderComponent(pipelineJson.name);
 
         // set first step as selectedLog
-        if (pipelineJson.steps && Object.keys(pipelineJson.steps)) {
-          this.setState({
-            selectedLog: Object.keys(pipelineJson.steps)[0],
-          });
+        if (sortedSteps.length > 0) {
+          setSelectedLog(sortedSteps[0].uuid);
+          setLogType("step");
         }
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
       }
     });
-  }
+  };
 
-  close() {
+  const close = () => {
     orchest.loadView(PipelineView, {
       queryArgs: {
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        project_uuid: this.props.queryArgs.project_uuid,
-        read_only: this.props.queryArgs.read_only,
-        job_uuid: this.props.queryArgs.job_uuid,
-        run_uuid: this.props.queryArgs.run_uuid,
+        pipeline_uuid: props.queryArgs.pipeline_uuid,
+        project_uuid: props.queryArgs.project_uuid,
+        read_only: props.queryArgs.read_only,
+        job_uuid: props.queryArgs.job_uuid,
+        run_uuid: props.queryArgs.run_uuid,
       },
     });
-  }
+  };
 
-  clickLog(event, item) {
-    this.setState({
-      selectedLog: item.step.uuid,
-    });
-  }
+  const clickLog = (_, item) => {
+    setSelectedLog(item.identifier);
+    setLogType(item.type);
+  };
 
-  render() {
-    let rootView = undefined;
+  let rootView = undefined;
 
-    if (this.state.pipelineJson) {
-      let steps = [];
+  if (pipelineJson && sortedSteps && sio && logType && selectedLog) {
+    let steps = [];
 
-      for (let key of Object.keys(this.state.pipelineJson.steps)) {
-        let step = this.state.pipelineJson.steps[key];
-        steps.push({
-          icon: "circle",
-          step: step,
+    for (let step of sortedSteps) {
+      steps.push({
+        identifier: step.uuid,
+        type: "step",
+        label: (
+          <>
+            <span className="log-title">{step.title}</span>
+            <br />
+            <span>{step.file_path}</span>
+          </>
+        ),
+      });
+    }
+
+    let services = [];
+
+    if (session && session.user_services) {
+      for (let key of Object.keys(session.user_services)) {
+        let service = session.user_services[key];
+
+        services.push({
+          type: "service",
+          identifier: service.name,
           label: (
             <>
-              <span className="log-title">{step.title}</span>
+              <span className="log-title">{service.name}</span>
               <br />
-              <span>{step.file_path}</span>
+              <span>{service.image}</span>
             </>
           ),
         });
       }
-
-      let services = [];
-      const session = this.context.get.session(this.props.queryArgs);
-
-      if (session && session.user_services) {
-        for (let key of Object.keys(session.user_services)) {
-          let service = session.user_services[key];
-
-          services.push({
-            icon: "settings",
-            label: (
-              <>
-                <span className="log-title">{service.name}</span>
-                <br />
-                <span>{service.image}</span>
-              </>
-            ),
-          });
-        }
-      }
-
-      rootView = (
-        <div className="logs">
-          <div className="log-selector">
-            <h2>Logs</h2>
-            <MDCDrawerReact
-              items={steps.concat("divider").concat(services)}
-              action={this.clickLog.bind(this)}
-            />
-          </div>
-          <div className="logs-xterm-holder">
-            {this.state.selectedLog && (
-              <LogViewer
-                key={this.state.selectedLog}
-                sio={this.sio}
-                step_uuid={this.state.selectedLog}
-                pipeline_uuid={this.props.queryArgs.pipeline_uuid}
-                project_uuid={this.props.queryArgs.project_uuid}
-                job_uuid={this.props.queryArgs.job_uuid}
-                run_uuid={this.props.queryArgs.run_uuid}
-              />
-            )}
-          </div>
-
-          <div className="top-buttons">
-            <MDCButtonReact
-              classNames={["close-button"]}
-              icon="close"
-              onClick={this.close.bind(this)}
-            />
-          </div>
-        </div>
-      );
-    } else {
-      rootView = <MDCLinearProgressReact />;
     }
 
-    return (
-      <OrchestSessionsConsumer>
-        <div className="view-page no-padding logs-view">{rootView}</div>
-      </OrchestSessionsConsumer>
+    let dynamicLogViewerProps = {};
+    if (logType == "step") {
+      dynamicLogViewerProps["step_uuid"] = selectedLog;
+    } else if (logType == "service") {
+      dynamicLogViewerProps["service_name"] = selectedLog;
+    }
+
+    rootView = (
+      <div className="logs">
+        <div className="log-selector">
+          <div className="log-section">
+            <i className="material-icons">device_hub</i>
+            Step logs
+          </div>
+          <MDCDrawerReact
+            items={steps}
+            selectedIndex={logType == "step" ? undefined : -1}
+            action={clickLog}
+          />
+          <div role="separator" className="mdc-list-divider" />
+          <div className="log-section">
+            <i className="material-icons">settings</i>
+            Service logs
+          </div>
+          <MDCDrawerReact
+            items={services}
+            selectedIndex={logType == "service" ? undefined : -1}
+            action={clickLog}
+          />
+        </div>
+        <div className="logs-xterm-holder">
+          {selectedLog && (
+            <LogViewer
+              key={selectedLog}
+              sio={sio}
+              pipeline_uuid={props.queryArgs.pipeline_uuid}
+              project_uuid={props.queryArgs.project_uuid}
+              job_uuid={props.queryArgs.job_uuid}
+              run_uuid={props.queryArgs.run_uuid}
+              {...dynamicLogViewerProps}
+            />
+          )}
+        </div>
+
+        <div className="top-buttons">
+          <MDCButtonReact
+            classNames={["close-button"]}
+            icon="close"
+            onClick={close}
+          />
+        </div>
+      </div>
     );
+  } else {
+    rootView = <MDCLinearProgressReact />;
   }
-}
+
+  return (
+    <OrchestSessionsConsumer>
+      <div className="view-page no-padding logs-view">{rootView}</div>
+    </OrchestSessionsConsumer>
+  );
+};
 
 export default LogsView;
