@@ -740,7 +740,7 @@ button.text-button {
 .bottom-buttons {
   background: #fff;
   width: 100%;
-  margin-left: -var(--space-5);
+  margin-left: calc(-1 * var(--space-5));
   padding-left: var(--space-5);
   padding-right: var(--space-5);
   box-sizing: content-box;

@@ -670,6 +670,9 @@ class PipelineView extends React.Component {
     });
   }
 
+  // TODO: only make this.sio defined after successful
+  // connect to avoid .emit()'ing to unconnected
+  // sio client (emits aren't buffered).
   connectSocketIO() {
     // disable polling
     this.sio = io.connect("/pty", { transports: ["websocket"] });
