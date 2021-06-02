@@ -770,7 +770,7 @@ def _get_user_services_specs(
                 environment[inherited_key] = user_env_variables[inherited_key]
 
         # User defined env vars superse inherited ones.
-        environment = environment.update(service.get("env_variables", {}))
+        environment.update(service.get("env_variables", {}))
 
         mounts = []
         sbinds = service.get("binds", {})
