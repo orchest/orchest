@@ -29,10 +29,23 @@ class IP(NamedTuple):
     jupyter_server: str
 
 
-def _inject_message_as_service(ip, port, service, msg):
+def _inject_message_as_user_service(ip, port, service, msg):
+    """Inject a message in the log stream of a user service.
+
+    User services logs are collected by a sidecar by setting a log
+    driver at the container level that's going to send all logs to the
+    sidecar. In some circumstances, running a container through the
+    docker SDK will result in an error without any logs being produced
+    by the container. This is the case for when the executable passed
+    in "command" cannot be found in $PATH; for such cases, we inject
+    into the logs an helpful command for the user, as if we were the
+    service itself.
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((ip, port))
-    # TODO: find a way to avoid having to fake being a syslog message.
+    # This is the expected pattern of a message emitted by the docker
+    # syslog driver, needs to be adjusted if we move to a different log
+    # driver.
     msg = f"user-service-{service}-metadata-end[0000]: {msg}"
     sock.send(msg.encode("utf-8"))
     sock.close()
@@ -169,6 +182,52 @@ class Session:
                 recommended to be either a pipeline UUID (for
                 interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
+            session_config: A dictionary containing the session
+                configuration. Required entries: project_uuid,
+                pipeline_uuid , project_dir, host_userdir.
+                user_env_variables is a required entry for
+                noninteractive session type, while it's unusued for
+                interactive session type.  User services can be defined
+                by passing the optional entry services, a dictionary
+                mapping service names to service configurations. Each
+                service is considered a "user service" and will be
+                launched along with the minimum resources that are
+                required by a session to run. The project_uuid and
+                pipeline_uuid determine the name of the resources that
+                are launched, i.e. the container names are based on
+                those. Example of
+                a configuration:
+                {
+                    "project_uuid": myuuid,
+                    "pipeline_uuid": myuuid,
+                    "project_dir": mystring,
+                    "host_userdir": mystring,
+                    "user_env_variables": {
+                        "A": "1",
+                        "B": "hello"
+                    }
+                    "services": {
+                        "my-little-service": {
+                            "name": "my-little-service",
+                            "binds": {
+                                "/data": "/data",
+                                "/project-dir": "/project-dir"
+                            },
+                            "image": "myimage",
+                            "command": "mycommand",
+                            "entrypoint": "myentrypoint",
+                            "scope": ["interactive", "noninteractive"],
+                            "ports": [80, 8080], // ports are TCP only,
+                            "env_variables": {
+                                "key1": "value1",
+                                "key2": "value2"
+                            },
+                            "env_variables_inherit": ["key1", "key2"],
+                        }}
+                }
+            session_type: Type of session: interactive, or
+                noninteractive.
+
 
         """
 
@@ -235,7 +294,7 @@ class Session:
 
                 # Necessary because the docker container won't emit any
                 # logs for SDK level errors.
-                _inject_message_as_service(
+                _inject_message_as_user_service(
                     sidecar_ip,
                     1111,
                     service_name,
@@ -477,8 +536,12 @@ class NonInteractiveSession(Session):
         name for its memory-server.
 
         Args:
+            See `Args` section in parent class :class:`Session`.
+
             uuid: Some UUID. If ``None`` then a randomly generated UUID
                 is used.
+            session_config: "user_env_variables" is a required entry for
+            NonInteractiveSession.
 
         """
         if uuid is None:
@@ -498,6 +561,7 @@ def launch_noninteractive_session(
     """Launches a non-interactive session for a particular pipeline.
 
     Args:
+        See `Args` section in class :class:`NonInteractiveSession`.
         docker_client (docker.client.DockerClient): docker client to
             manage Docker resources.
 
@@ -625,7 +689,17 @@ def _get_user_services_specs(
         uuid: Some UUID to identify the session with. For interactive
             runs using the pipeline UUID is required, for non-
             interactive runs we recommend using the pipeline run UUID.
+        session_config: See `Args` section in class :class:`Session`.
         session_type: Type of session: interactive, or noninteractive,
+        sidecar_address: Address of the sidecar container, to be passed
+            to the log driver for collecting logs. Note that docker does
+            not provide host name resolution for containers in the log
+            driver, meaning that passing an address like
+            tcp://{container name}:1111, will not work. If you want to
+            reach a container within the same docker network you will
+            have to pass the ip, tcp://{ip}:1111. External hosts can be
+            reached normally, e.g. as if trying to reach them from the
+            actual hosts, i.e.  pass the address normally.
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
 
@@ -633,7 +707,7 @@ def _get_user_services_specs(
         Mapping from container name to container specification for the
         run method. The return dict looks as follows:
             container_specs = {
-                'service-*': spec dict,
+                '{service name} spec dict,
                 ...
             }
 
@@ -764,7 +838,8 @@ def _get_orchest_services_specs(
         uuid: Some UUID to identify the session with. For interactive
             runs using the pipeline UUID is required, for non-
             interactive runs we recommend using the pipeline run UUID.
-        session_type: Type of session: interactive, or noninteractive,
+        session_config: See `Args` section in class :class:`Session`.
+        session_type: Type of session: interactive, or noninteractive.
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
 
