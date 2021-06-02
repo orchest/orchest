@@ -148,8 +148,17 @@ class EnvironmentEditView extends React.Component {
   }
 
   onSave(e) {
-    e.preventDefault();
-    this.save();
+    // Negative lookbehind. Check that every " is escaped with \
+    const regex = new RegExp(/(?<!\\)"/);
+    if (regex.test(this.state.environment.name)) {
+      orchest.alert(
+        "Error",
+        'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
+      );
+    } else {
+      e.preventDefault();
+      this.save();
+    }
   }
 
   returnToEnvironments() {
