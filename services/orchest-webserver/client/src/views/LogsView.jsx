@@ -1,3 +1,4 @@
+// @ts-check
 import React from "react";
 import PipelineView from "./PipelineView";
 import LogViewer from "../components/LogViewer";

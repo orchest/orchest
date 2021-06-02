@@ -1,3 +1,4 @@
+// @ts-check
 import React from "react";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 import { XTerm } from "xterm-for-react";
