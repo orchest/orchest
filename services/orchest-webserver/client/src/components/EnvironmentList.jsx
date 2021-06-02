@@ -13,6 +13,7 @@ import {
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import EnvironmentEditView from "../views/EnvironmentEditView";
+import ProjectsView from "@/views/ProjectsView";
 
 class EnvironmentList extends React.Component {
   constructor(props) {
@@ -112,6 +113,10 @@ class EnvironmentList extends React.Component {
         }
       })
       .catch((err) => {
+        if (err && err.status == 404) {
+          orchest.loadView(ProjectsView);
+        }
+
         console.log("Error fetching Environments", err);
       });
   }

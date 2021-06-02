@@ -93,6 +93,12 @@ def get_project_directory(project_uuid, host_path=False):
     return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
 
+def project_exists(project_uuid):
+    return Project.query.filter(
+        Project.uuid == project_uuid
+    ).count() == 0 or not os.path.isdir(get_project_directory(project_uuid))
+
+
 def get_environment_directory(environment_uuid, project_uuid, host_path=False):
     return os.path.join(
         get_project_directory(project_uuid, host_path),

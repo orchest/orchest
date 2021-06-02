@@ -17,6 +17,7 @@ import { OrchestContext } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";
+import ProjectsView from "@/views/ProjectsView";
 
 class PipelineList extends React.Component {
   static contextType = OrchestContext;
@@ -75,19 +76,25 @@ class PipelineList extends React.Component {
       this.promiseManager
     );
 
-    fetchListPromise.promise.then((response) => {
-      let data = JSON.parse(response);
-      this.setState({
-        listData: this.processListData(data.result),
-        pipelines: data.result,
+    fetchListPromise.promise
+      .then((response) => {
+        let data = JSON.parse(response);
+        this.setState({
+          listData: this.processListData(data.result),
+          pipelines: data.result,
+        });
+
+        if (this.refManager.refs.pipelineListView) {
+          this.refManager.refs.pipelineListView.setSelectedRowIds([]);
+        }
+
+        onComplete();
+      })
+      .catch((e) => {
+        if (e && e.status == 404) {
+          orchest.loadView(ProjectsView);
+        }
       });
-
-      if (this.refManager.refs.pipelineListView) {
-        this.refManager.refs.pipelineListView.setSelectedRowIds([]);
-      }
-
-      onComplete();
-    });
   }
 
   openPipeline(pipeline, readOnly) {
@@ -211,7 +218,7 @@ class PipelineList extends React.Component {
         });
       })
       .catch((response) => {
-        if (!e.isCanceled) {
+        if (!response.isCanceled) {
           try {
             let data = JSON.parse(response.body);
             orchest.alert(

@@ -32,7 +32,10 @@ class Runner:
             with open(log_file_path, "w") as file:
                 file.write("%s\n" % str(uuid.uuid4()))
         except IOError as e:
-            raise Exception("Could not write to log file %s" % log_file_path)
+            raise Exception(
+                "Could not write to log file %s. Error: %s [%s]"
+                % (log_file_path, e, type(e))
+            )
 
     def clear_pipeline_step_log(self):
 
@@ -67,7 +70,7 @@ class Runner:
 
 
 class ProcessRunner(Runner):
-    def run(self, command, filename):
+    def run(self, command, file_path):
 
         super().run()
 
@@ -75,7 +78,7 @@ class ProcessRunner(Runner):
 
         with open(log_file_path, "a") as f:
             process = subprocess.Popen(
-                [command, filename], cwd=self.working_dir, stdout=f, stderr=f
+                [command, file_path], cwd=self.working_dir, stdout=f, stderr=f
             )
             process.wait()
 

@@ -76,7 +76,7 @@ def get_step_uuid(pipeline: Pipeline) -> str:
     raise StepUUIDResolveError(f'No step with "notebook_path": {notebook_path}.')
 
 
-def _get_pipeline() -> Pipeline:
+def get_pipeline() -> Pipeline:
     with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
         pipeline_definition = json.load(f)
     return Pipeline.from_json(pipeline_definition)

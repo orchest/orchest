@@ -9,13 +9,14 @@ import {
   collapseDoubleDots,
 } from "@orchest/lib-utils";
 import { useInterval } from "@/hooks/use-interval";
-import { useOrchest } from "@/hooks/orchest";
+import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 
 const JupyterLabView = (props) => {
   const { state, dispatch, get } = useOrchest();
+
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
     1000
   );
@@ -25,6 +26,8 @@ const JupyterLabView = (props) => {
     hasEnvironmentCheckCompleted,
     setHasEnvironmentCheckCompleted,
   ] = React.useState(false);
+
+  const session = get.session(props.queryArgs);
 
   const orchest = window.orchest;
 
@@ -45,26 +48,25 @@ const JupyterLabView = (props) => {
     };
   }, []);
 
+  // Launch the session if it doesn't exist
   React.useEffect(() => {
-    const session = get.currentSession;
-
-    if (!session) return;
-
-    if (!session.status || session.status === "STOPPED") {
-      // Schedule as callback to avoid calling setState
-      // from within React render call.
-      setTimeout(() => {
-        dispatch({ type: "sessionToggle", payload: session });
-      }, 1);
+    if (
+      !state.sessionsIsLoading &&
+      (typeof session === "undefined" || !session?.status)
+    ) {
+      dispatch({ type: "sessionToggle", payload: props.queryArgs });
     }
+  }, [session, state.sessionsIsLoading]);
+
+  // On any session change
+  React.useEffect(() => {
+    updateJupyterInstance();
+    conditionalRenderingOfJupyterLab();
 
     if (session?.status === "STOPPING") {
       orchest.loadView(PipelinesView);
     }
-
-    updateJupyterInstance();
-    conditionalRenderingOfJupyterLab();
-  }, [state]);
+  }, [session, hasEnvironmentCheckCompleted]);
 
   const checkEnvironmentGate = () => {
     checkGate(props.queryArgs.project_uuid)
@@ -166,10 +168,7 @@ const JupyterLabView = (props) => {
   };
 
   const conditionalRenderingOfJupyterLab = () => {
-    if (
-      get.currentSession?.status === "RUNNING" &&
-      hasEnvironmentCheckCompleted
-    ) {
+    if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
       orchest.jupyter.show();
     } else {
       orchest.jupyter.hide();
@@ -177,17 +176,17 @@ const JupyterLabView = (props) => {
   };
 
   const updateJupyterInstance = () => {
-    let baseAddress =
-      "//" +
-      window.location.host +
-      get.currentSession?.notebook_server_info?.base_url;
-    orchest.jupyter.updateJupyterInstance(baseAddress);
+    if (session?.notebook_server_info) {
+      let baseAddress =
+        "//" + window.location.host + session.notebook_server_info?.base_url;
+      orchest.jupyter.updateJupyterInstance(baseAddress);
+    }
   };
 
   return (
-    <div className="view-page jupyter no-padding">
-      {get.currentSession?.status !== "RUNNING" &&
-        hasEnvironmentCheckCompleted && (
+    <OrchestSessionsConsumer>
+      <div className="view-page jupyter no-padding">
+        {session?.status !== "RUNNING" && hasEnvironmentCheckCompleted && (
           <div className="lab-loader">
             <div>
               <h2>Setting up JupyterLab…</h2>
@@ -195,7 +194,8 @@ const JupyterLabView = (props) => {
             </div>
           </div>
         )}
-    </div>
+      </div>
+    </OrchestSessionsConsumer>
   );
 };
 

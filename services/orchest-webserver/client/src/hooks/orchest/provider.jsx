@@ -2,7 +2,7 @@
 import React from "react";
 import { uuidv4 } from "@orchest/lib-utils";
 import { OrchestContext } from "./context";
-import { SessionsProvider } from "./sessions";
+import { OrchestSessionsProvider } from "./sessions";
 import { isSession, isCurrentSession } from "./utils";
 import { useLocalStorage } from "../local-storage";
 
@@ -42,25 +42,16 @@ const reducer = (state, action) => {
       return { ...state, pipelineIsReadOnly: action.payload };
     case "projectSet":
       return { ...state, project_uuid: action.payload };
-    case "sessionFetch":
-      return {
-        ...state,
-        _sessionsUuids: state._sessionsUuids?.find((stateSession) =>
-          isSession(stateSession, action.payload)
-        )
-          ? state._sessionsUuids.map((stateSession) =>
-              isSession(stateSession, action.payload)
-                ? action.payload
-                : stateSession
-            )
-          : [action.payload, ...state._sessionsUuids],
-      };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
-    case "_sessionsSet":
-      return { ...state, sessions: action.payload };
     case "_sessionsToggleClear":
       return { ...state, _sessionToggle: null };
+    case "_sessionsSet":
+      return { ...state, ...action.payload };
+    case "_sessionsPollingStart":
+      return { ...state, _sessionsIsPolling: true };
+    case "_sessionsPollingClear":
+      return { ...state, _sessionsIsPolling: false };
     case "sessionsKillAll":
       return { ...state, sessionsKillAllInProgress: true };
     case "_sessionsKillAllClear":
@@ -84,9 +75,10 @@ const initialState = {
   pipeline_uuid: undefined,
   project_uuid: undefined,
   sessions: [],
+  sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
   view: "pipeline",
-  _sessionsUuids: [],
+  _sessionsToFetch: [],
   _sessionsToggle: null,
 };
 
@@ -161,7 +153,7 @@ export const OrchestProvider = ({ config, user_config, children }) => {
         get,
       }}
     >
-      <SessionsProvider>{children}</SessionsProvider>
+      <OrchestSessionsProvider>{children}</OrchestSessionsProvider>
     </OrchestContext.Provider>
   );
 };

@@ -118,7 +118,7 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
                     label="Back"
                     variant="ghost"
                     bleed="bottom"
-                    onClick={() => cycleDescriptionIndex("forwards")}
+                    onClick={() => cycleDescriptionIndex("backwards")}
                   >
                     <IconChevronLeft />
                   </IconButton>

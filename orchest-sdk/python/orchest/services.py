@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 from orchest.config import Config
 from orchest.error import ServiceNotFound
-from orchest.utils import _get_pipeline
+from orchest.utils import get_pipeline
 
 
 def _generate_urls(service, pipeline):
@@ -76,7 +76,7 @@ def get_service(name) -> Dict[str, Any]:
             could not be found.
 
     """
-    pipeline = _get_pipeline()
+    pipeline = get_pipeline()
 
     services = pipeline.properties.get("services", {})
     if name in services:
@@ -94,7 +94,7 @@ def get_services() -> Dict[str, Dict[str, Any]]:
         :meth:`get_service`.
 
     """
-    pipeline = _get_pipeline()
+    pipeline = get_pipeline()
 
     services = {}
 
