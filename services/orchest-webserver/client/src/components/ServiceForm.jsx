@@ -164,12 +164,9 @@ const ServiceForm = (props) => {
               props.pipeline_uuid,
               props.run_uuid
             ).map((url) => (
-              <>
-                <a key={url} href={url}>
-                  {url}
-                </a>
-                <br />
-              </>
+              <div key={url}>
+                <a href={url}>{url}</a>
+              </div>
             ))}
         </div>
         <div className="clear"></div>
