@@ -802,8 +802,18 @@ def _get_user_services_specs(
                     type="bind",
                 ),
             )
+
+        # To support orchest environments as services.
+        image = service["image"]
+        prefix = "environment@"
+        if image.startswith(prefix):
+            image = image.replace(prefix, "")
+            image = _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=project_uuid, environment_uuid=image
+            )
+
         specs[service_name] = {
-            "image": service["image"],
+            "image": image,
             "detach": True,
             "mounts": mounts,
             "name": container_name,
