@@ -2,7 +2,7 @@ import React from "react";
 import _ from "lodash";
 import { MDCTextFieldReact, MDCCheckboxReact } from "@orchest/lib-mdc";
 import { getServiceURLs } from "../utils/webserver-utils";
-import EnvVarList from "./EnvVarList";
+import EnvVarList from "@/components/EnvVarList";
 
 const ServiceForm = (props) => {
   const handleServiceChange = (key, value) => {

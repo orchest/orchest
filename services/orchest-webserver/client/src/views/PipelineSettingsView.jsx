@@ -1,19 +1,20 @@
 // @ts-check
 import React from "react";
-import PipelineView from "./PipelineView";
+import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
+import "codemirror/mode/javascript/javascript";
 import {
+  css,
   Box,
   Dialog,
   DialogBody,
-  DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  IconLightBulbOutline,
-  Text,
+  Flex,
+  IconDraftOutline,
+  IconServicesSolid,
 } from "@orchest/design-system";
 import {
   makeRequest,
@@ -36,11 +37,56 @@ import {
   envVariablesDictToArray,
   OverflowListener,
   updateGlobalUnsavedChanges,
-} from "../utils/webserver-utils";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import EnvVarList from "../components/EnvVarList";
-import ServiceForm from "../components/ServiceForm";
-import "codemirror/mode/javascript/javascript";
+} from "@/utils/webserver-utils";
+import EnvVarList from "@/components/EnvVarList";
+import ServiceForm from "@/components/ServiceForm";
+import {
+  IconPostgreSQL,
+  IconPyTorch,
+  IconRedis,
+  IconStreamlit,
+  IconTensorBoard,
+  IconVSCode,
+} from "@/icons";
+import PipelineView from "./PipelineView";
+
+/** @type {{[key: string]: {label: string, icon?: React.ReactNode}}} servicesTemplates */
+const servicesTemplates = {
+  tensorboard: { label: "TensorBoard", icon: <IconTensorBoard /> },
+  pytorchTensorboard: {
+    label: "PyTorch TensorBoard",
+    icon: <IconPyTorch />,
+  },
+  streamlit: { label: "Streamlit", icon: <IconStreamlit /> },
+  vscode: { label: "VSCode", icon: <IconVSCode /> },
+  postgressql: { label: "PostgresSQL", icon: <IconPostgreSQL /> },
+  redis: { label: "Redis", icon: <IconRedis /> },
+  empty: {
+    label: "Create custom service",
+    icon: <IconDraftOutline />,
+  },
+};
+
+// we'll extract this into the design-system later
+const createServiceButton = css({
+  appearance: "none",
+  display: "inline-flex",
+  backgroundColor: "$background",
+  border: "1px solid $gray300",
+  borderRadius: "$sm",
+  width: "100%",
+  padding: "$3",
+  transition: "0.2s ease",
+  textAlign: "left",
+  "&:hover": {
+    backgroundColor: "$gray100",
+  },
+  "> *:first-child": {
+    flexShrink: 0,
+    color: "$gray600",
+    marginRight: "$3",
+  },
+});
 
 const PipelineSettingsView = (props) => {
   const orchest = window.orchest;
@@ -811,52 +857,32 @@ const PipelineSettingsView = (props) => {
 
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>Create a Service</DialogTitle>
+                            <DialogTitle>Create a service</DialogTitle>
                           </DialogHeader>
                           <DialogBody>
-                            <Box
-                              as="ul"
-                              role="list"
-                              css={{ listStyleType: "none" }}
-                            >
-                              {[
-                                "TensorBoard",
-                                "Streamlist",
-                                "VSCode",
-                                "PostgreSQL",
-                                "Redis",
-                                "PyTorch Tensorboard",
-                                "From Scratch",
-                              ].map((item) => (
-                                <Box
-                                  as="li"
-                                  key={item}
-                                  css={{
-                                    "& + &": {
-                                      marginTop: "$2",
-                                    },
-                                  }}
-                                >
-                                  <Box
-                                    as="button"
-                                    css={{
-                                      appearance: "none",
-                                      display: "inline-flex",
-                                      backgroundColor: "$background",
-                                      border: "1px solid $gray300",
-                                      borderRadius: "$sm",
-                                      width: "100%",
-                                      padding: "$3",
-                                    }}
-                                  >
-                                    <IconLightBulbOutline
-                                      css={{ marginRight: "$3" }}
-                                    />
-                                    {item}
-                                  </Box>
-                                </Box>
-                              ))}
-                            </Box>
+                            <Flex as="ul" direction="column" gap="2">
+                              {Object.keys(servicesTemplates).map((item) => {
+                                const template = servicesTemplates[item];
+                                return (
+                                  <li key={item}>
+                                    <button
+                                      className={createServiceButton()}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+
+                                        // @RICK PLS REPLACE ME WITH ACTUAL LOGIC
+                                        console.log(`Create ${item} template`);
+
+                                        setIsServiceCreateDialogOpen(false);
+                                      }}
+                                    >
+                                      {template?.icon || <IconServicesSolid />}
+                                      {template.label}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </Flex>
                           </DialogBody>
                           <DialogFooter>
                             <MDCButtonReact
