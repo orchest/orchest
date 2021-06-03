@@ -1,3 +1,4 @@
+// @ts-check
 import React from "react";
 import _ from "lodash";
 import { MDCTextFieldReact, MDCCheckboxReact } from "@orchest/lib-mdc";
