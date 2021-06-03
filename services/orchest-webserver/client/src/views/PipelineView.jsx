@@ -2191,6 +2191,10 @@ class PipelineView extends React.Component {
           }}
         ></div>
       );
+    } else {
+      if (this.state.selectedSteps.length === 0) {
+        this.state.openedStep = undefined;
+      }
     }
 
     // Check if there is an incoming step (that is not part of the
