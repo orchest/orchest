@@ -406,6 +406,20 @@ a.button {
   flex-direction: column;
   height: 100%;
 
+  .configuration {
+    .columns {
+      .column:nth-child(1) {
+        width: 30%;
+      }
+      margin-bottom: var(--space-5);
+    }
+  }
+  .service-form {
+    .columns {
+      margin-bottom: var(--space-5);
+    }
+  }
+
   .tab-view {
     flex: 1;
     overflow-y: auto;
@@ -795,9 +809,11 @@ button.text-button {
     height: auto;
   }
 
-  form {
-    button {
-      margin-top: var(--space-5);
+  .configuration {
+    form {
+      button {
+        margin-top: var(--space-5);
+      }
     }
   }
 }
@@ -1072,15 +1088,6 @@ strong {
     position: absolute;
     left: 0;
     top: 100%;
-  }
-}
-
-.pipeline-settings {
-  .columns {
-    .column:nth-child(1) {
-      width: 30%;
-    }
-    margin-bottom: var(--space-5);
   }
 }
 
