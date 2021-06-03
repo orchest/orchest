@@ -213,6 +213,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and is_service_name_valid(service["name"])
         and isinstance(service["image"], str)
         and isinstance(service["scope"], list)
+        and isinstance(service.get("preserve_base_path", False), bool)
         and
         # Allowed scopes.
         all([sc in ["interactive", "noninteractive"] for sc in service["scope"]])
