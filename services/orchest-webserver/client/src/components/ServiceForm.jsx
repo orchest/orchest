@@ -20,6 +20,8 @@ import {
 import { Box } from "@orchest/design-system";
 
 const ServiceForm = (props) => {
+  const orchest = window.orchest;
+
   const environmentPrefix = "environment@";
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);
@@ -140,7 +142,9 @@ const ServiceForm = (props) => {
                 classNames={["fullwidth"]}
                 value={editImageName}
               />
-              <p>Or choosing an environment as your image:</p>
+              <p className="push-up push-down">
+                Or choosing an environment as your image:
+              </p>
               <MDCSelectReact
                 label="Environment"
                 classNames={["fullwidth"]}
@@ -231,6 +235,10 @@ const ServiceForm = (props) => {
                   inputType="text"
                   onFocus={() => {
                     setShowImageDialog(true);
+                  }}
+                  onChange={(value) => {
+                    // Override direct edits
+                    handleServiceChange("image", props.service.image);
                   }}
                   value={
                     props.service.image.startsWith(environmentPrefix)
@@ -415,6 +423,23 @@ const ServiceForm = (props) => {
                 }
 
                 handleServiceChange("env_variables", envVars);
+              }}
+            />
+            <h3 className="push-up push-down">Danger zone</h3>
+            <MDCButtonReact
+              label="Delete service"
+              icon="delete"
+              classNames={["mdc-button--raised"]}
+              onClick={() => {
+                orchest.confirm(
+                  "Warning",
+                  "Are you sure you want to delete the service: " +
+                    props.service.name +
+                    "?",
+                  () => {
+                    props.deleteService(props.service.name);
+                  }
+                );
               }}
             />
           </>

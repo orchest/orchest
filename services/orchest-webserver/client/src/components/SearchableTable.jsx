@@ -8,14 +8,15 @@ class SearchableTable extends React.Component {
 
     this.state = {
       rowSearchMask: new Array(this.props.rows.length).fill(1),
+      searchValue: "",
     };
 
     this.refManager = new RefManager();
   }
 
-  onSearchChange(value) {
+  onSearchChange(searchValue) {
     // case insensitive search
-    value = value.toLocaleLowerCase();
+    let value = searchValue.toLocaleLowerCase();
 
     let rowSearchMask = new Array(this.props.rows.length).fill(0);
 
@@ -35,6 +36,7 @@ class SearchableTable extends React.Component {
 
     this.setState({
       rowSearchMask: rowSearchMask,
+      searchValue,
     });
   }
 
@@ -75,6 +77,7 @@ class SearchableTable extends React.Component {
       <Fragment>
         <MDCTextFieldReact
           onChange={this.onSearchChange.bind(this)}
+          value={this.state.searchValue}
           classNames={["mdc-text-field--outlined", "fullwidth", "search"]}
           notched={true}
           label="Search"

@@ -350,11 +350,20 @@ class ProjectsView extends React.Component {
         (result) => {
           this.setState({
             importResult: result,
+
             // This way the modal will not be reopened if it was closed
             // by the user.
             showImportModal:
-              this.state.showImportModal && result.status !== "SUCCESS",
+              this.state.showImportModal && result.status != "SUCCESS",
           });
+
+          if (result.status == "SUCCESS") {
+            this.setState({
+              import_project_name: "",
+              import_url: "",
+            });
+          }
+
           this.fetchList();
         }
       );
