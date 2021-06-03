@@ -170,13 +170,13 @@ function cleanup() {
 
             # silent fail because build context can be shared and cleanup can already have happend
             if containsElement "${image}" "${LIB_IMAGES[@]}" ; then
-                rm -r $i/lib 2> /dev/null
+                rm -rf $i/lib 2> /dev/null
             fi
             if containsElement "${image}" "${SDK_IMAGES[@]}" ; then
-                rm -r $i/orchest-sdk 2> /dev/null
+                rm -rf $i/orchest-sdk 2> /dev/null
             fi
             if containsElement "${image}" "${PNPM_IMAGES[@]}" ; then
-                rm -r $build_ctx/pnpm_files 2>/dev/null
+                rm -rf $build_ctx/pnpm_files 2>/dev/null
             fi
 
             rm $i/.dockerignore 2> /dev/null
