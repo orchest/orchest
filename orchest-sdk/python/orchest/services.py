@@ -25,7 +25,8 @@ def _generate_urls(service, pipeline):
     # means that the service uuid must be equal to the pipeline uuid.
 
     container_name = (
-        "service-"
+        ("internal-" if not service.get("ports", []) else "")
+        + "service-"
         + service["name"]
         + "-"
         + Config.PROJECT_UUID.split("-")[0]
