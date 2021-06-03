@@ -18,11 +18,15 @@ def _generate_urls(service, pipeline):
     service = copy.deepcopy(service)
     service.pop("scope", None)
 
-    if Config.RUN_UUID is not None:
+    if Config.RUN_TYPE == "noninteractive":
         service_uuid = Config.RUN_UUID
+    # Else the code is being called from a notebook (run type is None)
+    # or from an interactive run step (run type is interactive), which
+    # means that the service uuid must be equal to the pipeline uuid.
 
     container_name = (
-        "service-"
+        ("internal-" if not service.get("ports", []) else "")
+        + "service-"
         + service["name"]
         + "-"
         + Config.PROJECT_UUID.split("-")[0]

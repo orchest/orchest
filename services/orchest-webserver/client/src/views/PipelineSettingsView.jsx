@@ -50,17 +50,73 @@ import {
 } from "@/icons";
 import PipelineView from "./PipelineView";
 
-/** @type {{[key: string]: {label: string, icon?: React.ReactNode}}} servicesTemplates */
+/**
+ * @typedef {{binds?: {[key: string]: string}}} TServiceConfigBinds
+ * @typedef {{env_variables?: {[key: string]: string}}} TServiceConfigEnv
+ * @typedef {{ports?: number[]}} TServiceConfigPorts
+ * @typedef {{scope?: ("interactive"|"noninteractive")[]}} TServiceConfigScope
+ * @typedef { Partial<Record<"command"|"image"|"name", string>>
+ *  & TServiceConfigBinds
+ *  & TServiceConfigEnv
+ *  & TServiceConfigPorts
+ *  & TServiceConfigScope
+ * } TServiceConfig
+ * @type {{[key: string]: {label: string, icon?: React.ReactNode, config?: TServiceConfig}}} servicesTemplates */
 const servicesTemplates = {
-  tensorboard: { label: "TensorBoard", icon: <IconTensorBoard /> },
+  tensorboard: {
+    label: "TensorBoard",
+    icon: <IconTensorBoard />,
+    config: {
+      binds: {
+        "/data": "/data",
+      },
+      command: "tensorboard --logdir /data --bind_all",
+      image: "tensorflow/tensorflow",
+      name: "tensorboard",
+      ports: [6006],
+      scope: ["interactive"],
+    },
+  },
   pytorchTensorboard: {
     label: "PyTorch TensorBoard",
     icon: <IconPyTorch />,
   },
   streamlit: { label: "Streamlit", icon: <IconStreamlit /> },
-  vscode: { label: "VSCode", icon: <IconVSCode /> },
-  postgressql: { label: "PostgresSQL", icon: <IconPostgreSQL /> },
-  redis: { label: "Redis", icon: <IconRedis /> },
+  vscode: {
+    label: "VSCode",
+    icon: <IconVSCode />,
+    config: {
+      binds: {
+        "/project-dir": "/home/coder/project",
+      },
+      command: "code-server --auth none",
+      image: "codercom/code-server:latest",
+      name: "code-server",
+      ports: [8080],
+      scope: ["interactive"],
+    },
+  },
+  postgressql: {
+    label: "PostgresSQL",
+    icon: <IconPostgreSQL />,
+    config: {
+      env_variables: {
+        POSTGRES_HOST_AUTH_METHOD: "trust",
+      },
+      image: "postgres",
+      name: "postgres",
+      scope: ["interactive", "noninteractive"],
+    },
+  },
+  redis: {
+    label: "Redis",
+    icon: <IconRedis />,
+    config: {
+      image: "redis",
+      name: "redis",
+      scope: ["interactive", "noninteractive"],
+    },
+  },
   empty: {
     label: "Create custom service",
     icon: <IconDraftOutline />,
@@ -78,7 +134,7 @@ const createServiceButton = css({
   padding: "$3",
   transition: "0.2s ease",
   textAlign: "left",
-  "&:hover": {
+  "&:hover&:not(:disabled)": {
     backgroundColor: "$gray100",
   },
   "> *:first-child": {
@@ -818,25 +874,30 @@ const PipelineSettingsView = (props) => {
                             (serviceName) =>
                               state.pipelineJson.services[serviceName]
                           )
-                          .map((service) => (
-                            <ServiceForm
-                              service={service}
-                              updateService={onChangeService}
-                              pipeline_uuid={props.queryArgs.pipeline_uuid}
-                              project_uuid={props.queryArgs.project_uuid}
-                              run_uuid={props.queryArgs.run_uuid}
-                            />
-                          ))
-                          .map((row) => (
-                            <Box as="form" css={{ padding: "$4" }}>
+                          .map((service, i) => (
+                            <Box
+                              as="form"
+                              css={{ padding: "$4" }}
+                              onSubmit={(e) => e.preventDefault()}
+                            >
                               <Box as="fieldset" css={{ border: 0 }}>
                                 <Box
                                   as="legend"
                                   css={{ include: "screenReaderOnly" }}
                                 >
-                                  Configure Service
+                                  {["Configure", `"${service.name}"`, "service"]
+                                    .filter(Boolean)
+                                    .join(" ")}
                                 </Box>
-                                {row}
+
+                                <ServiceForm
+                                  key={["ServiceForm", i].join("-")}
+                                  service={service}
+                                  updateService={onChangeService}
+                                  pipeline_uuid={props.queryArgs.pipeline_uuid}
+                                  project_uuid={props.queryArgs.project_uuid}
+                                  run_uuid={props.queryArgs.run_uuid}
+                                />
                               </Box>
                             </Box>
                           ))}
@@ -866,13 +927,11 @@ const PipelineSettingsView = (props) => {
                                 return (
                                   <li key={item}>
                                     <button
+                                      disabled={!template.config}
                                       className={createServiceButton()}
                                       onClick={(e) => {
                                         e.preventDefault();
-
-                                        // @RICK PLS REPLACE ME WITH ACTUAL LOGIC
-                                        console.log(`Create ${item} template`);
-
+                                        onChangeService(template.config);
                                         setIsServiceCreateDialogOpen(false);
                                       }}
                                     >

@@ -17,6 +17,7 @@ class Config:
     PIPELINE_UUID = os.getenv("ORCHEST_PIPELINE_UUID", "")
     PIPELINE_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
     RUN_UUID = os.getenv("ORCHEST_RUN_UUID")
+    RUN_TYPE = os.getenv("ORCHEST_RUN_TYPE")
 
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.

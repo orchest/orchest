@@ -734,15 +734,24 @@ def _get_user_services_specs(
             f"service-{service_name}"
             f'-{project_uuid.split("-")[0]}-{uuid.split("-")[0]}'
         )
-        service_base_url = f"/{container_name}"
+        # This way nginx won't match & proxy to it.
+        if not service.get("ports", []):
+            container_name = f"internal-{container_name}"
+        else:
+            # To preserve the base path when proxying, for more details
+            # check the nginx config, services section.
+            pbp = "pbp-" if service.get("preserve_base_path", False) else ""
+            service_base_url = f"/{pbp}{container_name}/"
 
-        # Replace $BASE_PATH_PREFIX with service_base_url.
-        # NOTE: this substitution happens after
-        # service["name"] is read, so that JSON entry
-        # does not support $BASE_PATH_PREFIX substitution.
-        service_str = json.dumps(service)
-        service_str = service_str.replace("$BASE_PATH_PREFIX", service_base_url)
-        service = json.loads(service_str)
+            # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
+            # this substitution happens after service["name"] is read,
+            # so that JSON entry does not support $BASE_PATH_PREFIX
+            # substitution.  This allows the user to specify
+            # $BASE_PATH_PREFIX as the value of an env variable, so that
+            # the base path can be passsed dynamically to the service.
+            service_str = json.dumps(service)
+            service_str = service_str.replace("$BASE_PATH_PREFIX", service_base_url)
+            service = json.loads(service_str)
 
         # Get user configured environment variables
         try:
@@ -798,6 +807,7 @@ def _get_user_services_specs(
             "detach": True,
             "mounts": mounts,
             "name": container_name,
+            "group_add": [os.environ.get("ORCHEST_HOST_GID")],
             "network": network,
             "environment": environment,
             # Labels are used to have a way of keeping track of the
