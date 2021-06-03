@@ -166,6 +166,8 @@ def run_pipeline(
     """
     run_config["pipeline_uuid"] = pipeline_definition["uuid"]
     run_config["project_uuid"] = project_uuid
+    if "run_type" not in run_config:
+        run_config["run_type"] = "interactive"
 
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_definition)
@@ -243,6 +245,7 @@ def start_non_interactive_pipeline_run(
     # but should start as `userdir/...`
     run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config["run_endpoint"] = f"jobs/{job_uuid}"
+    run_config["run_type"] = "noninteractive"
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
