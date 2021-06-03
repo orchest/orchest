@@ -110,17 +110,25 @@ export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
     serviceUUID = run_uuid;
   }
 
+  let pbpPrefix = "";
+  if (service.preserve_base_path) {
+    pbpPrefix = "pbp-";
+  }
+
   for (let port of service.ports) {
     urls.push(
       window.location.origin +
-        "/service-" +
+        "/" +
+        pbpPrefix +
+        "service-" +
         service.name +
         "-" +
         project_uuid.split("-")[0] +
         "-" +
         serviceUUID.split("-")[0] +
         "_" +
-        port
+        port +
+        "/"
     );
   }
 
