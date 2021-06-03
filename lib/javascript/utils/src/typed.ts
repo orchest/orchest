@@ -8,6 +8,39 @@ export function uuidv4() {
 }
 
 // used in orchest-webserver only
+export function makeCancelable(promise, promiseManager) {
+  let hasCanceled_ = false;
+
+  let cancelablePromise = {
+    cancel() {
+      hasCanceled_ = true;
+    },
+    promise: undefined,
+  };
+
+  const wrappedPromise = new Promise((resolve, reject) => {
+    promise.then(
+      (val) => {
+        hasCanceled_ ? reject({ isCanceled: true }) : resolve(val);
+
+        promiseManager.clearCancelablePromise(cancelablePromise);
+      },
+      (error) => {
+        hasCanceled_ ? reject({ isCanceled: true }) : reject(error);
+
+        promiseManager.clearCancelablePromise(cancelablePromise);
+      }
+    );
+  });
+
+  cancelablePromise.promise = wrappedPromise;
+
+  promiseManager.appendCancelablePromise(cancelablePromise);
+
+  return cancelablePromise;
+}
+
+// used in orchest-webserver only
 export var LANGUAGE_MAP = {
   python: "Python",
   r: "R",
