@@ -807,6 +807,7 @@ def _get_user_services_specs(
             "detach": True,
             "mounts": mounts,
             "name": container_name,
+            "group_add": [os.environ.get("ORCHEST_HOST_GID")],
             "network": network,
             "environment": environment,
             # Labels are used to have a way of keeping track of the
