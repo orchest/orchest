@@ -35,7 +35,7 @@ def _generate_urls(service, pipeline):
     for port in service.get("ports", []):
         pbp = "pbp-" if service.get("preserve_base_path", False) else ""
         base_path = f"/{pbp}{container_name}_{port}"
-        external_url = f"http://{{host_name}}:{{port}}{base_path}"
+        external_url = f"http://{{host_name}}:{{port}}{base_path}/"
 
         base_paths[port] = base_path
         external_urls[port] = external_url
