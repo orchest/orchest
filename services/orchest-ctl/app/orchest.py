@@ -52,19 +52,14 @@ class OrchestApp:
             utils.echo("\torchest update")
             return
 
-        # The installation is not yet complete, but some images were
-        # already pulled before.
-        if pulled_images:
-            utils.echo("Some images have been pulled before. Don't forget to run:")
-            utils.echo("\torchest update")
-            utils.echo(
-                "after the installation is finished to ensure that all images are"
-                " running the same version of Orchest.",
-            )
-
         utils.echo("Installing Orchest...")
         logger.info("Pulling images:\n" + "\n".join(missing_images))
         self.docker_client.pull_images(missing_images, prog_bar=True)
+
+        utils.echo(
+            "Checking whether all containers are running the same version of Orchest."
+        )
+        self.version(ext=True)
 
     def start(self, container_config: dict):
         """Starts Orchest.
@@ -380,6 +375,11 @@ class OrchestApp:
             utils.echo("Update completed. To start Orchest again, run:")
             utils.echo("\torchest start")
 
+        utils.echo(
+            "Checking whether all containers are running the same version of Orchest."
+        )
+        self.version(ext=True)
+
     def version(self, ext=False):
         """Returns the version of Orchest.
 
@@ -409,7 +409,12 @@ class OrchestApp:
                 " can lead to the application crashing. You can fix this by running:",
             )
             utils.echo("\torchest update")
-            utils.echo("To get all containers on the same version again.")
+            utils.echo("This should get all containers on the same version again.")
+        else:
+            utils.echo(
+                "All containers are running on the same version"
+                " of Orchest. Happy coding!"
+            )
 
     def debug(self, ext: bool, compress: bool):
         debug_dump(ext, compress)
