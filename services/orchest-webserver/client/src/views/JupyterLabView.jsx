@@ -28,9 +28,7 @@ const JupyterLabView = (props) => {
   ] = React.useState(false);
 
   const session = get.session(props.queryArgs);
-
   const orchest = window.orchest;
-
   const promiseManager = new PromiseManager();
 
   React.useEffect(() => {
@@ -43,6 +41,7 @@ const JupyterLabView = (props) => {
     // dismount
     return () => {
       orchest.jupyter.hide();
+      promiseManager.cancelCancelablePromises();
       setVerifyKernelsInterval(null);
       dispatch({ type: "clearView" });
     };

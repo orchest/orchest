@@ -779,16 +779,16 @@ def _get_user_services_specs(
         if "/data" in sbinds:
             mounts.append(
                 Mount(  # data directory
-                    target=sbinds["data"],
+                    target=sbinds["/data"],
                     source=os.path.join(host_userdir, "data"),
                     type="bind",
                 ),
             )
 
-        if "/project_directory" in sbinds:
+        if "/project-dir" in sbinds:
             mounts.append(
                 Mount(
-                    target=sbinds["project_directory"],
+                    target=sbinds["/project-dir"],
                     source=project_dir,
                     type="bind",
                 ),

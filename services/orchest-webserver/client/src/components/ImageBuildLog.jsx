@@ -8,11 +8,7 @@ import {
   RefManager,
   PromiseManager,
 } from "@orchest/lib-utils";
-import {
-  cleanServerDateTime,
-  formatServerDateTime,
-  serverTimeToDate,
-} from "../utils/webserver-utils";
+import { formatServerDateTime } from "../utils/webserver-utils";
 
 class ImageBuild extends React.Component {
   constructor(props) {

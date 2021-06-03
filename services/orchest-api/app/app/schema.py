@@ -102,6 +102,10 @@ service = Model(
         "binds": fields.Raw(
             required=False, description=("Local fs to container mappings")
         ),
+        "preserve_base_path": fields.Boolean(
+            required=False,
+            description=("If the base path should be preserved when proxying."),
+        ),
     },
 )
 

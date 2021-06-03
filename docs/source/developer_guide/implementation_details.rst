@@ -37,6 +37,7 @@ Overview of the different paths inside the ``userdir/``.
            │   │   └── <pipeline-uuid>
            │   │       ├── logs
            │   │       │   └── <pipeline-step-uuid>.log
+           │   │       │   └── <service-name>.log
            │   │       └── data
            │   │           ├── <pipeline-step-uuid>.<serialization>
            │   │           └── HEAD
