@@ -300,15 +300,19 @@ class OrchestApp:
         _, running_containers = self.resource_manager.get_containers(state="running")
 
         if utils.is_orchest_running(running_containers):
-            utils.echo(
-                "Using Orchest whilst updating is NOT supported and will be shut"
-                " down, killing all active pipeline runs and session. You have 2s"
-                " to cancel the update operation."
-            )
+            if mode != "web":
+                # In the web updater it is not possible to cancel the
+                # update once started. So there is no value in showing
+                # this message or sleeping.
+                utils.echo(
+                    "Using Orchest whilst updating is NOT supported and will be shut"
+                    " down, killing all active pipeline runs and session. You have 2s"
+                    " to cancel the update operation."
+                )
 
-            # Give the user the option to cancel the update operation
-            # using a keyboard interrupt.
-            time.sleep(2)
+                # Give the user the option to cancel the update
+                # operation using a keyboard interrupt.
+                time.sleep(2)
 
             skip_containers = []
             if mode == "web":
