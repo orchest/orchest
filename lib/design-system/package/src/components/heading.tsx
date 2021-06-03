@@ -1,8 +1,8 @@
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { config, styled } from "../core";
-import type { CSS, ExtractVariants, ICSSProp } from "../types";
+import type { CSS, ICSSProp, ExtractVariants } from "../types";
 
-const DEFAULT_TAG = "p";
+const DEFAULT_TAG = "h1";
 
 const { fontSizes } = config.theme;
 type TFontSizes = keyof typeof fontSizes;
@@ -18,19 +18,21 @@ const size = Object.keys(fontSizes).reduce(
   {}
 ) as { [key in TFontSizes]: CSS };
 
-export const Text = styled(DEFAULT_TAG, {
-  fontWeight: "$normal",
+export const Heading = styled(DEFAULT_TAG, {
+  fontWeight: "$bold",
   variants: {
     size,
   },
   defaultVariants: {
-    size: "base",
+    size: "2xl",
   },
 });
 
-export interface ITextProps extends ICSSProp, ExtractVariants<typeof Text> {}
+export interface IHeadingProps
+  extends ICSSProp,
+    ExtractVariants<typeof Heading> {}
 
-export type TTextComponent = Polymorphic.ForwardRefComponent<
+export type THeadingComponent = Polymorphic.ForwardRefComponent<
   typeof DEFAULT_TAG,
-  ITextProps
+  IHeadingProps
 >;

@@ -1,8 +1,7 @@
 import * as React from "react";
-import { StitchesVariants } from "@stitches/react";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { styled } from "../core";
-import type { ICSSProp } from "../types";
+import type { ExtractVariants, ICSSProp } from "../types";
 
 const svgSize = (size: string) => ({
   "> svg": {
@@ -10,9 +9,9 @@ const svgSize = (size: string) => ({
   },
 });
 
-const DEFAULT_ELEMENT = "button";
+const DEFAULT_TAG = "button";
 
-const StyledIconButton = styled(DEFAULT_ELEMENT, {
+const StyledIconButton = styled(DEFAULT_TAG, {
   appearance: "none",
   display: "inline-flex",
   borderWidth: 0,
@@ -53,12 +52,12 @@ const StyledIconButton = styled(DEFAULT_ELEMENT, {
 
 export interface IIconButtonProps
   extends ICSSProp,
-    StitchesVariants<typeof StyledIconButton> {
+    ExtractVariants<typeof StyledIconButton> {
   label: string;
 }
 
-type IconButtonComponent = Polymorphic.ForwardRefComponent<
-  typeof DEFAULT_ELEMENT,
+export type TIconButtonComponent = Polymorphic.ForwardRefComponent<
+  typeof DEFAULT_TAG,
   IIconButtonProps
 >;
 
@@ -71,4 +70,4 @@ export const IconButton = React.forwardRef(({ label, ...props }, ref) => {
       ref={ref}
     />
   );
-}) as IconButtonComponent;
+}) as TIconButtonComponent;

@@ -20,9 +20,11 @@ import {
   getScrollLineHeight,
   getPipelineJSONEndpoint,
   serverTimeToDate,
+  getServiceURLs,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
+import LogsView from "./LogsView";
 import PipelineDetails from "../components/PipelineDetails";
 import PipelineStep from "../components/PipelineStep";
 import io from "socket.io-client";
@@ -218,6 +220,8 @@ class PipelineView extends React.Component {
       type: "clearView",
     });
 
+    this.disconnectSocketIO();
+
     $(document).off("mouseup.initializePipeline");
     $(document).off("keyup.initializePipeline");
     $(document).off("keydown.initializePipeline");
@@ -278,6 +282,7 @@ class PipelineView extends React.Component {
     this.state = {
       openedStep: undefined,
       openedMultistep: undefined,
+      showServices: false,
       selectedSteps: [],
       runStatusEndpoint: "/catch/api-proxy/api/runs/",
       stepSelector: {
@@ -546,6 +551,26 @@ class PipelineView extends React.Component {
     });
   }
 
+  openLogs() {
+    orchest.loadView(LogsView, {
+      queryArgs: {
+        project_uuid: this.props.queryArgs.project_uuid,
+        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+        read_only: this.props.queryArgs.read_only,
+        job_uuid: this.props.queryArgs.job_uuid,
+        run_uuid: this.props.queryArgs.run_uuid,
+      },
+    });
+  }
+
+  toggleServices() {
+    this.setState((state) => {
+      return {
+        showServices: !state.showServices,
+      };
+    });
+  }
+
   areQueryArgsValid() {
     // Verify required props
     if (
@@ -655,9 +680,18 @@ class PipelineView extends React.Component {
     });
   }
 
+  // TODO: only make this.sio defined after successful
+  // connect to avoid .emit()'ing to unconnected
+  // sio client (emits aren't buffered).
   connectSocketIO() {
     // disable polling
     this.sio = io.connect("/pty", { transports: ["websocket"] });
+  }
+
+  disconnectSocketIO() {
+    if (this.sio) {
+      this.sio.disconnect();
+    }
   }
 
   getConnectionByUUIDs(startNodeUUID, endNodeUUID) {
@@ -1288,8 +1322,8 @@ class PipelineView extends React.Component {
   }
 
   updateJupyterInstance() {
-    const base_url = this.context?.get?.currentSession?.notebook_server_info
-      ?.base_url;
+    const session = this.context.get.session(this.props.queryArgs);
+    const base_url = session?.notebook_server_info?.base_url;
 
     if (base_url) {
       let baseAddress = "//" + window.location.host + base_url;
@@ -1534,7 +1568,7 @@ class PipelineView extends React.Component {
   }
 
   openNotebook(stepUUID) {
-    const session = this.context?.get?.currentSession;
+    const session = this.context.get.session(this.props.queryArgs);
 
     if (session.status === "RUNNING") {
       orchest.loadView(JupyterLabView, {
@@ -1844,7 +1878,7 @@ class PipelineView extends React.Component {
   }
 
   runStepUUIDs(uuids, type) {
-    const session = this.context?.get?.currentSession;
+    const session = this.context.get.session(this.props.queryArgs);
 
     if (session.status !== "RUNNING") {
       orchest.alert(
@@ -1916,21 +1950,6 @@ class PipelineView extends React.Component {
     });
 
     this.savePipeline();
-  }
-
-  getPowerButtonClasses() {
-    const session = this.context?.get?.currentSession;
-
-    let classes = ["mdc-power-button", "mdc-button--raised"];
-
-    if (session?.status === "RUNNING") {
-      classes.push("active");
-    }
-    if (session?.status && ["STOPPING", "LAUNCHING"].includes(session.status)) {
-      classes.push("working");
-    }
-
-    return classes;
   }
 
   deselectSteps() {
@@ -2033,6 +2052,22 @@ class PipelineView extends React.Component {
     return origin;
   }
 
+  servicesAvailable() {
+    const session = this.context.get.session(this.props.queryArgs);
+    if (
+      (!this.props.queryArgs.job_uuid &&
+        session &&
+        session.status == "RUNNING") ||
+      (this.props.queryArgs.job_uuid &&
+        this.state.pipelineJson &&
+        this.state.pipelineRunning)
+    ) {
+      return Object.keys(this.getServices()).length > 0;
+    } else {
+      return false;
+    }
+  }
+
   renderPipelineHolder() {
     $(this.refManager.refs.pipelineStepsHolder).css({
       transformOrigin: `${this.pipelineOrigin[0]}px ${this.pipelineOrigin[1]}px`,
@@ -2116,6 +2151,59 @@ class PipelineView extends React.Component {
 
     this.mouseClientX = e.clientX;
     this.mouseClientY = e.clientY;
+  }
+
+  getServices() {
+    let services;
+    if (!this.props.queryArgs.job_uuid) {
+      const session = this.context.get.session(this.props.queryArgs);
+      if (session && session.user_services) {
+        services = session.user_services;
+      }
+    } else {
+      services = this.state.pipelineJson.services;
+    }
+    return services;
+  }
+
+  generateServiceEndpoints() {
+    let serviceLinks = [];
+    let services = this.getServices();
+
+    for (let serviceName in services) {
+      let service = services[serviceName];
+
+      let urls = getServiceURLs(
+        service,
+        this.props.queryArgs.project_uuid,
+        this.props.queryArgs.pipeline_uuid,
+        this.props.queryArgs.run_uuid
+      );
+
+      let formatUrl = (url) => {
+        return "Port " + url.split("/")[3].split("_").slice(-1)[0];
+      };
+
+      serviceLinks.push(<h4 key={serviceName}>{serviceName}</h4>);
+
+      for (let url of urls) {
+        serviceLinks.push(
+          <div className="link-holder" key={url}>
+            <a target="_blank" href={url}>
+              <span className="material-icons">open_in_new</span>{" "}
+              {formatUrl(url)}
+            </a>
+          </div>
+        );
+      }
+
+      if (urls.length == 0) {
+        serviceLinks.push(
+          <i key={serviceName + "-i"}>This service has no endpoints.</i>
+        );
+      }
+    }
+    return <div>{serviceLinks}</div>;
   }
 
   getStepSelectorRectangle() {
@@ -2293,45 +2381,54 @@ class PipelineView extends React.Component {
               })()}
             </div>
 
-            {(() => {
-              if (this.props.queryArgs.read_only !== "true") {
-                return (
-                  <div className={"pipeline-actions"}>
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.newStep.bind(this)}
-                      icon={"add"}
-                      label={"NEW STEP"}
-                    />
+            <div className={"pipeline-actions"}>
+              {this.props.queryArgs.read_only !== "true" && (
+                <MDCButtonReact
+                  classNames={["mdc-button--raised"]}
+                  onClick={this.newStep.bind(this)}
+                  icon={"add"}
+                  label={"NEW STEP"}
+                />
+              )}
 
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.openSettings.bind(this)}
-                      label={"Settings"}
-                      icon="tune"
-                    />
-                  </div>
-                );
-              } else {
-                // maintain the look and feel of actually using a <button>
-                // tag but make it "disabled" through the inline styling
-                return (
-                  <div className={"pipeline-actions"}>
-                    <MDCButtonReact
-                      label={"Read only"}
-                      disabled={true}
-                      icon={"visibility"}
-                    />
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised"]}
-                      onClick={this.openSettings.bind(this)}
-                      label={"Settings"}
-                      icon="tune"
-                    />
-                  </div>
-                );
-              }
-            })()}
+              {this.props.queryArgs.read_only === "true" && (
+                <MDCButtonReact
+                  label={"Read only"}
+                  disabled={true}
+                  icon={"visibility"}
+                />
+              )}
+
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                onClick={this.openLogs.bind(this)}
+                label={"Logs"}
+                icon="view_headline"
+              />
+
+              {this.servicesAvailable() && (
+                <MDCButtonReact
+                  classNames={["mdc-button--raised"]}
+                  onClick={this.toggleServices.bind(this)}
+                  label={"Services"}
+                  icon="settings"
+                />
+              )}
+
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                onClick={this.openSettings.bind(this)}
+                label={"Settings"}
+                icon="tune"
+              />
+
+              {this.state.showServices && this.servicesAvailable() && (
+                <div className="services-status">
+                  <h3>Running services</h3>
+                  {this.generateServiceEndpoints()}
+                </div>
+              )}
+            </div>
 
             <div
               className="pipeline-steps-outer-holder"
