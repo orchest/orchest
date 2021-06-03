@@ -31,6 +31,7 @@ class JobList extends React.Component {
       jobs: undefined,
       pipelines: undefined,
       jobsSearchMask: new Array(0).fill(1),
+      projectSnapshotSize: undefined,
     };
 
     this.promiseManager = new PromiseManager();
@@ -65,6 +66,9 @@ class JobList extends React.Component {
 
     // retrieve jobs
     this.fetchList();
+
+    // get size of project dir to show warning if necessary
+    this.fetchProjectDirSize();
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {}
@@ -90,6 +94,25 @@ class JobList extends React.Component {
         this.setState({
           jobs: result["jobs"],
           jobsSearchMask: new Array(result.length).fill(1),
+        });
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+  }
+
+  fetchProjectDirSize() {
+    let fetchProjectDirSizePromise = makeCancelable(
+      makeRequest("GET", `/async/projects/${this.props.project_uuid}`),
+      this.promiseManager
+    );
+
+    fetchProjectDirSizePromise.promise
+      .then((response) => {
+        let result = JSON.parse(response);
+
+        this.setState({
+          projectSnapshotSize: result["project_snapshot_size"],
         });
       })
       .catch((e) => {
@@ -294,6 +317,22 @@ class JobList extends React.Component {
                         content={
                           <Fragment>
                             <div className="create-job-modal">
+                              {(() => {
+                                // display warning if snapshot size would exceed 50MB
+                                if (this.state.projectSnapshotSize > 50) {
+                                  return (
+                                    <div className="warning push-down">
+                                      <i className="material-icons">warning</i>{" "}
+                                      Snapshot size exceeds 50MB. Refer to the{" "}
+                                      <a href="https://orchest.readthedocs.io/en/latest/user_guide/jobs.html">
+                                        docs
+                                      </a>
+                                      .
+                                    </div>
+                                  );
+                                }
+                              })()}
+
                               <MDCTextFieldReact
                                 ref={this.refManager.nrefs.formJobName}
                                 classNames={["fullwidth push-down"]}

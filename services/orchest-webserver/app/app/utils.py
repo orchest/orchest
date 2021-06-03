@@ -93,6 +93,29 @@ def get_project_directory(project_uuid, host_path=False):
     return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
 
+def get_project_snapshot_size(project_uuid, host_path=False):
+    """Returns the snapshot size for a project in MB."""
+
+    def get_size(path, skip_dir):
+        size = 0
+        for root, dirs, files in os.walk(path):
+            size += sum(os.path.getsize(os.path.join(root, name)) for name in files)
+            if skip_dir in dirs:
+                dirs.remove(skip_dir)
+
+        return size
+
+    project_dir = get_project_directory(project_uuid, host_path=host_path)
+
+    # TODO: This directory is not yet excluded when creating snapshots.
+    # This does not count towards size for snapshots.
+    # skip_dir = ".orchest"
+    skip_dir = None
+
+    # Convert bytes to megabytes.
+    return get_size(project_dir, skip_dir) / (1024 ** 2)
+
+
 def project_exists(project_uuid):
     return Project.query.filter(
         Project.uuid == project_uuid
