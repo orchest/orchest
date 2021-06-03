@@ -58,6 +58,7 @@ class EnvironmentEditView extends React.Component {
       cancelBuildRequestInProgress: false,
       environmentBuild: undefined,
       buildFetchHash: uuidv4(),
+      customBaseImageName: "",
     };
 
     this.promiseManager = new PromiseManager();
@@ -212,13 +213,13 @@ class EnvironmentEditView extends React.Component {
   }
 
   submitAddCustomBaseImage() {
-    let customBaseImageName = this.refManager.refs.customBaseImageTextField.mdc
-      .value;
+    let customBaseImageName = this.state.customBaseImageName;
 
     this.state.environment.base_image = customBaseImageName;
 
     this.setState((state, _) => {
       return {
+        customBaseImageName: "",
         baseImages:
           state.baseImages.indexOf(customBaseImageName) == -1
             ? state.baseImages.concat(customBaseImageName)
@@ -241,7 +242,12 @@ class EnvironmentEditView extends React.Component {
             <div>
               <MDCTextFieldReact
                 label="Base image name"
-                ref={this.refManager.nrefs.customBaseImageTextField}
+                value={this.state.customBaseImageName}
+                onChange={(value) => {
+                  this.setState({
+                    customBaseImageName: value,
+                  });
+                }}
               />
             </div>
           }

@@ -327,6 +327,14 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
     for job in future_jobs:
         steps = job.pipeline_definition["steps"]
         envs = {step["environment"] for step in steps.values()}
+
+        # Check if any service will be using the image.
+        for service in job.pipeline_definition.get("services", {}).values():
+            image = service["image"]
+            prefix = "environment@"
+            if image.startswith(prefix):
+                envs.add(image.replace(prefix, ""))
+
         if env_uuid in envs:
             future_jobs_using_env.append(job)
 

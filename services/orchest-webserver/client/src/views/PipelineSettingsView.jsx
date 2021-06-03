@@ -207,6 +207,18 @@ const PipelineSettingsView = (props) => {
     }));
   };
 
+  const onDeleteService = (serviceName) => {
+    let pipelineJson = _.cloneDeep(state.pipelineJson);
+    delete pipelineJson.services[serviceName];
+
+    setState((prevState) => ({
+      ...prevState,
+      unsavedChanges: true,
+      servicesChanged: true,
+      pipelineJson: pipelineJson,
+    }));
+  };
+
   const attachResizeListener = () => overflowListener.attach();
 
   const onSelectSubview = (index) => {
@@ -627,10 +639,6 @@ const PipelineSettingsView = (props) => {
                           </div>
                           <div className="column">
                             <MDCTextFieldReact
-                              ref={
-                                // @ts-ignore
-                                refManager.nrefs.pipelineNameTextField
-                              }
                               value={state.pipelineJson?.name}
                               onChange={onChangeName.bind(this)}
                               label="Pipeline name"
@@ -724,10 +732,6 @@ const PipelineSettingsView = (props) => {
 
                             <div>
                               <MDCTextFieldReact
-                                ref={
-                                  refManager.nrefs // @ts-ignore
-                                    .pipelineSettingDataPassingMemorySizeTextField
-                                }
                                 value={state.dataPassingMemorySize}
                                 onChange={onChangeDataPassingMemorySize.bind(
                                   this
@@ -875,31 +879,15 @@ const PipelineSettingsView = (props) => {
                               state.pipelineJson.services[serviceName]
                           )
                           .map((service, i) => (
-                            <Box
-                              as="form"
-                              css={{ padding: "$4" }}
-                              onSubmit={(e) => e.preventDefault()}
-                            >
-                              <Box as="fieldset" css={{ border: 0 }}>
-                                <Box
-                                  as="legend"
-                                  css={{ include: "screenReaderOnly" }}
-                                >
-                                  {["Configure", `"${service.name}"`, "service"]
-                                    .filter(Boolean)
-                                    .join(" ")}
-                                </Box>
-
-                                <ServiceForm
-                                  key={["ServiceForm", i].join("-")}
-                                  service={service}
-                                  updateService={onChangeService}
-                                  pipeline_uuid={props.queryArgs.pipeline_uuid}
-                                  project_uuid={props.queryArgs.project_uuid}
-                                  run_uuid={props.queryArgs.run_uuid}
-                                />
-                              </Box>
-                            </Box>
+                            <ServiceForm
+                              key={["ServiceForm", i].join("-")}
+                              service={service}
+                              updateService={onChangeService}
+                              deleteService={onDeleteService}
+                              pipeline_uuid={props.queryArgs.pipeline_uuid}
+                              project_uuid={props.queryArgs.project_uuid}
+                              run_uuid={props.queryArgs.run_uuid}
+                            />
                           ))}
                       />
 

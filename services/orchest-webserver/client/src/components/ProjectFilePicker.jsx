@@ -321,7 +321,6 @@ class ProjectFilePicker extends React.Component {
                       label="Path in project"
                       value={this.getFullProjectPath()}
                       classNames={["fullwidth push-down"]}
-                      ref={this.refManager.nrefs.fullFilePath}
                       disabled
                     />
                   </div>

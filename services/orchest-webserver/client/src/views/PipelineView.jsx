@@ -223,6 +223,7 @@ class PipelineView extends React.Component {
     this.disconnectSocketIO();
 
     $(document).off("mouseup.initializePipeline");
+    $(document).off("mousedown.initializePipeline");
     $(document).off("keyup.initializePipeline");
     $(document).off("keydown.initializePipeline");
 
@@ -563,11 +564,15 @@ class PipelineView extends React.Component {
     });
   }
 
-  toggleServices() {
-    this.setState((state) => {
-      return {
-        showServices: !state.showServices,
-      };
+  showServices() {
+    this.setState({
+      showServices: true,
+    });
+  }
+
+  hideServices() {
+    this.setState({
+      showServices: false,
     });
   }
 
@@ -1148,6 +1153,16 @@ class PipelineView extends React.Component {
       }
     );
 
+    $(document).on("mousedown.initializePipeline", (e) => {
+      const serviceClass = "services-status";
+      if (
+        $(e.target).parents("." + serviceClass).length == 0 &&
+        !$(e.target).hasClass(serviceClass)
+      ) {
+        this.hideServices();
+      }
+    });
+
     $(document).on("keydown.initializePipeline", (e) => {
       if (e.keyCode == 72) {
         this.centerView();
@@ -1172,8 +1187,8 @@ class PipelineView extends React.Component {
         }
 
         this.deselectSteps();
-
         this.closeDetailsView();
+        this.hideServices();
       }
     });
   }
@@ -2409,7 +2424,7 @@ class PipelineView extends React.Component {
               {this.servicesAvailable() && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised"]}
-                  onClick={this.toggleServices.bind(this)}
+                  onClick={this.showServices.bind(this)}
                   label={"Services"}
                   icon="settings"
                 />
