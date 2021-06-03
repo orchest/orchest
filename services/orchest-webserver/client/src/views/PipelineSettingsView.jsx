@@ -1,6 +1,7 @@
 // @ts-check
 import React from "react";
 import PipelineView from "./PipelineView";
+import _ from "lodash";
 import {
   Box,
   Dialog,
@@ -35,10 +36,10 @@ import {
   envVariablesDictToArray,
   OverflowListener,
   updateGlobalUnsavedChanges,
-  getServiceURLs,
 } from "../utils/webserver-utils";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import EnvVarList from "../components/EnvVarList";
+import ServiceForm from "../components/ServiceForm";
 import "codemirror/mode/javascript/javascript";
 
 const PipelineSettingsView = (props) => {
@@ -49,12 +50,11 @@ const PipelineSettingsView = (props) => {
   const [state, setState] = React.useState({
     selectedTabIndex: 0,
     inputParameters: JSON.stringify({}, null, 2),
-    inputServices: JSON.stringify({}, null, 2),
     restartingMemoryServer: false,
     unsavedChanges: false,
     pipeline_path: undefined,
     dataPassingMemorySize: "1GB",
-    pipelineJson: {},
+    pipelineJson: undefined,
     envVariables: [],
     projectEnvVariables: [],
     servicesChanged: false,
@@ -92,6 +92,18 @@ const PipelineSettingsView = (props) => {
         pipelineName: pipelineName,
       },
     });
+
+  const onChangeService = (service) => {
+    let pipelineJson = _.cloneDeep(state.pipelineJson);
+    pipelineJson.services[service.name] = service;
+
+    setState((prevState) => ({
+      ...prevState,
+      unsavedChanges: true,
+      servicesChanged: true,
+      pipelineJson: pipelineJson,
+    }));
+  };
 
   const attachResizeListener = () => overflowListener.attach();
 
@@ -144,7 +156,6 @@ const PipelineSettingsView = (props) => {
         setState((prevState) => ({
           ...prevState,
           inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
-          inputServices: JSON.stringify(pipelineJson?.services, null, 2),
           pipelineJson: pipelineJson,
           dataPassingMemorySize:
             pipelineJson?.settings.data_passing_memory_size,
@@ -257,26 +268,6 @@ const PipelineSettingsView = (props) => {
         name: value,
       },
     }));
-
-  const onChangePipelineServices = (editor, data, value) => {
-    setState((prevState) => ({
-      ...prevState,
-      inputServices: value,
-      servicesChanged: true,
-    }));
-
-    try {
-      const servicesJSON = JSON.parse(value);
-
-      setState((prevState) => ({
-        ...prevState,
-        unsavedChanges: true,
-        services: servicesJSON,
-      }));
-    } catch (err) {
-      // console.log("JSON did not parse")
-    }
-  };
 
   const onChangePipelineParameters = (editor, data, value) => {
     setState((prevState) => ({
@@ -522,7 +513,7 @@ const PipelineSettingsView = (props) => {
               {
                 {
                   0: (
-                    <div className="pipeline-settings">
+                    <div className="configuration">
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
@@ -593,80 +584,6 @@ const PipelineSettingsView = (props) => {
                                 );
                               }
                             })()}
-                          </div>
-                          <div className="clear"></div>
-                        </div>
-
-                        <div className="columns">
-                          <div className="column">
-                            <h3>Services</h3>
-                          </div>
-                          <div className="column">
-                            <CodeMirror
-                              value={state.inputServices}
-                              options={{
-                                mode: "application/json",
-                                theme: "jupyter",
-                                lineNumbers: true,
-                                readOnly: props.queryArgs.read_only === "true",
-                              }}
-                              onBeforeChange={onChangePipelineServices.bind(
-                                this
-                              )}
-                            />
-                            {(() => {
-                              let message;
-                              let parsedServices;
-
-                              try {
-                                parsedServices = JSON.parse(
-                                  state.inputServices
-                                );
-
-                                for (let [name, service] of Object.entries(
-                                  parsedServices
-                                )) {
-                                  // NOTE: this is enforced at the API level as
-                                  // well, needs to be kept in sync.
-                                  let nameReg = /^[0-9a-zA-Z\-]{1,36}$/;
-                                  if (
-                                    !service.name ||
-                                    !nameReg.test(service.name)
-                                  ) {
-                                    message =
-                                      "Invalid service name. Valid names satisfy: " +
-                                      nameReg.toString();
-                                    break;
-                                  }
-
-                                  if (service.image === undefined) {
-                                    message = "Missing required field: image";
-                                    break;
-                                  }
-                                }
-                              } catch {
-                                if (message === undefined) {
-                                  message = "Your input is not valid JSON.";
-                                }
-                              }
-
-                              if (message != undefined) {
-                                return (
-                                  <div className="warning push-up push-down">
-                                    <i className="material-icons">warning</i>{" "}
-                                    {message}
-                                  </div>
-                                );
-                              }
-                            })()}
-
-                            {state.servicesChanged && (
-                              <div className="warning push-up">
-                                <i className="material-icons">warning</i>
-                                Note: changes to services require a session
-                                restart.
-                              </div>
-                            )}
                           </div>
                           <div className="clear"></div>
                         </div>
@@ -808,7 +725,7 @@ const PipelineSettingsView = (props) => {
                                 }
                                 onDelete={(idx) => onEnvVariablesDeletion(idx)}
                               />
-                              <p>
+                              <p className="push-up">
                                 <i>
                                   Note: restarting the session is required to
                                   update environment variables in Jupyter
@@ -823,22 +740,60 @@ const PipelineSettingsView = (props) => {
                   ),
                   2: (
                     <Box css={{ "> * + *": { marginTop: "$4" } }}>
+                      {state.servicesChanged && (
+                        <div className="warning push-up">
+                          <i className="material-icons">warning</i>
+                          Note: changes to services require a session restart to
+                          take effect.
+                        </div>
+                      )}
                       <MDCDataTableReact
-                        headers={["Scope", "Service"]}
-                        rows={[["TensorBoard", "Interactive, Non-interactive"]]}
-                        detailRows={["row 1 detail"].map((row) => (
-                          <Box as="form" css={{ padding: "$4" }}>
-                            <Box as="fieldset" css={{ border: 0 }}>
-                              <Box
-                                as="legend"
-                                css={{ include: "screenReaderOnly" }}
-                              >
-                                Configure Service
+                        headers={["Service", "Scope"]}
+                        rows={Object.keys(state.pipelineJson.services)
+                          .map(
+                            (serviceName) =>
+                              state.pipelineJson.services[serviceName]
+                          )
+                          .map((service) => [
+                            service.name,
+                            service.scope
+                              .map((scope) => {
+                                const scopeMap = {
+                                  interactive: "Interactive",
+                                  noninteractive: "Non-interactive",
+                                };
+                                return scopeMap[scope];
+                              })
+                              .sort()
+                              .join(", "),
+                          ])}
+                        detailRows={Object.keys(state.pipelineJson.services)
+                          .map(
+                            (serviceName) =>
+                              state.pipelineJson.services[serviceName]
+                          )
+                          .map((service) => (
+                            <ServiceForm
+                              service={service}
+                              updateService={onChangeService}
+                              pipeline_uuid={props.queryArgs.pipeline_uuid}
+                              project_uuid={props.queryArgs.project_uuid}
+                              run_uuid={props.queryArgs.run_uuid}
+                            />
+                          ))
+                          .map((row) => (
+                            <Box as="form" css={{ padding: "$4" }}>
+                              <Box as="fieldset" css={{ border: 0 }}>
+                                <Box
+                                  as="legend"
+                                  css={{ include: "screenReaderOnly" }}
+                                >
+                                  Configure Service
+                                </Box>
+                                {row}
                               </Box>
-                              {row}
                             </Box>
-                          </Box>
-                        ))}
+                          ))}
                       />
 
                       <Dialog
