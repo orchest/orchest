@@ -874,25 +874,30 @@ const PipelineSettingsView = (props) => {
                             (serviceName) =>
                               state.pipelineJson.services[serviceName]
                           )
-                          .map((service) => (
-                            <ServiceForm
-                              service={service}
-                              updateService={onChangeService}
-                              pipeline_uuid={props.queryArgs.pipeline_uuid}
-                              project_uuid={props.queryArgs.project_uuid}
-                              run_uuid={props.queryArgs.run_uuid}
-                            />
-                          ))
-                          .map((row) => (
-                            <Box as="form" css={{ padding: "$4" }}>
+                          .map((service, i) => (
+                            <Box
+                              as="form"
+                              css={{ padding: "$4" }}
+                              onSubmit={(e) => e.preventDefault()}
+                            >
                               <Box as="fieldset" css={{ border: 0 }}>
                                 <Box
                                   as="legend"
                                   css={{ include: "screenReaderOnly" }}
                                 >
-                                  Configure Service
+                                  {["Configure", `"${service.name}"`, "service"]
+                                    .filter(Boolean)
+                                    .join(" ")}
                                 </Box>
-                                {row}
+
+                                <ServiceForm
+                                  key={["ServiceForm", i].join("-")}
+                                  service={service}
+                                  updateService={onChangeService}
+                                  pipeline_uuid={props.queryArgs.pipeline_uuid}
+                                  project_uuid={props.queryArgs.project_uuid}
+                                  run_uuid={props.queryArgs.run_uuid}
+                                />
                               </Box>
                             </Box>
                           ))}
@@ -926,7 +931,7 @@ const PipelineSettingsView = (props) => {
                                       className={createServiceButton()}
                                       onClick={(e) => {
                                         e.preventDefault();
-
+                                        onChangeService(template.config);
                                         setIsServiceCreateDialogOpen(false);
                                       }}
                                     >
