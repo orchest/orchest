@@ -53,7 +53,7 @@ export type TFlexComponent = Polymorphic.ForwardRefComponent<
 export const Flex = React.forwardRef((props, forwardedRef) => (
   <FlexRoot
     ref={forwardedRef}
-    role={["ul", "ol"].includes(props?.as) ? "list" : undefined}
+    role={["ul", "ol"].includes(props.as) ? "list" : undefined}
     {...props}
   />
 )) as TFlexComponent;
