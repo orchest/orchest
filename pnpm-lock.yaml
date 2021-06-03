@@ -149,6 +149,7 @@ importers:
       cronstrue: ^1.108.0
       dashify: ^2.0.0
       date-fns: 2.20.1
+      downshift: 6.1.3
       esbuild: 0.8.44
       isomorphic-unfetch: 3.1.0
       jquery: ^3.5.1
@@ -177,6 +178,7 @@ importers:
       cronstrue: 1.111.0
       dashify: 2.0.0
       date-fns: 2.20.1
+      downshift: 6.1.3_react@16.13.1
       isomorphic-unfetch: 3.1.0
       jquery: 3.6.0
       lodash: 4.17.21
@@ -2326,6 +2328,13 @@ packages:
     resolution: { integrity: sha1-ZF/ErfWLcrZJ1crmUTVhnbJv8UM= }
     dev: false
 
+  /compute-scroll-into-view/1.0.17:
+    resolution:
+      {
+        integrity: sha512-j4dx+Fb0URmzbwwMUrhqWM2BEWHdFGx+qZ9qqASHRPqvTYdqvWnHg0H1hIbcyLnvgnoNAVMlwkepyqM3DaIFUg==,
+      }
+    dev: false
+
   /concat-map/0.0.1:
     resolution: { integrity: sha1-2Klr13/Wjfd5OnMDajug1UBdR3s= }
 
@@ -2698,6 +2707,21 @@ packages:
     dependencies:
       is-obj: 2.0.0
     dev: true
+
+  /downshift/6.1.3_react@16.13.1:
+    resolution:
+      {
+        integrity: sha512-RA1MuaNcTbt0j+sVLhSs8R2oZbBXYAtdQP/V+uHhT3DoDteZzJPjlC+LQVm9T07Wpvo84QXaZtUCePLDTDwGXg==,
+      }
+    peerDependencies:
+      react: ">=16.12.0"
+    dependencies:
+      "@babel/runtime": 7.14.0
+      compute-scroll-into-view: 1.0.17
+      prop-types: 15.7.2
+      react: 16.13.1
+      react-is: 17.0.2
+    dev: false
 
   /duplexer3/0.1.4:
     resolution: { integrity: sha1-7gHdHKwO08vH/b6jfcCo8c4ALOI= }
@@ -4740,6 +4764,13 @@ packages:
       {
         integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==,
       }
+
+  /react-is/17.0.2:
+    resolution:
+      {
+        integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==,
+      }
+    dev: false
 
   /react-minimal-pie-chart/8.2.0_react-dom@16.13.1+react@16.13.1:
     resolution:

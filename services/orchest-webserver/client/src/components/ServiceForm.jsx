@@ -4,6 +4,7 @@ import _ from "lodash";
 import { MDCTextFieldReact, MDCCheckboxReact } from "@orchest/lib-mdc";
 import { getServiceURLs } from "../utils/webserver-utils";
 import EnvVarList from "@/components/EnvVarList";
+import { MultiSelect } from "./MultiSelect";
 
 const ServiceForm = (props) => {
   const handleServiceChange = (key, value) => {
@@ -126,21 +127,22 @@ const ServiceForm = (props) => {
       <div className="columns inner-padded">
         <div className="column">
           <h3 className="push-down">Ports</h3>
-          <MDCTextFieldReact
+
+          <MultiSelect
             label="Ports"
-            inputType="text"
-            disabled={props.disabled}
-            value={props.service.ports ? props.service.ports.join(",") : ""}
-            onChange={(value) => {
-              handleServiceChange(
-                "ports",
-                value
-                  .replaceAll(" ", "")
-                  .split(",")
-                  .map((port) => parseInt(port))
-              );
-            }}
-            classNames={["fullwidth"]}
+            screenReaderOnlyLabel
+            items={props.service.ports.map((port) => ({
+              value: port.toString(),
+            }))}
+            // onChange={(value) => {
+            //   handleServiceChange(
+            //     "ports",
+            //     value
+            //       .replaceAll(" ", "")
+            //       .split(",")
+            //       .map((port) => parseInt(port))
+            //   );
+            // }}
           />
 
           <h3 className="push-up push-down">Preserve base path</h3>
@@ -196,23 +198,23 @@ const ServiceForm = (props) => {
           />
         </div>
         <div className="column">
-          <h3 className="push-down">Inhereted environment variables</h3>
-          <MDCTextFieldReact
+          <h3 className="push-down">Inherited environment variables</h3>
+
+          <MultiSelect
             label="Environment variables"
-            inputType="text"
-            disabled={props.disabled}
-            value={
-              props.service.env_variables_inherit
-                ? props.service.env_variables_inherit.join(",")
-                : ""
-            }
-            onChange={(value) => {
-              handleServiceChange(
-                "env_variables_inherit",
-                value.replaceAll(" ", "").split(",")
-              );
-            }}
-            classNames={["fullwidth"]}
+            screenReaderOnlyLabel
+            items={props.service?.env_variables_inherit?.map(
+              (env_variable) =>
+                env_variable && {
+                  value: env_variable.toString(),
+                }
+            )}
+            // onChange={(value) => {
+            //   handleServiceChange(
+            //     "env_variables_inherit",
+            //     value.replaceAll(" ", "").split(",")
+            //   );
+            // }}
           />
         </div>
         <div className="clear"></div>
