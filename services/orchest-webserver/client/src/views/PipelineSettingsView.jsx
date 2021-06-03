@@ -875,31 +875,14 @@ const PipelineSettingsView = (props) => {
                               state.pipelineJson.services[serviceName]
                           )
                           .map((service, i) => (
-                            <Box
-                              as="form"
-                              css={{ padding: "$4" }}
-                              onSubmit={(e) => e.preventDefault()}
-                            >
-                              <Box as="fieldset" css={{ border: 0 }}>
-                                <Box
-                                  as="legend"
-                                  css={{ include: "screenReaderOnly" }}
-                                >
-                                  {["Configure", `"${service.name}"`, "service"]
-                                    .filter(Boolean)
-                                    .join(" ")}
-                                </Box>
-
-                                <ServiceForm
-                                  key={["ServiceForm", i].join("-")}
-                                  service={service}
-                                  updateService={onChangeService}
-                                  pipeline_uuid={props.queryArgs.pipeline_uuid}
-                                  project_uuid={props.queryArgs.project_uuid}
-                                  run_uuid={props.queryArgs.run_uuid}
-                                />
-                              </Box>
-                            </Box>
+                            <ServiceForm
+                              key={["ServiceForm", i].join("-")}
+                              service={service}
+                              updateService={onChangeService}
+                              pipeline_uuid={props.queryArgs.pipeline_uuid}
+                              project_uuid={props.queryArgs.project_uuid}
+                              run_uuid={props.queryArgs.run_uuid}
+                            />
                           ))}
                       />
 
