@@ -8,7 +8,7 @@ class Config:
     CLOUD = _config.CLOUD
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
     # The port nginx will listen on. Necessary for a proper restart.
-    PORT = os.environ["PORT"]
+    ORCHEST_PORT = os.environ["ORCHEST_PORT"]
 
 
 class DevelopmentConfig(Config):

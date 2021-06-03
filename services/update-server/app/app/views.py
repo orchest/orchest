@@ -78,7 +78,7 @@ def background_task():
         ctl_command = ["restart"]
 
         # Note that it won't work as --port {port}.
-        ctl_command.append(f"--port={CONFIG_CLASS.PORT}")
+        ctl_command.append(f"--port={CONFIG_CLASS.ORCHEST_PORT}")
 
         if dev_mode:
             ctl_command.append("--dev")

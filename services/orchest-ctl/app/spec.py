@@ -118,7 +118,7 @@ def get_container_config(
             * ``"ORCHEST_HOST_GID"``
 
     Args:
-        port: The port the Orchest webserver will listen on.
+        port: The port Orchest will listen on.
         cloud: If the configuration should be setup for running in the
             cloud.
         dev: If the configuration should be setup for running in dev
@@ -155,7 +155,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
         https://docs.docker.com/engine/api/v1.41/#operation/ContainerCreate
 
     Args:
-        port: The port the Orchest webserver will listen on.
+        port: The port Orchest will listen on.
         env: Refer to :meth:`get_container_config`.
 
     Returns:
@@ -187,7 +187,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
         "orchest-webserver": {
             "Image": "orchest/orchest-webserver:latest",
             "Env": [
-                f"PORT={port}",
+                f"ORCHEST_PORT={port}",
                 f'HOST_USER_DIR={env["HOST_USER_DIR"]}',
                 f'HOST_CONFIG_DIR={env["HOST_CONFIG_DIR"]}',
                 f'HOST_REPO_DIR={env["HOST_REPO_DIR"]}',
@@ -287,7 +287,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
         "update-server": {
             "Image": "orchest/update-server:latest",
             "Env": [
-                f"PORT={port}",
+                f"ORCHEST_PORT={port}",
                 f'HOST_USER_DIR={env["HOST_USER_DIR"]}',
                 f'HOST_CONFIG_DIR={env["HOST_CONFIG_DIR"]}',
                 f'HOST_REPO_DIR={env["HOST_REPO_DIR"]}',
