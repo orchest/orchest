@@ -75,8 +75,15 @@ export const MultiSelect = ({
   const labelId = useId();
   const inputId = useId();
 
+  const hasChanged = React.useRef(false);
+
   React.useEffect(() => {
-    if (onChange) onChange(items);
+    if (!hasChanged.current && initialItems !== items)
+      hasChanged.current = true;
+  }, [initialItems, items]);
+
+  React.useEffect(() => {
+    if (hasChanged.current && onChange) onChange(items);
   }, [items]);
 
   /** @param {TMultiSelectItem} item */
@@ -178,7 +185,6 @@ export const MultiSelectLabel = ({ children, screenReaderOnly }) => {
 };
 
 const multiSelectInputContainer = css({
-  $$borderColor: "$colors$gray500",
   $$borderWidth: "1px",
   include: "box",
   position: "relative",
@@ -197,7 +203,7 @@ const multiSelectInputContainer = css({
   variants: {
     hasError: {
       false: {
-        $$borderColor: "$colors$gray900",
+        $$borderColor: "$colors$gray600",
         "&:focus-within": {
           $$borderColor: "$colors$gray900",
         },
@@ -234,8 +240,9 @@ const multiSelectInputChip = css({
 
 const multiSelectInputElement = css({
   include: "box",
+  display: "block",
+  width: "100%",
   padding: "$$padding 0",
-  flexGrow: 1,
   border: 0,
   borderRadius: 0,
   backgroundColor: "transparent",

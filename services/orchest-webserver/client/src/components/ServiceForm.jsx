@@ -302,7 +302,7 @@ const ServiceForm = (props) => {
 
             <div className="columns inner-padded">
               <div className="column">
-                <h3 className="push-down">Ports</h3>
+                <h3 className="">Ports</h3>
 
                 <MultiSelect
                   items={
@@ -374,7 +374,7 @@ const ServiceForm = (props) => {
                 />
               </div>
               <div className="column">
-                <h3 className="push-down">Inherited environment variables</h3>
+                <h3>Inherited environment variables</h3>
 
                 <MultiSelect
                   items={props.service?.env_variables_inherit?.map(
