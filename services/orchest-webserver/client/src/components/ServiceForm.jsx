@@ -305,9 +305,13 @@ const ServiceForm = (props) => {
                 <MultiSelect
                   label="Ports"
                   screenReaderOnlyLabel
-                  items={props.service.ports.map((port) => ({
-                    value: port.toString(),
-                  }))}
+                  items={
+                    props.service.props
+                      ? props.service.ports.map((port) => ({
+                          value: port.toString(),
+                        }))
+                      : []
+                  }
                   // onChange={(value) => {
                   //   handleServiceChange(
                   //     "ports",

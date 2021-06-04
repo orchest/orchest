@@ -105,5 +105,10 @@ export const servicesTemplates = {
   empty: {
     label: "Create custom service",
     icon: <IconDraftOutline />,
+    config: {
+      image: "",
+      name: "my-service",
+      scope: ["interactive", "noninteractive"],
+    },
   },
 };
