@@ -1,10 +1,12 @@
 import time
 from typing import Any, Dict
 
+from docker import errors
 from flask import request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc
+from sqlalchemy.orm import lazyload
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -14,7 +16,7 @@ from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 from app.errors import JupyterBuildInProgressException
-from app.utils import register_schema
+from app.utils import lock_environment_images_for_session, register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)
@@ -172,6 +174,29 @@ class CreateInteractiveSession(TwoPhaseFunction):
             try:
                 project_uuid = session_config["project_uuid"]
                 pipeline_uuid = session_config["pipeline_uuid"]
+
+                env_as_services = set()
+                prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+                for service in session_config.get("services", {}).values():
+                    img = service["image"]
+                    if img.startswith(prefix):
+                        env_as_services.add(img.replace(prefix, ""))
+
+                # Lock the orchest environment images that are used
+                # as services.
+                try:
+                    env_uuid_docker_id_mappings = lock_environment_images_for_session(
+                        project_uuid, pipeline_uuid, env_as_services
+                    )
+                except errors.ImageNotFound as e:
+                    raise errors.ImageNotFound(
+                        "Pipeline services were referencing environments for "
+                        f"which an image does not exist, {e}"
+                    )
+                session_config[
+                    "env_uuid_docker_id_mappings"
+                ] = env_uuid_docker_id_mappings
+
                 session = InteractiveSession(
                     docker_client, network=_config.DOCKER_NETWORK
                 )
@@ -186,7 +211,11 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 # with for update to avoid overwriting the state of a
                 # STOPPING instance.
                 session_entry = (
-                    models.InteractiveSession.query.with_for_update()
+                    models.InteractiveSession.query
+                    # The lazyload is because you can't lock for update
+                    # such a relationship (nullable FK).
+                    .options(lazyload(models.InteractiveSession.image_mappings))
+                    .with_for_update()
                     .populate_existing()
                     .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
                     .one_or_none()
@@ -206,6 +235,16 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 db.session.commit()
             except Exception as e:
                 current_app.logger.error(e)
+
+                # Avoid cases where "current transaction is aborted,
+                # commands ignored until end of transaction block".
+                db.session.commit()
+
+                # Attempt containers cleanup.
+                try:
+                    session.shutdown()
+                except Exception:
+                    pass
 
                 # Error handling. If it does not succeed then the
                 # initial entry has to be removed from the database as
@@ -247,7 +286,10 @@ class StopInteractiveSession(TwoPhaseFunction):
         # would then cause the collateral effect to wait the full time
         # before shutting down the session.
         session = (
-            models.InteractiveSession.query.with_for_update()
+            models.InteractiveSession.query.options(
+                lazyload(models.InteractiveSession.image_mappings)
+            )
+            .with_for_update()
             .populate_existing()
             .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
             .one_or_none()

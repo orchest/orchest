@@ -9,9 +9,11 @@ from app.apis.namespace_environment_builds import (
 )
 from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_runs import AbortPipelineRun
+from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db, docker_client
 from app.utils import (
     interactive_runs_using_environment,
+    interactive_sessions_using_environment,
     is_environment_in_use,
     jobs_using_environment,
     register_schema,
@@ -149,6 +151,15 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
 
 class DeleteImage(TwoPhaseFunction):
     def _transaction(self, project_uuid: str, environment_uuid: str):
+        # Stop all interactive sessions making use of the env by using
+        # it as a service.
+        int_sess = interactive_sessions_using_environment(
+            project_uuid, environment_uuid
+        )
+        for sess in int_sess:
+            StopInteractiveSession(self.tpe).transaction(
+                sess.project_uuid, sess.pipeline_uuid
+            )
 
         # Stop all interactive runs making use of the env.
         int_runs = interactive_runs_using_environment(project_uuid, environment_uuid)

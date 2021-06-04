@@ -548,13 +548,24 @@ class Pipeline:
         return description
 
     def get_environments(self) -> Set[str]:
-        """Returns the set of UUIDs of the used environments
+        """Returns the set of UUIDs of the used environments.
 
         Returns:
-            Set of environments uuids used among the pipeline steps.
+            Set of environments uuids used among the pipeline steps and
+            services making use of orchest environments.
 
         """
-        return set([step.properties["environment"] for step in self.steps])
+        st_envs = set([step.properties["environment"] for step in self.steps])
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+        sr_envs = set(
+            [
+                sr["image"].replace(prefix, "")
+                for sr in self.properties.get("services", {}).values()
+                if sr["image"].startswith(prefix)
+            ]
+        )
+
+        return set.union(st_envs, sr_envs)
 
     def get_params(self) -> Dict[str, Any]:
         return self.properties.get("parameters", {})
