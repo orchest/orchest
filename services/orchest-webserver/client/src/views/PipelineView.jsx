@@ -21,6 +21,7 @@ import {
   getPipelineJSONEndpoint,
   serverTimeToDate,
   getServiceURLs,
+  filterServices,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -2178,7 +2179,12 @@ class PipelineView extends React.Component {
     } else {
       services = this.state.pipelineJson.services;
     }
-    return services;
+
+    // Filter services based on scope
+    let scope = this.props.queryArgs.job_uuid
+      ? "noninteractive"
+      : "interactive";
+    return filterServices(services, scope);
   }
 
   generateServiceEndpoints() {

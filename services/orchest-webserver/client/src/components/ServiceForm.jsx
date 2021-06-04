@@ -54,6 +54,11 @@ const ServiceForm = (props) => {
     props.updateService(service);
   };
 
+  const handleNameChange = (newName) => {
+    let oldName = props.service["name"];
+    props.nameChangeService(oldName, newName);
+  };
+
   const handleServiceBindsChange = (key, value) => {
     let service = _.cloneDeep(props.service);
     service.binds = service.binds !== undefined ? service.binds : {};
@@ -209,7 +214,7 @@ const ServiceForm = (props) => {
                   disabled={props.disabled}
                   value={props.service.name}
                   onChange={(value) => {
-                    handleServiceChange("name", value);
+                    handleNameChange(value);
                   }}
                   classNames={["fullwidth"]}
                 />

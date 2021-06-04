@@ -18,6 +18,7 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
+  filterServices,
 } from "../utils/webserver-utils";
 
 const LogsView = (props) => {
@@ -127,9 +128,8 @@ const LogsView = (props) => {
     });
   };
 
-  const generateServiceItems = (job) => {
-    let serviceItems = [];
-    let services;
+  const getServices = () => {
+    let services = {};
 
     // If there is no job_uuid use the session for
     // fetch the services
@@ -142,26 +142,32 @@ const LogsView = (props) => {
     }
     // if there is a job_uuid use the job pipeline to
     // fetch the services.
-    else if (job.pipeline_definition.services !== undefined) {
+    else if (job?.pipeline_definition.services !== undefined) {
       services = job.pipeline_definition.services;
     }
 
-    if (services) {
-      for (let key of Object.keys(services)) {
-        let service = services[key];
+    let scope = props.queryArgs.job_uuid ? "noninteractive" : "interactive";
+    return filterServices(services, scope);
+  };
 
-        serviceItems.push({
-          type: "service",
-          identifier: service.name,
-          label: (
-            <>
-              <span className="log-title">{service.name}</span>
-              <br />
-              <span>{service.image}</span>
-            </>
-          ),
-        });
-      }
+  const generateServiceItems = () => {
+    let serviceItems = [];
+    let services = getServices();
+
+    for (let key of Object.keys(services)) {
+      let service = services[key];
+
+      serviceItems.push({
+        type: "service",
+        identifier: service.name,
+        label: (
+          <>
+            <span className="log-title">{service.name}</span>
+            <br />
+            <span>{service.image}</span>
+          </>
+        ),
+      });
     }
 
     return serviceItems;
@@ -290,8 +296,11 @@ const LogsView = (props) => {
             <i className="material-icons">settings</i>
             Service logs
           </div>
+          {!session && !job && (
+            <i className="note">There is no active session.</i>
+          )}
           <MDCDrawerReact
-            items={generateServiceItems(job)}
+            items={generateServiceItems()}
             selectedIndex={logType == "service" ? undefined : -1}
             action={clickLog}
           />

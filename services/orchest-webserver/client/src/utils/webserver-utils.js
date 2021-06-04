@@ -1,4 +1,4 @@
-import React, { Fragment } from "react";
+import _ from "lodash";
 import { makeRequest } from "@orchest/lib-utils";
 import { format, parseISO } from "date-fns";
 import dashify from "dashify";
@@ -96,6 +96,16 @@ export function componentName(TagName) {
     }
   }
   console.error("Was not able to get componentName for TagName" + TagName);
+}
+
+export function filterServices(services, scope) {
+  let servicesCopy = _.cloneDeep(services);
+  for (let serviceName in services) {
+    if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
+      delete servicesCopy[serviceName];
+    }
+  }
+  return servicesCopy;
 }
 
 export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
