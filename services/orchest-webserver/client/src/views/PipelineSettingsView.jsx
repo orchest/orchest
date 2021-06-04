@@ -857,7 +857,7 @@ const PipelineSettingsView = (props) => {
                   ),
                   2: (
                     <Box css={{ "> * + *": { marginTop: "$4" } }}>
-                      {state.servicesChanged && (
+                      {state.servicesChanged && session && (
                         <div className="warning push-up">
                           <i className="material-icons">warning</i>
                           Note: changes to services require a session restart to
