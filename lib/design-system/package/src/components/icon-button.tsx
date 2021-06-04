@@ -61,13 +61,11 @@ export type TIconButtonComponent = Polymorphic.ForwardRefComponent<
   IIconButtonProps
 >;
 
-export const IconButton = React.forwardRef(({ label, ...props }, ref) => {
-  return (
-    <StyledIconButton
-      title={props.title || label}
-      aria-label={label}
-      {...props}
-      ref={ref}
-    />
-  );
-}) as TIconButtonComponent;
+export const IconButton = React.forwardRef(({ label, ...props }, ref) => (
+  <StyledIconButton
+    ref={ref}
+    title={props.title || label}
+    aria-label={label}
+    {...props}
+  />
+)) as TIconButtonComponent;

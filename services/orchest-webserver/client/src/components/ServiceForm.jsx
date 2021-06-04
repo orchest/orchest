@@ -303,15 +303,12 @@ const ServiceForm = (props) => {
                   items={props.service.ports.map((port) => ({
                     value: port.toString(),
                   }))}
-                  // onChange={(value) => {
-                  //   handleServiceChange(
-                  //     "ports",
-                  //     value
-                  //       .replaceAll(" ", "")
-                  //       .split(",")
-                  //       .map((port) => parseInt(port))
-                  //   );
-                  // }}
+                  onChange={(ports) => {
+                    handleServiceChange(
+                      "ports",
+                      ports.map(({ value }) => parseInt(value))
+                    );
+                  }}
                 />
 
                 <h3 className="push-up push-down">Preserve base path</h3>
@@ -375,12 +372,12 @@ const ServiceForm = (props) => {
                         value: env_variable.toString(),
                       }
                   )}
-                  // onChange={(value) => {
-                  //   handleServiceChange(
-                  //     "env_variables_inherit",
-                  //     value.replaceAll(" ", "").split(",")
-                  //   );
-                  // }}
+                  onChange={(env_variables) => {
+                    handleServiceChange(
+                      "env_variables_inherit",
+                      env_variables.map(({ value }) => value)
+                    );
+                  }}
                 />
               </div>
               <div className="clear"></div>
