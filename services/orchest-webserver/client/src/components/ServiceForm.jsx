@@ -306,7 +306,7 @@ const ServiceForm = (props) => {
 
                 <MultiSelect
                   items={
-                    props.service.props
+                    props.service.ports
                       ? props.service.ports.map((port) => ({
                           value: port.toString(),
                         }))
