@@ -323,7 +323,8 @@ class JobList extends React.Component {
                                   return (
                                     <div className="warning push-down">
                                       <i className="material-icons">warning</i>{" "}
-                                      Snapshot size exceeds 50MB. Refer to the{" "}
+                                      Snapshot size exceeds 50MB. Please refer
+                                      to the{" "}
                                       <a href="https://orchest.readthedocs.io/en/latest/user_guide/jobs.html">
                                         docs
                                       </a>
