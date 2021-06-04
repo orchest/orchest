@@ -7,7 +7,6 @@ import aiohttp
 from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
-from config import CONFIG_CLASS
 
 from app import create_app
 from app.celery_app import make_celery
@@ -16,6 +15,7 @@ from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
 from app.core.pipelines import Pipeline, PipelineDefinition
 from app.core.sessions import launch_noninteractive_session
+from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
 
@@ -221,7 +221,6 @@ def start_non_interactive_pipeline_run(
     snapshot_dir = os.path.join(job_dir, "snapshot")
     run_dir = os.path.join(job_dir, self.request.id)
 
-    # TODO: It should not copy all directories, e.g. not "data".
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir` (that will then be created by `copytree`).
     # copytree(snapshot_dir, run_dir)
