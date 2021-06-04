@@ -25,8 +25,6 @@ import {
 } from "@orchest/lib-utils";
 
 const ServiceForm = (props) => {
-  const orchest = window.orchest;
-
   const environmentPrefix = "environment@";
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);
@@ -56,6 +54,11 @@ const ServiceForm = (props) => {
     let service = _.cloneDeep(props.service);
     service[key] = value;
     props.updateService(service);
+  };
+
+  const handleNameChange = (newName) => {
+    let oldName = props.service["name"];
+    props.nameChangeService(oldName, newName);
   };
 
   const handleServiceBindsChange = (key, value) => {
@@ -213,7 +216,7 @@ const ServiceForm = (props) => {
                   disabled={props.disabled}
                   value={props.service.name}
                   onChange={(value) => {
-                    handleServiceChange("name", value);
+                    handleNameChange(value);
                   }}
                   classNames={["fullwidth"]}
                 />
@@ -302,9 +305,13 @@ const ServiceForm = (props) => {
                 <h3 className="push-down">Ports</h3>
 
                 <MultiSelect
-                  items={props.service.ports.map((port) => ({
-                    value: port.toString(),
-                  }))}
+                  items={
+                    props.service.props
+                      ? props.service.ports.map((port) => ({
+                          value: port.toString(),
+                        }))
+                      : []
+                  }
                   onChange={(ports) => {
                     handleServiceChange(
                       "ports",
@@ -430,23 +437,6 @@ const ServiceForm = (props) => {
                 }
 
                 handleServiceChange("env_variables", envVars);
-              }}
-            />
-            <h3 className="push-up push-down">Danger zone</h3>
-            <MDCButtonReact
-              label="Delete service"
-              icon="delete"
-              classNames={["mdc-button--raised"]}
-              onClick={() => {
-                orchest.confirm(
-                  "Warning",
-                  "Are you sure you want to delete the service: " +
-                    props.service.name +
-                    "?",
-                  () => {
-                    props.deleteService(props.service.name);
-                  }
-                );
               }}
             />
           </>

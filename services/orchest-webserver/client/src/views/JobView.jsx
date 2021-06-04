@@ -72,7 +72,6 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
   );
 
   const getJobStatusVariant = () => {
-    console.log(status);
     if (["STARTED", "SUCCESS", "ABORTED"].includes(status)) return status;
 
     if (

@@ -86,6 +86,15 @@ To build the docs, run:
    # Build
    make html
 
+Best practices
+--------------
+
+When adding new code to the repository, try to stick to the following best practices (note that this
+list is a work in progress):
+
+* New endpoints, e.g. in the ``orchest-api`` or proxy in the ``orchest-webserver``, should **NOT**
+  end with trailing slashes. For example, go with ``/api/jobs`` (good) over ``/api/jobs/`` (bad).
+
 .. _before committing:
 
 Before committing

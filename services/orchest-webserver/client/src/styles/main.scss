@@ -303,6 +303,11 @@ a.button {
         flex-direction: column;
         border-right: 1px solid $borderColor;
 
+        i.note {
+          font-size: 14px;
+          padding: 8px;
+        }
+
         .mdc-drawer {
           width: auto;
           border: 0;
@@ -999,6 +1004,10 @@ span.floating-button {
     margin-right: 10px;
     margin-top: -4px;
   }
+
+  a {
+    color: inherit;
+  }
 }
 
 b,
@@ -1216,8 +1225,16 @@ span.code {
         }
       }
 
-      i {
-        display: block;
+      .link-holder {
+        i {
+          display: block;
+          margin-top: calc(var(--space-5) / 2);
+        }
+      }
+
+      .edit-button-holder {
+        border-top: 1px solid $borderColor;
+        padding-top: calc(var(--space-5) / 2);
         margin-top: calc(var(--space-5) / 2);
       }
 
@@ -1278,7 +1295,7 @@ span.code {
       }
     }
 
-    button {
+    > button {
       &:last-of-type {
         margin-right: 0;
       }
@@ -1685,6 +1702,7 @@ table {
 
   .mdc-dialog__content {
     overflow: visible;
+    line-height: inherit;
   }
 
   .mdc-select__menu {

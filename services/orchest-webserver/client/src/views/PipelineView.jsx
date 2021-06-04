@@ -21,6 +21,7 @@ import {
   getPipelineJSONEndpoint,
   serverTimeToDate,
   getServiceURLs,
+  filterServices,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -303,6 +304,7 @@ class PipelineView extends React.Component {
       // The save hash is used to propagate a save's side-effects
       // to components.
       saveHash: "",
+      isDeletingStep: false,
     };
 
     if (this.props.queryArgs.run_uuid && this.props.queryArgs.job_uuid) {
@@ -540,15 +542,21 @@ class PipelineView extends React.Component {
     }
   }
 
-  openSettings() {
+  openSettings(initial_tab) {
+    let queryArgs = {
+      project_uuid: this.props.queryArgs.project_uuid,
+      pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+      read_only: this.props.queryArgs.read_only,
+      job_uuid: this.props.queryArgs.job_uuid,
+      run_uuid: this.props.queryArgs.run_uuid,
+    };
+
+    if (initial_tab) {
+      queryArgs.initial_tab = initial_tab;
+    }
+
     orchest.loadView(PipelineSettingsView, {
-      queryArgs: {
-        project_uuid: this.props.queryArgs.project_uuid,
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        read_only: this.props.queryArgs.read_only,
-        job_uuid: this.props.queryArgs.job_uuid,
-        run_uuid: this.props.queryArgs.run_uuid,
-      },
+      queryArgs,
     });
   }
 
@@ -893,7 +901,16 @@ class PipelineView extends React.Component {
     );
 
     $(document).on("keydown.initializePipeline", (e) => {
-      if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
+      if (
+        !this.state.isDeletingStep &&
+        !activeElementIsInput() &&
+        (e.keyCode === 8 || e.keyCode === 46)
+      ) {
+        // Make sure that successively pressing backspace does not trigger
+        // another delete.
+        this.setState({
+          isDeletingStep: true,
+        });
         this.deleteSelectedSteps();
       }
     });
@@ -1010,6 +1027,10 @@ class PipelineView extends React.Component {
         let step = this.state.steps[this.selectedItem];
 
         if (!step.meta_data._dragged) {
+          if (this.selectedConnection) {
+            this.deselectConnection();
+          }
+
           if (!e.ctrlKey) {
             stepClicked = true;
 
@@ -1060,6 +1081,10 @@ class PipelineView extends React.Component {
 
       // check if step needs to be selected based on selectedSteps
       if (this.state.stepSelector.active || this.selectedItem !== undefined) {
+        if (this.selectedConnection) {
+          this.deselectConnection();
+        }
+
         if (
           this.state.selectedSteps.length == 1 &&
           !stepClicked &&
@@ -1074,6 +1099,8 @@ class PipelineView extends React.Component {
           this.setState({
             openedMultistep: true,
           });
+        } else {
+          this.deselectSteps();
         }
       }
 
@@ -1138,6 +1165,8 @@ class PipelineView extends React.Component {
           if (_this.selectedConnection) {
             _this.selectedConnection.deselectState();
           }
+
+          _this.deselectSteps();
 
           let connection = $(this).parents("svg").parents(".connection");
           let startNodeUUID = connection.attr("data-start-uuid");
@@ -1515,8 +1544,14 @@ class PipelineView extends React.Component {
 
           this.setState({
             selectedSteps: [],
+            isDeletingStep: false,
           });
           this.savePipeline();
+        },
+        () => {
+          this.setState({
+            isDeletingStep: false,
+          });
         }
       );
     }
@@ -2178,7 +2213,12 @@ class PipelineView extends React.Component {
     } else {
       services = this.state.pipelineJson.services;
     }
-    return services;
+
+    // Filter services based on scope
+    let scope = this.props.queryArgs.job_uuid
+      ? "noninteractive"
+      : "interactive";
+    return filterServices(services, scope);
   }
 
   generateServiceEndpoints() {
@@ -2432,7 +2472,7 @@ class PipelineView extends React.Component {
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={this.openSettings.bind(this)}
+                onClick={this.openSettings.bind(this, undefined)}
                 label={"Settings"}
                 icon="tune"
               />
@@ -2441,6 +2481,14 @@ class PipelineView extends React.Component {
                 <div className="services-status">
                   <h3>Running services</h3>
                   {this.generateServiceEndpoints()}
+
+                  <div className="edit-button-holder">
+                    <MDCButtonReact
+                      icon="tune"
+                      label="Edit services"
+                      onClick={this.openSettings.bind(this, "services")}
+                    />
+                  </div>
                 </div>
               )}
             </div>

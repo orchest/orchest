@@ -36,6 +36,7 @@ from app.utils import (
     get_pipeline_json,
     get_pipeline_path,
     get_project_directory,
+    get_project_snapshot_size,
     get_repo_tag,
     get_session_counts,
     get_user_conf,
@@ -173,7 +174,7 @@ def register_views(app, db):
         cmd = ["updateserver"]
 
         # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.PORT}")
+        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
 
         if StaticConfig.FLASK_ENV == "development":
             cmd.append("--dev")
@@ -196,7 +197,7 @@ def register_views(app, db):
         cmd = ["restart"]
 
         # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.PORT}")
+        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
 
         if StaticConfig.FLASK_ENV == "development":
             cmd.append("--dev")
@@ -407,7 +408,12 @@ def register_views(app, db):
         else:
             # Merge the project data coming from the orchest-api.
             counts = project_entity_counts(project_uuid, get_job_count=True)
-            project = {**project.as_dict(), **resp.json(), **counts}
+            project = {
+                **project.as_dict(),
+                **resp.json(),
+                **counts,
+                "project_snapshot_size": get_project_snapshot_size(project_uuid),
+            }
 
             return jsonify(project)
 

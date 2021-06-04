@@ -151,6 +151,9 @@ def run_pipeline(
     Args:
         pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
+        If run_type is not defined it will be set as "interactive" , the
+        run_type is later used to understand if a step is running in
+        interactive or any other mode.
             Example: {
                 'run_endpoint': 'runs',
                 'project_dir': '/home/../pipelines/uuid',
@@ -224,7 +227,6 @@ def start_non_interactive_pipeline_run(
     snapshot_dir = os.path.join(job_dir, "snapshot")
     run_dir = os.path.join(job_dir, self.request.id)
 
-    # TODO: It should not copy all directories, e.g. not "data".
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir` (that will then be created by `copytree`).
     # copytree(snapshot_dir, run_dir)
@@ -261,6 +263,9 @@ def start_non_interactive_pipeline_run(
     session_config.pop("run_endpoint")
     session_config["host_userdir"] = host_userdir
     session_config["services"] = pipeline_definition.get("services", {})
+    session_config["env_uuid_docker_id_mappings"] = run_config[
+        "env_uuid_docker_id_mappings"
+    ]
 
     with launch_noninteractive_session(
         docker_client,

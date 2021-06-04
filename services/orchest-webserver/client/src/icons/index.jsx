@@ -88,29 +88,6 @@ export const IconPostgreSQL = React.forwardRef(
 );
 
 /** @type {React.FC<IIconProps>}  */
-export const IconPyTorch = React.forwardRef(
-  ({ className, css, size, ...props }, ref) => (
-    <svg
-      ref={ref}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      fill="none"
-      className={icon({ className, css, size })}
-      {...props}
-    >
-      <path
-        d="M51.0197 18.7174l-4.7436 4.7527c7.7888 7.8038 7.7888 20.3603 0 28.0467-7.7887 7.8038-20.321 7.8038-27.9927 0-7.7888-7.8038-7.7888-20.3603 0-28.0467L30.64 11.0896l1.7569-1.7602V0L13.7741 18.6587c-10.3655 10.3856-10.3655 27.1667 0 37.5522s27.1143 10.3855 37.3041 0c10.307-10.3855 10.307-27.0493-.0585-37.4935z"
-        fill="#EE4C2C"
-      />
-      <path
-        d="M41.7083 17.6025c1.9082 0 3.4551-1.5499 3.4551-3.4618 0-1.9119-1.5469-3.4619-3.4551-3.4619-1.9083 0-3.4552 1.55-3.4552 3.4619s1.5469 3.4618 3.4552 3.4618z"
-        fill="#EE4C2C"
-      />
-    </svg>
-  )
-);
-
-/** @type {React.FC<IIconProps>}  */
 export const IconRedis = React.forwardRef(
   ({ className, css, size, ...props }, ref) => (
     <svg

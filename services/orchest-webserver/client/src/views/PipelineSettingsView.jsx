@@ -13,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
   Flex,
-  IconDraftOutline,
   IconServicesSolid,
 } from "@orchest/design-system";
 import {
@@ -29,6 +28,7 @@ import {
   MDCTabBarReact,
   MDCDataTableReact,
   MDCLinearProgressReact,
+  MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
@@ -40,88 +40,8 @@ import {
 } from "@/utils/webserver-utils";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
-import {
-  IconPostgreSQL,
-  IconPyTorch,
-  IconRedis,
-  IconStreamlit,
-  IconTensorBoard,
-  IconVSCode,
-} from "@/icons";
 import PipelineView from "./PipelineView";
-
-/**
- * @typedef {{binds?: {[key: string]: string}}} TServiceConfigBinds
- * @typedef {{env_variables?: {[key: string]: string}}} TServiceConfigEnv
- * @typedef {{ports?: number[]}} TServiceConfigPorts
- * @typedef {{scope?: ("interactive"|"noninteractive")[]}} TServiceConfigScope
- * @typedef { Partial<Record<"command"|"image"|"name", string>>
- *  & TServiceConfigBinds
- *  & TServiceConfigEnv
- *  & TServiceConfigPorts
- *  & TServiceConfigScope
- * } TServiceConfig
- * @type {{[key: string]: {label: string, icon?: React.ReactNode, config?: TServiceConfig}}} servicesTemplates */
-const servicesTemplates = {
-  tensorboard: {
-    label: "TensorBoard",
-    icon: <IconTensorBoard />,
-    config: {
-      binds: {
-        "/data": "/data",
-      },
-      command: "tensorboard --logdir /data --bind_all",
-      image: "tensorflow/tensorflow",
-      name: "tensorboard",
-      ports: [6006],
-      scope: ["interactive"],
-    },
-  },
-  pytorchTensorboard: {
-    label: "PyTorch TensorBoard",
-    icon: <IconPyTorch />,
-  },
-  streamlit: { label: "Streamlit", icon: <IconStreamlit /> },
-  vscode: {
-    label: "VSCode",
-    icon: <IconVSCode />,
-    config: {
-      binds: {
-        "/project-dir": "/home/coder/project",
-      },
-      command: "code-server --auth none",
-      image: "codercom/code-server:latest",
-      name: "code-server",
-      ports: [8080],
-      scope: ["interactive"],
-    },
-  },
-  postgressql: {
-    label: "PostgresSQL",
-    icon: <IconPostgreSQL />,
-    config: {
-      env_variables: {
-        POSTGRES_HOST_AUTH_METHOD: "trust",
-      },
-      image: "postgres",
-      name: "postgres",
-      scope: ["interactive", "noninteractive"],
-    },
-  },
-  redis: {
-    label: "Redis",
-    icon: <IconRedis />,
-    config: {
-      image: "redis",
-      name: "redis",
-      scope: ["interactive", "noninteractive"],
-    },
-  },
-  empty: {
-    label: "Create custom service",
-    icon: <IconDraftOutline />,
-  },
-};
+import { servicesTemplates } from "@/utils/service-templates";
 
 // we'll extract this into the design-system later
 const createServiceButton = css({
@@ -147,7 +67,9 @@ const createServiceButton = css({
 const PipelineSettingsView = (props) => {
   const orchest = window.orchest;
 
-  const { dispatch } = useOrchest();
+  const { dispatch, get } = useOrchest();
+
+  const session = get.session(props.queryArgs);
 
   const [state, setState] = React.useState({
     selectedTabIndex: 0,
@@ -161,6 +83,14 @@ const PipelineSettingsView = (props) => {
     projectEnvVariables: [],
     servicesChanged: false,
   });
+
+  if (!session && !state.unsavedChanges && state.servicesChanged) {
+    setState((prevState) => ({
+      ...prevState,
+      servicesChanged: false,
+    }));
+  }
+
   const [
     isServiceCreateDialogOpen,
     setIsServiceCreateDialogOpen,
@@ -176,8 +106,24 @@ const PipelineSettingsView = (props) => {
     attachResizeListener();
   };
 
+  const handleInitialTab = () => {
+    const tabMapping = {
+      configuration: 0,
+      "environment-variables": 1,
+      services: 2,
+    };
+
+    if (props.queryArgs.initial_tab) {
+      setState((prevProps) => ({
+        ...prevProps,
+        selectedTabIndex: tabMapping[props.queryArgs.initial_tab],
+      }));
+    }
+  };
+
   React.useEffect(() => {
     init();
+    handleInitialTab();
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
@@ -195,9 +141,42 @@ const PipelineSettingsView = (props) => {
       },
     });
 
+  const getOrderValue = () => {
+    const lsKey = "_monotonic_getOrderValue";
+    // returns monotinically increasing digit
+    if (!window.localStorage.getItem(lsKey)) {
+      window.localStorage.setItem(lsKey, "0");
+    }
+    let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
+    window.localStorage.setItem(lsKey, value + "");
+    return value;
+  };
+
+  const addServiceFromTemplate = (service) => {
+    let clonedService = _.cloneDeep(service);
+
+    // Take care of service name collisions
+    let x = 1;
+    let baseServiceName = clonedService.name;
+    while (x < 100) {
+      if (state.pipelineJson.services[clonedService.name] == undefined) {
+        break;
+      }
+      clonedService.name = baseServiceName + x;
+      x++;
+    }
+
+    onChangeService(clonedService);
+  };
+
   const onChangeService = (service) => {
     let pipelineJson = _.cloneDeep(state.pipelineJson);
     pipelineJson.services[service.name] = service;
+
+    // Maintain client side order key
+    if (service.order === undefined) {
+      service.order = getOrderValue();
+    }
 
     setState((prevState) => ({
       ...prevState,
@@ -207,7 +186,22 @@ const PipelineSettingsView = (props) => {
     }));
   };
 
-  const onDeleteService = (serviceName) => {
+  const nameChangeService = (oldName, newName) => {
+    let pipelineJson = _.cloneDeep(state.pipelineJson);
+    let service = pipelineJson.services[oldName];
+    service.name = newName;
+    pipelineJson.services[newName] = service;
+    delete pipelineJson.services[oldName];
+
+    setState((prevState) => ({
+      ...prevState,
+      unsavedChanges: true,
+      servicesChanged: true,
+      pipelineJson: pipelineJson,
+    }));
+  };
+
+  const deleteService = (serviceName) => {
     let pipelineJson = _.cloneDeep(state.pipelineJson);
     delete pipelineJson.services[serviceName];
 
@@ -264,6 +258,11 @@ const PipelineSettingsView = (props) => {
         }
         if (pipelineJson?.services === undefined) {
           pipelineJson.services = {};
+        }
+
+        // Augment services with order key
+        for (let service in pipelineJson.services) {
+          pipelineJson.services[service].order = getOrderValue();
         }
 
         setHeaderComponent(pipelineJson?.name);
@@ -487,10 +486,21 @@ const PipelineSettingsView = (props) => {
     });
   };
 
+  const cleanPipelineJson = (pipelineJson) => {
+    let pipelineCopy = _.cloneDeep(pipelineJson);
+    for (let serviceName in pipelineCopy.services) {
+      delete pipelineCopy.services[serviceName].order;
+    }
+    return pipelineCopy;
+  };
+
   const saveGeneralForm = (e) => {
     console.log(state);
 
     e.preventDefault();
+
+    // Remove order property from services
+    let pipelineJson = cleanPipelineJson(state.pipelineJson);
 
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
@@ -500,9 +510,8 @@ const PipelineSettingsView = (props) => {
     }
 
     let formData = new FormData();
-    formData.append("pipeline_json", JSON.stringify(state.pipelineJson));
+    formData.append("pipeline_json", JSON.stringify(pipelineJson));
 
-    // perform POST to save
     makeRequest(
       "POST",
       `/async/pipelines/json/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`,
@@ -522,7 +531,7 @@ const PipelineSettingsView = (props) => {
             dispatch({
               type: "pipelineSet",
               payload: {
-                pipelineName: state.pipelineJson?.name,
+                pipelineName: pipelineJson?.name,
               },
             });
           } else {
@@ -600,6 +609,8 @@ const PipelineSettingsView = (props) => {
   };
 
   updateGlobalUnsavedChanges(state.unsavedChanges);
+
+  const sortService = (serviceA, serviceB) => serviceA.order - serviceB.order;
 
   return (
     <OrchestSessionsConsumer>
@@ -854,12 +865,13 @@ const PipelineSettingsView = (props) => {
                         </div>
                       )}
                       <MDCDataTableReact
-                        headers={["Service", "Scope"]}
+                        headers={["Service", "Scope", "Delete"]}
                         rows={Object.keys(state.pipelineJson.services)
                           .map(
                             (serviceName) =>
                               state.pipelineJson.services[serviceName]
                           )
+                          .sort(sortService)
                           .map((service) => [
                             service.name,
                             service.scope
@@ -872,18 +884,35 @@ const PipelineSettingsView = (props) => {
                               })
                               .sort()
                               .join(", "),
+                            <div className="consume-click">
+                              <MDCIconButtonToggleReact
+                                icon="delete"
+                                onClick={() => {
+                                  orchest.confirm(
+                                    "Warning",
+                                    "Are you sure you want to delete the service: " +
+                                      service.name +
+                                      "?",
+                                    () => {
+                                      deleteService(service.name);
+                                    }
+                                  );
+                                }}
+                              />
+                            </div>,
                           ])}
                         detailRows={Object.keys(state.pipelineJson.services)
                           .map(
                             (serviceName) =>
                               state.pipelineJson.services[serviceName]
                           )
+                          .sort(sortService)
                           .map((service, i) => (
                             <ServiceForm
                               key={["ServiceForm", i].join("-")}
                               service={service}
                               updateService={onChangeService}
-                              deleteService={onDeleteService}
+                              nameChangeService={nameChangeService}
                               pipeline_uuid={props.queryArgs.pipeline_uuid}
                               project_uuid={props.queryArgs.project_uuid}
                               run_uuid={props.queryArgs.run_uuid}
@@ -919,7 +948,8 @@ const PipelineSettingsView = (props) => {
                                       className={createServiceButton()}
                                       onClick={(e) => {
                                         e.preventDefault();
-                                        onChangeService(template.config);
+
+                                        addServiceFromTemplate(template.config);
                                         setIsServiceCreateDialogOpen(false);
                                       }}
                                     >

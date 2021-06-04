@@ -228,9 +228,7 @@ def restart(
         ),
         hidden=True,
     ),
-    port: Optional[int] = typer.Option(
-        8000, help="The port the Orchest webserver will listen on."
-    ),
+    port: Optional[int] = typer.Option(8000, help="The port Orchest will listen on."),
     cloud: bool = typer.Option(
         False,
         show_default="--no-cloud",
@@ -254,9 +252,7 @@ def restart(
 def updateserver(
     # Necessary to make it so that the update server restarts Orchest
     # with the correct settings.
-    port: Optional[int] = typer.Option(
-        8000, help="The port the Orchest webserver will listen on."
-    ),
+    port: Optional[int] = typer.Option(8000, help="The port Orchest will listen on."),
     cloud: bool = typer.Option(
         False,
         show_default="--no-cloud",

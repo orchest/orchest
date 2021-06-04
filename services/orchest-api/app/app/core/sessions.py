@@ -184,19 +184,23 @@ class Session:
                 interactive sessions).
             session_config: A dictionary containing the session
                 configuration. Required entries: project_uuid,
-                pipeline_uuid , project_dir, host_userdir.
-                user_env_variables is a required entry for
-                noninteractive session type, while it's unusued for
-                interactive session type.  User services can be defined
-                by passing the optional entry services, a dictionary
-                mapping service names to service configurations. Each
-                service is considered a "user service" and will be
-                launched along with the minimum resources that are
-                required by a session to run. The project_uuid and
-                pipeline_uuid determine the name of the resources that
-                are launched, i.e. the container names are based on
-                those. Example of
-                a configuration:
+                pipeline_uuid , project_dir, host_userdir,
+                env_uuid_docker_id_mappings.  user_env_variables is a
+                required entry for noninteractive session type, while
+                it's unusued for interactive session type.  User
+                services can be defined by passing the optional entry
+                services, a dictionary mapping service names to service
+                configurations. Each service is considered a "user
+                service" and will be launched along with the minimum
+                resources that are required by a session to run. The
+                project_uuid and pipeline_uuid determine the name of the
+                resources that are launched, i.e. the container names
+                are based on those. The image of a service can be an
+                "external" image to be pulled from a repo or an orchest
+                environment image uuid prefixed by environment@, in the
+                latter case, the used image depends on the
+                env_uuid_docker_id_mappings, which must have an entry
+                for said environment uuid.  Example of a configuration:
                 {
                     "project_uuid": myuuid,
                     "pipeline_uuid": myuuid,
@@ -205,6 +209,9 @@ class Session:
                     "user_env_variables": {
                         "A": "1",
                         "B": "hello"
+                    }
+                    "env_uuid_docker_id_mappings" : {
+                        "env uuid" : "docker id"
                     }
                     "services": {
                         "my-little-service": {
@@ -721,6 +728,7 @@ def _get_user_services_specs(
     project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
     services = session_config.get("services", {})
+    img_mappings = session_config["env_uuid_docker_id_mappings"]
 
     specs = {}
 
@@ -741,7 +749,7 @@ def _get_user_services_specs(
             # To preserve the base path when proxying, for more details
             # check the nginx config, services section.
             pbp = "pbp-" if service.get("preserve_base_path", False) else ""
-            service_base_url = f"/{pbp}{container_name}/"
+            service_base_url = f"/{pbp}{container_name}"
 
             # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
             # this substitution happens after service["name"] is read,
@@ -805,12 +813,10 @@ def _get_user_services_specs(
 
         # To support orchest environments as services.
         image = service["image"]
-        prefix = "environment@"
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
         if image.startswith(prefix):
             image = image.replace(prefix, "")
-            image = _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project_uuid, environment_uuid=image
-            )
+            image = img_mappings[image]
 
         specs[service_name] = {
             "image": image,
