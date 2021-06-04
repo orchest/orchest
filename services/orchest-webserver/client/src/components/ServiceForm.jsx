@@ -306,7 +306,7 @@ const ServiceForm = (props) => {
 
                 <MultiSelect
                   items={
-                    props.service.props
+                    props.service.ports
                       ? props.service.ports.map((port) => ({
                           value: port.toString(),
                         }))
@@ -315,7 +315,9 @@ const ServiceForm = (props) => {
                   onChange={(ports) => {
                     handleServiceChange(
                       "ports",
-                      ports.map(({ value }) => parseInt(value))
+                      ports
+                        .map(({ value }) => parseInt(value))
+                        .filter((el) => !isNaN(el))
                     );
                   }}
                 >

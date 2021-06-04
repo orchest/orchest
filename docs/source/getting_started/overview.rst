@@ -14,6 +14,7 @@ With Orchest you get to:
 * :ref:`Parametrize your data science pipelines to try out different modeling ideas
   <parametrize pipelines>`.
 * :ref:`Define environment variables <env variables>`.
+* :ref:`Easily spin up services which lifetime spans across the entire pipeline run <services>`.
 * :ref:`Version your pipelines through git <version through git>`.
 * :ref:`Run your pipelines on a cron-like schedule <cron-like scheduling>`.
 
@@ -84,6 +85,14 @@ Define environment variables
    :align: center
 
    See: :ref:`Environment variables <environment variables>`.
+
+Services
+--------
+.. figure:: ../img/overview/services.png
+   :width: 400
+   :align: center
+
+   See: :ref:`Services <services>`.
 
 .. _version through git:
 
