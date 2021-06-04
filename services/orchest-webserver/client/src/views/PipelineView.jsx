@@ -297,6 +297,7 @@ class PipelineView extends React.Component {
       // The save hash is used to propagate a save's side-effects
       // to components.
       saveHash: "",
+      isDeletingStep: false,
     };
 
     if (this.props.queryArgs.run_uuid && this.props.queryArgs.job_uuid) {
@@ -854,7 +855,16 @@ class PipelineView extends React.Component {
     );
 
     $(document).on("keydown.initializePipeline", (e) => {
-      if (!activeElementIsInput() && (e.keyCode === 8 || e.keyCode === 46)) {
+      if (
+        !this.state.isDeletingStep &&
+        !activeElementIsInput() &&
+        (e.keyCode === 8 || e.keyCode === 46)
+      ) {
+        // Make sure that successively pressing backspace does not trigger
+        // another delete.
+        this.setState({
+          isDeletingStep: true,
+        });
         this.deleteSelectedSteps();
       }
     });
@@ -1478,8 +1488,14 @@ class PipelineView extends React.Component {
 
           this.setState({
             selectedSteps: [],
+            isDeletingStep: false,
           });
           this.savePipeline();
+        },
+        () => {
+          this.setState({
+            isDeletingStep: false,
+          });
         }
       );
     }
