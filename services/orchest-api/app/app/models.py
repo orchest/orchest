@@ -176,6 +176,14 @@ class InteractiveSession(BaseModel):
         server_default="{}",
     )
 
+    # Orchest environments used as services.
+    image_mappings = db.relationship(
+        "InteractiveSessionImageMapping",
+        lazy="joined",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
     def __repr__(self):
         return f"<Launch {self.pipeline_uuid}>"
 
@@ -562,3 +570,60 @@ class PipelineRunImageMapping(BaseModel):
             f"{self.orchest_environment_uuid} | "
             f"{self.docker_img_id}>"
         )
+
+
+class InteractiveSessionImageMapping(BaseModel):
+    """Mappings between an interactive session and environment images.
+
+    Used to understand if an image can be removed from the docker
+    environment if it's not used by an interactive session. This could
+    be the case when an interactive session is using an orchest
+    environment as a service.
+    """
+
+    __tablename__ = "interactive_session_image_mappings"
+    __table_args__ = (
+        UniqueConstraint("project_uuid", "pipeline_uuid", "orchest_environment_uuid"),
+        UniqueConstraint("project_uuid", "pipeline_uuid", "docker_img_id"),
+    )
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    pipeline_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    orchest_environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+    docker_img_id = db.Column(
+        db.String(), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<InteractiveSessionImageMapping: {self.project_uuid}-"
+            f"{self.pipeline_uuid} | {self.orchest_environment_uuid} | "
+            f"{self.docker_img_id}>"
+        )
+
+
+# Necessary to have a single FK path from session to image mapping.
+ForeignKeyConstraint(
+    [
+        InteractiveSessionImageMapping.project_uuid,
+        InteractiveSessionImageMapping.pipeline_uuid,
+    ],
+    [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
+    ondelete="CASCADE",
+)
