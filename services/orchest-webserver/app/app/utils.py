@@ -110,7 +110,11 @@ def get_project_snapshot_size(project_uuid, host_path=False):
     project_dir = get_project_directory(project_uuid, host_path=host_path)
 
     # This does not count towards size for snapshots.
-    skip_dirs = [".orchest", ".git"]
+    # NOTE: For optimization purposes we might have to also ignore the
+    # `.git` directories. Although for large `.git` directories the
+    # approximation would be significantly different from the exact
+    # value.
+    skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
     return get_size(project_dir, skip_dirs) / (1024 ** 2)
