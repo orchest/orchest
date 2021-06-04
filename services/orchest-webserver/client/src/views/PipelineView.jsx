@@ -1011,6 +1011,10 @@ class PipelineView extends React.Component {
         let step = this.state.steps[this.selectedItem];
 
         if (!step.meta_data._dragged) {
+          if (this.selectedConnection) {
+            this.deselectConnection();
+          }
+
           if (!e.ctrlKey) {
             stepClicked = true;
 
@@ -1061,6 +1065,10 @@ class PipelineView extends React.Component {
 
       // check if step needs to be selected based on selectedSteps
       if (this.state.stepSelector.active || this.selectedItem !== undefined) {
+        if (this.selectedConnection) {
+          this.deselectConnection();
+        }
+
         if (
           this.state.selectedSteps.length == 1 &&
           !stepClicked &&
@@ -1075,6 +1083,8 @@ class PipelineView extends React.Component {
           this.setState({
             openedMultistep: true,
           });
+        } else {
+          this.deselectSteps();
         }
       }
 
@@ -1139,6 +1149,8 @@ class PipelineView extends React.Component {
           if (_this.selectedConnection) {
             _this.selectedConnection.deselectState();
           }
+
+          _this.deselectSteps();
 
           let connection = $(this).parents("svg").parents(".connection");
           let startNodeUUID = connection.attr("data-start-uuid");

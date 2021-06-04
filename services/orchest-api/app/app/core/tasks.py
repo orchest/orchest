@@ -227,7 +227,6 @@ def start_non_interactive_pipeline_run(
     snapshot_dir = os.path.join(job_dir, "snapshot")
     run_dir = os.path.join(job_dir, self.request.id)
 
-    # TODO: It should not copy all directories, e.g. not "data".
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir` (that will then be created by `copytree`).
     # copytree(snapshot_dir, run_dir)

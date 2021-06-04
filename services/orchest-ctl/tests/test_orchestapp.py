@@ -11,10 +11,9 @@ from app import config, orchest, spec, utils
     ("installed_images", "expected_stdout", "install_orchest"),
     [
         (["A", "B"], "Installation is already complete.", False),
-        (["A"], "Some images have been pulled before.", True),
         ([], "Installing Orchest...", True),
     ],
-    ids=["completed", "partial", "none"],
+    ids=["completed", "none"],
 )
 @patch("app.docker_wrapper.OrchestResourceManager.network", "orchest-ctl-tests")
 def test_install(installed_images, expected_stdout, install_orchest, capsys):
@@ -31,6 +30,7 @@ def test_install(installed_images, expected_stdout, install_orchest, capsys):
     app = orchest.OrchestApp()
     app.resource_manager = resource_manager
     app.docker_client = docker_client
+    app.version = MagicMock(return_value=None)
 
     # Install Orchest.
     app.install(language="python", gpu=False)
@@ -166,6 +166,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     app.resource_manager = resource_manager
     app.docker_client = docker_client
     app.stop = MagicMock(return_value=None)
+    app.version = MagicMock(return_value=None)
 
     app.update(mode=mode)
 

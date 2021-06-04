@@ -1004,6 +1004,10 @@ span.floating-button {
     margin-right: 10px;
     margin-top: -4px;
   }
+
+  a {
+    color: inherit;
+  }
 }
 
 b,
@@ -1690,6 +1694,7 @@ table {
 
   .mdc-dialog__content {
     overflow: visible;
+    line-height: inherit;
   }
 
   .mdc-select__menu {
