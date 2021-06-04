@@ -1035,6 +1035,8 @@ class PipelineView extends React.Component {
           this.setState({
             openedMultistep: true,
           });
+        } else {
+          this.deselectSteps();
         }
       }
 
