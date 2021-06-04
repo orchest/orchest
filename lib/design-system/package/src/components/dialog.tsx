@@ -5,15 +5,25 @@ import { styled, keyframes } from "../core";
 import { ExtractVariants, ICSSProp } from "../types";
 import { Heading, THeadingComponent } from "./heading";
 
-const ANIMATION_SPEED = "200ms";
+const animationSpeed = {
+  in: "200ms",
+  out: "120ms",
+};
+const fadeIn = keyframes({ from: { opacity: "0" }, to: { opacity: "1" } });
+const fadeOut = keyframes({ from: { opacity: 1 }, to: { opacity: 0 } });
+const fadeInZoom = keyframes({
+  "0%": {
+    transform: "scale(0.8) translate($$translate, $$translate)",
+    opacity: "0",
+  },
+  "100%": {
+    transform: "scale(1) translate($$translate, $$translate)",
+    opacity: "1",
+  },
+});
 
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
-
-const fadeIn = keyframes({
-  "0%": { opacity: "0" },
-  "100%": { opacity: "1" },
-});
 
 const DialogOverlay = styled(DialogPrimitive.Overlay, {
   include: "box",
@@ -24,7 +34,12 @@ const DialogOverlay = styled(DialogPrimitive.Overlay, {
   bottom: 0,
   left: 0,
   "@motionSafe": {
-    animation: `${fadeIn} ${ANIMATION_SPEED}`,
+    "&[data-state='open']": {
+      animation: `${fadeIn} ${animationSpeed.in} ease-out`,
+    },
+    "&[data-state='closed']": {
+      animation: `${fadeOut} ${animationSpeed.out} ease-in`,
+    },
   },
 });
 
@@ -37,17 +52,6 @@ export const Dialog: React.FC<IDialogProps> = ({ children, ...props }) => (
     {children}
   </DialogPrimitive.Root>
 );
-
-const fadeInZoom = keyframes({
-  "0%": {
-    transform: "scale(0.8) translate($$translate, $$translate)",
-    opacity: "0",
-  },
-  "100%": {
-    transform: "scale(1) translate($$translate, $$translate)",
-    opacity: "1",
-  },
-});
 
 const DialogContentRoot = styled(DialogPrimitive.Content, {
   include: "box",
@@ -75,7 +79,12 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   },
   "@motionSafe": {
     willChange: "transform",
-    animation: `${fadeInZoom} ${ANIMATION_SPEED}`,
+    "&[data-state='open']": {
+      animation: `${fadeInZoom} ${animationSpeed.in} ease-out`,
+    },
+    "&[data-state='closed']": {
+      animation: `${fadeOut} ${animationSpeed.out} ease-in`,
+    },
   },
   variants: {
     size: {
