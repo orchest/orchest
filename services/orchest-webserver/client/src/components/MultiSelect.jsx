@@ -1,200 +1,314 @@
 // @ts-check
 import * as React from "react";
-import { useId, Box, IconButton, IconCrossSolid } from "@orchest/design-system";
+import {
+  css,
+  useId,
+  Box,
+  IconButton,
+  IconCrossSolid,
+} from "@orchest/design-system";
+
+/** @param {string} value */
+const isValueWhitespace = (value) => !value.replace(/\s/g, "").length;
 
 /**
- * @typedef {{value: string}} TMultiSelectItem
+ * @typedef {{id: string; 'aria-live'?: any;}} TMultiSelectErrorProps
+ *
  * @typedef {React.KeyboardEvent<HTMLInputElement>
  *  & { target: HTMLInputElement }
  * } TMultiSelectInputEvent
  *
- * @param {Object} props
- * @param {string} props.label
- * @param {boolean} [props.screenReaderOnlyLabel]
- * @param {TMultiSelectItem[]} props.items
- * @param {(items) => void} [props.onChange]
+ * @typedef {string} TMultiSelectInputValue
+ * @typedef {{
+ *    id: string;
+ *    value: TMultiSelectInputValue;
+ *    'aria-labelledby'?: string;
+ *    'aria-invalid'?: boolean;
+ *  } &
+ *  Record<
+ *    'onChange' | 'onKeyDown' | 'onKeyUp',
+ *    (event: TMultiSelectInputEvent) => void
+ *  >} TMultiSelectInputProps
+ *
+ * @typedef {Record<'id' | 'htmlFor', string>} TMultiSelectLabelProps
+ *
+ * @typedef {{value: string}} TMultiSelectItem
+ * @typedef {TMultiSelectItem[]} TMultiSelectItems
+ *
+ * @typedef {{
+ *  getErrorProps: () => TMultiSelectErrorProps;
+ *  getInputProps: () => TMultiSelectInputProps;
+ *  getLabelProps: () => TMultiSelectLabelProps;
+ *  inputValue: TMultiSelectInputValue;
+ *  setInputValue: React.Dispatch<TMultiSelectInputValue>;
+ *  items: TMultiSelectItems;
+ *  setItems: React.Dispatch<TMultiSelectItems>;
+ *  error?: string;
+ *  setError?: React.Dispatch<string>;
+ *  removeItem?: (item: TMultiSelectItem) => void;
+ * }} TMultiSelectContext
+ *
+ * @typedef {Pick<TMultiSelectContext, 'items'> &
+ *  { onChange: (items: TMultiSelectItems) => void; }
+ * } TMultiSelectProps
+ *
+ * @type {React.Context<TMultiSelectContext>}
+ */
+const MultiSelectContext = React.createContext(null);
+
+const useMultiSelect = () => React.useContext(MultiSelectContext);
+
+/**
+ * @type {React.FC<TMultiSelectProps>}
  */
 export const MultiSelect = ({
-  label,
-  screenReaderOnlyLabel,
-  items: initialSelectedItems = [],
+  children,
+  items: initialItems = [],
   onChange,
+  ...props
 }) => {
-  const id = {
-    label: useId(),
-    input: useId(),
-  };
-
-  const [inputValue, setInputValue] = React.useState("");
   const [error, setError] = React.useState(null);
+  const [inputValue, setInputValue] = React.useState("");
+  const [items, setItems] = React.useState(initialItems);
 
-  const [selectedItems, setSelectedItems] = React.useState(
-    initialSelectedItems
-  );
+  const errorId = useId();
+  const labelId = useId();
+  const inputId = useId();
 
-  /** @param {string} value */
-  const isValueWhitespace = (value) => !value.replace(/\s/g, "").length;
+  React.useEffect(() => {
+    if (onChange) onChange(items);
+  }, [items]);
 
   /** @param {TMultiSelectItem} item */
   const removeItem = (item) => {
     console.log("handle remove");
-    setSelectedItems((prevState) =>
+    setItems((prevState) =>
       prevState.filter((prevStateItem) => prevStateItem !== item)
     );
   };
 
-  /** @param {TMultiSelectInputEvent} event */
-  const handleChange = (event) => {
-    // clear any previous errors
-    setError();
+  /** @returns {TMultiSelectErrorProps} */
+  const getErrorProps = () => ({
+    id: errorId,
+    "aria-live": "polite",
+  });
 
-    const value = event?.target?.value;
+  /** @returns {TMultiSelectLabelProps} */
+  const getLabelProps = () => ({
+    id: labelId,
+    htmlFor: inputId,
+  });
 
-    if (isValueWhitespace(value)) {
-      setInputValue("");
-      return;
-    }
+  /** @returns {TMultiSelectInputProps} */
+  const getInputProps = () => ({
+    id: inputId,
+    value: inputValue,
+    onChange: (event) => {
+      // clear any previous errors
+      setError();
 
-    if (selectedItems.some((selectedItem) => selectedItem.value === value)) {
-      setError(`"${value}" already exists`);
-    }
+      const value = event?.target?.value;
 
-    setInputValue(value);
-  };
+      if (isValueWhitespace(value)) {
+        setInputValue("");
+        return;
+      }
 
-  /** @param {TMultiSelectInputEvent} event */
-  const handleKeyDown = (event) => {
-    if (
-      event.key === "Backspace" &&
-      (!event.target?.value || event.target.value === "")
-    ) {
-      removeItem(selectedItems[selectedItems.length - 1]);
-    }
-  };
+      if (items.some((selectedItem) => selectedItem.value === value)) {
+        setError(`"${value}" already exists`);
+      }
 
-  /** @param {TMultiSelectInputEvent} event */
-  const handleKeyUp = (event) => {
-    const value = event.target?.value;
+      setInputValue(value);
+    },
+    onKeyDown: (event) => {
+      if (
+        event.key === "Backspace" &&
+        (!event.target?.value || event.target.value === "")
+      ) {
+        removeItem(items[items.length - 1]);
+      }
+    },
+    onKeyUp: (event) => {
+      const value = event.target?.value;
 
-    if (!error && event.key === "Enter") {
-      if (isValueWhitespace(value)) return;
+      if (!error && event.key === "Enter") {
+        if (isValueWhitespace(value)) return;
 
-      setSelectedItems((prevState) => [...prevState, { value }]);
-      setInputValue("");
-    }
-  };
-
-  React.useEffect(() => {
-    if (onChange) onChange(selectedItems);
-  }, [selectedItems]);
+        setItems((prevState) => [...prevState, { value }]);
+        setInputValue("");
+      }
+    },
+    ...(error && { "aria-invalid": true, "aria-labelledby": errorId }),
+  });
 
   return (
-    <React.Fragment>
-      <Box
-        as="div"
-        css={{
-          $$padding: "$space$2",
-          position: "relative",
-          "&::after": {
-            content: "''",
-            position: "absolute",
-            width: "100%",
-            bottom: 0,
-            borderBottom: "1px solid",
-            borderBottomColor: error ? "$error" : "$gray500",
-          },
-          "&:focus-within::after": {
-            borderBottomWidth: "2px",
-            borderBottomColor: error ? "$error" : "$gray900",
-          },
-        }}
-      >
-        <Box
-          as="label"
-          id={id.label}
-          htmlFor={id.input}
-          css={screenReaderOnlyLabel && { include: "screenReaderOnly" }}
-        >
-          {label}
-        </Box>
+    <MultiSelectContext.Provider
+      value={{
+        error,
+        setError,
+        getErrorProps,
+        getInputProps,
+        getLabelProps,
+        inputValue,
+        setInputValue,
+        items,
+        setItems,
+        removeItem,
+        ...props,
+      }}
+    >
+      <Box css={{ position: "relative" }}>{children}</Box>
+    </MultiSelectContext.Provider>
+  );
+};
 
-        <Box
-          css={{
-            $$gap: "$space$2",
-            $$gapOuter: "calc(($$gap * -1) / 2)",
-            $$gapInner: "calc($$gap / 2)",
-            display: "flex",
-            width: "100%",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyItems: "center",
-            margin: "$$gapOuter",
-            "> *": { margin: "$$gapInner" },
-          }}
-        >
-          {selectedItems.map((selectedItem, index) => (
-            <Box
-              key={index}
+/** @type {React.FC<{screenReaderOnly?: boolean}>} */
+export const MultiSelectLabel = ({ children, screenReaderOnly }) => {
+  const { getLabelProps } = useMultiSelect();
+
+  return (
+    <Box
+      as="label"
+      {...getLabelProps()}
+      css={screenReaderOnly && { include: "screenReaderOnly" }}
+    >
+      {children}
+    </Box>
+  );
+};
+
+const multiSelectInputContainer = css({
+  $$borderColor: "$colors$gray500",
+  $$borderWidth: "1px",
+  include: "box",
+  position: "relative",
+  padding: "$2 0",
+  "&::after": {
+    content: "''",
+    position: "absolute",
+    width: "100%",
+    left: 0,
+    bottom: 0,
+    borderBottom: "$$borderWidth solid $$borderColor",
+  },
+  "&:focus-within": {
+    $$borderWidth: "2px",
+  },
+  variants: {
+    hasError: {
+      false: {
+        $$borderColor: "$colors$gray900",
+        "&:focus-within": {
+          $$borderColor: "$colors$gray900",
+        },
+      },
+      true: {
+        $$borderColor: "$colors$error",
+      },
+    },
+  },
+});
+
+const multiSelectInputList = css({
+  $$gap: "$space$2",
+  $$gapOuter: "calc(($$gap * -1) / 2)",
+  $$gapInner: "calc($$gap / 2)",
+  include: "box",
+  display: "flex",
+  width: "100%",
+  flexWrap: "wrap",
+  alignItems: "center",
+  justifyItems: "center",
+  margin: "$$gapOuter",
+  "> li": { margin: "$$gapInner", "&:last-child": { flexGrow: 1 } },
+});
+
+const multiSelectInputChip = css({
+  include: "box",
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "$1 $2",
+  backgroundColor: "$gray200",
+  borderRadius: "$rounded",
+});
+
+const multiSelectInputElement = css({
+  include: "box",
+  padding: "$$padding 0",
+  flexGrow: 1,
+  border: 0,
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  minWidth: "8ch",
+});
+
+/** @type {React.FC<{}>} */
+export const MultiSelectInput = () => {
+  const { error, getInputProps, items, removeItem } = useMultiSelect();
+
+  return (
+    <div
+      className={multiSelectInputContainer({ hasError: error ? true : false })}
+    >
+      <ul role="list" className={multiSelectInputList()}>
+        {items.map((selectedItem, index) => (
+          <li key={index} className={multiSelectInputChip()}>
+            {selectedItem.value}
+            <IconButton
+              tabIndex={-1}
+              type="button"
+              size="4"
+              label="Remove"
+              onClick={() => {
+                removeItem(selectedItem);
+              }}
               css={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "$1 $2",
-                backgroundColor: "$gray200",
-                borderRadius: "$rounded",
+                // extract to design system later - this isn't stable
+                marginLeft: "$1",
+                borderRadius: "100%",
+                color: "$white",
+                backgroundColor: "$gray600",
+                padding: "calc($1 / 2)",
+                "&:hover, &:focus": { backgroundColor: "$gray800" },
+                "> svg": {
+                  $$iconSize: "$space$3",
+                },
               }}
             >
-              {selectedItem.value}
-              <IconButton
-                tabIndex={-1}
-                type="button"
-                size="4"
-                label="Remove"
-                onClick={() => {
-                  removeItem(selectedItem);
-                }}
-                css={{
-                  marginLeft: "$1",
-                  borderRadius: "100%",
-                  color: "$white",
-                  backgroundColor: "$gray600",
-                  padding: "calc($1 / 2)",
-                  "&:hover": { backgroundColor: "$gray800" },
-                  "> svg": {
-                    $$iconSize: "$space$3",
-                  },
-                }}
-              >
-                <IconCrossSolid />
-              </IconButton>
-            </Box>
-          ))}
-          <Box
-            as="input"
-            id={id.input}
-            value={inputValue}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            css={{
-              padding: "$$padding 0",
-              flexGrow: 1,
-              border: 0,
-              borderRadius: 0,
-              backgroundColor: "transparent",
-              minWidth: "8ch",
-            }}
+              <IconCrossSolid />
+            </IconButton>
+          </li>
+        ))}
+        <li>
+          <input
+            type="text"
+            className={multiSelectInputElement()}
+            {...getInputProps()}
           />
-        </Box>
-      </Box>
-      <Box
-        css={{
-          marginTop: "$2",
-          color: "$error",
-          display: error ? "block" : "none",
-        }}
-      >
-        {error}
-      </Box>
-    </React.Fragment>
+        </li>
+      </ul>
+    </div>
+  );
+};
+
+const multiSelectError = css({
+  include: "box",
+  marginTop: "$2",
+  color: "$error",
+  variants: {
+    isVisible: { false: { display: "none" }, true: { display: "block" } },
+  },
+});
+
+export const MultiSelectError = () => {
+  const { error, getErrorProps } = useMultiSelect();
+
+  return (
+    <div
+      {...getErrorProps()}
+      className={multiSelectError({ isVisible: error ? true : false })}
+    >
+      {error}
+    </div>
   );
 };

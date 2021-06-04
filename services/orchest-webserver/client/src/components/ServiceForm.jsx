@@ -1,6 +1,7 @@
 // @ts-check
 import React from "react";
 import _ from "lodash";
+import { Box } from "@orchest/design-system";
 import {
   MDCTextFieldReact,
   MDCCheckboxReact,
@@ -11,14 +12,17 @@ import {
 } from "@orchest/lib-mdc";
 import { getServiceURLs } from "../utils/webserver-utils";
 import EnvVarList from "@/components/EnvVarList";
-import { MultiSelect } from "./MultiSelect";
+import {
+  MultiSelect,
+  MultiSelectError,
+  MultiSelectInput,
+  MultiSelectLabel,
+} from "./MultiSelect";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
-
-import { Box } from "@orchest/design-system";
 
 const ServiceForm = (props) => {
   const orchest = window.orchest;
@@ -298,8 +302,6 @@ const ServiceForm = (props) => {
                 <h3 className="push-down">Ports</h3>
 
                 <MultiSelect
-                  label="Ports"
-                  screenReaderOnlyLabel
                   items={props.service.ports.map((port) => ({
                     value: port.toString(),
                   }))}
@@ -309,7 +311,11 @@ const ServiceForm = (props) => {
                       ports.map(({ value }) => parseInt(value))
                     );
                   }}
-                />
+                >
+                  <MultiSelectLabel screenReaderOnly>Ports</MultiSelectLabel>
+                  <MultiSelectInput />
+                  <MultiSelectError />
+                </MultiSelect>
 
                 <h3 className="push-up push-down">Preserve base path</h3>
                 <p>
@@ -364,8 +370,6 @@ const ServiceForm = (props) => {
                 <h3 className="push-down">Inherited environment variables</h3>
 
                 <MultiSelect
-                  label="Environment variables"
-                  screenReaderOnlyLabel
                   items={props.service?.env_variables_inherit?.map(
                     (env_variable) =>
                       env_variable && {
@@ -378,7 +382,13 @@ const ServiceForm = (props) => {
                       env_variables.map(({ value }) => value)
                     );
                   }}
-                />
+                >
+                  <MultiSelectLabel screenReaderOnly>
+                    Environment variables
+                  </MultiSelectLabel>
+                  <MultiSelectInput />
+                  <MultiSelectError />
+                </MultiSelect>
               </div>
               <div className="clear"></div>
             </div>
