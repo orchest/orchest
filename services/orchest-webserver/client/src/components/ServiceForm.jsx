@@ -315,7 +315,9 @@ const ServiceForm = (props) => {
                   onChange={(ports) => {
                     handleServiceChange(
                       "ports",
-                      ports.map(({ value }) => parseInt(value))
+                      ports
+                        .map(({ value }) => parseInt(value))
+                        .filter((el) => !isNaN(el))
                     );
                   }}
                 >
