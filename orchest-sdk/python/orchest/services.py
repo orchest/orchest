@@ -62,8 +62,8 @@ def get_service(name) -> Dict[str, Any]:
             {
                 "internal_url": service-<service-name>-<identifier>,
                 "external_urls": {
-                    80: "http://{host_name}:80/service-<service-name>-"
-                    "<identifier>_80"
+                    80: "http://{host_name}:{port}/service"
+                    "-<service-name>-<identifier>_80"
                 }
                 "base_paths": {
                     80: "/service-<service-name>-<identifier>_80"
