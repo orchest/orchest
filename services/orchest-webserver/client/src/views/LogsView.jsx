@@ -228,10 +228,8 @@ const LogsView = (props) => {
   const hasLoaded = () => {
     return (
       pipelineJson &&
-      sortedSteps &&
+      sortedSteps !== undefined &&
       sio &&
-      logType &&
-      selectedLog &&
       (props.queryArgs.job_uuid === undefined || job)
     );
   };
@@ -286,6 +284,9 @@ const LogsView = (props) => {
             <i className="material-icons">device_hub</i>
             Step logs
           </div>
+          {sortedSteps.length == 0 && generateServiceItems().length == 0 && (
+            <i className="note">There are steps defined.</i>
+          )}
           <MDCDrawerReact
             items={steps}
             selectedIndex={logType == "step" ? undefined : -1}
@@ -298,6 +299,9 @@ const LogsView = (props) => {
           </div>
           {!session && !job && (
             <i className="note">There is no active session.</i>
+          )}
+          {(session || job) && generateServiceItems().length == 0 && (
+            <i className="note">There are no services defined.</i>
           )}
           <MDCDrawerReact
             items={generateServiceItems()}
