@@ -16,7 +16,11 @@ from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 from app.errors import JupyterBuildInProgressException
-from app.utils import lock_environment_images_for_session, register_schema
+from app.utils import (
+    get_env_uuids_to_docker_id_mappings,
+    lock_environment_images_for_session,
+    register_schema,
+)
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)
@@ -141,6 +145,7 @@ class Session(Resource):
 
 class CreateInteractiveSession(TwoPhaseFunction):
     def _transaction(self, session_config: Dict[str, Any]):
+
         # Gate check to see if there is a Jupyter lab build active
         latest_jupyter_build = models.JupyterBuild.query.order_by(
             desc(models.JupyterBuild.requested_time)
@@ -151,6 +156,26 @@ class CreateInteractiveSession(TwoPhaseFunction):
             "STARTED",
         ]:
             raise JupyterBuildInProgressException()
+
+        # Make sure the service environments are there. This piece of
+        # code needs to be there to reject a session post if the
+        # referenced environments aren't there, since this is something
+        # the background task that is launching the session cannot do.
+        env_as_services = set()
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+        for service in session_config.get("services", {}).values():
+            img = service["image"]
+            if img.startswith(prefix):
+                env_as_services.add(img.replace(prefix, ""))
+        try:
+            get_env_uuids_to_docker_id_mappings(
+                session_config["project_uuid"], env_as_services
+            )
+        except errors.ImageNotFound as e:
+            raise errors.ImageNotFound(
+                "Pipeline services were referencing environments for "
+                f"which an image does not exist, {e}."
+            )
 
         interactive_session = {
             "project_uuid": session_config["project_uuid"],
@@ -184,15 +209,9 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
                 # Lock the orchest environment images that are used
                 # as services.
-                try:
-                    env_uuid_docker_id_mappings = lock_environment_images_for_session(
-                        project_uuid, pipeline_uuid, env_as_services
-                    )
-                except errors.ImageNotFound as e:
-                    raise errors.ImageNotFound(
-                        "Pipeline services were referencing environments for "
-                        f"which an image does not exist, {e}"
-                    )
+                env_uuid_docker_id_mappings = lock_environment_images_for_session(
+                    project_uuid, pipeline_uuid, env_as_services
+                )
                 session_config[
                     "env_uuid_docker_id_mappings"
                 ] = env_uuid_docker_id_mappings

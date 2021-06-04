@@ -151,6 +151,9 @@ def run_pipeline(
     Args:
         pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
+        If run_type is not defined it will be set as "interactive" , the
+        run_type is later used to understand if a step is running in
+        interactive or any other mode.
             Example: {
                 'run_endpoint': 'runs',
                 'project_dir': '/home/../pipelines/uuid',
