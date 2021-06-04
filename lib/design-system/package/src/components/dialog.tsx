@@ -1,12 +1,19 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
-import { styled } from "../core";
+import { styled, keyframes } from "../core";
 import { ExtractVariants, ICSSProp } from "../types";
 import { Heading, THeadingComponent } from "./heading";
 
+const ANIMATION_SPEED = "200ms";
+
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
+
+const fadeIn = keyframes({
+  "0%": { opacity: "0" },
+  "100%": { opacity: "1" },
+});
 
 const DialogOverlay = styled(DialogPrimitive.Overlay, {
   include: "box",
@@ -16,6 +23,9 @@ const DialogOverlay = styled(DialogPrimitive.Overlay, {
   right: 0,
   bottom: 0,
   left: 0,
+  "@motionSafe": {
+    animation: `${fadeIn} ${ANIMATION_SPEED}`,
+  },
 });
 
 export interface IDialogProps
@@ -27,6 +37,17 @@ export const Dialog: React.FC<IDialogProps> = ({ children, ...props }) => (
     {children}
   </DialogPrimitive.Root>
 );
+
+const fadeInZoom = keyframes({
+  "0%": {
+    transform: "scale(0.8) translate($$translate, $$translate)",
+    opacity: "0",
+  },
+  "100%": {
+    transform: "scale(1) translate($$translate, $$translate)",
+    opacity: "1",
+  },
+});
 
 const DialogContentRoot = styled(DialogPrimitive.Content, {
   include: "box",
@@ -41,6 +62,7 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   top: "$$inset",
   left: "$$inset",
   transform: "translate($$translate, $$translate)",
+  transformOrigin: "0 0",
   width: "$$maxSize",
   maxHeight: "$$maxSize",
   backgroundColor: "$background",
@@ -50,6 +72,10 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   overflowY: "auto",
   "&:focus": {
     outline: "none",
+  },
+  "@motionSafe": {
+    willChange: "transform",
+    animation: `${fadeInZoom} ${ANIMATION_SPEED}`,
   },
   variants: {
     size: {
