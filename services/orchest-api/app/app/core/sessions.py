@@ -749,7 +749,7 @@ def _get_user_services_specs(
             # To preserve the base path when proxying, for more details
             # check the nginx config, services section.
             pbp = "pbp-" if service.get("preserve_base_path", False) else ""
-            service_base_url = f"/{pbp}{container_name}/"
+            service_base_url = f"/{pbp}{container_name}"
 
             # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
             # this substitution happens after service["name"] is read,

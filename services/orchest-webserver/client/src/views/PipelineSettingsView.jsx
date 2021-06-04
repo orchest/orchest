@@ -29,6 +29,7 @@ import {
   MDCTabBarReact,
   MDCDataTableReact,
   MDCLinearProgressReact,
+  MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
@@ -176,7 +177,7 @@ const PipelineSettingsView = (props) => {
     }));
   };
 
-  const onDeleteService = (serviceName) => {
+  const deleteService = (serviceName) => {
     let pipelineJson = _.cloneDeep(state.pipelineJson);
     delete pipelineJson.services[serviceName];
 
@@ -840,7 +841,7 @@ const PipelineSettingsView = (props) => {
                         </div>
                       )}
                       <MDCDataTableReact
-                        headers={["Service", "Scope"]}
+                        headers={["Service", "Scope", "Delete"]}
                         rows={Object.keys(state.pipelineJson.services)
                           .map(
                             (serviceName) =>
@@ -859,6 +860,22 @@ const PipelineSettingsView = (props) => {
                               })
                               .sort()
                               .join(", "),
+                            <div className="consume-click">
+                              <MDCIconButtonToggleReact
+                                icon="delete"
+                                onClick={() => {
+                                  orchest.confirm(
+                                    "Warning",
+                                    "Are you sure you want to delete the service: " +
+                                      service.name +
+                                      "?",
+                                    () => {
+                                      deleteService(service.name);
+                                    }
+                                  );
+                                }}
+                              />
+                            </div>,
                           ])}
                         detailRows={Object.keys(state.pipelineJson.services)
                           .map(
@@ -871,7 +888,6 @@ const PipelineSettingsView = (props) => {
                               key={["ServiceForm", i].join("-")}
                               service={service}
                               updateService={onChangeService}
-                              deleteService={onDeleteService}
                               nameChangeService={nameChangeService}
                               pipeline_uuid={props.queryArgs.pipeline_uuid}
                               project_uuid={props.queryArgs.project_uuid}

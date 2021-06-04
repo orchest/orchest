@@ -430,23 +430,6 @@ const ServiceForm = (props) => {
                 handleServiceChange("env_variables", envVars);
               }}
             />
-            <h3 className="push-up push-down">Danger zone</h3>
-            <MDCButtonReact
-              label="Delete service"
-              icon="delete"
-              classNames={["mdc-button--raised"]}
-              onClick={() => {
-                orchest.confirm(
-                  "Warning",
-                  "Are you sure you want to delete the service: " +
-                    props.service.name +
-                    "?",
-                  () => {
-                    props.deleteService(props.service.name);
-                  }
-                );
-              }}
-            />
           </>
         </Box>
       </Box>
