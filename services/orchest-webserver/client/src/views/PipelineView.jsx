@@ -542,15 +542,21 @@ class PipelineView extends React.Component {
     }
   }
 
-  openSettings() {
+  openSettings(initial_tab) {
+    let queryArgs = {
+      project_uuid: this.props.queryArgs.project_uuid,
+      pipeline_uuid: this.props.queryArgs.pipeline_uuid,
+      read_only: this.props.queryArgs.read_only,
+      job_uuid: this.props.queryArgs.job_uuid,
+      run_uuid: this.props.queryArgs.run_uuid,
+    };
+
+    if (initial_tab) {
+      queryArgs.initial_tab = initial_tab;
+    }
+
     orchest.loadView(PipelineSettingsView, {
-      queryArgs: {
-        project_uuid: this.props.queryArgs.project_uuid,
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        read_only: this.props.queryArgs.read_only,
-        job_uuid: this.props.queryArgs.job_uuid,
-        run_uuid: this.props.queryArgs.run_uuid,
-      },
+      queryArgs,
     });
   }
 
@@ -2466,7 +2472,7 @@ class PipelineView extends React.Component {
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={this.openSettings.bind(this)}
+                onClick={this.openSettings.bind(this, undefined)}
                 label={"Settings"}
                 icon="tune"
               />
@@ -2475,6 +2481,14 @@ class PipelineView extends React.Component {
                 <div className="services-status">
                   <h3>Running services</h3>
                   {this.generateServiceEndpoints()}
+
+                  <div className="edit-button-holder">
+                    <MDCButtonReact
+                      icon="tune"
+                      label="Edit services"
+                      onClick={this.openSettings.bind(this, "services")}
+                    />
+                  </div>
                 </div>
               )}
             </div>

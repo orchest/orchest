@@ -1225,8 +1225,16 @@ span.code {
         }
       }
 
-      i {
-        display: block;
+      .link-holder {
+        i {
+          display: block;
+          margin-top: calc(var(--space-5) / 2);
+        }
+      }
+
+      .edit-button-holder {
+        border-top: 1px solid $borderColor;
+        padding-top: calc(var(--space-5) / 2);
         margin-top: calc(var(--space-5) / 2);
       }
 
@@ -1287,7 +1295,7 @@ span.code {
       }
     }
 
-    button {
+    > button {
       &:last-of-type {
         margin-right: 0;
       }

@@ -20,7 +20,6 @@ import {
   PromiseManager,
   makeCancelable,
   RefManager,
-  uuidv4,
 } from "@orchest/lib-utils";
 import {
   MDCButtonReact,
@@ -68,7 +67,9 @@ const createServiceButton = css({
 const PipelineSettingsView = (props) => {
   const orchest = window.orchest;
 
-  const { dispatch } = useOrchest();
+  const { dispatch, get } = useOrchest();
+
+  const session = get.session(props.queryArgs);
 
   const [state, setState] = React.useState({
     selectedTabIndex: 0,
@@ -82,6 +83,13 @@ const PipelineSettingsView = (props) => {
     projectEnvVariables: [],
     servicesChanged: false,
   });
+
+  if (!session && !state.unsavedChanges && state.servicesChanged) {
+    setState((prevState) => ({
+      ...prevState,
+      servicesChanged: false,
+    }));
+  }
 
   const [
     isServiceCreateDialogOpen,
@@ -98,8 +106,24 @@ const PipelineSettingsView = (props) => {
     attachResizeListener();
   };
 
+  const handleInitialTab = () => {
+    const tabMapping = {
+      configuration: 0,
+      "environment-variables": 1,
+      services: 2,
+    };
+
+    if (props.queryArgs.initial_tab) {
+      setState((prevProps) => ({
+        ...prevProps,
+        selectedTabIndex: tabMapping[props.queryArgs.initial_tab],
+      }));
+    }
+  };
+
   React.useEffect(() => {
     init();
+    handleInitialTab();
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 

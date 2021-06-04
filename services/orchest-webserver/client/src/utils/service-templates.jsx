@@ -76,7 +76,7 @@ export const servicesTemplates = {
       command:
         "-c 'umask 002 && code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/code-server'",
       image: "codercom/code-server:latest",
-      name: "code-server",
+      name: "vscode",
       ports: [8080],
       scope: ["interactive"],
     },
