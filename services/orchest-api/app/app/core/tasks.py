@@ -241,6 +241,10 @@ def start_non_interactive_pipeline_run(
     host_userdir = run_config["host_user_dir"]
     host_base_user_dir = os.path.split(host_userdir)[0]
 
+    # For non interactive runs the session uuid is equal to the task
+    # uuid.
+    session_uuid = self.request.id
+    run_config["session_uuid"] = session_uuid
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
@@ -269,7 +273,7 @@ def start_non_interactive_pipeline_run(
 
     with launch_noninteractive_session(
         docker_client,
-        self.request.id,
+        session_uuid,
         session_config,
     ):
         status = run_pipeline(

@@ -807,6 +807,7 @@ def _get_user_services_specs(
         environment.update(service.get("env_variables", {}))
         # So that the SDK can access the pipeline file.
         environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
+        environment["ORCHEST_SESSION_UUID"] = uuid
 
         mounts = [orc_mounts["pipeline_file"]]
         sbinds = service.get("binds", {})
@@ -934,6 +935,7 @@ def _get_orchest_services_specs(
         "environment": [
             # The pipeline file is mounted to a specific path.
             f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
+            f"ORCHEST_SESSION_UUID={uuid}",
         ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
@@ -951,6 +953,7 @@ def _get_orchest_services_specs(
         "network": network,
         "environment": [
             f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
+            f"ORCHEST_SESSION_UUID={uuid}",
         ],
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
@@ -978,6 +981,7 @@ def _get_orchest_services_specs(
         "ORCHEST_HOST_PROJECT_DIR,"
         "ORCHEST_HOST_PIPELINE_FILE,"
         "ORCHEST_HOST_GID,"
+        "ORCHEST_SESSION_UUID,"
     )
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
 
@@ -1006,6 +1010,7 @@ def _get_orchest_services_specs(
                     f"{os.path.join(project_dir, pipeline_path)}"
                 ),
                 f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
+                f"ORCHEST_SESSION_UUID={uuid}",
             ]
             + user_defined_env_vars,
             "user": "root",

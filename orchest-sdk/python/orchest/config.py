@@ -13,6 +13,7 @@ class Config:
     # TODO: put configuration options inside the docstring so we can use
     #       it for the autodoc generation.
 
+    SESSION_UUID = os.getenv("ORCHEST_SESSION_UUID")
     PROJECT_UUID = os.getenv("ORCHEST_PROJECT_UUID")
     PIPELINE_UUID = os.getenv("ORCHEST_PIPELINE_UUID", "")
     PIPELINE_DEFINITION_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
