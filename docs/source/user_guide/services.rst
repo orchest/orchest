@@ -155,7 +155,7 @@ with the correct permissions, change the ``umask`` of the container process.
 
 Let's take, for example, the `Tensorboard` template. Normally, the command would
 look like ``tensorboard --logdir /data --bind_all``, in the template we are
-setting the umask of the `Tensorboad` process, this means:
+setting the ``umask`` of the `Tensorboad` process, this means:
 
 - setting the entrypoint as ``bash``
 - setting the service command as ``-c 'umask 002 && tensorboard --logdir /data --bind_all'``
