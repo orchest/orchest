@@ -107,7 +107,8 @@ Non required fields:
 - **entrypoint**: `command` and `entrypoint` are a 1:1 mapping to Docker, refer to the `Docker docs
   <https://docs.docker.com/engine/reference/builder/#cmd>`_ for their difference and gotchas.
 - **inherited environment variables**: A list of environment variable names that will be inherited
-  from the project and pipeline environment variables.
+  from the project and pipeline environment variables, and from job environment variables when run
+  in a job.
 - **environment variables**: Key-value pairs of environment variables, which take priority over the
   inherited environment variables. Note that, while project and pipeline environment variables are
   considered as `secrets`, services environment variables aren't and will be persisted in the
