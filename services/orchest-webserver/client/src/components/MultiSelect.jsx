@@ -10,46 +10,48 @@ import {
 
 /** @param {string} value */
 const isValueWhitespace = (value) => !value.replace(/\s/g, "").length;
+/** @param {string} value */
+const isNumeric = (value) => value.match("^\\d+$") != null;
 
 /**
- * @typedef {{id: string; 'aria-live'?: any;}} TMultiSelectErrorProps
- *
- * @typedef {React.KeyboardEvent<HTMLInputElement>
+ * @typedef { React.KeyboardEvent<HTMLInputElement>
  *  & { target: HTMLInputElement }
  * } TMultiSelectInputEvent
  *
- * @typedef {string} TMultiSelectInputValue
+ * @typedef { string } TMultiSelectInputValue
  * @typedef {{
+ *    "aria-labelledby"?: string;
+ *    "aria-invalid"?: boolean;
  *    id: string;
+ *    required?: boolean;
+ *    type?: "text" | "number";
  *    value: TMultiSelectInputValue;
- *    'aria-labelledby'?: string;
- *    'aria-invalid'?: boolean;
  *  } &
  *  Record<
- *    'onChange' | 'onKeyDown' | 'onKeyUp',
+ *    "onChange" | "onKeyDown" | "onKeyUp",
  *    (event: TMultiSelectInputEvent) => void
  *  >} TMultiSelectInputProps
  *
- * @typedef {Record<'id' | 'htmlFor', string>} TMultiSelectLabelProps
- *
- * @typedef {{value: string}} TMultiSelectItem
- * @typedef {TMultiSelectItem[]} TMultiSelectItems
+ * @typedef {{ value: string }} TMultiSelectItem
+ * @typedef { TMultiSelectItem[] } TMultiSelectItems
  *
  * @typedef {{
- *  getErrorProps: () => TMultiSelectErrorProps;
- *  getInputProps: () => TMultiSelectInputProps;
- *  getLabelProps: () => TMultiSelectLabelProps;
- *  inputValue: TMultiSelectInputValue;
- *  setInputValue: React.Dispatch<TMultiSelectInputValue>;
- *  items: TMultiSelectItems;
- *  setItems: React.Dispatch<TMultiSelectItems>;
- *  error?: string;
- *  setError?: React.Dispatch<string>;
- *  removeItem?: (item: TMultiSelectItem) => void;
- * }} TMultiSelectContext
+ *    getErrorProps: () => { id: string; "aria-live"?: any; };
+ *    getInputProps: () => TMultiSelectInputProps;
+ *    getLabelProps: () => Record<"id" | "htmlFor", string>;
+ *    inputValue: TMultiSelectInputValue;
+ *    setInputValue: React.Dispatch<TMultiSelectInputValue>;
+ *    items: TMultiSelectItems;
+ *    setItems: React.Dispatch<TMultiSelectItems>;
+ *    error?: string;
+ *    setError?: React.Dispatch<string>;
+ *    removeItem?: (item: TMultiSelectItem) => void;
+ *   } & Pick<TMultiSelectInputProps, "required" | "type">
+ * } TMultiSelectContext
  *
- * @typedef {Pick<TMultiSelectContext, 'items'> &
- *  { onChange: (items: TMultiSelectItems) => void; }
+ * @typedef {{
+ *  onChange: (items: TMultiSelectItems) => void;
+ *  } & Pick<TMultiSelectContext, "items" | "required" | "type">
  * } TMultiSelectProps
  *
  * @type {React.Context<TMultiSelectContext>}
@@ -65,6 +67,8 @@ export const MultiSelect = ({
   children,
   items: initialItems = [],
   onChange,
+  required,
+  type = "text",
   ...props
 }) => {
   const [error, setError] = React.useState(null);
@@ -86,7 +90,7 @@ export const MultiSelect = ({
     if (hasChanged.current && onChange) onChange(items);
   }, [items]);
 
-  /** @param {TMultiSelectItem} item */
+  /** @type {TMultiSelectContext['removeItem']} */
   const removeItem = (item) => {
     console.log("handle remove");
     setItems((prevState) =>
@@ -94,22 +98,25 @@ export const MultiSelect = ({
     );
   };
 
-  /** @returns {TMultiSelectErrorProps} */
+  /** @type {TMultiSelectContext['getErrorProps']} */
   const getErrorProps = () => ({
     id: errorId,
     "aria-live": "polite",
   });
 
-  /** @returns {TMultiSelectLabelProps} */
+  /** @type {TMultiSelectContext['getLabelProps']} */
   const getLabelProps = () => ({
     id: labelId,
     htmlFor: inputId,
   });
 
-  /** @returns {TMultiSelectInputProps} */
+  /** @type {TMultiSelectContext['getInputProps']} */
   const getInputProps = () => ({
     id: inputId,
     value: inputValue,
+    required,
+    type: "text",
+    ...(type === "number" && { inputmode: "numeric", pattern: "[0-9]*" }),
     onChange: (event) => {
       // clear any previous errors
       setError();
@@ -119,6 +126,10 @@ export const MultiSelect = ({
       if (isValueWhitespace(value)) {
         setInputValue("");
         return;
+      }
+
+      if (type === "number" && !isNumeric(value)) {
+        setError(`"${value}" is invalid. Please enter a number.`);
       }
 
       if (items.some((selectedItem) => selectedItem.value === value)) {
@@ -161,6 +172,7 @@ export const MultiSelect = ({
         items,
         setItems,
         removeItem,
+        type,
         ...props,
       }}
     >
@@ -242,7 +254,7 @@ const multiSelectInputElement = css({
   include: "box",
   display: "block",
   width: "100%",
-  padding: "$$padding 0",
+  padding: "$1 0",
   border: 0,
   borderRadius: 0,
   backgroundColor: "transparent",
@@ -253,16 +265,31 @@ const multiSelectInputElement = css({
 export const MultiSelectInput = () => {
   const { error, getInputProps, items, removeItem } = useMultiSelect();
 
+  const [tabIndices, setTabIndices] = React.useState(
+    Array(items.length).fill(-1)
+  );
+
+  /** @param {{ index: number; value: -1 | 0; }} props */
+  const setTabIndex = ({ index, value }) =>
+    setTabIndices(
+      items.map((_, i) => (i === index ? value : value === 0 ? -1 : 0))
+    );
+
   return (
     <div
       className={multiSelectInputContainer({ hasError: error ? true : false })}
     >
       <ul role="list" className={multiSelectInputList()}>
         {items.map((selectedItem, index) => (
-          <li key={index} className={multiSelectInputChip()}>
+          <li
+            key={index}
+            onClick={() => setTabIndex({ index, value: 0 })}
+            onBlur={() => setTabIndex({ index, value: -1 })}
+            className={multiSelectInputChip()}
+          >
             {selectedItem.value}
             <IconButton
-              tabIndex={-1}
+              tabIndex={tabIndices[index]}
               type="button"
               size="4"
               label="Remove"

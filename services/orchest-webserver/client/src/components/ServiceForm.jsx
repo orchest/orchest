@@ -305,6 +305,7 @@ const ServiceForm = (props) => {
                 <h3 className="">Ports</h3>
 
                 <MultiSelect
+                  type="number"
                   items={
                     props.service.ports
                       ? props.service.ports.map((port) => ({
