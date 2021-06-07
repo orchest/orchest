@@ -805,9 +805,14 @@ def _get_user_services_specs(
 
         # User defined env vars superse inherited ones.
         environment.update(service.get("env_variables", {}))
+
+        # These are all required for the Orchest SDK to work.
+        environment["ORCHEST_PROJECT_UUID"] = project_uuid
+        environment["ORCHEST_PIPELINE_UUID"] = pipeline_uuid
         # So that the SDK can access the pipeline file.
         environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
         environment["ORCHEST_SESSION_UUID"] = uuid
+        environment["ORCHEST_SESSION_TYPE"] = session_type.value
 
         mounts = [orc_mounts["pipeline_file"]]
         sbinds = service.get("binds", {})
@@ -933,9 +938,12 @@ def _get_orchest_services_specs(
         # Mac.
         "shm_size": "1000G",
         "environment": [
+            f"ORCHEST_PROJECT_UUID={project_uuid}",
+            f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
             # The pipeline file is mounted to a specific path.
             f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
             f"ORCHEST_SESSION_UUID={uuid}",
+            f"ORCHEST_SESSION_TYPE={session_type.value}",
         ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
@@ -952,8 +960,10 @@ def _get_orchest_services_specs(
         "group_add": [os.environ.get("ORCHEST_HOST_GID")],
         "network": network,
         "environment": [
+            f"ORCHEST_PROJECT_UUID={project_uuid}",
             f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
             f"ORCHEST_SESSION_UUID={uuid}",
+            f"ORCHEST_SESSION_TYPE={session_type.value}",
         ],
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
@@ -982,6 +992,7 @@ def _get_orchest_services_specs(
         "ORCHEST_HOST_PIPELINE_FILE,"
         "ORCHEST_HOST_GID,"
         "ORCHEST_SESSION_UUID,"
+        "ORCHEST_SESSION_TYPE,"
     )
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
 
@@ -1011,6 +1022,7 @@ def _get_orchest_services_specs(
                 ),
                 f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
                 f"ORCHEST_SESSION_UUID={uuid}",
+                f"ORCHEST_SESSION_TYPE={session_type.value}",
             ]
             + user_defined_env_vars,
             "user": "root",

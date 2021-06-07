@@ -14,11 +14,14 @@ class Config:
     #       it for the autodoc generation.
 
     SESSION_UUID = os.getenv("ORCHEST_SESSION_UUID")
+    SESSION_TYPE = os.getenv("ORCHEST_SESSION_TYPE")
     PROJECT_UUID = os.getenv("ORCHEST_PROJECT_UUID")
     PIPELINE_UUID = os.getenv("ORCHEST_PIPELINE_UUID", "")
     PIPELINE_DEFINITION_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
-    RUN_UUID = os.getenv("ORCHEST_RUN_UUID")
-    RUN_TYPE = os.getenv("ORCHEST_RUN_TYPE")
+
+    # Necessary to query the orchest-api for the current interactive
+    # session specs.
+    ORCHEST_API_ADDRESS = "orchest-api"
 
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.

@@ -151,10 +151,9 @@ def run_pipeline(
     Args:
         pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
-        If run_type is not defined it will be set as "interactive" , the
-        run_type is later used to understand if a step is running in
-        interactive or any other mode.
             Example: {
+                'session_uuid' : 'uuid',
+                'session_type' : 'interactive',
                 'run_endpoint': 'runs',
                 'project_dir': '/home/../pipelines/uuid',
                 'env_uuid_docker_id_mappings': {
@@ -169,8 +168,6 @@ def run_pipeline(
     """
     run_config["pipeline_uuid"] = pipeline_definition["uuid"]
     run_config["project_uuid"] = project_uuid
-    if "run_type" not in run_config:
-        run_config["run_type"] = "interactive"
 
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_definition)
@@ -245,13 +242,13 @@ def start_non_interactive_pipeline_run(
     # uuid.
     session_uuid = self.request.id
     run_config["session_uuid"] = session_uuid
+    run_config["session_type"] = "noninteractive"
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
     run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config["run_endpoint"] = f"jobs/{job_uuid}"
-    run_config["run_type"] = "noninteractive"
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for

@@ -126,6 +126,7 @@ def test_pipeline_run_call_order(testio, monkeypatch):
     filler_for_task_id = "1"
     run_config = {
         "session_uuid": "",
+        "session_type": "",
         "project_dir": "",
         "pipeline_path": "",
         "pipeline_uuid": "",
@@ -134,7 +135,6 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         "env_uuid_docker_id_mappings": MockEnvUUIDDockerIDMapping(),
         "host_user_dir": "",
         "user_env_variables": {},
-        "run_type": "",
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))
 
