@@ -122,7 +122,12 @@ def get_environment_capabilities(environment_uuid, project_uuid):
 
 
 def get_orchest_mounts(
-    project_dir, host_user_dir, host_project_dir, mount_form="docker-sdk"
+    project_dir,
+    pipeline_file,
+    host_user_dir,
+    host_project_dir,
+    host_pipeline_file,
+    mount_form="docker-sdk",
 ):
     """
     Prepare all mounts that are needed to run Orchest.
@@ -142,6 +147,16 @@ def get_orchest_mounts(
         mounts = project_dir_mount
     else:
         mounts = [project_dir_mount]
+
+    # Mount the pipeline file to a specific path.
+    pipeline_file_mount = get_mount(
+        source=host_pipeline_file, target=pipeline_file, form=mount_form
+    )
+
+    if mount_form == "docker-sdk":
+        mounts[host_pipeline_file] = pipeline_file_mount[host_pipeline_file]
+    else:
+        mounts.append(pipeline_file_mount)
 
     # Mount the /userdir/data directory.
     target_path = "/data"

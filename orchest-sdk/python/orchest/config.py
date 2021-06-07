@@ -15,7 +15,7 @@ class Config:
 
     PROJECT_UUID = os.getenv("ORCHEST_PROJECT_UUID")
     PIPELINE_UUID = os.getenv("ORCHEST_PIPELINE_UUID", "")
-    PIPELINE_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
+    PIPELINE_DEFINITION_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
     RUN_UUID = os.getenv("ORCHEST_RUN_UUID")
     RUN_TYPE = os.getenv("ORCHEST_RUN_TYPE")
 
@@ -27,9 +27,6 @@ class Config:
     STEP_DATA_DIR = (
         "/project-dir/.orchest/pipelines/" + PIPELINE_UUID + "/data/{step_uuid}"
     )
-
-    # Path to the file that contains the pipeline definition.
-    PIPELINE_DEFINITION_PATH = f"/project-dir/{PIPELINE_PATH}"
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:

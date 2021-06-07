@@ -6,6 +6,7 @@ import os
 TEMP_DIRECTORY_PATH = "/tmp/orchest"
 TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
 PROJECT_DIR = "/project-dir"
+PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
 CLOUD = os.environ.get("CLOUD") == "true"
 

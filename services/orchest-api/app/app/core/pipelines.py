@@ -225,8 +225,12 @@ class PipelineStepRunner:
 
         orchest_mounts = get_orchest_mounts(
             project_dir=_config.PROJECT_DIR,
+            pipeline_file=_config.PIPELINE_FILE,
             host_user_dir=run_config["host_user_dir"],
             host_project_dir=run_config["project_dir"],
+            host_pipeline_file=os.path.join(
+                run_config["project_dir"], run_config["pipeline_path"]
+            ),
             mount_form="docker-engine",
         )
 
@@ -264,7 +268,7 @@ class PipelineStepRunner:
                 f"ORCHEST_RUN_UUID={task_id}",
                 f'ORCHEST_RUN_TYPE={run_config["run_type"]}',
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
-                f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
+                f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
                 # ORCHEST_MEMORY_EVICTION is never present when running
                 # notebooks interactively and otherwise always present,

@@ -125,7 +125,7 @@ def test_pipeline_run_call_order(testio, monkeypatch):
 
     filler_for_task_id = "1"
     run_config = {
-        "project_dir": None,
+        "project_dir": "",
         "pipeline_path": "",
         "pipeline_uuid": "",
         "project_uuid": "",

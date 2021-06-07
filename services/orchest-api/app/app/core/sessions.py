@@ -589,7 +589,11 @@ def launch_noninteractive_session(
 
 
 def _get_mounts(
-    uuid: str, project_uuid: str, project_dir: str, host_userdir: str
+    uuid: str,
+    project_uuid: str,
+    project_dir: str,
+    pipeline_path: str,
+    host_userdir: str,
 ) -> Dict[str, Mount]:
     """Constructs the mounts for all resources.
 
@@ -603,7 +607,9 @@ def _get_mounts(
         project_uuid: UUID of project.
         project_dir: Project directory w.r.t. the host. Needed to
             construct the mounts.
-        host_userdir: Path to the userdir on the host
+        pipeline_path: Path of the pipeline file w.r.t. the project_dir.
+            Needed to mount the pipeline file.
+        host_userdir: Path to the userdir on the host.
 
 
     Returns:
@@ -675,6 +681,12 @@ def _get_mounts(
         target=project_dir_target, source=project_dir, type="bind"
     )
 
+    pipeline_file_source = os.path.join(project_dir, pipeline_path)
+    pipeline_file_target = _config.PIPELINE_FILE
+    mounts["pipeline_file"] = Mount(
+        target=pipeline_file_target, source=pipeline_file_source, type="bind"
+    )
+
     mounts["temp_volume"] = Mount(
         target=_config.TEMP_DIRECTORY_PATH,
         source=_config.TEMP_VOLUME_NAME.format(uuid=uuid, project_uuid=project_uuid),
@@ -726,9 +738,14 @@ def _get_user_services_specs(
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
     project_dir = session_config["project_dir"]
+    pipeline_path = session_config["pipeline_path"]
     host_userdir = session_config["host_userdir"]
     services = session_config.get("services", {})
     img_mappings = session_config["env_uuid_docker_id_mappings"]
+
+    orc_mounts = _get_mounts(
+        uuid, project_uuid, project_dir, pipeline_path, host_userdir
+    )
 
     specs = {}
 
@@ -788,8 +805,10 @@ def _get_user_services_specs(
 
         # User defined env vars superse inherited ones.
         environment.update(service.get("env_variables", {}))
+        # So that the SDK can access the pipeline file.
+        environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
 
-        mounts = []
+        mounts = [orc_mounts["pipeline_file"]]
         sbinds = service.get("binds", {})
         # Can be later extended into adding a Mount for every "custom"
         # key, e.g. key != data and key != project_directory.
@@ -895,12 +914,16 @@ def _get_orchest_services_specs(
 
     # TODO: possibly add ``auto_remove=True`` to the specs.
     orchest_services_specs = {}
-    mounts = _get_mounts(uuid, project_uuid, project_dir, host_userdir)
+    mounts = _get_mounts(uuid, project_uuid, project_dir, pipeline_path, host_userdir)
 
     orchest_services_specs["memory-server"] = {
         "image": "orchest/memory-server:latest",
         "detach": True,
-        "mounts": [mounts["project_dir"], mounts["temp_volume"]],
+        "mounts": [
+            mounts["project_dir"],
+            mounts["pipeline_file"],
+            mounts["temp_volume"],
+        ],
         "name": f"memory-server-{project_uuid}-{uuid}",
         "network": network,
         # Set a ridiculous shm size and let plasma determine how much
@@ -909,7 +932,8 @@ def _get_orchest_services_specs(
         # Mac.
         "shm_size": "1000G",
         "environment": [
-            f"ORCHEST_PIPELINE_PATH={pipeline_path}",
+            # The pipeline file is mounted to a specific path.
+            f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
         ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
@@ -952,6 +976,7 @@ def _get_orchest_services_specs(
         "ORCHEST_PIPELINE_PATH,"
         "ORCHEST_PROJECT_UUID,"
         "ORCHEST_HOST_PROJECT_DIR,"
+        "ORCHEST_HOST_PIPELINE_FILE,"
         "ORCHEST_HOST_GID,"
     )
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
@@ -973,9 +998,13 @@ def _get_orchest_services_specs(
                 "EG_ALLOW_ORIGIN=*",
                 process_env_whitelist,
                 f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
-                f"ORCHEST_PIPELINE_PATH={pipeline_path}",
+                f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
                 f"ORCHEST_PROJECT_UUID={project_uuid}",
                 f"ORCHEST_HOST_PROJECT_DIR={project_dir}",
+                (
+                    "ORCHEST_HOST_PIPELINE_FILE="
+                    f"{os.path.join(project_dir, pipeline_path)}"
+                ),
                 f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
             ]
             + user_defined_env_vars,
@@ -997,6 +1026,7 @@ def _get_orchest_services_specs(
         # Check if user tweaked JupyterLab image exists
         user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
         if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
+
             jupyer_server_image = user_jupyer_server_image
 
         # Run Jupyter server container.
@@ -1005,6 +1035,8 @@ def _get_orchest_services_specs(
             "detach": True,
             "mounts": [
                 mounts["project_dir"],
+                # Required by the Orchest SDK.
+                mounts["pipeline_file"],
                 mounts["jupyterlab"].get("lab"),
                 mounts["jupyterlab"].get("user-settings"),
                 mounts["jupyterlab"].get("data"),
