@@ -1,19 +1,18 @@
 import * as React from "react";
 import { useId } from "@radix-ui/react-id";
-import { StitchesVariants } from "@stitches/react";
 import { styled } from "../core";
-import { IconChevronLeft, IconChevronRight } from "../icons";
-import type { ICSSProp } from "../types";
+import { IconChevronLeftOutline, IconChevronRightOutline } from "../icons";
+import type { ExtractVariants, ICSSProp } from "../types";
 import { IconButton } from "./icon-button";
 import { Text } from "./text";
 
 const AlertRoot = styled("div", {
-  $$gap: "$space$2",
+  $$alertGap: "$space$2",
   padding: "$4",
   borderRadius: "$sm",
   textAlign: "left",
   "> * + *": {
-    marginTop: "$$gap",
+    marginTop: "$$alertGap",
   },
   variants: {
     status: {
@@ -44,7 +43,7 @@ const AlertIcon = styled("span", {
   display: "inline-flex",
   flexShrink: 0,
   alignSelf: "center",
-  marginRight: "$$gap",
+  marginRight: "$$alertGap",
 });
 
 const AlertTitle = styled(Text, { fontWeight: "$bold" });
@@ -60,9 +59,8 @@ const AlertPagination = styled(Text, { color: "$$paginationColor" });
 
 export interface IAlertRef extends HTMLDivElement {}
 
-export interface IAlertProps
-  extends ICSSProp,
-    StitchesVariants<typeof AlertRoot> {
+export type TAlertVariants = ExtractVariants<typeof AlertRoot>;
+export interface IAlertProps extends ICSSProp, TAlertVariants {
   title?: string;
   description?: React.ReactNode | React.ReactNode[];
   icon?: React.ReactNode;
@@ -94,7 +92,7 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
         {...props}
       >
         {title && (
-          <AlertHeader id={titleId}>
+          <AlertHeader as="p" id={titleId}>
             {icon && <AlertIcon>{icon}</AlertIcon>}
             <AlertTitle as="span">{title}</AlertTitle>
           </AlertHeader>
@@ -116,20 +114,22 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>(
                 <div role="group">
                   <IconButton
                     label="Back"
+                    color="multiply"
                     variant="ghost"
                     bleed="bottom"
                     onClick={() => cycleDescriptionIndex("backwards")}
                   >
-                    <IconChevronLeft />
+                    <IconChevronLeftOutline />
                   </IconButton>
 
                   <IconButton
                     label="Next"
+                    color="multiply"
                     variant="ghost"
                     bleed="bottomRight"
                     onClick={() => cycleDescriptionIndex("forwards")}
                   >
-                    <IconChevronRight />
+                    <IconChevronRightOutline />
                   </IconButton>
                 </div>
               </AlertFooter>

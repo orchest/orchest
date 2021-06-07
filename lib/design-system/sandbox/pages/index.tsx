@@ -24,12 +24,12 @@ import * as React from "react";
 const Index = () => (
   <Flex
     as="main"
+    direction="column"
+    gap="8"
     css={{
       margin: "0 auto",
       padding: "$4",
       maxWidth: "$3xl",
-      flexDirection: "column",
-      gap: "$4",
     }}
   >
     <h1>Design System Sandbox</h1>
@@ -131,8 +131,8 @@ const Index = () => (
     <h3>Flex</h3>
     <Text>A basic flex-layout primitive</Text>
     <Flex
+      gap="4"
       css={{
-        gap: "$4",
         "> *": {
           backgroundColor: "$primary",
           width: "$space$12",
@@ -146,15 +146,33 @@ const Index = () => (
       <Box />
     </Flex>
     <h3>Icon Button</h3>
+    <h4>Solid (Default)</h4>
+    <Flex direction="row" gap="2" role="group" css={{ alignItems: "center" }}>
+      <IconButton variant="solid" label="Previous">
+        <IconChevronLeftOutline />
+      </IconButton>
+      <IconButton variant="solid" label="Next" size="3">
+        <IconChevronRightOutline />
+      </IconButton>
+    </Flex>
     <h4>Ghost</h4>
-    <Box role="group">
+    <Flex direction="row" gap="2" role="group" css={{ alignItems: "center" }}>
       <IconButton variant="ghost" label="Previous">
         <IconChevronLeftOutline />
       </IconButton>
-      <IconButton variant="ghost" label="Next">
+      <IconButton variant="ghost" label="Next" size="3">
         <IconChevronRightOutline />
       </IconButton>
-    </Box>
+    </Flex>
+    <h4>Rounded</h4>
+    <Flex direction="row" gap="2" role="group" css={{ alignItems: "center" }}>
+      <IconButton rounded variant="solid" label="Previous">
+        <IconChevronLeftOutline />
+      </IconButton>
+      <IconButton rounded variant="ghost" label="Next" size="3">
+        <IconChevronRightOutline />
+      </IconButton>
+    </Flex>
     <h3>Link</h3>
     <Link href="#">Traditional anchor tag</Link>{" "}
     <Link as="button" onClick={() => alert("hello!")}>

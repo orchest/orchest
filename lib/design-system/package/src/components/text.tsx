@@ -18,6 +18,13 @@ const size = Object.keys(fontSizes).reduce(
   {}
 ) as { [key in TFontSizes]: CSS };
 
+export type TTextVariants = ExtractVariants<typeof Text>;
+export interface ITextProps extends ICSSProp, ExtractVariants<typeof Text> {}
+export type TTextComponent = Polymorphic.ForwardRefComponent<
+  typeof DEFAULT_TAG,
+  ITextProps
+>;
+
 export const Text = styled(DEFAULT_TAG, {
   fontWeight: "$normal",
   variants: {
@@ -27,10 +34,3 @@ export const Text = styled(DEFAULT_TAG, {
     size: "base",
   },
 });
-
-export interface ITextProps extends ICSSProp, ExtractVariants<typeof Text> {}
-
-export type TTextComponent = Polymorphic.ForwardRefComponent<
-  typeof DEFAULT_TAG,
-  ITextProps
->;

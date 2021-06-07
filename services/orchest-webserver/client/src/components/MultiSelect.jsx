@@ -289,24 +289,21 @@ export const MultiSelectInput = () => {
           >
             {selectedItem.value}
             <IconButton
-              tabIndex={tabIndices[index]}
-              type="button"
-              size="4"
+              color="multiply"
+              size="3"
+              rounded
               label="Remove"
+              type="button"
+              tabIndex={tabIndices[index]}
               onClick={() => {
                 removeItem(selectedItem);
               }}
               css={{
-                // extract to design system later - this isn't stable
                 marginLeft: "$1",
-                borderRadius: "100%",
                 color: "$white",
                 backgroundColor: "$gray600",
                 padding: "calc($1 / 2)",
                 "&:hover, &:focus": { backgroundColor: "$gray800" },
-                "> svg": {
-                  $$iconSize: "$space$3",
-                },
               }}
             >
               <IconCrossSolid />

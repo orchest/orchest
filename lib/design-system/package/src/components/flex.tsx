@@ -1,14 +1,18 @@
-import * as React from "react";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { config, styled } from "../core";
 import type { CSS, ExtractVariants, ICSSProp } from "../types";
 
 const DEFAULT_TAG = "div";
+const CHILD_WITH_GAP = "> * + *";
 
-const gap = Object.keys(config.theme.space).reduce(
-  (acc, cv) => ({ ...acc, [cv]: { $$gap: `$space$${cv}` } }),
+const GAPS = config.theme.space;
+const gap = Object.keys(GAPS).reduce(
+  (acc, cv) => ({
+    ...acc,
+    [cv]: { [CHILD_WITH_GAP]: { $$flexGap: `$space$${cv}` } },
+  }),
   {}
-) as { [key in keyof typeof config.theme.space]: CSS };
+) as { [key in keyof typeof GAPS]: CSS };
 
 const DIRECTIONS = [
   "column",
@@ -25,8 +29,8 @@ const direction = DIRECTIONS.reduce(
     [cv]: {
       flexDirection: cv,
       ...((cv.includes("row") || cv.includes("column")) && {
-        "> * + *": {
-          [cv.includes("row") ? "marginLeft" : "marginTop"]: "$$gap",
+        [CHILD_WITH_GAP]: {
+          [cv.includes("row") ? "marginLeft" : "marginTop"]: "$$flexGap",
         },
       }),
     },
@@ -34,26 +38,23 @@ const direction = DIRECTIONS.reduce(
   {}
 ) as { [key in typeof DIRECTIONS[number]]: CSS };
 
-const FlexRoot = styled(DEFAULT_TAG, {
-  include: "box",
-  display: "flex",
-  listStyleType: "none",
-  variants: { direction, gap },
-});
-
-export interface IFlexProps
-  extends ICSSProp,
-    ExtractVariants<typeof FlexRoot> {}
-
+export type TFlexVariants = ExtractVariants<typeof Flex>;
+export interface IFlexProps extends ICSSProp, TFlexVariants {}
 export type TFlexComponent = Polymorphic.ForwardRefComponent<
   typeof DEFAULT_TAG,
   IFlexProps
 >;
 
-export const Flex = React.forwardRef((props, forwardedRef) => (
-  <FlexRoot
-    ref={forwardedRef}
-    role={["ul", "ol"].includes(props.as) ? "list" : undefined}
-    {...props}
-  />
-)) as TFlexComponent;
+export const Flex = styled(DEFAULT_TAG, {
+  include: "box",
+  display: "flex",
+  listStyleType: "none",
+  variants: {
+    direction,
+    gap,
+  },
+  defaultVariants: {
+    direction: "row",
+    gap: 0,
+  },
+});
