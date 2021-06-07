@@ -128,6 +128,11 @@ Non required fields:
   only the `http` protocol is supported. The URL(s) through which you can
   connect to an externally reachable service is shown in the service settings
   and the pipeline editor, through the "SERVICES" button.
+- **preserve base path**: Some applications use relative paths when it comes
+  to handling URLS, e.g. for web page assets such as images, javascript code, css.
+  Others will expect the base path to be preserved when being proxied. The need for
+  toggling this is based on the specific application at hand, and it's only of interest
+  for external connectivity.
 
   .. figure:: ../img/services-pointer.png
     :width: 600
