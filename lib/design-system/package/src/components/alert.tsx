@@ -59,7 +59,9 @@ const StyledAlert = styled("div", {
 
 export interface IAlertRef extends HTMLDivElement {}
 export type TAlertVariants = ExtractVariants<typeof StyledAlert>;
-export interface IAlertProps extends ICSSProp, TAlertVariants {}
+export interface IAlertProps extends ICSSProp, TAlertVariants {
+  children?: React.ReactNode;
+}
 
 export const Alert = React.forwardRef<IAlertRef, IAlertProps>((props, ref) => {
   const titleId = useId();
@@ -126,7 +128,9 @@ const StyledAlertHeader = styled("p", {
 
 export interface IAlertHeaderRef extends HTMLParagraphElement {}
 export type TAlertHeaderVariants = ExtractVariants<typeof StyledAlertHeader>;
-export interface IAlertHeaderProps extends ICSSProp, TAlertHeaderVariants {}
+export interface IAlertHeaderProps extends ICSSProp, TAlertHeaderVariants {
+  children?: React.ReactNode;
+}
 
 export const AlertHeader = React.forwardRef<IAlertHeaderRef, IAlertHeaderProps>(
   (props, ref) => {
@@ -142,7 +146,9 @@ export interface IAlertDescriptionRef extends HTMLParagraphElement {}
 export type TAlertDescriptionVariants = TTextVariants;
 export interface IAlertDescriptionProps
   extends ICSSProp,
-    TAlertDescriptionVariants {}
+    TAlertDescriptionVariants {
+  children?: React.ReactNode;
+}
 
 export const AlertDescription = React.forwardRef<
   IAlertDescriptionRef,
