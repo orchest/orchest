@@ -267,7 +267,7 @@ class Session:
         n = 50
         for _ in range(n):
             exit_code = sidecar_c.exec_run(
-                "netstat -plnt | grep ':1111'",
+                f"netstat -plnt | grep ':{_config.SIDECAR_PORT}'",
             )[0]
             if exit_code == 0:
                 break
@@ -283,7 +283,7 @@ class Session:
             uuid,
             session_config,
             session_type,
-            f"tcp://{sidecar_ip}:1111",
+            f"tcp://{sidecar_ip}:{_config.SIDECAR_PORT}",
             self.network,
         )
 
@@ -307,7 +307,7 @@ class Session:
                 # logs for SDK level errors.
                 _inject_message_as_user_service(
                     sidecar_ip,
-                    1111,
+                    _config.SIDECAR_PORT,
                     service_name,
                     e.explanation if isinstance(e, APIError) else str(e),
                 )
