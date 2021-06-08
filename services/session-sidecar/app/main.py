@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 import re
@@ -10,7 +11,9 @@ from config import Config
 def get_log_dir_path():
     return os.path.join(
         Config.PROJECT_DIR,
-        Config.LOGS_PATH.format(pipeline_uuid=os.environ["ORCHEST_PIPELINE_UUID"]),
+        Config.LOGS_PATH.format(
+            pipeline_uuid=os.environ.get("ORCHEST_PIPELINE_UUID", "")
+        ),
     )
 
 
@@ -25,6 +28,9 @@ def create_log_dir():
 
 def get_service_name_from_log(log_line):
     metadata_regex = r"-metadata-end\[\d+\]"
+    # NOTE: if the message is malformed this will cause an exception,
+    # which is ok since we wouldn't know what service the logs belong
+    # to.
     name_end = re.search(metadata_regex, log_line).start()
     prefix = "user-service-"
     name_start = log_line.find(prefix) + len(prefix)
@@ -75,7 +81,11 @@ class TCPHandler(socketserver.StreamRequestHandler):
                 # Remove syslog metadata. Note: this is faster than
                 # using a regex but less safe. TODO: decide what to
                 # use.
-                data = data[data.find("]: ") + 3 :]
+                anchor_index = data.find("]: ")
+                if anchor_index == -1:
+                    data = "Malformed log message.\n"
+                else:
+                    data = data[anchor_index + 3 :]
                 log_file.write(data)
                 log_file.flush()
                 data = self.rfile.readline()
@@ -83,7 +93,32 @@ class TCPHandler(socketserver.StreamRequestHandler):
         logging.info(f"{service_name} disconnected.")
 
 
+def get_command_line_args():
+    parser = argparse.ArgumentParser(description="Start session sidecar.")
+    parser.add_argument(
+        "-d", "--project_dir", type=str, required=False, default=Config.PROJECT_DIR
+    )
+    parser.add_argument(
+        "-l",
+        "--logs_path",
+        type=str,
+        required=False,
+        default=Config.LOGS_PATH,
+    )
+    parser.add_argument(
+        "-p", "--port", type=int, required=False, default=Config.LISTEN_PORT
+    )
+
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == "__main__":
+    args = get_command_line_args()
+    Config.PROJECT_DIR = args.project_dir
+    Config.LOGS_PATH = args.logs_path
+    Config.LISTEN_PORT = args.port
+
     logging.getLogger().setLevel(logging.INFO)
 
     # Needs to be here since the logs directory does not exists for
