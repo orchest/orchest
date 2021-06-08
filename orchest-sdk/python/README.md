@@ -20,3 +20,12 @@ pip install orchest
 Check out our
 [quickstart](https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html#quickstart) to get
 started!
+
+## Compatibility
+
+> We started maintaining this table since Orchest release
+> [`v2021.05.1`](https://github.com/orchest/orchest/releases/tag/v2021.05.1).
+
+| Orchest version | Python SDK version | Compatible? |
+| --------------- | ------------------ | ----------- |
+| `>= v2021.05.1` | `v0.2.0`           | yes         |
