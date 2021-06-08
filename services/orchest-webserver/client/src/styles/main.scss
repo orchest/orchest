@@ -1256,15 +1256,25 @@ span.code {
       }
     }
 
+    button {
+      min-width: 0;
+    }
+
+    &,
+    .selection-buttons {
+      button {
+        min-width: 0;
+        & + button {
+          margin-left: var(--space-5);
+        }
+      }
+    }
+
     &.bottom-right {
       top: auto;
       bottom: 0;
       right: 0;
       left: auto;
-
-      button {
-        margin: 0;
-      }
     }
 
     &.top-left {
@@ -1274,6 +1284,12 @@ span.code {
       right: auto;
     }
 
+    &.top-right {
+      button {
+        margin-bottom: var(--space-5);
+      }
+    }
+
     &.bottom-left {
       top: auto;
       bottom: 0;
@@ -1281,7 +1297,6 @@ span.code {
       left: 0;
 
       button {
-        margin-bottom: 0;
         margin-top: var(--space-5);
       }
 
@@ -1293,16 +1308,6 @@ span.code {
         display: inline-block;
         padding-left: var(--space-5);
       }
-    }
-
-    > button {
-      &:last-of-type {
-        margin-right: 0;
-      }
-
-      margin-right: var(--space-5);
-      margin-bottom: var(--space-5);
-      min-width: 0;
     }
   }
 

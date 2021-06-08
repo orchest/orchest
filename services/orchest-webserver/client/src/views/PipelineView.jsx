@@ -2436,7 +2436,7 @@ class PipelineView extends React.Component {
               })()}
             </div>
 
-            <div className={"pipeline-actions"}>
+            <div className={"pipeline-actions top-right"}>
               {this.props.queryArgs.read_only !== "true" && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised"]}
