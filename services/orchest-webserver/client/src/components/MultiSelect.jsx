@@ -116,7 +116,7 @@ export const MultiSelect = ({
     value: inputValue,
     required,
     type: "text",
-    ...(type === "number" && { inputmode: "numeric", pattern: "[0-9]*" }),
+    ...(type === "number" && { inputMode: "numeric", pattern: "[0-9]*" }),
     onChange: (event) => {
       // clear any previous errors
       setError();

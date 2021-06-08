@@ -875,8 +875,8 @@ const PipelineSettingsView = (props) => {
                             service.scope
                               .map((scope) => {
                                 const scopeMap = {
-                                  interactive: "Interactive",
-                                  noninteractive: "Non-interactive",
+                                  interactive: "Interactive sessions",
+                                  noninteractive: "Job sessions",
                                 };
                                 return scopeMap[scope];
                               })

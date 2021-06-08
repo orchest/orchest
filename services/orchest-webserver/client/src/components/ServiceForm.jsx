@@ -364,7 +364,7 @@ const ServiceForm = (props) => {
                   onChange={(isChecked) => {
                     handleScopeCheckbox(isChecked, "interactive");
                   }}
-                  label="Interactive"
+                  label="Interactive sessions"
                   value={props.service.scope.indexOf("interactive") >= 0}
                 />
                 <br />
@@ -372,7 +372,7 @@ const ServiceForm = (props) => {
                   onChange={(isChecked) => {
                     handleScopeCheckbox(isChecked, "noninteractive");
                   }}
-                  label="Non-iteractive"
+                  label="Job sessions"
                   value={props.service.scope.indexOf("noninteractive") >= 0}
                 />
               </div>
