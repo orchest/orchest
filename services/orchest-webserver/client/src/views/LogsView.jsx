@@ -265,6 +265,15 @@ const LogsView = (props) => {
     setLogType(item.type);
   };
 
+  const getItemIndex = (items, access, value) => {
+    for (let x = 0; x < items.length; x++) {
+      if (access(items[x]) == value) {
+        return x;
+      }
+    }
+    return -1;
+  };
+
   let rootView = undefined;
 
   if (hasLoaded()) {
@@ -291,6 +300,8 @@ const LogsView = (props) => {
       dynamicLogViewerProps["service_name"] = selectedLog;
     }
 
+    let services = generateServiceItems();
+
     rootView = (
       <div className="logs">
         <div className="log-selector">
@@ -303,7 +314,11 @@ const LogsView = (props) => {
           )}
           <MDCDrawerReact
             items={steps}
-            selectedIndex={logType == "step" ? undefined : -1}
+            selectedIndex={
+              logType == "step"
+                ? getItemIndex(steps, (step) => step.identifier, selectedLog)
+                : -1
+            }
             action={clickLog}
           />
           <div role="separator" className="mdc-list-divider" />
@@ -314,12 +329,20 @@ const LogsView = (props) => {
           {!session && !job && (
             <i className="note">There is no active session.</i>
           )}
-          {(session || job) && generateServiceItems().length == 0 && (
+          {(session || job) && services.length == 0 && (
             <i className="note">There are no services defined.</i>
           )}
           <MDCDrawerReact
-            items={generateServiceItems()}
-            selectedIndex={logType == "service" ? undefined : -1}
+            items={services}
+            selectedIndex={
+              logType == "service"
+                ? getItemIndex(
+                    services,
+                    (service) => service.identifier,
+                    selectedLog
+                  )
+                : -1
+            }
             action={clickLog}
           />
         </div>
