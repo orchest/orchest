@@ -746,8 +746,6 @@ def register_views(app, db):
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
                 )
 
-            return ""
-
     @app.route(
         "/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>",
         methods=["GET"],
