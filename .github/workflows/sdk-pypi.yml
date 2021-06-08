@@ -5,6 +5,8 @@ name: Publish SDK to PyPi
 # user can build their own custom images for Orchest.
 on:
   push:
+    branches:
+      - master
     paths:
       - "orchest-sdk/python/**"
 
