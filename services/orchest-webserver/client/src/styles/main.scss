@@ -1236,6 +1236,11 @@ span.code {
         border-top: 1px solid $borderColor;
         padding-top: calc(var(--space-5) / 2);
         margin-top: calc(var(--space-5) / 2);
+        text-align: right;
+
+        button {
+          margin-bottom: 0;
+        }
       }
 
       div.link-holder {

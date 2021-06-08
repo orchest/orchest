@@ -495,8 +495,6 @@ const PipelineSettingsView = (props) => {
   };
 
   const saveGeneralForm = (e) => {
-    console.log(state);
-
     e.preventDefault();
 
     // Remove order property from services

@@ -53,6 +53,26 @@ const LogsView = (props) => {
     };
   }, []);
 
+  React.useEffect(() => {
+    // Preselect first step, or service (if no step exists)
+    if (
+      pipelineJson != undefined &&
+      pipelineJson != undefined &&
+      selectedLog == undefined
+    ) {
+      if (sortedSteps.length > 0) {
+        setSelectedLog(sortedSteps[0].uuid);
+        setLogType("step");
+      } else {
+        let services = getServices();
+        if (Object.keys(services).length > 0) {
+          setSelectedLog(services[Object.keys(services)[0]].name);
+          setLogType("service");
+        }
+      }
+    }
+  }, [sortedSteps, session]);
+
   const connectSocketIO = () => {
     // disable polling
     let socket = io.connect("/pty", { transports: ["websocket"] });
@@ -196,12 +216,6 @@ const LogsView = (props) => {
         let sortedSteps = topologicalSort(pipelineJson.steps);
         setSortedSteps(sortedSteps);
         setHeaderComponent(pipelineJson.name);
-
-        // set first step as selectedLog
-        if (sortedSteps.length > 0) {
-          setSelectedLog(sortedSteps[0].uuid);
-          setLogType("step");
-        }
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -284,7 +298,7 @@ const LogsView = (props) => {
             <i className="material-icons">device_hub</i>
             Step logs
           </div>
-          {sortedSteps.length == 0 && generateServiceItems().length == 0 && (
+          {sortedSteps.length == 0 && (
             <i className="note">There are steps defined.</i>
           )}
           <MDCDrawerReact
@@ -310,7 +324,7 @@ const LogsView = (props) => {
           />
         </div>
         <div className="logs-xterm-holder">
-          {selectedLog && (
+          {selectedLog && logType && (
             <LogViewer
               key={selectedLog}
               sio={sio}
