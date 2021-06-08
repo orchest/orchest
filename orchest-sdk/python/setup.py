@@ -24,7 +24,9 @@ setuptools.setup(
         "Documentation": (
             "https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html"
         ),
-        "Source Code": ("https://github.com/orchest/orchest/tree/master/orchest-sdk"),
+        "Source Code": (
+            "https://github.com/orchest/orchest/tree/master/orchest-sdk/python"
+        ),
     },
     classifiers=[
         "Development Status :: 1 - Planning",
