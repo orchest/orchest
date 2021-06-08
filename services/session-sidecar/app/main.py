@@ -109,7 +109,7 @@ if __name__ == "__main__":
     logging.info(f"Storing logs in {logs_path}")
 
     HOST = "0.0.0.0"
-    PORT = 1111
+    PORT = Config.LISTEN_PORT
     logging.info(f"Listening on {HOST}:{PORT}")
     with socketserver.ThreadingTCPServer((HOST, PORT), TCPHandler) as server:
         server.request_queue_size = 1000
