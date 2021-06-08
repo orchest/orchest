@@ -1,5 +1,8 @@
 import {
   Alert,
+  AlertHeader,
+  AlertDescription,
+  AlertControls,
   Box,
   Dialog,
   DialogBody,
@@ -36,83 +39,103 @@ const Index = () => (
     <h2>Components</h2>
     <h3>Alert</h3>
     <h4>Info</h4>
-    <Alert
-      status="info"
-      title="Info"
-      description="A project is simply a directory of files. It can even be fully versioned using git!"
-    />
-    <Alert
-      icon={<IconLightBulbOutline />}
-      status="info"
-      title="Info"
-      description={[
-        "Put data in the /data directory to share data between pipelines.",
-      ]}
-    />
-    <Alert
-      status="info"
-      title="Info"
-      description={[
-        <>
-          Use the integrated <Link href="#">file manager</Link> to upload and
-          download your files.
-        </>,
-        "You can import your existing projects and make them into pipelines.",
-        "Private git repositories can be managed in Orchest using local git credentials.",
-      ]}
-    />
-    <Alert
-      icon={<IconLightBulbOutline />}
-      status="info"
-      title="Info"
-      description={[
-        <>
-          Use the integrated <Link href="#">file manager</Link> to upload and
-          download your files.
-        </>,
-        "You can import your existing projects and make them into pipelines.",
-        "Private git repositories can be managed in Orchest using local git credentials.",
-      ]}
-    />
+    <Alert status="info">
+      <AlertHeader>Info</AlertHeader>
+      <AlertDescription>
+        A project is simply a directory of files. It can even be fully versioned
+        using git!
+      </AlertDescription>
+    </Alert>
+    <Alert status="info">
+      <AlertHeader>
+        <IconLightBulbOutline />
+        Info
+      </AlertHeader>
+      <AlertDescription>
+        {["Put data in the /data directory to share data between pipelines."]}
+      </AlertDescription>
+      <AlertControls />
+    </Alert>
+    <Alert status="info">
+      <AlertHeader>Info</AlertHeader>
+      <AlertDescription>
+        {[
+          <React.Fragment key={"some-key"}>
+            Use the integrated <Link href="#">file manager</Link> to upload and
+            download your files.
+          </React.Fragment>,
+          "You can import your existing projects and make them into pipelines.",
+          "Private git repositories can be managed in Orchest using local git credentials.",
+        ]}
+      </AlertDescription>
+      <AlertControls />
+    </Alert>
+    <Alert status="info">
+      <AlertHeader>
+        <IconLightBulbOutline />
+        Info
+      </AlertHeader>
+      <AlertDescription>
+        {[
+          <React.Fragment key={"some-key"}>
+            Use the integrated <Link href="#">file manager</Link> to upload and
+            download your files.
+          </React.Fragment>,
+          "You can import your existing projects and make them into pipelines.",
+          "Private git repositories can be managed in Orchest using local git credentials.",
+        ]}
+      </AlertDescription>
+      <AlertControls />
+    </Alert>
     <h4>Warning</h4>
-    <Alert
-      status="warning"
-      title="Warning"
-      description="A project is simply a directory of files. It can even be fully versioned using git!"
-    />
-    <Alert
-      icon={<IconWarningOutline />}
-      status="warning"
-      title="Warning"
-      description={[
-        "Put data in the /data directory to share data between pipelines.",
-      ]}
-    />
-    <Alert
-      status="warning"
-      title="Warning"
-      description={[
-        <>
-          Use the integrated <Link href="#">file manager</Link> to upload and
-          download your files.
-        </>,
-        "You can import your existing projects and make them into pipelines.",
-        "Private git repositories can be managed in Orchest using local git credentials.",
-      ]}
-    />
-    <Alert
-      icon={<IconWarningOutline />}
-      status="warning"
-      title="Warning"
-      description={[
-        <>
-          Use the integrated <Link href="#">file manager</Link> to upload and
-          download your files.
-        </>,
-        "You can import your existing projects and make them into pipelines.",
-        "Private git repositories can be managed in Orchest using local git credentials.",
-      ]}
-    />
+    <Alert status="warning">
+      <AlertHeader>Info</AlertHeader>
+      <AlertDescription>
+        A project is simply a directory of files. It can even be fully versioned
+        using git!
+      </AlertDescription>
+    </Alert>
+    <Alert status="warning">
+      <AlertHeader>
+        <IconWarningOutline />
+        Info
+      </AlertHeader>
+      <AlertDescription>
+        {["Put data in the /data directory to share data between pipelines."]}
+      </AlertDescription>
+      <AlertControls />
+    </Alert>
+    <Alert status="warning">
+      <AlertHeader>Info</AlertHeader>
+      <AlertDescription>
+        {[
+          <React.Fragment key={"some-key"}>
+            Use the integrated <Link href="#">file manager</Link> to upload and
+            download your files.
+          </React.Fragment>,
+          "You can import your existing projects and make them into pipelines.",
+          "Private git repositories can be managed in Orchest using local git credentials.",
+        ]}
+      </AlertDescription>
+      <AlertControls />
+    </Alert>
+    <Alert status="warning">
+      <AlertHeader>
+        <IconWarningOutline />
+        Info
+      </AlertHeader>
+      <AlertDescription>
+        {[
+          <React.Fragment key={"some-key"}>
+            Use the integrated <Link href="#">file manager</Link> to upload and
+            download your files.
+          </React.Fragment>,
+          "You can import your existing projects and make them into pipelines.",
+          "Private git repositories can be managed in Orchest using local git credentials.",
+        ]}
+      </AlertDescription>
+      <AlertControls />
+    </Alert>
     <h3>Dialog</h3>
     <Dialog>
       <DialogTrigger>Open Dialog</DialogTrigger>
