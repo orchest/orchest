@@ -252,11 +252,7 @@ def register_orchest_api_views(app, db):
             + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
         )
 
-        tel_props = {
-            "project_uuid": project_uuid,
-            "pipeline_uuid": pipeline_uuid,
-        }
-        analytics.send_event(app, "session stop", tel_props)
+        analytics.send_session_stop(app, project_uuid, pipeline_uuid)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
@@ -264,27 +260,35 @@ def register_orchest_api_views(app, db):
 
         json_obj = request.json
 
-        json_obj["project_dir"] = get_project_directory(
-            json_obj["project_uuid"], host_path=True
-        )
+        project_uuid = json_obj["project_uuid"]
+        pipeline_uuid = json_obj["pipeline_uuid"]
 
-        json_obj["pipeline_path"] = pipeline_uuid_to_path(
+        pipeline_path = pipeline_uuid_to_path(
             json_obj["pipeline_uuid"],
             json_obj["project_uuid"],
         )
 
-        json_obj["host_userdir"] = app.config["HOST_USER_DIR"]
+        project_dir = get_project_directory(json_obj["project_uuid"], host_path=True)
+
+        services = get_pipeline_json(
+            json_obj["pipeline_uuid"], json_obj["project_uuid"]
+        ).get("services", {})
+
+        session_config = {
+            "project_uuid": project_uuid,
+            "pipeline_uuid": pipeline_uuid,
+            "pipeline_path": pipeline_path,
+            "project_dir": project_dir,
+            "host_userdir": app.config["HOST_USER_DIR"],
+            "services": services,
+        }
 
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
-            json=json_obj,
+            json=session_config,
         )
 
-        tel_props = {
-            "project_uuid": json_obj["project_uuid"],
-            "pipeline_uuid": json_obj["pipeline_uuid"],
-        }
-        analytics.send_event(app, "session start", tel_props)
+        analytics.send_session_start(app, session_config)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -309,14 +313,14 @@ def register_orchest_api_views(app, db):
                     active_runs = True
 
             if active_runs:
-                tel_props = {
-                    "project_uuid": "project_uuid",
-                    "pipeline_uuid": "pipeline_uuid",
+                analytics.send_session_restart(
+                    app,
+                    project_uuid,
+                    pipeline_uuid,
                     # So that we know when users attempt to restart a
                     # session without success.
-                    "active_runs": True,
-                }
-                analytics.send_event(app, "session restart", tel_props)
+                    True,
+                )
                 return (
                     jsonify(
                         {
@@ -335,12 +339,7 @@ def register_orchest_api_views(app, db):
                     + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
                 )
 
-                tel_props = {
-                    "project_uuid": "project_uuid",
-                    "pipeline_uuid": "pipeline_uuid",
-                    "active_runs": False,
-                }
-                analytics.send_event(app, "session restart", tel_props)
+                analytics.send_session_restart(app, project_uuid, pipeline_uuid, False)
                 return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
             app.logger.error(

@@ -33,6 +33,9 @@ session = Model(
         "notebook_server_info": fields.Nested(
             server, required=True, description="Jupyter notebook server connection info"
         ),
+        "user_services": fields.Raw(
+            required=False, description="User services part of the session"
+        ),
     },
 )
 
@@ -69,6 +72,49 @@ projects = Model(
     {"projects": fields.List(fields.Nested(project), description="All projects")},
 )
 
+service = Model(
+    "Service",
+    {
+        "name": fields.String(required=True, description="Name of the service"),
+        "image": fields.String(required=True, description="Image of the service"),
+        "scopes": fields.List(
+            fields.String, required=True, description="interactive/noninteractive"
+        ),
+        "command": fields.String(required=False, description="Docker command"),
+        "entrypoint": fields.String(required=False, description="Docker entrypoint"),
+        "ports": fields.List(
+            fields.String, required=False, description="List of service exposed ports"
+        ),
+        "env_variables": fields.Raw(
+            required=False,
+            description=(
+                "Environment variables of the service, supersedes environment "
+                "inherited variables"
+            ),
+        ),
+        "env_variables_inherit": fields.List(
+            fields.String,
+            required=False,
+            description=(
+                "List of env vars to inherit from project and pipeline env vars"
+            ),
+        ),
+        "binds": fields.Raw(
+            required=False, description=("Local fs to container mappings")
+        ),
+        "preserve_base_path": fields.Boolean(
+            required=False,
+            description=("If the base path should be preserved when proxying."),
+        ),
+    },
+)
+
+# Needs to be defined here, see
+# https://flask-restx.readthedocs.io/en/latest/marshalling.html#wildcard-field
+service_wildcard = fields.Wildcard(fields.Nested(service))
+
+services = Model("Services", {"*": service_wildcard})
+
 pipeline = Model(
     "Pipeline",
     {
@@ -94,8 +140,9 @@ pipelines = Model(
     {"pipelines": fields.List(fields.Nested(pipeline), description="All pipelines")},
 )
 
-pipeline_spec = Model(
-    "PipelineSpec",
+
+session_config = Model(
+    "SessionConfig",
     {
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
@@ -108,6 +155,7 @@ pipeline_spec = Model(
         "host_userdir": fields.String(
             required=True, description="Host path to userdir"
         ),
+        "services": services,
     },
 )
 

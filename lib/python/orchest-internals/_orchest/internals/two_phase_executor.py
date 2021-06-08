@@ -80,6 +80,7 @@ class TwoPhaseExecutor(object):
                 tpf.collateral(**tpf.collateral_kwargs)
             except Exception as e:
                 logger.error(f"Error during collateral phase: {e}")
+                traceback.print_exc()
                 # In case any collateral effect contains updates to the
                 # db that were not committed yet.
                 self.session.rollback()

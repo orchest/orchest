@@ -1,23 +1,54 @@
+import json
 import os
+import socket
 import time
+import traceback
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Dict, NamedTuple, Optional
+from enum import Enum
+from typing import Any, Dict, NamedTuple, Optional
 from uuid import uuid4
 
 import docker
 import requests
 from docker.errors import APIError, ContainerError, NotFound
-from docker.types import Mount
+from docker.types import LogConfig, Mount
 from flask import current_app
 
 from _orchest.internals import config as _config
-from app import utils
+from app import errors, utils
+
+
+class SessionType(Enum):
+    INTERACTIVE = "interactive"
+    NONINTERACTIVE = "noninteractive"
 
 
 class IP(NamedTuple):
     jupyter_EG: str
     jupyter_server: str
+
+
+def _inject_message_as_user_service(ip, port, service, msg):
+    """Inject a message in the log stream of a user service.
+
+    User services logs are collected by a sidecar by setting a log
+    driver at the container level that's going to send all logs to the
+    sidecar. In some circumstances, running a container through the
+    docker SDK will result in an error without any logs being produced
+    by the container. This is the case for when the executable passed
+    in "command" cannot be found in $PATH; for such cases, we inject
+    into the logs an helpful command for the user, as if we were the
+    service itself.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((ip, port))
+    # This is the expected pattern of a message emitted by the docker
+    # syslog driver, needs to be adjusted if we move to a different log
+    # driver.
+    msg = f"user-service-{service}-metadata-end[0000]: {msg}"
+    sock.send(msg.encode("utf-8"))
+    sock.close()
 
 
 # TODO: possibly make contextlib session by implementing __enter__ and
@@ -119,13 +150,27 @@ class Session:
 
         return res
 
+    def _get_container_IP(self, container) -> str:
+        """Get IP address of container.
+
+        Args:
+            container (docker.models.containers.Container): container of
+                which to get the IP address.
+
+        Returns:
+            The IP address of the container inside the network.
+
+        """
+        # The containers have to be reloaded as otherwise cached "attrs"
+        # is used, which might not be up-to-date.
+        container.reload()
+        return container.attrs["NetworkSettings"]["Networks"][self.network]["IPAddress"]
+
     def launch(
         self,
         uuid: str,
-        project_uuid: str,
-        pipeline_path: str,
-        project_dir: str,
-        host_userdir: Optional[str] = None,
+        session_config: Dict[str, Any],
+        session_type: SessionType,
     ) -> None:
         """Launches pre-configured resources.
 
@@ -137,26 +182,135 @@ class Session:
                 recommended to be either a pipeline UUID (for
                 interactive sessions) or pipeline run UUID (for non-
                 interactive sessions).
-            pipeline_path: Path to pipeline file (relative to
-                project_dir).
-            project_dir: Path to project directory.
-            host_userdir: Path to the userdir on the host
+            session_config: A dictionary containing the session
+                configuration. Required entries: project_uuid,
+                pipeline_uuid , project_dir, host_userdir,
+                env_uuid_docker_id_mappings.  user_env_variables is a
+                required entry for noninteractive session type, while
+                it's unusued for interactive session type.  User
+                services can be defined by passing the optional entry
+                services, a dictionary mapping service names to service
+                configurations. Each service is considered a "user
+                service" and will be launched along with the minimum
+                resources that are required by a session to run. The
+                project_uuid and pipeline_uuid determine the name of the
+                resources that are launched, i.e. the container names
+                are based on those. The image of a service can be an
+                "external" image to be pulled from a repo or an orchest
+                environment image uuid prefixed by environment@, in the
+                latter case, the used image depends on the
+                env_uuid_docker_id_mappings, which must have an entry
+                for said environment uuid.  Example of a configuration:
+                {
+                    "project_uuid": myuuid,
+                    "pipeline_uuid": myuuid,
+                    "project_dir": mystring,
+                    "host_userdir": mystring,
+                    "user_env_variables": {
+                        "A": "1",
+                        "B": "hello"
+                    }
+                    "env_uuid_docker_id_mappings" : {
+                        "env uuid" : "docker id"
+                    }
+                    "services": {
+                        "my-little-service": {
+                            "name": "my-little-service",
+                            "binds": {
+                                "/data": "/data",
+                                "/project-dir": "/project-dir"
+                            },
+                            "image": "myimage",
+                            "command": "mycommand",
+                            "entrypoint": "myentrypoint",
+                            "scope": ["interactive", "noninteractive"],
+                            "ports": [80, 8080], // ports are TCP only,
+                            "env_variables": {
+                                "key1": "value1",
+                                "key2": "value2"
+                            },
+                            "env_variables_inherit": ["key1", "key2"],
+                        }}
+                }
+            session_type: Type of session: interactive, or
+                noninteractive.
+
 
         """
+
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
-        container_specs = _get_container_specs(
+        orchest_services = _get_orchest_services_specs(
             uuid,
-            project_uuid,
-            pipeline_path,
-            project_dir,
-            host_userdir,
+            session_config,
+            session_type,
             self.network,
         )
-        for resource in self._resources:
-            container = self.client.containers.run(**container_specs[resource])
-            self._containers[resource] = container
 
-        return
+        for resource in self._resources:
+            try:
+                container = self.client.containers.run(**orchest_services[resource])
+                self._containers[resource] = container
+            except Exception as e:
+                current_app.logger.error(
+                    "Failed to start container %s [%s]." % (e, type(e))
+                )
+                raise errors.SessionContainerError(
+                    "Could not start required containers."
+                )
+
+        # Wait for the sidecar to be ready so that all logs are captured
+        # , moreover, in TCP mode docker will not start a container if
+        # it can't connect to the logger. This is not an health check
+        # because an health check would have to run periodically, which
+        # is a waste.
+        sidecar_c = self._containers["session-sidecar"]
+        n = 50
+        for _ in range(n):
+            exit_code = sidecar_c.exec_run(
+                f"netstat -plnt | grep ':{_config.SIDECAR_PORT}'",
+            )[0]
+            if exit_code == 0:
+                break
+            else:
+                time.sleep(0.1)
+        else:
+            raise errors.SessionContainerError("Sidecar not listening.")
+
+        # Using the sidecar ip is necessary because docker won't do name
+        # resolution when passing a name to the log-driver.
+        sidecar_ip = self._get_container_IP(sidecar_c)
+        user_services = _get_user_services_specs(
+            uuid,
+            session_config,
+            session_type,
+            f"tcp://{sidecar_ip}:{_config.SIDECAR_PORT}",
+            self.network,
+        )
+
+        for service_name, service_spec in user_services.items():
+            try:
+                container = self.client.containers.run(**service_spec)
+                self._containers[service_name] = container
+            except Exception as e:
+                current_app.logger.error(
+                    "Failed to start user service container %s [%s]." % (e, type(e))
+                )
+                try:
+                    container = self.client.containers.get(service_spec["name"])
+                    container.remove(force=True)
+                except NotFound:
+                    current_app.logger.warning(
+                        "Did not find dangling user service container."
+                    )
+
+                # Necessary because the docker container won't emit any
+                # logs for SDK level errors.
+                _inject_message_as_user_service(
+                    sidecar_ip,
+                    _config.SIDECAR_PORT,
+                    service_name,
+                    e.explanation if isinstance(e, APIError) else str(e),
+                )
 
     @abstractmethod
     def shutdown(self) -> None:
@@ -175,22 +329,22 @@ class Session:
         session_identity_uuid = None
         project_uuid = None
 
-        for resource, container in self.containers.items():
+        for _, container in self.containers.items():
             # TODO: this depends on whether or not auto_remove is
-            #       enabled in the container specs.
+            # enabled in the container specs.
 
-            # we are relying on the fact that the session_identity_uuid
+            # We are relying on the fact that the session_identity_uuid
             # and project_uuid are consistent among these containers,
-            # i.e. there is 1 of each
-            if session_identity_uuid is not None:
+            # i.e. there is 1 of each.
+            if session_identity_uuid is None:
                 session_identity_uuid = container.labels.get("session_identity_uuid")
-            if project_uuid is not None:
+            if project_uuid is None:
                 project_uuid = container.labels.get("project_uuid")
 
-            # catch to take care of the race condition where a session
-            # is already shutting down on its own but a shutdown
-            # command is issued by a project/pipeline/exp deletion
-            # at the same time
+            # Catch to take care of the race condition where a session
+            # is already shutting down on its own but a shutdown command
+            # is issued by a project/pipeline/exp deletion at the same
+            # time.
             try:
                 container.remove(force=True)
             except (
@@ -203,23 +357,22 @@ class Session:
                     "Failed to kill/remove session container %s [%s]" % (e, type(e))
                 )
 
-        # the reasons such removal needs to be done in sessions.py
-        # instead of pipelines.py are: 1) in a job run, the
-        # memory server is the last container that is removed, that
-        # happens when the session is shutting down, before that happens
-        # the TMP volume(s) cannot be removed 2) this way we also
-        # cleanup the volumes of an interactive session when the session
-        # shuts down
-        if session_identity_uuid and project_uuid:
+        # The reasons such removal needs to be done in sessions.py
+        # instead of pipelines.py are: 1) in a job run, the memory
+        # server is the last container that is removed, that happens
+        # when the session is shutting down, before that happens the TMP
+        # volume(s) cannot be removed 2) this way we also cleanup the
+        # volumes of an interactive session when the session shuts down.
+        if session_identity_uuid is not None and project_uuid is not None:
             volume = self.client.volumes.get(
                 _config.TEMP_VOLUME_NAME.format(
                     uuid=session_identity_uuid, project_uuid=project_uuid
                 )
             )
-            # catch to take care of the race condition where a session
-            # is already shutting down on its own but a shutdown
-            # command is issued by a project/pipeline/exp deletion
-            # at the same time
+            # Catch to take care of the race condition where a session
+            # is already shutting down on its own but a shutdown command
+            # is issued by a project/pipeline/exp deletion at the same
+            # time.
             try:
                 volume.remove()
             except (requests.exceptions.HTTPError, NotFound, APIError):
@@ -233,6 +386,7 @@ class InteractiveSession(Session):
 
     _resources = [
         "memory-server",
+        "session-sidecar",
         "jupyter-EG",
         "jupyter-server",
     ]
@@ -250,22 +404,6 @@ class InteractiveSession(Session):
             pass
 
         return self._notebook_server_info
-
-    def _get_container_IP(self, container) -> str:
-        """Get IP address of container.
-
-        Args:
-            container (docker.models.containers.Container): container of
-                which to get the IP address.
-
-        Returns:
-            The IP address of the container inside the network.
-
-        """
-        # The containers have to be reloaded as otherwise cached "attrs"
-        # is used, which might not be up-to-date.
-        container.reload()
-        return container.attrs["NetworkSettings"]["Networks"][self.network]["IPAddress"]
 
     # TODO: rename to `get_resources_IP` ?
     # TODO: make into property? `.ips` Same goes for `get_container_IDs`
@@ -289,14 +427,7 @@ class InteractiveSession(Session):
             self._get_container_IP(self.containers["jupyter-server"]),
         )
 
-    def launch(
-        self,
-        pipeline_uuid: str,
-        project_uuid: str,
-        pipeline_path: str,
-        project_dir: str,
-        host_userdir: str,
-    ) -> None:
+    def launch(self, session_config: Dict[str, Any]) -> None:
         """Launches the interactive session.
 
         Additionally connects the launched `jupyter-server` with the
@@ -307,11 +438,9 @@ class InteractiveSession(Session):
 
         """
         super().launch(
-            pipeline_uuid,
-            project_uuid,
-            pipeline_path,
-            project_dir,
-            host_userdir,
+            session_config["pipeline_uuid"],
+            session_config,
+            session_type=SessionType.INTERACTIVE,
         )
 
         IP = self.get_containers_IP()
@@ -325,8 +454,12 @@ class InteractiveSession(Session):
             "port": 8888,
             "base_url": "/"
             + _config.JUPYTER_SERVER_NAME.format(
-                project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
-                pipeline_uuid=pipeline_uuid[: _config.TRUNCATED_UUID_LENGTH],
+                project_uuid=session_config["project_uuid"][
+                    : _config.TRUNCATED_UUID_LENGTH
+                ],
+                pipeline_uuid=session_config["pipeline_uuid"][
+                    : _config.TRUNCATED_UUID_LENGTH
+                ],
             ),
         }
 
@@ -355,10 +488,6 @@ class InteractiveSession(Session):
         kernels are shut down as well.
 
         """
-        # NOTE: this request will block the API. However, this is
-        # desired as the front-end would otherwise need to poll whether
-        # the Jupyter launch has been shut down (to be able to show its
-        # status in the UI).
         # The request is blocking and returns after all kernels and
         # server have been shut down.
         IP = self.get_containers_IP()
@@ -397,6 +526,7 @@ class NonInteractiveSession(Session):
 
     _resources = [
         "memory-server",
+        "session-sidecar",
     ]
 
     def __init__(self, client, network=None):
@@ -407,9 +537,7 @@ class NonInteractiveSession(Session):
     def launch(
         self,
         uuid: Optional[str],
-        project_uuid: str,
-        pipeline_path: str,
-        project_dir: str,
+        session_config: Dict,
     ) -> None:
         """
 
@@ -418,52 +546,42 @@ class NonInteractiveSession(Session):
         and therefore session needs to have a unique docker container
         name for its memory-server.
 
-        For jobs a good option for the `uuid` would be the
-        pipeline run UUID. If none is given
-
         Args:
+            See `Args` section in parent class :class:`Session`.
+
             uuid: Some UUID. If ``None`` then a randomly generated UUID
                 is used.
-            pipeline_path: Path to the pipeline file relative to the
-                `project_dir`.
-            project_dir: Path to the project directory on the host.
+            session_config: "user_env_variables" is a required entry for
+            NonInteractiveSession.
 
         """
         if uuid is None:
             uuid = self._session_uuid
 
-        return super().launch(uuid, project_uuid, pipeline_path, project_dir)
+        return super().launch(
+            uuid,
+            session_config,
+            SessionType.NONINTERACTIVE,
+        )
 
 
 @contextmanager
 def launch_noninteractive_session(
-    docker_client,
-    pipeline_uuid: str,
-    project_uuid: str,
-    pipeline_path: str,
-    project_dir: str,
+    docker_client, uuid: str, session_config: Dict[str, Any]
 ) -> NonInteractiveSession:
     """Launches a non-interactive session for a particular pipeline.
 
     Args:
+        See `Args` section in class :class:`NonInteractiveSession`.
         docker_client (docker.client.DockerClient): docker client to
             manage Docker resources.
-        pipeline_uuid: UUID of pipeline that the session is started for.
-        project_dir: Path to the `project_dir`, which has to be
-            mounted into the containers so that the user can interact
-            with the files.
 
     Yields:
         A Session object that has already launched its resources.
 
     """
     session = NonInteractiveSession(docker_client, network=_config.DOCKER_NETWORK)
-    session.launch(
-        pipeline_uuid,
-        project_uuid,
-        pipeline_path,
-        project_dir,
-    )
+    session.launch(uuid, session_config)
     try:
         yield session
     finally:
@@ -471,7 +589,11 @@ def launch_noninteractive_session(
 
 
 def _get_mounts(
-    uuid: str, project_uuid: str, project_dir: str, host_userdir: str
+    uuid: str,
+    project_uuid: str,
+    project_dir: str,
+    pipeline_path: str,
+    host_userdir: str,
 ) -> Dict[str, Mount]:
     """Constructs the mounts for all resources.
 
@@ -485,7 +607,9 @@ def _get_mounts(
         project_uuid: UUID of project.
         project_dir: Project directory w.r.t. the host. Needed to
             construct the mounts.
-        host_userdir: Path to the userdir on the host
+        pipeline_path: Path of the pipeline file w.r.t. the project_dir.
+            Needed to mount the pipeline file.
+        host_userdir: Path to the userdir on the host.
 
 
     Returns:
@@ -557,6 +681,12 @@ def _get_mounts(
         target=project_dir_target, source=project_dir, type="bind"
     )
 
+    pipeline_file_source = os.path.join(project_dir, pipeline_path)
+    pipeline_file_target = _config.PIPELINE_FILE
+    mounts["pipeline_file"] = Mount(
+        target=pipeline_file_target, source=pipeline_file_source, type="bind"
+    )
+
     mounts["temp_volume"] = Mount(
         target=_config.TEMP_DIRECTORY_PATH,
         source=_config.TEMP_VOLUME_NAME.format(uuid=uuid, project_uuid=project_uuid),
@@ -566,12 +696,194 @@ def _get_mounts(
     return mounts
 
 
-def _get_container_specs(
+def _get_user_services_specs(
     uuid: str,
-    project_uuid: str,
-    pipeline_path: str,
-    project_dir: str,
-    host_userdir: str,
+    session_config: Optional[Dict[str, Any]],
+    session_type: SessionType,
+    sidecar_address,
+    network: str,
+) -> Dict[str, Any]:
+    """Constructs the container specifications for all services.
+
+    These specifications can be unpacked into the
+    ``docker.client.DockerClient.containers.run`` method.
+
+    Args:
+        uuid: Some UUID to identify the session with. For interactive
+            runs using the pipeline UUID is required, for non-
+            interactive runs we recommend using the pipeline run UUID.
+        session_config: See `Args` section in class :class:`Session`.
+        session_type: Type of session: interactive, or noninteractive,
+        sidecar_address: Address of the sidecar container, to be passed
+            to the log driver for collecting logs. Note that docker does
+            not provide host name resolution for containers in the log
+            driver, meaning that passing an address like
+            tcp://{container name}:1111, will not work. If you want to
+            reach a container within the same docker network you will
+            have to pass the ip, tcp://{ip}:1111. External hosts can be
+            reached normally, e.g. as if trying to reach them from the
+            actual hosts, i.e.  pass the address normally.
+        network: Docker network. This is put directly into the specs, so
+            that the containers are started on the specified network.
+
+    Returns:
+        Mapping from container name to container specification for the
+        run method. The return dict looks as follows:
+            container_specs = {
+                '{service name} spec dict,
+                ...
+            }
+
+    """
+    project_uuid = session_config["project_uuid"]
+    pipeline_uuid = session_config["pipeline_uuid"]
+    project_dir = session_config["project_dir"]
+    pipeline_path = session_config["pipeline_path"]
+    host_userdir = session_config["host_userdir"]
+    services = session_config.get("services", {})
+    img_mappings = session_config["env_uuid_docker_id_mappings"]
+
+    orc_mounts = _get_mounts(
+        uuid, project_uuid, project_dir, pipeline_path, host_userdir
+    )
+
+    specs = {}
+
+    for service_name, service in services.items():
+
+        # Skip if service_scope does not include this type of session.
+        if session_type.value not in service["scope"]:
+            continue
+
+        container_name = (
+            f"service-{service_name}"
+            f'-{project_uuid.split("-")[0]}-{uuid.split("-")[0]}'
+        )
+        # This way nginx won't match & proxy to it.
+        if not service.get("ports", []):
+            container_name = f"internal-{container_name}"
+        else:
+            # To preserve the base path when proxying, for more details
+            # check the nginx config, services section.
+            pbp = "pbp-" if service.get("preserve_base_path", False) else ""
+            service_base_url = f"/{pbp}{container_name}"
+
+            # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
+            # this substitution happens after service["name"] is read,
+            # so that JSON entry does not support $BASE_PATH_PREFIX
+            # substitution.  This allows the user to specify
+            # $BASE_PATH_PREFIX as the value of an env variable, so that
+            # the base path can be passsed dynamically to the service.
+            service_str = json.dumps(service)
+            service_str = service_str.replace("$BASE_PATH_PREFIX", service_base_url)
+            service = json.loads(service_str)
+
+        # Get user configured environment variables
+        try:
+            if session_type == SessionType.NONINTERACTIVE:
+                # Get job environment variable overrides
+                user_env_variables = session_config["user_env_variables"]
+            else:
+                user_env_variables = utils.get_proj_pip_env_variables(
+                    project_uuid, pipeline_uuid
+                )
+        except Exception as e:
+
+            current_app.logger.error(
+                "Failed to fetch user_env_variables: %s [%s]" % (e, type(e))
+            )
+
+            traceback.print_exc()
+
+            user_env_variables = {}
+
+        environment = {}
+
+        for inherited_key in service.get("env_variables_inherit", []):
+            if inherited_key in user_env_variables:
+                environment[inherited_key] = user_env_variables[inherited_key]
+
+        # User defined env vars superse inherited ones.
+        environment.update(service.get("env_variables", {}))
+
+        # These are all required for the Orchest SDK to work.
+        environment["ORCHEST_PROJECT_UUID"] = project_uuid
+        environment["ORCHEST_PIPELINE_UUID"] = pipeline_uuid
+        # So that the SDK can access the pipeline file.
+        environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
+        environment["ORCHEST_SESSION_UUID"] = uuid
+        environment["ORCHEST_SESSION_TYPE"] = session_type.value
+
+        mounts = [orc_mounts["pipeline_file"]]
+        sbinds = service.get("binds", {})
+        # Can be later extended into adding a Mount for every "custom"
+        # key, e.g. key != data and key != project_directory.
+        if "/data" in sbinds:
+            mounts.append(
+                Mount(  # data directory
+                    target=sbinds["/data"],
+                    source=os.path.join(host_userdir, "data"),
+                    type="bind",
+                ),
+            )
+
+        if "/project-dir" in sbinds:
+            mounts.append(
+                Mount(
+                    target=sbinds["/project-dir"],
+                    source=project_dir,
+                    type="bind",
+                ),
+            )
+
+        # To support orchest environments as services.
+        image = service["image"]
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+        if image.startswith(prefix):
+            image = image.replace(prefix, "")
+            image = img_mappings[image]
+
+        specs[service_name] = {
+            "image": image,
+            "detach": True,
+            "mounts": mounts,
+            "name": container_name,
+            "group_add": [os.environ.get("ORCHEST_HOST_GID")],
+            "network": network,
+            "environment": environment,
+            # Labels are used to have a way of keeping track of the
+            # containers attributes through
+            # ``Session.from_container_IDs``
+            "labels": {
+                "session_identity_uuid": uuid,
+                "project_uuid": project_uuid,
+            },
+            "log_config": LogConfig(
+                type=LogConfig.types.SYSLOG,
+                config={
+                    "mode": "non-blocking",
+                    "max-buffer-size": "10mb",
+                    "syslog-format": "rfc3164",
+                    "syslog-address": sidecar_address,
+                    # Used by the sidecar to detect who is sending logs.
+                    "tag": f"user-service-{service_name}-metadata-end",
+                },
+            ),
+        }
+
+        if "entrypoint" in service:
+            specs[service_name]["entrypoint"] = service["entrypoint"]
+
+        if "command" in service:
+            specs[service_name]["command"] = service["command"]
+
+    return specs
+
+
+def _get_orchest_services_specs(
+    uuid: str,
+    session_config: Dict[str, Any],
+    session_type: SessionType,
     network: str,
 ) -> Dict[str, dict]:
     """Constructs the container specifications for all resources.
@@ -583,10 +895,8 @@ def _get_container_specs(
         uuid: Some UUID to identify the session with. For interactive
             runs using the pipeline UUID is required, for non-
             interactive runs we recommend using the pipeline run UUID.
-        project_uuid: UUID of the project.
-        project_dir: Project directory w.r.t. the host. Needed to
-            construct the mounts.
-        host_userdir: Path to the userdir on the host
+        session_config: See `Args` section in class :class:`Session`.
+        session_type: Type of session: interactive, or noninteractive.
         network: Docker network. This is put directly into the specs, so
             that the containers are started on the specified network.
 
@@ -595,20 +905,31 @@ def _get_container_specs(
         run method. The return dict looks as follows:
             container_specs = {
                 'memory-server': spec dict,
+                'session-sidecar': spec dict,
                 'jupyter-EG': spec dict,
                 'jupyter-server': spec dict,
             }
 
     """
-    # TODO: possibly add ``auto_remove=True`` to the specs.
-    container_specs = {}
-    mounts = _get_mounts(uuid, project_uuid, project_dir, host_userdir)
 
-    container_specs["memory-server"] = {
+    project_uuid = session_config["project_uuid"]
+    pipeline_uuid = session_config["pipeline_uuid"]
+    pipeline_path = session_config["pipeline_path"]
+    project_dir = session_config["project_dir"]
+    host_userdir = session_config["host_userdir"]
+
+    # TODO: possibly add ``auto_remove=True`` to the specs.
+    orchest_services_specs = {}
+    mounts = _get_mounts(uuid, project_uuid, project_dir, pipeline_path, host_userdir)
+
+    orchest_services_specs["memory-server"] = {
         "image": "orchest/memory-server:latest",
         "detach": True,
-        "mounts": [mounts["project_dir"], mounts["temp_volume"]],
-        # TODO: name not unique... and uuid cannot be used.
+        "mounts": [
+            mounts["project_dir"],
+            mounts["pipeline_file"],
+            mounts["temp_volume"],
+        ],
         "name": f"memory-server-{project_uuid}-{uuid}",
         "network": network,
         # Set a ridiculous shm size and let plasma determine how much
@@ -617,10 +938,33 @@ def _get_container_specs(
         # Mac.
         "shm_size": "1000G",
         "environment": [
-            f"ORCHEST_PIPELINE_PATH={pipeline_path}",
+            f"ORCHEST_PROJECT_UUID={project_uuid}",
+            f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
+            # The pipeline file is mounted to a specific path.
+            f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
+            f"ORCHEST_SESSION_UUID={uuid}",
+            f"ORCHEST_SESSION_TYPE={session_type.value}",
         ],
         # Labels are used to have a way of keeping track of the
         # containers attributes through ``Session.from_container_IDs``
+        "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
+    }
+
+    orchest_services_specs["session-sidecar"] = {
+        "image": "orchest/session-sidecar:latest",
+        "detach": True,
+        "mounts": [mounts["project_dir"]],
+        "name": f"session-sidecar-{project_uuid}-{uuid}",
+        # It will try to create the logs directory for a given run if it
+        # does not exist, so this is needed to avoid permission issues.
+        "group_add": [os.environ.get("ORCHEST_HOST_GID")],
+        "network": network,
+        "environment": [
+            f"ORCHEST_PROJECT_UUID={project_uuid}",
+            f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
+            f"ORCHEST_SESSION_UUID={uuid}",
+            f"ORCHEST_SESSION_TYPE={session_type.value}",
+        ],
         "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
     }
 
@@ -634,12 +978,8 @@ def _get_container_specs(
     # Get user configured environment variables for EG,
     # to pass to Jupyter kernels.
     try:
-        env_variables = utils.get_proj_pip_env_variables(project_uuid, uuid)
+        env_variables = utils.get_proj_pip_env_variables(project_uuid, pipeline_uuid)
     except Exception:
-        # TODO: refactor _get_container_specs to be split up
-        # in noninteractive and interactive container_specs.
-        # In Celery no app context is available so user
-        # defined environment variables cannot be retrieved.
         env_variables = {}
 
     user_defined_env_vars = [f"{key}={value}" for key, value in env_variables.items()]
@@ -649,75 +989,90 @@ def _get_container_specs(
         "ORCHEST_PIPELINE_PATH,"
         "ORCHEST_PROJECT_UUID,"
         "ORCHEST_HOST_PROJECT_DIR,"
+        "ORCHEST_HOST_PIPELINE_FILE,"
         "ORCHEST_HOST_GID,"
+        "ORCHEST_SESSION_UUID,"
+        "ORCHEST_SESSION_TYPE,"
     )
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
 
-    container_specs["jupyter-EG"] = {
-        "image": "orchest/jupyter-enterprise-gateway",  # TODO: make not static.
-        "detach": True,
-        "mounts": [mounts.get("docker_sock"), mounts.get("kernelspec")],
-        "name": gateway_hostname,
-        "environment": [
-            f"EG_DOCKER_NETWORK={network}",
-            "EG_MIRROR_WORKING_DIRS=True",
-            "EG_LIST_KERNELS=True",
-            "EG_KERNEL_WHITELIST=[]",
-            "EG_PROHIBITED_UIDS=[]",
-            'EG_UNAUTHORIZED_USERS=["dummy"]',
-            'EG_UID_BLACKLIST=["-1"]',
-            "EG_ALLOW_ORIGIN=*",
-            process_env_whitelist,
-            f"ORCHEST_PIPELINE_UUID={uuid}",
-            f"ORCHEST_PIPELINE_PATH={pipeline_path}",
-            f"ORCHEST_PROJECT_UUID={project_uuid}",
-            f"ORCHEST_HOST_PROJECT_DIR={project_dir}",
-            f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
-        ]
-        + user_defined_env_vars,
-        "user": "root",
-        "network": network,
-        # Labels are used to have a way of keeping track of the
-        # containers attributes through ``Session.from_container_IDs``
-        "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
-    }
+    if session_type == SessionType.INTERACTIVE:
+        orchest_services_specs["jupyter-EG"] = {
+            "image": "orchest/jupyter-enterprise-gateway",
+            "detach": True,
+            "mounts": [mounts.get("docker_sock"), mounts.get("kernelspec")],
+            "name": gateway_hostname,
+            "environment": [
+                f"EG_DOCKER_NETWORK={network}",
+                "EG_MIRROR_WORKING_DIRS=True",
+                "EG_LIST_KERNELS=True",
+                "EG_KERNEL_WHITELIST=[]",
+                "EG_PROHIBITED_UIDS=[]",
+                'EG_UNAUTHORIZED_USERS=["dummy"]',
+                'EG_UID_BLACKLIST=["-1"]',
+                "EG_ALLOW_ORIGIN=*",
+                process_env_whitelist,
+                f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
+                f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
+                f"ORCHEST_PROJECT_UUID={project_uuid}",
+                f"ORCHEST_HOST_PROJECT_DIR={project_dir}",
+                (
+                    "ORCHEST_HOST_PIPELINE_FILE="
+                    f"{os.path.join(project_dir, pipeline_path)}"
+                ),
+                f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
+                f"ORCHEST_SESSION_UUID={uuid}",
+                f"ORCHEST_SESSION_TYPE={session_type.value}",
+            ]
+            + user_defined_env_vars,
+            "user": "root",
+            "network": network,
+            # Labels are used to have a way of keeping track of the
+            # containers attributes through
+            # ``Session.from_container_IDs``
+            "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
+        }
 
-    jupyter_hostname = _config.JUPYTER_SERVER_NAME.format(
-        project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
-        pipeline_uuid=uuid[: _config.TRUNCATED_UUID_LENGTH],
-    )
+        jupyter_hostname = _config.JUPYTER_SERVER_NAME.format(
+            project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
+            pipeline_uuid=uuid[: _config.TRUNCATED_UUID_LENGTH],
+        )
 
-    jupyer_server_image = "orchest/jupyter-server:latest"
+        jupyer_server_image = "orchest/jupyter-server:latest"
 
-    # Check if user tweaked JupyterLab image exists
-    user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
-    if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
-        jupyer_server_image = user_jupyer_server_image
+        # Check if user tweaked JupyterLab image exists
+        user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
+        if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
 
-    # Run Jupyter server container.
-    container_specs["jupyter-server"] = {
-        "image": jupyer_server_image,
-        "detach": True,
-        "mounts": [
-            mounts["project_dir"],
-            mounts["jupyterlab"].get("lab"),
-            mounts["jupyterlab"].get("user-settings"),
-            mounts["jupyterlab"].get("data"),
-        ],
-        "name": jupyter_hostname,
-        "network": network,
-        "group_add": [os.environ.get("ORCHEST_HOST_GID")],
-        "command": [
-            "--allow-root",
-            "--port=8888",
-            "--no-browser",
-            f"--gateway-url={'http://' + gateway_hostname}:8888",
-            f"--notebook-dir={_config.PROJECT_DIR}",
-            f"--ServerApp.base_url=/{jupyter_hostname}",
-        ],
-        # Labels are used to have a way of keeping track of the
-        # containers attributes through ``Session.from_container_IDs``
-        "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
-    }
+            jupyer_server_image = user_jupyer_server_image
 
-    return container_specs
+        # Run Jupyter server container.
+        orchest_services_specs["jupyter-server"] = {
+            "image": jupyer_server_image,
+            "detach": True,
+            "mounts": [
+                mounts["project_dir"],
+                # Required by the Orchest SDK.
+                mounts["pipeline_file"],
+                mounts["jupyterlab"].get("lab"),
+                mounts["jupyterlab"].get("user-settings"),
+                mounts["jupyterlab"].get("data"),
+            ],
+            "name": jupyter_hostname,
+            "network": network,
+            "group_add": [os.environ.get("ORCHEST_HOST_GID")],
+            "command": [
+                "--allow-root",
+                "--port=8888",
+                "--no-browser",
+                f"--gateway-url={'http://' + gateway_hostname}:8888",
+                f"--notebook-dir={_config.PROJECT_DIR}",
+                f"--ServerApp.base_url=/{jupyter_hostname}",
+            ],
+            # Labels are used to have a way of keeping track of the
+            # containers attributes through
+            # ``Session.from_container_IDs``
+            "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
+        }
+
+    return orchest_services_specs

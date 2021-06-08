@@ -46,6 +46,7 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    user_guide/environments
    user_guide/jobs
    user_guide/environment_variables
+   user_guide/services
    user_guide/configure_jupyterlab
    user_guide/sdk/index
    user_guide/other

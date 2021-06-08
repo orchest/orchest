@@ -126,17 +126,14 @@ export const OrchestSessionsProvider = ({ children }) => {
       })
         .then((sessionDetails) => mutateSession(sessionDetails))
         .catch((err) => {
-          let errorBody = JSON.parse(err.body);
-          if (errorBody?.message == "MemoryServerRestartInProgress") {
+          err.json().then((errorBody) => {
             dispatch({
               type: "alert",
-              payload: [
-                "The session can't be launched while the memory server is being restarted.",
-              ],
+              payload: ["Error while starting the session", errorBody?.message],
             });
-          } else {
-            console.error(err);
-          }
+          });
+
+          console.error(err);
         });
 
       dispatch({ type: "_sessionsToggleClear" });
@@ -173,16 +170,7 @@ export const OrchestSessionsProvider = ({ children }) => {
       stopSession(session)
         .then(() => mutate())
         .catch((err) => {
-          if (err?.message === "MemoryServerRestartInProgress") {
-            dispatch({
-              type: "alert",
-              payload: [
-                "The session can't be stopped while the memory server is being restarted.",
-              ],
-            });
-          } else {
-            console.error(err);
-          }
+          console.error(err);
         });
       dispatch({ type: "_sessionsToggleClear" });
       return;

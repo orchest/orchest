@@ -66,13 +66,19 @@ class StepUUIDResolveError(Error):
 
 
 class InputNameCollisionError(Error):
-    """Multiple input data objects have the same name"""
+    """Multiple input data objects have the same name."""
 
     pass
 
 
 class DataInvalidNameError(Error):
     """Data has an invalid name."""
+
+    pass
+
+
+class ServiceNotFound(Error):
+    """Error when a service could not be found by name."""
 
     pass
 
@@ -94,3 +100,15 @@ class InvalidMetaDataError(Error):
         else:
             msg = self.helper_message
         super().__init__(msg, *args, **kwargs)
+
+
+class UnrecognizedSessionType(Error):
+    """Error when a session type not in interactive, noninteractive."""
+
+    pass
+
+
+class SessionNotFound(Error):
+    """Error when a session wasn't found through the orchest-api."""
+
+    pass

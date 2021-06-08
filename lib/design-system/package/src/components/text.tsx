@@ -1,6 +1,8 @@
-import { StitchesVariants } from "@stitches/core";
+import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { config, styled } from "../core";
-import type { CSS } from "../types";
+import type { CSS, ExtractVariants, ICSSProp } from "../types";
+
+const DEFAULT_TAG = "p";
 
 const { fontSizes } = config.theme;
 type TFontSizes = keyof typeof fontSizes;
@@ -16,7 +18,7 @@ const size = Object.keys(fontSizes).reduce(
   {}
 ) as { [key in TFontSizes]: CSS };
 
-export const Text = styled("p", {
+export const Text = styled(DEFAULT_TAG, {
   fontWeight: "$normal",
   variants: {
     size,
@@ -26,4 +28,9 @@ export const Text = styled("p", {
   },
 });
 
-export type TTextVariants = StitchesVariants<typeof Text>;
+export interface ITextProps extends ICSSProp, ExtractVariants<typeof Text> {}
+
+export type TTextComponent = Polymorphic.ForwardRefComponent<
+  typeof DEFAULT_TAG,
+  ITextProps
+>;

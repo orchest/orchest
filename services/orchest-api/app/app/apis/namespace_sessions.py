@@ -1,10 +1,12 @@
 import time
-from typing import Dict
+from typing import Any, Dict
 
+from docker import errors
 from flask import request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc
+from sqlalchemy.orm import lazyload
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -14,7 +16,11 @@ from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, docker_client
 from app.core.sessions import InteractiveSession
 from app.errors import JupyterBuildInProgressException
-from app.utils import register_schema
+from app.utils import (
+    get_env_uuids_to_docker_id_mappings,
+    lock_environment_images_for_session,
+    register_schema,
+)
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)
@@ -43,27 +49,21 @@ class SessionList(Resource):
         return {"sessions": [session.as_dict() for session in sessions]}, 200
 
     @api.doc("launch_session")
-    @api.expect(schema.pipeline_spec)
+    @api.expect(schema.session_config)
     def post(self):
         """Launches an interactive session."""
-        post_data = request.get_json()
+        session_config = request.get_json()
 
         isess = models.InteractiveSession.query.filter_by(
-            project_uuid=post_data["project_uuid"],
-            pipeline_uuid=post_data["pipeline_uuid"],
+            project_uuid=session_config["project_uuid"],
+            pipeline_uuid=session_config["pipeline_uuid"],
         ).one_or_none()
         if isess is not None:
             return {"message": "Session already exists."}, 409
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                CreateInteractiveSession(tpe).transaction(
-                    post_data["project_uuid"],
-                    post_data["pipeline_uuid"],
-                    post_data["pipeline_path"],
-                    post_data["project_dir"],
-                    post_data["host_userdir"],
-                )
+                CreateInteractiveSession(tpe).transaction(session_config)
         except JupyterBuildInProgressException:
             return {"message": "JupyterBuildInProgress"}, 423
         except Exception as e:
@@ -71,8 +71,8 @@ class SessionList(Resource):
             return {"message": str(e)}, 500
 
         isess = models.InteractiveSession.query.filter_by(
-            project_uuid=post_data["project_uuid"],
-            pipeline_uuid=post_data["pipeline_uuid"],
+            project_uuid=session_config["project_uuid"],
+            pipeline_uuid=session_config["pipeline_uuid"],
         ).one_or_none()
 
         # Can't rely on the 2PE raising an exception because the
@@ -144,14 +144,8 @@ class Session(Resource):
 
 
 class CreateInteractiveSession(TwoPhaseFunction):
-    def _transaction(
-        self,
-        project_uuid: str,
-        pipeline_uuid: str,
-        pipeline_path: str,
-        project_dir: str,
-        host_userdir: str,
-    ):
+    def _transaction(self, session_config: Dict[str, Any]):
+
         # Gate check to see if there is a Jupyter lab build active
         latest_jupyter_build = models.JupyterBuild.query.order_by(
             desc(models.JupyterBuild.requested_time)
@@ -163,41 +157,70 @@ class CreateInteractiveSession(TwoPhaseFunction):
         ]:
             raise JupyterBuildInProgressException()
 
+        # Make sure the service environments are there. This piece of
+        # code needs to be there to reject a session post if the
+        # referenced environments aren't there, since this is something
+        # the background task that is launching the session cannot do.
+        env_as_services = set()
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+        for service in session_config.get("services", {}).values():
+            img = service["image"]
+            if img.startswith(prefix):
+                env_as_services.add(img.replace(prefix, ""))
+        try:
+            get_env_uuids_to_docker_id_mappings(
+                session_config["project_uuid"], env_as_services
+            )
+        except errors.ImageNotFound as e:
+            raise errors.ImageNotFound(
+                "Pipeline services were referencing environments for "
+                f"which an image does not exist, {e}."
+            )
+
         interactive_session = {
-            "project_uuid": project_uuid,
-            "pipeline_uuid": pipeline_uuid,
+            "project_uuid": session_config["project_uuid"],
+            "pipeline_uuid": session_config["pipeline_uuid"],
             "status": "LAUNCHING",
+            # NOTE: the definition of a service is currently
+            # persisted to disk and considered to be versioned,
+            # meaning that nothing in there is considered to be
+            # secret. If this changes, this dictionary needs to
+            # have secrets removed.
+            "user_services": session_config.get("services", {}),
         }
         db.session.add(models.InteractiveSession(**interactive_session))
 
-        self.collateral_kwargs["project_uuid"] = project_uuid
-        self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
-        self.collateral_kwargs["pipeline_path"] = pipeline_path
-        self.collateral_kwargs["project_dir"] = project_dir
-        self.collateral_kwargs["host_userdir"] = host_userdir
+        self.collateral_kwargs["session_config"] = session_config
 
     @classmethod
-    def _background_session_start(
-        cls,
-        app,
-        project_uuid: str,
-        pipeline_uuid: str,
-        pipeline_path: str,
-        project_dir: str,
-        host_userdir: str,
-    ):
+    def _background_session_start(cls, app, session_config: Dict[str, Any]):
 
         with app.app_context():
             try:
+                project_uuid = session_config["project_uuid"]
+                pipeline_uuid = session_config["pipeline_uuid"]
+
+                env_as_services = set()
+                prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+                for service in session_config.get("services", {}).values():
+                    img = service["image"]
+                    if img.startswith(prefix):
+                        env_as_services.add(img.replace(prefix, ""))
+
+                # Lock the orchest environment images that are used
+                # as services.
+                env_uuid_docker_id_mappings = lock_environment_images_for_session(
+                    project_uuid, pipeline_uuid, env_as_services
+                )
+                session_config[
+                    "env_uuid_docker_id_mappings"
+                ] = env_uuid_docker_id_mappings
+
                 session = InteractiveSession(
                     docker_client, network=_config.DOCKER_NETWORK
                 )
                 session.launch(
-                    pipeline_uuid,
-                    project_uuid,
-                    pipeline_path,
-                    project_dir,
-                    host_userdir,
+                    session_config,
                 )
 
                 # Update the database entry with information to connect
@@ -207,7 +230,11 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 # with for update to avoid overwriting the state of a
                 # STOPPING instance.
                 session_entry = (
-                    models.InteractiveSession.query.with_for_update()
+                    models.InteractiveSession.query
+                    # The lazyload is because you can't lock for update
+                    # such a relationship (nullable FK).
+                    .options(lazyload(models.InteractiveSession.image_mappings))
+                    .with_for_update()
                     .populate_existing()
                     .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
                     .one_or_none()
@@ -227,6 +254,16 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 db.session.commit()
             except Exception as e:
                 current_app.logger.error(e)
+
+                # Avoid cases where "current transaction is aborted,
+                # commands ignored until end of transaction block".
+                db.session.commit()
+
+                # Attempt containers cleanup.
+                try:
+                    session.shutdown()
+                except Exception:
+                    pass
 
                 # Error handling. If it does not succeed then the
                 # initial entry has to be removed from the database as
@@ -268,7 +305,10 @@ class StopInteractiveSession(TwoPhaseFunction):
         # would then cause the collateral effect to wait the full time
         # before shutting down the session.
         session = (
-            models.InteractiveSession.query.with_for_update()
+            models.InteractiveSession.query.options(
+                lazyload(models.InteractiveSession.image_mappings)
+            )
+            .with_for_update()
             .populate_existing()
             .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
             .one_or_none()

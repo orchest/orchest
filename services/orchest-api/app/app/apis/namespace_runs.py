@@ -299,6 +299,10 @@ class CreateInteractiveRun(TwoPhaseFunction):
         celery = make_celery(current_app)
         run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
         run_config["user_env_variables"] = env_variables
+        # For interactive runs the session uuid is equal to the pipeline
+        # uuid.
+        run_config["session_uuid"] = pipeline.properties["uuid"]
+        run_config["session_type"] = "interactive"
         celery_job_kwargs = {
             "pipeline_definition": pipeline.to_dict(),
             "project_uuid": project_uuid,

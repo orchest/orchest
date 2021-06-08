@@ -51,8 +51,8 @@ export const HeaderBar = React.forwardRef((_, ref) => {
   };
 
   return (
-    <header ref={ref}>
-      <div className="header-left">
+    <header className="header-bar" ref={ref}>
+      <div className="header-bar-left">
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -85,7 +85,7 @@ export const HeaderBar = React.forwardRef((_, ref) => {
         </div>
       )}
 
-      <div className="header-actions">
+      <div className="header-bar-actions">
         {state.pipelineName && !state.pipelineIsReadOnly && (
           <SessionToggleButton
             pipeline_uuid={state.pipeline_uuid}

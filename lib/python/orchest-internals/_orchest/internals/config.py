@@ -6,6 +6,7 @@ import os
 TEMP_DIRECTORY_PATH = "/tmp/orchest"
 TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
 PROJECT_DIR = "/project-dir"
+PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
 CLOUD = os.environ.get("CLOUD") == "true"
 
@@ -27,6 +28,10 @@ KERNELSPECS_PATH = ".orchest/kernels/{project_uuid}"
 
 # Environments
 ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
+
+# Orchest environments that are passed as services, i.e. the image will
+# be used to start a service, have a form of "environment@<env-uuid>".
+ENVIRONMENT_AS_SERVICE_PREFIX = "environment@"
 
 # Kernels
 KERNEL_NAME = "orchest-kernel-{environment_uuid}"
@@ -86,3 +91,5 @@ DOCKER_NETWORK = "orchest"
 
 # memory-server
 MEMORY_SERVER_SOCK_PATH = TEMP_DIRECTORY_PATH
+
+SIDECAR_PORT = 1111

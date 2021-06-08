@@ -181,7 +181,7 @@ class EnvironmentList extends React.Component {
           "The environment you're trying to delete (" +
             environmentName +
             ") is in use. " +
-            "Are you sure you want to delete it? This will abort all jobs/interactive runs that are using it.",
+            "Are you sure you want to delete it? This will abort all sessions and jobs/interactive runs that are using it.",
           () => {
             this._removeEnvironment(
               project_uuid,
