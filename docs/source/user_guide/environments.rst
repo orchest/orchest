@@ -34,6 +34,7 @@ Build an environment
 2. Create a new *Environment*. *Environments* are part of a single project.
 3. Choose an *Environment name*.
 4. Choose a base image. This image will be extended through your setup bash script.
+   Custom images must have USER `root` or ``sudo`` must be installed, ``find`` must also be installed.
 5. To keep environment image sizes to a minimal, each environment is tied to a specific programming
    language. Choose one of the supported languages for your environment.
 6. Go to the *BUILD* tab to install additional packages by adding their installation steps to the *Environment set-up

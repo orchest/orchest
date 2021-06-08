@@ -77,7 +77,7 @@ def build_docker_image(
                 # out of the while loop because the build needs to keep
                 # going, both for error reporting and for actually
                 # allowing the build to keep going, which would not
-                # happen if we process exits.
+                # happen if the process exits.
                 if "stream" in json_output:
                     stream = json_output["stream"]
 
