@@ -5,11 +5,11 @@ from typing import Any
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
-from config import CONFIG_CLASS
 
 from _orchest.internals import config as _config
 from app.core.docker_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
+from config import CONFIG_CLASS
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_builds_logs"
@@ -74,20 +74,42 @@ def write_environment_dockerfile(
     # of its project, e.g. a requirements.txt or other scripts.
     statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
 
+    # Permission statements.
+    ps = [
+        "chown -R :$(id -g) . > /dev/null 2>&1 ",
+        "find . -type d -exec chmod g+rwxs {} \; > /dev/null 2>&1 ",
+        "find . -type f -exec chmod g+rwx {} \; > /dev/null 2>&1 ",
+        "chmod g+rwx . > /dev/null 2>&1 ",
+    ]
+    # sudo'd permission statements.
+    sps = ["sudo " + s for s in ps]
+    ps = " && ".join(ps)
+    sps = " && ".join(sps)
+    msg = (
+        'The base image must have USER root or "sudo" must be installed, "find" '
+        "must also be installed."
+    )
+
     # Note: commands are concatenated with && because this way an
     # exit_code != 0 will bubble up and cause the docker build to fail,
     # as it should. The bash script is removed so that the user won't
     # be able to see it after the build is done.
+    rm_statement = (
+        f"&& (if [ $(id -u) = 0 ]; then rm {bash_script}; else "
+        f"sudo rm {bash_script}; fi)"
+    )
+
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
-        "&& sudo chown -R :$(id -g) . "
-        "&& sudo find . -type d -exec chmod g+rwxs {} \; "
-        "&& sudo find . -type f -exec chmod g+rwx {} \; "
-        "&& sudo chmod g+rwx . "
         f'&& echo "{flag}" '
+        # The ! in front of echo is there so that the script will fail
+        # since the statements in the "if" have failed, the echo is a
+        # way of injecting the help message.
+        f'&& ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
         f"&& bash {bash_script} "
-        f'&& echo "{flag}" '
-        f"&& sudo rm {bash_script}"
+        # Needed to inject the rm statement this way, black was
+        # introducing an error.
+        f'&& echo "{flag}" {rm_statement}'
     )
     statements.append("LABEL _orchest_env_build_is_intermediate=0")
 
