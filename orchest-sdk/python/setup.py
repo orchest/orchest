@@ -15,11 +15,11 @@ setuptools.setup(
     # Metadata to display on PyPI.
     author="Rick Lamers",
     author_email="rick@orchest.io",
-    description="SDK for data passing in Orchest",
+    description="SDK for Orchest",
     keywords="",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ricklamers/orchest-pypi",
+    url="https://github.com/orchest/orchest",
     project_urls={
         "Documentation": (
             "https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html"
