@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import uuid
 from typing import Optional
@@ -18,6 +17,7 @@ from app.utils import (
     populate_default_environments,
     project_uuid_to_path,
     remove_project_jobs_directories,
+    rmtree,
 )
 from app.views.orchest_api import api_proxy_environment_builds
 
@@ -153,18 +153,11 @@ class DeleteProject(TwoPhaseFunction):
         """Remove a project from the fs and the orchest-api"""
 
         # Delete the project directory.
-        try:
-            project_path = project_uuid_to_path(project_uuid)
-            full_project_path = os.path.join(
-                current_app.config["PROJECTS_DIR"], project_path
-            )
-            shutil.rmtree(full_project_path)
-        except FileNotFoundError:
-            # If the `full_project_path` is not found, it means that the
-            # user has already performed the deletion operation. So we
-            # need to catch and then ignore this error, otherwise the DB
-            # deletion operation will not continue.
-            pass
+        project_path = project_uuid_to_path(project_uuid)
+        full_project_path = os.path.join(
+            current_app.config["PROJECTS_DIR"], project_path
+        )
+        rmtree(full_project_path)
 
         # Remove jobs directories related to project.
         remove_project_jobs_directories(project_uuid)

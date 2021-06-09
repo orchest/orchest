@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 import re
-import shutil
+import subprocess
 import uuid
 from urllib.parse import unquote
 
@@ -248,7 +248,7 @@ def delete_environment(app, project_uuid, environment_uuid):
     app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
     environment_dir = get_environment_directory(environment_uuid, project_uuid)
-    shutil.rmtree(environment_dir)
+    rmtree(environment_dir)
 
 
 def populate_default_environments(project_uuid):
@@ -348,7 +348,7 @@ def clear_folder(folder):
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     os.unlink(file_path)
                 elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
+                    rmtree(file_path)
             except Exception as e:
                 current_app.logger.error(
                     "Failed to delete %s. Reason: %s" % (file_path, e)
@@ -358,13 +358,8 @@ def clear_folder(folder):
 
 
 def remove_dir_if_empty(path):
-    try:
-        if os.path.isdir(path) and not any(True for _ in os.scandir(path)):
-            shutil.rmtree(path, ignore_errors=True)
-    except FileNotFoundError as e:
-        current_app.logger.error(
-            "Failed to remove directory %s. Error: %s [%s]" % (path, e, type(e))
-        )
+    if os.path.isdir(path) and not any(True for _ in os.scandir(path)):
+        rmtree(path, ignore_errors=True)
 
 
 def pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid=None):
@@ -517,20 +512,6 @@ def write_config(app, key, value):
 
 
 def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
-    def ignore_patterns(path, fnames):
-        """
-            Example:
-                path, fnames = \
-                'docker/catching-error/testing', \
-                ['hello.txt', 'some-dir']
-            """
-        # Ignore the ".orchest/pipelines" directory containing the
-        # logs and data directories.
-        if path.endswith(".orchest"):
-            return ["pipelines"]
-
-        # Ignore nothing.
-        return []
 
     snapshot_path = os.path.join(
         get_job_directory(pipeline_uuid, project_uuid, job_uuid),
@@ -543,7 +524,43 @@ def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
         current_app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
     )
 
-    shutil.copytree(project_dir, snapshot_path, ignore=ignore_patterns)
+    copytree(project_dir, snapshot_path)
+    # Ignore the ".orchest/pipelines" directory containing the logs and
+    # data directories. Ignore errors because the directory might not be
+    # there.
+    rmtree(os.path.join(snapshot_path, ".orchest/pipelines"), ignore_errors=True)
+
+
+def rmtree(path, ignore_errors=False):
+    """A wrapped rm -rf.
+
+    If eventlet is being used and it's either patching all modules or
+    patchng subprocess, this function is not going to block the thread.
+
+    Raises:
+        OSError if it failed to copy.
+
+    """
+    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
+    if exit_code != 0 and not ignore_errors:
+        raise OSError(f"Failed to rm {path}: {exit_code}.")
+
+
+def copytree(source: str, target: str):
+    """A wrapped cp -r.
+
+    If eventlet is being used and it's either patching all modules or
+    patchng subprocess, this function is not going to block the thread.
+
+    Raises:
+        OSError if it failed to copy.
+
+    """
+    exit_code = subprocess.call(
+        f"cp -r {source} {target}", stderr=subprocess.STDOUT, shell=True
+    )
+    if exit_code != 0:
+        raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
 
 
 def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
@@ -555,7 +572,7 @@ def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
     job_path = os.path.join(job_pipeline_path, job_uuid)
 
     if os.path.isdir(job_path):
-        shutil.rmtree(job_path, ignore_errors=True)
+        rmtree(job_path, ignore_errors=True)
 
     # Clean up parent directory if this job removal created empty
     # directories.
@@ -570,7 +587,7 @@ def remove_project_jobs_directories(project_uuid):
     )
 
     if os.path.isdir(project_jobs_path):
-        shutil.rmtree(project_jobs_path, ignore_errors=True)
+        rmtree(project_jobs_path, ignore_errors=True)
 
 
 def get_ipynb_template(language: str):
