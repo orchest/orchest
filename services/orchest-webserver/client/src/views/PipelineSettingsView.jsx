@@ -340,7 +340,7 @@ class PipelineSettingsView extends React.Component {
             unsavedChanges: false,
           });
         } else {
-          console.error("Could not save pipeline.json");
+          console.error("Could not save: pipeline definition OR Notebook JSON");
           console.error(result);
         }
       })
