@@ -1,5 +1,20 @@
+// @ts-check
 import React from "react";
-import PipelineView from "./PipelineView";
+import { Controlled as CodeMirror } from "react-codemirror2";
+import _ from "lodash";
+import "codemirror/mode/javascript/javascript";
+import {
+  css,
+  Box,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Flex,
+  IconServicesSolid,
+} from "@orchest/design-system";
 import {
   makeRequest,
   PromiseManager,
@@ -11,97 +26,216 @@ import {
   MDCTextFieldReact,
   MDCCheckboxReact,
   MDCTabBarReact,
+  MDCDataTableReact,
   MDCLinearProgressReact,
+  MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
+import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
   updateGlobalUnsavedChanges,
-} from "../utils/webserver-utils";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import EnvVarList from "../components/EnvVarList";
-import "codemirror/mode/javascript/javascript";
+} from "@/utils/webserver-utils";
+import EnvVarList from "@/components/EnvVarList";
+import ServiceForm from "@/components/ServiceForm";
+import PipelineView from "./PipelineView";
+import { servicesTemplates } from "@/utils/service-templates";
 
-class PipelineSettingsView extends React.Component {
-  static contextType = OrchestContext;
+// we'll extract this into the design-system later
+const createServiceButton = css({
+  appearance: "none",
+  display: "inline-flex",
+  backgroundColor: "$background",
+  border: "1px solid $gray300",
+  borderRadius: "$sm",
+  width: "100%",
+  padding: "$3",
+  transition: "0.2s ease",
+  textAlign: "left",
+  "&:hover&:not(:disabled)": {
+    backgroundColor: "$gray100",
+  },
+  "> *:first-child": {
+    flexShrink: 0,
+    color: "$gray600",
+    marginRight: "$3",
+  },
+});
 
-  constructor(props, context) {
-    super(props, context);
+const PipelineSettingsView = (props) => {
+  const orchest = window.orchest;
 
-    this.state = {
-      selectedTabIndex: 0,
-      inputParameters: JSON.stringify({}, null, 2),
-      restartingMemoryServer: false,
-      unsavedChanges: false,
-      pipeline_path: undefined,
-      dataPassingMemorySize: "1GB",
+  const { dispatch, get } = useOrchest();
+
+  const session = get.session(props.queryArgs);
+
+  const [state, setState] = React.useState({
+    selectedTabIndex: 0,
+    inputParameters: JSON.stringify({}, null, 2),
+    restartingMemoryServer: false,
+    unsavedChanges: false,
+    pipeline_path: undefined,
+    dataPassingMemorySize: "1GB",
+    pipelineJson: undefined,
+    envVariables: [],
+    projectEnvVariables: [],
+    servicesChanged: false,
+  });
+
+  if (!session && !state.unsavedChanges && state.servicesChanged) {
+    setState((prevState) => ({
+      ...prevState,
+      servicesChanged: false,
+    }));
+  }
+
+  const [
+    isServiceCreateDialogOpen,
+    setIsServiceCreateDialogOpen,
+  ] = React.useState(false);
+
+  const overflowListener = new OverflowListener();
+  const promiseManager = new PromiseManager();
+  const refManager = new RefManager();
+
+  const init = () => {
+    fetchPipeline();
+    fetchPipelineMetadata();
+    attachResizeListener();
+  };
+
+  const handleInitialTab = () => {
+    const tabMapping = {
+      configuration: 0,
+      "environment-variables": 1,
+      services: 2,
     };
 
-    this.overflowListener = new OverflowListener();
-    this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
-  }
+    if (props.queryArgs.initial_tab) {
+      setState((prevProps) => ({
+        ...prevProps,
+        selectedTabIndex: tabMapping[props.queryArgs.initial_tab],
+      }));
+    }
+  };
 
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-  }
+  React.useEffect(() => {
+    init();
+    handleInitialTab();
+    return () => promiseManager.cancelCancelablePromises();
+  }, []);
 
-  setHeaderComponent(pipelineName) {
-    this.context.dispatch({
+  React.useEffect(() => {
+    init();
+  }, [props.queryArgs]);
+
+  const setHeaderComponent = (pipelineName) =>
+    dispatch({
       type: "pipelineSet",
       payload: {
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        project_uuid: this.props.queryArgs.project_uuid,
+        pipeline_uuid: props.queryArgs.pipeline_uuid,
+        project_uuid: props.queryArgs.project_uuid,
         pipelineName: pipelineName,
       },
     });
-  }
 
-  init() {
-    this.fetchPipeline();
-    this.fetchPipelineMetadata();
-    this.attachResizeListener();
-  }
-
-  componentDidMount() {
-    this.init();
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      this.props.queryArgs.pipeline_uuid != prevProps.queryArgs.pipeline_uuid ||
-      this.props.queryArgs.project_uuid != prevProps.queryArgs.project_uuid
-    ) {
-      this.init();
+  const getOrderValue = () => {
+    const lsKey = "_monotonic_getOrderValue";
+    // returns monotinically increasing digit
+    if (!window.localStorage.getItem(lsKey)) {
+      window.localStorage.setItem(lsKey, "0");
     }
-  }
+    let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
+    window.localStorage.setItem(lsKey, value + "");
+    return value;
+  };
 
-  attachResizeListener() {
-    this.overflowListener.attach();
-  }
+  const addServiceFromTemplate = (service) => {
+    let clonedService = _.cloneDeep(service);
 
-  onSelectSubview(index) {
-    this.setState({
+    // Take care of service name collisions
+    let x = 1;
+    let baseServiceName = clonedService.name;
+    while (x < 100) {
+      if (state.pipelineJson.services[clonedService.name] == undefined) {
+        break;
+      }
+      clonedService.name = baseServiceName + x;
+      x++;
+    }
+
+    onChangeService(clonedService);
+  };
+
+  const onChangeService = (service) => {
+    let pipelineJson = _.cloneDeep(state.pipelineJson);
+    pipelineJson.services[service.name] = service;
+
+    // Maintain client side order key
+    if (service.order === undefined) {
+      service.order = getOrderValue();
+    }
+
+    setState((prevState) => ({
+      ...prevState,
+      unsavedChanges: true,
+      servicesChanged: true,
+      pipelineJson: pipelineJson,
+    }));
+  };
+
+  const nameChangeService = (oldName, newName) => {
+    let pipelineJson = _.cloneDeep(state.pipelineJson);
+    let service = pipelineJson.services[oldName];
+    service.name = newName;
+    pipelineJson.services[newName] = service;
+    delete pipelineJson.services[oldName];
+
+    setState((prevState) => ({
+      ...prevState,
+      unsavedChanges: true,
+      servicesChanged: true,
+      pipelineJson: pipelineJson,
+    }));
+  };
+
+  const deleteService = (serviceName) => {
+    let pipelineJson = _.cloneDeep(state.pipelineJson);
+    delete pipelineJson.services[serviceName];
+
+    setState((prevState) => ({
+      ...prevState,
+      unsavedChanges: true,
+      servicesChanged: true,
+      pipelineJson: pipelineJson,
+    }));
+  };
+
+  const attachResizeListener = () => overflowListener.attach();
+
+  const onSelectSubview = (index) => {
+    setState((prevState) => ({
+      ...prevState,
       selectedTabIndex: index,
-    });
-  }
+    }));
+  };
 
-  fetchPipeline() {
+  const fetchPipeline = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      this.props.queryArgs.pipeline_uuid,
-      this.props.queryArgs.project_uuid,
-      this.props.queryArgs.job_uuid,
-      this.props.queryArgs.run_uuid
+      props.queryArgs.pipeline_uuid,
+      props.queryArgs.project_uuid,
+      props.queryArgs.job_uuid,
+      props.queryArgs.run_uuid
     );
 
     let pipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
-      this.promiseManager
+      promiseManager
     );
 
+    // @ts-ignore
     pipelinePromise.promise.then((response) => {
       let result = JSON.parse(response);
 
@@ -109,72 +243,82 @@ class PipelineSettingsView extends React.Component {
         let pipelineJson = JSON.parse(result["pipeline_json"]);
 
         // as settings are optional, populate defaults if no values exist
-        if (pipelineJson.settings === undefined) {
+        if (pipelineJson?.settings === undefined) {
           pipelineJson.settings = {};
         }
-        if (pipelineJson.settings.auto_eviction === undefined) {
+        if (pipelineJson?.settings.auto_eviction === undefined) {
           pipelineJson.settings.auto_eviction = false;
         }
-        if (pipelineJson.settings.data_passing_memory_size === undefined) {
-          pipelineJson.settings.data_passing_memory_size = this.state.dataPassingMemorySize;
+        if (pipelineJson?.settings.data_passing_memory_size === undefined) {
+          pipelineJson.settings.data_passing_memory_size =
+            state.dataPassingMemorySize;
+        }
+        if (pipelineJson?.parameters === undefined) {
+          pipelineJson.parameters = {};
+        }
+        if (pipelineJson?.services === undefined) {
+          pipelineJson.services = {};
         }
 
-        this.state.inputParameters = JSON.stringify(
-          pipelineJson.parameters,
-          null,
-          2
-        );
+        // Augment services with order key
+        for (let service in pipelineJson.services) {
+          pipelineJson.services[service].order = getOrderValue();
+        }
 
-        this.setHeaderComponent(pipelineJson.name);
-        this.setState({
+        setHeaderComponent(pipelineJson?.name);
+        setState((prevState) => ({
+          ...prevState,
+          inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
           pipelineJson: pipelineJson,
-          dataPassingMemorySize: pipelineJson.settings.data_passing_memory_size,
-        });
+          dataPassingMemorySize:
+            pipelineJson?.settings.data_passing_memory_size,
+        }));
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
       }
     });
-  }
+  };
 
-  fetchPipelineMetadata() {
-    if (!this.props.queryArgs.job_uuid) {
+  const fetchPipelineMetadata = () => {
+    if (!props.queryArgs.job_uuid) {
       // get pipeline path
       let cancelableRequest = makeCancelable(
         makeRequest(
           "GET",
-          `/async/pipelines/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
+          `/async/pipelines/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
         ),
-        this.promiseManager
+        promiseManager
       );
 
+      // @ts-ignore
       cancelableRequest.promise.then((response) => {
         let pipeline = JSON.parse(response);
 
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           pipeline_path: pipeline.path,
           envVariables: envVariablesDictToArray(pipeline["env_variables"]),
-        });
+        }));
       });
 
       // get project environment variables
       let cancelableProjectRequest = makeCancelable(
-        makeRequest(
-          "GET",
-          `/async/projects/${this.props.queryArgs.project_uuid}`
-        ),
-        this.promiseManager
+        makeRequest("GET", `/async/projects/${props.queryArgs.project_uuid}`),
+        promiseManager
       );
 
+      // @ts-ignore
       cancelableProjectRequest.promise
         .then((response) => {
           let project = JSON.parse(response);
 
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             projectEnvVariables: envVariablesDictToArray(
               project["env_variables"]
             ),
-          });
+          }));
         })
         .catch((error) => {
           console.error(error);
@@ -183,174 +327,224 @@ class PipelineSettingsView extends React.Component {
       let cancelableJobPromise = makeCancelable(
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}`
+          `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}`
         ),
-        this.promiseManager
+        promiseManager
       );
       let cancelableRunPromise = makeCancelable(
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/jobs/${this.props.queryArgs.job_uuid}/${this.props.queryArgs.run_uuid}`
+          `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}/${props.queryArgs.run_uuid}`
         ),
-        this.promiseManager
+        promiseManager
       );
 
       Promise.all([
+        // @ts-ignore
         cancelableJobPromise.promise.then((response) => {
           let job = JSON.parse(response);
           return job.pipeline_run_spec.run_config.pipeline_path;
         }),
+        // @ts-ignore
         cancelableRunPromise.promise.then((response) => {
           let run = JSON.parse(response);
           return envVariablesDictToArray(run["env_variables"]);
         }),
       ]).then((values) => {
         let [pipeline_path, envVariables] = values;
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           pipeline_path: pipeline_path,
           envVariables: envVariables,
-        });
+        }));
       });
     }
-  }
+  };
 
-  closeSettings() {
+  const closeSettings = () =>
     orchest.loadView(PipelineView, {
       queryArgs: {
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        project_uuid: this.props.queryArgs.project_uuid,
-        read_only: this.props.queryArgs.read_only,
-        job_uuid: this.props.queryArgs.job_uuid,
-        run_uuid: this.props.queryArgs.run_uuid,
+        pipeline_uuid: props.queryArgs.pipeline_uuid,
+        project_uuid: props.queryArgs.project_uuid,
+        read_only: props.queryArgs.read_only,
+        job_uuid: props.queryArgs.job_uuid,
+        run_uuid: props.queryArgs.run_uuid,
       },
     });
-  }
 
-  onChangeName(value) {
-    this.state.pipelineJson.name = value;
-    this.setState({
+  const onChangeName = (value) =>
+    setState((prevState) => ({
+      ...prevState,
       unsavedChanges: true,
-    });
-  }
+      pipelineJson: {
+        ...prevState.pipelineJson,
+        name: value,
+      },
+    }));
 
-  onChangePipelineParameters(editor, data, value) {
-    this.state.inputParameters = value;
-    this.setState({
-      inputParamaters: value,
-    });
+  const onChangePipelineParameters = (editor, data, value) => {
+    setState((prevState) => ({
+      ...prevState,
+      inputParameters: value,
+    }));
 
     try {
-      this.state.pipelineJson.parameters = JSON.parse(value);
-      this.setState({
+      const parametersJSON = JSON.parse(value);
+
+      setState((prevState) => ({
+        ...prevState,
         unsavedChanges: true,
-      });
+        parameters: parametersJSON,
+      }));
     } catch (err) {
       // console.log("JSON did not parse")
     }
-  }
+  };
 
-  isValidMemorySize(value) {
-    return value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
-  }
+  const isValidMemorySize = (value) =>
+    value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
 
-  onChangeDataPassingMemorySize(value) {
-    this.state.dataPassingMemorySize = value;
-    this.setState({
+  const onChangeDataPassingMemorySize = (value) => {
+    setState((prevState) => ({
+      ...prevState,
       dataPassingMemorySize: value,
-    });
+    }));
 
-    if (this.isValidMemorySize(value)) {
-      this.state.pipelineJson.settings.data_passing_memory_size = value;
-
-      this.setState({
-        pipelineJson: this.state.pipelineJson,
+    if (isValidMemorySize(value)) {
+      setState((prevState) => ({
+        ...prevState,
         unsavedChanges: true,
-      });
-    }
-  }
-
-  onChangeEviction(value) {
-    // create settings object if it doesn't exist
-    if (!this.state.pipelineJson.settings) {
-      this.state.pipelineJson.settings = {};
-    }
-
-    this.state.pipelineJson.settings.auto_eviction = value;
-    this.setState({
-      unsavedChanges: true,
-    });
-  }
-
-  addEnvVariablePair(e) {
-    e.preventDefault();
-
-    const envVariables = this.state.envVariables.slice();
-    this.setState({
-      envVariables: envVariables.concat([
-        {
-          name: null,
-          value: null,
+        pipelineJson: {
+          ...prevState.pipelineJson,
+          settings: {
+            ...prevState.pipelineJson?.settings,
+            data_passing_memory_size: value,
+          },
         },
-      ]),
-    });
-  }
+      }));
+    }
+  };
 
-  onEnvVariablesChange(value, idx, type) {
-    const envVariables = this.state.envVariables.slice();
-    envVariables[idx][type] = value;
+  const onChangeEviction = (value) => {
+    // create settings object if it doesn't exist
+    if (!state.pipelineJson?.settings) {
+      setState((prevState) => ({
+        ...prevState,
+        pipelineJson: {
+          ...prevState.pipelineJson,
+          settings: {},
+        },
+      }));
+    }
 
-    this.setState({
-      envVariables: envVariables,
-      unsavedChanges: true,
-    });
-  }
+    setState((prevState) => ({
+      ...prevState,
+      pipelineJson: {
+        ...prevState.pipelineJson,
+        settings: {
+          ...prevState.pipelineJson?.settings,
+          auto_eviction: value,
+        },
+        unsavedChanges: true,
+      },
+    }));
+  };
 
-  onEnvVariablesDeletion(idx) {
-    const envVariables = this.state.envVariables.slice();
-    envVariables.splice(idx, 1);
-    this.setState({
-      envVariables: envVariables,
-      unsavedChanges: true,
-    });
-  }
-
-  saveGeneralForm(e) {
+  const addEnvVariablePair = (e) => {
     e.preventDefault();
 
-    let envVariables = envVariablesArrayToDict(this.state.envVariables);
+    setState((prevState) => {
+      const envVariables = prevState.envVariables.slice();
+
+      return {
+        ...prevState,
+        envVariables: envVariables.concat([
+          {
+            name: null,
+            value: null,
+          },
+        ]),
+      };
+    });
+  };
+
+  const onEnvVariablesChange = (value, idx, type) => {
+    setState((prevState) => {
+      const envVariables = prevState.envVariables.slice();
+      envVariables[idx][type] = value;
+
+      return { ...prevState, envVariables, unsavedChanges: true };
+    });
+  };
+
+  const onEnvVariablesDeletion = (idx) => {
+    setState((prevState) => {
+      const envVariables = prevState.envVariables.slice();
+      envVariables.splice(idx, 1);
+
+      return { ...prevState, envVariables, unsavedChanges: true };
+    });
+  };
+
+  const cleanPipelineJson = (pipelineJson) => {
+    let pipelineCopy = _.cloneDeep(pipelineJson);
+    for (let serviceName in pipelineCopy.services) {
+      delete pipelineCopy.services[serviceName].order;
+    }
+    return pipelineCopy;
+  };
+
+  const saveGeneralForm = (e) => {
+    e.preventDefault();
+
+    // Remove order property from services
+    let pipelineJson = cleanPipelineJson(state.pipelineJson);
+
+    let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
     if (envVariables === undefined) {
-      this.onSelectSubview(1);
+      onSelectSubview(1);
       return;
     }
 
     let formData = new FormData();
-    formData.append("pipeline_json", JSON.stringify(this.state.pipelineJson));
+    formData.append("pipeline_json", JSON.stringify(pipelineJson));
 
-    // perform POST to save
     makeRequest(
       "POST",
-      `/async/pipelines/json/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
+      `/async/pipelines/json/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`,
       { type: "FormData", content: formData }
     )
-      .then((response) => {
-        let result = JSON.parse(response);
-        if (result.success) {
-          this.setState({
-            unsavedChanges: false,
-          });
-        } else {
-          console.error("Could not save: pipeline definition OR Notebook JSON");
-          console.error(result);
+      .then(
+        /** @param {string} response */
+        (response) => {
+          let result = JSON.parse(response);
+          if (result.success) {
+            setState((prevState) => ({
+              ...prevState,
+              unsavedChanges: false,
+            }));
+
+            // Sync name changes with the global context
+            dispatch({
+              type: "pipelineSet",
+              payload: {
+                pipelineName: pipelineJson?.name,
+              },
+            });
+          } else {
+            console.error("Could not save: pipeline definition OR Notebook JSON");
+            console.error(result);
+          }
         }
-      })
+      )
       .catch((response) => {
         console.error(response);
       });
 
     makeRequest(
       "PUT",
-      `/async/pipelines/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`,
+      `/async/pipelines/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`,
       {
         type: "json",
         content: { env_variables: envVariables },
@@ -358,28 +552,31 @@ class PipelineSettingsView extends React.Component {
     ).catch((response) => {
       console.error(response);
     });
-  }
+  };
 
-  restartMemoryServer() {
-    if (!this.state.restartingMemoryServer) {
-      this.setState({
+  const restartMemoryServer = () => {
+    if (!state.restartingMemoryServer) {
+      setState((prevState) => ({
+        ...prevState,
         restartingMemoryServer: true,
-      });
+      }));
 
       // perform POST to save
       let restartPromise = makeCancelable(
         makeRequest(
           "PUT",
-          `/catch/api-proxy/api/sessions/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}`
+          `/catch/api-proxy/api/sessions/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
         ),
-        this.promiseManager
+        promiseManager
       );
 
+      // @ts-ignore
       restartPromise.promise
         .then(() => {
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             restartingMemoryServer: false,
-          });
+          }));
         })
         .catch((response) => {
           if (!response.isCanceled) {
@@ -396,9 +593,10 @@ class PipelineSettingsView extends React.Component {
             }
             orchest.alert("Error", errorMessage);
 
-            this.setState({
+            setState((prevState) => ({
+              ...prevState,
               restartingMemoryServer: false,
-            });
+            }));
           }
         });
     } else {
@@ -406,289 +604,402 @@ class PipelineSettingsView extends React.Component {
         "Already busy restarting memory server. UI should prohibit this call."
       );
     }
-  }
+  };
 
-  render() {
-    let rootView = undefined;
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
+  updateGlobalUnsavedChanges(state.unsavedChanges);
 
-    if (
-      this.state.pipelineJson &&
-      this.state.envVariables &&
-      (this.props.queryArgs.read_only === "true" ||
-        this.state.projectEnvVariables)
-    ) {
-      let tabView = undefined;
+  const sortService = (serviceA, serviceB) => serviceA.order - serviceB.order;
 
-      switch (this.state.selectedTabIndex) {
-        case 0:
-          tabView = (
-            <div className="pipeline-settings">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                }}
-              >
-                <div className="columns">
-                  <div className="column">
-                    <h3>Name</h3>
-                  </div>
-                  <div className="column">
-                    <MDCTextFieldReact
-                      ref={this.refManager.nrefs.pipelineNameTextField}
-                      value={this.state.pipelineJson.name}
-                      onChange={this.onChangeName.bind(this)}
-                      label="Pipeline name"
-                      disabled={this.props.queryArgs.read_only === "true"}
-                      classNames={["push-down"]}
-                    />
-                  </div>
-                  <div className="clear"></div>
-                </div>
+  return (
+    <OrchestSessionsConsumer>
+      <div className="view-page pipeline-settings-view">
+        {state.pipelineJson &&
+        state.envVariables &&
+        (props.queryArgs.read_only === "true" || state.projectEnvVariables) ? (
+          <div className="pipeline-settings">
+            <h2>Pipeline settings</h2>
 
-                <div className="columns">
-                  <div className="column">
-                    <h3>Path</h3>
-                  </div>
-                  <div className="column">
-                    {this.state.pipeline_path && (
-                      <p className="push-down">
-                        <span className="code">{this.state.pipeline_path}</span>
-                      </p>
-                    )}
-                  </div>
-                  <div className="clear"></div>
-                </div>
+            <div className="push-down">
+              <MDCTabBarReact
+                selectedIndex={state.selectedTabIndex}
+                ref={
+                  // @ts-ignore
+                  refManager.nrefs.tabBar
+                }
+                items={["Configuration", "Environment variables", "Services"]}
+                icons={["list", "view_comfy", "miscellaneous_services"]}
+                onChange={onSelectSubview.bind(this)}
+              />
+            </div>
 
-                <div className="columns">
-                  <div className="column">
-                    <h3>Pipeline parameters</h3>
-                  </div>
-                  <div className="column">
-                    <CodeMirror
-                      value={this.state.inputParameters}
-                      options={{
-                        mode: "application/json",
-                        theme: "jupyter",
-                        lineNumbers: true,
-                        readOnly: this.props.queryArgs.read_only === "true",
-                      }}
-                      onBeforeChange={this.onChangePipelineParameters.bind(
-                        this
-                      )}
-                    />
-                    {(() => {
-                      try {
-                        JSON.parse(this.state.inputParameters);
-                      } catch {
-                        return (
-                          <div className="warning push-up push-down">
-                            <i className="material-icons">warning</i> Your input
-                            is not valid JSON.
+            <div className="tab-view trigger-overflow">
+              {
+                {
+                  0: (
+                    <div className="configuration">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                        }}
+                      >
+                        <div className="columns">
+                          <div className="column">
+                            <h3>Name</h3>
                           </div>
-                        );
-                      }
-                    })()}
-                  </div>
-                  <div className="clear"></div>
-                </div>
-
-                <div className="columns">
-                  <div className="column">
-                    <h3>Data passing</h3>
-                  </div>
-                  <div className="column">
-                    {this.props.queryArgs.read_only !== "true" && (
-                      <p className="push-up">
-                        <i>
-                          For these changes to take effect you have to restart
-                          the memory-server (see button below).
-                        </i>
-                      </p>
-                    )}
-
-                    <MDCCheckboxReact
-                      value={this.state.pipelineJson.settings.auto_eviction}
-                      onChange={this.onChangeEviction.bind(this)}
-                      label="Automatic memory eviction"
-                      disabled={this.props.queryArgs.read_only === "true"}
-                      classNames={["push-down", "push-up"]}
-                    />
-
-                    {this.props.queryArgs.read_only !== "true" && (
-                      <p className="push-down">
-                        Change the size of the memory server for data passing.
-                        For units use KB, MB, or GB, e.g.{" "}
-                        <span className="code">1GB</span>.{" "}
-                      </p>
-                    )}
-
-                    <div>
-                      <MDCTextFieldReact
-                        ref={
-                          this.refManager.nrefs
-                            .pipelineSettingDataPassingMemorySizeTextField
-                        }
-                        value={this.state.dataPassingMemorySize}
-                        onChange={this.onChangeDataPassingMemorySize.bind(this)}
-                        label="Data passing memory size"
-                        disabled={this.props.queryArgs.read_only === "true"}
-                      />
-                    </div>
-                    {(() => {
-                      if (
-                        !this.isValidMemorySize(
-                          this.state.dataPassingMemorySize
-                        )
-                      ) {
-                        return (
-                          <div className="warning push-up">
-                            <i className="material-icons">warning</i> Not a
-                            valid memory size.
+                          <div className="column">
+                            <MDCTextFieldReact
+                              value={state.pipelineJson?.name}
+                              onChange={onChangeName.bind(this)}
+                              label="Pipeline name"
+                              disabled={props.queryArgs.read_only === "true"}
+                              classNames={["push-down"]}
+                            />
                           </div>
-                        );
-                      }
-                    })()}
-                  </div>
-                  <div className="clear"></div>
-                </div>
-              </form>
+                          <div className="clear"></div>
+                        </div>
 
-              {this.props.queryArgs.read_only !== "true" && (
-                <div className="columns">
-                  <div className="column">
-                    <h3>Actions</h3>
-                  </div>
-                  <div className="column">
-                    <p className="push-down">
-                      Restarting the memory-server also clears the memory to
-                      allow additional data to be passed between pipeline steps.
-                    </p>
-                    <div className="push-down">
-                      {(() => {
-                        if (this.state.restartingMemoryServer) {
-                          return (
-                            <p className="push-p push-down">
-                              Restarting in progress...
+                        <div className="columns">
+                          <div className="column">
+                            <h3>Path</h3>
+                          </div>
+                          <div className="column">
+                            {state.pipeline_path && (
+                              <p className="push-down">
+                                <span className="code">
+                                  {state.pipeline_path}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                          <div className="clear"></div>
+                        </div>
+
+                        <div className="columns">
+                          <div className="column">
+                            <h3>Pipeline parameters</h3>
+                          </div>
+                          <div className="column">
+                            <CodeMirror
+                              value={state.inputParameters}
+                              options={{
+                                mode: "application/json",
+                                theme: "jupyter",
+                                lineNumbers: true,
+                                readOnly: props.queryArgs.read_only === "true",
+                              }}
+                              onBeforeChange={onChangePipelineParameters.bind(
+                                this
+                              )}
+                            />
+                            {(() => {
+                              try {
+                                JSON.parse(state.inputParameters);
+                              } catch {
+                                return (
+                                  <div className="warning push-up push-down">
+                                    <i className="material-icons">warning</i>{" "}
+                                    Your input is not valid JSON.
+                                  </div>
+                                );
+                              }
+                            })()}
+                          </div>
+                          <div className="clear"></div>
+                        </div>
+
+                        <div className="columns">
+                          <div className="column">
+                            <h3>Data passing</h3>
+                          </div>
+                          <div className="column">
+                            {props.queryArgs.read_only !== "true" && (
+                              <p className="push-up">
+                                <i>
+                                  For these changes to take effect you have to
+                                  restart the memory-server (see button below).
+                                </i>
+                              </p>
+                            )}
+
+                            <MDCCheckboxReact
+                              value={
+                                state.pipelineJson?.settings?.auto_eviction
+                              }
+                              onChange={onChangeEviction.bind(this)}
+                              label="Automatic memory eviction"
+                              disabled={props.queryArgs.read_only === "true"}
+                              classNames={["push-down", "push-up"]}
+                            />
+
+                            {props.queryArgs.read_only !== "true" && (
+                              <p className="push-down">
+                                Change the size of the memory server for data
+                                passing. For units use KB, MB, or GB, e.g.{" "}
+                                <span className="code">1GB</span>.{" "}
+                              </p>
+                            )}
+
+                            <div>
+                              <MDCTextFieldReact
+                                value={state.dataPassingMemorySize}
+                                onChange={onChangeDataPassingMemorySize.bind(
+                                  this
+                                )}
+                                label="Data passing memory size"
+                                disabled={props.queryArgs.read_only === "true"}
+                              />
+                            </div>
+                            {(() => {
+                              if (
+                                !isValidMemorySize(state.dataPassingMemorySize)
+                              ) {
+                                return (
+                                  <div className="warning push-up">
+                                    <i className="material-icons">warning</i>{" "}
+                                    Not a valid memory size.
+                                  </div>
+                                );
+                              }
+                            })()}
+                          </div>
+                          <div className="clear"></div>
+                        </div>
+                      </form>
+
+                      {props.queryArgs.read_only !== "true" && (
+                        <div className="columns">
+                          <div className="column">
+                            <h3>Actions</h3>
+                          </div>
+                          <div className="column">
+                            <p className="push-down">
+                              Restarting the memory-server also clears the
+                              memory to allow additional data to be passed
+                              between pipeline steps.
                             </p>
+                            <div className="push-down">
+                              {(() => {
+                                if (state.restartingMemoryServer) {
+                                  return (
+                                    <p className="push-p push-down">
+                                      Restarting in progress...
+                                    </p>
+                                  );
+                                }
+                              })()}
+
+                              <MDCButtonReact
+                                disabled={state.restartingMemoryServer}
+                                label="Restart memory-server"
+                                icon="memory"
+                                classNames={["mdc-button--raised push-down"]}
+                                onClick={restartMemoryServer.bind(this)}
+                              />
+                            </div>
+                          </div>
+                          <div className="clear"></div>
+                        </div>
+                      )}
+                    </div>
+                  ),
+                  1: (
+                    <div>
+                      {(() => {
+                        if (props.queryArgs.read_only === "true") {
+                          return (
+                            <>
+                              <EnvVarList
+                                value={state.envVariables}
+                                readOnly={true}
+                              />
+                            </>
+                          );
+                        } else {
+                          return (
+                            <>
+                              <h3 className="push-down">
+                                Project environment variables
+                              </h3>
+                              <EnvVarList
+                                value={state.projectEnvVariables}
+                                readOnly={true}
+                              />
+
+                              <h3 className="push-down">
+                                Pipeline environment variables
+                              </h3>
+                              <p className="push-down">
+                                Pipeline environment variables take precedence
+                                over project environment variables.
+                              </p>
+                              <EnvVarList
+                                value={state.envVariables}
+                                onAdd={addEnvVariablePair.bind(this)}
+                                onChange={(e, idx, type) =>
+                                  onEnvVariablesChange(e, idx, type)
+                                }
+                                onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                              />
+                              <p className="push-up">
+                                <i>
+                                  Note: restarting the session is required to
+                                  update environment variables in Jupyter
+                                  kernels.
+                                </i>
+                              </p>
+                            </>
                           );
                         }
                       })()}
-
-                      <MDCButtonReact
-                        disabled={this.state.restartingMemoryServer}
-                        label="Restart memory-server"
-                        icon="memory"
-                        classNames={["mdc-button--raised push-down"]}
-                        onClick={this.restartMemoryServer.bind(this)}
-                      />
                     </div>
-                  </div>
-                  <div className="clear"></div>
-                </div>
-              )}
-            </div>
-          );
-          break;
-        case 1:
-          tabView = (
-            <div>
-              {(() => {
-                if (this.props.queryArgs.read_only === "true") {
-                  return (
-                    <>
-                      <EnvVarList
-                        value={this.state.envVariables}
-                        readOnly={true}
-                      />
-                    </>
-                  );
-                } else {
-                  return (
-                    <>
-                      <h3 className="push-down">
-                        Project environment variables
-                      </h3>
-                      <EnvVarList
-                        value={this.state.projectEnvVariables}
-                        readOnly={true}
+                  ),
+                  2: (
+                    <Box css={{ "> * + *": { marginTop: "$4" } }}>
+                      {state.servicesChanged && session && (
+                        <div className="warning push-up">
+                          <i className="material-icons">warning</i>
+                          Note: changes to services require a session restart to
+                          take effect.
+                        </div>
+                      )}
+                      <MDCDataTableReact
+                        headers={["Service", "Scope", "Delete"]}
+                        rows={Object.keys(state.pipelineJson.services)
+                          .map(
+                            (serviceName) =>
+                              state.pipelineJson.services[serviceName]
+                          )
+                          .sort(sortService)
+                          .map((service) => [
+                            service.name,
+                            service.scope
+                              .map((scope) => {
+                                const scopeMap = {
+                                  interactive: "Interactive sessions",
+                                  noninteractive: "Job sessions",
+                                };
+                                return scopeMap[scope];
+                              })
+                              .sort()
+                              .join(", "),
+                            <div className="consume-click">
+                              <MDCIconButtonToggleReact
+                                icon="delete"
+                                onClick={() => {
+                                  orchest.confirm(
+                                    "Warning",
+                                    "Are you sure you want to delete the service: " +
+                                      service.name +
+                                      "?",
+                                    () => {
+                                      deleteService(service.name);
+                                    }
+                                  );
+                                }}
+                              />
+                            </div>,
+                          ])}
+                        detailRows={Object.keys(state.pipelineJson.services)
+                          .map(
+                            (serviceName) =>
+                              state.pipelineJson.services[serviceName]
+                          )
+                          .sort(sortService)
+                          .map((service, i) => (
+                            <ServiceForm
+                              key={["ServiceForm", i].join("-")}
+                              service={service}
+                              updateService={onChangeService}
+                              nameChangeService={nameChangeService}
+                              pipeline_uuid={props.queryArgs.pipeline_uuid}
+                              project_uuid={props.queryArgs.project_uuid}
+                              run_uuid={props.queryArgs.run_uuid}
+                            />
+                          ))}
                       />
 
-                      <h3 className="push-down">
-                        Pipeline environment variables
-                      </h3>
-                      <p className="push-down">
-                        Pipeline environment variables take precedence over
-                        project environment variables.
-                      </p>
-                      <EnvVarList
-                        value={this.state.envVariables}
-                        onAdd={this.addEnvVariablePair.bind(this)}
-                        onChange={(e, idx, type) =>
-                          this.onEnvVariablesChange(e, idx, type)
+                      <Dialog
+                        open={isServiceCreateDialogOpen}
+                        onOpenChange={(open) =>
+                          setIsServiceCreateDialogOpen(open)
                         }
-                        onDelete={(idx) => this.onEnvVariablesDeletion(idx)}
-                      />
-                      <p>
-                        <i>
-                          Note: restarting the session is required to update
-                          environment variables in Jupyter kernels.
-                        </i>
-                      </p>
-                    </>
-                  );
-                }
-              })()}
+                      >
+                        <MDCButtonReact
+                          icon="add"
+                          classNames={["mdc-button--raised", "themed-primary"]}
+                          label="Add Service"
+                          onClick={() => setIsServiceCreateDialogOpen(true)}
+                        />
+
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Create a service</DialogTitle>
+                          </DialogHeader>
+                          <DialogBody>
+                            <Flex as="ul" direction="column" gap="2">
+                              {Object.keys(servicesTemplates).map((item) => {
+                                const template = servicesTemplates[item];
+                                return (
+                                  <li key={item}>
+                                    <button
+                                      disabled={!template.config}
+                                      className={createServiceButton()}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+
+                                        addServiceFromTemplate(template.config);
+                                        setIsServiceCreateDialogOpen(false);
+                                      }}
+                                    >
+                                      {template?.icon || <IconServicesSolid />}
+                                      {template.label}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </Flex>
+                          </DialogBody>
+                          <DialogFooter>
+                            <MDCButtonReact
+                              icon="close"
+                              label="Cancel"
+                              onClick={() =>
+                                setIsServiceCreateDialogOpen(false)
+                              }
+                            />
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </Box>
+                  ),
+                }[state.selectedTabIndex]
+              }
             </div>
-          );
-          break;
-      }
 
-      rootView = (
-        <div className="pipeline-settings">
-          <h2>Pipeline settings</h2>
-
-          <div className="push-down">
-            <MDCTabBarReact
-              selectedIndex={this.state.selectedTabIndex}
-              ref={this.refManager.nrefs.tabBar}
-              items={["Configuration", "Environment variables"]}
-              icons={["list", "view_comfy"]}
-              onChange={this.onSelectSubview.bind(this)}
-            />
-          </div>
-
-          <div className="tab-view trigger-overflow">{tabView}</div>
-
-          <div className="top-buttons">
-            <MDCButtonReact
-              classNames={["close-button"]}
-              icon="close"
-              onClick={this.closeSettings.bind(this)}
-            />
-          </div>
-          {this.props.queryArgs.read_only !== "true" && (
-            <div className="bottom-buttons observe-overflow">
+            <div className="top-buttons">
               <MDCButtonReact
-                label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                onClick={this.saveGeneralForm.bind(this)}
-                icon="save"
+                classNames={["close-button"]}
+                icon="close"
+                onClick={closeSettings.bind(this)}
               />
             </div>
-          )}
-        </div>
-      );
-    } else {
-      rootView = <MDCLinearProgressReact />;
-    }
-
-    return (
-      <OrchestSessionsConsumer>
-        <div className="view-page pipeline-settings-view">{rootView}</div>
-      </OrchestSessionsConsumer>
-    );
-  }
-}
+            {props.queryArgs.read_only !== "true" && (
+              <div className="bottom-buttons observe-overflow">
+                <MDCButtonReact
+                  label={state.unsavedChanges ? "SAVE*" : "SAVE"}
+                  classNames={["mdc-button--raised", "themed-secondary"]}
+                  onClick={saveGeneralForm.bind(this)}
+                  icon="save"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <MDCLinearProgressReact />
+        )}
+      </div>
+    </OrchestSessionsConsumer>
+  );
+};
 
 export default PipelineSettingsView;

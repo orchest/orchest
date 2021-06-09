@@ -288,6 +288,7 @@ def containers_logs_dump(
         "orchest/jupyter-server:latest",
         "orchest/jupyter-enterprise-gateway",
         "orchest/memory-server:latest",
+        "orchest/session-sidecar:latest",
     }
 
     # Only log these containers if in ext mode, since they coud log user

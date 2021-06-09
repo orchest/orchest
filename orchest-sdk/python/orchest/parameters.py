@@ -10,13 +10,7 @@ from typing import Any, Optional, Tuple
 from orchest.config import Config
 from orchest.error import StepUUIDResolveError
 from orchest.pipeline import Pipeline, PipelineStep
-from orchest.utils import get_step_uuid
-
-
-def _get_pipeline() -> Pipeline:
-    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
-        pipeline_definition = json.load(f)
-    return Pipeline.from_json(pipeline_definition)
+from orchest.utils import get_pipeline, get_step_uuid
 
 
 def _get_current_step(pipeline: Pipeline) -> PipelineStep:
@@ -34,7 +28,7 @@ def get_params() -> Tuple[dict, dict]:
         A tuple of two elements, where the first is the parameters of
         the current step, the second is the parameters of the pipeline.
     """
-    pipeline = _get_pipeline()
+    pipeline = get_pipeline()
     step = _get_current_step(pipeline)
     return step.get_params(), pipeline.get_params()
 
@@ -62,7 +56,7 @@ def update_params(
         since different steps could be updating them at the same time.
 
     """
-    pipeline = _get_pipeline()
+    pipeline = get_pipeline()
 
     if pipeline_params is not None:
         pipeline.update_params(pipeline_params)
@@ -84,7 +78,7 @@ def get_step_param(name: str) -> Any:
     Returns:
         The value that was mapped to the step parameter name.
     """
-    pipeline = _get_pipeline()
+    pipeline = get_pipeline()
     step = _get_current_step(pipeline)
     params = step.get_params()
     return params[name]
@@ -99,7 +93,7 @@ def get_pipeline_param(name: str) -> Any:
     Returns:
         The value that was mapped to the pipeline parameter name.
     """
-    pipeline = _get_pipeline()
+    pipeline = get_pipeline()
     params = pipeline.get_params()
     return params[name]
 

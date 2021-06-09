@@ -7,6 +7,7 @@ _minimal_orchest_images = [
     "orchest/jupyter-enterprise-gateway:latest",
     "orchest/jupyter-server:latest",
     "orchest/memory-server:latest",
+    "orchest/session-sidecar:latest",
     "orchest/update-server:latest",
     "orchest/orchest-api:latest",
     "orchest/orchest-webserver:latest",

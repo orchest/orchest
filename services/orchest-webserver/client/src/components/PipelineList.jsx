@@ -30,7 +30,8 @@ class PipelineList extends React.Component {
     this.state = {
       loading: true,
       createModal: false,
-      pipelinePath: "pipeline",
+      createPipelineName: "",
+      createPipelinePath: "pipeline.orchest",
     };
 
     this.promiseManager = new PromiseManager();
@@ -170,9 +171,8 @@ class PipelineList extends React.Component {
   }
 
   onSubmitModal() {
-    let pipelineName = this.refManager.refs.createPipelineNameTextField.mdc
-      .value;
-    let pipelinePath = this.refManager.refs.createPipelinePathField.mdc.value;
+    let pipelineName = this.state.createPipelineName;
+    let pipelinePath = this.state.createPipelinePath;
 
     if (!pipelineName) {
       orchest.alert("Error", "Please enter a name.");
@@ -250,13 +250,8 @@ class PipelineList extends React.Component {
   onCloseCreatePipelineModal() {
     this.setState({
       createModal: false,
-      pipelinePath: "pipeline",
+      createPipelinePath: "pipeline.orchest",
     });
-  }
-
-  handleInputChange(value) {
-    // Create slug.
-    this.setState({ pipelinePath: value.toLowerCase().replace(/[\W]/g, "_") });
   }
 
   render() {
@@ -273,16 +268,28 @@ class PipelineList extends React.Component {
                   content={
                     <Fragment>
                       <MDCTextFieldReact
-                        ref={this.refManager.nrefs.createPipelineNameTextField}
                         classNames={["fullwidth push-down"]}
+                        value={this.state.createPipelineName}
                         label="Pipeline name"
-                        onChange={this.handleInputChange.bind(this)}
+                        onChange={(value) => {
+                          this.setState({
+                            createPipelinePath:
+                              value.toLowerCase().replace(/[\W]/g, "_") +
+                              ".orchest",
+                            createPipelineName: value,
+                          });
+                        }}
                       />
                       <MDCTextFieldReact
                         ref={this.refManager.nrefs.createPipelinePathField}
                         classNames={["fullwidth"]}
                         label="Pipeline path"
-                        value={this.state.pipelinePath + ".orchest"}
+                        onChange={(value) => {
+                          this.setState({
+                            createPipelinePath: value,
+                          });
+                        }}
+                        value={this.state.createPipelinePath}
                       />
                     </Fragment>
                   }

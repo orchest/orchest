@@ -33,7 +33,7 @@ jobs:
             -i nginx-proxy,
             -i update-server,
             -i file-manager,
-            -i orchest-ctl -i celery-worker -i memory-server,
+            -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
           ]
 
     steps:

@@ -33,8 +33,9 @@ def get_step_uuid(pipeline: Pipeline) -> str:
         raise StepUUIDResolveError('Environment variable "KERNEL_ID" not present.')
 
     # Get JupyterLab sessions to resolve the step's UUID via the id of
-    # the running kernel and the step's associated file path.
-    # Orchest API --jupyter_server_ip/port--> Jupyter sessions --notebook path--> UUID.
+    # the running kernel and the step's associated file path.  Orchest
+    # API --jupyter_server_ip/port--> Jupyter sessions --notebook
+    # path--> UUID.
     launches_url = (
         f"http://orchest-api/api/sessions/"
         f'{Config.PROJECT_UUID}/{pipeline.properties["uuid"]}'
@@ -56,13 +57,13 @@ def get_step_uuid(pipeline: Pipeline) -> str:
             break
     else:
         raise StepUUIDResolveError(
-            f'Jupyter session data has no "kernel" with "id" equal to the '
-            '"KERNEL_ID" of this step: {kernel_id}.'
+            'Jupyter session data has no "kernel" with "id" equal to the '
+            f'"KERNEL_ID" of this step: {kernel_id}.'
         )
 
     for step in pipeline.steps:
-        # Compare basenames, one pipeline can not have duplicate notebook names,
-        # so this should work
+        # Compare basenames, one pipeline can not have duplicate
+        # notebook names, so this should work
         if os.path.basename(step.properties["file_path"]) == os.path.basename(
             notebook_path
         ):
@@ -73,6 +74,12 @@ def get_step_uuid(pipeline: Pipeline) -> str:
             return step.properties["uuid"]
 
     raise StepUUIDResolveError(f'No step with "notebook_path": {notebook_path}.')
+
+
+def get_pipeline() -> Pipeline:
+    with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
+        pipeline_definition = json.load(f)
+    return Pipeline.from_json(pipeline_definition)
 
 
 def _request_json(url: str) -> Dict[Any, Any]:

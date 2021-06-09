@@ -35,6 +35,7 @@ def test_sessionlist_post_is_launching(client, pipeline, monkeypatch):
         "status": "LAUNCHING",
         "jupyter_server_ip": None,
         "notebook_server_info": {"port": 8888, "base_url": "/"},
+        "user_services": {},
     }
 
     assert data == expected

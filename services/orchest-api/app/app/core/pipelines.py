@@ -225,8 +225,12 @@ class PipelineStepRunner:
 
         orchest_mounts = get_orchest_mounts(
             project_dir=_config.PROJECT_DIR,
+            pipeline_file=_config.PIPELINE_FILE,
             host_user_dir=run_config["host_user_dir"],
             host_project_dir=run_config["project_dir"],
+            host_pipeline_file=os.path.join(
+                run_config["project_dir"], run_config["pipeline_path"]
+            ),
             mount_form="docker-engine",
         )
 
@@ -261,8 +265,10 @@ class PipelineStepRunner:
             "Env": user_env_variables
             + [
                 f'ORCHEST_STEP_UUID={self.properties["uuid"]}',
+                f'ORCHEST_SESSION_UUID={run_config["session_uuid"]}',
+                f'ORCHEST_SESSION_TYPE={run_config["session_type"]}',
                 f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
-                f'ORCHEST_PIPELINE_PATH={run_config["pipeline_path"]}',
+                f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
                 f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
                 # ORCHEST_MEMORY_EVICTION is never present when running
                 # notebooks interactively and otherwise always present,
@@ -532,6 +538,7 @@ class Pipeline:
             "uuid": description["uuid"],
             "settings": description["settings"],
             "parameters": description.get("parameters", {}),
+            "services": description.get("services", {}),
         }
         return cls(list(steps.values()), properties)
 
@@ -545,13 +552,24 @@ class Pipeline:
         return description
 
     def get_environments(self) -> Set[str]:
-        """Returns the set of UUIDs of the used environments
+        """Returns the set of UUIDs of the used environments.
 
         Returns:
-            Set of environments uuids used among the pipeline steps.
+            Set of environments uuids used among the pipeline steps and
+            services making use of orchest environments.
 
         """
-        return set([step.properties["environment"] for step in self.steps])
+        st_envs = set([step.properties["environment"] for step in self.steps])
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+        sr_envs = set(
+            [
+                sr["image"].replace(prefix, "")
+                for sr in self.properties.get("services", {}).values()
+                if sr["image"].startswith(prefix)
+            ]
+        )
+
+        return set.union(st_envs, sr_envs)
 
     def get_params(self) -> Dict[str, Any]:
         return self.properties.get("parameters", {})

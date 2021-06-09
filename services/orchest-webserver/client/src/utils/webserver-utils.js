@@ -1,4 +1,4 @@
-import React, { Fragment } from "react";
+import _ from "lodash";
 import { makeRequest } from "@orchest/lib-utils";
 import { format, parseISO } from "date-fns";
 import dashify from "dashify";
@@ -14,6 +14,7 @@ import HelpView from "../views/HelpView";
 import JobsView from "../views/JobsView";
 import JobView from "../views/JobView";
 import JupyterLabView from "../views/JupyterLabView";
+import LogsView from "../views/LogsView";
 import ManageUsersView from "../views/ManageUsersView";
 import PipelineSettingsView from "../views/PipelineSettingsView";
 import PipelinesView from "../views/PipelinesView";
@@ -38,6 +39,7 @@ function getComponentObject() {
     JobsView,
     JobView,
     JupyterLabView,
+    LogsView,
     ManageUsersView,
     PipelineSettingsView,
     PipelinesView,
@@ -73,6 +75,7 @@ export function getViewDrawerParentViewName(viewName) {
     PipelineSettingsView: PipelinesView,
     PipelinesView: PipelinesView,
     PipelineView: PipelinesView,
+    LogsView: PipelinesView,
     ProjectSettingsView: ProjectsView,
     ProjectsView: ProjectsView,
     SettingsView: SettingsView,
@@ -93,6 +96,72 @@ export function componentName(TagName) {
     }
   }
   console.error("Was not able to get componentName for TagName" + TagName);
+}
+
+export function filterServices(services, scope) {
+  let servicesCopy = _.cloneDeep(services);
+  for (let serviceName in services) {
+    if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
+      delete servicesCopy[serviceName];
+    }
+  }
+  return servicesCopy;
+}
+
+export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
+  let urls = [];
+
+  if (service.ports === undefined) {
+    return urls;
+  }
+
+  let serviceUUID = pipeline_uuid;
+  if (run_uuid !== undefined) {
+    serviceUUID = run_uuid;
+  }
+
+  let pbpPrefix = "";
+  if (service.preserve_base_path) {
+    pbpPrefix = "pbp-";
+  }
+
+  for (let port of service.ports) {
+    urls.push(
+      window.location.origin +
+        "/" +
+        pbpPrefix +
+        "service-" +
+        service.name +
+        "-" +
+        project_uuid.split("-")[0] +
+        "-" +
+        serviceUUID.split("-")[0] +
+        "_" +
+        port +
+        "/"
+    );
+  }
+
+  return urls;
+}
+
+export function createOutgoingConnections(steps) {
+  for (let step_uuid in steps) {
+    if (steps.hasOwnProperty(step_uuid)) {
+      steps[step_uuid].outgoing_connections = [];
+    }
+  }
+
+  for (let step_uuid in steps) {
+    if (steps.hasOwnProperty(step_uuid)) {
+      let incoming_connections = steps[step_uuid].incoming_connections;
+      for (let x = 0; x < incoming_connections.length; x++) {
+        steps[incoming_connections[x]].outgoing_connections.push(step_uuid);
+      }
+    }
+  }
+
+  return steps;
 }
 
 export function checkGate(project_uuid) {

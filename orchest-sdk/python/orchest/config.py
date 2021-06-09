@@ -13,9 +13,15 @@ class Config:
     # TODO: put configuration options inside the docstring so we can use
     #       it for the autodoc generation.
 
+    SESSION_UUID = os.getenv("ORCHEST_SESSION_UUID")
+    SESSION_TYPE = os.getenv("ORCHEST_SESSION_TYPE")
     PROJECT_UUID = os.getenv("ORCHEST_PROJECT_UUID")
     PIPELINE_UUID = os.getenv("ORCHEST_PIPELINE_UUID", "")
-    PIPELINE_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
+    PIPELINE_DEFINITION_PATH = os.getenv("ORCHEST_PIPELINE_PATH")
+
+    # Necessary to query the orchest-api for the current interactive
+    # session specs.
+    ORCHEST_API_ADDRESS = "orchest-api"
 
     # Data directory for outputting to disk. Note that it uses the
     # base directory in which the function is called.
@@ -25,9 +31,6 @@ class Config:
     STEP_DATA_DIR = (
         "/project-dir/.orchest/pipelines/" + PIPELINE_UUID + "/data/{step_uuid}"
     )
-
-    # Path to the file that contains the pipeline definition.
-    PIPELINE_DEFINITION_PATH = f"/project-dir/{PIPELINE_PATH}"
 
     # Only fill the Plasma store to 95% capacity. Otherwise the
     # additional messages for eviction cannot be inserted. NOTE:

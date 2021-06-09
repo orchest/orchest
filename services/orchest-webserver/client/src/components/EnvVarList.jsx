@@ -54,7 +54,7 @@ class EnvVarList extends React.Component {
         {!this.props.readOnly && (
           <MDCButtonReact
             icon="add"
-            classNames={["mdc-button--raised push-down"]}
+            classNames={["mdc-button--raised"]}
             onClick={this.props.onAdd}
           />
         )}

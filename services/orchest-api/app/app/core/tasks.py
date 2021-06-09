@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 import os
 from typing import Any, Dict, Optional, Union
@@ -151,6 +152,8 @@ def run_pipeline(
         pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
             Example: {
+                'session_uuid' : 'uuid',
+                'session_type' : 'interactive',
                 'run_endpoint': 'runs',
                 'project_dir': '/home/../pipelines/uuid',
                 'env_uuid_docker_id_mappings': {
@@ -232,14 +235,20 @@ def start_non_interactive_pipeline_run(
     # `run_config` has to be the abs path w.r.t. the host because it is
     # used by the `docker.sock` when mounting the dir to the container
     # of a step.
-    host_base_user_dir = os.path.split(run_config["host_user_dir"])[0]
+    host_userdir = run_config["host_user_dir"]
+    host_base_user_dir = os.path.split(host_userdir)[0]
 
+    # For non interactive runs the session uuid is equal to the task
+    # uuid.
+    session_uuid = self.request.id
+    run_config["session_uuid"] = session_uuid
+    run_config["session_type"] = "noninteractive"
+    run_config["pipeline_uuid"] = pipeline_uuid
+    run_config["project_uuid"] = project_uuid
     # To join the paths, the `run_dir` cannot start with `/userdir/...`
     # but should start as `userdir/...`
     run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
     run_config["run_endpoint"] = f"jobs/{job_uuid}"
-    run_config["pipeline_uuid"] = pipeline_uuid
-    run_config["project_uuid"] = project_uuid
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
@@ -248,12 +257,21 @@ def start_non_interactive_pipeline_run(
     with open(pipeline_json, "w") as f:
         json.dump(pipeline_definition, f, indent=4, sort_keys=True)
 
+    # Note that run_config contains user_env_variables, which is of
+    # interest for the session_config.
+    session_config = copy.deepcopy(run_config)
+    session_config.pop("env_uuid_docker_id_mappings")
+    session_config.pop("run_endpoint")
+    session_config["host_userdir"] = host_userdir
+    session_config["services"] = pipeline_definition.get("services", {})
+    session_config["env_uuid_docker_id_mappings"] = run_config[
+        "env_uuid_docker_id_mappings"
+    ]
+
     with launch_noninteractive_session(
         docker_client,
-        self.request.id,
-        project_uuid,
-        run_config["pipeline_path"],
-        run_config["project_dir"],
+        session_uuid,
+        session_config,
     ):
         status = run_pipeline(
             pipeline_definition, project_uuid, run_config, task_id=self.request.id
