@@ -15,6 +15,7 @@ import {
   Flex,
   IconServicesSolid,
 } from "@orchest/design-system";
+
 import {
   makeRequest,
   PromiseManager,
@@ -37,6 +38,7 @@ import {
   envVariablesDictToArray,
   OverflowListener,
   updateGlobalUnsavedChanges,
+  validatePipeline,
 } from "@/utils/webserver-utils";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
@@ -499,6 +501,12 @@ const PipelineSettingsView = (props) => {
 
     // Remove order property from services
     let pipelineJson = cleanPipelineJson(state.pipelineJson);
+
+    let validationResult = validatePipeline(pipelineJson);
+    if (!validationResult.valid) {
+      orchest.alert("Error", validationResult[0]);
+      return;
+    }
 
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.

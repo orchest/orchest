@@ -144,6 +144,7 @@ importers:
       "@types/node": 15.0.1
       "@types/react": 17.0.3
       "@vitejs/plugin-react-refresh": 1.3.3
+      ajv: ^8.6.0
       codemirror: ^5.55.0
       cron-parser: ^3.3.0
       cronstrue: ^1.108.0
@@ -172,6 +173,7 @@ importers:
       "@orchest/design-system": link:../../../lib/design-system/package
       "@orchest/lib-mdc": link:../../../lib/javascript/mdc
       "@orchest/lib-utils": link:../../../lib/javascript/utils
+      ajv: 8.6.0
       codemirror: 5.60.0
       cron-parser: 3.3.0
       cronstrue: 1.111.0
@@ -1639,6 +1641,18 @@ packages:
     resolution: { integrity: sha1-/ts5T58OAqqXaOcCvaI7UF+ufh8= }
     dev: false
 
+  /ajv/8.6.0:
+    resolution:
+      {
+        integrity: sha512-cnUG4NSBiM4YFBxgZIj/In3/6KX+rQ2l2YPRVcvAMQGWEPKuXoPIhxzwqh31jA3IPbI4qEOp/5ILI4ynioXsGQ==,
+      }
+    dependencies:
+      fast-deep-equal: 3.1.3
+      json-schema-traverse: 1.0.0
+      require-from-string: 2.0.2
+      uri-js: 4.4.1
+    dev: false
+
   /anser/1.4.9:
     resolution:
       {
@@ -2936,6 +2950,13 @@ packages:
       }
     dev: false
 
+  /fast-deep-equal/3.1.3:
+    resolution:
+      {
+        integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==,
+      }
+    dev: false
+
   /fast-safe-stringify/2.0.7:
     resolution:
       {
@@ -3729,6 +3750,13 @@ packages:
       {
         integrity: sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==,
       }
+
+  /json-schema-traverse/1.0.0:
+    resolution:
+      {
+        integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==,
+      }
+    dev: false
 
   /json5/1.0.1:
     resolution:
@@ -4935,6 +4963,14 @@ packages:
     engines: { node: ">=0.10.0" }
     dev: true
 
+  /require-from-string/2.0.2:
+    resolution:
+      {
+        integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==,
+      }
+    engines: { node: ">=0.10.0" }
+    dev: false
+
   /resolve-from/4.0.0:
     resolution:
       {
@@ -5801,6 +5837,15 @@ packages:
       semver-diff: 3.1.1
       xdg-basedir: 4.0.0
     dev: true
+
+  /uri-js/4.4.1:
+    resolution:
+      {
+        integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==,
+      }
+    dependencies:
+      punycode: 2.1.1
+    dev: false
 
   /url-parse-lax/3.0.0:
     resolution: { integrity: sha1-FrXK/Afb42dsGxmZF3gj1lA6yww= }

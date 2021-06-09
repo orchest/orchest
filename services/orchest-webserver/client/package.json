@@ -14,6 +14,7 @@
     "@orchest/design-system": "workspace:*",
     "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
+    "ajv": "^8.6.0",
     "codemirror": "^5.55.0",
     "cron-parser": "^3.3.0",
     "cronstrue": "^1.108.0",
@@ -30,9 +31,9 @@
     "react-minimal-pie-chart": "8.2.0",
     "socket.io-client": "^2.3.0",
     "swr": "0.5.5",
+    "vite-plugin-stitches": "0.0.1",
     "xterm-addon-fit": "^0.4.0",
-    "xterm-for-react": "^1.0.4",
-    "vite-plugin-stitches": "0.0.1"
+    "xterm-for-react": "^1.0.4"
   },
   "devDependencies": {
     "@types/node": "15.0.1",
@@ -41,7 +42,7 @@
     "esbuild": "0.8.44",
     "npm-watch": "0.7.0",
     "sass": "1.32.8",
-    "vite": "2.3.3",
-    "typescript": "4.2.4"
+    "typescript": "4.2.4",
+    "vite": "2.3.3"
   }
 }
