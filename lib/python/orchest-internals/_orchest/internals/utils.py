@@ -227,6 +227,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         isinstance(service, dict)
         and is_service_name_valid(service["name"])
         and isinstance(service["image"], str)
+        and service["image"]
         and isinstance(service["scope"], list)
         and isinstance(service.get("preserve_base_path", False), bool)
         and
