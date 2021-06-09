@@ -47,7 +47,6 @@ const isNumeric = (value) => value.match("^\\d+$") != null;
  *    error?: string;
  *    setError?: React.Dispatch<string>;
  *    removeItem?: (item: TMultiSelectItem) => void;
- *    addItem?: (item: TMultiSelectItem) => void;
  *   } & Pick<TMultiSelectInputProps, "required" | "type">
  * } TMultiSelectContext
  *
