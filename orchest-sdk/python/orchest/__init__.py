@@ -1,3 +1,4 @@
+from orchest._version import __version__
 from orchest.config import Config
 from orchest.parameters import (
     get_pipeline_param,
