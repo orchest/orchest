@@ -1,3 +1,5 @@
+import * as React from "react";
+import type { InferGetStaticPropsType } from "next";
 import {
   Alert,
   AlertHeader,
@@ -18,13 +20,31 @@ import {
   IconChevronRightOutline,
   IconLightBulbOutline,
   IconWarningOutline,
+  IconCheckCircleOutline,
+  IconCheckSolid,
+  IconClockOutline,
+  IconClockSolid,
+  IconCrossCircleOutline,
+  IconCrossSolid,
+  IconDraftCircleOutline,
+  IconDraftOutline,
+  IconServicesSolid,
   Link,
   LogoBrand,
   Text,
 } from "@orchest/design-system";
-import * as React from "react";
+import { getAssets } from "../lib/assets";
+import { AssetList, AssetListItem } from "../components/asset-list";
 
-const Index = () => (
+export const getStaticProps = async () => ({
+  props: {
+    assets: getAssets(),
+  },
+});
+
+const Index: React.FC<InferGetStaticPropsType<typeof getStaticProps>> = ({
+  assets,
+}) => (
   <Flex
     as="main"
     direction="column"
@@ -36,6 +56,62 @@ const Index = () => (
     }}
   >
     <h1>Design System Sandbox</h1>
+    <h2>Assets</h2>
+    <h3>Badges</h3>
+    <AssetList>
+      {assets.badges.map((imgProps) => (
+        <AssetListItem key={imgProps.src}>
+          <img {...imgProps} />
+        </AssetListItem>
+      ))}
+    </AssetList>
+    <h3>Meta</h3>
+    <h4>Favicons</h4>
+    <AssetList>
+      {assets.favicons.map(({ height, width, ...imgProps }) => (
+        <AssetListItem key={imgProps.src}>
+          {/* We don't really need to display our favicons at true size,
+          so let's scale them down by 4 */}
+          <img height={height / 4} width={width / 4} {...imgProps} />
+        </AssetListItem>
+      ))}
+    </AssetList>
+    <h4>Open Graph</h4>
+    <AssetList css={assets.og.length === 1 && { justifyContent: "center" }}>
+      {assets.og.map(({ height, width, ...imgProps }) => (
+        <AssetListItem key={imgProps.src}>
+          {/* We don't really need to display our og-image at true size,
+          so let's scale it down by 3 */}
+          <img height={height / 3} width={width / 3} {...imgProps} />
+        </AssetListItem>
+      ))}
+    </AssetList>
+    <h2>Icons</h2>
+    <AssetList>
+      {[
+        <IconCheckSolid />,
+        <IconCrossSolid />,
+        <IconClockSolid />,
+        <IconServicesSolid />,
+        <IconChevronLeftOutline />,
+        <IconChevronRightOutline />,
+        <IconClockOutline />,
+        <IconDraftOutline />,
+        <IconLightBulbOutline />,
+        <IconWarningOutline />,
+        <IconCheckCircleOutline />,
+        <IconDraftCircleOutline />,
+        <IconCrossCircleOutline />,
+      ].map((icon) => (
+        <AssetListItem>{icon}</AssetListItem>
+      ))}
+    </AssetList>
+    <h2>Logos</h2>
+    <AssetList css={{ justifyContent: "center" }}>
+      <AssetListItem>
+        <LogoBrand />
+      </AssetListItem>
+    </AssetList>
     <h2>Components</h2>
     <h3>Alert</h3>
     <h4>Info</h4>
@@ -208,8 +284,6 @@ const Index = () => (
     <Text size="lg">lg</Text>
     <Text size="xl">xl</Text>
     <Text size="2xl">2xl</Text>
-    <h2>Logos</h2>
-    <LogoBrand />
   </Flex>
 );
 
