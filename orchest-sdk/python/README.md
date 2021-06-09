@@ -26,6 +26,6 @@ started!
 > We started maintaining this table since Orchest release
 > [`v2021.05.1`](https://github.com/orchest/orchest/releases/tag/v2021.05.1).
 
-| Orchest version | Python SDK version | Compatible? |
-| --------------- | ------------------ | ----------- |
-| `>= v2021.05.1` | `v0.2.0`           | yes         |
+| Python SDK version | Orchest version | Compatible? |
+| ------------------ | --------------- | ----------- |
+| `v0.2.0`           | `>= v2021.05.1` | yes         |
