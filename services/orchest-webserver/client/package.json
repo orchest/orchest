@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@orchest/design-system": "workspace:*",
+    "@orchest/design-system-vite-plugin": "workspace:*",
     "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
     "codemirror": "^5.55.0",
@@ -41,7 +42,7 @@
     "esbuild": "0.8.44",
     "npm-watch": "0.7.0",
     "sass": "1.32.8",
-    "vite": "2.3.3",
+    "vite": "2.3.7",
     "typescript": "4.2.4"
   }
 }

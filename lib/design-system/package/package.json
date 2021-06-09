@@ -3,24 +3,28 @@
   "version": "0.0.4",
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "main": "src/index.ts",
   "files": [
-    "dist"
+    "src"
   ],
+  "publishConfig": {
+    "main": "dist/index.cjs",
+    "module": "dist/index.js",
+    "typings": "dist/index.d.ts",
+    "files": [
+      "dist"
+    ]
+  },
+  "sideEffects": false,
   "scripts": {
     "prepublishOnly": "pnpm run build",
-    "build": "pnpm run pre-build && concurrently -n w: npm:*:build",
-    "dev": "pnpm run pre-build && concurrently -n w: npm:*:watch",
+    "build": "concurrently -n w: npm:*:build && pnpm run post-build",
     "lint": "concurrently -n w: npm:*:check",
-    "pre-build": "ts-node -r tsconfig-paths/register src/scripts/pre-build.ts",
+    "post-build": "ts-node -r tsconfig-paths/register src/scripts/post-build.ts",
     "cjs:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs",
     "cjs:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
     "esm:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=esm",
-    "esm:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=esm --watch --log-level=error",
     "ts:build": "tsc --emitDeclarationOnly --outDir dist",
-    "ts:watch": "tsc --emitDeclarationOnly --outDir dist -w",
     "ts:check": "tsc --noEmit"
   },
   "dependencies": {

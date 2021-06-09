@@ -50,7 +50,10 @@ importers:
       "@types/node": 15.0.1
       "@types/react": 17.0.3
       fs-extra: 10.0.0
+      glob: 7.1.7
+      image-size: 1.0.0
       next: 10.2.0
+      next-transpile-modules: 7.2.0
       react: ^16.13.1
       react-dom: ^16.13.1
       ts-node: 9.1.1
@@ -59,15 +62,45 @@ importers:
     dependencies:
       "@orchest/design-system": link:../package
       next: 10.2.0_b92f7858a378407b15576e57b527234a
+      next-transpile-modules: 7.2.0
       react: 16.13.1
       react-dom: 16.13.1_react@16.13.1
     devDependencies:
       "@types/node": 15.0.1
       "@types/react": 17.0.3
       fs-extra: 10.0.0
+      glob: 7.1.7
+      image-size: 1.0.0
       ts-node: 9.1.1_typescript@4.2.4
       tsconfig-paths: 3.9.0
       typescript: 4.2.4
+
+  lib/design-system/vite-plugin:
+    specifiers:
+      "@orchest/design-system": workspace:*
+      "@types/node": 15.0.1
+      concurrently: 6.0.2
+      esbuild: 0.8.44
+      fs-extra: 10.0.0
+      react: ^16.13.1
+      react-dom: ^16.13.1
+      ts-node: 9.1.1
+      tsconfig-paths: 3.9.0
+      typescript: 4.2.4
+      vite: 2.3.7
+    dependencies:
+      "@orchest/design-system": link:../package
+    devDependencies:
+      "@types/node": 15.0.1
+      concurrently: 6.0.2
+      esbuild: 0.8.44
+      fs-extra: 10.0.0
+      react: 16.13.1
+      react-dom: 16.13.1_react@16.13.1
+      ts-node: 9.1.1_typescript@4.2.4
+      tsconfig-paths: 3.9.0
+      typescript: 4.2.4
+      vite: 2.3.7
 
   lib/javascript/mdc:
     specifiers:
@@ -111,7 +144,7 @@ importers:
       run: ^1.4.0
       sass: 1.32.8
       typescript: 4.2.4
-      vite: 2.3.3
+      vite: 2.3.7
     dependencies:
       "@orchest/lib-mdc": link:../../../lib/javascript/mdc
       "@orchest/lib-utils": link:../../../lib/javascript/utils
@@ -126,11 +159,12 @@ importers:
       npm-watch: 0.7.0
       sass: 1.32.8
       typescript: 4.2.4
-      vite: 2.3.3
+      vite: 2.3.7
 
   services/orchest-webserver/client:
     specifiers:
       "@orchest/design-system": workspace:*
+      "@orchest/design-system-vite-plugin": workspace:*
       "@orchest/lib-mdc": workspace:*
       "@orchest/lib-utils": workspace:*
       "@types/node": 15.0.1
@@ -156,12 +190,13 @@ importers:
       socket.io-client: ^2.3.0
       swr: 0.5.5
       typescript: 4.2.4
-      vite: 2.3.3
+      vite: 2.3.7
       vite-plugin-stitches: 0.0.1
       xterm-addon-fit: ^0.4.0
       xterm-for-react: ^1.0.4
     dependencies:
       "@orchest/design-system": link:../../../lib/design-system/package
+      "@orchest/design-system-vite-plugin": link:../../../lib/design-system/vite-plugin
       "@orchest/lib-mdc": link:../../../lib/javascript/mdc
       "@orchest/lib-utils": link:../../../lib/javascript/utils
       codemirror: 5.60.0
@@ -180,7 +215,7 @@ importers:
       react-minimal-pie-chart: 8.2.0_react-dom@16.13.1+react@16.13.1
       socket.io-client: 2.4.0
       swr: 0.5.5_react@16.13.1
-      vite-plugin-stitches: 0.0.1_vite@2.3.3
+      vite-plugin-stitches: 0.0.1_vite@2.3.7
       xterm-addon-fit: 0.4.0
       xterm-for-react: 1.0.4_react-dom@16.13.1+react@16.13.1
     devDependencies:
@@ -191,7 +226,7 @@ importers:
       npm-watch: 0.7.0
       sass: 1.32.8
       typescript: 4.2.4
-      vite: 2.3.3
+      vite: 2.3.7
 
 packages:
   /@babel/code-frame/7.12.11:
@@ -2795,6 +2830,17 @@ packages:
       has-binary2: 1.0.3
     dev: false
 
+  /enhanced-resolve/5.8.2:
+    resolution:
+      {
+        integrity: sha512-F27oB3WuHDzvR2DOGNTaYy0D5o0cnrv8TeI482VM4kYgQd/FT9lUQwuNsJ0oOHtBUq7eiW5ytqzp7nBFknL+GA==,
+      }
+    engines: { node: ">=10.13.0" }
+    dependencies:
+      graceful-fs: 4.2.6
+      tapable: 2.2.0
+    dev: false
+
   /error-ex/1.3.2:
     resolution:
       {
@@ -2844,10 +2890,10 @@ packages:
     resolution: { integrity: sha1-wsNYJlYkfDnqEHyx5mUrb58kUjw= }
     dev: false
 
-  /esbuild/0.11.23:
+  /esbuild/0.12.7:
     resolution:
       {
-        integrity: sha512-iaiZZ9vUF5wJV8ob1tl+5aJTrwDczlvGP0JoMmnpC2B0ppiMCu8n8gmy5ZTGl5bcG081XBVn+U+jP+mPFm5T5Q==,
+        integrity: sha512-vxENKWBo928ErLiT/uUv8Sl2EoC5cF3cZzCTc8hDEh9ZAZ75xblJCr72NeJo74lxWaGopIePZPIWq1qDpLUHQQ==,
       }
     hasBin: true
     requiresBuild: true
@@ -3012,7 +3058,6 @@ packages:
 
   /fs.realpath/1.0.0:
     resolution: { integrity: sha1-FQStJSMVjKpA20onh8sBQRmU6k8= }
-    dev: false
 
   /fsevents/2.3.2:
     resolution:
@@ -3122,6 +3167,20 @@ packages:
       once: 1.4.0
       path-is-absolute: 1.0.1
     dev: false
+
+  /glob/7.1.7:
+    resolution:
+      {
+        integrity: sha512-OvD9ENzPLbegENnYP5UUfJIirTg4+XwMWGaQfQTY0JenxNvvIKP3U3/tAQSPIu/lHxXYSZmpXlUHeqAIdKzBLQ==,
+      }
+    dependencies:
+      fs.realpath: 1.0.0
+      inflight: 1.0.6
+      inherits: 2.0.4
+      minimatch: 3.0.4
+      once: 1.4.0
+      path-is-absolute: 1.0.1
+    dev: true
 
   /global-dirs/2.1.0:
     resolution:
@@ -3324,6 +3383,17 @@ packages:
     resolution: { integrity: sha1-SMptcvbGo68Aqa1K5odr44ieKwk= }
     dev: true
 
+  /image-size/1.0.0:
+    resolution:
+      {
+        integrity: sha512-JLJ6OwBfO1KcA+TvJT+v8gbE6iWbj24LyDNFgFEN0lzegn6cC6a/p3NIDaepMsJjQjlUWqIC7wJv8lBFxPNjcw==,
+      }
+    engines: { node: ">=12.0.0" }
+    hasBin: true
+    dependencies:
+      queue: 6.0.2
+    dev: true
+
   /import-fresh/3.3.0:
     resolution:
       {
@@ -3354,7 +3424,6 @@ packages:
     dependencies:
       once: 1.4.0
       wrappy: 1.0.2
-    dev: false
 
   /inherits/2.0.1:
     resolution: { integrity: sha1-sX0I0ya0Qj5Wjv9xn5GwscvfafE= }
@@ -4044,6 +4113,16 @@ packages:
       }
     engines: { node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1 }
     hasBin: true
+    dev: false
+
+  /nanoid/3.1.23:
+    resolution:
+      {
+        integrity: sha512-FiB0kzdP0FFVGDKlRLEQ1BgDzU87dy5NnzjeW9YZNt+/c3+q82EQDUwniSAUxp/F0gFNI1ZhKU1FqYsMuqZVnw==,
+      }
+    engines: { node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1 }
+    hasBin: true
+    dev: true
 
   /native-url/0.3.4:
     resolution:
@@ -4052,6 +4131,16 @@ packages:
       }
     dependencies:
       querystring: 0.2.1
+    dev: false
+
+  /next-transpile-modules/7.2.0:
+    resolution:
+      {
+        integrity: sha512-7kd3/MkqKWz4fZvrIugNQAUo2RUpA8tYY6dwCMgIoFkbo+i3Gm5h0gTieWfUj7eAV/EpO/pqp6DQy2AJqrRdqQ==,
+      }
+    dependencies:
+      enhanced-resolve: 5.8.2
+      escalade: 3.1.1
     dev: false
 
   /next/10.2.0_b92f7858a378407b15576e57b527234a:
@@ -4461,7 +4550,6 @@ packages:
   /path-is-absolute/1.0.1:
     resolution: { integrity: sha1-F0uSaHNVNP+8es5r9TpanhtcX18= }
     engines: { node: ">=0.10.0" }
-    dev: false
 
   /path-parse/1.0.6:
     resolution:
@@ -4546,6 +4634,19 @@ packages:
       colorette: 1.2.2
       nanoid: 3.1.22
       source-map: 0.6.1
+    dev: false
+
+  /postcss/8.3.0:
+    resolution:
+      {
+        integrity: sha512-+ogXpdAjWGa+fdYY5BQ96V/6tAo+TdSSIMP5huJBIygdWwKtVoB5JWZ7yUd4xZ8r+8Kvvx4nyg/PQ071H4UtcQ==,
+      }
+    engines: { node: ^10 || ^12 || >=14 }
+    dependencies:
+      colorette: 1.2.2
+      nanoid: 3.1.23
+      source-map-js: 0.6.2
+    dev: true
 
   /prepend-http/2.0.0:
     resolution: { integrity: sha1-6SQ0v6XqjBn0HN/UAddBo8gZ2Jc= }
@@ -4654,6 +4755,15 @@ packages:
       }
     engines: { node: ">=0.4.x" }
     dev: false
+
+  /queue/6.0.2:
+    resolution:
+      {
+        integrity: sha512-iHZWu+q3IdFZFX36ro/lKBkSvfkztY5Y7HMiPlOUjhupPcG2JMfst2KKEpu5XndviX/3UhFbRngUPNKtgvtZiA==,
+      }
+    dependencies:
+      inherits: 2.0.4
+    dev: true
 
   /randombytes/2.1.0:
     resolution:
@@ -5141,6 +5251,14 @@ packages:
       isarray: 2.0.1
     dev: false
 
+  /source-map-js/0.6.2:
+    resolution:
+      {
+        integrity: sha512-/3GptzWzu0+0MBQFrDKzw/DvvMTUORvgY6k6jd/VS6iCR4RDTKWH6v6WPwQoUO8667uQEf9Oe38DxAYWY5F/Ug==,
+      }
+    engines: { node: ">=0.10.0" }
+    dev: true
+
   /source-map-support/0.5.19:
     resolution:
       {
@@ -5498,6 +5616,14 @@ packages:
       glob: 7.1.6
       read-yaml-file: 2.0.0
       semver: 7.3.4
+    dev: false
+
+  /tapable/2.2.0:
+    resolution:
+      {
+        integrity: sha512-FBk4IesMV1rBxX2tfiK8RAmogtWn53puLOQlvO8XuwlgxcYbP4mVPS9Ph4aeamSyyVjOl24aYWAuc8U5kCVwMw==,
+      }
+    engines: { node: ">=6" }
     dev: false
 
   /term-size/2.2.1:
@@ -5893,7 +6019,7 @@ packages:
       spdx-expression-parse: 3.0.1
     dev: true
 
-  /vite-plugin-stitches/0.0.1_vite@2.3.3:
+  /vite-plugin-stitches/0.0.1_vite@2.3.7:
     resolution:
       {
         integrity: sha512-P4wm6NziiXgujnTw+RrWZUAqV9X4GgottMgluEP0ixg46irwWQgnlJmwoPW5CMH3S4bX7Ji+7AvQ2E/0POXAYA==,
@@ -5902,19 +6028,19 @@ packages:
       "@stitches/core": ">= 0.1.0"
       vite: ">= 2.1.5"
     dependencies:
-      vite: 2.3.3
+      vite: 2.3.7
     dev: false
 
-  /vite/2.3.3:
+  /vite/2.3.7:
     resolution:
       {
-        integrity: sha512-eO1iwRbn3/BfkNVMNJDeANAFCZ5NobYOFPu7IqfY7DcI7I9nFGjJIZid0EViTmLDGwwSUPmRAq3cRBbO3+DsMA==,
+        integrity: sha512-Y0xRz11MPYu/EAvzN94+FsOZHbSvO6FUvHv127CyG7mV6oDoay2bw+g5y9wW3Blf8OY3chaz3nc/DcRe1IQ3Nw==,
       }
     engines: { node: ">=12.0.0" }
     hasBin: true
     dependencies:
-      esbuild: 0.11.23
-      postcss: 8.2.13
+      esbuild: 0.12.7
+      postcss: 8.3.0
       resolve: 1.20.0
       rollup: 2.45.1
     optionalDependencies:
