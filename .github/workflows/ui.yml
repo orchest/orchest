@@ -30,4 +30,4 @@ jobs:
         run: pnpm run build
 
       - name: Lint pnpm packages
-        run: pnpm run lint
+        run: pnpm run check

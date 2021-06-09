@@ -11,7 +11,6 @@
     "dev": "concurrently -n w: npm:*:watch",
     "js:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs",
     "js:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs --watch --log-level=error",
-    "lint": "concurrently -n w: npm:*:check",
     "pre-dev": "pnpm run build",
     "ts:build": "tsc -p tsconfig.json --emitDeclarationOnly --outDir dist",
     "ts:check": "tsc -p tsconfig.json --noEmit",

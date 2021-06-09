@@ -6,7 +6,7 @@
   "license": "AGPL-3.0-only",
   "main": "src/index.ts",
   "scripts": {
-    "lint": "tsc --noEmit"
+    "ts:check": "tsc --noEmit"
   },
   "peerDependencies": {
     "react": "^16.13.1",

@@ -8,7 +8,8 @@
     "build": "pnpm run pre-build && next build",
     "dev": "pnpm run pre-build && next dev",
     "pre-build": "ts-node -r tsconfig-paths/register scripts/sync-assets.ts",
-    "start": "next start"
+    "start": "next start",
+    "ts:check": "tsc --noEmit"
   },
   "dependencies": {
     "@orchest/design-system": "workspace:*",

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Skip our pnpm pre-commit hook
-      SKIP: pre-commit-ui
+      SKIP: pre-commit-package,pre-commit-typescript
 
     steps:
       - uses: actions/checkout@v2

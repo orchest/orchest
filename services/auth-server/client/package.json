@@ -7,8 +7,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "lint": "tsc --noEmit",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "ts:check": "tsc --noEmit"
   },
   "dependencies": {
     "@orchest/lib-mdc": "workspace:*",

@@ -21,7 +21,6 @@
     "cjs:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs",
     "cjs:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
     "esm:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=esm",
-    "lint": "concurrently -n w: npm:*:check",
     "post-build": "ts-node -r tsconfig-paths/register src/scripts/post-build.ts",
     "prepublishOnly": "pnpm run build",
     "ts:build": "tsc --emitDeclarationOnly --outDir dist",
