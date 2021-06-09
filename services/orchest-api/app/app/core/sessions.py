@@ -237,6 +237,7 @@ class Session:
 
 
         """
+        logger = utils.get_logger()
 
         # TODO: make convert this "pipeline" uuid into a "session" uuid.
         orchest_services = _get_orchest_services_specs(
@@ -251,9 +252,7 @@ class Session:
                 container = self.client.containers.run(**orchest_services[resource])
                 self._containers[resource] = container
             except Exception as e:
-                current_app.logger.error(
-                    "Failed to start container %s [%s]." % (e, type(e))
-                )
+                logger.error("Failed to start container %s [%s]." % (e, type(e)))
                 raise errors.SessionContainerError(
                     "Could not start required containers."
                 )
@@ -292,16 +291,14 @@ class Session:
                 container = self.client.containers.run(**service_spec)
                 self._containers[service_name] = container
             except Exception as e:
-                current_app.logger.error(
+                logger.error(
                     "Failed to start user service container %s [%s]." % (e, type(e))
                 )
                 try:
                     container = self.client.containers.get(service_spec["name"])
                     container.remove(force=True)
                 except NotFound:
-                    current_app.logger.warning(
-                        "Did not find dangling user service container."
-                    )
+                    logger.warning("Did not find dangling user service container.")
 
                 # Necessary because the docker container won't emit any
                 # logs for SDK level errors.
@@ -325,6 +322,7 @@ class Session:
             successful.
 
         """
+        logger = utils.get_logger()
 
         session_identity_uuid = None
         project_uuid = None
@@ -353,7 +351,7 @@ class Session:
                 APIError,
                 ContainerError,
             ) as e:
-                current_app.logger.error(
+                logger.error(
                     "Failed to kill/remove session container %s [%s]" % (e, type(e))
                 )
 
@@ -789,7 +787,7 @@ def _get_user_services_specs(
                 )
         except Exception as e:
 
-            current_app.logger.error(
+            utils.get_logger().error(
                 "Failed to fetch user_env_variables: %s [%s]" % (e, type(e))
             )
 
