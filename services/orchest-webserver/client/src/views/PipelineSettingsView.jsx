@@ -533,7 +533,9 @@ const PipelineSettingsView = (props) => {
               },
             });
           } else {
-            console.error("Could not save: pipeline definition OR Notebook JSON");
+            console.error(
+              "Could not save: pipeline definition OR Notebook JSON"
+            );
             console.error(result);
           }
         }
