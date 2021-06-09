@@ -1,12 +1,11 @@
 import path from "path";
 import { defineConfig } from "vite";
-import ViteStitches from "vite-plugin-stitches";
 import reactRefresh from "@vitejs/plugin-react-refresh";
-import { getCssString } from "@orchest/design-system";
+import { vitePluginDesignSystem } from "@orchest/design-system-vite-plugin";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [reactRefresh(), ViteStitches({ getCssString })],
+  plugins: [reactRefresh(), vitePluginDesignSystem()],
   server: {
     host: "0.0.0.0",
   },
@@ -23,7 +22,7 @@ export default defineConfig({
     ],
   },
   css: {
-    preprocessOptions: {
+    preprocessorOptions: {
       scss: {
         includePaths: ["node_modules"],
       },
