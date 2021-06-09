@@ -4,11 +4,8 @@ importers:
   .:
     specifiers:
       syncpack: ^5.7.11
-      typescript: 4.2.4
     dependencies:
       syncpack: 5.7.11
-    devDependencies:
-      typescript: 4.2.4
 
   lib/design-system/package:
     specifiers:
