@@ -3,11 +3,11 @@
   "scripts": {
     "build": "pnpm run build --r --stream",
     "check": "pnpm run pkg:check && pnpm run pkg:format && pnpm run ts:check --r --stream",
-    "dev": "pnpm run build --filter '@orchest/client-*^...' && pnpm run dev --filter '@orchest/client-*...' --r --parallel",
+    "dev": "pnpm run pre-dev --filter '@orchest/client-*^...' && pnpm run dev --filter '@orchest/client-*...' --r --parallel",
     "pkg:check": "syncpack list-mismatches",
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
-    "sandbox": "pnpm run build --filter '@orchest/sandbox^...' && pnpm run dev --filter '@orchest/sandbox...' --r --parallel",
+    "sandbox": "pnpm run dev --filter '@orchest/design-system-sandbox'",
     "setup": "npm i -g pnpm@6.0.1"
   },
   "dependencies": {
