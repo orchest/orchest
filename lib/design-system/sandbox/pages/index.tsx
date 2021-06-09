@@ -102,8 +102,8 @@ const Index: React.FC<InferGetStaticPropsType<typeof getStaticProps>> = ({
         <IconCheckCircleOutline />,
         <IconDraftCircleOutline />,
         <IconCrossCircleOutline />,
-      ].map((icon) => (
-        <AssetListItem>{icon}</AssetListItem>
+      ].map((icon, i) => (
+        <AssetListItem key={`icon-${i}`}>{icon}</AssetListItem>
       ))}
     </AssetList>
     <h2>Logos</h2>
