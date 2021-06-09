@@ -26,9 +26,10 @@ const isNumeric = (value) => value.match("^\\d+$") != null;
  *    required?: boolean;
  *    type?: "text" | "number";
  *    value: TMultiSelectInputValue;
+ *    onBlur: (event: any) => void
  *  } &
  *  Record<
- *    "onChange" | "onKeyDown" | "onKeyUp" | "onBlur",
+ *    "onChange" | "onKeyDown" | "onKeyUp",
  *    (event: TMultiSelectInputEvent) => void
  *  >} TMultiSelectInputProps
  *
