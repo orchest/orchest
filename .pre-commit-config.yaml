@@ -1,7 +1,7 @@
 repos:
   - repo: local
     hooks:
-      - id: "pnpm-pre-commit"
+      - id: "pre-commit-ui"
         name: "pnpm pre-commit"
         language: "system"
         entry: "pnpm run pre-commit"
