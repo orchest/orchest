@@ -215,6 +215,14 @@ class InteractiveSession:
         }
         client.post("/api/sessions/", json=session_request_spec)
 
+    @property
+    def project_uuid(self):
+        return self.project.uuid
+
+    @property
+    def pipeline_uuid(self):
+        return self.pipeline.uuid
+
 
 class InteractiveRun:
     def __init__(self, client, pipeline):
