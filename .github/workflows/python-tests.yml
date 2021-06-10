@@ -3,9 +3,14 @@
 
 name: Python Tests
 
+# Always run on PR because through GitHub settings the Python tests
+# are always required to have passed before a PR can be merged.
 on:
   push:
     branches: [master]
+    paths:
+      - "**.py"
+      - "**/tests/**"
   pull_request:
     branches: [master]
 
