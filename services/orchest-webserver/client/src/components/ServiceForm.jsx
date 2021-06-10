@@ -66,6 +66,12 @@ const ServiceForm = (props) => {
     let service = _.cloneDeep(props.service);
     service.binds = service.binds !== undefined ? service.binds : {};
     service.binds[key] = value;
+
+    // Clear empty value bind entries
+    if (value.trim().length == 0) {
+      delete service.binds[key];
+    }
+
     props.updateService(service);
   };
 

@@ -935,14 +935,16 @@ const PipelineSettingsView = (props) => {
                           Want to learn more about Services?{" "}
                         </AlertHeader>
                         <AlertDescription>
-                          <Link
-                            target="_blank"
-                            href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
-                          >
-                            Learn more
-                          </Link>{" "}
-                          about using services to expand your pipeline's
-                          capabilities.
+                          <>
+                            <Link
+                              target="_blank"
+                              href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
+                            >
+                              Learn more
+                            </Link>{" "}
+                            about using services to expand your pipeline's
+                            capabilities.
+                          </>
                         </AlertDescription>
                       </Alert>
 
