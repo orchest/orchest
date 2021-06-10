@@ -28,4 +28,4 @@ started!
 
 | Python SDK version | Orchest version | Compatible? |
 | ------------------ | --------------- | ----------- |
-| `v0.2.0`           | `>= v2021.05.1` | yes         |
+| `>= v0.2.0`        | `>= v2021.05.1` | yes         |

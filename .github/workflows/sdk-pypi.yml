@@ -31,4 +31,4 @@ jobs:
         run: |
           cd orchest-sdk/python
           python setup.py sdist
-          twine upload dist/* --non-interactive
+          twine upload dist/* --non-interactive --skip-existing
