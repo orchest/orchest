@@ -166,6 +166,8 @@ class BuildPendingDialog extends React.Component {
   }
 
   render() {
+    console.log("test");
+
     return (
       <MDCDialogReact
         ref={this.refManager.nrefs.dialogRef}

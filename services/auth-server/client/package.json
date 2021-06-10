@@ -8,7 +8,7 @@
     "build": "vite build",
     "dev": "vite",
     "serve": "vite preview",
-    "ts:check": "tsc --noEmit"
+    "ts:check": "tsc -p tsconfig.json --noEmit --incremental"
   },
   "dependencies": {
     "@orchest/lib-mdc": "workspace:*",
