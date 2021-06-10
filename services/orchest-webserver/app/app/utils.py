@@ -700,6 +700,13 @@ def generate_gateway_kernel_name(environment_uuid):
 
 
 def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uuid):
+    """
+
+    Raises:
+        KeyError: The structure of the metadata in thee Notebook's JSON
+            was changed.
+
+    """
     # for each step set correct notebook kernel if it exists
 
     steps = pipeline_json["steps"].keys()
@@ -766,8 +773,8 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
                         )
 
                 if notebook_changed:
-                    with open(notebook_path, "w") as file:
-                        file.write(json.dumps(notebook_json, indent=4))
+                    with open(notebook_path, "w") as f:
+                        json.dump(notebook_json, f, indent=4)
 
             else:
                 current_app.logger.info(
