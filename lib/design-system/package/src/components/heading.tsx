@@ -18,6 +18,13 @@ const size = Object.keys(fontSizes).reduce(
   {}
 ) as { [key in TFontSizes]: CSS };
 
+export type THeadingVariants = ExtractVariants<typeof Heading>;
+export interface IHeadingProps extends ICSSProp, THeadingVariants {}
+export type THeadingComponent = Polymorphic.ForwardRefComponent<
+  typeof DEFAULT_TAG,
+  IHeadingProps
+>;
+
 export const Heading = styled(DEFAULT_TAG, {
   fontWeight: "$bold",
   variants: {
@@ -27,12 +34,3 @@ export const Heading = styled(DEFAULT_TAG, {
     size: "2xl",
   },
 });
-
-export interface IHeadingProps
-  extends ICSSProp,
-    ExtractVariants<typeof Heading> {}
-
-export type THeadingComponent = Polymorphic.ForwardRefComponent<
-  typeof DEFAULT_TAG,
-  IHeadingProps
->;

@@ -1,12 +1,20 @@
 repos:
   - repo: local
     hooks:
-      - id: "pnpm-pre-commit"
-        name: "pnpm pre-commit"
+      - id: "pre-commit-package"
+        name: "package.json"
         language: "system"
-        entry: "pnpm run pre-commit"
+        entry: "pnpm run pkg:check && pnpm run pkg:format"
         pass_filenames: false
-        files: \.(js|jsx|json|ts|tsx|html|css|scss)$
+        files: package.json$
+  - repo: local
+    hooks:
+      - id: "pre-commit-typescript"
+        name: "typescript"
+        language: "system"
+        entry: "pnpm run ts:check --r --parallel"
+        pass_filenames: false
+        files: \.(js|jsx|ts|tsx)$
   - repo: https://github.com/pycqa/isort
     rev: 5.6.4
     hooks:

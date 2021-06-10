@@ -1,6 +1,17 @@
+import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { styled } from "../core";
+import type { ExtractVariants, ICSSProp } from "../types";
 
-export const Link = styled("a", {
+const DEFAULT_TAG = "a";
+
+export type TLinkVariants = ExtractVariants<typeof Link>;
+export interface ILinkProps extends ICSSProp, TLinkVariants {}
+export type TLinkComponent = Polymorphic.ForwardRefComponent<
+  typeof DEFAULT_TAG,
+  ILinkProps
+>;
+
+export const Link = styled(DEFAULT_TAG, {
   variants: {
     variant: {
       inline: {

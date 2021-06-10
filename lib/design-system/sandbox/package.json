@@ -1,18 +1,21 @@
 {
   "private": true,
-  "name": "@orchest/sandbox",
+  "name": "@orchest/design-system-sandbox",
   "version": "1.0.0",
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "pre-build": "ts-node -r tsconfig-paths/register scripts/sync-assets.ts",
-    "build": "pnpm run pre-build && next build",
-    "dev": "pnpm run pre-build && next dev",
-    "start": "next start"
+    "build": "next build",
+    "dev": "next dev",
+    "prebuild": "ts-node -r tsconfig-paths/register scripts/sync-assets.ts",
+    "predev": "pnpm run prebuild",
+    "start": "next start",
+    "ts:check": "tsc -p tsconfig.json --noEmit --incremental"
   },
   "dependencies": {
     "@orchest/design-system": "workspace:*",
     "next": "10.2.0",
+    "next-transpile-modules": "7.2.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   },
@@ -20,8 +23,10 @@
     "@types/node": "15.0.1",
     "@types/react": "17.0.3",
     "fs-extra": "10.0.0",
-    "tsconfig-paths": "3.9.0",
+    "glob": "7.1.7",
+    "image-size": "1.0.0",
     "ts-node": "9.1.1",
-    "typescript": "4.2.4"
+    "tsconfig-paths": "3.9.0",
+    "typescript": "4.3.2"
   }
 }

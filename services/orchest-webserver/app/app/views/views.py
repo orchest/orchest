@@ -711,10 +711,19 @@ def register_views(app, db):
 
             # Side effect: for each Notebook in de pipeline.json set the
             # correct kernel.
-            pipeline_set_notebook_kernels(
-                pipeline_json, pipeline_directory, project_uuid
-            )
+            try:
+                pipeline_set_notebook_kernels(
+                    pipeline_json, pipeline_directory, project_uuid
+                )
+            except KeyError:
+                msg = {
+                    "success": False,
+                    "reason": "Invalid Notebook metadata structure.",
+                }
+                return jsonify(msg), 400
 
+            # Save the pipeline JSON again to make sure its keys are
+            # sorted.
             with open(pipeline_json_path, "w") as json_file:
                 json.dump(pipeline_json, json_file, indent=4, sort_keys=True)
 
@@ -745,8 +754,6 @@ def register_views(app, db):
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
                 )
-
-            return ""
 
     @app.route(
         "/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>",

@@ -15,6 +15,8 @@ import {
   Flex,
   IconServicesSolid,
   Alert,
+  AlertHeader,
+  AlertDescription,
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
@@ -543,13 +545,11 @@ const PipelineSettingsView = (props) => {
                 pipelineName: pipelineJson?.name,
               },
             });
-          } else {
-            console.error("Could not save pipeline.json");
-            console.error(result);
           }
         }
       )
       .catch((response) => {
+        console.error("Could not save: pipeline definition OR Notebook JSON");
         console.error(response);
       });
 
@@ -929,23 +929,22 @@ const PipelineSettingsView = (props) => {
                           ))}
                       />
 
-                      <Alert
-                        icon={<IconLightBulbOutline />}
-                        status="info"
-                        title="Want to learn more about Services?"
-                        description={
-                          <>
-                            <Link
-                              target="_blank"
-                              href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
-                            >
-                              Learn more
-                            </Link>{" "}
-                            about using services to expand your pipeline's
-                            capabilities.
-                          </>
-                        }
-                      />
+                      <Alert status="info">
+                        <AlertHeader>
+                          <IconLightBulbOutline />
+                          Want to learn more about Services?{" "}
+                        </AlertHeader>
+                        <AlertDescription>
+                          <Link
+                            target="_blank"
+                            href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
+                          >
+                            Learn more
+                          </Link>{" "}
+                          about using services to expand your pipeline's
+                          capabilities.
+                        </AlertDescription>
+                      </Alert>
 
                       <Dialog
                         open={isServiceCreateDialogOpen}

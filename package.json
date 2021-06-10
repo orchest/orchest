@@ -2,16 +2,17 @@
   "private": true,
   "scripts": {
     "build": "pnpm run build --r --stream",
-    "dev": "pnpm run build --filter '@orchest/client-*^...' && pnpm run dev --filter '@orchest/client-*...' --r --parallel",
-    "sandbox": "pnpm run build --filter '@orchest/sandbox^...' && pnpm run dev --filter '@orchest/sandbox...' --r --parallel",
-    "format": "syncpack format",
-    "lint": "syncpack list-mismatches && pnpm run lint --r --stream",
-    "pre-commit": "pnpm run build --filter '@orchest/client-*^...' && pnpm run lint",
+    "check": "pnpm run pkg:check && pnpm run pkg:format && pnpm run ts:check --r --parallel",
+    "dev": "pnpm run dev --filter '@orchest/client-*...' --r --parallel",
+    "pkg:check": "syncpack list-mismatches",
+    "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
+    "sandbox": "pnpm run dev --filter '@orchest/design-system-sandbox'",
     "setup": "npm i -g pnpm@6.0.1"
   },
-  "dependencies": {
-    "syncpack": "^5.7.11"
+  "devDependencies": {
+    "syncpack": "5.7.11",
+    "typescript": "4.3.2"
   },
   "engines": {
     "pnpm": ">=6"
@@ -20,11 +21,15 @@
     "sortFirst": [
       "private",
       "name",
-      "description",
       "version",
+      "description",
       "author",
       "license",
       "main",
+      "typings",
+      "files",
+      "publishConfig",
+      "sideEffects",
       "scripts",
       "peerDependencies",
       "dependencies",

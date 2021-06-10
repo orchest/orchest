@@ -3,3 +3,4 @@ packages:
   - "lib/javascript/*"
   - "services/*/client"
   - "!**/test/**"
+enable-pre-post-scripts: true
