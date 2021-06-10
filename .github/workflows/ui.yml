@@ -4,6 +4,12 @@ name: UI
 on:
   push:
     branches: [master]
+    paths:
+      - "**package.json"
+      - "lib/design-system/**"
+      - "lib/javascript/**"
+      - "services/auth-server/**"
+      - "services/orchest-webserver/**"
   pull_request:
     branches: [master]
 
