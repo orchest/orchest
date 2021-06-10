@@ -236,11 +236,6 @@ h2 {
     margin-left: calc(var(--space-5) / 2);
   }
 }
-h3 {
-  .inline-icon {
-    font-size: 22px;
-  }
-}
 
 .help-list {
   .mdc-list {
@@ -436,6 +431,12 @@ a.button {
     }
   }
   .service-form {
+    h3 {
+      .inline-icon {
+        font-size: 22px;
+      }
+    }
+
     white-space: initial;
     .columns {
       margin-bottom: var(--space-5);

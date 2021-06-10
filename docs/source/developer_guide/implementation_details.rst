@@ -59,6 +59,10 @@ definition>` in Orchest can be found below.
 
 You can see an example and interactive validator `here <https://www.jsonschemavalidator.net/s/FfQDko01>`_.
 
+Check out an example `pipeline.orchest` file in our `Quickstart repo <https://github.com/orchest/quickstart/blob/main/california_housing.orchest>`_.
+
+Full JSON Schema:
+
 .. code-block:: json
 
   {

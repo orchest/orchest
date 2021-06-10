@@ -479,7 +479,7 @@ const ServiceForm = (props) => {
                 </h3>
                 <MDCTooltipReact
                   tooltipID="tooltip-inherited-env-variables"
-                  tooltip="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service."
+                  tooltip="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service. Note, inherited environment variables override any service defined environment variables, but only if they are defined at the project, pipeline or job level."
                 />
 
                 <MultiSelect

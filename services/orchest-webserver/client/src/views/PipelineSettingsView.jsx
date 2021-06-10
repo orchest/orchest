@@ -14,6 +14,9 @@ import {
   DialogTitle,
   Flex,
   IconServicesSolid,
+  Alert,
+  IconLightBulbOutline,
+  Link,
 } from "@orchest/design-system";
 
 import {
@@ -924,6 +927,24 @@ const PipelineSettingsView = (props) => {
                               run_uuid={props.queryArgs.run_uuid}
                             />
                           ))}
+                      />
+
+                      <Alert
+                        icon={<IconLightBulbOutline />}
+                        status="info"
+                        title="Want to learn more about Services?"
+                        description={
+                          <>
+                            <Link
+                              target="_blank"
+                              href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
+                            >
+                              Learn more
+                            </Link>{" "}
+                            about using services to expand your pipeline's
+                            capabilities.
+                          </>
+                        }
                       />
 
                       <Dialog
