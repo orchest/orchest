@@ -17,6 +17,7 @@
     "@orchest/design-system-vite-plugin": "workspace:*",
     "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
+    "ajv": "^8.6.0",
     "codemirror": "^5.55.0",
     "cron-parser": "^3.3.0",
     "cronstrue": "^1.108.0",

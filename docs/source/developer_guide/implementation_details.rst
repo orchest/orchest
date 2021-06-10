@@ -57,7 +57,11 @@ Pipeline definition JSON
 The full `JSON Schema <https://json-schema.org/>`_ definition of :ref:`pipelines <pipeline
 definition>` in Orchest can be found below.
 
-You can see an example and interactive validator `here <https://www.jsonschemavalidator.net/s/Gn040Vfy>`_.
+You can see an example and interactive validator `here <https://www.jsonschemavalidator.net/s/FfQDko01>`_.
+
+Check out an example `pipeline.orchest` file in our `Quickstart repo <https://github.com/orchest/quickstart/blob/main/california_housing.orchest>`_.
+
+Full JSON Schema:
 
 .. code-block:: json
 
@@ -100,31 +104,31 @@ You can see an example and interactive validator `here <https://www.jsonschemava
           "": {
             "properties": {
               "environment": {
-                "$ref": "#/definitions/uuidv4",
-                "required": true
+                "$ref": "#/definitions/uuidv4"
               },
               "file_path": {
-                "required": true,
                 "type": "string"
               },
               "incoming_connections": {
                 "items": {
                   "$ref": "#/definitions/uuidv4"
                 },
-                "required": true,
                 "type": "array"
               },
               "kernel": {
                 "properties": {
                   "display_name": {
-                    "required": true,
                     "type": "string"
                   },
                   "name": {
-                    "required": true,
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "display_name",
+                  "name"
+                ],
+                "type": "object"
               },
               "meta_data": {
                 "properties": {
@@ -137,26 +141,105 @@ You can see an example and interactive validator `here <https://www.jsonschemava
                     },
                     "type": "array"
                   }
-                }
+                },
+                "type": "object"
               },
               "parameters": {
-                "$ref": "#/definitions/parameter",
-                "required": true
+                "$ref": "#/definitions/parameter"
               },
               "title": {
-                "required": true,
                 "type": "string"
               },
               "uuid": {
-                "$ref": "#/definitions/uuidv4",
-                "required": true
+                "$ref": "#/definitions/uuidv4"
               }
             },
+            "required": [
+              "uuid",
+              "title",
+              "parameters",
+              "kernel",
+              "incoming_connections",
+              "file_path",
+              "environment"
+            ],
             "type": "object"
           }
         },
         "propertyNames": {
           "$ref": "#/definitions/uuidv4"
+        },
+        "type": "object"
+      },
+      "services": {
+        "additionalProperties": false,
+        "patternProperties": {
+          "": {
+            "additionalProperties": false,
+            "properties": {
+              "image": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "entrypoint": {
+                "type": "string"
+              },
+              "scope": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "binds": {
+                "properties": {
+                  "": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "env_variables": {
+                "properties": {
+                  "": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "env_variables_inherit": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ports": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number"
+                  ]
+                },
+                "type": "array"
+              },
+              "preserve_base_path": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "image",
+              "name",
+              "scope"
+            ],
+            "type": "object"
+          }
+        },
+        "propertyNames": {
+          "type": "string"
         },
         "type": "object"
       },
@@ -175,7 +258,6 @@ You can see an example and interactive validator `here <https://www.jsonschemava
     ],
     "type": "object"
   }
-
 
 ENV variables
 -------------

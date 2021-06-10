@@ -26,6 +26,7 @@ const isNumeric = (value) => value.match("^\\d+$") != null;
  *    required?: boolean;
  *    type?: "text" | "number";
  *    value: TMultiSelectInputValue;
+ *    onBlur: (event: any) => void
  *  } &
  *  Record<
  *    "onChange" | "onKeyDown" | "onKeyUp",
@@ -92,7 +93,6 @@ export const MultiSelect = ({
 
   /** @type {TMultiSelectContext['removeItem']} */
   const removeItem = (item) => {
-    console.log("handle remove");
     setItems((prevState) =>
       prevState.filter((prevStateItem) => prevStateItem !== item)
     );
@@ -110,6 +110,22 @@ export const MultiSelect = ({
     htmlFor: inputId,
   });
 
+  const addItem = (value) => {
+    setItems((prevState) => [...prevState, value]);
+    setInputValue("");
+  };
+
+  const checkErrors = (value) => {
+    setError();
+
+    if (type === "number" && !isNumeric(value)) {
+      setError(`"${value}" is invalid. Please enter a number.`);
+    }
+
+    if (items.some((selectedItem) => selectedItem.value === value)) {
+      setError(`"${value}" already exists`);
+    }
+  };
   /** @type {TMultiSelectContext['getInputProps']} */
   const getInputProps = () => ({
     id: inputId,
@@ -117,10 +133,21 @@ export const MultiSelect = ({
     required,
     type: "text",
     ...(type === "number" && { inputMode: "numeric", pattern: "[0-9]*" }),
+    onBlur: (e) => {
+      const value = e.target.value;
+
+      if (isValueWhitespace(value)) {
+        setInputValue("");
+        return;
+      }
+
+      checkErrors(value);
+      if (!error) {
+        addItem({ value });
+      }
+    },
     onChange: (event) => {
       // clear any previous errors
-      setError();
-
       const value = event?.target?.value;
 
       if (isValueWhitespace(value)) {
@@ -128,14 +155,7 @@ export const MultiSelect = ({
         return;
       }
 
-      if (type === "number" && !isNumeric(value)) {
-        setError(`"${value}" is invalid. Please enter a number.`);
-      }
-
-      if (items.some((selectedItem) => selectedItem.value === value)) {
-        setError(`"${value}" already exists`);
-      }
-
+      checkErrors(value);
       setInputValue(value);
     },
     onKeyDown: (event) => {
@@ -151,9 +171,7 @@ export const MultiSelect = ({
 
       if (!error && event.key === "Enter") {
         if (isValueWhitespace(value)) return;
-
-        setItems((prevState) => [...prevState, { value }]);
-        setInputValue("");
+        addItem({ value });
       }
     },
     ...(error && { "aria-invalid": true, "aria-labelledby": errorId }),

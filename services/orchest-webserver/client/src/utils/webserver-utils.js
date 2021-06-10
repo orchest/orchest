@@ -1,5 +1,7 @@
 import _ from "lodash";
-import { makeRequest } from "@orchest/lib-utils";
+import Ajv from "ajv";
+
+import { makeRequest, extensionFromFilename } from "@orchest/lib-utils";
 import { format, parseISO } from "date-fns";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
@@ -23,6 +25,13 @@ import ProjectSettingsView from "../views/ProjectSettingsView";
 import ProjectsView from "../views/ProjectsView";
 import SettingsView from "../views/SettingsView";
 import UpdateView from "../views/UpdateView";
+import { pipelineSchema } from "@/utils/pipeline-schema";
+
+const ajv = new Ajv({
+  allowUnionTypes: true,
+});
+
+const pipelineValidator = ajv.compile(pipelineSchema);
 
 function getComponentObject() {
   // This {str: Class} mapping is required for name
@@ -96,6 +105,76 @@ export function componentName(TagName) {
     }
   }
   console.error("Was not able to get componentName for TagName" + TagName);
+}
+
+export function validatePipeline(pipelineJson) {
+  let errors = [];
+
+  let valid = pipelineValidator(pipelineJson);
+  if (!valid) {
+    errors.concat(pipelineValidator.errors);
+  }
+
+  // Check for non schema validation
+  if (pipelineJson.services) {
+    for (let serviceName of Object.keys(pipelineJson.services)) {
+      if (pipelineJson.services[serviceName].name.length == 0) {
+        errors.push("Service name field can't be empty.");
+      }
+      if (pipelineJson.services[serviceName].name.indexOf(" ") >= 0) {
+        errors.push("Service name can't contain spaces.");
+      }
+
+      // NOTE: this is enforced at the backend level as well, needs to
+      // be kept in sync.
+      let serviceNameRegex = /^[a-zA-Z\d-]{1,36}$/;
+      if (!serviceNameRegex.test(pipelineJson.services[serviceName].name)) {
+        errors.push(
+          "Service name contains illegal characters. Only use letters, digits and dashes."
+        );
+      }
+      if (pipelineJson.services[serviceName].image.length == 0) {
+        errors.push(
+          "Service image field can't be empty. Please check service: " +
+            serviceName +
+            "."
+        );
+      }
+      if (pipelineJson.services[serviceName].scope.length == 0) {
+        errors.push(
+          "Services require at least one scope to be enabled. Please check service: " +
+            serviceName +
+            "."
+        );
+      }
+    }
+  }
+
+  // check whether steps share notebook steps
+  outerLoop: for (let stepKey in pipelineJson.steps) {
+    let step = pipelineJson.steps[stepKey];
+
+    if (extensionFromFilename(step.file_path) === "ipynb") {
+      for (let otherStepKey in pipelineJson.steps) {
+        let otherStep = pipelineJson.steps[otherStepKey];
+
+        if (step.uuid === otherStep.uuid) {
+          continue;
+        }
+
+        if (otherStep.file_path === step.file_path) {
+          errors.push(
+            `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across pipeline steps.`
+          );
+
+          // found an error, stop checking
+          break outerLoop;
+        }
+      }
+    }
+  }
+
+  return { valid: errors.length == 0, errors };
 }
 
 export function filterServices(services, scope) {

@@ -5,7 +5,6 @@ import {
   uuidv4,
   intersectRect,
   globalMDCVars,
-  extensionFromFilename,
   collapseDoubleDots,
   makeRequest,
   makeCancelable,
@@ -22,6 +21,7 @@ import {
   serverTimeToDate,
   getServiceURLs,
   filterServices,
+  validatePipeline,
 } from "../utils/webserver-utils";
 
 import PipelineSettingsView from "./PipelineSettingsView";
@@ -386,52 +386,17 @@ class PipelineView extends React.Component {
       });
   }
 
-  validatePipelineJSON(pipelineJSON) {
-    let pipelineValidation = {
-      valid: true,
-      errors: [],
-    };
-
-    // check whether steps share notebook steps
-    outerLoop: for (let stepKey in pipelineJSON.steps) {
-      let step = pipelineJSON.steps[stepKey];
-
-      if (extensionFromFilename(step.file_path) === "ipynb") {
-        for (let otherStepKey in pipelineJSON.steps) {
-          let otherStep = pipelineJSON.steps[otherStepKey];
-
-          if (step.uuid === otherStep.uuid) {
-            continue;
-          }
-
-          if (otherStep.file_path === step.file_path) {
-            pipelineValidation.valid = false;
-            pipelineValidation.errors.push(
-              `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across pipeline steps.`
-            );
-
-            // found an error, stop checking
-            break outerLoop;
-          }
-        }
-      }
-    }
-
-    return pipelineValidation;
-  }
-
   savePipeline(callback) {
     if (this.props.queryArgs.read_only !== "true") {
       let pipelineJSON = this.encodeJSON();
 
       // validate pipelineJSON
-      let pipelineValidation = this.validatePipelineJSON(pipelineJSON);
+      let pipelineValidation = validatePipeline(pipelineJSON);
 
       // if invalid
       if (pipelineValidation.valid !== true) {
-        for (let x = 0; x < pipelineValidation.errors.length; x++) {
-          orchest.alert("Error", pipelineValidation.errors[x]);
-        }
+        // Just show the first error
+        orchest.alert("Error", pipelineValidation.errors[0]);
       } else {
         // store pipeline.json
         let formData = new FormData();

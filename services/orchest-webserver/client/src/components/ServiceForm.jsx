@@ -9,6 +9,7 @@ import {
   MDCDialogReact,
   MDCSelectReact,
   MDCLinearProgressReact,
+  MDCTooltipReact,
 } from "@orchest/lib-mdc";
 import { getServiceURLs } from "../utils/webserver-utils";
 import EnvVarList from "@/components/EnvVarList";
@@ -65,6 +66,12 @@ const ServiceForm = (props) => {
     let service = _.cloneDeep(props.service);
     service.binds = service.binds !== undefined ? service.binds : {};
     service.binds[key] = value;
+
+    // Clear empty value bind entries
+    if (value.trim().length == 0) {
+      delete service.binds[key];
+    }
+
     props.updateService(service);
   };
 
@@ -141,6 +148,7 @@ const ServiceForm = (props) => {
             <div>
               <MDCTextFieldReact
                 label="Image name"
+                aria-describedby={"tooltip-imageNameField"}
                 onChange={(value) => {
                   setEditImageName(value);
                   if (value.length > 0) {
@@ -150,8 +158,12 @@ const ServiceForm = (props) => {
                 classNames={["fullwidth"]}
                 value={editImageName}
               />
+              <MDCTooltipReact
+                tooltipID="tooltip-imageNameField"
+                tooltip="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`"
+              />
               <p className="push-up push-down">
-                Or choosing an environment as your image:
+                Or choose an environment as your image:
               </p>
               <MDCSelectReact
                 label="Environment"
@@ -215,28 +227,18 @@ const ServiceForm = (props) => {
                   inputType="text"
                   disabled={props.disabled}
                   value={props.service.name}
+                  maxLength="36"
                   onChange={(value) => {
                     handleNameChange(value);
                   }}
                   classNames={["fullwidth"]}
+                  aria-describedby="tooltip-name"
+                />
+                <MDCTooltipReact
+                  tooltipID="tooltip-name"
+                  tooltip="The name of the service. Up to 36 digits, letters or dashes are allowed."
                 />
               </div>
-              <div className="column">
-                <MDCTextFieldReact
-                  label="Command (optional)"
-                  inputType="text"
-                  disabled={props.disabled}
-                  value={props.service.command}
-                  onChange={(value) => {
-                    handleServiceChange("command", value);
-                  }}
-                  classNames={["fullwidth"]}
-                />
-              </div>
-              <div className="clear"></div>
-            </div>
-
-            <div className="columns inner-padded">
               <div className="column">
                 <MDCTextFieldReact
                   label="Image"
@@ -256,7 +258,24 @@ const ServiceForm = (props) => {
                   classNames={["fullwidth"]}
                 />
               </div>
-              <div className="column inner-padded">
+              <div className="clear"></div>
+            </div>
+
+            <h3 className="push-up push-down">
+              Start behavior{" "}
+              <i
+                className="material-icons inline-icon push-left"
+                aria-describedby="tooltip-start"
+              >
+                info
+              </i>
+            </h3>
+            <MDCTooltipReact
+              tooltipID="tooltip-start"
+              tooltip="Change the service start up behavior by specifying the entrypoint and command options. This is similar the Docker equivalents."
+            />
+            <div className="columns inner-padded">
+              <div className="column">
                 <MDCTextFieldReact
                   label="Entrypoint (optional)"
                   inputType="text"
@@ -266,12 +285,46 @@ const ServiceForm = (props) => {
                     handleServiceChange("entrypoint", value);
                   }}
                   classNames={["fullwidth"]}
+                  aria-describedby="tooltip-entrypoint"
+                />
+                <MDCTooltipReact
+                  tooltipID="tooltip-entrypoint"
+                  tooltip="This is the same `entrypoint` as the entrypoint for Docker. E.g. `python main.py`."
+                />
+              </div>
+              <div className="column inner-padded">
+                <MDCTextFieldReact
+                  label="Command (optional)"
+                  inputType="text"
+                  disabled={props.disabled}
+                  value={props.service.command}
+                  onChange={(value) => {
+                    handleServiceChange("command", value);
+                  }}
+                  classNames={["fullwidth"]}
+                  aria-describedby="tooltip-command"
+                />
+                <MDCTooltipReact
+                  tooltipID="tooltip-command"
+                  tooltip="This is the same `command` as the command for Docker. E.g. `arg1 -v`. They are appended to the entrypoint."
                 />
               </div>
               <div className="clear"></div>
             </div>
 
-            <h3 className="push-down">Mounts</h3>
+            <h3 className="push-down">
+              Mounts{" "}
+              <i
+                className="material-icons inline-icon push-left"
+                aria-describedby="tooltip-mounts"
+              >
+                info
+              </i>
+            </h3>
+            <MDCTooltipReact
+              tooltipID="tooltip-mounts"
+              tooltip="Mounts give you access to the project files or /data files from within the service. Entered paths should be absolute paths in the container image."
+            />
             <div className="columns inner-padded">
               <div className="column">
                 <MDCTextFieldReact
@@ -302,8 +355,19 @@ const ServiceForm = (props) => {
 
             <div className="columns inner-padded">
               <div className="column">
-                <h3 className="">Ports</h3>
-
+                <h3>
+                  Ports{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-ports"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-ports"
+                  tooltip="Enter ports like 80, 8080 to make the service available through a URL."
+                />
                 <MultiSelect
                   type="number"
                   items={
@@ -327,11 +391,20 @@ const ServiceForm = (props) => {
                   <MultiSelectError />
                 </MultiSelect>
 
-                <h3 className="push-up push-down">Preserve base path</h3>
-                <p>
-                  This setting defines whether the first component of the URL is
-                  forwarded to the service container by the network proxy.
-                </p>
+                <h3 className="push-up push-down">
+                  Preserve base path{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-preserve-base-path"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-preserve-base-path"
+                  tooltip="When you preserve the base path the first component of the path https://<hostname>/1/2/... will be passed to the service when the request is proxied by Orchest."
+                />
+
                 <MDCCheckboxReact
                   onChange={(isChecked) => {
                     handleServiceChange("preserve_base_path", isChecked);
@@ -341,7 +414,19 @@ const ServiceForm = (props) => {
                 />
               </div>
               <div className="column">
-                <h3 className="push-down">URLs</h3>
+                <h3 className="push-down">
+                  URLs{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-urls"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-urls"
+                  tooltip="The URLs that will be available to communicate with the service. These are all proxied by Orchest."
+                />
                 {props.service.ports &&
                   getServiceURLs(
                     props.service,
@@ -357,9 +442,21 @@ const ServiceForm = (props) => {
               <div className="clear"></div>
             </div>
 
-            <div className="columns">
+            <div className="columns inner-padded">
               <div className="column">
-                <h3 className="push-down">Scope</h3>
+                <h3 className="push-down">
+                  Scope{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-scope"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-scope"
+                  tooltip="Scope defines whether a service will run during interactive sessions, in job sessions, or both."
+                />
                 <MDCCheckboxReact
                   onChange={(isChecked) => {
                     handleScopeCheckbox(isChecked, "interactive");
@@ -377,7 +474,19 @@ const ServiceForm = (props) => {
                 />
               </div>
               <div className="column">
-                <h3>Inherited environment variables</h3>
+                <h3>
+                  Inherited environment variables{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-inherited-env-variables"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-inherited-env-variables"
+                  tooltip="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service. Note, inherited environment variables override any service defined environment variables, but only if they are defined at the project, pipeline or job level."
+                />
 
                 <MultiSelect
                   items={props.service?.env_variables_inherit?.map(
@@ -402,7 +511,19 @@ const ServiceForm = (props) => {
               </div>
               <div className="clear"></div>
             </div>
-            <h3 className="push-down">Environment variables</h3>
+            <h3 className="push-down">
+              Environment variables{" "}
+              <i
+                className="material-icons inline-icon push-left"
+                aria-describedby="tooltip-env-variables"
+              >
+                info
+              </i>
+            </h3>
+            <MDCTooltipReact
+              tooltipID="tooltip-env-variables"
+              tooltip="Environment variables specific to the service. Note! These are versioned, so don't use it for secrets."
+            />
             <EnvVarList
               value={envVarsDictToList(
                 props.service.env_variables ? props.service.env_variables : {}

@@ -67,6 +67,10 @@ p {
   position: relative;
 }
 
+.mdc-tooltip {
+  white-space: initial;
+}
+
 .mdc-drawer .mdc-list-item {
   font-weight: 400;
 }
@@ -223,6 +227,13 @@ h2 {
       }
       cursor: pointer;
     }
+  }
+}
+
+.material-icons.inline-icon {
+  position: absolute;
+  &.push-left {
+    margin-left: calc(var(--space-5) / 2);
   }
 }
 
@@ -420,6 +431,13 @@ a.button {
     }
   }
   .service-form {
+    h3 {
+      .inline-icon {
+        font-size: 22px;
+      }
+    }
+
+    white-space: initial;
     .columns {
       margin-bottom: var(--space-5);
     }

@@ -136,7 +136,11 @@ export class MDCTextFieldReact extends React.Component {
     }
 
     return (
-      <div ref={this.refManager.nrefs.input} className={topClasses.join(" ")}>
+      <div
+        aria-describedby={this.props["aria-describedby"]}
+        ref={this.refManager.nrefs.input}
+        className={topClasses.join(" ")}
+      >
         <span className="mdc-text-field__ripple"></span>
         <input
           disabled={this.props.disabled}
