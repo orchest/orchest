@@ -238,7 +238,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and isinstance(service.get("binds", {}), dict)
         and all(
             [
-                isinstance(s, str) and isinstance(t, str)
+                isinstance(s, str) and isinstance(t, str) and s and t
                 for s, t in service.get("binds", {}).items()
             ]
         )
@@ -249,12 +249,15 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and all([isinstance(port, int) for port in service.get("ports", [])])
         and isinstance(service.get("env_variables_inherit", []), list)
         and all(
-            [isinstance(var, str) for var in service.get("env_variables_inherit", [])]
+            [
+                isinstance(var, str) and var
+                for var in service.get("env_variables_inherit", [])
+            ]
         )
         and isinstance(service.get("env_variables", {}), dict)
         and all(
             [
-                isinstance(var, str) and isinstance(value, str)
+                isinstance(var, str) and isinstance(value, str) and var
                 for var, value in service.get("env_variables", {}).items()
             ]
         )
