@@ -4,11 +4,8 @@ name: Publish SDK to PyPi
 # means that the SDK is published separately from Orchest, this way
 # user can build their own custom images for Orchest.
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - "orchest-sdk/python/**"
+  release:
+    types: [published]
 
 jobs:
   uploadsdk:
