@@ -87,16 +87,14 @@ service = Model(
         ),
         "env_variables": fields.Raw(
             required=False,
-            description=(
-                "Environment variables of the service, supersedes environment "
-                "inherited variables"
-            ),
+            description=("Environment variables of the service."),
         ),
         "env_variables_inherit": fields.List(
             fields.String,
             required=False,
             description=(
-                "List of env vars to inherit from project and pipeline env vars"
+                "List of env vars to inherit from project and pipeline env vars "
+                " or job env vars. These env vars supersede the service defined ones."
             ),
         ),
         "binds": fields.Raw(

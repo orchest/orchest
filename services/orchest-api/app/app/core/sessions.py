@@ -795,14 +795,12 @@ def _get_user_services_specs(
 
             user_env_variables = {}
 
-        environment = {}
+        environment = service.get("env_variables", {})
 
+        # Inherited env vars supersede inherited ones.
         for inherited_key in service.get("env_variables_inherit", []):
             if inherited_key in user_env_variables:
                 environment[inherited_key] = user_env_variables[inherited_key]
-
-        # User defined env vars superse inherited ones.
-        environment.update(service.get("env_variables", {}))
 
         # These are all required for the Orchest SDK to work.
         environment["ORCHEST_PROJECT_UUID"] = project_uuid
