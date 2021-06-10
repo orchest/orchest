@@ -509,7 +509,7 @@ const PipelineSettingsView = (props) => {
 
     let validationResult = validatePipeline(pipelineJson);
     if (!validationResult.valid) {
-      orchest.alert("Error", validationResult[0]);
+      orchest.alert("Error", validationResult.errors[0]);
       return;
     }
 

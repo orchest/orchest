@@ -395,9 +395,8 @@ class PipelineView extends React.Component {
 
       // if invalid
       if (pipelineValidation.valid !== true) {
-        for (let x = 0; x < pipelineValidation.errors.length; x++) {
-          orchest.alert("Error", pipelineValidation.errors[x]);
-        }
+        // Just show the first error
+        orchest.alert("Error", pipelineValidation.errors[0]);
       } else {
         // store pipeline.json
         let formData = new FormData();
