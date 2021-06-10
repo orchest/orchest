@@ -1,8 +1,10 @@
+import logging
 import time
 from datetime import datetime
 from typing import Dict, List, Set
 
 import requests
+from celery.utils.log import get_task_logger
 from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
@@ -545,3 +547,11 @@ def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[st
         .env_variables
     )
     return {**project_env_vars, **pipeline_env_vars}
+
+
+def get_logger() -> logging.Logger:
+    try:
+        return current_app.logger
+    except Exception:
+        pass
+    return get_task_logger(__name__)
