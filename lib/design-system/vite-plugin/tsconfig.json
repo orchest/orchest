@@ -3,6 +3,11 @@
   "compilerOptions": {
     "baseUrl": "."
   },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  },
   "exclude": ["node_modules"],
-  "include": ["src/**/*.jsx", "src/**/*.ts"],
+  "include": [ "src/index.ts"],
 }

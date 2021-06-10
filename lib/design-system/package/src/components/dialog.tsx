@@ -98,12 +98,12 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   },
 });
 
-interface IDialogContentProps
+export type TDialogContentVariants = ExtractVariants<typeof DialogContentRoot>;
+export interface IDialogContentProps
   extends ICSSProp,
-    ExtractVariants<typeof DialogContentRoot>,
+    TDialogContentVariants,
     Polymorphic.OwnProps<typeof DialogPrimitive.Content> {}
-
-type TDialogContentComponent = Polymorphic.ForwardRefComponent<
+export type TDialogContentComponent = Polymorphic.ForwardRefComponent<
   Polymorphic.IntrinsicElement<typeof DialogPrimitive.Content>,
   IDialogContentProps
 >;
@@ -124,9 +124,9 @@ export const DialogHeader = styled("header", {
   padding: "$$padding",
 });
 
-export const DialogTitle = React.forwardRef((props, forwardedRef) => (
-  <Heading ref={forwardedRef} size="xl" {...props} />
-)) as THeadingComponent;
+export const DialogTitle: THeadingComponent = React.forwardRef(
+  (props, forwardedRef) => <Heading ref={forwardedRef} size="xl" {...props} />
+);
 
 export const DialogBody = styled("div", {
   include: "box",

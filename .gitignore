@@ -74,8 +74,9 @@ db.sqlite3-journal
 # Flask stuff:
 .webassets-cache
 
-# NPM node_modules for web
+# Front-end
 node_modules
+*.tsbuildinfo
 
 # Scrapy stuff:
 .scrapy
