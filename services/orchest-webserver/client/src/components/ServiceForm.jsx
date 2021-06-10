@@ -227,7 +227,7 @@ const ServiceForm = (props) => {
                   inputType="text"
                   disabled={props.disabled}
                   value={props.service.name}
-                  maxLength="32"
+                  maxLength="36"
                   onChange={(value) => {
                     handleNameChange(value);
                   }}
@@ -236,7 +236,7 @@ const ServiceForm = (props) => {
                 />
                 <MDCTooltipReact
                   tooltipID="tooltip-name"
-                  tooltip="The name of the service. Up to 32 digits, letters or dashes are allowed."
+                  tooltip="The name of the service. Up to 36 digits, letters or dashes are allowed."
                 />
               </div>
               <div className="column">
