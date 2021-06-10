@@ -125,7 +125,9 @@ export function validatePipeline(pipelineJson) {
         errors.push("Service name can't contain spaces.");
       }
 
-      let serviceNameRegex = /^[a-zA-Z\d-]{1,32}$/;
+      // NOTE: this is enforced at the backend level as well, needs to
+      // be kept in sync.
+      let serviceNameRegex = /^[a-zA-Z\d-]{1,36}$/;
       if (!serviceNameRegex.test(pipelineJson.services[serviceName].name)) {
         errors.push(
           "Service name contains illegal characters. Only use letters, digits and dashes."
