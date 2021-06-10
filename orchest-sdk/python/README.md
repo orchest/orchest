@@ -5,7 +5,7 @@
 
 ---
 
-Python package for interacting with [Orchest]((https://github.com/orchest/orchest).
+Python package for interacting with [Orchest](https://github.com/orchest/orchest).
 
 ## Installation
 
