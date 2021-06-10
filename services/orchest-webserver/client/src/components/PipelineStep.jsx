@@ -18,6 +18,23 @@ class PipelineStep extends React.Component {
       "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
   }
 
+  formatSeconds(seconds) {
+    // Hours, minutes and seconds
+    let hrs = ~~(seconds / 3600);
+    let mins = ~~((seconds % 3600) / 60);
+    let secs = ~~seconds % 60;
+
+    let ret = "";
+    if (hrs > 0) {
+      ret += hrs + "h ";
+    }
+    if (mins > 0) {
+      ret += mins + "m ";
+    }
+    ret += secs + "s";
+    return ret;
+  }
+
   render() {
     let classNames = ["pipeline-step"];
 
@@ -36,7 +53,7 @@ class PipelineStep extends React.Component {
           1000
       );
 
-      stateText = "Completed (" + seconds + " sec.)";
+      stateText = "Completed (" + this.formatSeconds(seconds) + ")";
     }
     if (this.props.executionState.status === "FAILURE") {
       let seconds = 0;
@@ -49,7 +66,7 @@ class PipelineStep extends React.Component {
         );
       }
 
-      stateText = "Failure (" + seconds + " sec.)";
+      stateText = "Failure (" + this.formatSeconds(seconds) + ")";
     }
     if (this.props.executionState.status === "STARTED") {
       let seconds = 0;
@@ -62,7 +79,7 @@ class PipelineStep extends React.Component {
         );
       }
 
-      stateText = "Running (" + seconds + " sec.)";
+      stateText = "Running (" + this.formatSeconds(seconds) + ")";
     }
     if (this.props.executionState.status == "PENDING") {
       stateText = "Pending";
