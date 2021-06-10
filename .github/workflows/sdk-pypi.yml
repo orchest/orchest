@@ -29,5 +29,6 @@ jobs:
 
       - name: Upload SDK
         run: |
+          cd orchest-sdk/python
           python setup.py sdist
           twine upload dist/* --non-interactive
