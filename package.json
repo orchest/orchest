@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "syncpack": "5.7.11",
-    "typescript": "4.2.4"
+    "typescript": "4.3.2"
   },
   "engines": {
     "pnpm": ">=6"
