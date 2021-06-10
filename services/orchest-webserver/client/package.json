@@ -7,6 +7,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "prebuild": "pnpm run build --filter '@orchest/design-system-vite-plugin'",
+    "predev": "pnpm run prebuild",
     "serve": "vite preview",
     "ts:check": "tsc --noEmit"
   },

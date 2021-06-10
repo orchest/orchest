@@ -17,12 +17,11 @@
   },
   "sideEffects": false,
   "scripts": {
-    "build": "concurrently -n w: npm:*:build && pnpm run post-build",
+    "build": "concurrently -n w: npm:*:build",
     "cjs:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs",
     "cjs:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
     "esm:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=esm",
-    "post-build": "ts-node -r tsconfig-paths/register src/scripts/post-build.ts",
-    "prepublishOnly": "pnpm run build",
+    "postbuild": "ts-node -r tsconfig-paths/register src/scripts/post-build.ts",
     "ts:build": "tsc --emitDeclarationOnly --outDir dist",
     "ts:check": "tsc --noEmit"
   },

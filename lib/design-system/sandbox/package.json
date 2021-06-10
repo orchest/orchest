@@ -5,9 +5,10 @@
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "build": "pnpm run pre-build && next build",
-    "dev": "pnpm run pre-build && next dev",
-    "pre-build": "ts-node -r tsconfig-paths/register scripts/sync-assets.ts",
+    "build": "next build",
+    "dev": "next dev",
+    "prebuild": "ts-node -r tsconfig-paths/register scripts/sync-assets.ts",
+    "predev": "pnpm run prebuild",
     "start": "next start",
     "ts:check": "tsc --noEmit"
   },

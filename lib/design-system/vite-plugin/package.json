@@ -9,9 +9,8 @@
   "scripts": {
     "build": "concurrently -n w: npm:*:build",
     "dev": "concurrently -n w: npm:*:watch",
-    "js:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs",
-    "js:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs --watch --log-level=error",
-    "pre-dev": "pnpm run build",
+    "es:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs",
+    "es:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs --watch --log-level=error",
     "ts:build": "tsc -p tsconfig.json --emitDeclarationOnly --outDir dist",
     "ts:check": "tsc -p tsconfig.json --noEmit",
     "ts:watch": "tsc -p tsconfig.json --emitDeclarationOnly --outDir dist -w"
