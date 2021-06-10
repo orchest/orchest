@@ -1620,7 +1620,12 @@ class PipelineView extends React.Component {
   openNotebook(stepUUID) {
     const session = this.context.get.session(this.props.queryArgs);
 
-    if (session.status === "RUNNING") {
+    if (session === undefined) {
+      orchest.alert(
+        "Error",
+        "Please start the session before opening the Notebook in Jupyter."
+      );
+    } else if (session.status === "RUNNING") {
       orchest.loadView(JupyterLabView, {
         queryArgs: {
           pipeline_uuid: this.props.queryArgs.pipeline_uuid,
@@ -1633,10 +1638,15 @@ class PipelineView extends React.Component {
           this.state.pipelineCwd + this.state.steps[stepUUID].file_path
         ).slice(1)
       );
+    } else if (session.status === "LAUNCHING") {
+      orchest.alert(
+        "Error",
+        "Please wait for the session to start before opening the Notebook in Jupyter."
+      );
     } else {
       orchest.alert(
         "Error",
-        "Please start the session before opening the Notebook in Jupyter"
+        "Please start the session before opening the Notebook in Jupyter."
       );
     }
   }
