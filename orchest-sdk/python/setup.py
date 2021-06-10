@@ -1,28 +1,34 @@
+from pathlib import Path
+
 import setuptools
 
 # The long_description field is used by PyPI when you publish a package,
 # to build its project page.
-with open("README.md", "r") as f:
-    long_description = f.read()
+long_description = Path("README.md").read_text(encoding="utf-8")
+version = Path("orchest/_version.py").read_text(encoding="utf-8")
+about = {}
+exec(version, about)
 
 setuptools.setup(
     name="orchest",
-    version="0.2.0",
+    version=about["__version__"],
     packages=setuptools.find_packages(),
     install_requires=["pyarrow>=1.0.0,<=4.0.0", "requests>=1.0.0"],
     # Metadata to display on PyPI.
     author="Rick Lamers",
     author_email="rick@orchest.io",
-    description="SDK for data passing in Orchest",
+    description="SDK for Orchest",
     keywords="",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ricklamers/orchest-pypi",
+    url="https://github.com/orchest/orchest",
     project_urls={
         "Documentation": (
             "https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html"
         ),
-        "Source Code": ("https://github.com/orchest/orchest/tree/master/orchest-sdk"),
+        "Source Code": (
+            "https://github.com/orchest/orchest/tree/master/orchest-sdk/python"
+        ),
     },
     classifiers=[
         "Development Status :: 1 - Planning",
