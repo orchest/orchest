@@ -106,13 +106,13 @@ Non required fields:
 - **command**: Service start command, e.g. what process the service will run.
 - **entrypoint**: `command` and `entrypoint` are a 1:1 mapping to Docker, refer to the `Docker docs
   <https://docs.docker.com/engine/reference/builder/#cmd>`_ for their difference and gotchas.
+- **environment variables**: Key-value pairs of environment variables. While project and
+  pipeline environment variables are considered as `secrets`, services environment variables
+  aren't and will be persisted in the pipeline definition file.
 - **inherited environment variables**: A list of environment variable names that will be inherited
   from the project and pipeline environment variables, and from job environment variables when run
-  in a job.
-- **environment variables**: Key-value pairs of environment variables, which take priority over the
-  inherited environment variables. Note that, while project and pipeline environment variables are
-  considered as `secrets`, services environment variables aren't and will be persisted in the
-  pipeline definition file.
+  in a job. These variables take priority over the service environment variables in case of name
+  collisions.
 - **scope**: Specifies whether the service should be running in interactive mode, jobs, or both.
 - **project directory mount**: To bind a service file system path to the directory of the project.
   This will allow the service to read or write to the project directory. See the VS-Code template
