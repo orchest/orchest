@@ -1641,7 +1641,7 @@ class PipelineView extends React.Component {
     } else if (session.status === "LAUNCHING") {
       orchest.alert(
         "Error",
-        "Please wait for the session to be running before opening the Notebook in Jupyter."
+        "Please wait for the session to start before opening the Notebook in Jupyter."
       );
     } else {
       orchest.alert(
