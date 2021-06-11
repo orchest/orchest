@@ -1,36 +1,35 @@
+// @ts-check
 import React from "react";
 import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";
 
-class AlertDialog extends React.Component {
-  constructor() {
-    super();
+/**
+ * @param {Object} props
+ * @param {any} [props.title]
+ * @param {any} [props.onClose]
+ * @param {any} [props.content]
+ */
+const AlertDialog = (props) => {
+  const refManager = new RefManager();
 
-    this.refManager = new RefManager();
-  }
+  const close = () => {
+    refManager.refs.dialogRef.close();
+  };
 
-  close() {
-    this.refManager.refs.dialogRef.close();
-  }
-
-  render() {
-    return (
-      <MDCDialogReact
-        ref={this.refManager.nrefs.dialogRef}
-        title={this.props.title}
-        onClose={this.props.onClose}
-        content={this.props.content}
-        actions={
-          <MDCButtonReact
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            submitButton
-            label="Ok"
-            onClick={this.close.bind(this)}
-          />
-        }
-      />
-    );
-  }
-}
+  return (
+    <MDCDialogReact
+      ref={refManager.nrefs.dialogRef}
+      {...props}
+      actions={
+        <MDCButtonReact
+          classNames={["mdc-button--raised", "themed-secondary"]}
+          submitButton
+          label="Ok"
+          onClick={close.bind(this)}
+        />
+      }
+    />
+  );
+};
 
 export default AlertDialog;
