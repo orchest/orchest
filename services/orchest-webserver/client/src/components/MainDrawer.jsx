@@ -17,7 +17,10 @@ class MainDrawer extends React.Component {
   }
 
   updateIntercomWidget() {
-    if (orchest.config["CLOUD"] === true && window.Intercom !== undefined) {
+    if (
+      this.context.state?.config?.CLOUD === true &&
+      window.Intercom !== undefined
+    ) {
       // show Intercom widget
       window.Intercom("update", {
         hide_default_launcher: !this.context.state?.drawerIsOpen,

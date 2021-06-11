@@ -15,10 +15,6 @@ declare global {
   interface Window {
     /** @deprecated please don't use jQuery */
     $: any;
-    /** @deprecated by useOrchest */
-    ORCHEST_CONFIG: any;
-    /** @deprecated by useOrchest */
-    ORCHEST_USER_CONFIG: any;
     orchest: any;
     Intercom: any;
   }

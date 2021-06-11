@@ -272,7 +272,8 @@ class ConfigureJupyterLabView extends React.Component {
                 }
                 buildsKey="jupyter_builds"
                 socketIONamespace={
-                  orchest.config["ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE"]
+                  this.context.state?.config
+                    .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
                 }
                 streamIdentity={"jupyter"}
                 onUpdateBuild={this.onUpdateBuild.bind(this)}
