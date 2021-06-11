@@ -177,6 +177,76 @@ class DeleteProject(TwoPhaseFunction):
         Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
             {"status": "READY"}
         )
+        db.session.commit()
+
+
+class RenameProject(TwoPhaseFunction):
+    """Rename a project.
+
+    Renames a project, moving it to another path.
+    """
+
+    def _transaction(self, project_uuid: str, new_name: str):
+
+        project = Project.query.filter(
+            Project.uuid == project_uuid,
+            Project.status == "READY"
+            # Raises sqlalchemy.orm.exc.NoResultFound if the query
+            # selects no rows.
+        ).one()
+
+        old_name = project.path
+        # This way it's not considered as if it was deleted on the FS.
+        # Project discovery might think that the still not moved
+        # directory is a new project, but that is taken care of in the
+        # discovery logic.
+        project.status = "MOVING"
+        project.path = new_name
+
+        # To be used by the collateral effect.
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["old_name"] = old_name
+        self.collateral_kwargs["new_name"] = new_name
+
+    def _collateral(
+        self,
+        project_uuid: str,
+        old_name: str,
+        new_name: str,
+    ):
+        """Move a project to another path, i.e. rename it."""
+
+        old_path = os.path.join(current_app.config["PROJECTS_DIR"], old_name)
+        new_path = os.path.join(current_app.config["PROJECTS_DIR"], new_name)
+
+        # NOTE: a running interactive session won't be affected, because
+        # the way docker does binding is by pointing to inodes.
+        os.rename(old_path, new_path)
+        # So that the moving can be reverted in case of failure of the
+        # rest of the collateral.
+        self.collateral_kwargs["moved"] = True
+
+        Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
+            {"status": "READY"}
+        )
+        db.session.commit()
+
+    def _revert(self):
+        # Move it back if necessary. This avoids the project being
+        # discovered as a new one.
+        if self.collateral_kwargs["moved"]:
+            old_path = os.path.join(
+                current_app.config["PROJECTS_DIR"], self.collateral_kwargs["old_name"]
+            )
+            new_path = os.path.join(
+                current_app.config["PROJECTS_DIR"], self.collateral_kwargs["new_name"]
+            )
+            os.rename(new_path, old_path)
+
+        Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
+            {"status": "READY", "path": self.collateral_kwargs["old_name"]}
+        )
+        db.session.commit()
 
 
 class SyncProjectPipelinesDBState(TwoPhaseFunction):
@@ -274,6 +344,7 @@ class ImportGitProject(TwoPhaseFunction):
 
     def _revert(self):
         BackgroundTask.query.filter_by(uuid=self.collateral_kwargs["n_uuid"]).delete()
+        db.session.commit()
 
 
 # Need to have these two functions here because of circular imports.

@@ -7,6 +7,9 @@ TODO:
     * Possibly add `pipeline_uuid` to the primary key.
 
 """
+import copy
+from typing import Any, Dict
+
 from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import deferred
@@ -21,6 +24,19 @@ class BaseModel(db.Model):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+    @classmethod
+    def keep_column_entries(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove entries not related to the model columns from a dict.
+
+        Can be used to sanitize a status update.
+        """
+        data = copy.deepcopy(data)
+        columns = [c.name for c in cls.__table__.columns]
+        for key in list(data.keys()):
+            if key not in columns:
+                data.pop(key)
+        return data
 
 
 class Project(BaseModel):

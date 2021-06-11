@@ -8,6 +8,7 @@ import sqlalchemy
 from flask import current_app, jsonify, request
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
+from sqlalchemy.orm.exc import NoResultFound
 
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
@@ -19,6 +20,7 @@ from app.core.projects import (
     CreateProject,
     DeleteProject,
     ImportGitProject,
+    RenameProject,
     SyncProjectPipelinesDBState,
 )
 from app.kernel_manager import populate_kernels
@@ -337,7 +339,8 @@ def register_views(app, db):
             Project.path.notin_(project_paths),
             # This way we do not delete a project that is already being
             # deleted twice, and avoid considering a project that is
-            # being initialized as deleted from the filesystem.
+            # being initialized as deleted from the filesystem, or that
+            # it is moving.
             Project.status.in_(["READY"]),
         ).all()
 
@@ -367,6 +370,11 @@ def register_views(app, db):
             if entry.is_dir()
         ]
         new_project_paths = set(project_paths) - set(existing_project_paths)
+
+        # Do not do project discovery if a project is moving, because
+        # a new_project_path could actually be a moving project.
+        if Project.query.filter(Project.status.in_(["MOVING"])).all():
+            return
 
         # Use a TwoPhaseExecutor for each project so that issues in one
         # project do not hinder the discovery of others.
@@ -420,10 +428,17 @@ def register_views(app, db):
     @app.route("/async/projects/<project_uuid>", methods=["PUT"])
     def project_put(project_uuid):
 
-        # While this seems suited to be in the orchest_api.py module,
-        # I've left it here because some project data lives in the web
-        # server as well, and this PUT request might eventually update
-        # that.
+        # Move the project on the FS and update the db.
+        new_name = request.json.get("name")
+        if new_name is not None:
+            try:
+                with TwoPhaseExecutor(db.session) as tpe:
+                    RenameProject(tpe).transaction(project_uuid, new_name)
+            except NoResultFound:
+                return jsonify({"message": "Project doesn't exist."}), 404
+            except Exception as e:
+                return jsonify({"message": f"Failed to rename project: {e}."}), 500
+
         resp = requests.put(
             (
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'

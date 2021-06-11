@@ -12,7 +12,7 @@ from app.utils import write_config
 
 # Analytics related functions
 def send_job_create(app, job):
-    # Anonymize .
+    # Anonymize.
     job = copy.deepcopy(job)
     job.pop("name", None)
     job.pop("pipeline_name", None)
