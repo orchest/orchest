@@ -32,6 +32,7 @@ window.$ = $;
 
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
+  const [view, setView] = React.useState(null);
   const [state, setState] = React.useState({
     activeViewName: "",
     dynamicProps: null,
@@ -287,6 +288,7 @@ const App = () => {
     setJupyter(new Jupyter(jupyterRef.current));
     setUnsavedChanges(false);
     initializeFirstView();
+    loadDefaultView();
   }, []);
 
   window.orchest = {
@@ -300,8 +302,11 @@ const App = () => {
     jupyter,
   };
 
-  let view;
-  if (state.TagName) view = _generateView(state.TagName, state.dynamicProps);
+  React.useEffect(() => {
+    if (state.TagName) {
+      setView(_generateView(state.TagName, state.dynamicProps));
+    }
+  }, [state]);
 
   return (
     <>
@@ -309,7 +314,7 @@ const App = () => {
       <div className="app-container">
         <MainDrawer selectedElement={state.activeViewName} />
         <main className="main-content" id="main-content">
-          {view}
+          {view || null}
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />
         </main>
       </div>
