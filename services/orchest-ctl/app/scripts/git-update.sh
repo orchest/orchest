@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-[ "$(git branch --show-current)" != "master" ] && exit 21
+[ "$(git rev-parse --abbrev-ref HEAD)" != "master" ] && exit 21
 
 # Get the user and group of the "orchest" shell script as this is most
 # likely also the user that should own the files in the repository.
