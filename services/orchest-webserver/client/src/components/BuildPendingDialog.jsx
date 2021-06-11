@@ -1,3 +1,4 @@
+// @ts-check
 import React from "react";
 import {
   MDCButtonReact,
@@ -5,28 +6,36 @@ import {
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import { RefManager, makeRequest } from "@orchest/lib-utils";
-import { OrchestContext } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import EnvironmentsView from "../views/EnvironmentsView";
+import { useInterval } from "@/hooks/use-interval";
 
 const buildFailMessage = `Some environment builds of this project have failed. 
   You can try building them again, 
   but you might need to change the environment setup script in 
   order for the build to succeed.`;
 
-class BuildPendingDialog extends React.Component {
-  static contextType = OrchestContext;
+/**
+ * @param {Object} props
+ * @param {any} [props.environmentValidationData]
+ * @param {string} [props.project_uuid]
+ * @param {string} [props.requestedFromView]
+ * @param {any} [props.onBuildComplete]
+ * @param {any} [props.onCancel]
+ * @param {any} [props.onClose]
+ */
+const BuildPendingDialog = (props) => {
+  const [gateInterval, setGateInterval] = React.useState(null);
+  const [state, setState] = React.useState(null);
 
-  constructor(props, context) {
-    super(props, context);
+  const orchest = window.orchest;
+  const { dispatch } = useOrchest();
+  const refManager = new RefManager();
 
-    this.state = {};
-    this.refManager = new RefManager();
-  }
-
-  processValidationData(data) {
+  const processValidationData = (data) => {
     let messageSuffix = "";
-    switch (this.props.requestedFromView) {
+    switch (props?.requestedFromView) {
       case "Pipeline":
         messageSuffix =
           " You can cancel to open the pipeline in read-only mode.";
@@ -67,7 +76,8 @@ class BuildPendingDialog extends React.Component {
         messageSuffix;
     }
 
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       building,
       buildHasFailed,
       environmentsToBeBuilt,
@@ -75,63 +85,56 @@ class BuildPendingDialog extends React.Component {
       environmentsBuilding,
       showBuildStatus: environmentsToBeBuilt.length == 0,
       allowBuild: environmentsToBeBuilt.length > 0,
-    });
+    }));
 
     if (environmentsBuilding > 0) {
-      this.startPollingGate();
+      startPollingGate();
     } else {
-      clearInterval(this.gateInterval);
+      setGateInterval(null);
     }
-  }
+  };
 
-  close() {
-    this.refManager.refs.dialogRef.close();
-  }
+  const close = () => {
+    refManager.refs.dialogRef.close();
+  };
 
-  componentWillUnmount() {
-    clearInterval(this.gateInterval);
-  }
+  const startPollingGate = () => {
+    setGateInterval(1000);
+  };
 
-  startPollingGate() {
-    clearInterval(this.gateInterval);
-    this.gateInterval = setInterval(this.gateCheckWrapper.bind(this), 1000);
-  }
-
-  gateCheckWrapper() {
-    checkGate(this.props.project_uuid)
+  const gateCheckWrapper = () => {
+    checkGate(props.project_uuid)
       .then(() => {
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           building: false,
-        });
+        }));
 
-        if (this.props.onBuildComplete) {
-          this.props.onBuildComplete();
-          this.close();
+        if (props.onBuildComplete) {
+          props.onBuildComplete();
+          close();
         }
       })
       .catch((error) => {
         // Gate check failed, check why it failed and act
         // accordingly
-        this.processValidationData(error.data);
+        processValidationData(error.data);
       });
-  }
+  };
 
-  componentDidMount() {
-    this.processValidationData(this.props.environmentValidationData);
-  }
-
-  onBuild() {
-    this.setState({
+  const onBuild = () => {
+    setState((prevState) => ({
+      ...prevState,
       allowBuild: false,
       showBuildStatus: true,
       building: true,
-    });
+    }));
 
     let environment_build_requests = [];
-    for (let environmentUUID of this.state.environmentsToBeBuilt) {
+    for (let environmentUUID of state.environmentsToBeBuilt) {
       environment_build_requests.push({
         environment_uuid: environmentUUID,
-        project_uuid: this.props.project_uuid,
+        project_uuid: props.project_uuid,
       });
     }
 
@@ -142,73 +145,81 @@ class BuildPendingDialog extends React.Component {
       },
     })
       .then(() => {
-        this.startPollingGate();
+        startPollingGate();
       })
       .catch((error) => {
         console.error("Failed to start environment builds:", error);
       });
-  }
+  };
 
-  onViewBuildStatus() {
-    this.context.dispatch({
+  const onViewBuildStatus = () => {
+    dispatch({
       type: "projectSet",
-      payload: this.props.project_uuid,
+      payload: props.project_uuid,
     });
     orchest.loadView(EnvironmentsView);
-    this.close();
-  }
+    close();
+  };
 
-  onCancel() {
-    if (this.props.onCancel) {
-      this.props.onCancel();
+  const onCancel = () => {
+    if (props.onCancel) {
+      props.onCancel();
     }
-    this.close();
-  }
+    close();
+  };
 
-  render() {
-    return (
-      <MDCDialogReact
-        ref={this.refManager.nrefs.dialogRef}
-        title={"Build"}
-        onClose={this.props.onClose}
-        content={
-          <div>
-            <p className="push-down">{this.state.message}</p>
-            {this.state.building && <MDCLinearProgressReact />}
-          </div>
-        }
-        actions={
-          <>
-            <MDCButtonReact label="Cancel" onClick={this.onCancel.bind(this)} />
-            {this.state.showBuildStatus && (
-              <MDCButtonReact
-                submitButton
-                label="View build status"
-                classNames={
-                  !this.state.allowBuild
-                    ? ["push-left", "mdc-button--raised", "themed-secondary"]
-                    : ["push-left"]
-                }
-                onClick={this.onViewBuildStatus.bind(this)}
-              />
-            )}
-            {this.state.allowBuild && (
-              <MDCButtonReact
-                submitButton
-                classNames={[
-                  "mdc-button--raised",
-                  "themed-secondary",
-                  "push-left",
-                ]}
-                label="Build"
-                onClick={this.onBuild.bind(this)}
-              />
-            )}
-          </>
-        }
-      />
-    );
-  }
-}
+  useInterval(() => {
+    gateCheckWrapper();
+  }, gateInterval);
+
+  React.useEffect(() => {
+    processValidationData(props.environmentValidationData);
+
+    return () => setGateInterval(null);
+  }, []);
+
+  return (
+    <MDCDialogReact
+      ref={refManager.nrefs.dialogRef}
+      title={"Build"}
+      onClose={props.onClose}
+      content={
+        <div>
+          <p className="push-down">{state?.message}</p>
+          {state?.building && <MDCLinearProgressReact />}
+        </div>
+      }
+      actions={
+        <>
+          <MDCButtonReact label="Cancel" onClick={onCancel.bind(this)} />
+          {state?.showBuildStatus && (
+            <MDCButtonReact
+              submitButton
+              label="View build status"
+              classNames={
+                !state.allowBuild
+                  ? ["push-left", "mdc-button--raised", "themed-secondary"]
+                  : ["push-left"]
+              }
+              onClick={onViewBuildStatus.bind(this)}
+            />
+          )}
+          {state?.allowBuild && (
+            <MDCButtonReact
+              submitButton
+              classNames={[
+                "mdc-button--raised",
+                "themed-secondary",
+                "push-left",
+              ]}
+              label="Build"
+              onClick={onBuild.bind(this)}
+            />
+          )}
+        </>
+      }
+    />
+  );
+};
 
 export default BuildPendingDialog;

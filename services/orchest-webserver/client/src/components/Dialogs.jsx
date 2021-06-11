@@ -44,7 +44,6 @@ const Dialogs = React.forwardRef((_, ref) => {
       ...prevDialogs,
       <BuildPendingDialog
         key={uuid}
-        uuid={uuid}
         project_uuid={project_uuid}
         environmentValidationData={environmentValidationData}
         requestedFromView={requestedFromView}
