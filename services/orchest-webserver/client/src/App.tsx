@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useRef } from "react";
+import { makeRequest } from "@orchest/lib-utils";
 
-import { RefManager, makeRequest } from "@orchest/lib-utils";
-
-import { OrchestContext } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
 
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
@@ -28,121 +27,117 @@ import JobsView from "./views/JobsView";
 
 import $ from "jquery";
 import "./utils/overflowing";
+
 window.$ = $;
 
-class App extends React.Component {
-  static contextType = OrchestContext;
+const App = () => {
+  const [jupyter, setJupyter] = React.useState(null);
+  const [state, setState] = React.useState({
+    activeViewName: "",
+    dynamicProps: null,
+    TagName: null,
+  });
+  const [unsavedChangesState, setUnsavedChangesState] = React.useState(null);
+  const context = useOrchest();
 
-  constructor(props, context) {
-    super(props, context);
+  const jupyterRef = useRef(null);
+  const dialogsRef = useRef(null);
 
-    this.KEEP_PIPELINE_VIEWS = [
-      PipelineView,
-      PipelineSettingsView,
-      JupyterLabView,
-    ];
-    this.INJECT_PROJECT_UUID_VIEWS = [
-      EnvironmentsView,
-      PipelinesView,
-      JobsView,
-    ];
+  const KEEP_PIPELINE_VIEWS = [
+    PipelineView,
+    PipelineSettingsView,
+    JupyterLabView,
+  ];
+  const INJECT_PROJECT_UUID_VIEWS = [EnvironmentsView, PipelinesView, JobsView];
 
-    // load server side config populated by flask template
-    this.config = window.ORCHEST_CONFIG;
-    this.user_config = window.ORCHEST_USER_CONFIG;
+  // load server side config populated by flask template
+  const { config } = context.state;
 
-    if (this.config.FLASK_ENV === "development") {
-      console.log("Orchest is running with --dev.");
-    }
-
-    if (this.config.CLOUD === true) {
-      console.log("Orchest is running with --cloud.");
-
-      loadIntercom(
-        this.config["INTERCOM_APP_ID"],
-        this.config["INTERCOM_USER_EMAIL"],
-        this.config["INTERCOM_DEFAULT_SIGNUP_DATE"]
-      );
-    }
-
-    this.sendEvent = function (event, properties) {
-      if (!orchest.config["TELEMETRY_DISABLED"]) {
-        makeRequest("POST", "/analytics", {
-          type: "json",
-          content: {
-            event: event,
-            properties: properties,
-          },
-        });
-      }
-    };
-
-    window.onpopstate = (event) => {
-      if (event.state !== null) {
-        let conditionalBody = () => {
-          this._loadView(
-            nameToComponent(event.state.viewName),
-            event.state.dynamicProps
-          );
-        };
-
-        if (!this.unsavedChanges) {
-          conditionalBody();
-        } else {
-          this.confirm(
-            "Warning",
-            "There are unsaved changes. Are you sure you want to navigate away?",
-            () => {
-              this.setUnsavedChanges(false);
-              conditionalBody();
-            }
-          );
-        }
-      }
-    };
-
-    this.state = {
-      activeViewName: "",
-    };
-
-    this.refManager = new RefManager();
-
-    // Attach to window
-    window.orchest = this;
+  if (config.FLASK_ENV === "development") {
+    console.log("Orchest is running with --dev.");
   }
 
-  _loadView(TagName, dynamicProps) {
+  if (config.CLOUD === true) {
+    console.log("Orchest is running with --cloud.");
+
+    loadIntercom(
+      config["INTERCOM_APP_ID"],
+      config["INTERCOM_USER_EMAIL"],
+      config["INTERCOM_DEFAULT_SIGNUP_DATE"]
+    );
+  }
+
+  const sendEvent = function (event, properties) {
+    if (!context.state.config["TELEMETRY_DISABLED"]) {
+      makeRequest("POST", "/analytics", {
+        type: "json",
+        content: {
+          event: event,
+          properties: properties,
+        },
+      });
+    }
+  };
+
+  window.onpopstate = (event) => {
+    if (event.state !== null) {
+      let conditionalBody = () => {
+        _loadView(
+          nameToComponent(event.state.viewName),
+          event.state.dynamicProps
+        );
+      };
+
+      if (!unsavedChangesState) {
+        conditionalBody();
+      } else {
+        confirm(
+          "Warning",
+          "There are unsaved changes. Are you sure you want to navigate away?",
+          () => {
+            setUnsavedChanges(false);
+            conditionalBody();
+          }
+        );
+      }
+    }
+  };
+
+  const _loadView = (TagName, dynamicProps) => {
     let viewName = componentName(TagName);
 
     // Analytics call
-    this.sendEvent("view load", { name: viewName });
+    sendEvent("view load", { name: viewName });
 
-    if (this.config["CLOUD"] === true && window.Intercom !== undefined) {
+    if (config["CLOUD"] === true && window.Intercom !== undefined) {
       window.Intercom("update");
     }
 
-    if (this.KEEP_PIPELINE_VIEWS.indexOf(TagName) === -1) {
-      this.context.dispatch({ type: "pipelineClear" });
+    if (KEEP_PIPELINE_VIEWS.indexOf(TagName) === -1) {
+      context.dispatch({ type: "pipelineClear" });
     }
 
     // select menu if menu tag is selected
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       TagName,
       dynamicProps,
       activeViewName: viewName,
-    });
-  }
+    }));
+  };
 
-  _generateView(TagName, dynamicProps) {
-    // add selectedProject to ProjectBasedView
-    if (this.INJECT_PROJECT_UUID_VIEWS.indexOf(TagName) !== -1) {
-      dynamicProps.project_uuid = this.context.state.project_uuid;
-    }
+  const _generateView = (TagName, dynamicProps) => {
+    return (
+      <TagName
+        {...dynamicProps}
+        {...(INJECT_PROJECT_UUID_VIEWS.indexOf(TagName) !== -1 && {
+          project_uuid: context.state.project_uuid,
+        })}
+      />
+    );
+  };
 
-    return <TagName {...dynamicProps} />;
-  }
-
-  setUnsavedChanges(unsavedChanges) {
+  const setUnsavedChanges = (unsavedChanges) => {
     if (unsavedChanges) {
       // Enable navigation prompt
       window.onbeforeunload = function () {
@@ -153,10 +148,10 @@ class App extends React.Component {
       window.onbeforeunload = null;
     }
 
-    this.unsavedChanges = unsavedChanges;
-  }
+    setUnsavedChangesState(unsavedChanges);
+  };
 
-  loadView(TagName, dynamicProps, onCancelled) {
+  const loadView = (TagName, dynamicProps?, onCancelled?) => {
     // dynamicProps default
     if (!dynamicProps) {
       dynamicProps = {};
@@ -185,96 +180,88 @@ class App extends React.Component {
       window.document.title =
         pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
 
-      this._loadView(TagName, dynamicProps);
+      _loadView(TagName, dynamicProps);
     };
 
-    if (!this.unsavedChanges) {
+    if (!unsavedChangesState) {
       conditionalBody();
     } else {
-      this.confirm(
+      confirm(
         "Warning",
         "There are unsaved changes. Are you sure you want to navigate away?",
         () => {
-          this.setUnsavedChanges(false);
+          setUnsavedChanges(false);
           conditionalBody();
         },
         onCancelled
       );
     }
-  }
-
-  loadDefaultView = function () {
-    // if request view doesn't load, load default route
-    this.loadView(ProjectsView);
   };
 
-  initializeFirstView() {
+  const loadDefaultView = () => {
+    // if request view doesn't load, load default route
+    loadView(ProjectsView);
+  };
+
+  const initializeFirstView = () => {
     // handle default
     if (location.pathname == "/") {
-      this.loadDefaultView();
+      loadDefaultView();
     }
     try {
       let [TagName, dynamicProps] = decodeRoute(
         location.pathname,
         location.search
       );
-      this.loadView(TagName, dynamicProps);
+      loadView(TagName, dynamicProps);
     } catch (error) {
-      this.loadDefaultView();
+      loadDefaultView();
     }
-  }
+  };
 
-  alert(title, content, onClose) {
+  const alert = (title, content, onClose) => {
     // Analytics call
-    this.sendEvent("alert show", { title: title, content: content });
+    sendEvent("alert show", { title: title, content: content });
 
-    this.refManager.refs.dialogs.alert(title, content, onClose);
-  }
+    dialogsRef.current.alert(title, content, onClose);
+  };
 
-  confirm(title, content, onConfirm, onCancel) {
+  const confirm = (title, content, onConfirm, onCancel?) => {
     // Analytics call
-    this.sendEvent("confirm show", { title: title, content: content });
+    sendEvent("confirm show", { title: title, content: content });
 
-    this.refManager.refs.dialogs.confirm(title, content, onConfirm, onCancel);
-  }
+    dialogsRef.current.confirm(title, content, onConfirm, onCancel);
+  };
 
-  requestBuild(
+  const requestBuild = (
     project_uuid,
     environmentValidationData,
     requestedFromView,
     onBuildComplete,
     onCancel
-  ) {
+  ) => {
     // Analytics call
-    this.sendEvent("build-request request", {
+    sendEvent("build-request request", {
       requestedFromView: requestedFromView,
     });
 
-    this.refManager.refs.dialogs.requestBuild(
+    dialogsRef.current.requestBuild(
       project_uuid,
       environmentValidationData,
       requestedFromView,
       onBuildComplete,
       onCancel
     );
-  }
+  };
 
-  componentDidMount() {
-    // create Jupyter manager
-    this.jupyter = new Jupyter(this.refManager.refs.jupyter);
-
-    this.setUnsavedChanges(false);
-    this.initializeFirstView();
-  }
-
-  getProject() {
+  const getProject = () => {
     return new Promise((resolve, reject) => {
       // Use this to get the currently selected project outside
       // of a view that consumes it as props.
       // E.g. in the pipeline view that loads the selected project's
       // pipeline when no query arguments are passed.
-      if (this.context.state.project_uuid) {
-        resolve(this.context.state.project_uuid);
+      if (context.state.project_uuid) {
+        resolve(context.state.project_uuid);
       } else {
         // No project selected yet, fetch from server
         makeRequest(
@@ -282,7 +269,7 @@ class App extends React.Component {
           "/async/projects?skip_discovery=true&session_counts=false"
         )
           .then((result) => {
-            let projects = JSON.parse(result);
+            let projects = JSON.parse(result as string);
             if (projects.length == 0) {
               resolve(undefined);
             } else {
@@ -294,33 +281,43 @@ class App extends React.Component {
           });
       }
     });
-  }
+  };
 
-  render() {
-    let view;
-    if (this.state.TagName) {
-      view = this._generateView(this.state.TagName, this.state.dynamicProps);
-    }
+  React.useEffect(() => {
+    setJupyter(new Jupyter(jupyterRef.current));
+    setUnsavedChanges(false);
+    initializeFirstView();
+  }, []);
 
-    return (
-      <>
-        <HeaderBar />
-        <div className="app-container">
-          <MainDrawer selectedElement={this.state.activeViewName} />
-          <main className="main-content" id="main-content">
-            {view}
-            <div
-              ref={this.refManager.nrefs.jupyter}
-              className="persistent-view jupyter hidden"
-            />
-          </main>
-        </div>
-        <div className="dialogs">
-          <Dialogs ref={this.refManager.nrefs.dialogs} />
-        </div>
-      </>
-    );
-  }
-}
+  window.orchest = {
+    config,
+    setUnsavedChanges,
+    loadView,
+    alert,
+    confirm,
+    requestBuild,
+    getProject,
+    jupyter,
+  };
+
+  let view;
+  if (state.TagName) view = _generateView(state.TagName, state.dynamicProps);
+
+  return (
+    <>
+      <HeaderBar />
+      <div className="app-container">
+        <MainDrawer selectedElement={state.activeViewName} />
+        <main className="main-content" id="main-content">
+          {view}
+          <div ref={jupyterRef} className="persistent-view jupyter hidden" />
+        </main>
+      </div>
+      <div className="dialogs">
+        <Dialogs ref={dialogsRef} />
+      </div>
+    </>
+  );
+};
 
 export default App;
