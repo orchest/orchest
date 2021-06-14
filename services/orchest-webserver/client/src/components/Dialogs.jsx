@@ -90,7 +90,6 @@ const Dialogs = React.forwardRef((_, ref) => {
       ...prevDialogs,
       <ConfirmDialog
         key={uuid}
-        uuid={uuid}
         title={title}
         content={content}
         onConfirm={() => {
