@@ -44,12 +44,15 @@ class EnvironmentEditView extends React.Component {
       environment: !props.queryArgs.environment_uuid
         ? {
             uuid: "new",
-            name: orchest.config.ENVIRONMENT_DEFAULTS.name,
-            gpu_support: orchest.config.ENVIRONMENT_DEFAULTS.gpu_support,
+            name: this.context.state?.config?.ENVIRONMENT_DEFAULTS.name,
+            gpu_support: this.context.state?.config?.ENVIRONMENT_DEFAULTS
+              .gpu_support,
             project_uuid: this.props.queryArgs.project_uuid,
-            base_image: orchest.config.ENVIRONMENT_DEFAULTS.base_image,
-            language: orchest.config.ENVIRONMENT_DEFAULTS.language,
-            setup_script: orchest.config.ENVIRONMENT_DEFAULTS.setup_script,
+            base_image: this.context.state?.config?.ENVIRONMENT_DEFAULTS
+              .base_image,
+            language: this.context.state?.config?.ENVIRONMENT_DEFAULTS.language,
+            setup_script: this.context.state?.config?.ENVIRONMENT_DEFAULTS
+              .setup_script,
           }
         : undefined,
       ignoreIncomingLogs: false,
@@ -468,8 +471,12 @@ class EnvironmentEditView extends React.Component {
                               capabilities when in use.
                             </p>
                           );
-                          if (orchest.config["GPU_ENABLED_INSTANCE"] !== true) {
-                            if (orchest.config["CLOUD"] === true) {
+                          if (
+                            this.context.state?.config[
+                              "GPU_ENABLED_INSTANCE"
+                            ] !== true
+                          ) {
+                            if (this.context.state?.config["CLOUD"] === true) {
                               return (
                                 <div className="docs-notice push-down-7">
                                   <p>
@@ -478,7 +485,11 @@ class EnvironmentEditView extends React.Component {
                                     this{" "}
                                     <a
                                       target="_blank"
-                                      href={orchest.config["GPU_REQUEST_URL"]}
+                                      href={
+                                        this.context.state?.config[
+                                          "GPU_REQUEST_URL"
+                                        ]
+                                      }
                                     >
                                       form
                                     </a>
@@ -495,8 +506,8 @@ class EnvironmentEditView extends React.Component {
                                     <a
                                       target="_blank"
                                       href={
-                                        orchest.config.ORCHEST_WEB_URLS
-                                          .readthedocs +
+                                        this.context.state?.config
+                                          .ORCHEST_WEB_URLS.readthedocs +
                                         "/getting_started/installation.html#gpu-support"
                                       }
                                     >
@@ -557,7 +568,7 @@ class EnvironmentEditView extends React.Component {
                           buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${this.props.queryArgs.project_uuid}/${this.state.environment.uuid}`}
                           buildsKey="environment_builds"
                           socketIONamespace={
-                            orchest.config[
+                            this.context.state?.config[
                               "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"
                             ]
                           }

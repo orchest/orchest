@@ -7,6 +7,7 @@ import {
   PromiseManager,
   makeCancelable,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import UpdateView from "./UpdateView";
 import ManageUsersView from "./ManageUsersView";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -15,8 +16,10 @@ import ConfigureJupyterLabView from "./ConfigureJupyterLabView";
 import _ from "lodash";
 
 class SettingsView extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       status: "...",
@@ -78,14 +81,16 @@ class SettingsView extends React.Component {
   }
 
   configToVisibleConfig(configJSON) {
-    if (orchest.config["CLOUD"] !== true) {
+    if (this.context.state?.config["CLOUD"] !== true) {
       return configJSON;
     }
 
     let visibleJSON = _.cloneDeep(configJSON);
 
     // strip cloud config
-    for (let key of orchest.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"]) {
+    for (let key of this.context.state?.config[
+      "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
+    ]) {
       delete visibleJSON[key];
     }
 
@@ -93,7 +98,7 @@ class SettingsView extends React.Component {
   }
 
   configToInvisibleConfig(configJSON) {
-    if (orchest.config["CLOUD"] !== true) {
+    if (this.context.state?.config["CLOUD"] !== true) {
       return {};
     }
 
@@ -102,7 +107,9 @@ class SettingsView extends React.Component {
     // Strip visible config
     for (let key of Object.keys(invisibleJSON)) {
       if (
-        orchest.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"].indexOf(key) === -1
+        this.context.state?.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"].indexOf(
+          key
+        ) === -1
       ) {
         delete invisibleJSON[key];
       }
@@ -272,19 +279,19 @@ class SettingsView extends React.Component {
                     />
 
                     {(() => {
-                      if (orchest.config.CLOUD === true) {
+                      if (this.context.state?.config?.CLOUD === true) {
                         return (
                           <div className="push-up notice">
                             <p>
                               {" "}
                               Note that{" "}
-                              {orchest.config[
+                              {this.context.state?.config[
                                 "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
                               ].map((el, i) => (
                                 <span key={i}>
                                   <span className="code">{el}</span>
                                   {i !=
-                                    orchest.config[
+                                    this.context.state?.config[
                                       "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
                                     ].length -
                                       1 && <span>, </span>}
@@ -362,7 +369,7 @@ class SettingsView extends React.Component {
               }
             })()}
             {(() => {
-              if (orchest.config.FLASK_ENV === "development") {
+              if (this.context.state?.config?.FLASK_ENV === "development") {
                 return (
                   <p>
                     <span className="code">development mode</span>

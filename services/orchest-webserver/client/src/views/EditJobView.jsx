@@ -11,6 +11,7 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
+import { OrchestContext } from "@/hooks/orchest";
 import { DescriptionList } from "../components/DescriptionList";
 import ParameterEditor from "../components/ParameterEditor";
 import CronScheduleInput from "../components/CronScheduleInput";
@@ -30,8 +31,10 @@ import {
 import JobView from "./JobView";
 
 class EditJobView extends React.Component {
-  constructor(props) {
-    super(props);
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state = {
       selectedTabIndex: 0,
@@ -145,8 +148,10 @@ class EditJobView extends React.Component {
     let strategyJSON = {};
 
     if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
-      strategyJSON[orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]] = {
-        key: orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"],
+      strategyJSON[
+        this.context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY
+      ] = {
+        key: this.context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
         parameters: this.generateParameterLists(pipeline.parameters),
         title: pipeline.name,
       };

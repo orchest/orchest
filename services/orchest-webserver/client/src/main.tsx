@@ -13,11 +13,10 @@ declare global {
   }
 
   interface Window {
-    /** Deprecated */
+    /** @deprecated please don't use jQuery */
+    $: any;
     orchest: any;
-    /** Deprecated */
-    ORCHEST_CONFIG: any;
-    ORCHEST_USER_CONFIG: any;
+    Intercom: any;
   }
 }
 
@@ -26,8 +25,6 @@ window.addEventListener("load", () => {
   document.fonts.ready.then(() => {
     makeRequest("GET", "/async/server-config").then((result) => {
       let config = JSON.parse(result as string);
-      window.ORCHEST_CONFIG = config.config;
-      window.ORCHEST_USER_CONFIG = config.user_config;
 
       ReactDOM.render(
         <DesignSystemProvider>
