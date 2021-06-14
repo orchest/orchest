@@ -7,12 +7,18 @@ name: Python Tests
 # are always required to have passed before a PR can be merged.
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - dev
+      - "release/**"
     paths:
       - "**.py"
       - "**/tests/**"
   pull_request:
-    branches: [master]
+    branches:
+      - master
+      - dev
+      - "release/**"
 
 jobs:
   pythontests:
