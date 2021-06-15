@@ -47,7 +47,7 @@ class ProjectSettingsView extends React.Component {
     });
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(_, prevState) {
     this.attachResizeListener();
 
     if (this.state.unsavedChanges !== prevState.unsavedChanges) {

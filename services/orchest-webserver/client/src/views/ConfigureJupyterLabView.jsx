@@ -49,7 +49,7 @@ class ConfigureJupyterLabView extends React.Component {
     });
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(_, prevState) {
     if (this.state.unsavedChanges !== prevState.unsavedChanges) {
       this.context.dispatch({
         type: "setUnsavedChanges",
