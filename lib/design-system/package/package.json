@@ -11,7 +11,7 @@
   },
   "sideEffects": false,
   "scripts": {
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "pnpm run build && pnpm run postbuild",
     "build": "concurrently -n w: npm:*:build",
     "cjs:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs",
     "cjs:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
