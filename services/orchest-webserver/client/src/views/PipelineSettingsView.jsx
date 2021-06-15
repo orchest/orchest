@@ -937,19 +937,17 @@ const PipelineSettingsView = (props) => {
                       <Alert status="info">
                         <AlertHeader>
                           <IconLightBulbOutline />
-                          Want to learn more about Services?{" "}
+                          Want to start using Services?
                         </AlertHeader>
                         <AlertDescription>
-                          <>
-                            <Link
-                              target="_blank"
-                              href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
-                            >
-                              Learn more
-                            </Link>{" "}
-                            about using services to expand your pipeline's
-                            capabilities.
-                          </>
+                          <Link
+                            target="_blank"
+                            href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
+                            rel="noopener noreferrer"
+                          >
+                            Learn more
+                          </Link>{" "}
+                          about how to expand your pipeline’s capabilities.
                         </AlertDescription>
                       </Alert>
 
