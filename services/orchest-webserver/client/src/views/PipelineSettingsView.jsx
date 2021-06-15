@@ -42,7 +42,6 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
-  updateGlobalUnsavedChanges,
   validatePipeline,
 } from "@/utils/webserver-utils";
 import EnvVarList from "@/components/EnvVarList";
@@ -137,6 +136,14 @@ const PipelineSettingsView = (props) => {
   React.useEffect(() => {
     init();
   }, [props.queryArgs]);
+
+  /* sync local unsaved changes with global state */
+  React.useEffect(() => {
+    dispatch({
+      type: "setUnsavedChanges",
+      payload: state.unsavedChanges,
+    });
+  }, [state.unsavedChanges]);
 
   const setHeaderComponent = (pipelineName) =>
     dispatch({
@@ -616,8 +623,6 @@ const PipelineSettingsView = (props) => {
       );
     }
   };
-
-  updateGlobalUnsavedChanges(state.unsavedChanges);
 
   const sortService = (serviceA, serviceB) => serviceA.order - serviceB.order;
 

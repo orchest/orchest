@@ -12,7 +12,6 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
-  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 import PipelinesView from "./PipelinesView";
 import JobsView from "./JobsView";
@@ -42,10 +41,21 @@ class ProjectSettingsView extends React.Component {
   componentDidMount() {
     this.fetchSettings();
     this.attachResizeListener();
+    this.context.dispatch({
+      type: "setUnsavedChanges",
+      payload: this.state.unsavedChanges,
+    });
   }
 
   componentDidUpdate() {
     this.attachResizeListener();
+
+    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
+      this.context.dispatch({
+        type: "setUnsavedChanges",
+        payload: this.state.unsavedChanges,
+      });
+    }
   }
 
   attachResizeListener() {
@@ -145,7 +155,6 @@ class ProjectSettingsView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
     return (
       <div className={"view-page view-project-settings"}>
         <form

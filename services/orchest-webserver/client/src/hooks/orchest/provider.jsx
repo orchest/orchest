@@ -56,6 +56,8 @@ const reducer = (state, action) => {
       return { ...state, sessionsKillAllInProgress: true };
     case "_sessionsKillAllClear":
       return { ...state, sessionsKillAllInProgress: false };
+    case "setUnsavedChanges":
+      return { ...state, unsavedChanges: action.payload };
     case "setView":
       return { ...state, view: action.payload };
     case "clearView":
@@ -77,6 +79,7 @@ const initialState = {
   sessions: [],
   sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
+  unsavedChanges: false,
   view: "pipeline",
   _sessionsToFetch: [],
   _sessionsToggle: null,
@@ -141,6 +144,17 @@ export const OrchestProvider = ({ config, user_config, children }) => {
       orchest.alert(...state.alert);
     }
   }, [state.alert]);
+
+  /**
+   * Handle Unsaved Changes prompt
+   */
+  // React.useEffect(() => {
+  //   window.onbeforeunload = state.unsavedChanges
+  //     ? function () {
+  //         return true;
+  //       }
+  //     : null;
+  // }, [state.unsavedChanges]);
 
   if (process.env.NODE_ENV === "development")
     console.log("(Dev Mode) useOrchest: state updated", state);

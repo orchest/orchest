@@ -1,6 +1,5 @@
 import React, { Fragment } from "react";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 import {
   makeRequest,
   checkHeartbeat,
@@ -41,6 +40,19 @@ class SettingsView extends React.Component {
     this.checkOrchestStatus();
     this.getConfig();
     this.getVersion();
+    this.context.dispatch({
+      type: "setUnsavedChanges",
+      payload: this.state.unsavedChanges,
+    });
+  }
+
+  componentDidUpdate(_, prevState) {
+    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
+      this.context.dispatch({
+        type: "setUnsavedChanges",
+        payload: this.state.unsavedChanges,
+      });
+    }
   }
 
   updateView() {
@@ -243,8 +255,6 @@ class SettingsView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
-
     return (
       <div className={"view-page orchest-settings"}>
         <h2>Orchest settings</h2>

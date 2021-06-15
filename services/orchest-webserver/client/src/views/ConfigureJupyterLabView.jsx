@@ -11,7 +11,6 @@ import {
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
 import ImageBuildLog from "../components/ImageBuildLog";
-import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 
 class ConfigureJupyterLabView extends React.Component {
   static contextType = OrchestContext;
@@ -43,9 +42,21 @@ class ConfigureJupyterLabView extends React.Component {
 
   componentDidMount() {
     this.getSetupScript();
+
+    this.context.dispatch({
+      type: "setUnsavedChanges",
+      payload: this.state.unsavedChanges,
+    });
   }
 
   componentDidUpdate() {
+    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
+      this.context.dispatch({
+        type: "setUnsavedChanges",
+        payload: this.state.unsavedChanges,
+      });
+    }
+
     if (
       this.context.state.sessionsKillAllInProgress &&
       this.state.sessionKillStatus === "WAITING"
@@ -211,8 +222,6 @@ class ConfigureJupyterLabView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
-
     return (
       <OrchestSessionsConsumer>
         <div className={"view-page jupyterlab-config-page"}>
