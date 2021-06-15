@@ -26,7 +26,22 @@ import PipelinesView from "./views/PipelinesView";
 import JobsView from "./views/JobsView";
 
 import $ from "jquery";
-import "./utils/overflowing";
+
+$.fn.overflowing = function () {
+  let overflowed = false;
+
+  this.each(function () {
+    let el = $(this)[0];
+
+    if (el.offsetHeight < el.scrollHeight || el.offsetWidth < el.scrollWidth) {
+      overflowed = true;
+    } else {
+      overflowed = false;
+    }
+  });
+
+  return overflowed;
+};
 
 window.$ = $;
 

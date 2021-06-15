@@ -44,7 +44,6 @@ const Dialogs = React.forwardRef((_, ref) => {
       ...prevDialogs,
       <BuildPendingDialog
         key={uuid}
-        uuid={uuid}
         project_uuid={project_uuid}
         environmentValidationData={environmentValidationData}
         requestedFromView={requestedFromView}
@@ -91,7 +90,6 @@ const Dialogs = React.forwardRef((_, ref) => {
       ...prevDialogs,
       <ConfirmDialog
         key={uuid}
-        uuid={uuid}
         title={title}
         content={content}
         onConfirm={() => {
@@ -112,19 +110,9 @@ const Dialogs = React.forwardRef((_, ref) => {
   };
 
   const remove = (uuid) => {
-    let index;
-    for (let x = 0; x < dialogs.length; x++) {
-      if (dialogs[x].props.uuid == uuid) {
-        index = x;
-        break;
-      }
-    }
-
-    setDialogs((prevDialogs) => {
-      const prevDialogsClone = prevDialogs.slice();
-
-      return prevDialogsClone.splice(index, 1);
-    });
+    setDialogs((prevDialogs) =>
+      prevDialogs.filter((item) => item.key !== uuid)
+    );
   };
 
   React.useImperativeHandle(ref, () => ({

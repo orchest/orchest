@@ -8,7 +8,7 @@
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
     "sandbox": "pnpm run dev --filter '@orchest/design-system-sandbox'",
-    "setup": "npm i -g pnpm@6.0.1"
+    "setup": "npm i -g pnpm@6.7.6"
   },
   "devDependencies": {
     "syncpack": "5.7.11",
