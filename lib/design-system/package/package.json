@@ -1,6 +1,6 @@
 {
   "name": "@orchest/design-system",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "main": "src/index.ts",
