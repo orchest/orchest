@@ -14,14 +14,14 @@ import {
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
 
-import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
-import { Layout } from "@/components/Layout";
-import LogViewer from "@/components/LogViewer";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
   filterServices,
 } from "@/utils/webserver-utils";
+import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
+import { Layout } from "@/components/Layout";
+import LogViewer from "@/components/LogViewer";
 
 const LogsView = (props) => {
   const orchest = window.orchest;

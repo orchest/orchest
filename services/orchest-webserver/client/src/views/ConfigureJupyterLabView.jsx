@@ -11,7 +11,7 @@ import {
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import ImageBuildLog from "../components/ImageBuildLog";
+import ImageBuildLog from "@/components/ImageBuildLog";
 
 class ConfigureJupyterLabView extends React.Component {
   static contextType = OrchestContext;

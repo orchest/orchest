@@ -2,8 +2,8 @@
 import React from "react";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import EnvironmentList from "../components/EnvironmentList";
-import ProjectBasedView from "../components/ProjectBasedView";
+import EnvironmentList from "@/components/EnvironmentList";
+import ProjectBasedView from "@/components/ProjectBasedView";
 
 /**
  * @param {Object} props

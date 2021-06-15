@@ -11,24 +11,24 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-import { OrchestContext } from "@/hooks/orchest";
-import { Layout } from "@/components/Layout";
-import { DescriptionList } from "../components/DescriptionList";
-import ParameterEditor from "../components/ParameterEditor";
-import CronScheduleInput from "../components/CronScheduleInput";
-import DateTimeInput from "../components/DateTimeInput";
-import JobsView from "./JobsView";
-import SearchableTable from "../components/SearchableTable";
-import ParamTree from "../components/ParamTree";
-import EnvVarList from "../components/EnvVarList";
 
 import {
   checkGate,
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
   envVariablesDictToArray,
-} from "../utils/webserver-utils";
-import JobView from "./JobView";
+} from "@/utils/webserver-utils";
+import { OrchestContext } from "@/hooks/orchest";
+import { Layout } from "@/components/Layout";
+import { DescriptionList } from "@/components/DescriptionList";
+import ParameterEditor from "@/components/ParameterEditor";
+import CronScheduleInput from "@/components/CronScheduleInput";
+import DateTimeInput from "@/components/DateTimeInput";
+import SearchableTable from "@/components/SearchableTable";
+import ParamTree from "@/components/ParamTree";
+import EnvVarList from "@/components/EnvVarList";
+import JobView from "@/views/JobView";
+import JobsView from "@/views/JobsView";
 
 class EditJobView extends React.Component {
   static contextType = OrchestContext;

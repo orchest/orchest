@@ -19,10 +19,10 @@ import {
   LANGUAGE_MAP,
   DEFAULT_BASE_IMAGES,
 } from "@orchest/lib-utils";
-import { Layout } from "@/components/Layout";
 import { OrchestContext } from "@/hooks/orchest";
-import EnvironmentsView from "./EnvironmentsView";
-import ImageBuildLog from "../components/ImageBuildLog";
+import { Layout } from "@/components/Layout";
+import ImageBuildLog from "@/components/ImageBuildLog";
+import EnvironmentsView from "@/views/EnvironmentsView";
 
 class EnvironmentEditView extends React.Component {
   static contextType = OrchestContext;

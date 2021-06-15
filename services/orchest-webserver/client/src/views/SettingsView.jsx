@@ -1,4 +1,7 @@
 import React, { Fragment } from "react";
+import { Controlled as CodeMirror } from "react-codemirror2";
+import _ from "lodash";
+import "codemirror/mode/javascript/javascript";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   makeRequest,
@@ -8,12 +11,9 @@ import {
 } from "@orchest/lib-utils";
 import { OrchestContext } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import UpdateView from "./UpdateView";
-import ManageUsersView from "./ManageUsersView";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import "codemirror/mode/javascript/javascript";
-import ConfigureJupyterLabView from "./ConfigureJupyterLabView";
-import _ from "lodash";
+import UpdateView from "@/views/UpdateView";
+import ManageUsersView from "@/views/ManageUsersView";
+import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
 
 class SettingsView extends React.Component {
   static contextType = OrchestContext;

@@ -1,4 +1,5 @@
 import React from "react";
+import io from "socket.io-client";
 import _ from "lodash";
 
 import {
@@ -22,18 +23,17 @@ import {
   getServiceURLs,
   filterServices,
   validatePipeline,
-} from "../utils/webserver-utils";
+} from "@/utils/webserver-utils";
 
-import PipelineSettingsView from "./PipelineSettingsView";
-import LogsView from "./LogsView";
 import { Layout } from "@/components/Layout";
-import PipelineDetails from "../components/PipelineDetails";
-import PipelineStep from "../components/PipelineStep";
-import io from "socket.io-client";
-import FilePreviewView from "./FilePreviewView";
-import JobView from "./JobView";
-import JupyterLabView from "./JupyterLabView";
-import PipelinesView from "./PipelinesView";
+import PipelineDetails from "@/components/PipelineDetails";
+import PipelineStep from "@/components/PipelineStep";
+import PipelineSettingsView from "@/views/PipelineSettingsView";
+import LogsView from "@/views/LogsView";
+import FilePreviewView from "@/views/FilePreviewView";
+import JobView from "@/views/JobView";
+import JupyterLabView from "@/views/JupyterLabView";
+import PipelinesView from "@/views/PipelinesView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;

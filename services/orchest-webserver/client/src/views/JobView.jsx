@@ -20,17 +20,17 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
   envVariablesDictToArray,
-} from "../utils/webserver-utils";
-import { DescriptionList } from "@/components/DescriptionList";
-import { StatusInline, StatusGroup } from "../components/Status";
-import ParamTree from "../components/ParamTree";
-import ParameterEditor from "../components/ParameterEditor";
-import SearchableTable from "../components/SearchableTable";
-import EnvVarList from "../components/EnvVarList";
-import PipelineView from "./PipelineView";
-import EditJobView from "./EditJobView";
-import JobsView from "./JobsView";
+} from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
+import { DescriptionList } from "@/components/DescriptionList";
+import { StatusInline, StatusGroup } from "@/components/Status";
+import ParamTree from "@/components/ParamTree";
+import ParameterEditor from "@/components/ParameterEditor";
+import SearchableTable from "@/components/SearchableTable";
+import EnvVarList from "@/components/EnvVarList";
+import PipelineView from "@/views/PipelineView";
+import EditJobView from "@/views/EditJobView";
+import JobsView from "@/views/JobsView";
 
 /**
  * JobView-specific Type Definitions

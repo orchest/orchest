@@ -17,8 +17,8 @@ import {
 import { OrchestContext } from "@/hooks/orchest";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
-import ProjectSettingsView from "./ProjectSettingsView";
-import PipelinesView from "./PipelinesView";
+import ProjectSettingsView from "@/views/ProjectSettingsView";
+import PipelinesView from "@/views/PipelinesView";
 
 class ProjectsView extends React.Component {
   static contextType = OrchestContext;

@@ -47,8 +47,8 @@ import {
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
-import PipelineView from "./PipelineView";
 import { servicesTemplates } from "@/utils/service-templates";
+import PipelineView from "@/views/PipelineView";
 
 // we'll extract this into the design-system later
 const createServiceButton = css({

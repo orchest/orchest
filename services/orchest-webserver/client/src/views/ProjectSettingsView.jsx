@@ -8,15 +8,15 @@ import {
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import { OrchestContext } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import EnvVarList from "../components/EnvVarList";
+import EnvVarList from "@/components/EnvVarList";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
-} from "../utils/webserver-utils";
-import PipelinesView from "./PipelinesView";
-import JobsView from "./JobsView";
-import EnvironmentsView from "./EnvironmentsView";
+} from "@/utils/webserver-utils";
+import PipelinesView from "@/views/PipelinesView";
+import JobsView from "@/views/JobsView";
+import EnvironmentsView from "@/views/EnvironmentsView";
 
 class ProjectSettingsView extends React.Component {
   static contextType = OrchestContext;

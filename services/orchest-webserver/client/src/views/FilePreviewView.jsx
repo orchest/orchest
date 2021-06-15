@@ -18,8 +18,8 @@ import {
   getPipelineStepParents,
   getPipelineStepChildren,
   setWithRetry,
-} from "../utils/webserver-utils";
-import PipelineView from "./PipelineView";
+} from "@/utils/webserver-utils";
+import PipelineView from "@/views/PipelineView";
 
 class FilePreviewView extends React.Component {
   componentWillUnmount() {

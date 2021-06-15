@@ -11,9 +11,9 @@ import {
 import { useInterval } from "@/hooks/use-interval";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import { checkGate } from "../utils/webserver-utils";
-import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
-import PipelinesView from "./PipelinesView";
+import { checkGate } from "@/utils/webserver-utils";
+import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import PipelinesView from "@/views/PipelinesView";
 
 const JupyterLabView = (props) => {
   const { state, dispatch, get } = useOrchest();
