@@ -1,7 +1,7 @@
-import { StitchesVariants, InternalCSS } from "@stitches/core";
+import { InternalCSS } from "@stitches/core";
 import * as React from "react";
 import { css, config } from "../core";
-import { ICSSProp } from "../types";
+import { ExtractVariants, ICSSProp } from "../types";
 
 const getSizes = Object.keys(config.theme.space).reduce(
   (acc, cv) => ({ ...acc, [`${cv}`]: { $$iconSize: `$space$${cv}` } }),
@@ -26,7 +26,7 @@ export const icon = css({
 
 export type IIconRef = SVGSVGElement;
 export interface IIconProps
-  extends StitchesVariants<typeof icon>,
+  extends ExtractVariants<typeof icon>,
     ICSSProp,
     React.SVGProps<IIconRef> {}
 

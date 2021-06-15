@@ -33,11 +33,11 @@
     "@radix-ui/react-dialog": "0.0.17",
     "@radix-ui/react-id": "0.0.6",
     "@radix-ui/react-polymorphic": "0.0.11",
-    "@stitches/react": "0.1.9",
+    "@stitches/react": "0.2.0",
     "stitches-mixins": "0.2.1"
   },
   "devDependencies": {
-    "@stitches/core": "0.1.9",
+    "@stitches/core": "0.2.0",
     "@types/node": "15.0.1",
     "@types/react": "17.0.3",
     "concurrently": "6.0.2",

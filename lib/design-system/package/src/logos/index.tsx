@@ -1,7 +1,6 @@
 import * as React from "react";
-import { StitchesVariants } from "@stitches/react";
 import { css } from "../core";
-import type { ICSSProp } from "../types";
+import type { ExtractVariants, ICSSProp } from "../types";
 
 const logo = css({
   include: "box",
@@ -13,7 +12,7 @@ const logo = css({
 
 export type ILogoRef = SVGSVGElement;
 export interface ILogoProps
-  extends StitchesVariants<typeof logo>,
+  extends ExtractVariants<typeof logo>,
     ICSSProp,
     React.SVGProps<ILogoRef> {}
 

@@ -14,8 +14,8 @@ importers:
       "@radix-ui/react-dialog": 0.0.17
       "@radix-ui/react-id": 0.0.6
       "@radix-ui/react-polymorphic": 0.0.11
-      "@stitches/core": 0.1.9
-      "@stitches/react": 0.1.9
+      "@stitches/core": 0.2.0
+      "@stitches/react": 0.2.0
       "@types/node": 15.0.1
       "@types/react": 17.0.3
       concurrently: 6.0.2
@@ -31,10 +31,10 @@ importers:
       "@radix-ui/react-dialog": 0.0.17_1423352f7a146a83c5c5192e9f749fe2
       "@radix-ui/react-id": 0.0.6_react@16.13.1
       "@radix-ui/react-polymorphic": 0.0.11_react@16.13.1
-      "@stitches/react": 0.1.9_react@16.13.1
-      stitches-mixins: 0.2.1_@stitches+core@0.1.9
+      "@stitches/react": 0.2.0_react@16.13.1
+      stitches-mixins: 0.2.1_@stitches+core@0.2.0
     devDependencies:
-      "@stitches/core": 0.1.9
+      "@stitches/core": 0.2.0
       "@types/node": 15.0.1
       "@types/react": 17.0.3
       concurrently: 6.0.2
@@ -1537,21 +1537,21 @@ packages:
       react: 16.13.1
     dev: false
 
-  /@stitches/core/0.1.9:
+  /@stitches/core/0.2.0:
     resolution:
       {
-        integrity: sha512-70gVb0uhgV6BOJmloirWEGZmofk/Hzr5yWlub1rtm4CvimD3Xl5xr9fVkjcTu+REC6ILCJCnlEP4WmilTfXNOA==,
+        integrity: sha512-mDR7wBk8SsYhscWIhwVRC8JEiOZ5lkDJm9uwe5R2P/ft9Lo/lZ8YrTKcjHbn5ExTCB28NfMsRlC+kknfTYP6bg==,
       }
+    dev: true
 
-  /@stitches/react/0.1.9_react@16.13.1:
+  /@stitches/react/0.2.0_react@16.13.1:
     resolution:
       {
-        integrity: sha512-yK4ZAdkuOiOum+bfPYlDNS9UI/Tm9JYsYNMUWLB3uAy+7tvSYfB4cVYkXwFuiKxis03woATTZTe6IlTb+LXm+A==,
+        integrity: sha512-HJozXVJi+A53woKk1ePVI8iEv5zmldYGPE2hGwsXrBEo+y/aY4R/2G+xvwQPj1tVlG8LuqsyRGNfLaVSAjsumA==,
       }
     peerDependencies:
-      react: ">=17.0.0 <19.0.0"
+      react: ">= 17.0.0"
     dependencies:
-      "@stitches/core": 0.1.9
       react: 16.13.1
     dev: false
 
@@ -4633,7 +4633,7 @@ packages:
     engines: { node: ">= 0.6" }
     dev: false
 
-  /stitches-mixins/0.2.1_@stitches+core@0.1.9:
+  /stitches-mixins/0.2.1_@stitches+core@0.2.0:
     resolution:
       {
         integrity: sha512-DMKo21TL20D14a3OBRBqVJeO6YPvyvbXee5NWn5eWicOJVQfDewDBq+gkZG0SLu7W238XXeijZAXLADnBhqrfQ==,
@@ -4641,7 +4641,7 @@ packages:
     peerDependencies:
       "@stitches/core": ">= 0.1.0-canary.3"
     dependencies:
-      "@stitches/core": 0.1.9
+      "@stitches/core": 0.2.0
     dev: false
 
   /stream-browserify/2.0.2:
