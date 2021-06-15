@@ -20,7 +20,6 @@ import {
   DEFAULT_BASE_IMAGES,
 } from "@orchest/lib-utils";
 import { OrchestContext } from "@/hooks/orchest";
-import { updateGlobalUnsavedChanges } from "../utils/webserver-utils";
 import EnvironmentsView from "./EnvironmentsView";
 import ImageBuildLog from "../components/ImageBuildLog";
 
@@ -97,6 +96,20 @@ class EnvironmentEditView extends React.Component {
   componentDidMount() {
     if (this.props.queryArgs.environment_uuid) {
       this.fetchEnvironment();
+    }
+
+    this.context.dispatch({
+      type: "setUnsavedChanges",
+      payload: this.state.unsavedChanges,
+    });
+  }
+
+  componentDidUpdate(_, prevState) {
+    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
+      this.context.dispatch({
+        type: "setUnsavedChanges",
+        payload: this.state.unsavedChanges,
+      });
     }
   }
 
@@ -386,8 +399,6 @@ class EnvironmentEditView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
-
     return (
       <div className={"view-page edit-environment"}>
         {(() => {

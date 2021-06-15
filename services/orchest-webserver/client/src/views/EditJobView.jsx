@@ -26,7 +26,6 @@ import {
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
   envVariablesDictToArray,
-  updateGlobalUnsavedChanges,
 } from "../utils/webserver-utils";
 import JobView from "./JobView";
 
@@ -185,6 +184,20 @@ class EditJobView extends React.Component {
 
   componentDidMount() {
     this.fetchJob();
+
+    this.context.dispatch({
+      type: "setUnsavedChanges",
+      payload: this.state.unsavedChanges,
+    });
+  }
+
+  componentDidUpdate(_, prevState) {
+    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
+      this.context.dispatch({
+        type: "setUnsavedChanges",
+        payload: this.state.unsavedChanges,
+      });
+    }
   }
 
   onParameterChange() {
@@ -565,8 +578,6 @@ class EditJobView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
-
     let rootView = undefined;
 
     if (this.state.job && this.state.pipeline) {
