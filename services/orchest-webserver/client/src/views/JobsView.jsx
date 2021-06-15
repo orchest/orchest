@@ -1,8 +1,9 @@
 // @ts-check
 import React from "react";
 import { useOrchest } from "@/hooks/orchest";
-import JobList from "../components/JobList";
-import ProjectBasedView from "../components/ProjectBasedView";
+import { Layout } from "@/components/Layout";
+import JobList from "@/components/JobList";
+import ProjectBasedView from "@/components/ProjectBasedView";
 
 /**
  * @param {Object} props
@@ -17,7 +18,9 @@ const JobsView = (props) => {
   }, []);
 
   return (
-    <ProjectBasedView project_uuid={props.project_uuid} childView={JobList} />
+    <Layout>
+      <ProjectBasedView project_uuid={props.project_uuid} childView={JobList} />
+    </Layout>
   );
 };
 

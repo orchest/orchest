@@ -30,6 +30,7 @@ import EnvVarList from "../components/EnvVarList";
 import PipelineView from "./PipelineView";
 import EditJobView from "./EditJobView";
 import JobsView from "./JobsView";
+import { Layout } from "@/components/Layout";
 
 /**
  * JobView-specific Type Definitions
@@ -549,7 +550,11 @@ const JobView = (props) => {
     );
   }
 
-  return <div className="view-page job-view">{rootView}</div>;
+  return (
+    <Layout>
+      <div className="view-page job-view">{rootView}</div>
+    </Layout>
+  );
 };
 
 export default JobView;

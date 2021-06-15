@@ -1,25 +1,27 @@
 // @ts-check
 import React from "react";
 import PipelineView from "./PipelineView";
-import LogViewer from "../components/LogViewer";
+import io from "socket.io-client";
+
 import {
   makeRequest,
   PromiseManager,
   makeCancelable,
 } from "@orchest/lib-utils";
-
-import io from "socket.io-client";
 import {
   MDCButtonReact,
   MDCLinearProgressReact,
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
+
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
+import { Layout } from "@/components/Layout";
+import LogViewer from "@/components/LogViewer";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
   filterServices,
-} from "../utils/webserver-utils";
+} from "@/utils/webserver-utils";
 
 const LogsView = (props) => {
   const orchest = window.orchest;
@@ -375,7 +377,9 @@ const LogsView = (props) => {
 
   return (
     <OrchestSessionsConsumer>
-      <div className="view-page no-padding logs-view">{rootView}</div>
+      <Layout>
+        <div className="view-page no-padding logs-view">{rootView}</div>
+      </Layout>
     </OrchestSessionsConsumer>
   );
 };

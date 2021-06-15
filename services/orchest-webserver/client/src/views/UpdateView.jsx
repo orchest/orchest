@@ -7,6 +7,7 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
+import { Layout } from "@/components/Layout";
 
 class UpdateView extends React.Component {
   constructor() {
@@ -115,41 +116,43 @@ class UpdateView extends React.Component {
         : updateOutputLines;
 
     return (
-      <div className={"view-page update-page"}>
-        <h2>Orchest updater</h2>
-        <p className="push-down">Update Orchest to the latest version.</p>
+      <Layout>
+        <div className={"view-page update-page"}>
+          <h2>Orchest updater</h2>
+          <p className="push-down">Update Orchest to the latest version.</p>
 
-        {(() => {
-          let elements = [];
+          {(() => {
+            let elements = [];
 
-          if (this.state.updating) {
-            elements.push(
-              <MDCLinearProgressReact key="0" classNames={["push-down"]} />
+            if (this.state.updating) {
+              elements.push(
+                <MDCLinearProgressReact key="0" classNames={["push-down"]} />
+              );
+            }
+            if (this.state.updateOutput.length > 0) {
+              elements.push(
+                <div key="1" className="console-output">
+                  {updateOutputLines.join("\n")}
+                </div>
+              );
+            }
+
+            return (
+              <Fragment>
+                <MDCButtonReact
+                  classNames={["push-down"]}
+                  label="Start update"
+                  icon="system_update_alt"
+                  disabled={this.state.updating}
+                  onClick={this.startUpdateTrigger.bind(this)}
+                />
+
+                {elements}
+              </Fragment>
             );
-          }
-          if (this.state.updateOutput.length > 0) {
-            elements.push(
-              <div key="1" className="console-output">
-                {updateOutputLines.join("\n")}
-              </div>
-            );
-          }
-
-          return (
-            <Fragment>
-              <MDCButtonReact
-                classNames={["push-down"]}
-                label="Start update"
-                icon="system_update_alt"
-                disabled={this.state.updating}
-                onClick={this.startUpdateTrigger.bind(this)}
-              />
-
-              {elements}
-            </Fragment>
-          );
-        })()}
-      </div>
+          })()}
+        </div>
+      </Layout>
     );
   }
 }

@@ -12,6 +12,7 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import { OrchestContext } from "@/hooks/orchest";
+import { Layout } from "@/components/Layout";
 import { DescriptionList } from "../components/DescriptionList";
 import ParameterEditor from "../components/ParameterEditor";
 import CronScheduleInput from "../components/CronScheduleInput";
@@ -759,7 +760,11 @@ class EditJobView extends React.Component {
       rootView = <MDCLinearProgressReact />;
     }
 
-    return <div className="view-page job-view">{rootView}</div>;
+    return (
+      <Layout>
+        <div className="view-page job-view">{rootView}</div>
+      </Layout>
+    );
   }
 }
 

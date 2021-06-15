@@ -1,22 +1,25 @@
 import React, { Fragment } from "react";
+import { Controlled as CodeMirror } from "react-codemirror2";
+import "codemirror/mode/python/python";
+import "codemirror/mode/shell/shell";
+import "codemirror/mode/r/r";
+
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import PipelineView from "./PipelineView";
 import {
   makeRequest,
   PromiseManager,
   RefManager,
   makeCancelable,
 } from "@orchest/lib-utils";
-import { Controlled as CodeMirror } from "react-codemirror2";
+
+import { Layout } from "@/components/Layout";
 import {
   getPipelineJSONEndpoint,
   getPipelineStepParents,
   getPipelineStepChildren,
   setWithRetry,
 } from "../utils/webserver-utils";
-import "codemirror/mode/python/python";
-import "codemirror/mode/shell/shell";
-import "codemirror/mode/r/r";
+import PipelineView from "./PipelineView";
 
 class FilePreviewView extends React.Component {
   componentWillUnmount() {
@@ -279,94 +282,96 @@ class FilePreviewView extends React.Component {
     let childStepElements = this.renderNavStep(this.state.childSteps);
 
     return (
-      <div
-        className={"view-page file-viewer no-padding"}
-        ref={this.refManager.nrefs.fileViewer}
-      >
-        <div className="top-buttons">
-          <MDCButtonReact
-            classNames={["refresh-button"]}
-            icon="refresh"
-            onClick={this.loadFile.bind(this)}
-          />
-          <MDCButtonReact
-            classNames={["close-button"]}
-            icon="close"
-            onClick={this.loadPipelineView.bind(this)}
-          />
-        </div>
+      <Layout>
+        <div
+          className={"view-page file-viewer no-padding"}
+          ref={this.refManager.nrefs.fileViewer}
+        >
+          <div className="top-buttons">
+            <MDCButtonReact
+              classNames={["refresh-button"]}
+              icon="refresh"
+              onClick={this.loadFile.bind(this)}
+            />
+            <MDCButtonReact
+              classNames={["close-button"]}
+              icon="close"
+              onClick={this.loadPipelineView.bind(this)}
+            />
+          </div>
 
-        {(() => {
-          if (this.state.loadingFile) {
-            return <MDCLinearProgressReact />;
-          } else if (
-            this.state.fileDescription != undefined &&
-            this.state.parentSteps != undefined
-          ) {
-            let fileComponent;
+          {(() => {
+            if (this.state.loadingFile) {
+              return <MDCLinearProgressReact />;
+            } else if (
+              this.state.fileDescription != undefined &&
+              this.state.parentSteps != undefined
+            ) {
+              let fileComponent;
 
-            if (this.state.fileDescription.ext != "ipynb") {
-              let fileMode = this.MODE_MAPPING[
-                this.state.fileDescription.ext.toLowerCase()
-              ];
-              if (!fileMode) {
-                fileMode = null;
+              if (this.state.fileDescription.ext != "ipynb") {
+                let fileMode = this.MODE_MAPPING[
+                  this.state.fileDescription.ext.toLowerCase()
+                ];
+                if (!fileMode) {
+                  fileMode = null;
+                }
+
+                fileComponent = (
+                  <CodeMirror
+                    value={this.state.fileDescription.content}
+                    options={{
+                      mode: fileMode,
+                      theme: "jupyter",
+                      lineNumbers: true,
+                      readOnly: true,
+                    }}
+                  />
+                );
+              } else if (this.state.fileDescription.ext == "ipynb") {
+                fileComponent = (
+                  <iframe
+                    ref={this.refManager.nrefs.htmlNotebookIframe}
+                    className={"notebook-iframe borderless fullsize"}
+                    srcDoc={this.state.fileDescription.content}
+                  ></iframe>
+                );
+              } else {
+                fileComponent = (
+                  <div>
+                    <p>
+                      Something went wrong loading the file. Please try again by
+                      reloading the page.
+                    </p>
+                  </div>
+                );
               }
 
-              fileComponent = (
-                <CodeMirror
-                  value={this.state.fileDescription.content}
-                  options={{
-                    mode: fileMode,
-                    theme: "jupyter",
-                    lineNumbers: true,
-                    readOnly: true,
-                  }}
-                />
-              );
-            } else if (this.state.fileDescription.ext == "ipynb") {
-              fileComponent = (
-                <iframe
-                  ref={this.refManager.nrefs.htmlNotebookIframe}
-                  className={"notebook-iframe borderless fullsize"}
-                  srcDoc={this.state.fileDescription.content}
-                ></iframe>
-              );
-            } else {
-              fileComponent = (
-                <div>
-                  <p>
-                    Something went wrong loading the file. Please try again by
-                    reloading the page.
-                  </p>
-                </div>
-              );
-            }
-
-            return (
-              <Fragment>
-                <div className="file-description">
-                  <h3>
-                    Step: {this.state.fileDescription.step_title} (
-                    {this.state.fileDescription.filename})
-                  </h3>
-                  <div className="step-navigation">
-                    <div className="parents">
-                      <span>Parent steps</span>
-                      {parentStepElements}
-                    </div>
-                    <div className="children">
-                      <span>Child steps</span>
-                      {childStepElements}
+              return (
+                <Fragment>
+                  <div className="file-description">
+                    <h3>
+                      Step: {this.state.fileDescription.step_title} (
+                      {this.state.fileDescription.filename})
+                    </h3>
+                    <div className="step-navigation">
+                      <div className="parents">
+                        <span>Parent steps</span>
+                        {parentStepElements}
+                      </div>
+                      <div className="children">
+                        <span>Child steps</span>
+                        {childStepElements}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="file-holder">{fileComponent}</div>
-              </Fragment>
-            );
-          }
-        })()}
-      </div>
+                  <div className="file-holder">{fileComponent}</div>
+                </Fragment>
+              );
+            }
+          })()}
+        </div>
+      </Layout>
     );
   }
 }
