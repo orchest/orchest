@@ -148,13 +148,13 @@ export const OrchestProvider = ({ config, user_config, children }) => {
   /**
    * Handle Unsaved Changes prompt
    */
-  // React.useEffect(() => {
-  //   window.onbeforeunload = state.unsavedChanges
-  //     ? function () {
-  //         return true;
-  //       }
-  //     : null;
-  // }, [state.unsavedChanges]);
+  React.useEffect(() => {
+    window.onbeforeunload = state.unsavedChanges
+      ? function () {
+          return true;
+        }
+      : null;
+  }, [state.unsavedChanges]);
 
   if (process.env.NODE_ENV === "development")
     console.log("(Dev Mode) useOrchest: state updated", state);
