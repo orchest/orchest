@@ -24,6 +24,7 @@
     "dashify": "^2.0.0",
     "date-fns": "2.20.1",
     "isomorphic-unfetch": "3.1.0",
+    "framer-motion": "4.1.17",
     "jquery": "^3.5.1",
     "lodash": "^4.17.20",
     "material-components-web": "10.0.0",

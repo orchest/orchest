@@ -1,6 +1,7 @@
 // @ts-check
 import React from "react";
 import ReactDOM from "react-dom";
+import { domMax, LazyMotion } from "framer-motion";
 import App from "./App";
 import { DesignSystemProvider } from "@orchest/design-system";
 import { makeRequest } from "@orchest/lib-utils";
@@ -27,11 +28,13 @@ window.addEventListener("load", () => {
       let config = JSON.parse(result as string);
 
       ReactDOM.render(
-        <DesignSystemProvider>
-          <OrchestProvider {...config}>
-            <App />
-          </OrchestProvider>
-        </DesignSystemProvider>,
+        <LazyMotion features={domMax}>
+          <DesignSystemProvider>
+            <OrchestProvider {...config}>
+              <App />
+            </OrchestProvider>
+          </DesignSystemProvider>
+        </LazyMotion>,
         document.querySelector("#root")
       );
     });
