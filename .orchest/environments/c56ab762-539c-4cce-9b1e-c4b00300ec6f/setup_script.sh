@@ -3,4 +3,4 @@
 # Install additional packages used throughout the pipeline. If
 # you want more granularity, you can use different environments 
 # for each step.
-pip install vaex numpy==1.20.1
+pip install vaex==4.2.0
