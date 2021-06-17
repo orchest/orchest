@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import { css, Box, Flex, Text } from "@orchest/design-system";
+import { css, Flex, Text } from "@orchest/design-system";
 import { PipelineDiagram } from "./PipelineDiagram";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 
@@ -17,11 +17,8 @@ const iconListItem = css({
   "> i": { fontSize: "2rem", color: "$gray700", marginBottom: "$2" },
 });
 
-const cta = css({ alignSelf: "center" });
-
 /**
  * @typedef {{title: string, body: React.ReactNode}} TOnboardingDialogSlide
- *
  * @type {TOnboardingDialogSlide[]}
  */
 export const onboardingDialogSlides = [
@@ -109,12 +106,6 @@ export const onboardingDialogSlides = [
         <Text>
           Check out the Quickstart pipeline to see it all in action 🚀
         </Text>
-        <MDCButtonReact
-          icon="open_in_new"
-          label="Open Quickstart Pipeline"
-          classNames={[cta(), "mdc-button--raised", "themed-secondary"]}
-          onClick={() => {}}
-        />
       </Flex>
     ),
   },

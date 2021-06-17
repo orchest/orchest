@@ -2,6 +2,7 @@
 import React from "react";
 import { m, AnimatePresence } from "framer-motion";
 import {
+  css,
   Box,
   Dialog,
   DialogBody,
@@ -10,14 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DIALOG_ANIMATION_DURATION,
   Flex,
   IconButton,
-  IconChevronLeftOutline,
-  IconChevronRightOutline,
   IconCrossSolid,
 } from "@orchest/design-system";
 import { useLocalStorage } from "@/hooks/local-storage";
+import { wrapNumber } from "@/utils/wrap-number";
 import { onboardingDialogSlides as slides } from "./OnboardingDialogSlides";
+import { MDCButtonReact } from "../../../../../../../lib/javascript/mdc/src";
+
+const slideButton = css({ alignSelf: "center" });
 
 const slideVariants = {
   enter:
@@ -50,29 +54,34 @@ const slideVariants = {
 /** @type React.FC<{}> */
 export const OnboardingDialog = () => {
   const [isOnboarding, setIsOnboarding] = useLocalStorage("isOnboarding", true);
-  const [[slideIndex, slideDirection], setSlideIndex] = React.useState([0, 0]);
+  const [[slideIndexState, slideDirection], setSlideIndex] = React.useState([
+    0,
+    0,
+  ]);
+
+  const slideIndex = wrapNumber(0, slides.length, slideIndexState);
 
   /** @param {number} newSlideDirection */
   const cycleSlide = (newSlideDirection) => {
-    setSlideIndex(([prevSlideIndex]) => {
-      if (prevSlideIndex <= 0) {
-        return [
-          newSlideDirection === -1
-            ? slides.length + newSlideDirection
-            : prevSlideIndex + newSlideDirection,
-          newSlideDirection,
-        ];
-      }
+    setSlideIndex(([prevSlideIndex]) => [
+      prevSlideIndex + newSlideDirection,
+      newSlideDirection,
+    ]);
+  };
 
-      return [
-        (prevSlideIndex + newSlideDirection) % slides.length,
-        newSlideDirection,
-      ];
-    });
+  const onOpen = () => setIsOnboarding(true);
+  const onClose = () => {
+    setIsOnboarding(false);
+    // Wait for Dialog transition to finish before resetting position.
+    // This way we avoid showing the slides animating back to the start.
+    setTimeout(() => setSlideIndex([0, 0]), DIALOG_ANIMATION_DURATION.OUT);
   };
 
   return (
-    <Dialog open={isOnboarding} onOpenChange={(open) => setIsOnboarding(open)}>
+    <Dialog
+      open={isOnboarding}
+      onOpenChange={(open) => (open ? onOpen() : onClose())}
+    >
       <Box css={{ backgroundColor: "$red100", padding: "$4" }}>
         <Box as="small" css={{ display: "block", marginBottom: "$2" }}>
           Dev Mode
@@ -84,12 +93,12 @@ export const OnboardingDialog = () => {
           variant="ghost"
           rounded
           label="Close"
-          onClick={() => setIsOnboarding(false)}
+          onClick={() => onClose()}
           css={{ position: "absolute", top: "$4", right: "$4" }}
         >
           <IconCrossSolid />
         </IconButton>
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} custom={slideDirection}>
           {slides.map(
             (item, i) =>
               i === slideIndex && (
@@ -126,22 +135,24 @@ export const OnboardingDialog = () => {
           }}
         >
           <Flex gap="2">
-            <IconButton
-              rounded
-              size="4"
-              label="Next"
-              onClick={() => cycleSlide(-1)}
-            >
-              <IconChevronLeftOutline />
-            </IconButton>
-            <IconButton
-              rounded
-              size="4"
-              label="Next"
-              onClick={() => cycleSlide(1)}
-            >
-              <IconChevronRightOutline />
-            </IconButton>
+            {slideIndex === slides.length - 1 ? (
+              <MDCButtonReact
+                icon="open_in_new"
+                label="Open Quickstart Pipeline"
+                classNames={[
+                  slideButton(),
+                  "mdc-button--raised",
+                  "themed-secondary",
+                ]}
+                onClick={() => onClose()}
+              />
+            ) : (
+              <MDCButtonReact
+                label="Next"
+                classNames={[slideButton(), "mdc-button--outlined"]}
+                onClick={() => cycleSlide(1)}
+              />
+            )}
           </Flex>
         </DialogFooter>
       </DialogContent>

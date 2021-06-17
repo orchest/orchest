@@ -5,10 +5,11 @@ import { styled, keyframes } from "../core";
 import { ExtractVariants, ICSSProp } from "../types";
 import { Heading, THeadingComponent } from "./heading";
 
-const animationSpeed = {
-  in: "200ms",
-  out: "120ms",
-};
+export enum DIALOG_ANIMATION_DURATION {
+  IN = 200,
+  OUT = 120,
+}
+
 const fadeIn = keyframes({ from: { opacity: "0" }, to: { opacity: "1" } });
 const fadeOut = keyframes({ from: { opacity: 1 }, to: { opacity: 0 } });
 const fadeInZoom = keyframes({
@@ -35,10 +36,10 @@ const DialogOverlay = styled(DialogPrimitive.Overlay, {
   left: 0,
   "@motionSafe": {
     "&[data-state='open']": {
-      animation: `${fadeIn} ${animationSpeed.in} ease-out`,
+      animation: `${fadeIn} ${DIALOG_ANIMATION_DURATION.IN}ms ease-out`,
     },
     "&[data-state='closed']": {
-      animation: `${fadeOut} ${animationSpeed.out} ease-in`,
+      animation: `${fadeOut} ${DIALOG_ANIMATION_DURATION.OUT}ms ease-in`,
     },
   },
 });
@@ -80,10 +81,10 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   "@motionSafe": {
     willChange: "transform",
     "&[data-state='open']": {
-      animation: `${fadeInZoom} ${animationSpeed.in} ease-out`,
+      animation: `${fadeInZoom} ${DIALOG_ANIMATION_DURATION.IN}ms ease-out`,
     },
     "&[data-state='closed']": {
-      animation: `${fadeOut} ${animationSpeed.out} ease-in`,
+      animation: `${fadeOut} ${DIALOG_ANIMATION_DURATION.OUT}ms ease-in`,
     },
   },
   variants: {
