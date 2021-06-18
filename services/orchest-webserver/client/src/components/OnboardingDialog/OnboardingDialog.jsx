@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DIALOG_ANIMATION_DURATION,
   IconButton,
   IconCrossSolid,
@@ -25,46 +24,59 @@ import PipelineView from "@/views/PipelineView";
 import { PipelineDiagram } from "./assets";
 import { slides } from "./content";
 
+const codeHeader = css({ include: "box", textAlign: "right" });
+const codeHeading = css({
+  include: "box",
+  display: "inline-block",
+  padding: "$1 $2",
+  marginBottom: "-2px",
+  fontSize: "$xs",
+  borderTopLeftRadius: "$sm",
+  borderTopRightRadius: "$sm",
+  backgroundColor: "$primary",
+  color: "$white",
+});
+const codeWindow = css({
+  include: "box",
+  border: "2px $gray300 solid",
+  borderRadius: "$md",
+  borderTopRightRadius: 0,
+  padding: "$1",
+});
+const codeList = css({
+  include: "box",
+  fontFamily: "monospace",
+  textAlign: "left",
+  backgroundColor: "$gray900",
+  borderRadius: "$sm",
+  margin: 0,
+  padding: "$2",
+  paddingLeft: "$7",
+});
+const codeListItem = css({
+  include: "box",
+  fontSize: "$sm",
+  lineHeight: "$sm",
+  color: "$white",
+  "&::marker": {
+    color: "$gray500",
+    content: "'$ '",
+  },
+});
+
 const iconList = css({
+  include: "box",
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(0, 1fr))",
   gridAutoFlow: "column",
 });
-
 const iconListItem = css({
+  include: "box",
   display: "flex",
   flexDirection: "column",
   fontSize: "$sm",
   "> i": { fontSize: "2rem", color: "$gray700", marginBottom: "$2" },
 });
-
-const slideVariants = {
-  enter:
-    /** @param {number} slideDirection */
-    (slideDirection) => {
-      return {
-        x: slideDirection > 0 ? 1000 : -1000,
-        opacity: 0,
-        height: 0,
-      };
-    },
-  center: {
-    zIndex: 1,
-    x: 0,
-    opacity: 1,
-    height: "auto",
-  },
-  exit:
-    /** @param {number} slideDirection */
-    (slideDirection) => {
-      return {
-        zIndex: 0,
-        x: slideDirection < 0 ? 1000 : -1000,
-        opacity: 0,
-        height: 0,
-      };
-    },
-};
 
 /** @param {import('@/hooks/projects/types').TUseProjectsOptions} [options] */
 const useQuickstart = ({ shouldFetch }) => {
@@ -114,8 +126,8 @@ export const OnboardingDialog = () => {
     setIsDialogOpen(true);
     setShouldFetch(true);
   };
-  /** @param {{loadQuickstart: boolean}} [options] */
-  const onClose = ({ loadQuickstart }) => {
+  /** @param {{loadQuickstart?: boolean}} [options] */
+  const onClose = ({ loadQuickstart } = {}) => {
     setIsDialogOpen(false);
     setHasCompletedOnboarding(true);
     // Wait for Dialog transition to finish before resetting position.
@@ -139,7 +151,8 @@ export const OnboardingDialog = () => {
       open={isDialogOpen}
       onOpenChange={(open) => (open ? onOpen() : onClose())}
     >
-      <DialogContent css={{ overflow: "hidden" }}>
+      <button onClick={() => onOpen()}>Open</button>
+      <DialogContent size="md" css={{ paddingTop: "$10", overflow: "hidden" }}>
         <IconButton
           variant="ghost"
           rounded
@@ -156,7 +169,33 @@ export const OnboardingDialog = () => {
                 <m.div
                   key={`OnboardingSlide-${i}`}
                   custom={slideDirection}
-                  variants={slideVariants}
+                  variants={{
+                    enter:
+                      /** @param {number} slideDirection */
+                      (slideDirection) => {
+                        return {
+                          x: slideDirection > 0 ? 1000 : -1000,
+                          opacity: 0,
+                          height: 0,
+                        };
+                      },
+                    center: {
+                      zIndex: 1,
+                      x: 0,
+                      opacity: 1,
+                      height: "auto",
+                    },
+                    exit:
+                      /** @param {number} slideDirection */
+                      (slideDirection) => {
+                        return {
+                          zIndex: 0,
+                          x: slideDirection < 0 ? 1000 : -1000,
+                          opacity: 0,
+                          height: 0,
+                        };
+                      },
+                  }}
                   initial="enter"
                   animate="center"
                   exit="exit"
@@ -166,83 +205,38 @@ export const OnboardingDialog = () => {
                     ease: "easeInOut",
                   }}
                 >
-                  <DialogHeader
-                    css={{ justifyContent: "center", paddingTop: "$12" }}
-                  >
+                  <DialogHeader css={{ justifyContent: "center" }}>
                     <DialogTitle>{item.title}</DialogTitle>
                   </DialogHeader>
                   <DialogBody
                     css={{
+                      margin: "0 auto",
+                      maxWidth: "$sm",
                       textAlign: "center",
                       "> * + *": { marginTop: "$6" },
                     }}
                   >
                     {item.description && (
-                      <Text css={{ padding: "0 $6" }}>{item.description}</Text>
+                      <Text css={{ margin: "0 auto", maxWidth: "$xs" }}>
+                        {item.description}
+                      </Text>
                     )}
 
                     {item.variant === "code" && (
-                      <Box>
-                        <Box
-                          css={{
-                            color: "$white",
-                            textAlign: "right",
-                          }}
-                        >
-                          <Box
-                            css={{
-                              display: "inline-block",
-                              backgroundColor: "$primary",
-                              borderTopLeftRadius: "$sm",
-                              borderTopRightRadius: "$sm",
-                              fontSize: "$xs",
-                              padding: "$1 $2",
-                              marginBottom: "-2px",
-                            }}
-                          >
-                            {item.code.title}
-                          </Box>
-                        </Box>
-                        <Box
-                          css={{
-                            border: "2px $gray300 solid",
-                            borderRadius: "$md",
-                            borderTopRightRadius: 0,
-                            padding: "$1",
-                          }}
-                        >
-                          <Box
-                            as="ul"
-                            css={{
-                              fontFamily: "monospace",
-                              textAlign: "left",
-                              backgroundColor: "$gray900",
-                              borderRadius: "$sm",
-                              margin: 0,
-                              padding: "$2",
-                              paddingLeft: "$7",
-                            }}
-                          >
+                      <article>
+                        <header className={codeHeader()}>
+                          <h1 className={codeHeading()}>{item.code.title}</h1>
+                        </header>
+                        <div className={codeWindow()}>
+                          <ul className={codeList()}>
                             {item.code.lines.map((line, i) => (
-                              <Box
-                                as="li"
-                                key={line}
-                                css={{
-                                  fontSize: "$sm",
-                                  lineHeight: "$sm",
-                                  color: "$white",
-                                  "&::marker": {
-                                    color: "$gray500",
-                                    content: "'$ '",
-                                  },
-                                }}
-                              >
+                              <li key={line} className={codeListItem()}>
                                 {line}
-                              </Box>
+                              </li>
                             ))}
-                          </Box>
-                        </Box>
-                      </Box>
+                          </ul>
+                        </div>
+                      </article>
                     )}
 
                     {item.variant === "icons" && (
@@ -262,7 +256,7 @@ export const OnboardingDialog = () => {
                     )}
 
                     {item.variant === "pipeline-diagram" && (
-                      <PipelineDiagram css={{ padding: "0 $4" }} />
+                      <PipelineDiagram css={{ padding: "$2" }} />
                     )}
                   </DialogBody>
                 </m.div>

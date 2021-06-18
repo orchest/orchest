@@ -92,6 +92,9 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
       sm: {
         maxWidth: "$sm",
       },
+      md: {
+        maxWidth: "$md",
+      },
     },
   },
   defaultVariants: {
