@@ -151,7 +151,6 @@ export const OnboardingDialog = () => {
       open={isDialogOpen}
       onOpenChange={(open) => (open ? onOpen() : onClose())}
     >
-      <button onClick={() => onOpen()}>Open</button>
       <DialogContent size="md" css={{ paddingTop: "$10", overflow: "hidden" }}>
         <IconButton
           variant="ghost"
