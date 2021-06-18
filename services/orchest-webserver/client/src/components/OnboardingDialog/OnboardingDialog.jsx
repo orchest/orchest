@@ -17,9 +17,11 @@ import {
   IconCrossSolid,
   Text,
 } from "@orchest/design-system";
+import { useProjects } from "@/hooks/projects";
 import { useOrchest } from "@/hooks/orchest";
 import { useLocalStorage } from "@/hooks/local-storage";
 import { wrapNumber } from "@/utils/wrap-number";
+import PipelineView from "@/views/PipelineView";
 import { PipelineDiagram } from "./assets";
 import { slides } from "./content";
 
@@ -64,13 +66,30 @@ const slideVariants = {
     },
 };
 
+/** @param {import('@/hooks/projects/types').TUseProjectsOptions} [options] */
+const useQuickstart = ({ shouldFetch }) => {
+  const { data } = useProjects({ shouldFetch });
+
+  const project = data?.find((project) => project.path === "quickstart");
+
+  return typeof project === "undefined"
+    ? undefined
+    : {
+        project_uuid: project.uuid,
+        pipeline_uuid: "0915b350-b929-4cbd-b0d4-763cac0bb69f",
+      };
+};
+
 /** @type React.FC<{}> */
 export const OnboardingDialog = () => {
+  const { orchest } = window;
+
   const {
     state: { config },
   } = useOrchest();
 
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [shouldFetch, setShouldFetch] = React.useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
     "onboarding_completed",
     false
@@ -79,6 +98,9 @@ export const OnboardingDialog = () => {
 
   const slideIndex = wrapNumber(0, slides.length, slideIndexState);
   const isLastSlide = slideIndex === slides.length - 1;
+
+  const quickstart = useQuickstart({ shouldFetch });
+  const hasQuickstart = typeof quickstart !== "undefined";
 
   /** @param {number} newSlideDirection */
   const cycleSlide = (newSlideDirection) => {
@@ -90,17 +112,26 @@ export const OnboardingDialog = () => {
 
   const onOpen = () => {
     setIsDialogOpen(true);
+    setShouldFetch(true);
   };
-  const onClose = () => {
+  /** @param {{loadQuickstart: boolean}} [options] */
+  const onClose = ({ loadQuickstart }) => {
     setIsDialogOpen(false);
     setHasCompletedOnboarding(true);
     // Wait for Dialog transition to finish before resetting position.
     // This way we avoid showing the slides animating back to the start.
-    setTimeout(() => setSlide([0, 0]), DIALOG_ANIMATION_DURATION.OUT);
+    setTimeout(() => {
+      setShouldFetch(false);
+      setSlide([0, 0]);
+      loadQuickstart &&
+        orchest.loadView(PipelineView, {
+          queryArgs: quickstart,
+        });
+    }, DIALOG_ANIMATION_DURATION.OUT);
   };
 
   React.useEffect(() => {
-    if (config.CLOUD && !hasCompletedOnboarding) setIsDialogOpen(true);
+    if (config.CLOUD && !hasCompletedOnboarding) onOpen();
   }, []);
 
   return (
@@ -108,12 +139,6 @@ export const OnboardingDialog = () => {
       open={isDialogOpen}
       onOpenChange={(open) => (open ? onOpen() : onClose())}
     >
-      <Box css={{ backgroundColor: "$red100", padding: "$4" }}>
-        <Box as="small" css={{ display: "block", marginBottom: "$2" }}>
-          Dev Mode
-        </Box>
-        <DialogTrigger>Open Onboarding Dialog</DialogTrigger>
-      </Box>
       <DialogContent css={{ overflow: "hidden" }}>
         <IconButton
           variant="ghost"
@@ -262,10 +287,13 @@ export const OnboardingDialog = () => {
                 <MDCButtonReact
                   {...(isLastSlide
                     ? {
-                        icon: "open_in_new",
-                        label: "Open Quickstart Pipeline",
+                        icon: hasQuickstart && "open_in_new",
+                        label: hasQuickstart
+                          ? "Open Quickstart Pipeline"
+                          : "Get Started",
                         classNames: ["mdc-button--raised", "themed-secondary"],
-                        onClick: () => onClose(),
+                        onClick: () =>
+                          onClose({ loadQuickstart: hasQuickstart }),
                       }
                     : {
                         label: "Next",
