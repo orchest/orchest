@@ -1,3 +1,5 @@
+// @ts-check
+
 /**
  * @typedef {import('./types').TOnboardingDialogSlide} TOnboardingDialogSlide
  * @type {TOnboardingDialogSlide[]}
