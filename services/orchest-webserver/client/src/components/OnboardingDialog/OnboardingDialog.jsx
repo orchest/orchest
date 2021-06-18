@@ -17,9 +17,10 @@ import {
   IconCrossSolid,
   Text,
 } from "@orchest/design-system";
+import { useOrchest } from "@/hooks/orchest";
 import { useLocalStorage } from "@/hooks/local-storage";
 import { wrapNumber } from "@/utils/wrap-number";
-import { PipelineDiagram } from "./PipelineDiagram";
+import { PipelineDiagram } from "./assets";
 import { slides } from "./content";
 
 const iconList = css({
@@ -65,41 +66,53 @@ const slideVariants = {
 
 /** @type React.FC<{}> */
 export const OnboardingDialog = () => {
-  const [isOnboarding, setIsOnboarding] = useLocalStorage("isOnboarding", true);
-  const [[slideIndexState, slideDirection], setSlideIndex] = React.useState([
-    0,
-    0,
-  ]);
+  const {
+    state: { config },
+  } = useOrchest();
+
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
+    "onboarding_completed",
+    false
+  );
+  const [[slideIndexState, slideDirection], setSlide] = React.useState([0, 0]);
 
   const slideIndex = wrapNumber(0, slides.length, slideIndexState);
   const isLastSlide = slideIndex === slides.length - 1;
 
   /** @param {number} newSlideDirection */
   const cycleSlide = (newSlideDirection) => {
-    setSlideIndex(([prevSlideIndex]) => [
+    setSlide(([prevSlideIndex]) => [
       prevSlideIndex + newSlideDirection,
       newSlideDirection,
     ]);
   };
 
-  const onOpen = () => setIsOnboarding(true);
+  const onOpen = () => {
+    setIsDialogOpen(true);
+  };
   const onClose = () => {
-    setIsOnboarding(false);
+    setIsDialogOpen(false);
+    setHasCompletedOnboarding(true);
     // Wait for Dialog transition to finish before resetting position.
     // This way we avoid showing the slides animating back to the start.
-    setTimeout(() => setSlideIndex([0, 0]), DIALOG_ANIMATION_DURATION.OUT);
+    setTimeout(() => setSlide([0, 0]), DIALOG_ANIMATION_DURATION.OUT);
   };
+
+  React.useEffect(() => {
+    if (config.CLOUD && !hasCompletedOnboarding) setIsDialogOpen(true);
+  }, []);
 
   return (
     <Dialog
-      open={isOnboarding}
+      open={isDialogOpen}
       onOpenChange={(open) => (open ? onOpen() : onClose())}
     >
       <Box css={{ backgroundColor: "$red100", padding: "$4" }}>
         <Box as="small" css={{ display: "block", marginBottom: "$2" }}>
           Dev Mode
         </Box>
-        <DialogTrigger>Open Onboarding Dialog)</DialogTrigger>
+        <DialogTrigger>Open Onboarding Dialog</DialogTrigger>
       </Box>
       <DialogContent css={{ overflow: "hidden" }}>
         <IconButton

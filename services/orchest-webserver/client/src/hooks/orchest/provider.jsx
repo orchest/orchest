@@ -69,6 +69,8 @@ const reducer = (state, action) => {
 };
 
 const initialState = {
+  config: null,
+  user_config: null,
   isLoading: true,
   pipelineFetchHash: null,
   pipelineName: null,

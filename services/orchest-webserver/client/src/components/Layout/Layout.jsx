@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import { OnboardingDialog } from "./OnboardingDialog";
+import { OnboardingDialog } from "@/components/OnboardingDialog";
 
 /** @type React.FC<{}> */
 export const Layout = (props) => {
