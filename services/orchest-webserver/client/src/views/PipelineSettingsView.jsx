@@ -4,16 +4,7 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
 import {
-  css,
   Box,
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Flex,
-  IconServicesSolid,
   Alert,
   AlertHeader,
   AlertDescription,
@@ -47,29 +38,8 @@ import {
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
-import { servicesTemplates } from "@/utils/service-templates";
+import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import PipelineView from "@/views/PipelineView";
-
-// we'll extract this into the design-system later
-const createServiceButton = css({
-  appearance: "none",
-  display: "inline-flex",
-  backgroundColor: "$background",
-  border: "1px solid $gray300",
-  borderRadius: "$sm",
-  width: "100%",
-  padding: "$3",
-  transition: "0.2s ease",
-  textAlign: "left",
-  "&:hover&:not(:disabled)": {
-    backgroundColor: "$gray100",
-  },
-  "> *:first-child": {
-    flexShrink: 0,
-    color: "$gray600",
-    marginRight: "$3",
-  },
-});
 
 const PipelineSettingsView = (props) => {
   const orchest = window.orchest;
@@ -97,9 +67,6 @@ const PipelineSettingsView = (props) => {
       servicesChanged: false,
     }));
   }
-
-  const [isServiceCreateDialogOpen, setIsServiceCreateDialogOpen] =
-    React.useState(false);
 
   const overflowListener = new OverflowListener();
   const promiseManager = new PromiseManager();
@@ -960,65 +927,11 @@ const PipelineSettingsView = (props) => {
                           </AlertDescription>
                         </Alert>
 
-                        <Dialog
-                          open={isServiceCreateDialogOpen}
-                          onOpenChange={(open) =>
-                            setIsServiceCreateDialogOpen(open)
+                        <ServiceTemplatesDialog
+                          onSelection={(template) =>
+                            addServiceFromTemplate(template)
                           }
-                        >
-                          <MDCButtonReact
-                            icon="add"
-                            classNames={[
-                              "mdc-button--raised",
-                              "themed-primary",
-                            ]}
-                            label="Add Service"
-                            onClick={() => setIsServiceCreateDialogOpen(true)}
-                          />
-
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Create a service</DialogTitle>
-                            </DialogHeader>
-                            <DialogBody>
-                              <Flex as="ul" direction="column" gap="2">
-                                {Object.keys(servicesTemplates).map((item) => {
-                                  const template = servicesTemplates[item];
-                                  return (
-                                    <li key={item}>
-                                      <button
-                                        disabled={!template.config}
-                                        className={createServiceButton()}
-                                        onClick={(e) => {
-                                          e.preventDefault();
-
-                                          addServiceFromTemplate(
-                                            template.config
-                                          );
-                                          setIsServiceCreateDialogOpen(false);
-                                        }}
-                                      >
-                                        {template?.icon || (
-                                          <IconServicesSolid />
-                                        )}
-                                        {template.label}
-                                      </button>
-                                    </li>
-                                  );
-                                })}
-                              </Flex>
-                            </DialogBody>
-                            <DialogFooter>
-                              <MDCButtonReact
-                                icon="close"
-                                label="Cancel"
-                                onClick={() =>
-                                  setIsServiceCreateDialogOpen(false)
-                                }
-                              />
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                        />
                       </Box>
                     ),
                   }[state.selectedTabIndex]
