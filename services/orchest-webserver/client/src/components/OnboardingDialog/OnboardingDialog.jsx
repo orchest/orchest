@@ -17,7 +17,6 @@ import {
   Text,
 } from "@orchest/design-system";
 import { useProjects } from "@/hooks/projects";
-import { useOrchest } from "@/hooks/orchest";
 import { useLocalStorage } from "@/hooks/local-storage";
 import { wrapNumber } from "@/utils/wrap-number";
 import PipelineView from "@/views/PipelineView";
@@ -96,10 +95,6 @@ const useQuickstart = ({ shouldFetch }) => {
 export const OnboardingDialog = () => {
   const { orchest } = window;
 
-  const {
-    state: { config },
-  } = useOrchest();
-
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [shouldFetch, setShouldFetch] = React.useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
@@ -143,7 +138,7 @@ export const OnboardingDialog = () => {
   };
 
   React.useEffect(() => {
-    if (config.CLOUD && !hasCompletedOnboarding) onOpen();
+    if (!hasCompletedOnboarding) onOpen();
   }, []);
 
   return (
