@@ -205,7 +205,9 @@ export const OnboardingDialog = () => {
                   }}
                 >
                   <DialogHeader css={{ justifyContent: "center" }}>
-                    <DialogTitle>{item.title}</DialogTitle>
+                    <DialogTitle css={{ fontSize: "$2xl", lineHeight: "$2xl" }}>
+                      {item.title}
+                    </DialogTitle>
                   </DialogHeader>
                   <DialogBody
                     css={{
