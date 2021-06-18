@@ -1,3 +1,5 @@
+// @ts-check
+
 /**
  * Wraps a number when it leaves the specified range.
  * @param {number} min
