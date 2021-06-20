@@ -53,7 +53,13 @@ class JobList(Resource):
     @api.doc("start_job")
     @api.expect(schema.job_spec)
     def post(self):
-        """Queues a new job."""
+        """Drafts a new job.
+
+        To actually queue the job you need to issue a PUT request for
+        the DRAFT job you create here. The PUT needs to contain the
+        `confirm_draft` key.
+
+        """
         # TODO: possibly use marshal() on the post_data. Note that we
         # have moved over to using flask_restx
         # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.marshal
