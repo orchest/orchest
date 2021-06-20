@@ -483,8 +483,8 @@ class OrchestApp:
             url=base_url.format(path="/async/projects"),
         )
         for project in resp:
-            # NOTE: We use here that a project name is unique.
-            if project["name"] == project_name:
+            # NOTE: We use here that a project name/path is unique.
+            if project["path"] == project_name:
                 project_uuid = project["uuid"]
                 project_path = project["path"]
                 break
@@ -578,7 +578,9 @@ class OrchestApp:
             method="PUT",
         )
 
-        utils.echo("Successfully queued the quickstart pipeline as a one-time job.")
+        utils.echo(
+            f"Successfully queued the {pipeline_name} pipeline as a one-time job."
+        )
 
     def _is_restarting(self) -> bool:
         """Check if Orchest is restarting.

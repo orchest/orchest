@@ -161,7 +161,7 @@ def retry_func(func, _retries=10, _sleep_duration=1, _wait_msg=None, **kwargs) -
             break
         except Exception as e:
             if _wait_msg is not None:
-                print(_wait_msg)
+                echo(_wait_msg)
             e_msg = e
             time.sleep(_sleep_duration)
     else:
