@@ -324,3 +324,30 @@ def adduser(
         raise typer.Exit(code=1)
 
     app.add_user(username, password, token, is_admin)
+
+
+# TODO: hidden=True
+@typer_app.command()
+def run(
+    job_name: str = typer.Option(
+        ...,  # required
+        "--job",
+        help="Name of job to create.",
+    ),
+    project_name: str = typer.Option(
+        ...,  # required
+        "--project",
+        help="Name of project containing pipeline.",
+    ),
+    pipeline_name: str = typer.Option(
+        ...,  # required
+        "--pipeline",
+        help="Name of pipeline to run.",
+    ),
+):
+    """
+    Queue a pipeline as a one-time job.
+
+    NOTE: Orchest has to be running for this to work.
+    """
+    app.run(job_name, project_name, pipeline_name)
