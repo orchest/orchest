@@ -62,4 +62,4 @@ ORCHEST_IMAGES = {
 
 WRAP_LINES = 72
 
-ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:5000"
+ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:80"
