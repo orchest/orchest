@@ -348,6 +348,10 @@ def run(
     """
     Queue a pipeline as a one-time job.
 
+    In order to use environments variables, you can define them through
+    the UI as project or pipeline level environment variables. Passing
+    them directly through the CLI is a potential security risk.
+
     NOTE: Orchest has to be running for this to work.
     """
     app.run(job_name, project_name, pipeline_name)
