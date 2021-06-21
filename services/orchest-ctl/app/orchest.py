@@ -202,7 +202,7 @@ class OrchestApp:
         # Orchest is partially running and thus in an inconsistent
         # state. Possibly the start command was issued whilst Orchest
         # is still shutting down.
-        if running_containers:
+        if utils.is_orchest_running(running_containers):
             utils.echo(
                 "Orchest seems to be partially running. Before attempting to start"
                 " Orchest, shut the application down first:",
