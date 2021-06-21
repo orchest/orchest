@@ -11,24 +11,24 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-import { OrchestContext } from "@/hooks/orchest";
-import { DescriptionList } from "../components/DescriptionList";
-import ParameterEditor from "../components/ParameterEditor";
-import CronScheduleInput from "../components/CronScheduleInput";
-import DateTimeInput from "../components/DateTimeInput";
-import JobsView from "./JobsView";
-import SearchableTable from "../components/SearchableTable";
-import ParamTree from "../components/ParamTree";
-import EnvVarList from "../components/EnvVarList";
 
 import {
   checkGate,
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
   envVariablesDictToArray,
-  updateGlobalUnsavedChanges,
-} from "../utils/webserver-utils";
-import JobView from "./JobView";
+} from "@/utils/webserver-utils";
+import { OrchestContext } from "@/hooks/orchest";
+import { Layout } from "@/components/Layout";
+import { DescriptionList } from "@/components/DescriptionList";
+import ParameterEditor from "@/components/ParameterEditor";
+import CronScheduleInput from "@/components/CronScheduleInput";
+import DateTimeInput from "@/components/DateTimeInput";
+import SearchableTable from "@/components/SearchableTable";
+import ParamTree from "@/components/ParamTree";
+import EnvVarList from "@/components/EnvVarList";
+import JobView from "@/views/JobView";
+import JobsView from "@/views/JobsView";
 
 class EditJobView extends React.Component {
   static contextType = OrchestContext;
@@ -185,6 +185,20 @@ class EditJobView extends React.Component {
 
   componentDidMount() {
     this.fetchJob();
+
+    this.context.dispatch({
+      type: "setUnsavedChanges",
+      payload: this.state.unsavedChanges,
+    });
+  }
+
+  componentDidUpdate(_, prevState) {
+    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
+      this.context.dispatch({
+        type: "setUnsavedChanges",
+        payload: this.state.unsavedChanges,
+      });
+    }
   }
 
   onParameterChange() {
@@ -565,8 +579,6 @@ class EditJobView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
-
     let rootView = undefined;
 
     if (this.state.job && this.state.pipeline) {
@@ -748,7 +760,11 @@ class EditJobView extends React.Component {
       rootView = <MDCLinearProgressReact />;
     }
 
-    return <div className="view-page job-view">{rootView}</div>;
+    return (
+      <Layout>
+        <div className="view-page job-view">{rootView}</div>
+      </Layout>
+    );
   }
 }
 

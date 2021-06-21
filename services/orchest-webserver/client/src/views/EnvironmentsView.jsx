@@ -1,8 +1,9 @@
 // @ts-check
 import React from "react";
 import { useOrchest } from "@/hooks/orchest";
-import EnvironmentList from "../components/EnvironmentList";
-import ProjectBasedView from "../components/ProjectBasedView";
+import { Layout } from "@/components/Layout";
+import EnvironmentList from "@/components/EnvironmentList";
+import ProjectBasedView from "@/components/ProjectBasedView";
 
 /**
  * @param {Object} props
@@ -23,11 +24,13 @@ const EnvironmentsView = (props) => {
   }
 
   return (
-    <ProjectBasedView
-      project_uuid={props.project_uuid}
-      childView={EnvironmentList}
-      childViewProperties={childViewProperties}
-    />
+    <Layout>
+      <ProjectBasedView
+        project_uuid={props.project_uuid}
+        childView={EnvironmentList}
+        childViewProperties={childViewProperties}
+      />
+    </Layout>
   );
 };
 

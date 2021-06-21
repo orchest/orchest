@@ -101,6 +101,7 @@ export const stitches = createCss({
       "2xs": "16rem",
       xs: "20rem",
       sm: "24rem",
+      md: "28rem",
       "3xl": "48rem",
       "4xl": "56rem",
     },
@@ -110,7 +111,7 @@ export const stitches = createCss({
     },
     fontWeights: {
       normal: 400,
-      bold: 600,
+      bold: 500,
     },
     fontSizes: {
       base: "1rem",

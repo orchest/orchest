@@ -7,8 +7,6 @@ import {
   MDCIconButtonToggleReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
-import ProjectSettingsView from "./ProjectSettingsView";
-
 import {
   makeRequest,
   makeCancelable,
@@ -17,8 +15,10 @@ import {
   validURL,
 } from "@orchest/lib-utils";
 import { OrchestContext } from "@/hooks/orchest";
-import { BackgroundTaskPoller } from "../utils/webserver-utils";
-import PipelinesView from "./PipelinesView";
+import { BackgroundTaskPoller } from "@/utils/webserver-utils";
+import { Layout } from "@/components/Layout";
+import ProjectSettingsView from "@/views/ProjectSettingsView";
+import PipelinesView from "@/views/PipelinesView";
 
 class ProjectsView extends React.Component {
   static contextType = OrchestContext;
@@ -405,203 +405,207 @@ class ProjectsView extends React.Component {
 
   render() {
     return (
-      <div className={"view-page projects-view"}>
-        {(() => {
-          if (this.state.showImportModal) {
-            return (
-              <MDCDialogReact
-                title="Import a project"
-                onClose={this.onCloseImportProjectModal.bind(this)}
-                ref={this.refManager.nrefs.importProjectDialog}
-                content={
-                  <div className="project-import-modal">
-                    {this.props.queryArgs &&
-                      this.props.queryArgs.import_url !== undefined && (
-                        <div className="push-down warning">
-                          <p>
-                            <i className="material-icons">warning</i> The import
-                            URL was pre-filled. Make sure you trust the{" "}
-                            <span className="code">git</span> repository you're
-                            importing.
-                          </p>
-                        </div>
-                      )}
-                    <p className="push-down">
-                      Import a <span className="code">git</span> repository by
-                      specifying the <span className="code">HTTPS</span> URL
-                      below:
-                    </p>
-                    <MDCTextFieldReact
-                      classNames={["fullwidth push-down"]}
-                      label="Git repository URL"
-                      value={this.state.import_url}
-                      onChange={this.handleChange.bind(this, "import_url")}
-                    />
+      <Layout>
+        <div className={"view-page projects-view"}>
+          {(() => {
+            if (this.state.showImportModal) {
+              return (
+                <MDCDialogReact
+                  title="Import a project"
+                  onClose={this.onCloseImportProjectModal.bind(this)}
+                  ref={this.refManager.nrefs.importProjectDialog}
+                  content={
+                    <div className="project-import-modal">
+                      {this.props.queryArgs &&
+                        this.props.queryArgs.import_url !== undefined && (
+                          <div className="push-down warning">
+                            <p>
+                              <i className="material-icons">warning</i> The
+                              import URL was pre-filled. Make sure you trust the{" "}
+                              <span className="code">git</span> repository
+                              you're importing.
+                            </p>
+                          </div>
+                        )}
+                      <p className="push-down">
+                        Import a <span className="code">git</span> repository by
+                        specifying the <span className="code">HTTPS</span> URL
+                        below:
+                      </p>
+                      <MDCTextFieldReact
+                        classNames={["fullwidth push-down"]}
+                        label="Git repository URL"
+                        value={this.state.import_url}
+                        onChange={this.handleChange.bind(this, "import_url")}
+                      />
 
+                      <MDCTextFieldReact
+                        classNames={["fullwidth"]}
+                        label="Project name (optional)"
+                        value={this.state.import_project_name}
+                        onChange={this.handleChange.bind(
+                          this,
+                          "import_project_name"
+                        )}
+                      />
+
+                      {(() => {
+                        if (this.state.importResult) {
+                          let result;
+
+                          if (this.state.importResult.status === "PENDING") {
+                            result = <MDCLinearProgressReact />;
+                          } else if (
+                            this.state.importResult.status === "FAILURE"
+                          ) {
+                            result = (
+                              <p>
+                                <i className="material-icons float-left">
+                                  error
+                                </i>{" "}
+                                Import failed:{" "}
+                                {this.getMappedErrorMessage(
+                                  this.state.importResult.result
+                                )}
+                              </p>
+                            );
+                          }
+
+                          return <div className="push-up">{result}</div>;
+                        }
+                      })()}
+                      <p className="push-up">
+                        To import <b>private </b>
+                        <span className="code">git</span> repositories upload
+                        them directly through the File Manager into the{" "}
+                        <span className="code">projects/</span> directory.
+                      </p>
+                    </div>
+                  }
+                  actions={
+                    <Fragment>
+                      <MDCButtonReact
+                        icon="close"
+                        label="Close"
+                        classNames={["push-right"]}
+                        onClick={this.onCancelImport.bind(this)}
+                      />
+                      <MDCButtonReact
+                        icon="input"
+                        // So that the button is disabled when in a states
+                        // that requires so (currently ["PENDING"]).
+                        disabled={["PENDING"].includes(
+                          this.state.importResult !== undefined
+                            ? this.state.importResult.status
+                            : undefined
+                        )}
+                        classNames={["mdc-button--raised", "themed-secondary"]}
+                        label="Import"
+                        submitButton
+                        onClick={this.onSubmitImport.bind(this)}
+                      />
+                    </Fragment>
+                  }
+                />
+              );
+            }
+          })()}
+
+          {(() => {
+            if (this.state.createModal) {
+              return (
+                <MDCDialogReact
+                  title="Create a new project"
+                  onClose={this.onCloseCreateProjectModal.bind(this)}
+                  ref={this.refManager.nrefs.createProjectDialog}
+                  content={
                     <MDCTextFieldReact
                       classNames={["fullwidth"]}
-                      label="Project name (optional)"
-                      value={this.state.import_project_name}
+                      label="Project name"
+                      value={this.state.create_project_name}
                       onChange={this.handleChange.bind(
                         this,
-                        "import_project_name"
+                        "create_project_name"
                       )}
                     />
-
-                    {(() => {
-                      if (this.state.importResult) {
-                        let result;
-
-                        if (this.state.importResult.status === "PENDING") {
-                          result = <MDCLinearProgressReact />;
-                        } else if (
-                          this.state.importResult.status === "FAILURE"
-                        ) {
-                          result = (
-                            <p>
-                              <i className="material-icons float-left">error</i>{" "}
-                              Import failed:{" "}
-                              {this.getMappedErrorMessage(
-                                this.state.importResult.result
-                              )}
-                            </p>
-                          );
-                        }
-
-                        return <div className="push-up">{result}</div>;
-                      }
-                    })()}
-                    <p className="push-up">
-                      To import <b>private </b>
-                      <span className="code">git</span> repositories upload them
-                      directly through the File Manager into the{" "}
-                      <span className="code">projects/</span> directory.
-                    </p>
-                  </div>
-                }
-                actions={
-                  <Fragment>
-                    <MDCButtonReact
-                      icon="close"
-                      label="Close"
-                      classNames={["push-right"]}
-                      onClick={this.onCancelImport.bind(this)}
-                    />
-                    <MDCButtonReact
-                      icon="input"
-                      // So that the button is disabled when in a states
-                      // that requires so (currently ["PENDING"]).
-                      disabled={["PENDING"].includes(
-                        this.state.importResult !== undefined
-                          ? this.state.importResult.status
-                          : undefined
-                      )}
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      label="Import"
-                      submitButton
-                      onClick={this.onSubmitImport.bind(this)}
-                    />
-                  </Fragment>
-                }
-              />
-            );
-          }
-        })()}
-
-        {(() => {
-          if (this.state.createModal) {
-            return (
-              <MDCDialogReact
-                title="Create a new project"
-                onClose={this.onCloseCreateProjectModal.bind(this)}
-                ref={this.refManager.nrefs.createProjectDialog}
-                content={
-                  <MDCTextFieldReact
-                    classNames={["fullwidth"]}
-                    label="Project name"
-                    value={this.state.create_project_name}
-                    onChange={this.handleChange.bind(
-                      this,
-                      "create_project_name"
-                    )}
-                  />
-                }
-                actions={
-                  <Fragment>
-                    <MDCButtonReact
-                      icon="close"
-                      label="Cancel"
-                      classNames={["push-right"]}
-                      onClick={this.onCancelModal.bind(this)}
-                    />
-                    <MDCButtonReact
-                      icon="format_list_bulleted"
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      label="Create project"
-                      submitButton
-                      onClick={this.onSubmitModal.bind(this)}
-                    />
-                  </Fragment>
-                }
-              />
-            );
-          }
-        })()}
-
-        <h2>Projects</h2>
-
-        {(() => {
-          if (this.state.loading) {
-            return <MDCLinearProgressReact />;
-          } else {
-            return (
-              <Fragment>
-                <div className="push-down">
-                  <MDCButtonReact
-                    classNames={[
-                      "mdc-button--raised",
-                      "themed-secondary",
-                      "push-right",
-                    ]}
-                    icon="add"
-                    label="Add project"
-                    onClick={this.onCreateClick.bind(this)}
-                  />
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
-                    icon="input"
-                    label="Import project"
-                    onClick={this.onImport.bind(this)}
-                  />
-                </div>
-                <div className={"pipeline-actions push-down"}>
-                  <MDCIconButtonToggleReact
-                    icon="delete"
-                    tooltipText="Delete project"
-                    onClick={this.onDeleteClick.bind(this)}
-                  />
-                </div>
-
-                <MDCDataTableReact
-                  ref={this.refManager.nrefs.projectListView}
-                  selectable
-                  onRowClick={this.onClickListItem.bind(this)}
-                  classNames={["fullwidth"]}
-                  headers={[
-                    "Project",
-                    "Pipelines",
-                    "Active sessions",
-                    "Jobs",
-                    "Environments",
-                    "Settings",
-                  ]}
-                  rows={this.state.listData}
+                  }
+                  actions={
+                    <Fragment>
+                      <MDCButtonReact
+                        icon="close"
+                        label="Cancel"
+                        classNames={["push-right"]}
+                        onClick={this.onCancelModal.bind(this)}
+                      />
+                      <MDCButtonReact
+                        icon="format_list_bulleted"
+                        classNames={["mdc-button--raised", "themed-secondary"]}
+                        label="Create project"
+                        submitButton
+                        onClick={this.onSubmitModal.bind(this)}
+                      />
+                    </Fragment>
+                  }
                 />
-              </Fragment>
-            );
-          }
-        })()}
-      </div>
+              );
+            }
+          })()}
+
+          <h2>Projects</h2>
+
+          {(() => {
+            if (this.state.loading) {
+              return <MDCLinearProgressReact />;
+            } else {
+              return (
+                <Fragment>
+                  <div className="push-down">
+                    <MDCButtonReact
+                      classNames={[
+                        "mdc-button--raised",
+                        "themed-secondary",
+                        "push-right",
+                      ]}
+                      icon="add"
+                      label="Add project"
+                      onClick={this.onCreateClick.bind(this)}
+                    />
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised"]}
+                      icon="input"
+                      label="Import project"
+                      onClick={this.onImport.bind(this)}
+                    />
+                  </div>
+                  <div className={"pipeline-actions push-down"}>
+                    <MDCIconButtonToggleReact
+                      icon="delete"
+                      tooltipText="Delete project"
+                      onClick={this.onDeleteClick.bind(this)}
+                    />
+                  </div>
+
+                  <MDCDataTableReact
+                    ref={this.refManager.nrefs.projectListView}
+                    selectable
+                    onRowClick={this.onClickListItem.bind(this)}
+                    classNames={["fullwidth"]}
+                    headers={[
+                      "Project",
+                      "Pipelines",
+                      "Active sessions",
+                      "Jobs",
+                      "Environments",
+                      "Settings",
+                    ]}
+                    rows={this.state.listData}
+                  />
+                </Fragment>
+              );
+            }
+          })()}
+        </div>
+      </Layout>
     );
   }
 }

@@ -507,12 +507,6 @@ export function envVariablesDictToArray(envVariables) {
   return result;
 }
 
-export function updateGlobalUnsavedChanges(unsavedChanges) {
-  // NOTE: perhaps a more granular unsaved changes
-  // is necessary in the future
-  orchest.setUnsavedChanges(unsavedChanges);
-}
-
 /*
  Set of functions related to application routing.
 */

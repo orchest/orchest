@@ -10,9 +10,10 @@ import {
 } from "@orchest/lib-utils";
 import { useInterval } from "@/hooks/use-interval";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
-import { checkGate } from "../utils/webserver-utils";
-import { getPipelineJSONEndpoint } from "../utils/webserver-utils";
-import PipelinesView from "./PipelinesView";
+import { Layout } from "@/components/Layout";
+import { checkGate } from "@/utils/webserver-utils";
+import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import PipelinesView from "@/views/PipelinesView";
 
 const JupyterLabView = (props) => {
   const { state, dispatch, get } = useOrchest();
@@ -184,16 +185,18 @@ const JupyterLabView = (props) => {
 
   return (
     <OrchestSessionsConsumer>
-      <div className="view-page jupyter no-padding">
-        {session?.status !== "RUNNING" && hasEnvironmentCheckCompleted && (
-          <div className="lab-loader">
-            <div>
-              <h2>Setting up JupyterLab…</h2>
-              <MDCLinearProgressReact />
+      <Layout>
+        <div className="view-page jupyter no-padding">
+          {session?.status !== "RUNNING" && hasEnvironmentCheckCompleted && (
+            <div className="lab-loader">
+              <div>
+                <h2>Setting up JupyterLab…</h2>
+                <MDCLinearProgressReact />
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </Layout>
     </OrchestSessionsConsumer>
   );
 };

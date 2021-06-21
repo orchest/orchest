@@ -1,22 +1,17 @@
 {
   "name": "@orchest/design-system",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "main": "src/index.ts",
-  "files": [
-    "src"
-  ],
   "publishConfig": {
     "main": "dist/index.cjs",
     "module": "dist/index.js",
-    "typings": "dist/index.d.ts",
-    "files": [
-      "dist"
-    ]
+    "typings": "dist/index.d.ts"
   },
   "sideEffects": false,
   "scripts": {
+    "prepublishOnly": "pnpm run build && pnpm run postbuild",
     "build": "concurrently -n w: npm:*:build",
     "cjs:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs",
     "cjs:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
@@ -33,11 +28,11 @@
     "@radix-ui/react-dialog": "0.0.17",
     "@radix-ui/react-id": "0.0.6",
     "@radix-ui/react-polymorphic": "0.0.11",
-    "@stitches/react": "0.1.9",
+    "@stitches/react": "0.2.0",
     "stitches-mixins": "0.2.1"
   },
   "devDependencies": {
-    "@stitches/core": "0.1.9",
+    "@stitches/core": "0.2.0",
     "@types/node": "15.0.1",
     "@types/react": "17.0.3",
     "concurrently": "6.0.2",

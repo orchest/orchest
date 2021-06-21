@@ -26,7 +26,22 @@ import PipelinesView from "./views/PipelinesView";
 import JobsView from "./views/JobsView";
 
 import $ from "jquery";
-import "./utils/overflowing";
+
+$.fn.overflowing = function () {
+  let overflowed = false;
+
+  this.each(function () {
+    let el = $(this)[0];
+
+    if (el.offsetHeight < el.scrollHeight || el.offsetWidth < el.scrollWidth) {
+      overflowed = true;
+    } else {
+      overflowed = false;
+    }
+  });
+
+  return overflowed;
+};
 
 window.$ = $;
 
@@ -38,7 +53,7 @@ const App = () => {
     dynamicProps: null,
     TagName: null,
   });
-  const [unsavedChangesState, setUnsavedChangesState] = React.useState(null);
+
   const context = useOrchest();
 
   const jupyterRef = useRef(null);
@@ -89,14 +104,14 @@ const App = () => {
         );
       };
 
-      if (!unsavedChangesState) {
+      if (!context.state.unsavedChanges) {
         conditionalBody();
       } else {
         confirm(
           "Warning",
           "There are unsaved changes. Are you sure you want to navigate away?",
           () => {
-            setUnsavedChanges(false);
+            context.dispatch({ type: "setUnsavedChanges", payload: false });
             conditionalBody();
           }
         );
@@ -138,20 +153,6 @@ const App = () => {
     );
   };
 
-  const setUnsavedChanges = (unsavedChanges) => {
-    if (unsavedChanges) {
-      // Enable navigation prompt
-      window.onbeforeunload = function () {
-        return true;
-      };
-    } else {
-      // Remove navigation prompt
-      window.onbeforeunload = null;
-    }
-
-    setUnsavedChangesState(unsavedChanges);
-  };
-
   const loadView = (TagName, dynamicProps?, onCancelled?) => {
     // dynamicProps default
     if (!dynamicProps) {
@@ -184,14 +185,14 @@ const App = () => {
       _loadView(TagName, dynamicProps);
     };
 
-    if (!unsavedChangesState) {
+    if (!context.state.unsavedChanges) {
       conditionalBody();
     } else {
       confirm(
         "Warning",
         "There are unsaved changes. Are you sure you want to navigate away?",
         () => {
-          setUnsavedChanges(false);
+          context.dispatch({ type: "setUnsavedChanges", payload: false });
           conditionalBody();
         },
         onCancelled
@@ -286,14 +287,12 @@ const App = () => {
 
   React.useEffect(() => {
     setJupyter(new Jupyter(jupyterRef.current));
-    setUnsavedChanges(false);
     initializeFirstView();
     loadDefaultView();
   }, []);
 
   window.orchest = {
     config,
-    setUnsavedChanges,
     loadView,
     alert,
     confirm,
