@@ -1,6 +1,14 @@
 // @ts-check
 
 /**
+ * ⚠️ IMPORTANT: PLEASE READ
+ *
+ * When changing content, please make sure that the dialog doesn't "jump" in
+ * height. If it does, please modify the value below.
+ */
+export const SLIDE_MIN_HEIGHT = "16rem";
+
+/**
  * @typedef {import('./types').TOnboardingDialogSlide} TOnboardingDialogSlide
  * @type {TOnboardingDialogSlide[]}
  */

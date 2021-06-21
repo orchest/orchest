@@ -20,6 +20,8 @@ export type TOnboardingCarouselContext = {
   isLastSlide: boolean;
   cycleSlide: (direction: number) => void;
   setSlide: React.Dispatch<React.SetStateAction<[number, number]>>;
+  isAnimating: boolean;
+  setIsAnimating: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export type TUseOnboardingCarouselStateProps = { length: number };

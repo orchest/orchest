@@ -9,6 +9,7 @@ import { wrapNumber } from "@/utils/wrap-number";
  * @returns {import('./types').TUseOnboardingCarouselStateReturn}
  */
 export const useOnboardingCarouselState = ({ length }) => {
+  const [isAnimating, setIsAnimating] = React.useState(false);
   const [[slideIndexState, slideDirection], setSlide] = React.useState([0, 0]);
 
   const slideIndex = wrapNumber(0, length, slideIndexState);
@@ -29,6 +30,8 @@ export const useOnboardingCarouselState = ({ length }) => {
     isLastSlide,
     cycleSlide,
     setSlide,
+    isAnimating,
+    setIsAnimating,
   };
 };
 
@@ -58,7 +61,7 @@ export const OnboardingCarouselSlides = ({ children }) => {
 };
 
 export const OnboardingCarouselSlide = ({ children, ...props }) => {
-  const { slideDirection } = useOnboardingCarousel();
+  const { slideDirection, setIsAnimating } = useOnboardingCarousel();
   return (
     <m.div
       custom={slideDirection}
@@ -97,6 +100,8 @@ export const OnboardingCarouselSlide = ({ children, ...props }) => {
         duration: 0.3,
         ease: "easeInOut",
       }}
+      onAnimationComplete={() => setIsAnimating(false)}
+      onAnimationStart={() => setIsAnimating(true)}
       {...props}
     >
       {children}

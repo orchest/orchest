@@ -5,6 +5,7 @@ import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   css,
   Box,
+  Flex,
   Dialog,
   DialogBody,
   DialogContent,
@@ -20,7 +21,7 @@ import { useProjects } from "@/hooks/projects";
 import { useLocalStorage } from "@/hooks/local-storage";
 import PipelineView from "@/views/PipelineView";
 import { PipelineDiagram } from "./assets";
-import { slides } from "./content";
+import { slides, SLIDE_MIN_HEIGHT } from "./content";
 import {
   useOnboardingCarouselState,
   OnboardingCarousel,
@@ -115,6 +116,8 @@ export const OnboardingDialog = () => {
     isLastSlide,
     cycleSlide,
     setSlide,
+    isAnimating,
+    setIsAnimating,
   } = useOnboardingCarouselState({
     length: slides.length,
   });
@@ -159,11 +162,13 @@ export const OnboardingDialog = () => {
           isLastSlide,
           cycleSlide,
           setSlide,
+          isAnimating,
+          setIsAnimating,
         }}
       >
         <DialogContent
           size="md"
-          css={{ paddingTop: "$10", overflow: "hidden" }}
+          css={{ paddingTop: "$10", overflow: isAnimating && "hidden" }}
         >
           <IconButton
             variant="ghost"
@@ -179,64 +184,78 @@ export const OnboardingDialog = () => {
               (item, i) =>
                 i === slideIndex && (
                   <OnboardingCarouselSlide key={`OnboardingCarouselSlide-${i}`}>
-                    <DialogHeader css={{ justifyContent: "center" }}>
-                      <DialogTitle
-                        css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
-                      >
-                        {item.title}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <DialogBody
+                    <Flex
+                      direction="column"
                       css={{
-                        margin: "0 auto",
-                        maxWidth: "$sm",
-                        textAlign: "center",
-                        "> * + *": { marginTop: "$6" },
+                        minHeight: SLIDE_MIN_HEIGHT,
+                        justifyContent: "center",
                       }}
                     >
-                      {item.description && (
-                        <Text css={{ margin: "0 auto", maxWidth: "$xs" }}>
-                          {item.description}
-                        </Text>
-                      )}
+                      <DialogHeader css={{ justifyContent: "inherit" }}>
+                        <DialogTitle
+                          css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
+                        >
+                          {item.title}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <DialogBody
+                        css={{
+                          width: "100%",
+                          margin: "0 auto",
+                          maxWidth: "$sm",
+                          textAlign: "center",
+                          "> * + *": { marginTop: "$6" },
+                        }}
+                      >
+                        {item.description && (
+                          <Text css={{ margin: "0 auto", maxWidth: "$xs" }}>
+                            {item.description}
+                          </Text>
+                        )}
 
-                      {item.variant === "code" && (
-                        <article>
-                          <header className={codeHeader()}>
-                            <h1 className={codeHeading()}>{item.code.title}</h1>
-                          </header>
-                          <div className={codeWindow()}>
-                            <ul role="list" className={codeList()}>
-                              {item.code.lines.map((line, i) => (
-                                <li key={line} className={codeListItem()}>
-                                  {line}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </article>
-                      )}
+                        {item.variant === "code" && (
+                          <article>
+                            <header className={codeHeader()}>
+                              <h1 className={codeHeading()}>
+                                {item.code.title}
+                              </h1>
+                            </header>
+                            <div className={codeWindow()}>
+                              <ul role="list" className={codeList()}>
+                                {item.code.lines.map((line, i) => (
+                                  <li key={line} className={codeListItem()}>
+                                    {line}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </article>
+                        )}
 
-                      {item.variant === "icons" && (
-                        <ul className={iconList()}>
-                          {item.icons.map(({ icon, label }) => (
-                            <li
-                              key={[icon, label].join("-")}
-                              className={iconListItem()}
-                            >
-                              <i aria-hidden={true} className="material-icons">
-                                {icon}
-                              </i>
-                              {label}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                        {item.variant === "icons" && (
+                          <ul className={iconList()}>
+                            {item.icons.map(({ icon, label }) => (
+                              <li
+                                key={[icon, label].join("-")}
+                                className={iconListItem()}
+                              >
+                                <i
+                                  aria-hidden={true}
+                                  className="material-icons"
+                                >
+                                  {icon}
+                                </i>
+                                {label}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
 
-                      {item.variant === "pipeline-diagram" && (
-                        <PipelineDiagram css={{ padding: "$2" }} />
-                      )}
-                    </DialogBody>
+                        {item.variant === "pipeline-diagram" && (
+                          <PipelineDiagram css={{ padding: "$2" }} />
+                        )}
+                      </DialogBody>
+                    </Flex>
                   </OnboardingCarouselSlide>
                 )
             )}
