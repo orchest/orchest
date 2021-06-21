@@ -18,6 +18,7 @@
     "pnpm": ">=6"
   },
   "syncpack": {
+    "peer": false,
     "sortFirst": [
       "private",
       "name",

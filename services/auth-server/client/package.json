@@ -14,8 +14,8 @@
     "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
     "material-components-web": "10.0.0",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react": "17.0.2",
+    "react-dom": "17.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react-refresh": "1.3.3",
