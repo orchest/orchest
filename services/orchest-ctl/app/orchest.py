@@ -545,28 +545,33 @@ class OrchestApp:
         utils.echo("Queueing job.")
         repeat = True
         while repeat:
-            status_code, resp = utils.retry_func(
-                utils.get_response,
-                _wait_msg="[jobs]: Environment builds have not yet succeeded.",
-                url=base_url.format(
-                    path="/catch/api-proxy/api/validations/environments"
-                ),
-                data={"project_uuid": project_uuid},
-                method="POST",
-            )
+            try:
+                status_code, resp = utils.retry_func(
+                    utils.get_response,
+                    _wait_msg="[jobs]: Environment builds have not yet succeeded.",
+                    url=base_url.format(
+                        path="/catch/api-proxy/api/validations/environments"
+                    ),
+                    data={"project_uuid": project_uuid},
+                    method="POST",
+                )
+            except RuntimeError:
+                utils.echo(
+                    "It seems like Orchest experienced an internal server error."
+                )
+                return
+            else:
+                # Check for status code 201 because it is a POST
+                # request.
+                repeat = status_code != 201 or resp.get("validation") != "pass"
 
-            # Check for status code 201 because it is a POST request.
-            repeat = status_code != 201 or resp.get("validation") != "pass"
-
-            if repeat:
-                utils.echo("[Waiting]: environment builds have not yet succeeded.")
-                time.sleep(3)
+                if repeat:
+                    utils.echo("[Waiting]: environment builds have not yet succeeded.")
+                    time.sleep(3)
 
         parameters, strategy_json = construct_parameters_payload(pipeline_definition)
         _, resp = utils.retry_func(
             utils.get_response,
-            _retries=5,
-            _sleep_duration=1,
             _wait_msg=wait_msg_template.format(endpoint="jobs"),
             url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
             data={
