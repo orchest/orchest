@@ -476,11 +476,14 @@ class OrchestApp:
         base_url = f"{ORCHEST_WEBSERVER_ADDRESS}{{path}}"
 
         # Get project information.
-        _, resp = utils.retry_func(
+        status_code, resp = utils.retry_func(
             utils.get_response,
             _wait_msg=wait_msg_template.format(endpoint="projects"),
             url=base_url.format(path="/async/projects"),
         )
+        if status_code != 200:
+            utils.echo("Got an unexpected status code for 'projects' endpoint.")
+            raise typer.Exit(code=1)
         for project in resp:
             # NOTE: We use here that a project name/path is unique.
             if project["path"] == project_name:
@@ -488,25 +491,28 @@ class OrchestApp:
                 break
         else:
             utils.echo("The given project does not exist.")
-            return
+            raise typer.Exit(code=1)
 
         # Get pipeline information.
-        _, resp = utils.retry_func(
+        status_code, resp = utils.retry_func(
             utils.get_response,
             _wait_msg=wait_msg_template.format(endpoint="pipelines"),
             url=base_url.format(path=f"/async/pipelines/{project_uuid}"),
         )
+        if status_code != 200:
+            utils.echo("Got an unexpected status code for 'pipelines' endpoint.")
+            raise typer.Exit(code=1)
         for pipeline in resp["result"]:
             if pipeline["name"] == pipeline_name:
                 pipeline_uuid = pipeline["uuid"]
                 break
         else:
             utils.echo("The given pipeline does not exist in the given project.")
-            return
+            raise typer.Exit(code=1)
 
         # Draft job.
         utils.echo("Creating draft job.")
-        _, resp = utils.retry_func(
+        status_code, resp = utils.retry_func(
             utils.get_response,
             _wait_msg=wait_msg_template.format(endpoint="jobs"),
             url=base_url.format(path="/catch/api-proxy/api/jobs/"),
@@ -524,6 +530,9 @@ class OrchestApp:
             },
             method="POST",
         )
+        if status_code != 201:
+            utils.echo("Got an unexpected status code for 'jobs' endpoint.")
+            raise typer.Exit(code=1)
         job_uuid = resp["uuid"]
 
         # NOTE: When creating a draft for a job, this triggers the
@@ -572,7 +581,7 @@ class OrchestApp:
 
         utils.echo("Queueing job.")
         parameters, strategy_json = construct_parameters_payload(pipeline_definition)
-        _, resp = utils.retry_func(
+        status_code, resp = utils.retry_func(
             utils.get_response,
             _wait_msg=wait_msg_template.format(endpoint="jobs"),
             url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
@@ -584,6 +593,9 @@ class OrchestApp:
             },
             method="PUT",
         )
+        if status_code != 200:
+            utils.echo("Got an unexpected status code for 'jobs' endpoint.")
+            raise typer.Exit(code=1)
 
         utils.echo(
             f"Successfully queued the {pipeline_name} pipeline as a one-time job."
