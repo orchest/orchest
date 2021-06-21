@@ -113,15 +113,24 @@ const indicatorList = css({
 });
 const indicatorListItem = css({
   include: "box",
-  content: "''",
   display: "block",
+  "& + &": {
+    marginLeft: "$2",
+  },
+});
+const indicatorButton = css({
+  include: "box",
+  appearance: "none",
   width: "$space$2",
   height: "$space$2",
   backgroundColor: "$gray300",
+  border: 0,
   borderRadius: "$rounded",
-  transition: "background-color 0.2s ease",
-  "& + &": {
-    marginLeft: "$2",
+  transition: "0.2s ease",
+  transitionProperty: "background-color, transform",
+  "&:hover": {
+    backgroundColor: "$gray400",
+    transform: "scale(1.25)",
   },
   variants: {
     isCurrent: {
@@ -131,13 +140,13 @@ const indicatorListItem = css({
     },
   },
 });
-const indicatorListItemLabel = css({ include: "screenReaderOnly" });
+const indicatorLabel = css({ include: "screenReaderOnly" });
 
 /**
  * @type React.FC<import('./types').TOnboardingCarouselIndicatorProps>
  */
 export const OnboardingCarouselIndicator = ({ css, className }) => {
-  const { length, slideIndex } = useOnboardingCarousel();
+  const { length, slideIndex, setSlide } = useOnboardingCarousel();
 
   return (
     <ul role="list" className={indicatorList({ css, className })}>
@@ -146,10 +155,21 @@ export const OnboardingCarouselIndicator = ({ css, className }) => {
         .map((_, i) => (
           <li
             key={`indicatorListItem-${i}`}
-            className={indicatorListItem({ isCurrent: i === slideIndex })}
+            className={indicatorListItem()}
             aria-current={i === slideIndex ? "step" : undefined}
           >
-            <span className={indicatorListItemLabel()}>Slide {i + 1}</span>
+            <button
+              className={indicatorButton({ isCurrent: i === slideIndex })}
+              onClick={() => {
+                if (i !== slideIndex)
+                  setSlide(([prevSlideIndex, _]) => [
+                    i,
+                    prevSlideIndex > i ? -1 : 1,
+                  ]);
+              }}
+            >
+              <span className={indicatorLabel()}>Slide {i + 1}</span>
+            </button>
           </li>
         ))}
     </ul>
