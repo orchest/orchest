@@ -2,9 +2,19 @@
 import React from "react";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
+import { MDCButtonReact } from "../../../../../lib/javascript/mdc/src";
+import { useLocalStorage } from "@/hooks/local-storage";
+import ProjectsView from "./ProjectsView";
 
 const HelpView = () => {
   const { state } = useOrchest();
+
+  const orchest = window.orchest;
+
+  const [, setHasCompletedOnboarding] = useLocalStorage(
+    "onboarding_completed",
+    false
+  );
 
   return (
     <Layout>
@@ -80,6 +90,15 @@ const HelpView = () => {
             <span className="mdc-list-item__text">Website</span>
           </a>
         </div>
+        <h2 className="push-up">Introduction</h2>
+        <MDCButtonReact
+          onClick={() => {
+            setHasCompletedOnboarding(false);
+            orchest.loadView(ProjectsView);
+          }}
+          label="Show onboarding"
+          icon="play_arrow"
+        />
       </div>
     </Layout>
   );
