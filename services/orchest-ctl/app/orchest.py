@@ -474,7 +474,6 @@ class OrchestApp:
 
         wait_msg_template = "[{endpoint}]: Could not reach Orchest."
         base_url = f"{ORCHEST_WEBSERVER_ADDRESS}{{path}}"
-        abs_projects_path = "/orchest-host/userdir/projects"
 
         # Get project information.
         _, resp = utils.retry_func(
@@ -486,7 +485,6 @@ class OrchestApp:
             # NOTE: We use here that a project name/path is unique.
             if project["path"] == project_name:
                 project_uuid = project["uuid"]
-                project_path = project["path"]
                 break
         else:
             utils.echo("The given project does not exist.")
@@ -501,23 +499,13 @@ class OrchestApp:
         for pipeline in resp["result"]:
             if pipeline["name"] == pipeline_name:
                 pipeline_uuid = pipeline["uuid"]
-                pipeline_path = pipeline["path"]
                 break
         else:
             utils.echo("The given pipeline does not exist in the given project.")
             return
 
-        # Start pipeline run.
+        # Draft job.
         utils.echo("Creating draft job.")
-        # TODO: Probably want to get the pipeline definition through the
-        # webserver instead of having the orchest-ctl read it from the
-        # userdir.
-        full_pipeline_path = os.path.join(
-            abs_projects_path, project_path, pipeline_path
-        )
-        with open(full_pipeline_path, "r") as f:
-            pipeline_definition = json.load(f)
-
         _, resp = utils.retry_func(
             utils.get_response,
             _wait_msg=wait_msg_template.format(endpoint="jobs"),
@@ -542,7 +530,6 @@ class OrchestApp:
         # required environment builds which we need to await before
         # queueing the job.  This behavior is equal to the behavior
         # through the `orchest-webserver`.
-        utils.echo("Queueing job.")
         repeat = True
         while repeat:
             try:
@@ -559,7 +546,7 @@ class OrchestApp:
                 utils.echo(
                     "It seems like Orchest experienced an internal server error."
                 )
-                return
+                raise typer.Exit(code=1)
             else:
                 # Check for status code 201 because it is a POST
                 # request.
@@ -569,6 +556,21 @@ class OrchestApp:
                     utils.echo("[Waiting]: environment builds have not yet succeeded.")
                     time.sleep(3)
 
+        # Get pipeline definition needed to construct the stategy json.
+        _, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="pipelines"),
+            url=base_url.format(
+                path=f"/async/pipelines/json/{project_uuid}/{pipeline_uuid}"
+            ),
+        )
+        if resp["success"]:
+            pipeline_definition = json.loads(resp["pipeline_json"])
+        else:
+            utils.echo("Could not obtain the pipeline definition.")
+            raise typer.Exit(code=1)
+
+        utils.echo("Queueing job.")
         parameters, strategy_json = construct_parameters_payload(pipeline_definition)
         _, resp = utils.retry_func(
             utils.get_response,

@@ -353,5 +353,11 @@ def run(
     them directly through the CLI is a potential security risk.
 
     NOTE: Orchest has to be running for this to work.
+
+    Exit codes:
+
+    - 0: The job was successfully queued.
+
+    - 1: Something went wrong.
     """
     app.run(job_name, project_name, pipeline_name)
