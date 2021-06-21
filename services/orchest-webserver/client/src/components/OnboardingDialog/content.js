@@ -48,7 +48,12 @@ export const slides = [
     },
   },
   {
+    variant: "end",
     title: "Get Started",
-    description: "Check out the Quickstart pipeline to see it all in action 🚀",
+    description: {
+      withQuickstart:
+        "Check out the Quickstart pipeline to see it all in action 🚀",
+      withoutQuickstart: "Create your first project to see it all in action 🚀",
+    },
   },
 ];

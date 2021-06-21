@@ -123,7 +123,7 @@ export const OnboardingDialog = () => {
   });
 
   const quickstart = useQuickstart({ shouldFetch });
-  const hasQuickstart = typeof quickstart !== "undefined";
+  const hasQuickstart = typeof quickstart === "undefined";
 
   const onOpen = () => {
     setIsDialogOpen(true);
@@ -204,55 +204,69 @@ export const OnboardingDialog = () => {
                           margin: "0 auto",
                           maxWidth: "$sm",
                           textAlign: "center",
+                          [`> ${Text}`]: {
+                            margin: "0 auto",
+                            maxWidth: "$xs",
+                          },
                           "> * + *": { marginTop: "$6" },
                         }}
                       >
-                        {item.description && (
-                          <Text css={{ margin: "0 auto", maxWidth: "$xs" }}>
-                            {item.description}
-                          </Text>
-                        )}
-
                         {item.variant === "code" && (
-                          <article>
-                            <header className={codeHeader()}>
-                              <h1 className={codeHeading()}>
-                                {item.code.title}
-                              </h1>
-                            </header>
-                            <div className={codeWindow()}>
-                              <ul role="list" className={codeList()}>
-                                {item.code.lines.map((line, i) => (
-                                  <li key={line} className={codeListItem()}>
-                                    {line}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </article>
+                          <React.Fragment>
+                            <Text>{item.description}</Text>
+                            <article>
+                              <header className={codeHeader()}>
+                                <h1 className={codeHeading()}>
+                                  {item.code.title}
+                                </h1>
+                              </header>
+                              <div className={codeWindow()}>
+                                <ul role="list" className={codeList()}>
+                                  {item.code.lines.map((line, i) => (
+                                    <li key={line} className={codeListItem()}>
+                                      {line}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </article>
+                          </React.Fragment>
                         )}
 
                         {item.variant === "icons" && (
-                          <ul className={iconList()}>
-                            {item.icons.map(({ icon, label }) => (
-                              <li
-                                key={[icon, label].join("-")}
-                                className={iconListItem()}
-                              >
-                                <i
-                                  aria-hidden={true}
-                                  className="material-icons"
+                          <React.Fragment>
+                            <Text>{item.description}</Text>
+                            <ul className={iconList()}>
+                              {item.icons.map(({ icon, label }) => (
+                                <li
+                                  key={[icon, label].join("-")}
+                                  className={iconListItem()}
                                 >
-                                  {icon}
-                                </i>
-                                {label}
-                              </li>
-                            ))}
-                          </ul>
+                                  <i
+                                    aria-hidden={true}
+                                    className="material-icons"
+                                  >
+                                    {icon}
+                                  </i>
+                                  {label}
+                                </li>
+                              ))}
+                            </ul>
+                          </React.Fragment>
                         )}
 
                         {item.variant === "pipeline-diagram" && (
                           <PipelineDiagram css={{ padding: "$2" }} />
+                        )}
+
+                        {item.variant === "end" && (
+                          <React.Fragment>
+                            <Text>
+                              {hasQuickstart
+                                ? item.description.withQuickstart
+                                : item.description.withoutQuickstart}
+                            </Text>
+                          </React.Fragment>
                         )}
                       </DialogBody>
                     </Flex>

@@ -1,16 +1,24 @@
 import { ICSSProp } from "@orchest/design-system";
 
-export type TOnboardingDialogSlide = { title: string; description?: string } & (
-  | { variant?: never; code?: never; icons?: never }
+export type TOnboardingDialogSlide = { title: string } & (
+  | { variant?: never; code?: never; icons?: never; description?: never }
   | { variant: "pipeline-diagram" }
   | {
       variant: "icons";
+      description: string;
       icons: { icon: string; label: string }[];
     }
   | {
       variant: "code";
+      description: string;
       code: { title: string; lines: string[] };
     }
+  | ({
+      variant: "end";
+    } & Record<
+      "description",
+      { withQuickstart: string; withoutQuickstart: string }
+    >)
 );
 
 export type TOnboardingCarouselContext = {
