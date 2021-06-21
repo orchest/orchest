@@ -6,12 +6,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 if ! docker ps >/dev/null 2>/dev/null ; then
     USERNAME=$(whoami)
 
-    ORCHEST_PATH=.
-    # Check if orchest is in PWD
-    if ! test -f "orchest"; then
-        ORCHEST_PATH=$DIR
-    fi
-
     # Automatically prepending with `sudo` makes sure this script does
     # not have to be run using `sudo`, which would overwrite the `$USER`
     # variable and thereby writing the `HOST_CONFIG_DIR` to the wrong
@@ -58,6 +52,11 @@ then
     OPTIONAL_IT="-it"
 fi
 
+# When Orchest is not yet installed then the Orchest does not yet exist,
+# however for certain features such as 'orchest run' we need the
+# ctl container to be launched within the network.
+OPTIONAL_NETWORK="--network=orchest"
+[ -z "$(docker network ls --filter="name=orchest" -q)" ] && OPTIONAL_NETWORK=""
 
 $SUDO_PREFIX docker run \
     --rm \
@@ -69,4 +68,5 @@ $SUDO_PREFIX docker run \
     -e HOST_REPO_DIR="${DIR}" \
     -e HOST_USER_DIR="${HOST_USER_DIR}" \
     -e HOST_OS="${HOST_OS}" \
+    ${OPTIONAL_NETWORK} \
     orchest/orchest-ctl:latest "$@"

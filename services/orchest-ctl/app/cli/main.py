@@ -324,3 +324,40 @@ def adduser(
         raise typer.Exit(code=1)
 
     app.add_user(username, password, token, is_admin)
+
+
+# TODO: hidden=True
+@typer_app.command()
+def run(
+    job_name: str = typer.Option(
+        ...,  # required
+        "--job",
+        help="Name of job to create.",
+    ),
+    project_name: str = typer.Option(
+        ...,  # required
+        "--project",
+        help="Name of project containing pipeline.",
+    ),
+    pipeline_name: str = typer.Option(
+        ...,  # required
+        "--pipeline",
+        help="Name of pipeline to run.",
+    ),
+):
+    """
+    Queue a pipeline as a one-time job.
+
+    In order to use environments variables, you can define them through
+    the UI as project or pipeline level environment variables. Passing
+    them directly through the CLI is a potential security risk.
+
+    NOTE: Orchest has to be running for this to work.
+
+    Exit codes:
+
+    - 0: The job was successfully queued.
+
+    - 1: Something went wrong.
+    """
+    app.run(job_name, project_name, pipeline_name)
