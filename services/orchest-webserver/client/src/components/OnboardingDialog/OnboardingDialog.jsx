@@ -123,7 +123,7 @@ export const OnboardingDialog = () => {
   });
 
   const quickstart = useQuickstart({ shouldFetch });
-  const hasQuickstart = typeof quickstart === "undefined";
+  const hasQuickstart = typeof quickstart !== "undefined";
 
   const onOpen = () => {
     setIsDialogOpen(true);
