@@ -1,3 +1,4 @@
+// @ts-check
 import React from "react";
 import { MDCTextFieldReact } from "@orchest/lib-mdc";
 import {
@@ -5,33 +6,44 @@ import {
   collapseDoubleDots,
   RefManager,
 } from "@orchest/lib-utils";
+import useTimeout from "@/hooks/use-timeout";
 
-class FilePicker extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      focused: false,
-      path: this.setInitialPath(props),
-    };
-
-    this.refManager = new RefManager();
-  }
-
-  setInitialPath(props) {
+/**
+ * @typedef {{
+ *  cwd: any;
+ *  icon?: any;
+ *  iconTitle?: any;
+ *  onChangeValue?: (value: TFilePickerProps['value']) => void;
+ *  onCreateFile?: (path: any) => void;
+ *  onFocus?: () => void;
+ *  tree: any;
+ *  value: any;
+ * }} TFilePickerProps
+ *
+ * @type React.FC<TFilePickerProps>
+ */
+const FilePicker = React.forwardRef((props, ref) => {
+  const setInitialPath = (props) => {
     let cwd = props.cwd ? props.cwd : "/";
     let fullPath = collapseDoubleDots(cwd + props.value);
     let directoryPath = fullPath.split("/").slice(0, -1).join("/") + "/";
 
     // check if directoryPath is in tree
-    if (!this.validatePathInTree(directoryPath, props.tree)) {
+    if (!validatePathInTree(directoryPath, props.tree)) {
       directoryPath = "/";
     }
 
     return directoryPath;
-  }
+  };
 
-  validatePathInTree(path, tree) {
+  const [state, setState] = React.useState({
+    focused: false,
+    path: setInitialPath(props),
+  });
+
+  const refManager = new RefManager();
+
+  const validatePathInTree = (path, tree) => {
     // path assumed to start with /
 
     // Valid inputs
@@ -63,7 +75,7 @@ class FilePicker extends React.Component {
           if (pathComponents[2] == "") {
             return true;
           }
-          return this.validatePathInTree(
+          return validatePathInTree(
             "/" + pathComponents.slice(2).join("/"),
             child
           );
@@ -78,29 +90,15 @@ class FilePicker extends React.Component {
         }
       }
     }
-  }
+  };
 
-  componentDidUpdate(prevProps) {
-    if (
-      prevProps.cwd !== this.props.cwd ||
-      prevProps.tree !== this.props.tree ||
-      prevProps.value !== this.props.value
-    ) {
-      this.setInitialPath(this.props);
+  const onChangeValue = (value) => {
+    if (props.onChangeValue) {
+      props.onChangeValue(value);
     }
-  }
+  };
 
-  componentWillUnmount() {
-    clearTimeout(this.blurTimeout);
-  }
-
-  onChangeValue(value) {
-    if (this.props.onChangeValue) {
-      this.props.onChangeValue(value);
-    }
-  }
-
-  directoryListFromNode(node) {
+  const directoryListFromNode = (node) => {
     let nodes = [];
 
     // handle edge case of no nodes
@@ -113,7 +111,7 @@ class FilePicker extends React.Component {
       <li
         key="create"
         className="mdc-list-item"
-        onClick={this.onCreateFile.bind(this)}
+        onClick={onCreateFile.bind(this)}
       >
         <i className="material-icons">add</i> New file
       </li>
@@ -124,7 +122,7 @@ class FilePicker extends React.Component {
         <li
           key=".."
           className="mdc-list-item"
-          onClick={this.onNavigateUp.bind(this)}
+          onClick={onNavigateUp.bind(this)}
         >
           ..
         </li>
@@ -136,7 +134,7 @@ class FilePicker extends React.Component {
         <li
           key={childNode.name}
           className="mdc-list-item"
-          onClick={this.onSelectListItem.bind(this, childNode)}
+          onClick={onSelectListItem.bind(this, childNode)}
         >
           {childNode.type == "directory" && (
             <i className="material-icons">folder</i>
@@ -147,61 +145,59 @@ class FilePicker extends React.Component {
     }
 
     return nodes;
-  }
+  };
 
-  onCreateFile() {
-    if (this.props.onCreateFile) {
-      this.props.onCreateFile(this.state.path);
+  const onCreateFile = () => {
+    if (props.onCreateFile) {
+      props.onCreateFile(state.path);
     }
-  }
+  };
 
-  visualizePath(path, cwd) {
+  const visualizePath = (path, cwd) => {
     return absoluteToRelativePath(path, cwd).slice(1);
-  }
+  };
 
-  onNavigateUp() {
-    this.refManager.refs.filePathTextField.focusAtEnd();
+  const onNavigateUp = () => {
+    refManager.refs.filePathTextField.focusAtEnd();
 
-    this.setState((state, _) => {
-      let newPath = state.path.slice(
+    setState((prevState) => {
+      let newPath = prevState.path.slice(
         0,
-        state.path.slice(0, -1).lastIndexOf("/") + 1
+        prevState.path.slice(0, -1).lastIndexOf("/") + 1
       );
 
-      this.onChangeValue(this.visualizePath(newPath, this.props.cwd));
+      onChangeValue(visualizePath(newPath, props.cwd));
 
       return {
+        ...prevState,
         path: newPath,
       };
     });
-  }
+  };
 
-  onSelectListItem(node) {
+  const onSelectListItem = (node) => {
     // override focus on list item click
     if (node.type == "directory") {
-      this.refManager.refs.filePathTextField.focusAtEnd();
+      refManager.refs.filePathTextField.focusAtEnd();
 
-      this.setState((state, _) => {
-        let newPath = state.path + node.name + "/";
+      setState((prevState) => {
+        let newPath = prevState.path + node.name + "/";
 
-        this.onChangeValue(this.visualizePath(newPath, this.props.cwd));
+        onChangeValue(visualizePath(newPath, props.cwd));
 
         return {
+          ...prevState,
           path: newPath,
         };
       });
     } else {
-      this.onChangeValue(
-        this.visualizePath(this.state.path + node.name, this.props.cwd)
-      );
+      onChangeValue(visualizePath(state.path + node.name, props.cwd));
 
-      this.setState({
-        focused: false,
-      });
+      setState((prevState) => ({ ...prevState, focused: false }));
     }
-  }
+  };
 
-  nodeFromPath(path, tree) {
+  const nodeFromPath = (path, tree) => {
     // a path should always start with a root of "/"
     let pathComponents = path.split("/").slice(1);
     let currentNode = tree;
@@ -217,73 +213,68 @@ class FilePicker extends React.Component {
     }
 
     return currentNode;
-  }
+  };
 
-  onBlurMenu(e) {
-    this.setState({
-      focused: false,
-    });
-  }
+  const onBlurMenu = (e) => {
+    setState((prevState) => ({ ...prevState, focused: false }));
+  };
 
-  onFocusTextField(e) {
-    this.setState({
-      focused: true,
-    });
-    if (this.props.onFocus) {
-      this.props.onFocus();
+  const onFocusTextField = (e) => {
+    setState((prevState) => ({ ...prevState, focused: true }));
+
+    if (props.onFocus) {
+      props.onFocus();
     }
-  }
+  };
 
-  onBlurTextField(e) {
-    clearTimeout(this.blurTimeout);
-    this.blurTimeout = setTimeout(() => {
-      if (document.activeElement !== this.refManager.refs.fileMenu) {
-        this.setState({
-          focused: false,
-        });
+  const onBlurTextField = (e) => {
+    useTimeout(() => {
+      if (document.activeElement !== refManager.refs.fileMenu) {
+        setState((prevState) => ({ ...prevState, focused: false }));
       }
-    });
-  }
+      console.log(state);
+    }, 0);
+  };
 
-  render() {
-    let directory_list = this.directoryListFromNode(
-      this.nodeFromPath(this.state.path, this.props.tree)
-    );
+  React.useEffect(() => {
+    setInitialPath(props);
+  }, [props]);
 
-    return (
-      <div className="dropdown-file-picker">
-        <MDCTextFieldReact
-          onFocus={this.onFocusTextField.bind(this)}
-          onBlur={this.onBlurTextField.bind(this)}
-          onChange={this.onChangeValue.bind(this)}
-          value={this.props.value}
-          label="File path"
-          icon={this.props.icon}
-          iconTitle={this.props.iconTitle}
-          ref={this.refManager.nrefs.filePathTextField}
-          classNames={["fullwidth"]}
-        />
-        {(() => {
-          return (
-            <div
-              ref={this.refManager.nrefs.fileMenu}
-              onBlur={this.onBlurMenu.bind(this)}
-              // tabIndex is REQUIRED for proper blur/focus events
-              // for the dropdown mdc-list.
-              tabIndex="0"
-              className={
-                "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
-                (this.state.focused ? "" : "hidden")
-              }
-            >
-              <ul className="mdc-list">{directory_list}</ul>
-            </div>
-          );
-        })()}
-      </div>
-    );
-  }
-}
+  return (
+    <div className="dropdown-file-picker">
+      <MDCTextFieldReact
+        onFocus={onFocusTextField.bind(this)}
+        onBlur={onBlurTextField.bind(this)}
+        onChange={onChangeValue.bind(this)}
+        value={props.value}
+        label="File path"
+        icon={props.icon}
+        iconTitle={props.iconTitle}
+        ref={refManager.nrefs.filePathTextField}
+        classNames={["fullwidth"]}
+      />
+      {(() => {
+        return (
+          <div
+            ref={refManager.nrefs.fileMenu}
+            onBlur={onBlurMenu.bind(this)}
+            // tabIndex is REQUIRED for proper blur/focus events
+            // for the dropdown mdc-list.
+            tabIndex={0}
+            className={
+              "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
+              (state.focused ? "" : "hidden")
+            }
+          >
+            <ul className="mdc-list">
+              {directoryListFromNode(nodeFromPath(state.path, props.tree))}
+            </ul>
+          </div>
+        );
+      })()}
+    </div>
+  );
+});
 
 FilePicker.defaultProps = {
   tree: {
