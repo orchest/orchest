@@ -50,7 +50,7 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 
 #### Requirements
 
-- Docker
+- Docker (>= 19.03)
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
