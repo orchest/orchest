@@ -164,12 +164,10 @@ const App = () => {
       // history API.
 
       let [pathname, search] = generateRoute(TagName, dynamicProps);
-      console.log(pathname, search);
 
       // Because pushState objects need to be serialized,
       // we need to store the string representation of the TagName.
       let viewName = componentName(TagName);
-      console.log(viewName);
       window.history.pushState(
         {
           viewName,
