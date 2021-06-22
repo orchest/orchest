@@ -110,14 +110,12 @@ export const OnboardingDialog = () => {
 
   /** @param {{loadQuickstart?: boolean}} [options] */
   const onClose = ({ loadQuickstart } = {}) => {
-    setIsOnboardingDialogOpen(false, (isOpen) => {
-      if (!isOpen) {
-        setSlide([0, 0]);
-        loadQuickstart &&
-          orchest.loadView(PipelineView, {
-            queryArgs: quickstart,
-          });
-      }
+    setIsOnboardingDialogOpen(false, () => {
+      setSlide([0, 0]);
+      loadQuickstart &&
+        orchest.loadView(PipelineView, {
+          queryArgs: quickstart,
+        });
     });
   };
 
