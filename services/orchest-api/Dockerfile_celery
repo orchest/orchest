@@ -13,9 +13,10 @@ RUN pip3 install -r requirements.txt
 # Needed to daemonize celery workers.
 RUN apt-get update && apt-get install -y supervisor && mkdir -p /var/log/supervisor
 COPY celery_daemon_configs/supervisord.conf /etc/supervisor/supervisord.conf
-COPY celery_daemon_configs/worker_builds.conf /etc/supervisor/conf.d/worker_builds.conf
-COPY celery_daemon_configs/worker_interactive.conf /etc/supervisor/conf.d/worker_interactive.conf
-COPY celery_daemon_configs/worker_jobs.conf /etc/supervisor/conf.d/worker_jobs.conf
+COPY celery_daemon_configs/worker_builds.conf \
+     celery_daemon_configs/worker_interactive.conf \
+     celery_daemon_configs/worker_jobs.conf \
+     /etc/supervisor/conf.d/
 
 # Application files.
 COPY ./app ./app
