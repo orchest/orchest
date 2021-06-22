@@ -5,7 +5,7 @@ Orchest can be run on Linux, macOS and Windows (using the exact same steps!).
 
 Prerequisites
 -------------
-* Docker
+* Docker (>= 19.03)
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
