@@ -118,7 +118,7 @@ class OrchestApp:
                 logger.error(
                     "Failed update due to master branch not being checked out."
                 )
-                return
+                raise typer.Exit(code=1)
             else:
                 utils.echo("Cancelling update...")
                 utils.echo(
@@ -127,7 +127,7 @@ class OrchestApp:
                     " pulls the newest changes to the 'userdir/' using a rebase.",
                 )
                 logger.error("Failed update due to unstaged changes.")
-                return
+                raise typer.Exit(code=1)
 
         # Get all installed images and pull new versions. The pulled
         # images are checked to make sure optional images, e.g. lang
@@ -179,7 +179,7 @@ class OrchestApp:
         if missing_images or not self.resource_manager.is_network_installed():
             utils.echo("Before starting Orchest, make sure Orchest is installed. Run:")
             utils.echo("\torchest install")
-            return
+            raise typer.Exit(code=1)
 
         # Check that all images required for Orchest to start are in the
         # container_config.
@@ -208,7 +208,7 @@ class OrchestApp:
                 " Orchest, shut the application down first:",
             )
             utils.echo("\torchest stop")
-            return
+            raise typer.Exit(code=1)
 
         # Remove old lingering containers.
         ids, exited_containers = self.resource_manager.get_containers(state="exited")
@@ -470,7 +470,7 @@ class OrchestApp:
         if not utils.is_orchest_running(running_containers):
             utils.echo("Orchest has to be running in order to queue a job. Run:")
             utils.echo("\torchest start")
-            return
+            raise typer.Exit(code=1)
 
         wait_msg_template = "[{endpoint}]: Could not reach Orchest."
         base_url = f"{ORCHEST_WEBSERVER_ADDRESS}{{path}}"
