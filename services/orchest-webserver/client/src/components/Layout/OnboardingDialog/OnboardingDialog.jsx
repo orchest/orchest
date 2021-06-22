@@ -12,13 +12,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DIALOG_ANIMATION_DURATION,
   IconButton,
   IconCrossSolid,
   Text,
 } from "@orchest/design-system";
-import { useProjects } from "@/hooks/projects";
-import { useLocalStorage } from "@/hooks/local-storage";
 import PipelineView from "@/views/PipelineView";
 import { PipelineDiagram } from "./assets";
 import { slides, SLIDE_MIN_HEIGHT } from "./content";
@@ -29,6 +26,7 @@ import {
   OnboardingCarouselSlide,
   OnboardingCarouselIndicator,
 } from "./OnboardingCarousel";
+import { useOnboardingDialog } from "./use-onboarding-dialog";
 
 const codeHeader = css({ include: "box", textAlign: "right" });
 const codeHeading = css({
@@ -84,30 +82,16 @@ const iconListItem = css({
   "> i": { fontSize: "2rem", color: "$gray700", marginBottom: "$2" },
 });
 
-/** @param {import('@/hooks/projects/types').TUseProjectsOptions} [options] */
-const useQuickstart = ({ shouldFetch }) => {
-  const { data } = useProjects({ shouldFetch });
-
-  const project = data?.find((project) => project.path === "quickstart");
-
-  return typeof project === "undefined"
-    ? undefined
-    : {
-        project_uuid: project.uuid,
-        pipeline_uuid: "0915b350-b929-4cbd-b0d4-763cac0bb69f",
-      };
-};
-
 /** @type React.FC<{}> */
 export const OnboardingDialog = () => {
   const { orchest } = window;
 
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [shouldFetch, setShouldFetch] = React.useState(false);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
-    "onboarding_completed",
-    false
-  );
+  const {
+    isOnboardingDialogOpen,
+    setIsOnboardingDialogOpen,
+    quickstart,
+    hasQuickstart,
+  } = useOnboardingDialog();
 
   const {
     length,
@@ -122,36 +106,24 @@ export const OnboardingDialog = () => {
     length: slides.length,
   });
 
-  const quickstart = useQuickstart({ shouldFetch });
-  const hasQuickstart = typeof quickstart !== "undefined";
+  const onOpen = () => setIsOnboardingDialogOpen(true);
 
-  const onOpen = () => {
-    setIsDialogOpen(true);
-    setShouldFetch(true);
-  };
   /** @param {{loadQuickstart?: boolean}} [options] */
   const onClose = ({ loadQuickstart } = {}) => {
-    setIsDialogOpen(false);
-    setHasCompletedOnboarding(true);
-    // Wait for Dialog transition to finish before resetting position.
-    // This way we avoid showing the slides animating back to the start.
-    setTimeout(() => {
-      setShouldFetch(false);
-      setSlide([0, 0]);
-      loadQuickstart &&
-        orchest.loadView(PipelineView, {
-          queryArgs: quickstart,
-        });
-    }, DIALOG_ANIMATION_DURATION.OUT);
+    setIsOnboardingDialogOpen(false, (isOpen) => {
+      if (!isOpen) {
+        setSlide([0, 0]);
+        loadQuickstart &&
+          orchest.loadView(PipelineView, {
+            queryArgs: quickstart,
+          });
+      }
+    });
   };
-
-  React.useEffect(() => {
-    if (!hasCompletedOnboarding) onOpen();
-  }, []);
 
   return (
     <Dialog
-      open={isDialogOpen}
+      open={isOnboardingDialogOpen}
       onOpenChange={(open) => (open ? onOpen() : onClose())}
     >
       <OnboardingCarousel

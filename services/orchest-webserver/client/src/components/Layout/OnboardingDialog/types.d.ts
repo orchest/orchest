@@ -1,5 +1,10 @@
 import { ICSSProp } from "@orchest/design-system";
 
+export type TSetIsOnboardingDialogOpen = (
+  isOpen: boolean,
+  onOpen?: (boolean) => void
+) => void;
+
 export type TOnboardingDialogSlide = { title: string } & (
   | { variant?: never; code?: never; icons?: never; description?: never }
   | { variant: "pipeline-diagram" }
