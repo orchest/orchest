@@ -288,7 +288,6 @@ const App = () => {
   React.useEffect(() => {
     setJupyter(new Jupyter(jupyterRef.current));
     initializeFirstView();
-    loadDefaultView();
   }, []);
 
   window.orchest = {
