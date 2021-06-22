@@ -1,6 +1,6 @@
 import { ICSSProp } from "@orchest/design-system";
 
-export type TOnboardingDialogSlide = { title: string } & (
+export type TOnboardingDialogCarouselSlide = { title: string } & (
   | { variant?: never; code?: never; icons?: never; description?: never }
   | { variant: "pipeline-diagram" }
   | {
@@ -21,7 +21,7 @@ export type TOnboardingDialogSlide = { title: string } & (
     >)
 );
 
-export type TOnboardingCarouselContext = {
+export type TOnboardingDialogCarouselContext = {
   length: number;
   slideIndex: number;
   slideDirection: number;
@@ -32,10 +32,10 @@ export type TOnboardingCarouselContext = {
   setIsAnimating: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-export type TUseOnboardingCarouselStateProps = { length: number };
-export type TUseOnboardingCarouselStateReturn = TOnboardingCarouselContext;
-export type TOnboardingCarouselProps = TOnboardingCarouselContext;
+export type TUseOnboardingDialogCarouselStateProps = { length: number };
+export type TUseOnboardingDialogCarouselStateReturn = TOnboardingDialogCarouselContext;
+export type TOnboardingDialogCarouselProps = TOnboardingDialogCarouselContext;
 
-export type TOnboardingCarouselIndicatorProps = ICSSProp & {
+export type TOnboardingDialogCarouselIndicatorProps = ICSSProp & {
   className?: string;
 };
