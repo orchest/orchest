@@ -6,13 +6,12 @@
  * When changing content, please make sure that the dialog doesn't "jump" in
  * height. If it does, please modify the value below.
  */
-export const SLIDE_MIN_HEIGHT = "16rem";
+export const ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT = "16rem";
 
 /**
- * @typedef {import('./types').TOnboardingDialogSlide} TOnboardingDialogSlide
- * @type {TOnboardingDialogSlide[]}
+ * @type {import('./types').TOnboardingDialogCarouselSlide[]}
  */
-export const slides = [
+export const onboardingDialogCarouselSlides = [
   {
     variant: "icons",
     title: "Discover Orchest",

@@ -18,14 +18,14 @@ import {
 } from "@orchest/design-system";
 import PipelineView from "@/views/PipelineView";
 import { PipelineDiagram } from "./assets";
-import { slides, SLIDE_MIN_HEIGHT } from "./content";
 import {
-  useOnboardingCarouselState,
-  OnboardingCarousel,
-  OnboardingCarouselSlides,
-  OnboardingCarouselSlide,
-  OnboardingCarouselIndicator,
-} from "./OnboardingCarousel";
+  useOnboardingDialogCarousel,
+  onboardingDialogCarouselSlides,
+  OnboardingDialogCarousel,
+  OnboardingDialogCarouselSlide,
+  OnboardingDialogCarouselIndicator,
+  ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT,
+} from "./OnboardingDialogCarousel";
 import { useOnboardingDialog } from "./use-onboarding-dialog";
 
 const codeHeader = css({ include: "box", textAlign: "right" });
@@ -94,17 +94,12 @@ export const OnboardingDialog = () => {
   } = useOnboardingDialog();
 
   const {
-    length,
     slideIndex,
-    slideDirection,
     isLastSlide,
     cycleSlide,
     setSlide,
     isAnimating,
-    setIsAnimating,
-  } = useOnboardingCarouselState({
-    length: slides.length,
-  });
+  } = useOnboardingDialogCarousel();
 
   const onOpen = () => setIsOnboardingDialogOpen(true);
 
@@ -124,170 +119,157 @@ export const OnboardingDialog = () => {
       open={isOnboardingDialogOpen}
       onOpenChange={(open) => (open ? onOpen() : onClose())}
     >
-      <OnboardingCarousel
-        {...{
-          length,
-          slideIndex,
-          slideDirection,
-          isLastSlide,
-          cycleSlide,
-          setSlide,
-          isAnimating,
-          setIsAnimating,
-        }}
+      <DialogContent
+        size="md"
+        css={{ paddingTop: "$10", overflow: isAnimating && "hidden" }}
       >
-        <DialogContent
-          size="md"
-          css={{ paddingTop: "$10", overflow: isAnimating && "hidden" }}
+        <IconButton
+          variant="ghost"
+          rounded
+          label="Close"
+          onClick={() => onClose()}
+          css={{ position: "absolute", top: "$4", right: "$4" }}
         >
-          <IconButton
-            variant="ghost"
-            rounded
-            label="Close"
-            onClick={() => onClose()}
-            css={{ position: "absolute", top: "$4", right: "$4" }}
-          >
-            <IconCrossSolid />
-          </IconButton>
-          <OnboardingCarouselSlides>
-            {slides.map(
-              (item, i) =>
-                i === slideIndex && (
-                  <OnboardingCarouselSlide key={`OnboardingCarouselSlide-${i}`}>
-                    <Flex
-                      direction="column"
+          <IconCrossSolid />
+        </IconButton>
+
+        <OnboardingDialogCarousel>
+          {onboardingDialogCarouselSlides.map(
+            (item, i) =>
+              i === slideIndex && (
+                <OnboardingDialogCarouselSlide
+                  key={`OnboardingDialogCarouselSlide-${i}`}
+                >
+                  <Flex
+                    direction="column"
+                    css={{
+                      minHeight: ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <DialogHeader css={{ justifyContent: "inherit" }}>
+                      <DialogTitle
+                        css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
+                      >
+                        {item.title}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <DialogBody
                       css={{
-                        minHeight: SLIDE_MIN_HEIGHT,
-                        justifyContent: "center",
+                        width: "100%",
+                        margin: "0 auto",
+                        maxWidth: "$sm",
+                        textAlign: "center",
+                        [`> ${Text}`]: {
+                          margin: "0 auto",
+                          maxWidth: "$xs",
+                        },
+                        "> * + *": { marginTop: "$6" },
                       }}
                     >
-                      <DialogHeader css={{ justifyContent: "inherit" }}>
-                        <DialogTitle
-                          css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
-                        >
-                          {item.title}
-                        </DialogTitle>
-                      </DialogHeader>
-                      <DialogBody
-                        css={{
-                          width: "100%",
-                          margin: "0 auto",
-                          maxWidth: "$sm",
-                          textAlign: "center",
-                          [`> ${Text}`]: {
-                            margin: "0 auto",
-                            maxWidth: "$xs",
-                          },
-                          "> * + *": { marginTop: "$6" },
-                        }}
-                      >
-                        {item.variant === "code" && (
-                          <React.Fragment>
-                            <Text>{item.description}</Text>
-                            <article>
-                              <header className={codeHeader()}>
-                                <h1 className={codeHeading()}>
-                                  {item.code.title}
-                                </h1>
-                              </header>
-                              <div className={codeWindow()}>
-                                <ul role="list" className={codeList()}>
-                                  {item.code.lines.map((line, i) => (
-                                    <li key={line} className={codeListItem()}>
-                                      {line}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </article>
-                          </React.Fragment>
-                        )}
+                      {item.variant === "code" && (
+                        <React.Fragment>
+                          <Text>{item.description}</Text>
+                          <article>
+                            <header className={codeHeader()}>
+                              <h1 className={codeHeading()}>
+                                {item.code.title}
+                              </h1>
+                            </header>
+                            <div className={codeWindow()}>
+                              <ul role="list" className={codeList()}>
+                                {item.code.lines.map((line, i) => (
+                                  <li key={line} className={codeListItem()}>
+                                    {line}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </article>
+                        </React.Fragment>
+                      )}
 
-                        {item.variant === "icons" && (
-                          <React.Fragment>
-                            <Text>{item.description}</Text>
-                            <ul className={iconList()}>
-                              {item.icons.map(({ icon, label }) => (
-                                <li
-                                  key={[icon, label].join("-")}
-                                  className={iconListItem()}
+                      {item.variant === "icons" && (
+                        <React.Fragment>
+                          <Text>{item.description}</Text>
+                          <ul className={iconList()}>
+                            {item.icons.map(({ icon, label }) => (
+                              <li
+                                key={[icon, label].join("-")}
+                                className={iconListItem()}
+                              >
+                                <i
+                                  aria-hidden={true}
+                                  className="material-icons"
                                 >
-                                  <i
-                                    aria-hidden={true}
-                                    className="material-icons"
-                                  >
-                                    {icon}
-                                  </i>
-                                  {label}
-                                </li>
-                              ))}
-                            </ul>
-                          </React.Fragment>
-                        )}
+                                  {icon}
+                                </i>
+                                {label}
+                              </li>
+                            ))}
+                          </ul>
+                        </React.Fragment>
+                      )}
 
-                        {item.variant === "pipeline-diagram" && (
-                          <PipelineDiagram css={{ padding: "$2" }} />
-                        )}
+                      {item.variant === "pipeline-diagram" && (
+                        <PipelineDiagram css={{ padding: "$2" }} />
+                      )}
 
-                        {item.variant === "end" && (
-                          <React.Fragment>
-                            <Text>
-                              {hasQuickstart
-                                ? item.description.withQuickstart
-                                : item.description.withoutQuickstart}
-                            </Text>
-                          </React.Fragment>
-                        )}
-                      </DialogBody>
-                    </Flex>
-                  </OnboardingCarouselSlide>
-                )
-            )}
-          </OnboardingCarouselSlides>
-          <DialogFooter
-            css={{
-              flexDirection: "column",
-              paddingTop: "$8",
-              paddingBottom: "$8",
-            }}
-          >
-            <OnboardingCarouselIndicator />
+                      {item.variant === "end" && (
+                        <React.Fragment>
+                          <Text>
+                            {hasQuickstart
+                              ? item.description.withQuickstart
+                              : item.description.withoutQuickstart}
+                          </Text>
+                        </React.Fragment>
+                      )}
+                    </DialogBody>
+                  </Flex>
+                </OnboardingDialogCarouselSlide>
+              )
+          )}
+        </OnboardingDialogCarousel>
+        <DialogFooter
+          css={{
+            flexDirection: "column",
+            paddingTop: "$8",
+            paddingBottom: "$8",
+          }}
+        >
+          <OnboardingDialogCarouselIndicator />
 
-            <Box css={{ marginTop: "$6", width: "100%", textAlign: "center" }}>
-              <AnimatePresence initial={false}>
-                <m.div
-                  key={isLastSlide ? "onboarding-end" : "onboarding-next"}
-                  initial={{ y: 50, opacity: 0, height: 0 }}
-                  animate={{ y: 0, opacity: 1, zIndex: 1, height: "auto" }}
-                  exit={{ y: 0, opacity: 0, zIndex: 0, height: 0 }}
-                  transition={{ type: "spring", damping: 15, stiffness: 150 }}
-                >
-                  <MDCButtonReact
-                    {...(isLastSlide
-                      ? {
-                          icon: hasQuickstart && "open_in_new",
-                          label: hasQuickstart
-                            ? "Open Quickstart Pipeline"
-                            : "Get Started",
-                          classNames: [
-                            "mdc-button--raised",
-                            "themed-secondary",
-                          ],
-                          onClick: () =>
-                            onClose({ loadQuickstart: hasQuickstart }),
-                        }
-                      : {
-                          label: "Next",
-                          classNames: ["mdc-button--outlined"],
-                          onClick: () => cycleSlide(1),
-                        })}
-                  />
-                </m.div>
-              </AnimatePresence>
-            </Box>
-          </DialogFooter>
-        </DialogContent>
-      </OnboardingCarousel>
+          <Box css={{ marginTop: "$6", width: "100%", textAlign: "center" }}>
+            <AnimatePresence initial={false}>
+              <m.div
+                key={isLastSlide ? "onboarding-end" : "onboarding-next"}
+                initial={{ y: 50, opacity: 0, height: 0 }}
+                animate={{ y: 0, opacity: 1, zIndex: 1, height: "auto" }}
+                exit={{ y: 0, opacity: 0, zIndex: 0, height: 0 }}
+                transition={{ type: "spring", damping: 15, stiffness: 150 }}
+              >
+                <MDCButtonReact
+                  {...(isLastSlide
+                    ? {
+                        icon: hasQuickstart && "open_in_new",
+                        label: hasQuickstart
+                          ? "Open Quickstart Pipeline"
+                          : "Get Started",
+                        classNames: ["mdc-button--raised", "themed-secondary"],
+                        onClick: () =>
+                          onClose({ loadQuickstart: hasQuickstart }),
+                      }
+                    : {
+                        label: "Next",
+                        classNames: ["mdc-button--outlined"],
+                        onClick: () => cycleSlide(1),
+                      })}
+                />
+              </m.div>
+            </AnimatePresence>
+          </Box>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

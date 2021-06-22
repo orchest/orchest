@@ -2,56 +2,10 @@
 import * as React from "react";
 import { css } from "@orchest/design-system";
 import { m, AnimatePresence } from "framer-motion";
-import { wrapNumber } from "@/utils/wrap-number";
+import { useOnboardingDialogCarousel } from "./use-onboarding-dialog-carousel";
 
-/**
- * @param {import('./types').TUseOnboardingCarouselStateProps} props
- * @returns {import('./types').TUseOnboardingCarouselStateReturn}
- */
-export const useOnboardingCarouselState = ({ length }) => {
-  const [isAnimating, setIsAnimating] = React.useState(false);
-  const [[slideIndexState, slideDirection], setSlide] = React.useState([0, 0]);
-
-  const slideIndex = wrapNumber(0, length, slideIndexState);
-  const isLastSlide = slideIndex === length - 1;
-
-  /** @param {number} newSlideDirection */
-  const cycleSlide = (newSlideDirection) => {
-    setSlide(([prevSlideIndex]) => [
-      prevSlideIndex + newSlideDirection,
-      newSlideDirection,
-    ]);
-  };
-
-  return {
-    length,
-    slideIndex,
-    slideDirection,
-    isLastSlide,
-    cycleSlide,
-    setSlide,
-    isAnimating,
-    setIsAnimating,
-  };
-};
-
-/** @type React.Context<import('./types').TOnboardingCarouselContext> */
-const OnboardingCarouselContext = React.createContext(null);
-const useOnboardingCarousel = () => React.useContext(OnboardingCarouselContext);
-
-/**
- * Controlled Onboarding Carousel (state must be passed manually)
- *
- * @type React.FC<import('./types').TOnboardingCarouselProps>
- */
-export const OnboardingCarousel = ({ children, ...props }) => (
-  <OnboardingCarouselContext.Provider value={props}>
-    {children}
-  </OnboardingCarouselContext.Provider>
-);
-
-export const OnboardingCarouselSlides = ({ children }) => {
-  const { slideDirection } = useOnboardingCarousel();
+export const OnboardingDialogCarousel = ({ children }) => {
+  const { slideDirection } = useOnboardingDialogCarousel();
 
   return (
     <AnimatePresence initial={false} custom={slideDirection}>
@@ -60,8 +14,8 @@ export const OnboardingCarouselSlides = ({ children }) => {
   );
 };
 
-export const OnboardingCarouselSlide = ({ children, ...props }) => {
-  const { slideDirection, setIsAnimating } = useOnboardingCarousel();
+export const OnboardingDialogCarouselSlide = ({ children, ...props }) => {
+  const { slideDirection, setIsAnimating } = useOnboardingDialogCarousel();
   return (
     <m.div
       custom={slideDirection}
@@ -148,10 +102,10 @@ const indicatorButton = css({
 const indicatorLabel = css({ include: "screenReaderOnly" });
 
 /**
- * @type React.FC<import('./types').TOnboardingCarouselIndicatorProps>
+ * @type React.FC<import('./types').TOnboardingDialogCarouselIndicatorProps>
  */
-export const OnboardingCarouselIndicator = ({ css, className }) => {
-  const { length, slideIndex, setSlide } = useOnboardingCarousel();
+export const OnboardingDialogCarouselIndicator = ({ css, className }) => {
+  const { length, slideIndex, setSlide } = useOnboardingDialogCarousel();
 
   return (
     <ul role="list" className={indicatorList({ css, className })}>
@@ -166,11 +120,7 @@ export const OnboardingCarouselIndicator = ({ css, className }) => {
             <button
               className={indicatorButton({ isCurrent: i === slideIndex })}
               onClick={() => {
-                if (i !== slideIndex)
-                  setSlide(([prevSlideIndex, _]) => [
-                    i,
-                    prevSlideIndex > i ? -1 : 1,
-                  ]);
+                if (i !== slideIndex) setSlide([i, slideIndex > i ? -1 : 1]);
               }}
             >
               <span className={indicatorLabel()}>Slide {i + 1}</span>
