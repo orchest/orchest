@@ -6,21 +6,16 @@ import { useProjects } from "@/hooks/projects";
 import useSWR from "swr";
 
 export const useOnboardingDialog = () => {
-  const {
-    data: isDialogOpen,
-    mutate: setIsDialogOpen,
-  } = useSWR("use-onboarding-dialog.open", { initialData: false });
+  const { data: state, mutate: setState } = useSWR("useOnboardingDialog", {
+    initialData: { isOpen: false, shouldFetchQuickstart: false },
+  });
 
-  const {
-    data: shouldFetchQuickstart,
-    mutate: setShouldFetchQuickstart,
-  } = useSWR("use-onboarding-dialog.fetch", { initialData: false });
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
     "onboarding_completed",
     false
   );
 
-  const { data } = useProjects({ shouldFetch: shouldFetchQuickstart });
+  const { data } = useProjects({ shouldFetch: state?.shouldFetchQuickstart });
   const findQuickstart = data?.find((project) => project.path === "quickstart");
   const quickstart =
     typeof findQuickstart === "undefined"
@@ -34,15 +29,18 @@ export const useOnboardingDialog = () => {
   /** @type import('./types').TSetIsOnboardingDialogOpen */
   const setIsOnboardingDialogOpen = (isOpen, onOpen) => {
     if (isOpen) {
-      setIsDialogOpen(true);
-      setShouldFetchQuickstart(true);
+      setState({ isOpen: true, shouldFetchQuickstart: true });
     } else {
-      setIsDialogOpen(false);
+      setState((prevState) => ({ ...prevState, isOpen: false }));
+
       setHasCompletedOnboarding(true);
       // Wait for Dialog transition to finish before resetting position.
       // This way we avoid showing the slides animating back to the start.
       setTimeout(() => {
-        setShouldFetchQuickstart(false);
+        setState((prevState) => ({
+          ...prevState,
+          shouldFetchQuickstart: false,
+        }));
         onOpen && onOpen(false);
       }, DIALOG_ANIMATION_DURATION.OUT);
     }
@@ -53,7 +51,7 @@ export const useOnboardingDialog = () => {
   }, []);
 
   return {
-    isOnboardingDialogOpen: isDialogOpen,
+    isOnboardingDialogOpen: state?.isOpen,
     setIsOnboardingDialogOpen,
     quickstart,
     hasQuickstart,
