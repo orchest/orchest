@@ -153,12 +153,7 @@ const App = () => {
     );
   };
 
-  const loadView = (TagName, dynamicProps?, onCancelled?) => {
-    // dynamicProps default
-    if (!dynamicProps) {
-      dynamicProps = {};
-    }
-
+  const loadView = (TagName, dynamicProps = {}, onCancelled?) => {
     let conditionalBody = () => {
       // This public loadView sets the state through the
       // history API.
@@ -301,10 +296,9 @@ const App = () => {
   };
 
   React.useEffect(() => {
-    if (state.TagName) {
+    if (state.TagName && context?.state?.project_uuid)
       setView(_generateView(state.TagName, state.dynamicProps));
-    }
-  }, [state]);
+  }, [state, context?.state?.project_uuid]);
 
   return (
     <>
