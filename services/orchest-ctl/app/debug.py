@@ -224,7 +224,7 @@ def celery_debug_dump(
     if ext:
         # Add log files to the files to copy.
         for worker in [
-            "celery_env_builds",
+            "celery_builds",
             "celery_interactive",
             "celery_jobs",
         ]:
