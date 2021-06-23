@@ -272,6 +272,7 @@ const JobView = (props) => {
         pipelineRuns[x].pipeline_run_index,
         formatPipelineParams(pipelineRuns[x].parameters),
         <StatusInline status={pipelineRuns[x].status} />,
+        formatServerDateTime(pipelineRuns[x].started_time),
       ]);
     }
 
@@ -414,7 +415,7 @@ const JobView = (props) => {
             <SearchableTable
               rows={pipelineRunsToTableData(state.job.pipeline_runs)}
               detailRows={detailRows(state.job.pipeline_runs)}
-              headers={["ID", "Parameters", "Status"]}
+              headers={["ID", "Parameters", "Status", "Started at"]}
               selectedIndices={state.selectedIndices}
               onSelectionChanged={onPipelineRunsSelectionChanged.bind(this)}
             />
