@@ -117,19 +117,17 @@ class EditJobView extends React.Component {
           strategyJSON = this.generateStrategyJson(pipeline);
         } else {
           strategyJSON = this.state.job.strategy_json;
-          
         }
 
-        let [
-          generatedPipelineRuns,
-          generatedPipelineRunRows,
-          selectedIndices,
-        ] = this.generateWithStrategy(strategyJSON);
-
+        let [generatedPipelineRuns, generatedPipelineRunRows, selectedIndices] =
+          this.generateWithStrategy(strategyJSON);
 
         if (this.state.job.status !== "DRAFT") {
           // Determine selection based on strategyJSON
-          selectedIndices = this.parseParameters(this.state.job.parameters, generatedPipelineRuns);
+          selectedIndices = this.parseParameters(
+            this.state.job.parameters,
+            generatedPipelineRuns
+          );
         }
 
         this.setState({
@@ -139,9 +137,6 @@ class EditJobView extends React.Component {
           generatedPipelineRunRows,
           selectedIndices,
         });
-
-        
-
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -149,10 +144,10 @@ class EditJobView extends React.Component {
     });
   }
 
-  findParameterization(parameterization, parameters){
+  findParameterization(parameterization, parameters) {
     let JSONstring = JSON.stringify(parameterization);
-    for(let x = 0; x < parameters.length; x++){
-      if(JSON.stringify(parameters[x]) == JSONstring){
+    for (let x = 0; x < parameters.length; x++) {
+      if (JSON.stringify(parameters[x]) == JSONstring) {
         return x;
       }
     }
@@ -162,17 +157,20 @@ class EditJobView extends React.Component {
   parseParameters(parameters, generatedPipelineRuns) {
     let _parameters = _.cloneDeep(parameters);
     let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
-    
-    for(let x = 0; x < generatedPipelineRuns.length; x++){
+
+    for (let x = 0; x < generatedPipelineRuns.length; x++) {
       let run = generatedPipelineRuns[x];
       let encodedParameterization = this.generateJobParameters([run], [1])[0];
 
-      let needleIndex = this.findParameterization(encodedParameterization, _parameters);
-      if(needleIndex >= 0){
+      let needleIndex = this.findParameterization(
+        encodedParameterization,
+        _parameters
+      );
+      if (needleIndex >= 0) {
         selectedIndices[x] = 1;
         // remove found parameterization from _parameters, as to not count duplicates
         _parameters.splice(needleIndex, 1);
-      }else {
+      } else {
         selectedIndices[x] = 0;
       }
     }
@@ -385,7 +383,8 @@ class EditJobView extends React.Component {
     };
 
     if (this.state.scheduleOption === "scheduled") {
-      let formValueScheduledStart = this.refManager.refs.scheduledDateTime.getISOString();
+      let formValueScheduledStart =
+        this.refManager.refs.scheduledDateTime.getISOString();
 
       // API doesn't accept ISO date strings with 'Z' suffix
       // Instead, endpoint assumes its passed a UTC datetime string.
