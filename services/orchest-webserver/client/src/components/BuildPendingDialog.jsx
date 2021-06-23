@@ -31,7 +31,7 @@ const BuildPendingDialog = (props) => {
 
   const orchest = window.orchest;
   const { dispatch } = useOrchest();
-  const refManager = new RefManager();
+  const [refManager] = React.useState(new RefManager());
 
   const processValidationData = (data) => {
     let messageSuffix = "";
@@ -111,8 +111,8 @@ const BuildPendingDialog = (props) => {
         }));
 
         if (props.onBuildComplete) {
-          props.onBuildComplete();
           close();
+          props.onBuildComplete();
         }
       })
       .catch((error) => {

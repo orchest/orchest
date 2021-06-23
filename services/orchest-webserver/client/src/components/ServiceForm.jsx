@@ -39,7 +39,7 @@ const ServiceForm = (props) => {
       : ""
   );
 
-  const promiseManager = new PromiseManager();
+  const [promiseManager] = React.useState(new PromiseManager());
 
   React.useEffect(() => {
     return () => {

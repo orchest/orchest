@@ -69,19 +69,21 @@ const App = () => {
   // load server side config populated by flask template
   const { config } = context.state;
 
-  if (config.FLASK_ENV === "development") {
-    console.log("Orchest is running with --dev.");
-  }
+  React.useEffect(() => {
+    if (config.FLASK_ENV === "development") {
+      console.log("Orchest is running with --dev.");
+    }
 
-  if (config.CLOUD === true) {
-    console.log("Orchest is running with --cloud.");
+    if (config.CLOUD === true) {
+      console.log("Orchest is running with --cloud.");
 
-    loadIntercom(
-      config["INTERCOM_APP_ID"],
-      config["INTERCOM_USER_EMAIL"],
-      config["INTERCOM_DEFAULT_SIGNUP_DATE"]
-    );
-  }
+      loadIntercom(
+        config["INTERCOM_APP_ID"],
+        config["INTERCOM_USER_EMAIL"],
+        config["INTERCOM_DEFAULT_SIGNUP_DATE"]
+      );
+    }
+  }, [config]);
 
   const sendEvent = function (event, properties) {
     if (!context.state.config["TELEMETRY_DISABLED"]) {

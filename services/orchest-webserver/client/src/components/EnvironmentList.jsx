@@ -35,8 +35,8 @@ const EnvironmentList = (props) => {
   const BUILD_POLL_FREQUENCY = 3000;
 
   const orchest = window.orchest;
-  const promiseManager = new PromiseManager();
-  const refManager = new RefManager();
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
   const environmentBuildsRequest = () => {
     let environmentBuildsRequestPromise = makeCancelable(

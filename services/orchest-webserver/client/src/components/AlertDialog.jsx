@@ -10,7 +10,7 @@ import { RefManager } from "@orchest/lib-utils";
  * @param {any} [props.content]
  */
 const AlertDialog = (props) => {
-  const refManager = new RefManager();
+  const [refManager] = React.useState(new RefManager());
 
   const close = () => {
     refManager.refs.dialogRef.close();

@@ -68,14 +68,13 @@ const PipelineSettingsView = (props) => {
     }));
   }
 
-  const overflowListener = new OverflowListener();
-  const promiseManager = new PromiseManager();
-  const refManager = new RefManager();
+  const [overflowListener] = React.useState(new OverflowListener());
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
-  const init = () => {
+  const fetchPipelineData = () => {
     fetchPipeline();
     fetchPipelineMetadata();
-    attachResizeListener();
   };
 
   const handleInitialTab = () => {
@@ -93,15 +92,32 @@ const PipelineSettingsView = (props) => {
     }
   };
 
+  const hasLoaded = () => {
+    return (
+      state.pipelineJson &&
+      state.envVariables &&
+      (props.queryArgs.read_only === "true" || state.projectEnvVariables)
+    );
+  };
+
+  // Fetch pipeline data on initial mount
   React.useEffect(() => {
-    init();
+    fetchPipelineData();
     handleInitialTab();
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
+  // Fetch pipeline data when query args change
   React.useEffect(() => {
-    init();
+    fetchPipelineData();
   }, [props.queryArgs]);
+
+  // If the component has loaded, attach the resize listener
+  React.useEffect(() => {
+    if (hasLoaded()) {
+      attachResizeListener();
+    }
+  }, [state]);
 
   /* sync local unsaved changes with global state */
   React.useEffect(() => {
@@ -596,10 +612,7 @@ const PipelineSettingsView = (props) => {
     <OrchestSessionsConsumer>
       <Layout>
         <div className="view-page pipeline-settings-view">
-          {state.pipelineJson &&
-          state.envVariables &&
-          (props.queryArgs.read_only === "true" ||
-            state.projectEnvVariables) ? (
+          {hasLoaded() ? (
             <div className="pipeline-settings">
               <h2>Pipeline settings</h2>
 

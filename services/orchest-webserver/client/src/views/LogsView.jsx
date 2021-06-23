@@ -25,8 +25,8 @@ import LogViewer from "@/components/LogViewer";
 
 const LogsView = (props) => {
   const orchest = window.orchest;
-  const { state, dispatch, get } = useOrchest();
-  const promiseManager = new PromiseManager();
+  const { dispatch, get } = useOrchest();
+  const [promiseManager] = React.useState(new PromiseManager());
 
   const [selectedLog, setSelectedLog] = React.useState(undefined);
   const [logType, setLogType] = React.useState(undefined);
