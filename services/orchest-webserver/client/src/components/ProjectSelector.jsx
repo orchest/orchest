@@ -13,7 +13,7 @@ const ProjectSelector = React.forwardRef((_, ref) => {
   const [selectItems, setSelectItems] = React.useState(null);
   const [projects, setProjects] = React.useState(null);
 
-  const promiseManager = new PromiseManager();
+  const [promiseManager] = React.useState(new PromiseManager());
 
   const listProcess = (projects) => {
     let options = [];

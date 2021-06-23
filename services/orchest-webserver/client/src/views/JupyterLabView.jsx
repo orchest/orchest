@@ -30,7 +30,7 @@ const JupyterLabView = (props) => {
 
   const session = get.session(props.queryArgs);
   const orchest = window.orchest;
-  const promiseManager = new PromiseManager();
+  const [promiseManager] = React.useState(new PromiseManager());
 
   React.useEffect(() => {
     // mount

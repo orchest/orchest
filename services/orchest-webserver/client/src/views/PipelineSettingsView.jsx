@@ -69,8 +69,8 @@ const PipelineSettingsView = (props) => {
   }
 
   const overflowListener = new OverflowListener();
-  const promiseManager = new PromiseManager();
-  const refManager = new RefManager();
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
   const init = () => {
     fetchPipeline();

@@ -174,8 +174,8 @@ const JobView = (props) => {
     pipeline: undefined,
   });
 
-  const promiseManager = new PromiseManager();
-  const refManager = new RefManager();
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
   React.useEffect(() => {
     fetchJob();
