@@ -69,7 +69,7 @@ class ParameterEditor extends React.Component {
                         // only call onParameterChange if valid JSON Array
                         try {
                           if (Array.isArray(JSON.parse(value))) {
-                            this.props.onParameterChange(JSON.parse(value));
+                            this.props.onParameterChange(this.state.strategyJSON);
                           }
                         } catch {
                           console.warn("Invalid JSON entered");

@@ -47,7 +47,7 @@ class EditJobView extends React.Component {
       pipeline: undefined,
       cronString: undefined,
       strategyJSON: {},
-      unsavedChanges: true,
+      unsavedChanges: false,
     };
 
     this.promiseManager = new PromiseManager();
@@ -117,23 +117,31 @@ class EditJobView extends React.Component {
           strategyJSON = this.generateStrategyJson(pipeline);
         } else {
           strategyJSON = this.state.job.strategy_json;
-          // Determine selection based on strategyJSON
-          this.parseParameters(this.state.job.parameters);
+          
         }
 
         let [
-          pipelineRuns,
           generatedPipelineRuns,
+          generatedPipelineRunRows,
           selectedIndices,
         ] = this.generateWithStrategy(strategyJSON);
 
+
+        if (this.state.job.status !== "DRAFT") {
+          // Determine selection based on strategyJSON
+          selectedIndices = this.parseParameters(this.state.job.parameters, generatedPipelineRuns);
+        }
+
         this.setState({
-          pipelineRuns,
-          generatedPipelineRuns,
-          selectedIndices,
           pipeline,
           strategyJSON,
+          generatedPipelineRuns,
+          generatedPipelineRunRows,
+          selectedIndices,
         });
+
+        
+
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -141,8 +149,35 @@ class EditJobView extends React.Component {
     });
   }
 
-  parseParameters(parameters) {
-    console.log(parameters);
+  findParameterization(parameterization, parameters){
+    let JSONstring = JSON.stringify(parameterization);
+    for(let x = 0; x < parameters.length; x++){
+      if(JSON.stringify(parameters[x]) == JSONstring){
+        return x;
+      }
+    }
+    return -1;
+  }
+
+  parseParameters(parameters, generatedPipelineRuns) {
+    let _parameters = _.cloneDeep(parameters);
+    let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
+    
+    for(let x = 0; x < generatedPipelineRuns.length; x++){
+      let run = generatedPipelineRuns[x];
+      let encodedParameterization = this.generateJobParameters([run], [1])[0];
+
+      let needleIndex = this.findParameterization(encodedParameterization, _parameters);
+      if(needleIndex >= 0){
+        selectedIndices[x] = 1;
+        // remove found parameterization from _parameters, as to not count duplicates
+        _parameters.splice(needleIndex, 1);
+      }else {
+        selectedIndices[x] = 0;
+      }
+    }
+
+    return selectedIndices;
   }
 
   generateParameterLists(parameters) {
@@ -496,7 +531,7 @@ class EditJobView extends React.Component {
     let selectedIndices = this.state.selectedIndices;
 
     // for indexOf to work on arrays in this.generatedPipelineRuns it
-    // depends on the object being the same (same reference)
+    // depends on the object (array object) being the same (same reference!)
     for (let x = 0; x < rows.length; x++) {
       let index = this.state.generatedPipelineRunRows.indexOf(rows[x]);
 
@@ -670,7 +705,7 @@ class EditJobView extends React.Component {
                     generatedPipelineRuns,
                     generatedPipelineRunRows,
                     selectedIndices,
-                  ] = this.generateWithStrategy(this.state.strategyJSON);
+                  ] = this.generateWithStrategy(strategyJSON);
                   this.setState({
                     strategyJSON,
                     generatedPipelineRuns,
@@ -678,7 +713,7 @@ class EditJobView extends React.Component {
                     selectedIndices,
                   });
                 }}
-                strategyJSON={this.state.strategyJSON}
+                strategyJSON={_.cloneDeep(this.state.strategyJSON)}
               />
             </div>
           );

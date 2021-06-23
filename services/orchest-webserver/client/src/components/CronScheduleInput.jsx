@@ -8,12 +8,14 @@ import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
  * @param {Object} props
  * @param {boolean} [props.disabled]
  * @param {string} props.cronString
+ * @param {(value: string) => {}} props.onChange
  */
-export const CronScheduleInput = ({ cronString, disabled }) => {
+export const CronScheduleInput = ({ cronString, disabled, onChange }) => {
   const [state, setState] = React.useState(cronString);
 
-  const onChange = (changedCronString) => {
-    if (changedCronString) setState(changedCronString);
+  const handleButton = (changedCronString) => {
+    setState(changedCronString);
+    onChange(changedCronString);
   };
 
   return (
@@ -21,27 +23,27 @@ export const CronScheduleInput = ({ cronString, disabled }) => {
       <div className="push-down separated">
         <MDCButtonReact
           disabled={disabled}
-          onClick={onChange.bind(this, "* * * * *")}
+          onClick={handleButton.bind(this, "* * * * *")}
           label="Every minute"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={onChange.bind(this, "0 * * * *")}
+          onClick={handleButton.bind(this, "0 * * * *")}
           label="Hourly"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={onChange.bind(this, "0 0 * * *")}
+          onClick={handleButton.bind(this, "0 0 * * *")}
           label="Daily"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={onChange.bind(this, "0 0 * * 0")}
+          onClick={handleButton.bind(this, "0 0 * * 0")}
           label="Weekly"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={onChange.bind(this, "0 0 1 * *")}
+          onClick={handleButton.bind(this, "0 0 1 * *")}
           label="Monthly"
         />
       </div>
@@ -49,6 +51,7 @@ export const CronScheduleInput = ({ cronString, disabled }) => {
         disabled={disabled}
         label="Cron expression"
         onChange={(value) => {
+          setState(value);
           onChange(value);
         }}
         classNames={["push-down"]}
