@@ -60,13 +60,33 @@ class Pipeline(BaseModel):
 
     # Note that all relationships are lazy=select.
     interactive_sessions = db.relationship(
-        "InteractiveSession", lazy="select", passive_deletes=True, cascade="all, delete"
+        "InteractiveSession",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+        # NOTE: along with the other overlaps, this is necessary to
+        # silence a warning stemming from the fact that the target table
+        # in the relationship (InteractiveSession in this case) is also
+        # in a relationship with Project. The alternative is to add more
+        # boilerplate to 3 different tables, to support a use case where
+        # we would be using sqlalchemy "smart" behaviour to change a
+        # project uuid while also changing a related pipeline
+        # project_uuid to a different value.
+        overlaps="interactive_sessions",
     )
     jobs = db.relationship(
-        "Job", lazy="select", passive_deletes=True, cascade="all, delete"
+        "Job",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+        overlaps="jobs",
     )
     pipeline_runs = db.relationship(
-        "PipelineRun", lazy="select", passive_deletes=True, cascade="all, delete"
+        "PipelineRun",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+        overlaps="pipeline_runs",
     )
 
 
