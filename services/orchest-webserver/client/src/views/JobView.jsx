@@ -272,7 +272,11 @@ const JobView = (props) => {
         pipelineRuns[x].pipeline_run_index,
         formatPipelineParams(pipelineRuns[x].parameters),
         <StatusInline status={pipelineRuns[x].status} />,
-        formatServerDateTime(pipelineRuns[x].started_time),
+        pipelineRuns[x].started_time ? (
+          formatServerDateTime(pipelineRuns[x].started_time)
+        ) : (
+          <i>Not yet started</i>
+        ),
       ]);
     }
 
@@ -492,9 +496,12 @@ const JobView = (props) => {
             },
             {
               term: "Scheduled to run",
-              details: state.job.next_scheduled_time
-                ? formatServerDateTime(state.job.next_scheduled_time)
-                : formatServerDateTime(state.job.last_scheduled_time),
+              details:
+                state.job.status === "ABORTED"
+                  ? "Cancelled"
+                  : state.job.next_scheduled_time
+                  ? formatServerDateTime(state.job.next_scheduled_time)
+                  : formatServerDateTime(state.job.last_scheduled_time),
             },
           ]}
         />

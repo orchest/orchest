@@ -890,6 +890,9 @@ const PipelineSettingsView = (props) => {
                               <div className="consume-click">
                                 <MDCIconButtonToggleReact
                                   icon="delete"
+                                  disabled={
+                                    props.queryArgs.read_only === "true"
+                                  }
                                   onClick={() => {
                                     orchest.confirm(
                                       "Warning",
@@ -914,6 +917,7 @@ const PipelineSettingsView = (props) => {
                               <ServiceForm
                                 key={["ServiceForm", i].join("-")}
                                 service={service}
+                                disabled={props.queryArgs.read_only === "true"}
                                 updateService={onChangeService}
                                 nameChangeService={nameChangeService}
                                 pipeline_uuid={props.queryArgs.pipeline_uuid}
@@ -940,11 +944,13 @@ const PipelineSettingsView = (props) => {
                           </AlertDescription>
                         </Alert>
 
-                        <ServiceTemplatesDialog
-                          onSelection={(template) =>
-                            addServiceFromTemplate(template)
-                          }
-                        />
+                        {props.queryArgs.read_only !== "true" && (
+                          <ServiceTemplatesDialog
+                            onSelection={(template) =>
+                              addServiceFromTemplate(template)
+                            }
+                          />
+                        )}
                       </Box>
                     ),
                   }[state.selectedTabIndex]

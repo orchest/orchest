@@ -19,7 +19,7 @@ class UpdateView extends React.Component {
     };
 
     this.promiseManager = new PromiseManager();
-    const [refManager] = React.useState(new RefManager());
+    this.refManager = new RefManager();
   }
 
   componentWillUnmount() {

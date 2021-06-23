@@ -1,4 +1,5 @@
 import React, { Fragment } from "react";
+import _ from "lodash";
 import {
   MDCTabBarReact,
   MDCButtonReact,
@@ -110,22 +111,38 @@ class EditJobView extends React.Component {
       if (result.success) {
         let pipeline = JSON.parse(result["pipeline_json"]);
 
-        this.setState({
-          pipeline: pipeline,
-        });
+        let strategyJSON;
 
         if (this.state.job.status === "DRAFT") {
-          this.setState({
-            strategyJSON: this.generateStrategyJson(pipeline),
-          });
+          strategyJSON = this.generateStrategyJson(pipeline);
+        } else {
+          strategyJSON = this.state.job.strategy_json;
+          // Determine selection based on strategyJSON
+          this.parseParameters(this.state.job.parameters);
         }
 
-        this.onParameterChange();
+        let [
+          pipelineRuns,
+          generatedPipelineRuns,
+          selectedIndices,
+        ] = this.generateWithStrategy(strategyJSON);
+
+        this.setState({
+          pipelineRuns,
+          generatedPipelineRuns,
+          selectedIndices,
+          pipeline,
+          strategyJSON,
+        });
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
       }
     });
+  }
+
+  parseParameters(parameters) {
+    console.log(parameters);
   }
 
   generateParameterLists(parameters) {
@@ -201,17 +218,16 @@ class EditJobView extends React.Component {
     }
   }
 
-  onParameterChange() {
+  generateWithStrategy(strategyJSON) {
     // flatten and JSONify strategyJSON to prep data structure for algo
     let flatParameters = {};
 
-    for (const strategyJSONKey in this.state.strategyJSON) {
-      for (const paramKey in this.state.strategyJSON[strategyJSONKey]
-        .parameters) {
+    for (const strategyJSONKey in strategyJSON) {
+      for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
         let fullParam = strategyJSONKey + "#" + paramKey;
 
         flatParameters[fullParam] = JSON.parse(
-          this.state.strategyJSON[strategyJSONKey].parameters[paramKey]
+          strategyJSON[strategyJSONKey].parameters[paramKey]
         );
       }
     }
@@ -240,15 +256,15 @@ class EditJobView extends React.Component {
       accum.push(params);
     };
 
-    let pipelineRuns = [];
-
-    recursivelyGenerate(flatParameters, pipelineRuns, []);
-
-    // transform pipelineRuns for generatedPipelineRuns DataTable format
     let generatedPipelineRuns = [];
 
-    for (let idx in pipelineRuns) {
-      let params = pipelineRuns[idx];
+    recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
+
+    // transform pipelineRuns for generatedPipelineRunRows DataTable format
+    let generatedPipelineRunRows = [];
+
+    for (let idx in generatedPipelineRuns) {
+      let params = generatedPipelineRuns[idx];
 
       let pipelineRunRow = [];
 
@@ -259,19 +275,15 @@ class EditJobView extends React.Component {
         );
       }
       if (pipelineRunRow.length > 0) {
-        generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
+        generatedPipelineRunRows.push([pipelineRunRow.join(", ")]);
       } else {
-        generatedPipelineRuns.push([<i>Parameterless run</i>]);
+        generatedPipelineRunRows.push([<i>Parameterless run</i>]);
       }
     }
 
-    let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
+    let selectedIndices = Array(generatedPipelineRunRows.length).fill(1);
 
-    this.setState({
-      generatedPipelineRuns: pipelineRuns,
-      generatedPipelineRunRows: generatedPipelineRuns,
-      selectedIndices: selectedIndices,
-    });
+    return [generatedPipelineRuns, generatedPipelineRunRows, selectedIndices];
   }
 
   validateJobConfig() {
@@ -555,14 +567,13 @@ class EditJobView extends React.Component {
     });
   }
 
-  detailRows(pipelineParameters) {
+  detailRows(pipelineParameters, strategyJSON) {
     let detailElements = [];
 
     // override values in fields through param fields
     for (let x = 0; x < pipelineParameters.length; x++) {
       let parameters = pipelineParameters[x];
-      let strategyJSON = JSON.parse(JSON.stringify(this.state.strategyJSON));
-
+      strategyJSON = _.cloneDeep(strategyJSON);
       strategyJSON = this.parameterValueOverride(strategyJSON, parameters);
 
       detailElements.push(
@@ -654,7 +665,19 @@ class EditJobView extends React.Component {
             <div className="tab-view">
               <ParameterEditor
                 pipelineName={this.state.pipeline.name}
-                onParameterChange={this.onParameterChange.bind(this)}
+                onParameterChange={(strategyJSON) => {
+                  let [
+                    generatedPipelineRuns,
+                    generatedPipelineRunRows,
+                    selectedIndices,
+                  ] = this.generateWithStrategy(this.state.strategyJSON);
+                  this.setState({
+                    strategyJSON,
+                    generatedPipelineRuns,
+                    generatedPipelineRunRows,
+                    selectedIndices,
+                  });
+                }}
                 strategyJSON={this.state.strategyJSON}
               />
             </div>
@@ -683,7 +706,10 @@ class EditJobView extends React.Component {
               <SearchableTable
                 selectable={true}
                 headers={["Run specification"]}
-                detailRows={this.detailRows(this.state.generatedPipelineRuns)}
+                detailRows={this.detailRows(
+                  this.state.generatedPipelineRuns,
+                  this.state.strategyJSON
+                )}
                 rows={this.state.generatedPipelineRunRows}
                 selectedIndices={this.state.selectedIndices}
                 onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(

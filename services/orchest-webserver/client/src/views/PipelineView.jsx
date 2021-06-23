@@ -34,6 +34,7 @@ import FilePreviewView from "@/views/FilePreviewView";
 import JobView from "@/views/JobView";
 import JupyterLabView from "@/views/JupyterLabView";
 import PipelinesView from "@/views/PipelinesView";
+import ProjectsView from "@/views/ProjectsView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -572,21 +573,26 @@ class PipelineView extends React.Component {
           this.promiseManager
         );
 
-        fetchPipelinesPromise.promise.then((response) => {
-          let data = JSON.parse(response);
+        fetchPipelinesPromise.promise
+          .then((response) => {
+            let data = JSON.parse(response);
 
-          if (data.result.length > 0) {
-            orchest.loadView(PipelineView, {
-              queryArgs: {
-                pipeline_uuid: data.result[0].uuid,
-                project_uuid: selectedProject,
-              },
-              key: uuidv4(),
-            });
-          } else {
-            orchest.loadView(PipelinesView);
-          }
-        });
+            if (data.result.length > 0) {
+              orchest.loadView(PipelineView, {
+                queryArgs: {
+                  pipeline_uuid: data.result[0].uuid,
+                  project_uuid: selectedProject,
+                },
+                key: uuidv4(),
+              });
+            } else {
+              orchest.loadView(PipelinesView);
+            }
+          })
+          .catch((e) => {
+            console.error(e);
+            orchest.loadView(ProjectsView);
+          });
       } else {
         orchest.loadView(PipelinesView);
       }
@@ -2462,7 +2468,11 @@ class PipelineView extends React.Component {
                     <div className="edit-button-holder">
                       <MDCButtonReact
                         icon="tune"
-                        label="Edit services"
+                        label={
+                          (this.props.queryArgs.read_only !== "true"
+                            ? "Edit"
+                            : "View") + " services"
+                        }
                         onClick={this.openSettings.bind(this, "services")}
                       />
                     </div>

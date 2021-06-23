@@ -185,6 +185,20 @@ class MainDrawer extends React.Component {
               </i>
               <span className="mdc-list-item__text">Projects</span>
             </a>
+            <a
+              className="mdc-list-item"
+              data-react-view="SettingsView"
+              href="#"
+            >
+              <span className="mdc-list-item__ripple" />
+              <i
+                className="material-icons mdc-list-item__graphic"
+                aria-hidden="true"
+              >
+                settings
+              </i>
+              <span className="mdc-list-item__text">Settings</span>
+            </a>
           </nav>
         </div>
       </aside>

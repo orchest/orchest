@@ -243,6 +243,7 @@ const ServiceForm = (props) => {
                 <MDCTextFieldReact
                   label="Image"
                   inputType="text"
+                  disabled={props.disabled}
                   onFocus={() => {
                     setShowImageDialog(true);
                   }}
@@ -377,6 +378,7 @@ const ServiceForm = (props) => {
                         }))
                       : []
                   }
+                  disabled={props.disabled}
                   onChange={(ports) => {
                     handleServiceChange(
                       "ports",
@@ -409,6 +411,7 @@ const ServiceForm = (props) => {
                   onChange={(isChecked) => {
                     handleServiceChange("preserve_base_path", isChecked);
                   }}
+                  disabled={props.disabled}
                   label="Preserve base path"
                   value={props.service?.preserve_base_path === true}
                 />
@@ -458,6 +461,7 @@ const ServiceForm = (props) => {
                   tooltip="Scope defines whether a service will run during interactive sessions, in job sessions, or both."
                 />
                 <MDCCheckboxReact
+                  disabled={props.disabled}
                   onChange={(isChecked) => {
                     handleScopeCheckbox(isChecked, "interactive");
                   }}
@@ -466,6 +470,7 @@ const ServiceForm = (props) => {
                 />
                 <br />
                 <MDCCheckboxReact
+                  disabled={props.disabled}
                   onChange={(isChecked) => {
                     handleScopeCheckbox(isChecked, "noninteractive");
                   }}
@@ -495,6 +500,7 @@ const ServiceForm = (props) => {
                         value: env_variable.toString(),
                       }
                   )}
+                  disabled={props.disabled}
                   onChange={(env_variables) => {
                     handleServiceChange(
                       "env_variables_inherit",
@@ -528,6 +534,7 @@ const ServiceForm = (props) => {
               value={envVarsDictToList(
                 props.service.env_variables ? props.service.env_variables : {}
               )}
+              readOnly={props.disabled}
               onChange={(value, idx, changeType) => {
                 let envVarsList = envVarsDictToList(
                   props.service.env_variables ? props.service.env_variables : {}

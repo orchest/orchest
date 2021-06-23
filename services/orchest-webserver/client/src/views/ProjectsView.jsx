@@ -401,6 +401,8 @@ class ProjectsView extends React.Component {
   onCloseImportProjectModal() {
     this.setState({
       showImportModal: false,
+      import_project_name: "",
+      import_url: "",
     });
   }
 
