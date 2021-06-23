@@ -130,8 +130,9 @@ class ProjectsView extends React.Component {
         () => {
           // Verify selected project UUID
           if (
+            this.context.state.project_uuid !== undefined &&
             projects.filter(
-              (project) => project.uuid == this.context.project_uuid
+              (project) => project.uuid == this.context.state.project_uuid
             ).length == 0
           ) {
             this.context.dispatch({
@@ -357,14 +358,27 @@ class ProjectsView extends React.Component {
               this.state.showImportModal && result.status != "SUCCESS",
           });
 
+          let cb;
+
           if (result.status == "SUCCESS") {
+            cb = () => {
+              let importedProject = this.state.projects.filter((proj) => {
+                return proj.path == result.result;
+              })[0];
+
+              this.context.dispatch({
+                type: "projectSet",
+                payload: importedProject.uuid,
+              });
+            };
+
             this.setState({
               import_project_name: "",
               import_url: "",
             });
           }
 
-          this.fetchList();
+          this.fetchList(cb);
         }
       );
     });
