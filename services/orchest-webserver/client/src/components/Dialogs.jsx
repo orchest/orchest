@@ -99,12 +99,10 @@ const Dialogs = React.forwardRef((_, ref) => {
             onConfirm();
           }
         }}
-        onCancel={() => {
+        onClose={() => {
           if (onCancel) {
             onCancel();
           }
-        }}
-        onClose={() => {
           remove(uuid);
         }}
       />,

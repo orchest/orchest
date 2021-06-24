@@ -434,7 +434,7 @@ class SettingsView extends React.Component {
                   return (
                     <Fragment>
                       <MDCLinearProgressReact classNames={["push-down"]} />
-                      <p>Restarting... This can take up to 30 seconds.</p>
+                      <p>This can take up to 30 seconds.</p>
                     </Fragment>
                   );
                 }

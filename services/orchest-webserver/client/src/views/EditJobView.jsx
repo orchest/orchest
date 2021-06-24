@@ -84,6 +84,10 @@ class EditJobView extends React.Component {
           this.setState({
             strategyJSON: job.strategy_json,
           });
+        } else {
+          this.setState({
+            unsavedChanges: true,
+          });
         }
 
         this.fetchPipeline();
@@ -119,8 +123,11 @@ class EditJobView extends React.Component {
           strategyJSON = this.state.job.strategy_json;
         }
 
-        let [generatedPipelineRuns, generatedPipelineRunRows, selectedIndices] =
-          this.generateWithStrategy(strategyJSON);
+        let [
+          generatedPipelineRuns,
+          generatedPipelineRunRows,
+          selectedIndices,
+        ] = this.generateWithStrategy(strategyJSON);
 
         if (this.state.job.status !== "DRAFT") {
           // Determine selection based on strategyJSON
@@ -383,8 +390,7 @@ class EditJobView extends React.Component {
     };
 
     if (this.state.scheduleOption === "scheduled") {
-      let formValueScheduledStart =
-        this.refManager.refs.scheduledDateTime.getISOString();
+      let formValueScheduledStart = this.refManager.refs.scheduledDateTime.getISOString();
 
       // API doesn't accept ISO date strings with 'Z' suffix
       // Instead, endpoint assumes its passed a UTC datetime string.
@@ -455,7 +461,7 @@ class EditJobView extends React.Component {
     let envVariables = envVariablesArrayToDict(this.state.envVariables);
     // Do not go through if env variables are not correctly defined.
     if (envVariables === undefined) {
-      this.onSelectSubview(1);
+      this.onSelectSubview(2);
       return;
     }
 
@@ -547,6 +553,7 @@ class EditJobView extends React.Component {
 
     this.setState({
       selectedIndices: selectedIndices,
+      unsavedChanges: true,
     });
   }
 
@@ -567,6 +574,7 @@ class EditJobView extends React.Component {
     this.setState({
       cronString: cronString,
       scheduleOption: "cron",
+      unsavedChanges: true,
     });
   }
 
@@ -581,6 +589,7 @@ class EditJobView extends React.Component {
           value: null,
         },
       ]),
+      unsavedChanges: true,
     });
   }
 
@@ -590,6 +599,7 @@ class EditJobView extends React.Component {
 
     this.setState({
       envVariables: envVariables,
+      unsavedChanges: true,
     });
   }
 
@@ -598,6 +608,7 @@ class EditJobView extends React.Component {
     envVariables.splice(idx, 1);
     this.setState({
       envVariables: envVariables,
+      unsavedChanges: true,
     });
   }
 
@@ -710,6 +721,7 @@ class EditJobView extends React.Component {
                     generatedPipelineRuns,
                     generatedPipelineRunRows,
                     selectedIndices,
+                    unsavedChanges: true,
                   });
                 }}
                 strategyJSON={_.cloneDeep(this.state.strategyJSON)}

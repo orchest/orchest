@@ -26,6 +26,7 @@ class JobList extends React.Component {
     super(props);
 
     this.state = {
+      deleting: false,
       createModal: false,
       createModelLoading: false,
       jobs: undefined,
@@ -133,40 +134,54 @@ class JobList extends React.Component {
   }
 
   onDeleteClick() {
-    // get job selection
-    let selectedRows = this.refManager.refs.jobTable.getSelectedRowIndices();
+    if (!this.state.deleting) {
+      this.setState({
+        deleting: true,
+      });
 
-    if (selectedRows.length == 0) {
-      orchest.alert("Error", "You haven't selected any jobs.");
-      return;
-    }
+      // get job selection
+      let selectedRows = this.refManager.refs.jobTable.getSelectedRowIndices();
 
-    orchest.confirm(
-      "Warning",
-      "Are you sure you want to delete these jobs? (This cannot be undone.)",
-      () => {
-        // delete indices
-        let promises = [];
-
-        for (let x = 0; x < selectedRows.length; x++) {
-          promises.push(
-            // deleting the job will also
-            // take care of aborting it if necessary
-            makeRequest(
-              "DELETE",
-              "/catch/api-proxy/api/jobs/cleanup/" +
-                this.state.jobs[selectedRows[x]].uuid
-            )
-          );
-        }
-
-        Promise.all(promises).then(() => {
-          this.fetchList();
-
-          this.refManager.refs.jobTable.setSelectedRowIds([]);
-        });
+      if (selectedRows.length == 0) {
+        orchest.alert("Error", "You haven't selected any jobs.");
+        return;
       }
-    );
+
+      orchest.confirm(
+        "Warning",
+        "Are you sure you want to delete these jobs? (This cannot be undone.)",
+        () => {
+          // delete indices
+          let promises = [];
+
+          for (let x = 0; x < selectedRows.length; x++) {
+            promises.push(
+              // deleting the job will also
+              // take care of aborting it if necessary
+              makeRequest(
+                "DELETE",
+                "/catch/api-proxy/api/jobs/cleanup/" +
+                  this.state.jobs[selectedRows[x]].uuid
+              )
+            );
+          }
+
+          Promise.all(promises).then(() => {
+            this.fetchList();
+            this.refManager.refs.jobTable.setSelectedRowIds([]);
+          });
+
+          this.setState({
+            deleting: false,
+          });
+        },
+        () => {
+          this.setState({
+            deleting: false,
+          });
+        }
+      );
+    }
   }
 
   onSubmitModal() {
