@@ -880,9 +880,7 @@ class PipelineView extends React.Component {
       ) {
         // Make sure that successively pressing backspace does not trigger
         // another delete.
-        this.setState({
-          isDeletingStep: true,
-        });
+
         this.deleteSelectedSteps();
       }
     });
@@ -1499,6 +1497,10 @@ class PipelineView extends React.Component {
     // The if is to avoid the dialog appearing when no steps are
     // selected and the delete button is pressed.
     if (this.state.selectedSteps.length > 0) {
+      this.setState({
+        isDeletingStep: true,
+      });
+
       orchest.confirm(
         "Warning",
         "A deleted step and its logs cannot be recovered once deleted, are you" +

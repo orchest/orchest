@@ -19,6 +19,9 @@ import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";
 import ProjectsView from "@/views/ProjectsView";
 
+const INITIAL_PIPELINE_NAME = "";
+const INITIAL_PIPELINE_PATH = "pipeline.orchest";
+
 class PipelineList extends React.Component {
   static contextType = OrchestContext;
 
@@ -30,8 +33,8 @@ class PipelineList extends React.Component {
     this.state = {
       loading: true,
       createModal: false,
-      createPipelineName: "",
-      createPipelinePath: "pipeline.orchest",
+      createPipelineName: INITIAL_PIPELINE_NAME,
+      createPipelinePath: INITIAL_PIPELINE_PATH,
     };
 
     this.promiseManager = new PromiseManager();
@@ -210,7 +213,6 @@ class PipelineList extends React.Component {
 
     createPipelinePromise.promise
       .then((_) => {
-        // reload list once creation succeeds
         this.fetchList(() => {
           this.setState({
             loading: false,
@@ -236,6 +238,13 @@ class PipelineList extends React.Component {
             loading: false,
           });
         }
+      })
+      .finally(() => {
+        // reload list once creation succeeds
+        this.setState({
+          createPipelineName: INITIAL_PIPELINE_NAME,
+          createPipelinePath: INITIAL_PIPELINE_PATH,
+        });
       });
 
     this.setState({
@@ -250,7 +259,8 @@ class PipelineList extends React.Component {
   onCloseCreatePipelineModal() {
     this.setState({
       createModal: false,
-      createPipelinePath: "pipeline.orchest",
+      createPipelineName: INITIAL_PIPELINE_NAME,
+      createPipelinePath: INITIAL_PIPELINE_PATH,
     });
   }
 

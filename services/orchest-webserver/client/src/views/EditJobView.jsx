@@ -452,48 +452,54 @@ class EditJobView extends React.Component {
      *  when they are not a draft.
      */
 
-    let jobParameters = this.generateJobParameters(
-      this.state.generatedPipelineRuns,
-      this.state.selectedIndices
-    );
+    // validate job configuration
+    let validation = this.validateJobConfig();
+    if (validation.pass === true) {
+      let jobParameters = this.generateJobParameters(
+        this.state.generatedPipelineRuns,
+        this.state.selectedIndices
+      );
 
-    let cronSchedule = this.state.cronString;
-    let envVariables = envVariablesArrayToDict(this.state.envVariables);
-    // Do not go through if env variables are not correctly defined.
-    if (envVariables === undefined) {
-      this.onSelectSubview(2);
-      return;
-    }
+      let cronSchedule = this.state.cronString;
+      let envVariables = envVariablesArrayToDict(this.state.envVariables);
+      // Do not go through if env variables are not correctly defined.
+      if (envVariables === undefined) {
+        this.onSelectSubview(2);
+        return;
+      }
 
-    // saving changes
-    this.setState({
-      unsavedChanges: false,
-    });
-
-    let putJobRequest = makeCancelable(
-      makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
-        type: "json",
-        content: {
-          cron_schedule: cronSchedule,
-          parameters: jobParameters,
-          strategy_json: this.state.strategyJSON,
-          env_variables: envVariables,
-        },
-      }),
-      this.promiseManager
-    );
-
-    putJobRequest.promise
-      .then(() => {
-        orchest.loadView(JobView, {
-          queryArgs: {
-            job_uuid: this.state.job.uuid,
-          },
-        });
-      })
-      .catch((error) => {
-        console.error(error);
+      // saving changes
+      this.setState({
+        unsavedChanges: false,
       });
+
+      let putJobRequest = makeCancelable(
+        makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
+          type: "json",
+          content: {
+            cron_schedule: cronSchedule,
+            parameters: jobParameters,
+            strategy_json: this.state.strategyJSON,
+            env_variables: envVariables,
+          },
+        }),
+        this.promiseManager
+      );
+
+      putJobRequest.promise
+        .then(() => {
+          orchest.loadView(JobView, {
+            queryArgs: {
+              job_uuid: this.state.job.uuid,
+            },
+          });
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    } else {
+      orchest.alert("Error", validation.reason);
+    }
   }
 
   generateJobParameters(generatedPipelineRuns, selectedIndices) {

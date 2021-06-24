@@ -158,20 +158,6 @@ class MainDrawer extends React.Component {
             </a>
             <li role="separator" className="mdc-list-divider" />
             <a
-              className="mdc-list-item"
-              data-react-view="FileManagerView"
-              href="#"
-            >
-              <span className="mdc-list-item__ripple" />
-              <i
-                className="material-icons mdc-list-item__graphic"
-                aria-hidden="true"
-              >
-                folder_open
-              </i>
-              <span className="mdc-list-item__text">File manager</span>
-            </a>
-            <a
               className="mdc-list-item mdc-list-item--activated"
               data-react-view="ProjectsView"
               href="#"
@@ -184,6 +170,20 @@ class MainDrawer extends React.Component {
                 format_list_bulleted
               </i>
               <span className="mdc-list-item__text">Projects</span>
+            </a>
+            <a
+              className="mdc-list-item"
+              data-react-view="FileManagerView"
+              href="#"
+            >
+              <span className="mdc-list-item__ripple" />
+              <i
+                className="material-icons mdc-list-item__graphic"
+                aria-hidden="true"
+              >
+                folder_open
+              </i>
+              <span className="mdc-list-item__text">File manager</span>
             </a>
             <a
               className="mdc-list-item"
