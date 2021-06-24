@@ -103,7 +103,7 @@ export function componentName(TagName) {
       return viewName;
     }
   }
-  console.log("Was not able to get componentName for TagName" + TagName);
+  console.log("Was not able to get componentName for TagName " + TagName);
 }
 
 export function validatePipeline(pipelineJson) {
