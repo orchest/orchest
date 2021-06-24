@@ -1,6 +1,5 @@
 // @ts-check
 import React from "react";
-
 import {
   IconPostgreSQL,
   IconRedis,
@@ -8,26 +7,10 @@ import {
   IconTensorBoard,
   IconVSCode,
 } from "@/icons";
-
 import { IconDraftOutline } from "@orchest/design-system";
 
-/**
- * @typedef {{binds?: {[key: string]: string}}} TServiceConfigBinds
- * @typedef {{env_variables?: {[key: string]: string}}} TServiceConfigEnv
- * @typedef {{ports?: number[]}} TServiceConfigPorts
- * @typedef {{preserve_base_path?: boolean}} TServiceConfigPreserveBasePath
- * @typedef {{entrypoint?: string}} TServiceConfigEntrypoint
- * @typedef {{scope?: ("interactive"|"noninteractive")[]}} TServiceConfigScope
- * @typedef { Partial<Record<"command"|"image"|"name", string>>
- *  & TServiceConfigBinds
- *  & TServiceConfigEnv
- *  & TServiceConfigPorts
- *  & TServiceConfigScope
- *  & TServiceConfigPreserveBasePath
- *  & TServiceConfigEntrypoint
- * } TServiceConfig
- * @type {{[key: string]: {label: string, icon?: React.ReactNode, config?: TServiceConfig}}} servicesTemplates */
-export const servicesTemplates = {
+/** @type {import('./types').TServiceTemplates} templates */
+export const templates = {
   tensorboard: {
     label: "TensorBoard",
     icon: <IconTensorBoard />,

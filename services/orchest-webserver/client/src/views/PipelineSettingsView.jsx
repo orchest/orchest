@@ -4,16 +4,7 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
 import {
-  css,
   Box,
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Flex,
-  IconServicesSolid,
   Alert,
   AlertHeader,
   AlertDescription,
@@ -44,31 +35,11 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
-import PipelineView from "./PipelineView";
-import { servicesTemplates } from "@/utils/service-templates";
-
-// we'll extract this into the design-system later
-const createServiceButton = css({
-  appearance: "none",
-  display: "inline-flex",
-  backgroundColor: "$background",
-  border: "1px solid $gray300",
-  borderRadius: "$sm",
-  width: "100%",
-  padding: "$3",
-  transition: "0.2s ease",
-  textAlign: "left",
-  "&:hover&:not(:disabled)": {
-    backgroundColor: "$gray100",
-  },
-  "> *:first-child": {
-    flexShrink: 0,
-    color: "$gray600",
-    marginRight: "$3",
-  },
-});
+import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
+import PipelineView from "@/views/PipelineView";
 
 const PipelineSettingsView = (props) => {
   const orchest = window.orchest;
@@ -97,19 +68,13 @@ const PipelineSettingsView = (props) => {
     }));
   }
 
-  const [
-    isServiceCreateDialogOpen,
-    setIsServiceCreateDialogOpen,
-  ] = React.useState(false);
+  const [overflowListener] = React.useState(new OverflowListener());
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
-  const overflowListener = new OverflowListener();
-  const promiseManager = new PromiseManager();
-  const refManager = new RefManager();
-
-  const init = () => {
+  const fetchPipelineData = () => {
     fetchPipeline();
     fetchPipelineMetadata();
-    attachResizeListener();
   };
 
   const handleInitialTab = () => {
@@ -127,15 +92,32 @@ const PipelineSettingsView = (props) => {
     }
   };
 
+  const hasLoaded = () => {
+    return (
+      state.pipelineJson &&
+      state.envVariables &&
+      (props.queryArgs.read_only === "true" || state.projectEnvVariables)
+    );
+  };
+
+  // Fetch pipeline data on initial mount
   React.useEffect(() => {
-    init();
+    fetchPipelineData();
     handleInitialTab();
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
+  // Fetch pipeline data when query args change
   React.useEffect(() => {
-    init();
+    fetchPipelineData();
   }, [props.queryArgs]);
+
+  // If the component has loaded, attach the resize listener
+  React.useEffect(() => {
+    if (hasLoaded()) {
+      attachResizeListener();
+    }
+  }, [state]);
 
   /* sync local unsaved changes with global state */
   React.useEffect(() => {
@@ -628,409 +610,376 @@ const PipelineSettingsView = (props) => {
 
   return (
     <OrchestSessionsConsumer>
-      <div className="view-page pipeline-settings-view">
-        {state.pipelineJson &&
-        state.envVariables &&
-        (props.queryArgs.read_only === "true" || state.projectEnvVariables) ? (
-          <div className="pipeline-settings">
-            <h2>Pipeline settings</h2>
+      <Layout>
+        <div className="view-page pipeline-settings-view">
+          {hasLoaded() ? (
+            <div className="pipeline-settings">
+              <h2>Pipeline settings</h2>
 
-            <div className="push-down">
-              <MDCTabBarReact
-                selectedIndex={state.selectedTabIndex}
-                ref={
-                  // @ts-ignore
-                  refManager.nrefs.tabBar
-                }
-                items={["Configuration", "Environment variables", "Services"]}
-                icons={["list", "view_comfy", "miscellaneous_services"]}
-                onChange={onSelectSubview.bind(this)}
-              />
-            </div>
+              <div className="push-down">
+                <MDCTabBarReact
+                  selectedIndex={state.selectedTabIndex}
+                  ref={
+                    // @ts-ignore
+                    refManager.nrefs.tabBar
+                  }
+                  items={["Configuration", "Environment variables", "Services"]}
+                  icons={["list", "view_comfy", "miscellaneous_services"]}
+                  onChange={onSelectSubview.bind(this)}
+                />
+              </div>
 
-            <div className="tab-view trigger-overflow">
-              {
+              <div className="tab-view trigger-overflow">
                 {
-                  0: (
-                    <div className="configuration">
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                        }}
-                      >
-                        <div className="columns">
-                          <div className="column">
-                            <h3>Name</h3>
-                          </div>
-                          <div className="column">
-                            <MDCTextFieldReact
-                              value={state.pipelineJson?.name}
-                              onChange={onChangeName.bind(this)}
-                              label="Pipeline name"
-                              disabled={props.queryArgs.read_only === "true"}
-                              classNames={["push-down"]}
-                            />
-                          </div>
-                          <div className="clear"></div>
-                        </div>
-
-                        <div className="columns">
-                          <div className="column">
-                            <h3>Path</h3>
-                          </div>
-                          <div className="column">
-                            {state.pipeline_path && (
-                              <p className="push-down">
-                                <span className="code">
-                                  {state.pipeline_path}
-                                </span>
-                              </p>
-                            )}
-                          </div>
-                          <div className="clear"></div>
-                        </div>
-
-                        <div className="columns">
-                          <div className="column">
-                            <h3>Pipeline parameters</h3>
-                          </div>
-                          <div className="column">
-                            <CodeMirror
-                              value={state.inputParameters}
-                              options={{
-                                mode: "application/json",
-                                theme: "jupyter",
-                                lineNumbers: true,
-                                readOnly: props.queryArgs.read_only === "true",
-                              }}
-                              onBeforeChange={onChangePipelineParameters.bind(
-                                this
-                              )}
-                            />
-                            {(() => {
-                              try {
-                                JSON.parse(state.inputParameters);
-                              } catch {
-                                return (
-                                  <div className="warning push-up push-down">
-                                    <i className="material-icons">warning</i>{" "}
-                                    Your input is not valid JSON.
-                                  </div>
-                                );
-                              }
-                            })()}
-                          </div>
-                          <div className="clear"></div>
-                        </div>
-
-                        <div className="columns">
-                          <div className="column">
-                            <h3>Data passing</h3>
-                          </div>
-                          <div className="column">
-                            {props.queryArgs.read_only !== "true" && (
-                              <p className="push-up">
-                                <i>
-                                  For these changes to take effect you have to
-                                  restart the memory-server (see button below).
-                                </i>
-                              </p>
-                            )}
-
-                            <MDCCheckboxReact
-                              value={
-                                state.pipelineJson?.settings?.auto_eviction
-                              }
-                              onChange={onChangeEviction.bind(this)}
-                              label="Automatic memory eviction"
-                              disabled={props.queryArgs.read_only === "true"}
-                              classNames={["push-down", "push-up"]}
-                            />
-
-                            {props.queryArgs.read_only !== "true" && (
-                              <p className="push-down">
-                                Change the size of the memory server for data
-                                passing. For units use KB, MB, or GB, e.g.{" "}
-                                <span className="code">1GB</span>.{" "}
-                              </p>
-                            )}
-
-                            <div>
+                  {
+                    0: (
+                      <div className="configuration">
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                          }}
+                        >
+                          <div className="columns">
+                            <div className="column">
+                              <h3>Name</h3>
+                            </div>
+                            <div className="column">
                               <MDCTextFieldReact
-                                value={state.dataPassingMemorySize}
-                                onChange={onChangeDataPassingMemorySize.bind(
-                                  this
-                                )}
-                                label="Data passing memory size"
+                                value={state.pipelineJson?.name}
+                                onChange={onChangeName.bind(this)}
+                                label="Pipeline name"
                                 disabled={props.queryArgs.read_only === "true"}
+                                classNames={["push-down"]}
                               />
                             </div>
-                            {(() => {
-                              if (
-                                !isValidMemorySize(state.dataPassingMemorySize)
-                              ) {
-                                return (
-                                  <div className="warning push-up">
-                                    <i className="material-icons">warning</i>{" "}
-                                    Not a valid memory size.
-                                  </div>
-                                );
-                              }
-                            })()}
+                            <div className="clear"></div>
                           </div>
-                          <div className="clear"></div>
-                        </div>
-                      </form>
 
-                      {props.queryArgs.read_only !== "true" && (
-                        <div className="columns">
-                          <div className="column">
-                            <h3>Actions</h3>
+                          <div className="columns">
+                            <div className="column">
+                              <h3>Path</h3>
+                            </div>
+                            <div className="column">
+                              {state.pipeline_path && (
+                                <p className="push-down">
+                                  <span className="code">
+                                    {state.pipeline_path}
+                                  </span>
+                                </p>
+                              )}
+                            </div>
+                            <div className="clear"></div>
                           </div>
-                          <div className="column">
-                            <p className="push-down">
-                              Restarting the memory-server also clears the
-                              memory to allow additional data to be passed
-                              between pipeline steps.
-                            </p>
-                            <div className="push-down">
+
+                          <div className="columns">
+                            <div className="column">
+                              <h3>Pipeline parameters</h3>
+                            </div>
+                            <div className="column">
+                              <CodeMirror
+                                value={state.inputParameters}
+                                options={{
+                                  mode: "application/json",
+                                  theme: "jupyter",
+                                  lineNumbers: true,
+                                  readOnly:
+                                    props.queryArgs.read_only === "true",
+                                }}
+                                onBeforeChange={onChangePipelineParameters.bind(
+                                  this
+                                )}
+                              />
                               {(() => {
-                                if (state.restartingMemoryServer) {
+                                try {
+                                  JSON.parse(state.inputParameters);
+                                } catch {
                                   return (
-                                    <p className="push-p push-down">
-                                      Restarting in progress...
-                                    </p>
+                                    <div className="warning push-up push-down">
+                                      <i className="material-icons">warning</i>{" "}
+                                      Your input is not valid JSON.
+                                    </div>
                                   );
                                 }
                               })()}
-
-                              <MDCButtonReact
-                                disabled={state.restartingMemoryServer}
-                                label="Restart memory-server"
-                                icon="memory"
-                                classNames={["mdc-button--raised push-down"]}
-                                onClick={restartMemoryServer.bind(this)}
-                              />
                             </div>
+                            <div className="clear"></div>
                           </div>
-                          <div className="clear"></div>
-                        </div>
-                      )}
-                    </div>
-                  ),
-                  1: (
-                    <div>
-                      {(() => {
-                        if (props.queryArgs.read_only === "true") {
-                          return (
-                            <>
-                              <EnvVarList
-                                value={state.envVariables}
-                                readOnly={true}
-                              />
-                            </>
-                          );
-                        } else {
-                          return (
-                            <>
-                              <h3 className="push-down">
-                                Project environment variables
-                              </h3>
-                              <EnvVarList
-                                value={state.projectEnvVariables}
-                                readOnly={true}
-                              />
 
-                              <h3 className="push-down">
-                                Pipeline environment variables
-                              </h3>
-                              <p className="push-down">
-                                Pipeline environment variables take precedence
-                                over project environment variables.
-                              </p>
-                              <EnvVarList
-                                value={state.envVariables}
-                                onAdd={addEnvVariablePair.bind(this)}
-                                onChange={(e, idx, type) =>
-                                  onEnvVariablesChange(e, idx, type)
+                          <div className="columns">
+                            <div className="column">
+                              <h3>Data passing</h3>
+                            </div>
+                            <div className="column">
+                              {props.queryArgs.read_only !== "true" && (
+                                <p className="push-up">
+                                  <i>
+                                    For these changes to take effect you have to
+                                    restart the memory-server (see button
+                                    below).
+                                  </i>
+                                </p>
+                              )}
+
+                              <MDCCheckboxReact
+                                value={
+                                  state.pipelineJson?.settings?.auto_eviction
                                 }
-                                onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                                onChange={onChangeEviction.bind(this)}
+                                label="Automatic memory eviction"
+                                disabled={props.queryArgs.read_only === "true"}
+                                classNames={["push-down", "push-up"]}
                               />
-                              <p className="push-up">
-                                <i>
-                                  Note: restarting the session is required to
-                                  update environment variables in Jupyter
-                                  kernels.
-                                </i>
-                              </p>
-                            </>
-                          );
-                        }
-                      })()}
-                    </div>
-                  ),
-                  2: (
-                    <Box css={{ "> * + *": { marginTop: "$4" } }}>
-                      {state.servicesChanged && session && (
-                        <div className="warning push-up">
-                          <i className="material-icons">warning</i>
-                          Note: changes to services require a session restart to
-                          take effect.
-                        </div>
-                      )}
-                      <MDCDataTableReact
-                        headers={["Service", "Scope", "Delete"]}
-                        rows={Object.keys(state.pipelineJson.services)
-                          .map(
-                            (serviceName) =>
-                              state.pipelineJson.services[serviceName]
-                          )
-                          .sort(sortService)
-                          .map((service) => [
-                            service.name,
-                            service.scope
-                              .map((scope) => {
-                                const scopeMap = {
-                                  interactive: "Interactive sessions",
-                                  noninteractive: "Job sessions",
-                                };
-                                return scopeMap[scope];
-                              })
-                              .sort()
-                              .join(", "),
-                            <div className="consume-click">
-                              <MDCIconButtonToggleReact
-                                icon="delete"
-                                onClick={() => {
-                                  orchest.confirm(
-                                    "Warning",
-                                    "Are you sure you want to delete the service: " +
-                                      service.name +
-                                      "?",
-                                    () => {
-                                      deleteService(service.name);
-                                    }
+
+                              {props.queryArgs.read_only !== "true" && (
+                                <p className="push-down">
+                                  Change the size of the memory server for data
+                                  passing. For units use KB, MB, or GB, e.g.{" "}
+                                  <span className="code">1GB</span>.{" "}
+                                </p>
+                              )}
+
+                              <div>
+                                <MDCTextFieldReact
+                                  value={state.dataPassingMemorySize}
+                                  onChange={onChangeDataPassingMemorySize.bind(
+                                    this
+                                  )}
+                                  label="Data passing memory size"
+                                  disabled={
+                                    props.queryArgs.read_only === "true"
+                                  }
+                                />
+                              </div>
+                              {(() => {
+                                if (
+                                  !isValidMemorySize(
+                                    state.dataPassingMemorySize
+                                  )
+                                ) {
+                                  return (
+                                    <div className="warning push-up">
+                                      <i className="material-icons">warning</i>{" "}
+                                      Not a valid memory size.
+                                    </div>
                                   );
-                                }}
+                                }
+                              })()}
+                            </div>
+                            <div className="clear"></div>
+                          </div>
+                        </form>
+
+                        {props.queryArgs.read_only !== "true" && (
+                          <div className="columns">
+                            <div className="column">
+                              <h3>Actions</h3>
+                            </div>
+                            <div className="column">
+                              <p className="push-down">
+                                Restarting the memory-server also clears the
+                                memory to allow additional data to be passed
+                                between pipeline steps.
+                              </p>
+                              <div className="push-down">
+                                {(() => {
+                                  if (state.restartingMemoryServer) {
+                                    return (
+                                      <p className="push-p push-down">
+                                        Restarting in progress...
+                                      </p>
+                                    );
+                                  }
+                                })()}
+
+                                <MDCButtonReact
+                                  disabled={state.restartingMemoryServer}
+                                  label="Restart memory-server"
+                                  icon="memory"
+                                  classNames={["mdc-button--raised push-down"]}
+                                  onClick={restartMemoryServer.bind(this)}
+                                />
+                              </div>
+                            </div>
+                            <div className="clear"></div>
+                          </div>
+                        )}
+                      </div>
+                    ),
+                    1: (
+                      <div>
+                        {(() => {
+                          if (props.queryArgs.read_only === "true") {
+                            return (
+                              <>
+                                <EnvVarList
+                                  value={state.envVariables}
+                                  readOnly={true}
+                                />
+                              </>
+                            );
+                          } else {
+                            return (
+                              <>
+                                <h3 className="push-down">
+                                  Project environment variables
+                                </h3>
+                                <EnvVarList
+                                  value={state.projectEnvVariables}
+                                  readOnly={true}
+                                />
+
+                                <h3 className="push-down">
+                                  Pipeline environment variables
+                                </h3>
+                                <p className="push-down">
+                                  Pipeline environment variables take precedence
+                                  over project environment variables.
+                                </p>
+                                <EnvVarList
+                                  value={state.envVariables}
+                                  onAdd={addEnvVariablePair.bind(this)}
+                                  onChange={(e, idx, type) =>
+                                    onEnvVariablesChange(e, idx, type)
+                                  }
+                                  onDelete={(idx) =>
+                                    onEnvVariablesDeletion(idx)
+                                  }
+                                />
+                                <p className="push-up">
+                                  <i>
+                                    Note: restarting the session is required to
+                                    update environment variables in Jupyter
+                                    kernels.
+                                  </i>
+                                </p>
+                              </>
+                            );
+                          }
+                        })()}
+                      </div>
+                    ),
+                    2: (
+                      <Box css={{ "> * + *": { marginTop: "$4" } }}>
+                        {state.servicesChanged && session && (
+                          <div className="warning push-up">
+                            <i className="material-icons">warning</i>
+                            Note: changes to services require a session restart
+                            to take effect.
+                          </div>
+                        )}
+                        <MDCDataTableReact
+                          headers={["Service", "Scope", "Delete"]}
+                          rows={Object.keys(state.pipelineJson.services)
+                            .map(
+                              (serviceName) =>
+                                state.pipelineJson.services[serviceName]
+                            )
+                            .sort(sortService)
+                            .map((service) => [
+                              service.name,
+                              service.scope
+                                .map((scope) => {
+                                  const scopeMap = {
+                                    interactive: "Interactive sessions",
+                                    noninteractive: "Job sessions",
+                                  };
+                                  return scopeMap[scope];
+                                })
+                                .sort()
+                                .join(", "),
+                              <div className="consume-click">
+                                <MDCIconButtonToggleReact
+                                  icon="delete"
+                                  disabled={
+                                    props.queryArgs.read_only === "true"
+                                  }
+                                  onClick={() => {
+                                    orchest.confirm(
+                                      "Warning",
+                                      "Are you sure you want to delete the service: " +
+                                        service.name +
+                                        "?",
+                                      () => {
+                                        deleteService(service.name);
+                                      }
+                                    );
+                                  }}
+                                />
+                              </div>,
+                            ])}
+                          detailRows={Object.keys(state.pipelineJson.services)
+                            .map(
+                              (serviceName) =>
+                                state.pipelineJson.services[serviceName]
+                            )
+                            .sort(sortService)
+                            .map((service, i) => (
+                              <ServiceForm
+                                key={["ServiceForm", i].join("-")}
+                                service={service}
+                                disabled={props.queryArgs.read_only === "true"}
+                                updateService={onChangeService}
+                                nameChangeService={nameChangeService}
+                                pipeline_uuid={props.queryArgs.pipeline_uuid}
+                                project_uuid={props.queryArgs.project_uuid}
+                                run_uuid={props.queryArgs.run_uuid}
                               />
-                            </div>,
-                          ])}
-                        detailRows={Object.keys(state.pipelineJson.services)
-                          .map(
-                            (serviceName) =>
-                              state.pipelineJson.services[serviceName]
-                          )
-                          .sort(sortService)
-                          .map((service, i) => (
-                            <ServiceForm
-                              key={["ServiceForm", i].join("-")}
-                              service={service}
-                              updateService={onChangeService}
-                              nameChangeService={nameChangeService}
-                              pipeline_uuid={props.queryArgs.pipeline_uuid}
-                              project_uuid={props.queryArgs.project_uuid}
-                              run_uuid={props.queryArgs.run_uuid}
-                            />
-                          ))}
-                      />
-
-                      <Alert status="info">
-                        <AlertHeader>
-                          <IconLightBulbOutline />
-                          Want to start using Services?
-                        </AlertHeader>
-                        <AlertDescription>
-                          <Link
-                            target="_blank"
-                            href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
-                            rel="noopener noreferrer"
-                          >
-                            Learn more
-                          </Link>{" "}
-                          about how to expand your pipeline’s capabilities.
-                        </AlertDescription>
-                      </Alert>
-
-                      <Dialog
-                        open={isServiceCreateDialogOpen}
-                        onOpenChange={(open) =>
-                          setIsServiceCreateDialogOpen(open)
-                        }
-                      >
-                        <MDCButtonReact
-                          icon="add"
-                          classNames={["mdc-button--raised", "themed-primary"]}
-                          label="Add Service"
-                          onClick={() => setIsServiceCreateDialogOpen(true)}
+                            ))}
                         />
 
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Create a service</DialogTitle>
-                          </DialogHeader>
-                          <DialogBody>
-                            <Flex as="ul" direction="column" gap="2">
-                              {Object.keys(servicesTemplates).map((item) => {
-                                const template = servicesTemplates[item];
-                                return (
-                                  <li key={item}>
-                                    <button
-                                      disabled={!template.config}
-                                      className={createServiceButton()}
-                                      onClick={(e) => {
-                                        e.preventDefault();
+                        <Alert status="info">
+                          <AlertHeader>
+                            <IconLightBulbOutline />
+                            Want to start using Services?
+                          </AlertHeader>
+                          <AlertDescription>
+                            <Link
+                              target="_blank"
+                              href="https://orchest.readthedocs.io/en/stable/user_guide/services.html"
+                              rel="noopener noreferrer"
+                            >
+                              Learn more
+                            </Link>{" "}
+                            about how to expand your pipeline’s capabilities.
+                          </AlertDescription>
+                        </Alert>
 
-                                        addServiceFromTemplate(template.config);
-                                        setIsServiceCreateDialogOpen(false);
-                                      }}
-                                    >
-                                      {template?.icon || <IconServicesSolid />}
-                                      {template.label}
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </Flex>
-                          </DialogBody>
-                          <DialogFooter>
-                            <MDCButtonReact
-                              icon="close"
-                              label="Cancel"
-                              onClick={() =>
-                                setIsServiceCreateDialogOpen(false)
-                              }
-                            />
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </Box>
-                  ),
-                }[state.selectedTabIndex]
-              }
-            </div>
+                        {props.queryArgs.read_only !== "true" && (
+                          <ServiceTemplatesDialog
+                            onSelection={(template) =>
+                              addServiceFromTemplate(template)
+                            }
+                          />
+                        )}
+                      </Box>
+                    ),
+                  }[state.selectedTabIndex]
+                }
+              </div>
 
-            <div className="top-buttons">
-              <MDCButtonReact
-                classNames={["close-button"]}
-                icon="close"
-                onClick={closeSettings.bind(this)}
-              />
-            </div>
-            {props.queryArgs.read_only !== "true" && (
-              <div className="bottom-buttons observe-overflow">
+              <div className="top-buttons">
                 <MDCButtonReact
-                  label={state.unsavedChanges ? "SAVE*" : "SAVE"}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={saveGeneralForm.bind(this)}
-                  icon="save"
+                  classNames={["close-button"]}
+                  icon="close"
+                  onClick={closeSettings.bind(this)}
                 />
               </div>
-            )}
-          </div>
-        ) : (
-          <MDCLinearProgressReact />
-        )}
-      </div>
+              {props.queryArgs.read_only !== "true" && (
+                <div className="bottom-buttons observe-overflow">
+                  <MDCButtonReact
+                    label={state.unsavedChanges ? "SAVE*" : "SAVE"}
+                    classNames={["mdc-button--raised", "themed-secondary"]}
+                    onClick={saveGeneralForm.bind(this)}
+                    icon="save"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <MDCLinearProgressReact />
+          )}
+        </div>
+      </Layout>
     </OrchestSessionsConsumer>
   );
 };

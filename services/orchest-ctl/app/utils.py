@@ -1,15 +1,17 @@
+import json
 import logging
 import os
 import subprocess
 import textwrap
 import time
 from collections.abc import Mapping
-from typing import List, Union
+from typing import Any, List, Tuple, Union
+from urllib import request
 
 import typer
 
+from app import error
 from app.config import WRAP_LINES
-from app.error import ENVVariableNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ def get_env() -> dict:
 
     not_present = [var for var, value in env.items() if value is None]
     if not_present:
-        raise ENVVariableNotFoundError(
+        raise error.ENVVariableNotFoundError(
             "Required environment variables are not present: " + ", ".join(not_present)
         )
 
@@ -129,6 +131,45 @@ def is_dangling(image: Mapping) -> bool:
     """Checks whether the given image is to be considered dangling."""
     tags = image["RepoTags"]
     return not tags or "<none>:<none>" in tags
+
+
+def get_response(url: str, data=None, method="GET") -> Tuple[int, dict]:
+    """Requests an url."""
+    if data is not None:
+        data = json.dumps(data).encode()
+        req = request.Request(url, data=data, method=method)
+        req.add_header("Content-Type", "application/json")
+    else:
+        req = request.Request(url, method=method)
+
+    with request.urlopen(req) as r:
+        return r.status, json.loads(r.read().decode("utf-8"))
+
+
+# Use leading underscore to make sure `kwargs` names do not collide.
+def retry_func(func, _retries=10, _sleep_duration=1, _wait_msg=None, **kwargs) -> Any:
+    """Tries func(**kwargs) _retries times.
+
+    Raises:
+        RuntimeError: The given `func` did not return within the given
+            number of `_retries`.
+    """
+    e_msg = None
+    for _ in range(_retries):
+        try:
+            func_result = func(**kwargs)
+            break
+        except Exception as e:
+            if _wait_msg is not None:
+                echo(_wait_msg)
+            e_msg = e
+            time.sleep(_sleep_duration)
+    else:
+        raise RuntimeError(
+            f"Could not reach Orchest instance before timeout expired: {e_msg}"
+        )
+
+    return func_result
 
 
 # orchest <arguments> cmd <arguments>, excluding the use of cmd as an

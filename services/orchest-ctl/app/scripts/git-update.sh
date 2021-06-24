@@ -17,4 +17,4 @@ git fetch https://github.com/orchest/orchest.git --tags
 
 # Change the user and group of all the files in the repository, except
 # for the userdir.
-chown -R "$FILE_USER":"$FILE_GROUP" $(ls -I userdir /orchest-host)
+ls -I userdir /orchest-host | xargs -I {} chown -R "$FILE_USER":"$FILE_GROUP" {}

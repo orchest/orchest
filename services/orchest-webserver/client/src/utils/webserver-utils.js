@@ -83,7 +83,6 @@ export function getViewDrawerParentViewName(viewName) {
     ManageUsersView: SettingsView,
     PipelineSettingsView: PipelinesView,
     PipelinesView: PipelinesView,
-    PipelineView: PipelinesView,
     LogsView: PipelinesView,
     ProjectSettingsView: ProjectsView,
     ProjectsView: ProjectsView,
@@ -104,7 +103,7 @@ export function componentName(TagName) {
       return viewName;
     }
   }
-  console.error("Was not able to get componentName for TagName" + TagName);
+  console.log("Was not able to get componentName for TagName " + TagName);
 }
 
 export function validatePipeline(pipelineJson) {

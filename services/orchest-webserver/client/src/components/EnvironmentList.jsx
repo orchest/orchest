@@ -35,8 +35,8 @@ const EnvironmentList = (props) => {
   const BUILD_POLL_FREQUENCY = 3000;
 
   const orchest = window.orchest;
-  const promiseManager = new PromiseManager();
-  const refManager = new RefManager();
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
   const environmentBuildsRequest = () => {
     let environmentBuildsRequestPromise = makeCancelable(
@@ -72,7 +72,7 @@ const EnvironmentList = (props) => {
     setState((prevState) => ({
       ...prevState,
       environmentBuilds,
-      listData: processListData(prevState.environments),
+      listData: processListData(prevState.environments, environmentBuilds),
     }));
   };
 
@@ -91,7 +91,10 @@ const EnvironmentList = (props) => {
           setState((prevState) => ({
             ...prevState,
             environments: environments,
-            listData: processListData(environments),
+            listData: processListData(
+              environments,
+              prevState.environmentBuilds
+            ),
           }));
 
           // in case environmentListView exists, clear checks
@@ -223,7 +226,7 @@ const EnvironmentList = (props) => {
     );
   };
 
-  const processListData = (environments) => {
+  const processListData = (environments, environmentBuilds) => {
     let listData = [];
 
     // check for undefined environments
@@ -233,7 +236,7 @@ const EnvironmentList = (props) => {
 
     for (let environment of environments) {
       let environmentBuild =
-        state.environmentBuilds[props.project_uuid + "-" + environment.uuid];
+        environmentBuilds[props.project_uuid + "-" + environment.uuid];
 
       listData.push([
         <span>{environment.name}</span>,
@@ -263,6 +266,7 @@ const EnvironmentList = (props) => {
 
   React.useEffect(() => {
     fetchEnvironments();
+    environmentBuildsRequest();
     setEnvironmentBuildsInterval(BUILD_POLL_FREQUENCY);
 
     return () => {

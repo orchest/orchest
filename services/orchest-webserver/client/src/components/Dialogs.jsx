@@ -47,7 +47,9 @@ const Dialogs = React.forwardRef((_, ref) => {
         project_uuid={project_uuid}
         environmentValidationData={environmentValidationData}
         requestedFromView={requestedFromView}
-        onBuildComplete={onBuildComplete}
+        onBuildComplete={() => {
+          onBuildComplete();
+        }}
         onCancel={onCancel}
         onClose={() => {
           remove(uuid);
@@ -97,12 +99,10 @@ const Dialogs = React.forwardRef((_, ref) => {
             onConfirm();
           }
         }}
-        onCancel={() => {
+        onClose={() => {
           if (onCancel) {
             onCancel();
           }
-        }}
-        onClose={() => {
           remove(uuid);
         }}
       />,

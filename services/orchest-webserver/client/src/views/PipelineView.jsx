@@ -1,4 +1,5 @@
 import React from "react";
+import io from "socket.io-client";
 import _ from "lodash";
 
 import {
@@ -22,17 +23,18 @@ import {
   getServiceURLs,
   filterServices,
   validatePipeline,
-} from "../utils/webserver-utils";
+} from "@/utils/webserver-utils";
 
-import PipelineSettingsView from "./PipelineSettingsView";
-import LogsView from "./LogsView";
-import PipelineDetails from "../components/PipelineDetails";
-import PipelineStep from "../components/PipelineStep";
-import io from "socket.io-client";
-import FilePreviewView from "./FilePreviewView";
-import JobView from "./JobView";
-import JupyterLabView from "./JupyterLabView";
-import PipelinesView from "./PipelinesView";
+import { Layout } from "@/components/Layout";
+import PipelineDetails from "@/components/PipelineDetails";
+import PipelineStep from "@/components/PipelineStep";
+import PipelineSettingsView from "@/views/PipelineSettingsView";
+import LogsView from "@/views/LogsView";
+import FilePreviewView from "@/views/FilePreviewView";
+import JobView from "@/views/JobView";
+import JupyterLabView from "@/views/JupyterLabView";
+import PipelinesView from "@/views/PipelinesView";
+import ProjectsView from "@/views/ProjectsView";
 
 function ConnectionDOMWrapper(el, startNode, endNode, pipelineView) {
   this.startNode = startNode;
@@ -571,21 +573,26 @@ class PipelineView extends React.Component {
           this.promiseManager
         );
 
-        fetchPipelinesPromise.promise.then((response) => {
-          let data = JSON.parse(response);
+        fetchPipelinesPromise.promise
+          .then((response) => {
+            let data = JSON.parse(response);
 
-          if (data.result.length > 0) {
-            orchest.loadView(PipelineView, {
-              queryArgs: {
-                pipeline_uuid: data.result[0].uuid,
-                project_uuid: selectedProject,
-              },
-              key: uuidv4(),
-            });
-          } else {
-            orchest.loadView(PipelinesView);
-          }
-        });
+            if (data.result.length > 0) {
+              orchest.loadView(PipelineView, {
+                queryArgs: {
+                  pipeline_uuid: data.result[0].uuid,
+                  project_uuid: selectedProject,
+                },
+                key: uuidv4(),
+              });
+            } else {
+              orchest.loadView(PipelinesView);
+            }
+          })
+          .catch((e) => {
+            console.error(e);
+            orchest.loadView(ProjectsView);
+          });
       } else {
         orchest.loadView(PipelinesView);
       }
@@ -873,9 +880,7 @@ class PipelineView extends React.Component {
       ) {
         // Make sure that successively pressing backspace does not trigger
         // another delete.
-        this.setState({
-          isDeletingStep: true,
-        });
+
         this.deleteSelectedSteps();
       }
     });
@@ -1492,6 +1497,10 @@ class PipelineView extends React.Component {
     // The if is to avoid the dialog appearing when no steps are
     // selected and the delete button is pressed.
     if (this.state.selectedSteps.length > 0) {
+      this.setState({
+        isDeletingStep: true,
+      });
+
       orchest.confirm(
         "Warning",
         "A deleted step and its logs cannot be recovered once deleted, are you" +
@@ -2332,201 +2341,209 @@ class PipelineView extends React.Component {
 
     return (
       <OrchestSessionsConsumer>
-        <div className="pipeline-view">
-          <div className="pane pipeline-view-pane">
-            {this.props.queryArgs.job_uuid &&
-              this.props.queryArgs.read_only == "true" && (
-                <div className="pipeline-actions top-left">
-                  <MDCButtonReact
-                    classNames={["mdc-button--outlined"]}
-                    label="Back to job"
-                    icon="arrow_back"
-                    onClick={this.returnToJob.bind(
-                      this,
-                      this.props.queryArgs.job_uuid
-                    )}
-                  />
-                </div>
-              )}
+        <Layout>
+          <div className="pipeline-view">
+            <div className="pane pipeline-view-pane">
+              {this.props.queryArgs.job_uuid &&
+                this.props.queryArgs.read_only == "true" && (
+                  <div className="pipeline-actions top-left">
+                    <MDCButtonReact
+                      classNames={["mdc-button--outlined"]}
+                      label="Back to job"
+                      icon="arrow_back"
+                      onClick={this.returnToJob.bind(
+                        this,
+                        this.props.queryArgs.job_uuid
+                      )}
+                    />
+                  </div>
+                )}
 
-            <div className="pipeline-actions bottom-left">
-              <div className="navigation-buttons">
-                <MDCButtonReact
-                  onClick={this.centerView.bind(this)}
-                  icon="crop_free"
-                />
-                <MDCButtonReact
-                  onClick={this.zoomOut.bind(this)}
-                  icon="remove"
-                />
-                <MDCButtonReact onClick={this.zoomIn.bind(this)} icon="add" />
-              </div>
-              {(() => {
-                if (
-                  this.state.selectedSteps.length > 0 &&
-                  !this.state.stepSelector.active &&
-                  this.props.queryArgs.read_only !== "true"
-                ) {
-                  if (!this.state.pipelineRunning) {
-                    return (
-                      <div className="selection-buttons">
-                        <MDCButtonReact
-                          classNames={[
-                            "mdc-button--raised",
-                            "themed-secondary",
-                          ]}
-                          onClick={this.runSelectedSteps.bind(this)}
-                          label="Run selected steps"
-                        />
-                        {selectedStepsHasIncoming && (
+              <div className="pipeline-actions bottom-left">
+                <div className="navigation-buttons">
+                  <MDCButtonReact
+                    onClick={this.centerView.bind(this)}
+                    icon="crop_free"
+                  />
+                  <MDCButtonReact
+                    onClick={this.zoomOut.bind(this)}
+                    icon="remove"
+                  />
+                  <MDCButtonReact onClick={this.zoomIn.bind(this)} icon="add" />
+                </div>
+                {(() => {
+                  if (
+                    this.state.selectedSteps.length > 0 &&
+                    !this.state.stepSelector.active &&
+                    this.props.queryArgs.read_only !== "true"
+                  ) {
+                    if (!this.state.pipelineRunning) {
+                      return (
+                        <div className="selection-buttons">
                           <MDCButtonReact
                             classNames={[
                               "mdc-button--raised",
                               "themed-secondary",
                             ]}
-                            onClick={this.onRunIncoming.bind(this)}
-                            label="Run incoming steps"
+                            onClick={this.runSelectedSteps.bind(this)}
+                            label="Run selected steps"
                           />
-                        )}
+                          {selectedStepsHasIncoming && (
+                            <MDCButtonReact
+                              classNames={[
+                                "mdc-button--raised",
+                                "themed-secondary",
+                              ]}
+                              onClick={this.onRunIncoming.bind(this)}
+                              label="Run incoming steps"
+                            />
+                          )}
+                        </div>
+                      );
+                    }
+                  }
+                  if (
+                    this.state.pipelineRunning &&
+                    this.props.queryArgs.read_only !== "true"
+                  ) {
+                    return (
+                      <div className="selection-buttons">
+                        <MDCButtonReact
+                          classNames={["mdc-button--raised"]}
+                          onClick={this.cancelRun.bind(this)}
+                          icon="close"
+                          disabled={this.state.waitingOnCancel}
+                          label="Cancel run"
+                        />
                       </div>
                     );
                   }
-                }
-                if (
-                  this.state.pipelineRunning &&
-                  this.props.queryArgs.read_only !== "true"
-                ) {
-                  return (
-                    <div className="selection-buttons">
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised"]}
-                        onClick={this.cancelRun.bind(this)}
-                        icon="close"
-                        disabled={this.state.waitingOnCancel}
-                        label="Cancel run"
-                      />
-                    </div>
-                  );
-                }
-              })()}
-            </div>
-
-            <div className={"pipeline-actions top-right"}>
-              {this.props.queryArgs.read_only !== "true" && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={this.newStep.bind(this)}
-                  icon={"add"}
-                  label={"NEW STEP"}
-                />
-              )}
-
-              {this.props.queryArgs.read_only === "true" && (
-                <MDCButtonReact
-                  label={"Read only"}
-                  disabled={true}
-                  icon={"visibility"}
-                />
-              )}
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={this.openLogs.bind(this)}
-                label={"Logs"}
-                icon="view_headline"
-              />
-
-              {this.servicesAvailable() && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={this.showServices.bind(this)}
-                  label={"Services"}
-                  icon="settings"
-                />
-              )}
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={this.openSettings.bind(this, undefined)}
-                label={"Settings"}
-                icon="tune"
-              />
-
-              {this.state.showServices && this.servicesAvailable() && (
-                <div className="services-status">
-                  <h3>Running services</h3>
-                  {this.generateServiceEndpoints()}
-
-                  <div className="edit-button-holder">
-                    <MDCButtonReact
-                      icon="tune"
-                      label="Edit services"
-                      onClick={this.openSettings.bind(this, "services")}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div
-              className="pipeline-steps-outer-holder"
-              ref={this.refManager.nrefs.pipelineStepsOuterHolder}
-              onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
-              onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
-              onWheel={this.onPipelineStepsOuterHolderWheel.bind(this)}
-            >
-              <div
-                className="pipeline-steps-holder"
-                ref={this.refManager.nrefs.pipelineStepsHolder}
-              >
-                {stepSelectorComponent}
-                {pipelineSteps}
+                })()}
               </div>
-            </div>
-          </div>
 
-          {(() => {
-            if (this.state.openedStep) {
-              return (
-                <PipelineDetails
-                  onSave={this.onSaveDetails.bind(this)}
-                  onNameUpdate={this.stepNameUpdate.bind(this)}
-                  onDelete={this.onDetailsDelete.bind(this)}
-                  onClose={this.onCloseDetails.bind(this)}
-                  onOpenFilePreviewView={this.onOpenFilePreviewView.bind(this)}
-                  onOpenNotebook={this.onOpenNotebook.bind(this)}
-                  onChangeView={this.onDetailsChangeView.bind(this)}
-                  connections={connections_list}
-                  defaultViewIndex={this.state.defaultDetailViewIndex}
-                  pipeline={this.state.pipelineJson}
-                  pipelineCwd={this.state.pipelineCwd}
-                  project_uuid={this.props.queryArgs.project_uuid}
-                  job_uuid={this.props.queryArgs.job_uuid}
-                  run_uuid={this.props.queryArgs.run_uuid}
-                  sio={this.sio}
-                  readOnly={this.props.queryArgs.read_only === "true"}
-                  step={this.state.steps[this.state.openedStep]}
-                  saveHash={this.state.saveHash}
-                />
-              );
-            }
-            if (
-              this.state.openedMultistep &&
-              this.props.queryArgs.read_only !== "true"
-            ) {
-              return (
-                <div className={"pipeline-actions bottom-right"}>
+              <div className={"pipeline-actions top-right"}>
+                {this.props.queryArgs.read_only !== "true" && (
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
-                    label={"Delete"}
-                    onClick={this.onDeleteMultistep.bind(this)}
-                    icon={"delete"}
+                    onClick={this.newStep.bind(this)}
+                    icon={"add"}
+                    label={"NEW STEP"}
                   />
+                )}
+
+                {this.props.queryArgs.read_only === "true" && (
+                  <MDCButtonReact
+                    label={"Read only"}
+                    disabled={true}
+                    icon={"visibility"}
+                  />
+                )}
+
+                <MDCButtonReact
+                  classNames={["mdc-button--raised"]}
+                  onClick={this.openLogs.bind(this)}
+                  label={"Logs"}
+                  icon="view_headline"
+                />
+
+                {this.servicesAvailable() && (
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    onClick={this.showServices.bind(this)}
+                    label={"Services"}
+                    icon="settings"
+                  />
+                )}
+
+                <MDCButtonReact
+                  classNames={["mdc-button--raised"]}
+                  onClick={this.openSettings.bind(this, undefined)}
+                  label={"Settings"}
+                  icon="tune"
+                />
+
+                {this.state.showServices && this.servicesAvailable() && (
+                  <div className="services-status">
+                    <h3>Running services</h3>
+                    {this.generateServiceEndpoints()}
+
+                    <div className="edit-button-holder">
+                      <MDCButtonReact
+                        icon="tune"
+                        label={
+                          (this.props.queryArgs.read_only !== "true"
+                            ? "Edit"
+                            : "View") + " services"
+                        }
+                        onClick={this.openSettings.bind(this, "services")}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                className="pipeline-steps-outer-holder"
+                ref={this.refManager.nrefs.pipelineStepsOuterHolder}
+                onMouseMove={this.onPipelineStepsOuterHolderMove.bind(this)}
+                onMouseDown={this.onPipelineStepsOuterHolderDown.bind(this)}
+                onWheel={this.onPipelineStepsOuterHolderWheel.bind(this)}
+              >
+                <div
+                  className="pipeline-steps-holder"
+                  ref={this.refManager.nrefs.pipelineStepsHolder}
+                >
+                  {stepSelectorComponent}
+                  {pipelineSteps}
                 </div>
-              );
-            }
-          })()}
-        </div>
+              </div>
+            </div>
+
+            {(() => {
+              if (this.state.openedStep) {
+                return (
+                  <PipelineDetails
+                    onSave={this.onSaveDetails.bind(this)}
+                    onNameUpdate={this.stepNameUpdate.bind(this)}
+                    onDelete={this.onDetailsDelete.bind(this)}
+                    onClose={this.onCloseDetails.bind(this)}
+                    onOpenFilePreviewView={this.onOpenFilePreviewView.bind(
+                      this
+                    )}
+                    onOpenNotebook={this.onOpenNotebook.bind(this)}
+                    onChangeView={this.onDetailsChangeView.bind(this)}
+                    connections={connections_list}
+                    defaultViewIndex={this.state.defaultDetailViewIndex}
+                    pipeline={this.state.pipelineJson}
+                    pipelineCwd={this.state.pipelineCwd}
+                    project_uuid={this.props.queryArgs.project_uuid}
+                    job_uuid={this.props.queryArgs.job_uuid}
+                    run_uuid={this.props.queryArgs.run_uuid}
+                    sio={this.sio}
+                    readOnly={this.props.queryArgs.read_only === "true"}
+                    step={this.state.steps[this.state.openedStep]}
+                    saveHash={this.state.saveHash}
+                  />
+                );
+              }
+              if (
+                this.state.openedMultistep &&
+                this.props.queryArgs.read_only !== "true"
+              ) {
+                return (
+                  <div className={"pipeline-actions bottom-right"}>
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised"]}
+                      label={"Delete"}
+                      onClick={this.onDeleteMultistep.bind(this)}
+                      icon={"delete"}
+                    />
+                  </div>
+                );
+              }
+            })()}
+          </div>
+        </Layout>
       </OrchestSessionsConsumer>
     );
   }

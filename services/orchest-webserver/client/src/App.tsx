@@ -69,19 +69,21 @@ const App = () => {
   // load server side config populated by flask template
   const { config } = context.state;
 
-  if (config.FLASK_ENV === "development") {
-    console.log("Orchest is running with --dev.");
-  }
+  React.useEffect(() => {
+    if (config.FLASK_ENV === "development") {
+      console.log("Orchest is running with --dev.");
+    }
 
-  if (config.CLOUD === true) {
-    console.log("Orchest is running with --cloud.");
+    if (config.CLOUD === true) {
+      console.log("Orchest is running with --cloud.");
 
-    loadIntercom(
-      config["INTERCOM_APP_ID"],
-      config["INTERCOM_USER_EMAIL"],
-      config["INTERCOM_DEFAULT_SIGNUP_DATE"]
-    );
-  }
+      loadIntercom(
+        config["INTERCOM_APP_ID"],
+        config["INTERCOM_USER_EMAIL"],
+        config["INTERCOM_DEFAULT_SIGNUP_DATE"]
+      );
+    }
+  }, [config]);
 
   const sendEvent = function (event, properties) {
     if (!context.state.config["TELEMETRY_DISABLED"]) {
@@ -153,12 +155,7 @@ const App = () => {
     );
   };
 
-  const loadView = (TagName, dynamicProps?, onCancelled?) => {
-    // dynamicProps default
-    if (!dynamicProps) {
-      dynamicProps = {};
-    }
-
+  const loadView = (TagName, dynamicProps = {}, onCancelled?) => {
     let conditionalBody = () => {
       // This public loadView sets the state through the
       // history API.
@@ -288,7 +285,6 @@ const App = () => {
   React.useEffect(() => {
     setJupyter(new Jupyter(jupyterRef.current));
     initializeFirstView();
-    loadDefaultView();
   }, []);
 
   window.orchest = {
@@ -302,10 +298,9 @@ const App = () => {
   };
 
   React.useEffect(() => {
-    if (state.TagName) {
+    if (state.TagName)
       setView(_generateView(state.TagName, state.dynamicProps));
-    }
-  }, [state]);
+  }, [state, context?.state?.project_uuid]);
 
   return (
     <>

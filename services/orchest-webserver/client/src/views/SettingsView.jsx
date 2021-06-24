@@ -1,4 +1,7 @@
 import React, { Fragment } from "react";
+import { Controlled as CodeMirror } from "react-codemirror2";
+import _ from "lodash";
+import "codemirror/mode/javascript/javascript";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   makeRequest,
@@ -7,12 +10,10 @@ import {
   makeCancelable,
 } from "@orchest/lib-utils";
 import { OrchestContext } from "@/hooks/orchest";
-import UpdateView from "./UpdateView";
-import ManageUsersView from "./ManageUsersView";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import "codemirror/mode/javascript/javascript";
-import ConfigureJupyterLabView from "./ConfigureJupyterLabView";
-import _ from "lodash";
+import { Layout } from "@/components/Layout";
+import UpdateView from "@/views/UpdateView";
+import ManageUsersView from "@/views/ManageUsersView";
+import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
 
 class SettingsView extends React.Component {
   static contextType = OrchestContext;
@@ -256,209 +257,212 @@ class SettingsView extends React.Component {
 
   render() {
     return (
-      <div className={"view-page orchest-settings"}>
-        <h2>Orchest settings</h2>
-        <div className="push-down">
-          <div>
-            <p className="push-down">
-              Enabling authentication through{" "}
-              <span className="code">AUTH_ENABLED</span> will automatically
-              redirect you to the login page, so make sure you have set up a
-              user first!
-            </p>
+      <Layout>
+        <div className={"view-page orchest-settings"}>
+          <h2>Orchest settings</h2>
+          <div className="push-down">
+            <div>
+              <p className="push-down">
+                Enabling authentication through{" "}
+                <span className="code">AUTH_ENABLED</span> will automatically
+                redirect you to the login page, so make sure you have set up a
+                user first!
+              </p>
 
-            {(() => {
-              if (this.state.config === undefined) {
-                return <p>Loading config...</p>;
-              } else {
-                return (
-                  <div className="push-up">
-                    <CodeMirror
-                      value={this.state.config}
-                      options={{
-                        mode: "application/json",
-                        theme: "jupyter",
-                        lineNumbers: true,
-                      }}
-                      onBeforeChange={(editor, data, value) => {
-                        this.setState({
-                          config: value,
-                          unsavedChanges: this.state.config != value,
-                        });
-                      }}
-                    />
+              {(() => {
+                if (this.state.config === undefined) {
+                  return <p>Loading config...</p>;
+                } else {
+                  return (
+                    <div className="push-up">
+                      <CodeMirror
+                        value={this.state.config}
+                        options={{
+                          mode: "application/json",
+                          theme: "jupyter",
+                          lineNumbers: true,
+                        }}
+                        onBeforeChange={(editor, data, value) => {
+                          this.setState({
+                            config: value,
+                            unsavedChanges: this.state.config != value,
+                          });
+                        }}
+                      />
 
-                    {(() => {
-                      if (this.context.state?.config?.CLOUD === true) {
-                        return (
-                          <div className="push-up notice">
-                            <p>
-                              {" "}
-                              Note that{" "}
-                              {this.context.state?.config[
-                                "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
-                              ].map((el, i) => (
-                                <span key={i}>
-                                  <span className="code">{el}</span>
-                                  {i !=
-                                    this.context.state?.config[
-                                      "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
-                                    ].length -
-                                      1 && <span>, </span>}
-                                </span>
-                              ))}{" "}
-                              cannot be modified when running in the{" "}
-                              <span className="code">cloud</span>.
-                            </p>
-                          </div>
-                        );
-                      }
-                    })()}
+                      {(() => {
+                        if (this.context.state?.config?.CLOUD === true) {
+                          return (
+                            <div className="push-up notice">
+                              <p>
+                                {" "}
+                                Note that{" "}
+                                {this.context.state?.config[
+                                  "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
+                                ].map((el, i) => (
+                                  <span key={i}>
+                                    <span className="code">{el}</span>
+                                    {i !=
+                                      this.context.state?.config[
+                                        "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
+                                      ].length -
+                                        1 && <span>, </span>}
+                                  </span>
+                                ))}{" "}
+                                cannot be modified when running in the{" "}
+                                <span className="code">cloud</span>.
+                              </p>
+                            </div>
+                          );
+                        }
+                      })()}
 
-                    {(() => {
-                      try {
-                        JSON.parse(this.state.config);
-                      } catch {
-                        return (
-                          <div className="warning push-up">
-                            <i className="material-icons">warning</i> Your input
-                            is not valid JSON.
-                          </div>
-                        );
-                      }
-                    })()}
+                      {(() => {
+                        try {
+                          JSON.parse(this.state.config);
+                        } catch {
+                          return (
+                            <div className="warning push-up">
+                              <i className="material-icons">warning</i> Your
+                              input is not valid JSON.
+                            </div>
+                          );
+                        }
+                      })()}
 
-                    <MDCButtonReact
-                      classNames={[
-                        "push-up",
-                        "mdc-button--raised",
-                        "themed-secondary",
-                      ]}
-                      label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                      icon="save"
-                      onClick={this.saveConfig.bind(this, this.state.config)}
-                    />
-                  </div>
-                );
-              }
-            })()}
+                      <MDCButtonReact
+                        classNames={[
+                          "push-up",
+                          "mdc-button--raised",
+                          "themed-secondary",
+                        ]}
+                        label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
+                        icon="save"
+                        onClick={this.saveConfig.bind(this, this.state.config)}
+                      />
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          </div>
+
+          <h3>JupyterLab configuration</h3>
+          <div className="columns">
+            <div className="column">
+              <p>Configure JupyterLab by installing server extensions.</p>
+            </div>
+            <div className="column">
+              <MDCButtonReact
+                classNames={["mdc-button--outlined"]}
+                label="Configure JupyterLab"
+                icon="tune"
+                onClick={this.loadConfigureJupyterLab.bind(this)}
+              />
+            </div>
+            <div className="clear"></div>
+          </div>
+
+          <h3>Version information</h3>
+          <div className="columns">
+            <div className="column">
+              <p>Find out Orchest's version.</p>
+            </div>
+            <div className="column">
+              {(() => {
+                if (this.state.version !== undefined) {
+                  return <p>{this.state.version}</p>;
+                } else {
+                  return (
+                    <Fragment>
+                      <MDCLinearProgressReact classNames={["push-down"]} />
+                    </Fragment>
+                  );
+                }
+              })()}
+              {(() => {
+                if (this.context.state?.config?.FLASK_ENV === "development") {
+                  return (
+                    <p>
+                      <span className="code">development mode</span>
+                    </p>
+                  );
+                }
+              })()}
+            </div>
+            <div className="clear"></div>
+          </div>
+
+          <h3>Updates</h3>
+          <div className="columns">
+            <div className="column">
+              <p>Update Orchest from the web UI using the built in updater.</p>
+            </div>
+            <div className="column">
+              <MDCButtonReact
+                classNames={["mdc-button--outlined"]}
+                label="Check for updates"
+                icon="system_update_alt"
+                onClick={this.updateView.bind(this)}
+              />
+            </div>
+            <div className="clear"></div>
+          </div>
+
+          <h3>Controls</h3>
+          <div className="columns">
+            <div className="column">
+              <p>
+                Restart Orchest will force quit ongoing builds, jobs and
+                sessions.
+              </p>
+            </div>
+            <div className="column">
+              {(() => {
+                if (!this.state.restarting) {
+                  return (
+                    <Fragment>
+                      <MDCButtonReact
+                        classNames={["mdc-button--outlined"]}
+                        label="Restart"
+                        icon="power_settings_new"
+                        onClick={this.restartOrchest.bind(this)}
+                      />
+                    </Fragment>
+                  );
+                } else {
+                  return (
+                    <Fragment>
+                      <MDCLinearProgressReact classNames={["push-down"]} />
+                      <p>This can take up to 30 seconds.</p>
+                    </Fragment>
+                  );
+                }
+              })()}
+              <p className="push-up">
+                Orchest's current status is <i>{this.state.status}</i>.
+              </p>
+            </div>
+            <div className="clear"></div>
+          </div>
+
+          <h3>Authentication</h3>
+          <div className="columns">
+            <div className="column">
+              <p>Manage Orchest users using the user admin panel.</p>
+            </div>
+            <div className="column">
+              <MDCButtonReact
+                classNames={["mdc-button--outlined"]}
+                onClick={this.onClickManageUsers.bind(this)}
+                icon="people"
+                label="Manage users"
+              />
+            </div>
+            <div className="clear"></div>
           </div>
         </div>
-
-        <h3>JupyterLab configuration</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Configure JupyterLab by installing server extensions.</p>
-          </div>
-          <div className="column">
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
-              label="Configure JupyterLab"
-              icon="tune"
-              onClick={this.loadConfigureJupyterLab.bind(this)}
-            />
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Version information</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Find out Orchest's version.</p>
-          </div>
-          <div className="column">
-            {(() => {
-              if (this.state.version !== undefined) {
-                return <p>{this.state.version}</p>;
-              } else {
-                return (
-                  <Fragment>
-                    <MDCLinearProgressReact classNames={["push-down"]} />
-                  </Fragment>
-                );
-              }
-            })()}
-            {(() => {
-              if (this.context.state?.config?.FLASK_ENV === "development") {
-                return (
-                  <p>
-                    <span className="code">development mode</span>
-                  </p>
-                );
-              }
-            })()}
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Updates</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Update Orchest from the web UI using the built in updater.</p>
-          </div>
-          <div className="column">
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
-              label="Check for updates"
-              icon="system_update_alt"
-              onClick={this.updateView.bind(this)}
-            />
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Controls</h3>
-        <div className="columns">
-          <div className="column">
-            <p>
-              Restart Orchest will force quit ongoing builds, jobs and sessions.
-            </p>
-          </div>
-          <div className="column">
-            {(() => {
-              if (!this.state.restarting) {
-                return (
-                  <Fragment>
-                    <MDCButtonReact
-                      classNames={["mdc-button--outlined"]}
-                      label="Restart"
-                      icon="power_settings_new"
-                      onClick={this.restartOrchest.bind(this)}
-                    />
-                  </Fragment>
-                );
-              } else {
-                return (
-                  <Fragment>
-                    <MDCLinearProgressReact classNames={["push-down"]} />
-                    <p>Restarting... This can take up to 30 seconds.</p>
-                  </Fragment>
-                );
-              }
-            })()}
-            <p className="push-up">
-              Orchest's current status is <i>{this.state.status}</i>.
-            </p>
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Authentication</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Manage Orchest users using the user admin panel.</p>
-          </div>
-          <div className="column">
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
-              onClick={this.onClickManageUsers.bind(this)}
-              icon="people"
-              label="Manage users"
-            />
-          </div>
-          <div className="clear"></div>
-        </div>
-      </div>
+      </Layout>
     );
   }
 }

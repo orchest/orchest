@@ -1,4 +1,5 @@
 import React, { Fragment } from "react";
+import _ from "lodash";
 import {
   MDCTabBarReact,
   MDCButtonReact,
@@ -11,23 +12,24 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-import { OrchestContext } from "@/hooks/orchest";
-import { DescriptionList } from "../components/DescriptionList";
-import ParameterEditor from "../components/ParameterEditor";
-import CronScheduleInput from "../components/CronScheduleInput";
-import DateTimeInput from "../components/DateTimeInput";
-import JobsView from "./JobsView";
-import SearchableTable from "../components/SearchableTable";
-import ParamTree from "../components/ParamTree";
-import EnvVarList from "../components/EnvVarList";
 
 import {
   checkGate,
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
   envVariablesDictToArray,
-} from "../utils/webserver-utils";
-import JobView from "./JobView";
+} from "@/utils/webserver-utils";
+import { OrchestContext } from "@/hooks/orchest";
+import { Layout } from "@/components/Layout";
+import { DescriptionList } from "@/components/DescriptionList";
+import ParameterEditor from "@/components/ParameterEditor";
+import CronScheduleInput from "@/components/CronScheduleInput";
+import DateTimeInput from "@/components/DateTimeInput";
+import SearchableTable from "@/components/SearchableTable";
+import ParamTree from "@/components/ParamTree";
+import EnvVarList from "@/components/EnvVarList";
+import JobView from "@/views/JobView";
+import JobsView from "@/views/JobsView";
 
 class EditJobView extends React.Component {
   static contextType = OrchestContext;
@@ -45,7 +47,7 @@ class EditJobView extends React.Component {
       pipeline: undefined,
       cronString: undefined,
       strategyJSON: {},
-      unsavedChanges: true,
+      unsavedChanges: false,
     };
 
     this.promiseManager = new PromiseManager();
@@ -82,6 +84,10 @@ class EditJobView extends React.Component {
           this.setState({
             strategyJSON: job.strategy_json,
           });
+        } else {
+          this.setState({
+            unsavedChanges: true,
+          });
         }
 
         this.fetchPipeline();
@@ -109,22 +115,74 @@ class EditJobView extends React.Component {
       if (result.success) {
         let pipeline = JSON.parse(result["pipeline_json"]);
 
-        this.setState({
-          pipeline: pipeline,
-        });
+        let strategyJSON;
 
         if (this.state.job.status === "DRAFT") {
-          this.setState({
-            strategyJSON: this.generateStrategyJson(pipeline),
-          });
+          strategyJSON = this.generateStrategyJson(pipeline);
+        } else {
+          strategyJSON = this.state.job.strategy_json;
         }
 
-        this.onParameterChange();
+        let [
+          generatedPipelineRuns,
+          generatedPipelineRunRows,
+          selectedIndices,
+        ] = this.generateWithStrategy(strategyJSON);
+
+        if (this.state.job.status !== "DRAFT") {
+          // Determine selection based on strategyJSON
+          selectedIndices = this.parseParameters(
+            this.state.job.parameters,
+            generatedPipelineRuns
+          );
+        }
+
+        this.setState({
+          pipeline,
+          strategyJSON,
+          generatedPipelineRuns,
+          generatedPipelineRunRows,
+          selectedIndices,
+        });
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
       }
     });
+  }
+
+  findParameterization(parameterization, parameters) {
+    let JSONstring = JSON.stringify(parameterization);
+    for (let x = 0; x < parameters.length; x++) {
+      if (JSON.stringify(parameters[x]) == JSONstring) {
+        return x;
+      }
+    }
+    return -1;
+  }
+
+  parseParameters(parameters, generatedPipelineRuns) {
+    let _parameters = _.cloneDeep(parameters);
+    let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
+
+    for (let x = 0; x < generatedPipelineRuns.length; x++) {
+      let run = generatedPipelineRuns[x];
+      let encodedParameterization = this.generateJobParameters([run], [1])[0];
+
+      let needleIndex = this.findParameterization(
+        encodedParameterization,
+        _parameters
+      );
+      if (needleIndex >= 0) {
+        selectedIndices[x] = 1;
+        // remove found parameterization from _parameters, as to not count duplicates
+        _parameters.splice(needleIndex, 1);
+      } else {
+        selectedIndices[x] = 0;
+      }
+    }
+
+    return selectedIndices;
   }
 
   generateParameterLists(parameters) {
@@ -200,17 +258,16 @@ class EditJobView extends React.Component {
     }
   }
 
-  onParameterChange() {
+  generateWithStrategy(strategyJSON) {
     // flatten and JSONify strategyJSON to prep data structure for algo
     let flatParameters = {};
 
-    for (const strategyJSONKey in this.state.strategyJSON) {
-      for (const paramKey in this.state.strategyJSON[strategyJSONKey]
-        .parameters) {
+    for (const strategyJSONKey in strategyJSON) {
+      for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
         let fullParam = strategyJSONKey + "#" + paramKey;
 
         flatParameters[fullParam] = JSON.parse(
-          this.state.strategyJSON[strategyJSONKey].parameters[paramKey]
+          strategyJSON[strategyJSONKey].parameters[paramKey]
         );
       }
     }
@@ -239,15 +296,15 @@ class EditJobView extends React.Component {
       accum.push(params);
     };
 
-    let pipelineRuns = [];
-
-    recursivelyGenerate(flatParameters, pipelineRuns, []);
-
-    // transform pipelineRuns for generatedPipelineRuns DataTable format
     let generatedPipelineRuns = [];
 
-    for (let idx in pipelineRuns) {
-      let params = pipelineRuns[idx];
+    recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
+
+    // transform pipelineRuns for generatedPipelineRunRows DataTable format
+    let generatedPipelineRunRows = [];
+
+    for (let idx in generatedPipelineRuns) {
+      let params = generatedPipelineRuns[idx];
 
       let pipelineRunRow = [];
 
@@ -258,19 +315,15 @@ class EditJobView extends React.Component {
         );
       }
       if (pipelineRunRow.length > 0) {
-        generatedPipelineRuns.push([pipelineRunRow.join(", ")]);
+        generatedPipelineRunRows.push([pipelineRunRow.join(", ")]);
       } else {
-        generatedPipelineRuns.push([<i>Parameterless run</i>]);
+        generatedPipelineRunRows.push([<i>Parameterless run</i>]);
       }
     }
 
-    let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
+    let selectedIndices = Array(generatedPipelineRunRows.length).fill(1);
 
-    this.setState({
-      generatedPipelineRuns: pipelineRuns,
-      generatedPipelineRunRows: generatedPipelineRuns,
-      selectedIndices: selectedIndices,
-    });
+    return [generatedPipelineRuns, generatedPipelineRunRows, selectedIndices];
   }
 
   validateJobConfig() {
@@ -399,48 +452,54 @@ class EditJobView extends React.Component {
      *  when they are not a draft.
      */
 
-    let jobParameters = this.generateJobParameters(
-      this.state.generatedPipelineRuns,
-      this.state.selectedIndices
-    );
+    // validate job configuration
+    let validation = this.validateJobConfig();
+    if (validation.pass === true) {
+      let jobParameters = this.generateJobParameters(
+        this.state.generatedPipelineRuns,
+        this.state.selectedIndices
+      );
 
-    let cronSchedule = this.state.cronString;
-    let envVariables = envVariablesArrayToDict(this.state.envVariables);
-    // Do not go through if env variables are not correctly defined.
-    if (envVariables === undefined) {
-      this.onSelectSubview(1);
-      return;
-    }
+      let cronSchedule = this.state.cronString;
+      let envVariables = envVariablesArrayToDict(this.state.envVariables);
+      // Do not go through if env variables are not correctly defined.
+      if (envVariables === undefined) {
+        this.onSelectSubview(2);
+        return;
+      }
 
-    // saving changes
-    this.setState({
-      unsavedChanges: false,
-    });
-
-    let putJobRequest = makeCancelable(
-      makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
-        type: "json",
-        content: {
-          cron_schedule: cronSchedule,
-          parameters: jobParameters,
-          strategy_json: this.state.strategyJSON,
-          env_variables: envVariables,
-        },
-      }),
-      this.promiseManager
-    );
-
-    putJobRequest.promise
-      .then(() => {
-        orchest.loadView(JobView, {
-          queryArgs: {
-            job_uuid: this.state.job.uuid,
-          },
-        });
-      })
-      .catch((error) => {
-        console.error(error);
+      // saving changes
+      this.setState({
+        unsavedChanges: false,
       });
+
+      let putJobRequest = makeCancelable(
+        makeRequest("PUT", `/catch/api-proxy/api/jobs/${this.state.job.uuid}`, {
+          type: "json",
+          content: {
+            cron_schedule: cronSchedule,
+            parameters: jobParameters,
+            strategy_json: this.state.strategyJSON,
+            env_variables: envVariables,
+          },
+        }),
+        this.promiseManager
+      );
+
+      putJobRequest.promise
+        .then(() => {
+          orchest.loadView(JobView, {
+            queryArgs: {
+              job_uuid: this.state.job.uuid,
+            },
+          });
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    } else {
+      orchest.alert("Error", validation.reason);
+    }
   }
 
   generateJobParameters(generatedPipelineRuns, selectedIndices) {
@@ -483,7 +542,7 @@ class EditJobView extends React.Component {
     let selectedIndices = this.state.selectedIndices;
 
     // for indexOf to work on arrays in this.generatedPipelineRuns it
-    // depends on the object being the same (same reference)
+    // depends on the object (array object) being the same (same reference!)
     for (let x = 0; x < rows.length; x++) {
       let index = this.state.generatedPipelineRunRows.indexOf(rows[x]);
 
@@ -500,6 +559,7 @@ class EditJobView extends React.Component {
 
     this.setState({
       selectedIndices: selectedIndices,
+      unsavedChanges: true,
     });
   }
 
@@ -520,6 +580,7 @@ class EditJobView extends React.Component {
     this.setState({
       cronString: cronString,
       scheduleOption: "cron",
+      unsavedChanges: true,
     });
   }
 
@@ -534,6 +595,7 @@ class EditJobView extends React.Component {
           value: null,
         },
       ]),
+      unsavedChanges: true,
     });
   }
 
@@ -543,6 +605,7 @@ class EditJobView extends React.Component {
 
     this.setState({
       envVariables: envVariables,
+      unsavedChanges: true,
     });
   }
 
@@ -551,17 +614,17 @@ class EditJobView extends React.Component {
     envVariables.splice(idx, 1);
     this.setState({
       envVariables: envVariables,
+      unsavedChanges: true,
     });
   }
 
-  detailRows(pipelineParameters) {
+  detailRows(pipelineParameters, strategyJSON) {
     let detailElements = [];
 
     // override values in fields through param fields
     for (let x = 0; x < pipelineParameters.length; x++) {
       let parameters = pipelineParameters[x];
-      let strategyJSON = JSON.parse(JSON.stringify(this.state.strategyJSON));
-
+      strategyJSON = _.cloneDeep(strategyJSON);
       strategyJSON = this.parameterValueOverride(strategyJSON, parameters);
 
       detailElements.push(
@@ -653,8 +716,21 @@ class EditJobView extends React.Component {
             <div className="tab-view">
               <ParameterEditor
                 pipelineName={this.state.pipeline.name}
-                onParameterChange={this.onParameterChange.bind(this)}
-                strategyJSON={this.state.strategyJSON}
+                onParameterChange={(strategyJSON) => {
+                  let [
+                    generatedPipelineRuns,
+                    generatedPipelineRunRows,
+                    selectedIndices,
+                  ] = this.generateWithStrategy(strategyJSON);
+                  this.setState({
+                    strategyJSON,
+                    generatedPipelineRuns,
+                    generatedPipelineRunRows,
+                    selectedIndices,
+                    unsavedChanges: true,
+                  });
+                }}
+                strategyJSON={_.cloneDeep(this.state.strategyJSON)}
               />
             </div>
           );
@@ -682,7 +758,10 @@ class EditJobView extends React.Component {
               <SearchableTable
                 selectable={true}
                 headers={["Run specification"]}
-                detailRows={this.detailRows(this.state.generatedPipelineRuns)}
+                detailRows={this.detailRows(
+                  this.state.generatedPipelineRuns,
+                  this.state.strategyJSON
+                )}
                 rows={this.state.generatedPipelineRunRows}
                 selectedIndices={this.state.selectedIndices}
                 onSelectionChanged={this.onPipelineRunsSelectionChanged.bind(
@@ -759,7 +838,11 @@ class EditJobView extends React.Component {
       rootView = <MDCLinearProgressReact />;
     }
 
-    return <div className="view-page job-view">{rootView}</div>;
+    return (
+      <Layout>
+        <div className="view-page job-view">{rootView}</div>
+      </Layout>
+    );
   }
 }
 

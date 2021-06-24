@@ -12,7 +12,7 @@ import { RefManager } from "@orchest/lib-utils";
  * @param {any} [props.content]
  */
 const ConfirmDialog = (props) => {
-  const refManager = new RefManager();
+  const [refManager] = React.useState(new RefManager());
 
   const confirm = () => {
     refManager.refs.dialog.close();
