@@ -298,7 +298,7 @@ const App = () => {
   };
 
   React.useEffect(() => {
-    if (state.TagName && context?.state?.project_uuid)
+    if (state.TagName)
       setView(_generateView(state.TagName, state.dynamicProps));
   }, [state, context?.state?.project_uuid]);
 
