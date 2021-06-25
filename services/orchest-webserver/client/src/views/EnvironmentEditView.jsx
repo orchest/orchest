@@ -45,14 +45,14 @@ class EnvironmentEditView extends React.Component {
         ? {
             uuid: "new",
             name: this.context.state?.config?.ENVIRONMENT_DEFAULTS.name,
-            gpu_support: this.context.state?.config?.ENVIRONMENT_DEFAULTS
-              .gpu_support,
+            gpu_support:
+              this.context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
             project_uuid: this.props.queryArgs.project_uuid,
-            base_image: this.context.state?.config?.ENVIRONMENT_DEFAULTS
-              .base_image,
+            base_image:
+              this.context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
             language: this.context.state?.config?.ENVIRONMENT_DEFAULTS.language,
-            setup_script: this.context.state?.config?.ENVIRONMENT_DEFAULTS
-              .setup_script,
+            setup_script:
+              this.context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
           }
         : undefined,
       ignoreIncomingLogs: false,
@@ -166,9 +166,26 @@ class EnvironmentEditView extends React.Component {
   }
 
   onSave(e) {
-    // Negative lookbehind. Check that every " is escaped with \
-    const regex = new RegExp(/(?<!\\)"/);
-    if (regex.test(this.state.environment.name)) {
+    const validEnvironmentName = (name) => {
+      if (!name) {
+        return false;
+      }
+      // Negative lookbehind. Check that every " is escaped with \
+      for (let x = 0; x < name.length; x++) {
+        if (name[x] == '"') {
+          if (x == 0) {
+            return false;
+          } else {
+            if (name[x - 1] != "\\") {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    };
+
+    if (!validEnvironmentName(this.state.environment.name)) {
       orchest.alert(
         "Error",
         'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
@@ -323,9 +340,8 @@ class EnvironmentEditView extends React.Component {
       buildPromise.promise
         .then((response) => {
           try {
-            let environmentBuild = JSON.parse(response)[
-              "environment_builds"
-            ][0];
+            let environmentBuild =
+              JSON.parse(response)["environment_builds"][0];
             this.onUpdateBuild(environmentBuild);
           } catch (error) {
             console.error(error);
