@@ -462,7 +462,7 @@ class OrchestApp:
 
         raise typer.Exit(code=exit_code)
 
-    def run(self, job_name, project_name, pipeline_name):
+    def run(self, job_name, project_name, pipeline_name, wait=False):
         """Queues the pipeline as a one-time job."""
         # Orchest has to be running for this command to work, since we
         # will be querying the orchest-webserver directly.
@@ -600,6 +600,32 @@ class OrchestApp:
         utils.echo(
             f"Successfully queued the {pipeline_name} pipeline as a one-time job."
         )
+
+        if not wait:
+            return
+
+        repeat = True
+        end_states = ["SUCCESS", "ABORTED"]
+        while repeat:
+            try:
+                status_code, resp = utils.retry_func(
+                    utils.get_response,
+                    _wait_msg=wait_msg_template.format(endpoint="jobs"),
+                    url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
+                )
+            except RuntimeError:
+                utils.echo(
+                    "It seems like Orchest experienced an internal server error."
+                )
+                raise typer.Exit(code=1)
+            else:
+                repeat = status_code != 200 or resp.get("status") not in end_states
+
+                if repeat:
+                    utils.echo("[Waiting]: job has not finished running yet.")
+                    time.sleep(3)
+
+        utils.echo(f"Successfully ran the {pipeline_name} pipeline as a one-time job.")
 
     def _is_restarting(self) -> bool:
         """Check if Orchest is restarting.
