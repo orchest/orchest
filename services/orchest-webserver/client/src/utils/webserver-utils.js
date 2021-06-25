@@ -103,7 +103,7 @@ export function componentName(TagName) {
       return viewName;
     }
   }
-  if (process.env.NODE_ENV === "development"){
+  if (process.env.NODE_ENV === "development") {
     console.log("Was not able to get componentName for TagName " + TagName);
   }
 }
