@@ -326,7 +326,6 @@ def adduser(
     app.add_user(username, password, token, is_admin)
 
 
-# TODO: hidden=True
 @typer_app.command()
 def run(
     job_name: str = typer.Option(
@@ -344,6 +343,11 @@ def run(
         "--pipeline",
         help="Name of pipeline to run.",
     ),
+    wait: bool = typer.Option(
+        False,
+        show_default="--no-wait",
+        help="Wait for the pipeline run to finish.",
+    ),
 ):
     """
     Queue a pipeline as a one-time job.
@@ -360,4 +364,4 @@ def run(
 
     - 1: Something went wrong.
     """
-    app.run(job_name, project_name, pipeline_name)
+    app.run(job_name, project_name, pipeline_name, wait=wait)
