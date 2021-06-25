@@ -5,8 +5,7 @@ Orchest can be run on Linux, macOS and Windows (using the exact same steps!).
 
 Prerequisites
 -------------
-* Docker (`API version <https://docs.docker.com/engine/api/#api-version-matrix>`_ of ``>= 1.40``;
-  ``docker version | grep "API version"``)
+* Docker (`Engine version <https://docs.docker.com/engine/install/>`_ of ``>= 20.10.7``; run ``docker version`` to check.)
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
@@ -33,6 +32,18 @@ Simply follow the steps below to install Orchest.
    ./orchest start
 
 Now that you have installed Orchest, get started with the :ref:`quickstart <quickstart>` tutorial.
+
+.. note::
+   For Linux/WSL 2 users, please take the following into account regarding the Docker 
+   networking configuration.
+
+   Docker has `some network interruption issues <https://github.com/docker/for-linux/issues/914>`_,
+   if you're connecting to Orchest from the same machine on which you're running it
+   (e.g. using ``localhost``) it's recommended to disable IPv6 networking.
+   
+   It's recommended to disable IPv6 at the kernel level using a boot directive like ``ipv6.disable=1``. 
+   `This article <https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_ 
+   describes how to do that for Ubuntu Linux.
 
 .. note::
    By default, running ``./orchest install``, installs only the language dependencies for Python.
