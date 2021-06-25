@@ -45,14 +45,14 @@ class EnvironmentEditView extends React.Component {
         ? {
             uuid: "new",
             name: this.context.state?.config?.ENVIRONMENT_DEFAULTS.name,
-            gpu_support:
-              this.context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
+            gpu_support: this.context.state?.config?.ENVIRONMENT_DEFAULTS
+              .gpu_support,
             project_uuid: this.props.queryArgs.project_uuid,
-            base_image:
-              this.context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
+            base_image: this.context.state?.config?.ENVIRONMENT_DEFAULTS
+              .base_image,
             language: this.context.state?.config?.ENVIRONMENT_DEFAULTS.language,
-            setup_script:
-              this.context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
+            setup_script: this.context.state?.config?.ENVIRONMENT_DEFAULTS
+              .setup_script,
           }
         : undefined,
       ignoreIncomingLogs: false,
@@ -340,8 +340,9 @@ class EnvironmentEditView extends React.Component {
       buildPromise.promise
         .then((response) => {
           try {
-            let environmentBuild =
-              JSON.parse(response)["environment_builds"][0];
+            let environmentBuild = JSON.parse(response)[
+              "environment_builds"
+            ][0];
             this.onUpdateBuild(environmentBuild);
           } catch (error) {
             console.error(error);
