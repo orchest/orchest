@@ -35,6 +35,15 @@ Simply follow the steps below to install Orchest.
 Now that you have installed Orchest, get started with the :ref:`quickstart <quickstart>` tutorial.
 
 .. note::
+   For Linux/WSL 2 users, please take the following into account regarding the Docker 
+   networking configuration.
+
+   Docker has `some network interruption issues <https://github.com/docker/for-linux/issues/914>`_,
+   if you're connecting to Orchest from the same machine on which you're running it
+   (e.g. using ``localhost``) it's recommended to disable IPv6 networking at the kernel
+   level using a boot directive like ``ipv6.disable=1``.
+
+.. note::
    By default, running ``./orchest install``, installs only the language dependencies for Python.
    Other language dependencies can be installed as follows:
 
