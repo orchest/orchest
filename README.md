@@ -50,7 +50,7 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 
 #### Requirements
 
-- Docker ([API version](https://docs.docker.com/engine/api/#api-version-matrix) of `>= 1.40`; `docker version | grep "API version"`)
+- Docker ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7`; run `docker version` to check.)
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
