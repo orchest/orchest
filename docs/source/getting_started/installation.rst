@@ -41,7 +41,7 @@ Now that you have installed Orchest, get started with the :ref:`quickstart <quic
    if you're connecting to Orchest from the same machine on which you're running it
    (e.g. using ``localhost``) it's recommended to disable IPv6 networking.
    
-   It's recommended to disable it at the kernel level using a boot directive like ``ipv6.disable=1``. 
+   It's recommended to disable IPv6 at the kernel level using a boot directive like ``ipv6.disable=1``. 
    `This article <https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_ 
    describes how to do that for Ubuntu Linux.
 
