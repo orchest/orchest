@@ -605,7 +605,7 @@ class OrchestApp:
             return
 
         repeat = True
-        end_states = ["SUCCESS", "ABORTED"]
+        end_states = ["SUCCESS", "ABORTED", "FAILURE"]
         while repeat:
             try:
                 status_code, resp = utils.retry_func(
