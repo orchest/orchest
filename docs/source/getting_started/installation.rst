@@ -43,6 +43,8 @@ Now that you have installed Orchest, get started with the :ref:`quickstart <quic
    (e.g. using ``localhost``) it's recommended to disable IPv6 networking at the kernel
    level using a boot directive like ``ipv6.disable=1``.
 
+   Please note this requires Docker version ``>= 20.10.7``.
+
 .. note::
    By default, running ``./orchest install``, installs only the language dependencies for Python.
    Other language dependencies can be installed as follows:
