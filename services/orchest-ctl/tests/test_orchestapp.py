@@ -157,7 +157,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
 
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_images = MagicMock(return_value=installed_images)
-    resource_manager.remove_env_build_imgs = MagicMock(return_value=None)
+    resource_manager.tag_environment_images_for_removal = MagicMock(return_value=None)
     resource_manager.remove_jupyter_build_imgs = MagicMock(return_value=None)
 
     docker_client = orchest.DockerWrapper()
@@ -181,7 +181,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     if update_exit_code != 0:
         return
 
-    resource_manager.remove_env_build_imgs.assert_called_once()
+    resource_manager.tag_environment_images_for_removal.assert_called_once()
     resource_manager.remove_jupyter_build_imgs.assert_called_once()
 
     to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(installed_images)

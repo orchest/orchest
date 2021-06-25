@@ -137,10 +137,13 @@ class OrchestApp:
         logger.info("Updating images:\n" + "\n".join(to_pull_images))
         self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
 
-        # Delete user-built environment images to avoid the issue of
-        # having environments with mismatching Orchest SDK versions.
-        logger.info("Deleting user-built environment images.")
-        self.resource_manager.remove_env_build_imgs()
+        # Add a tag to user environment images to mark them for removal.
+        # The orchest-api will deal with the rest of the logic related
+        # to making environment images unavailable to users on update
+        # to avoid the issue of having environments with mismatching
+        # Orchest SDK versions.
+        logger.info("Tagging user-built environment images for removal.")
+        self.resource_manager.tag_environment_images_for_removal()
 
         # Delete user-built Jupyter image to make sure the Jupyter
         # server is updated to the latest version of Orchest.

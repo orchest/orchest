@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Tuple, Union
 
 import aiodocker
 import docker
@@ -153,7 +153,7 @@ class DockerWrapper:
         """
         return asyncio.run(self._do_images_exist(images))
 
-    async def _list_image_ids(
+    async def _list_images(
         self,
         all: bool = False,
         label: Optional[str] = None,
@@ -173,10 +173,17 @@ class DockerWrapper:
 
         # Seems like the "dangling" argument in filters cannot be used
         # in aiodocker, same for the kwarg "name".
-        if dangling is None:
-            return [img["Id"] for img in images]
-        else:
-            return [img["Id"] for img in images if dangling == utils.is_dangling(img)]
+        if dangling is not None:
+            images = [img for img in images if dangling == utils.is_dangling(img)]
+        return images
+
+    def list_images(
+        self,
+        all: bool = False,
+        label: Optional[str] = None,
+        dangling: Optional[bool] = None,
+    ) -> Mapping:
+        return asyncio.run(self._list_images(all=all, label=label, dangling=dangling))
 
     def list_image_ids(
         self,
@@ -184,9 +191,8 @@ class DockerWrapper:
         label: Optional[str] = None,
         dangling: Optional[bool] = None,
     ) -> List[str]:
-        return asyncio.run(
-            self._list_image_ids(all=all, label=label, dangling=dangling)
-        )
+        imgs = asyncio.run(self._list_images(all=all, label=label, dangling=dangling))
+        return [img["Id"] for img in imgs]
 
     async def _remove_image(self, image: Iterable[str], force: bool = False):
         await self.aclient.images.delete(image, force=force)
@@ -208,6 +214,13 @@ class DockerWrapper:
         """
         # TODO: use typing to state that str should be of type ID
         asyncio.run(self._remove_images(image_ids, force=force))
+
+    async def _tag_image(self, name: str, repo: str, *, tag: Optional[str] = None):
+        await self.aclient.images.tag(name=name, repo=repo, tag=tag)
+        await self.close_aclient()
+
+    def tag_image(self, name: str, repo: str, *, tag: Optional[str] = None):
+        asyncio.run(self._tag_image(name=name, repo=repo, tag=tag))
 
     async def _get_containers(
         self,
@@ -518,7 +531,9 @@ class OrchestResourceManager:
         )
 
     def get_env_build_imgs(self):
-        return self.docker_client.list_image_ids(label="_orchest_env_build_task_uuid")
+        return self.docker_client.list_images(
+            label="_orchest_env_build_is_intermediate=0"
+        )
 
     def get_jupyter_build_imgs(self):
         return self.docker_client.list_image_ids(
@@ -530,9 +545,35 @@ class OrchestResourceManager:
             label="maintainer=Orchest B.V. https://www.orchest.io", dangling=True
         )
 
-    def remove_env_build_imgs(self):
+    def tag_environment_images_for_removal(self):
         env_build_imgs = self.get_env_build_imgs()
-        self.docker_client.remove_images(env_build_imgs, force=True)
+        for img in env_build_imgs:
+            labels = img.get("Labels", {})
+            pr_uuid = labels.get("_orchest_project_uuid")
+            env_uuid = labels.get("_orchest_environment_uuid")
+            build_uuid = labels.get("_orchest_env_build_task_uuid")
+
+            env_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=pr_uuid, environment_uuid=env_uuid
+            )
+
+            removal_name = _config.ENVIRONMENT_IMAGE_REMOVAL_NAME.format(
+                project_uuid=pr_uuid, environment_uuid=env_uuid, build_uuid=build_uuid
+            )
+
+            if (
+                pr_uuid is None
+                or env_uuid is None
+                or build_uuid is None
+                or f"{env_name}:latest" not in img["RepoTags"]
+                or
+                # Note the lack of a "not". This is to avoid trying to
+                # tag the same image multiple times.
+                f"{removal_name}:latest" in img["RepoTags"]
+            ):
+                continue
+
+            self.docker_client.tag_image(env_name, removal_name)
 
     def remove_jupyter_build_imgs(self):
         jupyter_build_imgs = self.get_jupyter_build_imgs()
