@@ -6,9 +6,16 @@ import { useProjects } from "@/hooks/projects";
 import useSWR from "swr";
 
 export const useOnboardingDialog = () => {
-  const { data: state, mutate: setState } = useSWR("useOnboardingDialog", {
-    initialData: { isOpen: false, shouldFetchQuickstart: false },
-  });
+  const { data: state, mutate: setState } = useSWR(
+    "useOnboardingDialog",
+    (_) => {
+      // no-op fetcher
+      return new Promise(() => {});
+    },
+    {
+      initialData: { isOpen: false, shouldFetchQuickstart: false },
+    }
+  );
 
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
     "onboarding_completed",

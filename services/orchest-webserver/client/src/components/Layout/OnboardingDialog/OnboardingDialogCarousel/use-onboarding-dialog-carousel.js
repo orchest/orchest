@@ -6,9 +6,16 @@ import { onboardingDialogCarouselSlides } from "./content";
 export const useOnboardingDialogCarousel = () => {
   const initialState = { isAnimating: false, slide: [0, 0] };
 
-  const { data: state, mutate: setState } = useSWR("useOnboardingCarousel", {
-    initialData: initialState,
-  });
+  const { data: state, mutate: setState } = useSWR(
+    "useOnboardingCarousel",
+    (_) => {
+      // no-op fetcher
+      return new Promise(() => {});
+    },
+    {
+      initialData: initialState,
+    }
+  );
 
   const length = onboardingDialogCarouselSlides.length;
 
