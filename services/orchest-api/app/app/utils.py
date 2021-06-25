@@ -356,6 +356,67 @@ def lock_environment_images_for_session(
     return env_uuid_docker_id_mappings
 
 
+def lock_environment_images_for_job(
+    job_uuid: str, project_uuid: str, environment_uuids: Set[str]
+) -> Dict[str, str]:
+    """Retrieve the docker ids to use for the runs of a job.
+
+    See lock_environment_images_for_run for more details.
+
+    Args:
+        job_uuid:
+        project_uuid:
+        environment_uuids:
+
+    Returns:
+        A dictionary mapping environment uuids to the docker id of the
+        image, so that a job can make use of those images knowingly that
+        the images won't be deleted, even if they become outdated.
+
+    """
+    model = models.JobImageMapping
+
+    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
+        project_uuid, environment_uuids
+    )
+
+    job_image_mappings = [
+        model(
+            **{
+                "job_uuid": job_uuid,
+                "orchest_environment_uuid": env_uuid,
+                "docker_img_id": docker_id,
+            }
+        )
+        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
+    ]
+    db.session.bulk_save_objects(job_image_mappings)
+    db.session.commit()
+
+    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+        project_uuid, environment_uuids
+    )
+    while set(env_uuid_docker_id_mappings.values()) != set(
+        env_uuid_docker_id_mappings2.values()
+    ):
+        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
+            env_uuid_docker_id_mappings.items()
+        )
+        for env_uuid, docker_id in mappings_to_update:
+            model.query.filter(
+                model.job_uuid == job_uuid,
+                model.orchest_environment_uuid == env_uuid,
+            ).update({"docker_img_id": docker_id})
+        db.session.commit()
+
+        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
+
+        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+            project_uuid, environment_uuids
+        )
+    return env_uuid_docker_id_mappings
+
+
 def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
     """Get the list of interactive runs using a given environment.
 
@@ -383,32 +444,10 @@ def interactive_sessions_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    int_sess = models.InteractiveSession.query.filter(
+    return models.InteractiveSession.query.filter(
         models.InteractiveSession.project_uuid == project_uuid,
+        models.InteractiveSession.image_mappings.any(orchest_environment_uuid=env_uuid),
     ).all()
-
-    int_sess_using_env = []
-    prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-
-    # For each session, check if any service is making use of the env.
-    # TODO: do this at the db level using jsonb operators.
-    for sess in int_sess:
-        services = sess.user_services
-        if services is None:
-            continue
-
-        # Orchest environments used by the services.
-        envs = set()
-        for service in services.values():
-            img = service["image"]
-            if img.startswith(prefix):
-                img = img.replace(prefix, "")
-                envs.add(img)
-
-        if env_uuid in envs:
-            int_sess_using_env.append(sess)
-
-    return int_sess_using_env
 
 
 def jobs_using_environment(project_uuid: str, env_uuid: str):
@@ -420,28 +459,12 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    future_jobs = models.Job.query.filter(
+
+    return models.Job.query.filter(
         models.Job.project_uuid == project_uuid,
+        models.Job.image_mappings.any(orchest_environment_uuid=env_uuid),
         models.Job.status.in_(["DRAFT", "PENDING", "STARTED"]),
     ).all()
-
-    # TODO: do this at the db level using jsonb operators.
-    future_jobs_using_env = []
-    for job in future_jobs:
-        steps = job.pipeline_definition["steps"]
-        envs = {step["environment"] for step in steps.values()}
-
-        # Check if any service will be using the image.
-        for service in job.pipeline_definition.get("services", {}).values():
-            image = service["image"]
-            prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-            if image.startswith(prefix):
-                envs.add(image.replace(prefix, ""))
-
-        if env_uuid in envs:
-            future_jobs_using_env.append(job)
-
-    return future_jobs_using_env
 
 
 def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
@@ -456,8 +479,8 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
 
     int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
     int_sess = interactive_sessions_using_environment(project_uuid, env_uuid)
-    exps = jobs_using_environment(project_uuid, env_uuid)
-    return len(int_runs) > 0 or len(exps) > 0 or len(int_sess) > 0
+    jobs = jobs_using_environment(project_uuid, env_uuid)
+    return len(int_runs) > 0 or len(int_sess) > 0 or len(jobs) > 0
 
 
 def is_docker_image_in_use(img_id: str) -> bool:
@@ -470,7 +493,7 @@ def is_docker_image_in_use(img_id: str) -> bool:
         bool:
     """
 
-    runs = models.PipelineRun.query.filter(
+    int_runs = models.PipelineRun.query.filter(
         models.PipelineRun.image_mappings.any(docker_img_id=img_id),
         models.PipelineRun.status.in_(["PENDING", "STARTED"]),
     ).all()
@@ -479,7 +502,12 @@ def is_docker_image_in_use(img_id: str) -> bool:
         models.InteractiveSession.image_mappings.any(docker_img_id=img_id),
     ).all()
 
-    return bool(runs) or bool(int_sessions)
+    jobs = models.Job.query.filter(
+        models.Job.image_mappings.any(docker_img_id=img_id),
+        models.Job.status.in_(["DRAFT", "PENDING", "STARTED"]),
+    ).all()
+
+    return bool(int_runs) or bool(int_sessions) or bool(jobs)
 
 
 def remove_if_dangling(img) -> bool:
