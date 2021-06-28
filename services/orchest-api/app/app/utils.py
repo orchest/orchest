@@ -656,5 +656,8 @@ def _process_stale_environment_image(img) -> None:
 
     if not is_docker_image_in_use(img.id):
         # Delete through id, hence deleting the image regardless
-        # of the fact that it has other tags.
-        docker_images_rm_safe(docker_client, img.id)
+        # of the fact that it has other tags. force=True is used to
+        # delete regardless of the existence of stopped containers, this
+        # is required because pipeline runs PUT to the orchest-api their
+        # finished state before deleting their stopped containers.
+        docker_images_rm_safe(docker_client, img.id, attempt_count=20, force=True)
