@@ -114,23 +114,27 @@ async def check_pipeline_run_task_status(run_config, pipeline, task_id):
 
 
 async def run_pipeline_async(run_config, pipeline, task_id):
-    await asyncio.gather(
-        *[
-            asyncio.create_task(pipeline.run(task_id, run_config=run_config)),
-            asyncio.create_task(
-                check_pipeline_run_task_status(run_config, pipeline, task_id)
-            ),
-        ]
-    )
-    # any code that depends on the fact that both pipeline.run and
-    # check_pipeline_run_task_status have terminated should be here.
-    # for example, pipeline.run  PUTs the state of the run when it ends,
-    # so any code dependant on the status being set cannot be run
-    # in check_pipeline_run_task_status
-    run_config["docker_client"] = docker_client
-    pipeline.remove_containerization_resources(task_id, "docker", run_config)
-    # The celery task has completed successfully. This is not related to
-    # the success or failure of the pipeline itself.
+    try:
+        await asyncio.gather(
+            *[
+                asyncio.create_task(pipeline.run(task_id, run_config=run_config)),
+                asyncio.create_task(
+                    check_pipeline_run_task_status(run_config, pipeline, task_id)
+                ),
+            ]
+        )
+    # Make sure to cleanup containers in any case.
+    finally:
+        # Any code that depends on the fact that both pipeline.run and
+        # check_pipeline_run_task_status have terminated should be here.
+        # for example, pipeline.run  PUTs the state of the run when it
+        # ends, so any code dependant on the status being set cannot be
+        # run in check_pipeline_run_task_status.
+        run_config["docker_client"] = docker_client
+        pipeline.remove_containerization_resources(task_id, "docker", run_config)
+
+    # The celery task has completed successfully. This is not
+    # related to the success or failure of the pipeline itself.
     return "SUCCESS"
 
 
