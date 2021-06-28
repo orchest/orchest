@@ -1,209 +1,200 @@
+// @ts-check
 import React from "react";
 import { MDCDrawer } from "@material/drawer";
-import { RefManager } from "@orchest/lib-utils";
-import { OrchestContext } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
 import {
   getViewDrawerParentViewName,
   nameToComponent,
 } from "../utils/webserver-utils";
 
-class MainDrawer extends React.Component {
-  static contextType = OrchestContext;
+/**
+ * @type React.FC<{selectedElement: string}>
+ */
+const MainDrawer = (props) => {
+  const context = useOrchest();
 
-  constructor(props, context) {
-    super(props, context);
+  const drawerRef = React.useRef(null);
+  const [drawer, setDrawer] = React.useState(null);
+  const drawerIsMounted = drawerRef && drawer != null;
 
-    this.refManager = new RefManager();
-  }
+  const { orchest } = window;
 
-  updateIntercomWidget() {
-    if (
-      this.context.state?.config?.CLOUD === true &&
-      window.Intercom !== undefined
-    ) {
-      // show Intercom widget
-      window.Intercom("update", {
-        hide_default_launcher: !this.context.state?.drawerIsOpen,
-      });
-    }
-  }
+  const setDrawerSelectedElement = (viewName) => {
+    if (drawerIsMounted) {
+      // resolve mapped parent view
+      let rootViewName = getViewDrawerParentViewName(viewName);
 
-  componentDidMount() {
-    this.drawer = new MDCDrawer(this.refManager.refs.mainDrawer);
-    this.drawer.list.singleSelection = true;
-    this.drawer.open = this.context.state.drawerIsOpen;
-    this.drawer.listen("MDCList:action", (e) => {
-      let selectedIndex = e.detail.index;
+      let foundRootViewInList = false;
 
-      let listElement = this.drawer.list.listElements[selectedIndex];
+      for (let x = 0; x < drawer?.list?.listElements?.length; x++) {
+        let listElement = drawer?.list?.listElements[x];
 
-      if (listElement.attributes.getNamedItem("data-react-view")) {
-        let viewName = listElement.attributes.getNamedItem("data-react-view");
-        if (viewName) {
-          viewName = viewName.value;
-          orchest.loadView(nameToComponent(viewName));
+        let elementViewName = listElement.attributes.getNamedItem(
+          "data-react-view"
+        );
+
+        if (elementViewName) {
+          elementViewName = elementViewName.value;
+
+          if (rootViewName === elementViewName) {
+            drawer.list.selectedIndex = x;
+            foundRootViewInList = true;
+            break;
+          }
         }
       }
-    });
 
-    if (!this.context.state.drawerIsOpen) {
-      this.updateIntercomWidget();
+      if (!foundRootViewInList) {
+        drawer.list.selectedIndex = -1;
+      }
     }
+  };
 
-    this.drawer.listen("MDCDrawer:opened", () => {
-      document.body.focus();
+  React.useEffect(() => {
+    setDrawerSelectedElement(props.selectedElement);
+  }, [props?.selectedElement]);
 
-      this.updateIntercomWidget();
-    });
+  React.useEffect(() => {
+    if (drawerIsMounted) {
+      drawer.open = context.state.drawerIsOpen;
 
-    this.drawer.listen("MDCDrawer:closed", () => {
-      this.updateIntercomWidget();
-    });
-
-    // Avoid anchor link clicking default behavior.
-    $(".mdc-drawer a[href='#']").on("click", (e) => {
-      e.preventDefault();
-    });
-  }
-
-  close() {
-    this.refManager.refs.dialogRef.close();
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.selectedElement != this.props.selectedElement) {
-      this.setDrawerSelectedElement(this.props.selectedElement);
+      if (
+        context.state?.config?.CLOUD === true &&
+        window.Intercom !== undefined
+      ) {
+        // show Intercom widget
+        window.Intercom("update", {
+          hide_default_launcher: !context.state?.drawerIsOpen,
+        });
+      }
     }
+  }, [context.state.drawerIsOpen]);
 
-    // handle drawer open prop
-    if (prevProps.open != this.context.state.drawerIsOpen) {
-      this.drawer.open = this.context.state.drawerIsOpen;
-    }
-  }
+  React.useEffect(() => {
+    if (drawerRef.current) {
+      const initMDCDrawer = new MDCDrawer(drawerRef.current);
 
-  setDrawerSelectedElement(viewName) {
-    // resolve mapped parent view
-    let rootViewName = getViewDrawerParentViewName(viewName);
+      initMDCDrawer.open = context.state.drawerIsOpen;
+      initMDCDrawer.list.singleSelection = true;
+      initMDCDrawer.listen(
+        "MDCList:action",
+        /** @param {any} e */
+        (e) => {
+          let selectedIndex = e.detail.index;
 
-    let foundRootViewInList = false;
+          let listElement = initMDCDrawer.list.listElements[selectedIndex];
 
-    for (let x = 0; x < this.drawer.list.listElements.length; x++) {
-      let listElement = this.drawer.list.listElements[x];
-
-      let elementViewName = listElement.attributes.getNamedItem(
-        "data-react-view"
+          if (listElement.attributes.getNamedItem("data-react-view")) {
+            let viewName = listElement.attributes.getNamedItem(
+              "data-react-view"
+            );
+            if (viewName) {
+              // @ts-ignore
+              viewName = viewName.value;
+              orchest.loadView(nameToComponent(viewName));
+            }
+          }
+        }
       );
 
-      if (elementViewName) {
-        elementViewName = elementViewName.value;
+      initMDCDrawer.listen("MDCDrawer:opened", () => {
+        document.body.focus();
+      });
 
-        if (rootViewName === elementViewName) {
-          this.drawer.list.selectedIndex = x;
-          foundRootViewInList = true;
-          break;
-        }
-      }
+      // // Avoid anchor link clicking default behavior.
+      Array.from(
+        window.document.querySelectorAll(".mdc-drawer a[href='#']")
+      ).map((drawerLink) =>
+        drawerLink.addEventListener("click", (e) => {
+          e.preventDefault();
+        })
+      );
+
+      setDrawer(initMDCDrawer);
     }
+  }, []);
 
-    if (!foundRootViewInList) {
-      this.drawer.list.selectedIndex = -1;
-    }
-  }
-
-  render() {
-    return (
-      <aside
-        className="mdc-drawer mdc-drawer--dismissible"
-        ref={this.refManager.nrefs.mainDrawer}
-      >
-        <div className="mdc-drawer__content">
-          <nav className="mdc-list">
-            <a
-              className="mdc-list-item"
-              data-react-view="PipelinesView"
-              href="#"
+  return (
+    <aside className="mdc-drawer mdc-drawer--dismissible" ref={drawerRef}>
+      <div className="mdc-drawer__content">
+        <nav className="mdc-list">
+          <a className="mdc-list-item" data-react-view="PipelinesView" href="#">
+            <span className="mdc-list-item__ripple" />
+            <i
+              className="material-icons mdc-list-item__graphic"
+              aria-hidden="true"
             >
-              <span className="mdc-list-item__ripple" />
-              <i
-                className="material-icons mdc-list-item__graphic"
-                aria-hidden="true"
-              >
-                device_hub
-              </i>
-              <span className="mdc-list-item__text">Pipelines</span>
-            </a>
-            <a className="mdc-list-item" data-react-view="JobsView" href="#">
-              <span className="mdc-list-item__ripple" />
-              <i
-                className="material-icons mdc-list-item__graphic"
-                aria-hidden="true"
-              >
-                pending_actions
-              </i>
-              <span className="mdc-list-item__text">Jobs</span>
-            </a>
-            <a
-              className="mdc-list-item"
-              data-react-view="EnvironmentsView"
-              href="#"
+              device_hub
+            </i>
+            <span className="mdc-list-item__text">Pipelines</span>
+          </a>
+          <a className="mdc-list-item" data-react-view="JobsView" href="#">
+            <span className="mdc-list-item__ripple" />
+            <i
+              className="material-icons mdc-list-item__graphic"
+              aria-hidden="true"
             >
-              <span className="mdc-list-item__ripple" />
-              <i
-                className="material-icons mdc-list-item__graphic"
-                aria-hidden="true"
-              >
-                view_comfy
-              </i>
-              <span className="mdc-list-item__text">Environments</span>
-            </a>
-            <li role="separator" className="mdc-list-divider" />
-            <a
-              className="mdc-list-item mdc-list-item--activated"
-              data-react-view="ProjectsView"
-              href="#"
+              pending_actions
+            </i>
+            <span className="mdc-list-item__text">Jobs</span>
+          </a>
+          <a
+            className="mdc-list-item"
+            data-react-view="EnvironmentsView"
+            href="#"
+          >
+            <span className="mdc-list-item__ripple" />
+            <i
+              className="material-icons mdc-list-item__graphic"
+              aria-hidden="true"
             >
-              <span className="mdc-list-item__ripple" />
-              <i
-                className="material-icons mdc-list-item__graphic"
-                aria-hidden="true"
-              >
-                format_list_bulleted
-              </i>
-              <span className="mdc-list-item__text">Projects</span>
-            </a>
-            <a
-              className="mdc-list-item"
-              data-react-view="FileManagerView"
-              href="#"
+              view_comfy
+            </i>
+            <span className="mdc-list-item__text">Environments</span>
+          </a>
+          <li role="separator" className="mdc-list-divider" />
+          <a
+            className="mdc-list-item mdc-list-item--activated"
+            data-react-view="ProjectsView"
+            href="#"
+          >
+            <span className="mdc-list-item__ripple" />
+            <i
+              className="material-icons mdc-list-item__graphic"
+              aria-hidden="true"
             >
-              <span className="mdc-list-item__ripple" />
-              <i
-                className="material-icons mdc-list-item__graphic"
-                aria-hidden="true"
-              >
-                folder_open
-              </i>
-              <span className="mdc-list-item__text">File manager</span>
-            </a>
-            <a
-              className="mdc-list-item"
-              data-react-view="SettingsView"
-              href="#"
+              format_list_bulleted
+            </i>
+            <span className="mdc-list-item__text">Projects</span>
+          </a>
+          <a
+            className="mdc-list-item"
+            data-react-view="FileManagerView"
+            href="#"
+          >
+            <span className="mdc-list-item__ripple" />
+            <i
+              className="material-icons mdc-list-item__graphic"
+              aria-hidden="true"
             >
-              <span className="mdc-list-item__ripple" />
-              <i
-                className="material-icons mdc-list-item__graphic"
-                aria-hidden="true"
-              >
-                settings
-              </i>
-              <span className="mdc-list-item__text">Settings</span>
-            </a>
-          </nav>
-        </div>
-      </aside>
-    );
-  }
-}
+              folder_open
+            </i>
+            <span className="mdc-list-item__text">File manager</span>
+          </a>
+          <a className="mdc-list-item" data-react-view="SettingsView" href="#">
+            <span className="mdc-list-item__ripple" />
+            <i
+              className="material-icons mdc-list-item__graphic"
+              aria-hidden="true"
+            >
+              settings
+            </i>
+            <span className="mdc-list-item__text">Settings</span>
+          </a>
+        </nav>
+      </div>
+    </aside>
+  );
+};
 
 export default MainDrawer;
