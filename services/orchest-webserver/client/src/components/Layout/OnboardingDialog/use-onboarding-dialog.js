@@ -8,10 +8,7 @@ import useSWR from "swr";
 export const useOnboardingDialog = () => {
   const { data: state, mutate: setState } = useSWR(
     "useOnboardingDialog",
-    (_) => {
-      // no-op fetcher
-      return new Promise(() => {});
-    },
+    null,
     {
       initialData: { isOpen: false, shouldFetchQuickstart: false },
     }
