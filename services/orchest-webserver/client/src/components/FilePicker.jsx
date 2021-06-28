@@ -23,26 +23,6 @@ import useTimeout from "@/hooks/use-timeout";
  * @type React.FC<TFilePickerProps>
  */
 const FilePicker = React.forwardRef((props, ref) => {
-  const setInitialPath = (props) => {
-    let cwd = props.cwd ? props.cwd : "/";
-    let fullPath = collapseDoubleDots(cwd + props.value);
-    let directoryPath = fullPath.split("/").slice(0, -1).join("/") + "/";
-
-    // check if directoryPath is in tree
-    if (!validatePathInTree(directoryPath, props.tree)) {
-      directoryPath = "/";
-    }
-
-    return directoryPath;
-  };
-
-  const [state, setState] = React.useState({
-    focused: false,
-    path: setInitialPath(props),
-  });
-
-  const [refManager] = React.useState(new RefManager());
-
   const validatePathInTree = (path, tree) => {
     // path assumed to start with /
 
@@ -92,10 +72,30 @@ const FilePicker = React.forwardRef((props, ref) => {
     }
   };
 
-  const onChangeValue = (value) => {
-    if (props.onChangeValue) {
-      props.onChangeValue(value);
+  const setInitialPath = (props) => {
+    let cwd = props.cwd ? props.cwd : "/";
+    let fullPath = collapseDoubleDots(cwd + props.value);
+    let directoryPath = fullPath.split("/").slice(0, -1).join("/") + "/";
+
+    // check if directoryPath is in tree
+    if (!validatePathInTree(directoryPath, props.tree)) {
+      directoryPath = "/";
     }
+
+    return directoryPath;
+  };
+
+  const [value, setValue] = React.useState(props.value);
+  const [blurTimeout, setBlurTimeout] = React.useState(null);
+  const [state, setState] = React.useState({
+    focused: false,
+    path: setInitialPath(props),
+  });
+
+  const [refManager] = React.useState(new RefManager());
+
+  const onChangeValue = (value) => {
+    setValue(value);
   };
 
   const directoryListFromNode = (node) => {
@@ -192,7 +192,6 @@ const FilePicker = React.forwardRef((props, ref) => {
       });
     } else {
       onChangeValue(visualizePath(state.path + node.name, props.cwd));
-
       setState((prevState) => ({ ...prevState, focused: false }));
     }
   };
@@ -220,6 +219,7 @@ const FilePicker = React.forwardRef((props, ref) => {
   };
 
   const onFocusTextField = (e) => {
+    setBlurTimeout(null);
     setState((prevState) => ({ ...prevState, focused: true }));
 
     if (props.onFocus) {
@@ -228,13 +228,17 @@ const FilePicker = React.forwardRef((props, ref) => {
   };
 
   const onBlurTextField = (e) => {
-    useTimeout(() => {
-      if (document.activeElement !== refManager.refs.fileMenu) {
-        setState((prevState) => ({ ...prevState, focused: false }));
-      }
-      console.log(state);
-    }, 0);
+    setBlurTimeout(0);
   };
+
+  useTimeout(() => {
+    if (document.activeElement !== refManager.refs.fileMenu)
+      setState((prevState) => ({ ...prevState, focused: false }));
+  }, blurTimeout);
+
+  React.useEffect(() => {
+    props?.onChangeValue(value);
+  }, [value]);
 
   React.useEffect(() => {
     setInitialPath(props);
@@ -246,32 +250,28 @@ const FilePicker = React.forwardRef((props, ref) => {
         onFocus={onFocusTextField.bind(this)}
         onBlur={onBlurTextField.bind(this)}
         onChange={onChangeValue.bind(this)}
-        value={props.value}
+        value={value}
         label="File path"
         icon={props.icon}
         iconTitle={props.iconTitle}
         ref={refManager.nrefs.filePathTextField}
         classNames={["fullwidth"]}
       />
-      {(() => {
-        return (
-          <div
-            ref={refManager.nrefs.fileMenu}
-            onBlur={onBlurMenu.bind(this)}
-            // tabIndex is REQUIRED for proper blur/focus events
-            // for the dropdown mdc-list.
-            tabIndex={0}
-            className={
-              "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
-              (state.focused ? "" : "hidden")
-            }
-          >
-            <ul className="mdc-list">
-              {directoryListFromNode(nodeFromPath(state.path, props.tree))}
-            </ul>
-          </div>
-        );
-      })()}
+      <div
+        ref={refManager.nrefs.fileMenu}
+        onBlur={onBlurMenu.bind(this)}
+        // tabIndex is REQUIRED for proper blur/focus events
+        // for the dropdown mdc-list.
+        tabIndex={0}
+        className={
+          "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
+          (state.focused ? "" : "hidden")
+        }
+      >
+        <ul className="mdc-list">
+          {directoryListFromNode(nodeFromPath(state.path, props.tree))}
+        </ul>
+      </div>
     </div>
   );
 });
