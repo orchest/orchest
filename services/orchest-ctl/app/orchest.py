@@ -465,7 +465,7 @@ class OrchestApp:
 
         raise typer.Exit(code=exit_code)
 
-    def run(self, job_name, project_name, pipeline_name):
+    def run(self, job_name, project_name, pipeline_name, wait=False):
         """Queues the pipeline as a one-time job."""
         # Orchest has to be running for this command to work, since we
         # will be querying the orchest-webserver directly.
@@ -485,7 +485,7 @@ class OrchestApp:
             url=base_url.format(path="/async/projects"),
         )
         if status_code != 200:
-            utils.echo("Got an unexpected status code for 'projects' endpoint.")
+            utils.echo(f"[projects]: Unexpected status code: {status_code}.")
             raise typer.Exit(code=1)
         for project in resp:
             # NOTE: We use here that a project name/path is unique.
@@ -503,7 +503,7 @@ class OrchestApp:
             url=base_url.format(path=f"/async/pipelines/{project_uuid}"),
         )
         if status_code != 200:
-            utils.echo("Got an unexpected status code for 'pipelines' endpoint.")
+            utils.echo(f"[pipelines]: Unexpected status code: {status_code}.")
             raise typer.Exit(code=1)
         for pipeline in resp["result"]:
             if pipeline["name"] == pipeline_name:
@@ -534,7 +534,7 @@ class OrchestApp:
             method="POST",
         )
         if status_code != 201:
-            utils.echo("Got an unexpected status code for 'jobs' endpoint.")
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
             raise typer.Exit(code=1)
         job_uuid = resp["uuid"]
 
@@ -560,9 +560,11 @@ class OrchestApp:
                 )
                 raise typer.Exit(code=1)
             else:
-                # Check for status code 201 because it is a POST
-                # request.
-                repeat = status_code != 201 or resp.get("validation") != "pass"
+                if status_code != 201:
+                    utils.echo(f"[validations]: Unexpected status code: {status_code}.")
+                    raise typer.Exit(code=1)
+
+                repeat = resp.get("validation") != "pass"
 
                 if repeat:
                     utils.echo("[Waiting]: environment builds have not yet succeeded.")
@@ -597,12 +599,42 @@ class OrchestApp:
             method="PUT",
         )
         if status_code != 200:
-            utils.echo("Got an unexpected status code for 'jobs' endpoint.")
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
             raise typer.Exit(code=1)
 
         utils.echo(
             f"Successfully queued the {pipeline_name} pipeline as a one-time job."
         )
+
+        if not wait:
+            return
+
+        repeat = True
+        end_states = ["SUCCESS", "ABORTED", "FAILURE"]
+        while repeat:
+            try:
+                status_code, resp = utils.retry_func(
+                    utils.get_response,
+                    _wait_msg=wait_msg_template.format(endpoint="jobs"),
+                    url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
+                )
+            except RuntimeError:
+                utils.echo(
+                    "It seems like Orchest experienced an internal server error."
+                )
+                raise typer.Exit(code=1)
+            else:
+                if status_code != 200:
+                    utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+                    raise typer.Exit(code=1)
+
+                repeat = resp.get("status") not in end_states
+
+                if repeat:
+                    utils.echo("[Waiting]: job has not finished running yet.")
+                    time.sleep(3)
+
+        utils.echo(f"Successfully ran the {pipeline_name} pipeline as a one-time job.")
 
     def _is_restarting(self) -> bool:
         """Check if Orchest is restarting.
