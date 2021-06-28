@@ -41,7 +41,7 @@ const FilePicker = React.forwardRef((props, ref) => {
     path: setInitialPath(props),
   });
 
-  const refManager = new RefManager();
+  const [refManager] = React.useState(new RefManager());
 
   const validatePathInTree = (path, tree) => {
     // path assumed to start with /
