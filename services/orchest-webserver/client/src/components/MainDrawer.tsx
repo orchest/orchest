@@ -7,10 +7,11 @@ import {
   nameToComponent,
 } from "../utils/webserver-utils";
 
-/**
- * @type React.FC<{selectedElement: string}>
- */
-const MainDrawer = (props) => {
+export interface IMainDrawerProps {
+  selectedElement: string;
+}
+
+const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
   const context = useOrchest();
 
   const drawerRef = React.useRef(null);
@@ -76,26 +77,21 @@ const MainDrawer = (props) => {
 
       initMDCDrawer.open = context.state.drawerIsOpen;
       initMDCDrawer.list.singleSelection = true;
-      initMDCDrawer.listen(
-        "MDCList:action",
-        /** @param {any} e */
-        (e) => {
-          let selectedIndex = e.detail.index;
+      initMDCDrawer.listen("MDCList:action", (e) => {
+        // @ts-ignore
+        let selectedIndex = e.detail.index;
 
-          let listElement = initMDCDrawer.list.listElements[selectedIndex];
+        let listElement = initMDCDrawer.list.listElements[selectedIndex];
 
-          if (listElement.attributes.getNamedItem("data-react-view")) {
-            let viewName = listElement.attributes.getNamedItem(
-              "data-react-view"
-            );
-            if (viewName) {
-              // @ts-ignore
-              viewName = viewName.value;
-              orchest.loadView(nameToComponent(viewName));
-            }
+        if (listElement.attributes.getNamedItem("data-react-view")) {
+          let viewName = listElement.attributes.getNamedItem("data-react-view");
+          if (viewName) {
+            // @ts-ignore
+            viewName = viewName.value;
+            orchest.loadView(nameToComponent(viewName));
           }
         }
-      );
+      });
 
       initMDCDrawer.listen("MDCDrawer:opened", () => {
         document.body.focus();
