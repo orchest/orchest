@@ -22,6 +22,7 @@ from app.utils import (
     get_env_uuids_missing_image,
     get_proj_pip_env_variables,
     lock_environment_images_for_job,
+    process_stale_environment_images,
     register_schema,
     update_status_db,
 )
@@ -196,66 +197,15 @@ class PipelineRun(Resource):
     @api.expect(schema.status_update)
     def put(self, job_uuid, run_uuid):
         """Set the status of a pipeline run."""
-        status_update = request.get_json()
 
         try:
-
-            filter_by = {
-                "job_uuid": job_uuid,
-                "uuid": run_uuid,
-            }
-
-            update_status_db(
-                status_update,
-                model=models.NonInteractivePipelineRun,
-                filter_by=filter_by,
-            )
-
-            # See if the job is done running (all its runs are done).
-            if status_update["status"] in ["SUCCESS", "FAILURE"]:
-
-                # The job has 1 run for every parameters set.
-                job = (
-                    db.session.query(
-                        models.Job.schedule,
-                        func.jsonb_array_length(models.Job.parameters),
-                    )
-                    .filter_by(uuid=job_uuid)
-                    .one()
+            with TwoPhaseExecutor(db.session) as tpe:
+                UpdateJobPipelineRun(tpe).transaction(
+                    job_uuid, run_uuid, request.get_json()
                 )
-
-                # Only non recurring jobs terminate to SUCCESS.
-                if job.schedule is None:
-
-                    completed_runs = (
-                        models.NonInteractivePipelineRun.query.filter_by(
-                            job_uuid=job_uuid
-                        )
-                        .filter(
-                            models.NonInteractivePipelineRun.status.in_(
-                                ["SUCCESS", "FAILURE"]
-                            )
-                        )
-                        .count()
-                    )
-
-                    current_app.logger.info(
-                        (
-                            f"Non recurring job {job_uuid} has completed "
-                            f"{completed_runs}/{job[1]} runs."
-                        )
-                    )
-
-                    if completed_runs == job[1]:
-                        models.Job.query.filter_by(uuid=job_uuid).update(
-                            {"status": "SUCCESS"}
-                        )
-
-            db.session.commit()
         except Exception as e:
-            db.session.rollback()
             current_app.logger.error(e)
-            return {"message": "Failed update operation."}, 500
+            return {"message": str(e)}, 500
 
         return {"message": "Status was updated successfully"}, 200
 
@@ -535,6 +485,7 @@ class AbortJob(TwoPhaseFunction):
         # to do.
         self.collateral_kwargs["run_uuids"] = run_uuids
         self.collateral_kwargs["job_uuid"] = job_uuid
+        self.collateral_kwargs["project_uuid"] = None
 
         job = (
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
@@ -543,6 +494,8 @@ class AbortJob(TwoPhaseFunction):
         )
         if job is None:
             return False
+
+        self.collateral_kwargs["project_uuid"] = job.project_uuid
 
         # No op if the job is already in an end state.
         if job.status in ["SUCCESS", "FAILURE", "ABORTED"]:
@@ -581,7 +534,7 @@ class AbortJob(TwoPhaseFunction):
 
         return True
 
-    def _collateral(self, run_uuids: List[str], **kwargs):
+    def _collateral(self, project_uuid: str, run_uuids: List[str], **kwargs):
         # Aborts and revokes all pipeline runs and waits for a reply for
         # 1.0s.
         celery = make_celery(current_app)
@@ -593,8 +546,8 @@ class AbortJob(TwoPhaseFunction):
             # its aborted status.
             res.abort()
 
-    def _revert(self):
-        pass
+        if project_uuid is not None:
+            process_stale_environment_images(project_uuid)
 
 
 class CreateJob(TwoPhaseFunction):
@@ -818,9 +771,11 @@ class DeleteJob(TwoPhaseFunction):
     """Delete a job."""
 
     def _transaction(self, job_uuid):
+        self.collateral_kwargs["project_uuid"] = None
         job = models.Job.query.filter_by(uuid=job_uuid).one_or_none()
         if job is None:
             return False
+        self.collateral_kwargs["project_uuid"] = job.project_uuid
 
         # Abort the job, won't do anything if the job is not running.
         AbortJob(self.tpe).transaction(job_uuid)
@@ -831,5 +786,75 @@ class DeleteJob(TwoPhaseFunction):
         db.session.delete(job)
         return True
 
-    def _collateral(self):
-        pass
+    def _collateral(self, project_uuid: str):
+        if project_uuid is not None:
+            process_stale_environment_images(project_uuid)
+
+
+class UpdateJobPipelineRun(TwoPhaseFunction):
+    """Update a pipeline run of a job."""
+
+    def _transaction(self, job_uuid: str, run_uuid: str, status_update: Dict[str, Any]):
+        """Set the status of a pipeline run."""
+        # Setup for collateral/revert.
+        self.collateral_kwargs["project_uuid"] = None
+        self.collateral_kwargs["completed"] = False
+
+        filter_by = {
+            "job_uuid": job_uuid,
+            "uuid": run_uuid,
+        }
+
+        update_status_db(
+            status_update,
+            model=models.NonInteractivePipelineRun,
+            filter_by=filter_by,
+        )
+
+        # See if the job is done running (all its runs are done).
+        if status_update["status"] in ["SUCCESS", "FAILURE"]:
+
+            # The job has 1 run for every parameters set.
+            job = (
+                db.session.query(
+                    models.Job.project_uuid,
+                    models.Job.schedule,
+                    func.jsonb_array_length(models.Job.parameters),
+                )
+                .filter_by(uuid=job_uuid)
+                .one()
+            )
+            self.collateral_kwargs["project_uuid"] = job.project_uuid
+
+            # Only non recurring jobs terminate to SUCCESS.
+            if job.schedule is None:
+
+                completed_runs = (
+                    models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                    .filter(
+                        models.NonInteractivePipelineRun.status.in_(
+                            ["SUCCESS", "FAILURE"]
+                        )
+                    )
+                    .count()
+                )
+
+                current_app.logger.info(
+                    (
+                        f"Non recurring job {job_uuid} has completed "
+                        f"{completed_runs}/{job[2]} runs."
+                    )
+                )
+
+                if completed_runs == job[2]:
+                    models.Job.query.filter_by(uuid=job_uuid).update(
+                        {"status": "SUCCESS"}
+                    )
+                    # The job is completed.
+                    self.collateral_kwargs["completed"] = True
+
+        return {"message": "Status was updated successfully"}, 200
+
+    def _collateral(self, project_uuid: str, completed: bool):
+        if completed and project_uuid is not None:
+            process_stale_environment_images(project_uuid)

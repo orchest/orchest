@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 import requests
 from celery.utils.log import get_task_logger
@@ -12,6 +12,7 @@ from sqlalchemy.orm import undefer
 
 import app.models as models
 from _orchest.internals import config as _config
+from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app import schema
 from app.connections import db, docker_client
 
@@ -583,3 +584,77 @@ def get_logger() -> logging.Logger:
     except Exception:
         pass
     return get_task_logger(__name__)
+
+
+def process_stale_environment_images(project_uuid: Optional[str] = None) -> None:
+    """Make stale environments unavailable to the user.
+
+    Args:
+        project_uuid: If specified, only this project environment images
+            will be processed.
+
+    After an update, all environment images are invalidated to avoid the
+    user having an environment with an SDK not compatible with the
+    latest version of Orchest. At the same time, we need to maintain
+    environment images that are in use by jobs. Environment images that
+    are stale and are not in use by any job get deleted.  Orchest-ctl
+    marks all environment images as "stale" on update, by adding a new
+    name/tag to them. This function goes through all environments
+    images, looking for images that have been marked as stale. Stale
+    images have their "real" name, orchest-env-<proj_uuid>-<env_uuid>
+    removed, so that the environment will have to be rebuilt to be
+    available to the user for new runs.  The invalidation semantics are
+    tied with the semantics of the validation module, which considers an
+    environment as existing based on the existance of the orchest-env-*
+    name.
+
+    """
+    filters = {"label": ["_orchest_env_build_is_intermediate=0"]}
+    if project_uuid is not None:
+        filters["label"].append(f"_orchest_project_uuid={project_uuid}")
+
+    env_imgs = docker_images_list_safe(docker_client, filters=filters)
+    for img in env_imgs:
+        _process_stale_environment_image(img)
+
+
+def _process_stale_environment_image(img) -> None:
+    pr_uuid = img.labels.get("_orchest_project_uuid")
+    env_uuid = img.labels.get("_orchest_environment_uuid")
+    build_uuid = img.labels.get("_orchest_env_build_task_uuid")
+
+    env_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+        project_uuid=pr_uuid, environment_uuid=env_uuid
+    )
+
+    removal_name = _config.ENVIRONMENT_IMAGE_REMOVAL_NAME.format(
+        project_uuid=pr_uuid, environment_uuid=env_uuid, build_uuid=build_uuid
+    )
+
+    if (
+        pr_uuid is None
+        or env_uuid is None
+        or build_uuid is None
+        or
+        # The image has not been marked for removal. This will happen
+        # everytime Orchest is started except for a start which is
+        # following an update.
+        f"{removal_name}:latest" not in img.tags
+        # Note that we can't check for env_name:latest not being in
+        # img.tags because it might not be there if the image has
+        # "survived" two updates in a row because a job is still
+        # using that.
+    ):
+        return
+
+    # This will just remove the orchest-env-* name/tag from the
+    # image, the image will still be available for jobs that are
+    # making use of that because the image still have the
+    # <removal_name>.
+    if f"{env_name}:latest" in img.tags:
+        docker_images_rm_safe(docker_client, env_name)
+
+    if not is_docker_image_in_use(img.id):
+        # Delete through id, hence deleting the image regardless
+        # of the fact that it has other tags.
+        docker_images_rm_safe(docker_client, img.id)
