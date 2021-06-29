@@ -390,7 +390,10 @@ const PipelineSettingsView = (props) => {
       setState((prevState) => ({
         ...prevState,
         unsavedChanges: true,
-        parameters: parametersJSON,
+        pipelineJson: {
+          ...prevState?.pipelineJson,
+          parameters: parametersJSON,
+        },
       }));
     } catch (err) {
       // console.log("JSON did not parse")
