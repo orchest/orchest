@@ -35,7 +35,7 @@ ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
 # multiple environment images "versions" surviving through multiple
 # updates because of jobs.
 ENVIRONMENT_IMAGE_REMOVAL_NAME = (
-    "removed-orchest-env-{project_uuid}-" "{environment_uuid}-{build_uuid}"
+    "removed-orchest-env-{project_uuid}-{environment_uuid}-{build_uuid}"
 )
 
 # Orchest environments that are passed as services, i.e. the image will

@@ -79,7 +79,7 @@ pipeline run (the one you want to inspect) and open *View pipeline*. The pipelin
 :ref:`read-only mode <read-only mode>` giving you the opportunity to check the logs or to open the
 HTML version of you notebooks.
 
-.. tip::
+.. note::
    Upon job creation, Orchest takes a snapshot of the required environments.  This way you can
    freely iterate on and update your existing environments without worrying about breaking your
    existing jobs.
