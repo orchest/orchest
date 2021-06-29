@@ -17,7 +17,7 @@ import SearchableTable from "./SearchableTable";
 import EditJobView from "../views/EditJobView";
 
 import JobView from "../views/JobView";
-import { formatServerDateTime } from "../utils/webserver-utils";
+import { checkGate, formatServerDateTime } from "../utils/webserver-utils";
 import ProjectsView from "@/views/ProjectsView";
 import { StatusInline } from "./Status";
 
@@ -185,6 +185,8 @@ class JobList extends React.Component {
   }
 
   onSubmitModal() {
+    let jobName = this.refManager.refs.formJobName.mdc.value;
+
     let pipeline_uuid = this.refManager.refs.formPipeline.mdc.value;
     let pipelineName;
     for (let x = 0; x < this.state.pipelines.length; x++) {
@@ -194,7 +196,7 @@ class JobList extends React.Component {
       }
     }
 
-    if (this.refManager.refs.formJobName.mdc.value.length == 0) {
+    if (jobName.length == 0) {
       orchest.alert("Error", "Please enter a name for your job.");
       return;
     }
@@ -210,47 +212,65 @@ class JobList extends React.Component {
       createModelLoading: true,
     });
 
-    let postJobPromise = makeCancelable(
-      makeRequest("POST", "/catch/api-proxy/api/jobs/", {
-        type: "json",
-        content: {
-          pipeline_uuid: pipeline_uuid,
-          pipeline_name: pipelineName,
-          project_uuid: this.props.project_uuid,
-          name: this.refManager.refs.formJobName.mdc.value,
-          draft: true,
-          pipeline_run_spec: {
-            run_type: "full",
-            uuids: [],
-          },
-          parameters: [],
-        },
-      }),
-      this.promiseManager
-    );
+    checkGate(this.props.project_uuid)
+      .then(() => {
+        let postJobPromise = makeCancelable(
+          makeRequest("POST", "/catch/api-proxy/api/jobs/", {
+            type: "json",
+            content: {
+              pipeline_uuid: pipeline_uuid,
+              pipeline_name: pipelineName,
+              project_uuid: this.props.project_uuid,
+              name: jobName,
+              draft: true,
+              pipeline_run_spec: {
+                run_type: "full",
+                uuids: [],
+              },
+              parameters: [],
+            },
+          }),
+          this.promiseManager
+        );
 
-    postJobPromise.promise
-      .then((response) => {
-        let job = JSON.parse(response);
+        postJobPromise.promise
+          .then((response) => {
+            let job = JSON.parse(response);
 
-        orchest.loadView(EditJobView, {
-          queryArgs: {
-            job_uuid: job.uuid,
-          },
-        });
-      })
-      .catch((response) => {
-        if (!response.isCanceled) {
-          try {
-            let result = JSON.parse(response.body);
-            orchest.alert("Error", "Failed to create job. " + result.message);
-
-            this.setState({
-              createModelLoading: false,
+            orchest.loadView(EditJobView, {
+              queryArgs: {
+                job_uuid: job.uuid,
+              },
             });
-          } catch (error) {
-            console.log(error);
-          }
+          })
+          .catch((response) => {
+            if (!response.isCanceled) {
+              try {
+                let result = JSON.parse(response.body);
+                orchest.alert(
+                  "Error",
+                  "Failed to create job. " + result.message
+                );
+
+                this.setState({
+                  createModelLoading: false,
+                });
+              } catch (error) {
+                console.log(error);
+              }
+            }
+          });
+      })
+      .catch((result) => {
+        if (result.reason === "gate-failed") {
+          orchest.requestBuild(
+            this.props.project_uuid,
+            result.data,
+            "CreateJob",
+            () => {
+              this.onSubmitModal();
+            }
+          );
         }
       });
   }
