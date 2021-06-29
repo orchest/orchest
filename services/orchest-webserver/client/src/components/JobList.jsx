@@ -17,7 +17,7 @@ import SearchableTable from "./SearchableTable";
 import EditJobView from "../views/EditJobView";
 
 import JobView from "../views/JobView";
-import { formatServerDateTime } from "../utils/webserver-utils";
+import { checkGate, formatServerDateTime } from "../utils/webserver-utils";
 import ProjectsView from "@/views/ProjectsView";
 import { StatusInline } from "./Status";
 
@@ -229,28 +229,46 @@ class JobList extends React.Component {
       this.promiseManager
     );
 
-    postJobPromise.promise
-      .then((response) => {
-        let job = JSON.parse(response);
+    checkGate(this.props.project_uuid)
+      .then(() => {
+        postJobPromise.promise
+          .then((response) => {
+            let job = JSON.parse(response);
 
-        orchest.loadView(EditJobView, {
-          queryArgs: {
-            job_uuid: job.uuid,
-          },
-        });
-      })
-      .catch((response) => {
-        if (!response.isCanceled) {
-          try {
-            let result = JSON.parse(response.body);
-            orchest.alert("Error", "Failed to create job. " + result.message);
-
-            this.setState({
-              createModelLoading: false,
+            orchest.loadView(EditJobView, {
+              queryArgs: {
+                job_uuid: job.uuid,
+              },
             });
-          } catch (error) {
-            console.log(error);
-          }
+          })
+          .catch((response) => {
+            if (!response.isCanceled) {
+              try {
+                let result = JSON.parse(response.body);
+                orchest.alert(
+                  "Error",
+                  "Failed to create job. " + result.message
+                );
+
+                this.setState({
+                  createModelLoading: false,
+                });
+              } catch (error) {
+                console.log(error);
+              }
+            }
+          });
+      })
+      .catch((result) => {
+        if (result.reason === "gate-failed") {
+          orchest.requestBuild(
+            this.props.project_uuid,
+            result.data,
+            "CreateJob",
+            () => {
+              this.onSubmitModal();
+            }
+          );
         }
       });
   }
