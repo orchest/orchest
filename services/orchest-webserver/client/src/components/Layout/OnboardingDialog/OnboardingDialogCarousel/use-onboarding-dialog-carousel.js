@@ -8,10 +8,7 @@ export const useOnboardingDialogCarousel = () => {
 
   const { data: state, mutate: setState } = useSWR(
     "useOnboardingCarousel",
-    (_) => {
-      // no-op fetcher
-      return new Promise(() => {});
-    },
+    null,
     {
       initialData: initialState,
     }

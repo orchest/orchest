@@ -244,7 +244,7 @@ class OrchestApp:
                     stdouts["rabbitmq-server"]["id"],
                     (
                         'su rabbitmq -c "/opt/rabbitmq/sbin/rabbitmq-diagnostics '
-                        '-q check_port_connectivity"'
+                        '-q ping"'
                     ),
                 )
 
