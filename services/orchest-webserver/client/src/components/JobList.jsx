@@ -185,6 +185,8 @@ class JobList extends React.Component {
   }
 
   onSubmitModal() {
+    let jobName = this.refManager.refs.formJobName.mdc.value;
+
     let pipeline_uuid = this.refManager.refs.formPipeline.mdc.value;
     let pipelineName;
     for (let x = 0; x < this.state.pipelines.length; x++) {
@@ -194,7 +196,7 @@ class JobList extends React.Component {
       }
     }
 
-    if (this.refManager.refs.formJobName.mdc.value.length == 0) {
+    if (jobName.length == 0) {
       orchest.alert("Error", "Please enter a name for your job.");
       return;
     }
@@ -210,27 +212,27 @@ class JobList extends React.Component {
       createModelLoading: true,
     });
 
-    let postJobPromise = makeCancelable(
-      makeRequest("POST", "/catch/api-proxy/api/jobs/", {
-        type: "json",
-        content: {
-          pipeline_uuid: pipeline_uuid,
-          pipeline_name: pipelineName,
-          project_uuid: this.props.project_uuid,
-          name: this.refManager.refs.formJobName.mdc.value,
-          draft: true,
-          pipeline_run_spec: {
-            run_type: "full",
-            uuids: [],
-          },
-          parameters: [],
-        },
-      }),
-      this.promiseManager
-    );
-
     checkGate(this.props.project_uuid)
       .then(() => {
+        let postJobPromise = makeCancelable(
+          makeRequest("POST", "/catch/api-proxy/api/jobs/", {
+            type: "json",
+            content: {
+              pipeline_uuid: pipeline_uuid,
+              pipeline_name: pipelineName,
+              project_uuid: this.props.project_uuid,
+              name: jobName,
+              draft: true,
+              pipeline_run_spec: {
+                run_type: "full",
+                uuids: [],
+              },
+              parameters: [],
+            },
+          }),
+          this.promiseManager
+        );
+
         postJobPromise.promise
           .then((response) => {
             let job = JSON.parse(response);
