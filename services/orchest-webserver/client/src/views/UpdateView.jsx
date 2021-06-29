@@ -1,3 +1,4 @@
+// @ts-check
 import React, { Fragment } from "react";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
@@ -5,33 +6,29 @@ import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import { Layout } from "@/components/Layout";
+import { useInterval } from "@/hooks/use-interval";
 
-class UpdateView extends React.Component {
-  constructor() {
-    super();
+/** @type React.FC<{}> */
+const UpdateView = () => {
+  const { orchest } = window;
 
-    this.state = {
-      updating: false,
-      updateOutput: "",
-    };
+  const [state, setState] = React.useState((prevState) => ({
+    ...prevState,
+    updating: false,
+    updateOutput: "",
+  }));
+  const [updatePollInterval, setUpdatePollInterval] = React.useState(null);
 
-    this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
-  }
+  const [promiseManager] = React.useState(new PromiseManager());
 
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-  }
-
-  startUpdateTrigger() {
+  const startUpdateTrigger = () => {
     orchest.confirm(
       "Warning",
       "Are you sure you want to update Orchest? This will kill all active sessions and ongoing runs.",
       () => {
-        this.setState({
+        setState({
           updating: true,
           updateOutput: "",
         });
@@ -43,7 +40,7 @@ class UpdateView extends React.Component {
             checkHeartbeat("/update-server/heartbeat")
               .then(() => {
                 console.log("Update service available");
-                this.requestUpdate();
+                requestUpdate();
               })
               .catch((retries) => {
                 console.log(
@@ -58,103 +55,106 @@ class UpdateView extends React.Component {
           });
       }
     );
-  }
+  };
 
-  startUpdatePolling() {
-    clearInterval(this.updatePollInterval);
+  const startUpdatePolling = () => {
+    setUpdatePollInterval(1000);
+  };
 
-    this.updatePollInterval = setInterval(() => {
-      let updateStatusPromise = makeCancelable(
-        makeRequest("GET", "/update-server/update-status"),
-        this.promiseManager,
-        undefined,
-        2000
-      );
-
-      updateStatusPromise.promise
-        .then((response) => {
-          let json = JSON.parse(response);
-          if (json.updating === false) {
-            this.setState({
-              updating: false,
-            });
-            clearInterval(this.updatePollInterval);
-          }
-          this.setState({
-            updateOutput: json.update_output,
-          });
-        })
-        .catch((e) => {
-          if (!e.isCanceled) {
-            console.error(e);
-          }
-        });
-    }, 1000);
-  }
-
-  requestUpdate() {
+  const requestUpdate = () => {
     let updateUrl = "/update-server/update";
 
     let updatePromise = makeCancelable(
       makeRequest("POST", updateUrl),
-      this.promiseManager
+      promiseManager
     );
     updatePromise.promise
       .then(() => {
-        this.startUpdatePolling();
+        startUpdatePolling();
       })
       .catch((e) => {
         console.error(e);
       });
-  }
+  };
 
-  render() {
-    let updateOutputLines = this.state.updateOutput.split("\n").reverse();
-    updateOutputLines =
-      updateOutputLines[0] == ""
-        ? updateOutputLines.slice(1)
-        : updateOutputLines;
-
-    return (
-      <Layout>
-        <div className={"view-page update-page"}>
-          <h2>Orchest updater</h2>
-          <p className="push-down">Update Orchest to the latest version.</p>
-
-          {(() => {
-            let elements = [];
-
-            if (this.state.updating) {
-              elements.push(
-                <MDCLinearProgressReact key="0" classNames={["push-down"]} />
-              );
-            }
-            if (this.state.updateOutput.length > 0) {
-              elements.push(
-                <div key="1" className="console-output">
-                  {updateOutputLines.join("\n")}
-                </div>
-              );
-            }
-
-            return (
-              <Fragment>
-                <MDCButtonReact
-                  classNames={["push-down"]}
-                  label="Start update"
-                  icon="system_update_alt"
-                  disabled={this.state.updating}
-                  onClick={this.startUpdateTrigger.bind(this)}
-                />
-
-                {elements}
-              </Fragment>
-            );
-          })()}
-        </div>
-      </Layout>
+  useInterval(() => {
+    let updateStatusPromise = makeCancelable(
+      makeRequest("GET", "/update-server/update-status"),
+      promiseManager,
+      // @ts-ignore
+      undefined,
+      2000
     );
-  }
-}
+
+    updateStatusPromise.promise
+      .then((response) => {
+        let json = JSON.parse(response);
+        if (json.updating === false) {
+          setState((prevState) => ({
+            ...prevState,
+            updating: false,
+          }));
+          setUpdatePollInterval(null);
+        }
+        setState((prevState) => ({
+          ...prevState,
+          updateOutput: json.update_output,
+        }));
+      })
+      .catch((e) => {
+        if (!e.isCanceled) {
+          console.error(e);
+        }
+      });
+  }, updatePollInterval);
+
+  React.useEffect(() => {
+    return () => promiseManager.cancelCancelablePromises();
+  }, []);
+
+  let updateOutputLines = state.updateOutput.split("\n").reverse();
+  updateOutputLines =
+    updateOutputLines[0] == "" ? updateOutputLines.slice(1) : updateOutputLines;
+
+  return (
+    <Layout>
+      <div className={"view-page update-page"}>
+        <h2>Orchest updater</h2>
+        <p className="push-down">Update Orchest to the latest version.</p>
+
+        {(() => {
+          let elements = [];
+
+          if (state.updating) {
+            elements.push(
+              <MDCLinearProgressReact key="0" classNames={["push-down"]} />
+            );
+          }
+          if (state.updateOutput.length > 0) {
+            elements.push(
+              <div key="1" className="console-output">
+                {updateOutputLines.join("\n")}
+              </div>
+            );
+          }
+
+          return (
+            <Fragment>
+              <MDCButtonReact
+                classNames={["push-down"]}
+                label="Start update"
+                icon="system_update_alt"
+                disabled={state.updating}
+                onClick={startUpdateTrigger.bind(this)}
+              />
+
+              {elements}
+            </Fragment>
+          );
+        })()}
+      </div>
+    </Layout>
+  );
+};
 
 export default UpdateView;
