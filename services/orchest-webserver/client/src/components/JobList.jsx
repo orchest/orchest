@@ -1,12 +1,20 @@
 // @ts-check
-import React, { Fragment } from "react";
+import React from "react";
+import {
+  Box,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@orchest/design-system";
 import {
   MDCButtonReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
   MDCSelectReact,
   MDCLinearProgressReact,
-  MDCDialogReact,
 } from "@orchest/lib-mdc";
 import {
   makeRequest,
@@ -31,13 +39,15 @@ import { StatusInline } from "./Status";
 const JobList = (props) => {
   const [state, setState] = React.useState({
     deleting: false,
-    createModal: false,
-    createModelLoading: false,
     jobs: undefined,
     pipelines: undefined,
-    jobsSearchMask: new Array(0).fill(1),
     projectSnapshotSize: undefined,
   });
+
+  const [isCreateDialogLoading, setIsCreateDialogLoading] = React.useState(
+    false
+  );
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
   const [promiseManager] = React.useState(new PromiseManager());
   const [refManager] = React.useState(new RefManager());
@@ -64,8 +74,7 @@ const JobList = (props) => {
 
         setState((prevState) => ({
           ...prevState,
-          jobs: result["jobs"],
-          jobsSearchMask: new Array(result.length).fill(1),
+          jobs: result.jobs,
         }));
       })
       .catch((e) => {
@@ -95,10 +104,7 @@ const JobList = (props) => {
 
   const onCreateClick = () => {
     if (state.pipelines !== undefined && state.pipelines.length > 0) {
-      setState((prevState) => ({
-        ...prevState,
-        createModal: true,
-      }));
+      setIsCreateDialogOpen(true);
     } else {
       orchest.alert("Error", "Could not find any pipelines for this project.");
     }
@@ -182,10 +188,7 @@ const JobList = (props) => {
 
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
-    setState((prevState) => ({
-      ...prevState,
-      createModelLoading: true,
-    }));
+    setIsCreateDialogLoading(true);
 
     checkGate(props.project_uuid)
       .then(() => {
@@ -227,10 +230,7 @@ const JobList = (props) => {
                   "Failed to create job. " + result.message
                 );
 
-                setState((prevState) => ({
-                  ...prevState,
-                  createModelLoading: false,
-                }));
+                setIsCreateDialogLoading(false);
               } catch (error) {
                 console.log(error);
               }
@@ -249,17 +249,6 @@ const JobList = (props) => {
           );
         }
       });
-  };
-
-  const onCancelModal = () => {
-    refManager.refs.createJobDialog.close();
-  };
-
-  const onCloseCreateJobModal = () => {
-    setState((prevState) => ({
-      ...prevState,
-      createModal: false,
-    }));
   };
 
   const onRowClick = (row, idx, event) => {
@@ -297,16 +286,6 @@ const JobList = (props) => {
     return rows;
   };
 
-  const generatePipelineOptions = (pipelines) => {
-    let pipelineOptions = [];
-
-    for (let x = 0; x < pipelines.length; x++) {
-      pipelineOptions.push([pipelines[x].uuid, pipelines[x].name]);
-    }
-
-    return pipelineOptions;
-  };
-
   React.useEffect(() => {
     // retrieve pipelines once on component render
     let pipelinePromise = makeCancelable(
@@ -338,127 +317,109 @@ const JobList = (props) => {
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
+  const pipelineOptions =
+    state.pipelines?.map(({ uuid, name }) => [uuid, name]) || [];
+
   return (
     <div className={"jobs-page"}>
       <h2>Jobs</h2>
 
-      {(() => {
-        if (state.jobs && state.pipelines) {
-          return (
-            <Fragment>
-              {(() => {
-                if (state.createModal) {
-                  let pipelineOptions = generatePipelineOptions(
-                    state.pipelines
-                  );
-
-                  return (
-                    <MDCDialogReact
-                      title="Create a new job"
-                      ref={refManager.nrefs.createJobDialog}
-                      onClose={onCloseCreateJobModal.bind(this)}
-                      content={
-                        <Fragment>
-                          <div className="create-job-modal">
-                            {(() => {
-                              // display warning if snapshot size would exceed 50MB
-                              if (state.projectSnapshotSize > 50) {
-                                return (
-                                  <div className="warning push-down">
-                                    <i className="material-icons">warning</i>{" "}
-                                    Snapshot size exceeds 50MB. Please refer to
-                                    the{" "}
-                                    <a href="https://orchest.readthedocs.io/en/latest/user_guide/jobs.html">
-                                      docs
-                                    </a>
-                                    .
-                                  </div>
-                                );
-                              }
-                            })()}
-
-                            <MDCTextFieldReact
-                              ref={refManager.nrefs.formJobName}
-                              classNames={["fullwidth push-down"]}
-                              label="Job name"
-                            />
-
-                            <MDCSelectReact
-                              ref={refManager.nrefs.formPipeline}
-                              label="Pipeline"
-                              classNames={["fullwidth"]}
-                              value={pipelineOptions[0][0]}
-                              options={pipelineOptions}
-                            />
-
-                            {(() => {
-                              if (state.createModelLoading) {
-                                return (
-                                  <Fragment>
-                                    <MDCLinearProgressReact />
-                                    <p>Copying pipeline directory...</p>
-                                  </Fragment>
-                                );
-                              }
-                            })()}
-                          </div>
-                        </Fragment>
-                      }
-                      actions={
-                        <Fragment>
-                          <MDCButtonReact
-                            icon="close"
-                            classNames={["push-right"]}
-                            label="Cancel"
-                            onClick={onCancelModal.bind(this)}
-                          />
-                          <MDCButtonReact
-                            disabled={state.createModelLoading}
-                            icon="add"
-                            classNames={[
-                              "mdc-button--raised",
-                              "themed-secondary",
-                            ]}
-                            label="Create job"
-                            submitButton
-                            onClick={onSubmitModal.bind(this)}
-                          />
-                        </Fragment>
-                      }
-                    />
-                  );
-                }
-              })()}
-              <div className="push-down">
-                <MDCButtonReact
-                  icon="add"
-                  label="Create job"
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={onCreateClick.bind(this)}
-                />
-              </div>
-
-              <div className={"job-actions"}>
-                <MDCIconButtonToggleReact
-                  icon="delete"
-                  tooltipText="Delete job"
-                  onClick={onDeleteClick.bind(this)}
-                />
-              </div>
-
-              <SearchableTable
-                ref={refManager.nrefs.jobTable}
-                selectable={true}
-                onRowClick={onRowClick.bind(this)}
-                rows={jobListToTableData(state.jobs)}
-                headers={["Job", "Pipeline", "Snapshot date", "Status"]}
+      {state.jobs && state.pipelines ? (
+        <React.Fragment>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={(open) => setIsCreateDialogOpen(open)}
+          >
+            <div className="push-down">
+              <MDCButtonReact
+                icon="add"
+                label="Create job"
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                onClick={() => onCreateClick()}
               />
-            </Fragment>
-          );
-        } else {
-          return <MDCLinearProgressReact />;
-        }
-      })()}
+            </div>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create a new job</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="create-job-modal">
+                  {isCreateDialogLoading ? (
+                    <Box
+                      css={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}
+                    >
+                      <MDCLinearProgressReact />
+
+                      <p>Copying pipeline directory...</p>
+                    </Box>
+                  ) : (
+                    <React.Fragment>
+                      {state.projectSnapshotSize > 50 && (
+                        <div className="warning push-down">
+                          <i className="material-icons">warning</i> Snapshot
+                          size exceeds 50MB. Please refer to the{" "}
+                          <a href="https://orchest.readthedocs.io/en/latest/user_guide/jobs.html">
+                            docs
+                          </a>
+                          .
+                        </div>
+                      )}
+
+                      <MDCTextFieldReact
+                        ref={refManager.nrefs.formJobName}
+                        classNames={["fullwidth push-down"]}
+                        label="Job name"
+                      />
+
+                      <MDCSelectReact
+                        ref={refManager.nrefs.formPipeline}
+                        label="Pipeline"
+                        classNames={["fullwidth"]}
+                        value={pipelineOptions[0][0]}
+                        options={pipelineOptions}
+                      />
+                    </React.Fragment>
+                  )}
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <MDCButtonReact
+                  icon="close"
+                  classNames={["push-right"]}
+                  label="Cancel"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                />
+                <MDCButtonReact
+                  disabled={isCreateDialogLoading}
+                  icon="add"
+                  classNames={["mdc-button--raised", "themed-secondary"]}
+                  label="Create job"
+                  submitButton
+                  onClick={onSubmitModal.bind(this)}
+                />
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <div className={"job-actions"}>
+            <MDCIconButtonToggleReact
+              icon="delete"
+              tooltipText="Delete job"
+              onClick={onDeleteClick.bind(this)}
+            />
+          </div>
+
+          <SearchableTable
+            ref={refManager.nrefs.jobTable}
+            selectable={true}
+            onRowClick={onRowClick.bind(this)}
+            rows={jobListToTableData(state.jobs)}
+            headers={["Job", "Pipeline", "Snapshot date", "Status"]}
+          />
+        </React.Fragment>
+      ) : (
+        <MDCLinearProgressReact />
+      )}
     </div>
   );
 };
