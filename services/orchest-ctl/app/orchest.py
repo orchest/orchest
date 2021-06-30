@@ -462,7 +462,7 @@ class OrchestApp:
 
         raise typer.Exit(code=exit_code)
 
-    def run(self, job_name, project_name, pipeline_name, wait=False):
+    def run(self, job_name, project_name, pipeline_name, wait=False, rm=False):
         """Queues the pipeline as a one-time job."""
         # Orchest has to be running for this command to work, since we
         # will be querying the orchest-webserver directly.
@@ -632,6 +632,24 @@ class OrchestApp:
                     time.sleep(3)
 
         utils.echo(f"Successfully ran the {pipeline_name} pipeline as a one-time job.")
+
+        if not rm:
+            return
+
+        # Remove the job.
+        utils.echo("Removing job.")
+        status_code, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="jobs"),
+            url=base_url.format(path=f"/catch/api-proxy/api/jobs/cleanup/{job_uuid}"),
+            method="DELETE",
+        )
+        if status_code != 200:
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+            utils.echo("Could not remove job.")
+            raise typer.Exit(code=1)
+
+        utils.echo("Successfully removed job state.")
 
     def _is_restarting(self) -> bool:
         """Check if Orchest is restarting.
