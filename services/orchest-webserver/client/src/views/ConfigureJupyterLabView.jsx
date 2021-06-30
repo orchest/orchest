@@ -1,3 +1,4 @@
+// @ts-check
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
 import React from "react";
@@ -5,124 +6,79 @@ import {
   uuidv4,
   makeRequest,
   makeCancelable,
-  RefManager,
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import { OrchestContext, OrchestSessionsConsumer } from "@/hooks/orchest";
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 
-class ConfigureJupyterLabView extends React.Component {
-  static contextType = OrchestContext;
+const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-  constructor(props, context) {
-    super(props, context);
+const ConfigureJupyterLabView = () => {
+  const context = useOrchest();
 
-    this.CANCELABLE_STATUSES = ["PENDING", "STARTED"];
+  const { orchest } = window;
 
-    this.state = {
-      unsavedChanges: false,
-      building: false,
-      sessionKillStatus: undefined,
-      buildRequestInProgress: false,
-      cancelBuildRequestInProgress: false,
+  const [state, setState] = React.useState({
+    unsavedChanges: false,
+    building: false,
+    sessionKillStatus: undefined,
+    buildRequestInProgress: false,
+    cancelBuildRequestInProgress: false,
+    ignoreIncomingLogs: false,
+    jupyterBuild: undefined,
+    buildFetchHash: uuidv4(),
+    jupyterSetupScript: undefined,
+  });
+
+  const [promiseManager] = React.useState(new PromiseManager());
+
+  const onBuildStart = () => {
+    setState((prevState) => ({
+      ...prevState,
       ignoreIncomingLogs: false,
-      jupyterBuild: undefined,
-      buildFetchHash: uuidv4(),
-      jupyterSetupScript: undefined,
-    };
+    }));
+  };
 
-    this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
-  }
-
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-  }
-
-  componentDidMount() {
-    this.getSetupScript();
-
-    this.context.dispatch({
-      type: "setUnsavedChanges",
-      payload: this.state.unsavedChanges,
-    });
-  }
-
-  componentDidUpdate(_, prevState) {
-    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
-      this.context.dispatch({
-        type: "setUnsavedChanges",
-        payload: this.state.unsavedChanges,
-      });
-    }
-
-    if (
-      this.context.state.sessionsKillAllInProgress &&
-      this.state.sessionKillStatus === "WAITING"
-    ) {
-      this.setState({ sessionKillStatus: "VALIDATING" });
-    }
-
-    if (
-      !this.context.state.sessionsKillAllInProgress &&
-      this.state.sessionKillStatus === "VALIDATING"
-    ) {
-      const hasActiveSessions = this.context.state?.sessions
-        .map((session) => (session.status ? true : false))
-        .find((isActive) => isActive === true);
-
-      if (!hasActiveSessions) {
-        this.setState({
-          sessionKillStatus: undefined,
-        });
-        this.buildImage();
-      }
-    }
-  }
-
-  onBuildStart() {
-    this.setState({
-      ignoreIncomingLogs: false,
-    });
-  }
-
-  onUpdateBuild(jupyterBuild) {
-    this.setState({
-      building: this.CANCELABLE_STATUSES.indexOf(jupyterBuild.status) !== -1,
+  const onUpdateBuild = (jupyterBuild) => {
+    setState((prevState) => ({
+      ...prevState,
+      building: CANCELABLE_STATUSES.indexOf(jupyterBuild.status) !== -1,
       jupyterBuild,
-    });
-  }
+    }));
+  };
 
-  buildImage() {
+  const buildImage = () => {
     orchest.jupyter.unload();
 
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       buildRequestInProgress: true,
       ignoreIncomingLogs: true,
-    });
+    }));
 
-    this.save(() => {
+    save(() => {
       let buildPromise = makeCancelable(
         makeRequest("POST", "/catch/api-proxy/api/jupyter-builds"),
-        this.promiseManager
+        promiseManager
       );
 
       buildPromise.promise
         .then((response) => {
           try {
             let jupyterBuild = JSON.parse(response)["jupyter_build"];
-            this.onUpdateBuild(jupyterBuild);
+            onUpdateBuild(jupyterBuild);
           } catch (error) {
             console.error(error);
           }
         })
         .catch((e) => {
           if (!e.isCanceled) {
-            this.setState({
+            setState((prevState) => ({
+              ...prevState,
               ignoreIncomingLogs: false,
-            });
+            }));
 
             try {
               let resp = JSON.parse(e.body);
@@ -133,8 +89,11 @@ class ConfigureJupyterLabView extends React.Component {
                   "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
                     "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
                   () => {
-                    this.context.dispatch({ type: "sessionsKillAll" });
-                    this.setState({ sessionKillStatus: "WAITING" });
+                    context.dispatch({ type: "sessionsKillAll" });
+                    setState((prevState) => ({
+                      ...prevState,
+                      sessionKillStatus: "WAITING",
+                    }));
                   }
                 );
               }
@@ -144,70 +103,77 @@ class ConfigureJupyterLabView extends React.Component {
           }
         })
         .finally(() => {
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             buildRequestInProgress: false,
-          });
+          }));
         });
     });
-  }
+  };
 
-  cancelImageBuild() {
+  const cancelImageBuild = () => {
     // send DELETE to cancel ongoing build
     if (
-      this.state.jupyterBuild &&
-      this.CANCELABLE_STATUSES.indexOf(this.state.jupyterBuild.status) !== -1
+      state.jupyterBuild &&
+      CANCELABLE_STATUSES.indexOf(state.jupyterBuild.status) !== -1
     ) {
-      this.setState({
+      setState((prevState) => ({
+        ...prevState,
         cancelBuildRequestInProgress: true,
-      });
+      }));
 
       makeRequest(
         "DELETE",
-        `/catch/api-proxy/api/jupyter-builds/${this.state.jupyterBuild.uuid}`
+        `/catch/api-proxy/api/jupyter-builds/${state.jupyterBuild.uuid}`
       )
         .then(() => {
           // immediately fetch latest status
           // NOTE: this DELETE call doesn't actually destroy the resource, that's
           // why we're querying it again.
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             buildFetchHash: uuidv4(),
-          });
+          }));
         })
         .catch((error) => {
           console.error(error);
         })
         .finally(() => {
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             cancelBuildRequestInProgress: false,
-          });
+          }));
         });
     } else {
       orchest.alert(
         "Could not cancel build, please try again in a few seconds."
       );
     }
-  }
+  };
 
-  getSetupScript() {
+  const getSetupScript = () => {
     let getSetupScriptPromise = makeCancelable(
       makeRequest("GET", "/async/jupyter-setup-script"),
-      this.promiseManager
+      promiseManager
     );
     getSetupScriptPromise.promise.then((response) => {
-      this.setState({
+      setState((prevState) => ({
+        ...prevState,
         jupyterSetupScript: response,
-      });
+      }));
     });
-  }
+  };
 
-  save(cb) {
-    this.setState({
+  const save = (cb) => {
+    setState((prevState) => ({
+      ...prevState,
       unsavedChanges: false,
-    });
+    }));
+
     // auto save the bash script
     let formData = new FormData();
 
-    formData.append("setup_script", this.state.jupyterSetupScript);
+    formData.append("setup_script", state.jupyterSetupScript);
     makeRequest("POST", "/async/jupyter-setup-script", {
       type: "FormData",
       content: formData,
@@ -220,121 +186,162 @@ class ConfigureJupyterLabView extends React.Component {
       .catch((e) => {
         console.error(e);
       });
-  }
+  };
 
-  render() {
-    return (
-      <OrchestSessionsConsumer>
-        <Layout>
-          <div className={"view-page jupyterlab-config-page"}>
-            {this.state.jupyterSetupScript !== undefined ? (
-              <>
-                <h2>Configure JupyterLab</h2>
-                <p className="push-down">
-                  You can install JupyterLab extensions using the bash script
-                  below.
-                </p>
-                <p className="push-down">
-                  For example, you can install the Jupyterlab Code Formatter
-                  extension by executing{" "}
-                  <span className="code">
-                    pip install jupyterlab_code_formatter
-                  </span>
-                  .
-                </p>
+  React.useEffect(() => {
+    getSetupScript();
 
-                <p className="push-down">
-                  In addition, you can configure the JupyterLab environment to
-                  include settings such as your{" "}
-                  <span className="code">git</span> username and email.
-                  <br />
-                  <br />
-                  <span className="code">
-                    git config --global user.name "John Doe"
-                  </span>
-                  <br />
-                  <span className="code">
-                    git config --global user.email "john@example.org"
-                  </span>
-                </p>
+    return () => promiseManager.cancelCancelablePromises();
+  }, []);
 
-                <div className="push-down">
-                  <CodeMirror
-                    value={this.state.jupyterSetupScript}
-                    options={{
-                      mode: "application/x-sh",
-                      theme: "jupyter",
-                      lineNumbers: true,
-                      viewportMargin: Infinity,
-                    }}
-                    onBeforeChange={(editor, data, value) => {
-                      this.setState({
-                        jupyterSetupScript: value,
-                        unsavedChanges: true,
-                      });
-                    }}
-                  />
-                </div>
+  React.useEffect(() => {
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: state.unsavedChanges,
+    });
+  }, [state.unsavedChanges]);
 
-                <ImageBuildLog
-                  buildFetchHash={this.state.buildFetchHash}
-                  buildRequestEndpoint={
-                    "/catch/api-proxy/api/jupyter-builds/most-recent"
-                  }
-                  buildsKey="jupyter_builds"
-                  socketIONamespace={
-                    this.context.state?.config
-                      .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
-                  }
-                  streamIdentity={"jupyter"}
-                  onUpdateBuild={this.onUpdateBuild.bind(this)}
-                  onBuildStart={this.onBuildStart.bind(this)}
-                  ignoreIncomingLogs={this.state.ignoreIncomingLogs}
-                  build={this.state.jupyterBuild}
-                  building={this.state.building}
+  React.useEffect(() => {
+    if (
+      context.state.sessionsKillAllInProgress &&
+      state.sessionKillStatus === "WAITING"
+    ) {
+      setState((prevState) => ({
+        ...prevState,
+        sessionKillStatus: "VALIDATING",
+      }));
+    }
+
+    if (
+      !context.state.sessionsKillAllInProgress &&
+      state.sessionKillStatus === "VALIDATING"
+    ) {
+      const hasActiveSessions = context.state?.sessions
+        .map((session) => (session.status ? true : false))
+        .find((isActive) => isActive === true);
+
+      if (!hasActiveSessions) {
+        setState((prevState) => ({
+          ...prevState,
+          sessionKillStatus: undefined,
+        }));
+        buildImage();
+      }
+    }
+  }, [context.state.sessionsKillAllInProgress, state.sessionKillStatus]);
+
+  return (
+    <OrchestSessionsConsumer>
+      <Layout>
+        <div className={"view-page jupyterlab-config-page"}>
+          {state.jupyterSetupScript !== undefined ? (
+            <>
+              <h2>Configure JupyterLab</h2>
+              <p className="push-down">
+                You can install JupyterLab extensions using the bash script
+                below.
+              </p>
+              <p className="push-down">
+                For example, you can install the Jupyterlab Code Formatter
+                extension by executing{" "}
+                <span className="code">
+                  pip install jupyterlab_code_formatter
+                </span>
+                .
+              </p>
+
+              <p className="push-down">
+                In addition, you can configure the JupyterLab environment to
+                include settings such as your <span className="code">git</span>{" "}
+                username and email.
+                <br />
+                <br />
+                <span className="code">
+                  git config --global user.name "John Doe"
+                </span>
+                <br />
+                <span className="code">
+                  git config --global user.email "john@example.org"
+                </span>
+              </p>
+
+              <div className="push-down">
+                <CodeMirror
+                  value={state.jupyterSetupScript}
+                  options={{
+                    mode: "application/x-sh",
+                    theme: "jupyter",
+                    lineNumbers: true,
+                    viewportMargin: Infinity,
+                  }}
+                  onBeforeChange={(editor, data, value) => {
+                    setState((prevState) => ({
+                      ...prevState,
+                      jupyterSetupScript: value,
+                      unsavedChanges: true,
+                    }));
+                  }}
                 />
+              </div>
 
+              <ImageBuildLog
+                buildFetchHash={state.buildFetchHash}
+                buildRequestEndpoint={
+                  "/catch/api-proxy/api/jupyter-builds/most-recent"
+                }
+                buildsKey="jupyter_builds"
+                socketIONamespace={
+                  context.state?.config
+                    .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
+                }
+                streamIdentity={"jupyter"}
+                onUpdateBuild={onUpdateBuild.bind(this)}
+                onBuildStart={onBuildStart.bind(this)}
+                ignoreIncomingLogs={state.ignoreIncomingLogs}
+                build={state.jupyterBuild}
+                building={state.building}
+              />
+
+              <MDCButtonReact
+                label={state.unsavedChanges ? "Save*" : "Save"}
+                icon="save"
+                classNames={[
+                  "mdc-button--raised",
+                  "themed-secondary",
+                  "push-right",
+                ]}
+                submitButton
+                onClick={save.bind(this, undefined)}
+              />
+
+              {!state.building ? (
                 <MDCButtonReact
-                  label={this.state.unsavedChanges ? "Save*" : "Save"}
-                  icon="save"
-                  classNames={[
-                    "mdc-button--raised",
-                    "themed-secondary",
-                    "push-right",
-                  ]}
-                  submitButton
-                  onClick={this.save.bind(this, undefined)}
+                  label="Build"
+                  disabled={
+                    state.buildRequestInProgress ||
+                    typeof state.sessionKillStatus !== "undefined"
+                  }
+                  icon="memory"
+                  classNames={["mdc-button--raised"]}
+                  onClick={buildImage.bind(this)}
                 />
-
-                {!this.state.building ? (
-                  <MDCButtonReact
-                    label="Build"
-                    disabled={
-                      this.state.buildRequestInProgress ||
-                      typeof this.state.sessionKillStatus !== "undefined"
-                    }
-                    icon="memory"
-                    classNames={["mdc-button--raised"]}
-                    onClick={this.buildImage.bind(this)}
-                  />
-                ) : (
-                  <MDCButtonReact
-                    label="Cancel build"
-                    disabled={this.state.cancelBuildRequestInProgress}
-                    icon="close"
-                    classNames={["mdc-button--raised"]}
-                    onClick={this.cancelImageBuild.bind(this)}
-                  />
-                )}
-              </>
-            ) : (
-              <MDCLinearProgressReact />
-            )}
-          </div>
-        </Layout>
-      </OrchestSessionsConsumer>
-    );
-  }
-}
+              ) : (
+                <MDCButtonReact
+                  label="Cancel build"
+                  disabled={state.cancelBuildRequestInProgress}
+                  icon="close"
+                  classNames={["mdc-button--raised"]}
+                  onClick={cancelImageBuild.bind(this)}
+                />
+              )}
+            </>
+          ) : (
+            <MDCLinearProgressReact />
+          )}
+        </div>
+      </Layout>
+    </OrchestSessionsConsumer>
+  );
+};
 
 export default ConfigureJupyterLabView;
