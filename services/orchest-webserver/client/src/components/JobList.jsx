@@ -8,6 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DIALOG_ANIMATION_DURATION,
 } from "@orchest/design-system";
 import {
   MDCButtonReact,
@@ -40,6 +41,7 @@ const JobList = (props) => {
   const [state, setState] = React.useState({
     deleting: false,
     jobs: undefined,
+    jobName: undefined,
     pipelines: undefined,
     projectSnapshotSize: undefined,
   });
@@ -164,27 +166,34 @@ const JobList = (props) => {
     }
   };
 
-  const onSubmitModal = () => {
-    let jobName = refManager.refs.formJobName.mdc.value;
+  /**
+   * @param {Record<
+   *  'pipeline_uuid' |
+   *  'pipeline_name' |
+   *  'project_uuid' |
+   *  'name',
+   * string>} [rerun]
+   */
+  const onSubmitModal = (rerun) => {
+    if (!rerun) {
+      if (refManager.refs.formJobName.mdc.value.length == 0) {
+        orchest.alert("Error", "Please enter a name for your job.");
+        return;
+      }
 
-    let pipeline_uuid = refManager.refs.formPipeline.mdc.value;
-    let pipelineName;
-    for (let x = 0; x < state.pipelines.length; x++) {
-      if (state.pipelines[x].uuid === pipeline_uuid) {
-        pipelineName = state.pipelines[x].name;
-        break;
+      if (refManager.refs.formPipeline.mdc.value == "") {
+        orchest.alert("Error", "Please choose a pipeline.");
+        return;
       }
     }
 
-    if (jobName.length == 0) {
-      orchest.alert("Error", "Please enter a name for your job.");
-      return;
-    }
-
-    if (refManager.refs.formPipeline.mdc.value == "") {
-      orchest.alert("Error", "Please choose a pipeline.");
-      return;
-    }
+    const name = rerun?.name || refManager.refs.formJobName.mdc.value;
+    const pipeline_uuid =
+      rerun?.pipeline_uuid || refManager.refs.formPipeline.mdc.value;
+    const pipeline_name =
+      rerun?.pipeline_name ||
+      state.pipelines.find((pipeline) => pipeline.uuid === pipeline_uuid)?.name;
+    const project_uuid = rerun?.project_uuid || props.project_uuid;
 
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
@@ -196,10 +205,10 @@ const JobList = (props) => {
           makeRequest("POST", "/catch/api-proxy/api/jobs/", {
             type: "json",
             content: {
-              pipeline_uuid: pipeline_uuid,
-              pipeline_name: pipelineName,
-              project_uuid: props.project_uuid,
-              name: jobName,
+              pipeline_uuid,
+              pipeline_name,
+              project_uuid,
+              name,
               draft: true,
               pipeline_run_spec: {
                 run_type: "full",
@@ -225,12 +234,17 @@ const JobList = (props) => {
             if (!response.isCanceled) {
               try {
                 let result = JSON.parse(response.body);
-                orchest.alert(
-                  "Error",
-                  "Failed to create job. " + result.message
-                );
 
-                setIsCreateDialogLoading(false);
+                setIsCreateDialogOpen(false);
+
+                setTimeout(() => {
+                  setIsCreateDialogLoading(false);
+
+                  orchest.alert(
+                    "Error",
+                    "Failed to create job. " + result.message
+                  );
+                });
               } catch (error) {
                 console.log(error);
               }
@@ -239,14 +253,26 @@ const JobList = (props) => {
       })
       .catch((result) => {
         if (result.reason === "gate-failed") {
-          orchest.requestBuild(
-            props.project_uuid,
-            result.data,
-            "CreateJob",
-            () => {
-              onSubmitModal();
-            }
-          );
+          setIsCreateDialogOpen(false);
+
+          setTimeout(() => {
+            setIsCreateDialogLoading(false);
+
+            orchest.requestBuild(
+              props.project_uuid,
+              result.data,
+              "CreateJob",
+              () => {
+                setIsCreateDialogOpen(true);
+                onSubmitModal({
+                  name,
+                  pipeline_name,
+                  pipeline_uuid,
+                  project_uuid,
+                });
+              }
+            );
+          }, DIALOG_ANIMATION_DURATION.OUT);
         }
       });
   };
@@ -369,6 +395,7 @@ const JobList = (props) => {
                         ref={refManager.nrefs.formJobName}
                         classNames={["fullwidth push-down"]}
                         label="Job name"
+                        value={state.jobName}
                       />
 
                       <MDCSelectReact
