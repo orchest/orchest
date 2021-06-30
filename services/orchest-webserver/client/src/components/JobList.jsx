@@ -41,7 +41,6 @@ const JobList = (props) => {
   const [state, setState] = React.useState({
     deleting: false,
     jobs: undefined,
-    jobName: undefined,
     pipelines: undefined,
     projectSnapshotSize: undefined,
   });
@@ -369,7 +368,16 @@ const JobList = (props) => {
                 <DialogTitle>Create a new job</DialogTitle>
               </DialogHeader>
               <DialogBody>
-                <div className="create-job-modal">
+                <form
+                  id="create-job"
+                  className="create-job-modal"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    onSubmitModal();
+                  }}
+                >
                   {isCreateDialogLoading ? (
                     <Box
                       css={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}
@@ -395,7 +403,6 @@ const JobList = (props) => {
                         ref={refManager.nrefs.formJobName}
                         classNames={["fullwidth push-down"]}
                         label="Job name"
-                        value={state.jobName}
                       />
 
                       <MDCSelectReact
@@ -407,7 +414,7 @@ const JobList = (props) => {
                       />
                     </React.Fragment>
                   )}
-                </div>
+                </form>
               </DialogBody>
               <DialogFooter>
                 <MDCButtonReact
@@ -422,7 +429,8 @@ const JobList = (props) => {
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   label="Create job"
                   submitButton
-                  onClick={onSubmitModal.bind(this)}
+                  inputType="submit"
+                  form="create-job"
                 />
               </DialogFooter>
             </DialogContent>
