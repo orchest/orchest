@@ -44,6 +44,7 @@ const ProjectsView = (props) => {
     projects: null,
     listData: null,
     importResult: undefined,
+    fetchListAndSetProject: "",
   });
 
   const [promiseManager] = React.useState(new PromiseManager());
@@ -91,7 +92,8 @@ const ProjectsView = (props) => {
     return listData;
   };
 
-  const fetchList = (cb) => {
+  /** @param {string} [fetchListAndSetProject] */
+  const fetchList = (fetchListAndSetProject) => {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
@@ -103,6 +105,7 @@ const ProjectsView = (props) => {
 
       setState((prevState) => ({
         ...prevState,
+        fetchListAndSetProject,
         listData: processListData(projects),
         projects: projects,
         loading: false,
@@ -118,10 +121,6 @@ const ProjectsView = (props) => {
           type: "projectSet",
           payload: projects.length > 0 ? projects[0].uuid : null,
         });
-      }
-
-      if (cb) {
-        cb();
       }
 
       if (refManager.refs.projectListView) {
@@ -239,16 +238,7 @@ const ProjectsView = (props) => {
     })
       .then((_) => {
         // reload list once creation succeeds
-        fetchList(() => {
-          let createdProject = state.projects.filter((proj) => {
-            return proj.path == projectName;
-          })[0];
-
-          context.dispatch({
-            type: "projectSet",
-            payload: createdProject.uuid,
-          });
-        });
+        fetchList(projectName);
       })
       .catch((response) => {
         try {
@@ -341,20 +331,7 @@ const ProjectsView = (props) => {
               prevState.showImportModal && result.status != "SUCCESS",
           }));
 
-          let cb;
-
           if (result.status == "SUCCESS") {
-            cb = () => {
-              let importedProject = state.projects.filter((proj) => {
-                return proj.path == result.result;
-              })[0];
-
-              context.dispatch({
-                type: "projectSet",
-                payload: importedProject.uuid,
-              });
-            };
-
             setState((prevState) => ({
               ...prevState,
               import_project_name: "",
@@ -362,7 +339,7 @@ const ProjectsView = (props) => {
             }));
           }
 
-          fetchList(cb);
+          fetchList(result.status === "SUCCESS" ? result.result : undefined);
         });
       }
     );
@@ -419,6 +396,19 @@ const ProjectsView = (props) => {
   React.useEffect(() => {
     conditionalShowImportFromURL();
   }, [props?.queryArgs]);
+
+  React.useEffect(() => {
+    if (state.fetchListAndSetProject && state.fetchListAndSetProject !== "") {
+      const createdProject = state.projects.filter((proj) => {
+        return proj.path == state.fetchListAndSetProject;
+      })[0];
+
+      context.dispatch({
+        type: "projectSet",
+        payload: createdProject.uuid,
+      });
+    }
+  }, [state?.fetchListAndSetProject]);
 
   return (
     <Layout>
