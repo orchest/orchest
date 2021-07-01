@@ -348,6 +348,11 @@ def run(
         show_default="--no-wait",
         help="Wait for the pipeline run to finish.",
     ),
+    rm: bool = typer.Option(
+        False,
+        show_default="--no-rm",
+        help="Remove the job after it finishes running. Requires '--wait'.",
+    ),
 ):
     """
     Queue a pipeline as a one-time job.
@@ -364,4 +369,8 @@ def run(
 
     - 1: Something went wrong.
     """
-    app.run(job_name, project_name, pipeline_name, wait=wait)
+    if rm and not wait:
+        echo("Using '--rm' requires '--wait'.")
+        raise typer.Exit(code=1)
+
+    app.run(job_name, project_name, pipeline_name, wait=wait, rm=rm)
