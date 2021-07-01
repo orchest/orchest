@@ -1,3 +1,4 @@
+// @ts-check
 import _ from "lodash";
 import Ajv from "ajv";
 
@@ -253,18 +254,21 @@ export function checkGate(project_uuid) {
         project_uuid: project_uuid,
       },
     })
-      .then((response) => {
-        try {
-          let json = JSON.parse(response);
-          if (json.validation === "pass") {
-            resolve();
-          } else {
-            reject({ reason: "gate-failed", data: json });
+      .then(
+        /** @param {string} response */
+        (response) => {
+          try {
+            let json = JSON.parse(response);
+            if (json.validation === "pass") {
+              resolve();
+            } else {
+              reject({ reason: "gate-failed", data: json });
+            }
+          } catch (error) {
+            console.error(error);
           }
-        } catch (error) {
-          console.error(error);
         }
-      })
+      )
       .catch((error) => {
         reject({ reason: "request-failed", error: error });
       });
@@ -278,13 +282,17 @@ export class OverflowListener {
     // check if ResizeObserver is defined
     if (window.ResizeObserver) {
       // trigger-overflow only supports a single element on the page
+      // @ts-ignore
       let triggerOverflow = $(".trigger-overflow").first()[0];
       if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
         new ResizeObserver(() => {
           if (triggerOverflow) {
+            // @ts-ignore
             if ($(triggerOverflow).overflowing()) {
+              // @ts-ignore
               $(".observe-overflow").addClass("overflowing");
             } else {
+              // @ts-ignore
               $(".observe-overflow").removeClass("overflowing");
             }
           }
@@ -333,6 +341,7 @@ export class BackgroundTaskPoller {
 
   requestStatus(taskUUID) {
     makeRequest("GET", `/async/background-tasks/${taskUUID}`).then(
+      /** @param {string} response */
       (response) => {
         try {
           let data = JSON.parse(response);
@@ -472,6 +481,7 @@ export function tryUntilTrue(action, retries, delay, interval) {
 
 // Will return undefined if the envVariables are ill defined.
 export function envVariablesArrayToDict(envVariables) {
+  const { orchest } = window;
   const result = {};
   const seen = new Set();
   for (const pair of envVariables) {
@@ -567,6 +577,7 @@ export function queryArgsToQueryArgProps(search) {
   let searchParams = new URLSearchParams(search);
   let queryArgProps = {};
 
+  // @ts-ignore
   for (let [key, value] of searchParams.entries()) {
     queryArgProps[key] = value;
   }
@@ -589,6 +600,7 @@ export function loadIntercom(
   var ic = w.Intercom;
   if (typeof ic === "function") {
     ic("reattach_activator");
+    // @ts-ignore
     ic("update", w.intercomSettings);
   } else {
     var d = document;
