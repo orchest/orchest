@@ -513,6 +513,86 @@ class OrchestApp:
             utils.echo("The given pipeline does not exist in the given project.")
             raise typer.Exit(code=1)
 
+        # Environments must be validated before POSTING the job draft,
+        # because image locking happens the moment a job is created.
+        repeat = True
+        allowed_build_failures = 5
+        while repeat:
+            try:
+                status_code, resp = utils.retry_func(
+                    utils.get_response,
+                    _wait_msg="[jobs]: Some environment builds have not yet succeeded.",
+                    url=base_url.format(
+                        path="/catch/api-proxy/api/validations/environments"
+                    ),
+                    data={"project_uuid": project_uuid},
+                    method="POST",
+                )
+            except RuntimeError:
+                utils.echo(
+                    "It seems like Orchest experienced an internal server error."
+                )
+                raise typer.Exit(code=1)
+            else:
+                if status_code != 201:
+                    utils.echo(f"[validations]: Unexpected status code: {status_code}.")
+                    raise typer.Exit(code=1)
+
+                repeat = resp.get("validation") != "pass"
+                if repeat:
+                    # Try to solve each failure. See
+                    # namespace_validations for details about the
+                    # response.
+                    builds = []
+                    for env_uuid, action in zip(resp.get("fail"), resp.get("actions")):
+
+                        if action in ["BUILD", "RETRY"]:
+                            if action == "RETRY":
+                                allowed_build_failures -= 1
+                                if allowed_build_failures <= 0:
+                                    msg = (
+                                        "An environment has reached the "
+                                        "maximum build attempts, exiting."
+                                    )
+                                    utils.echo(msg)
+                                    raise typer.Exit(code=1)
+
+                            builds.append(
+                                {
+                                    "project_uuid": project_uuid,
+                                    "environment_uuid": env_uuid,
+                                }
+                            )
+
+                    if builds:
+                        msg = "Some environments are not built, issuing builds."
+                        if "RETRY" in resp.get("actions"):
+                            msg += " Some environments have previously failed to build."
+                        utils.echo(msg)
+                        status_code, _ = utils.retry_func(
+                            utils.get_response,
+                            _wait_msg=wait_msg_template.format(
+                                endpoint="environments-builds"
+                            ),
+                            data={"environment_build_requests": builds},
+                            url=base_url.format(
+                                path="/catch/api-proxy/api/environment-builds"
+                            ),
+                            method="POST",
+                        )
+
+                        if status_code != 200:
+                            utils.echo(
+                                "[environments-builds]: Unexpected status code: "
+                                f"{status_code}."
+                            )
+                            raise typer.Exit(code=1)
+
+                    utils.echo(
+                        "[Waiting]: some environment builds have not yet succeeded."
+                    )
+                    time.sleep(3)
+
         # Draft job.
         utils.echo("Creating draft job.")
         status_code, resp = utils.retry_func(
@@ -537,38 +617,6 @@ class OrchestApp:
             utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
             raise typer.Exit(code=1)
         job_uuid = resp["uuid"]
-
-        # NOTE: When creating a draft for a job, this triggers the
-        # required environment builds which we need to await before
-        # queueing the job.  This behavior is equal to the behavior
-        # through the `orchest-webserver`.
-        repeat = True
-        while repeat:
-            try:
-                status_code, resp = utils.retry_func(
-                    utils.get_response,
-                    _wait_msg="[jobs]: Environment builds have not yet succeeded.",
-                    url=base_url.format(
-                        path="/catch/api-proxy/api/validations/environments"
-                    ),
-                    data={"project_uuid": project_uuid},
-                    method="POST",
-                )
-            except RuntimeError:
-                utils.echo(
-                    "It seems like Orchest experienced an internal server error."
-                )
-                raise typer.Exit(code=1)
-            else:
-                if status_code != 201:
-                    utils.echo(f"[validations]: Unexpected status code: {status_code}.")
-                    raise typer.Exit(code=1)
-
-                repeat = resp.get("validation") != "pass"
-
-                if repeat:
-                    utils.echo("[Waiting]: environment builds have not yet succeeded.")
-                    time.sleep(3)
 
         # Get pipeline definition needed to construct the stategy json.
         _, resp = utils.retry_func(
