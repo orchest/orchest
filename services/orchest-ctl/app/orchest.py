@@ -20,7 +20,13 @@ from typing import List, Optional, Set, Tuple
 import typer
 
 from app import spec, utils
-from app.config import ORCHEST_IMAGES, ORCHEST_WEBSERVER_ADDRESS, _on_start_images
+from app.config import (
+    ALLOWED_BUILD_FAILURES,
+    INTERNAL_ERR_MESSAGE,
+    ORCHEST_IMAGES,
+    ORCHEST_WEBSERVER_ADDRESS,
+    _on_start_images,
+)
 from app.debug import debug_dump, health_check
 from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
@@ -516,7 +522,7 @@ class OrchestApp:
         # Environments must be validated before POSTING the job draft,
         # because image locking happens the moment a job is created.
         repeat = True
-        allowed_build_failures = 5
+        allowed_build_failures = ALLOWED_BUILD_FAILURES
         while repeat:
             try:
                 status_code, resp = utils.retry_func(
@@ -529,9 +535,7 @@ class OrchestApp:
                     method="POST",
                 )
             except RuntimeError:
-                utils.echo(
-                    "It seems like Orchest experienced an internal server error."
-                )
+                utils.echo(INTERNAL_ERR_MESSAGE)
                 raise typer.Exit(code=1)
             else:
                 if status_code != 201:
@@ -569,17 +573,21 @@ class OrchestApp:
                         if "RETRY" in resp.get("actions"):
                             msg += " Some environments have previously failed to build."
                         utils.echo(msg)
-                        status_code, _ = utils.retry_func(
-                            utils.get_response,
-                            _wait_msg=wait_msg_template.format(
-                                endpoint="environments-builds"
-                            ),
-                            data={"environment_build_requests": builds},
-                            url=base_url.format(
-                                path="/catch/api-proxy/api/environment-builds"
-                            ),
-                            method="POST",
-                        )
+                        try:
+                            status_code, _ = utils.retry_func(
+                                utils.get_response,
+                                _wait_msg=wait_msg_template.format(
+                                    endpoint="environments-builds"
+                                ),
+                                data={"environment_build_requests": builds},
+                                url=base_url.format(
+                                    path="/catch/api-proxy/api/environment-builds"
+                                ),
+                                method="POST",
+                            )
+                        except RuntimeError:
+                            utils.echo(INTERNAL_ERR_MESSAGE)
+                            raise typer.Exit(code=1)
 
                         if status_code != 200:
                             utils.echo(
@@ -594,25 +602,29 @@ class OrchestApp:
                     time.sleep(3)
 
         # Draft job.
-        utils.echo("Creating draft job.")
-        status_code, resp = utils.retry_func(
-            utils.get_response,
-            _wait_msg=wait_msg_template.format(endpoint="jobs"),
-            url=base_url.format(path="/catch/api-proxy/api/jobs/"),
-            data={
-                "draft": True,
-                "project_uuid": project_uuid,
-                "pipeline_uuid": pipeline_uuid,
-                "pipeline_name": pipeline_name,
-                "name": job_name,
-                "parameters": [],
-                "pipeline_run_spec": {
-                    "run_type": "full",
-                    "uuids": None,  # argument is ignored due to "full"
+        try:
+            utils.echo("Creating draft job.")
+            status_code, resp = utils.retry_func(
+                utils.get_response,
+                _wait_msg=wait_msg_template.format(endpoint="jobs"),
+                url=base_url.format(path="/catch/api-proxy/api/jobs/"),
+                data={
+                    "draft": True,
+                    "project_uuid": project_uuid,
+                    "pipeline_uuid": pipeline_uuid,
+                    "pipeline_name": pipeline_name,
+                    "name": job_name,
+                    "parameters": [],
+                    "pipeline_run_spec": {
+                        "run_type": "full",
+                        "uuids": None,  # argument is ignored due to "full"
+                    },
                 },
-            },
-            method="POST",
-        )
+                method="POST",
+            )
+        except RuntimeError:
+            utils.echo(INTERNAL_ERR_MESSAGE)
+            raise typer.Exit(code=1)
         if status_code != 201:
             utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
             raise typer.Exit(code=1)
@@ -667,9 +679,7 @@ class OrchestApp:
                     url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
                 )
             except RuntimeError:
-                utils.echo(
-                    "It seems like Orchest experienced an internal server error."
-                )
+                utils.echo(INTERNAL_ERR_MESSAGE)
                 raise typer.Exit(code=1)
             else:
                 if status_code != 200:
