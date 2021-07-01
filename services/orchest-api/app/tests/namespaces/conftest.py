@@ -184,5 +184,5 @@ def monkeypatch_lock_environment_images(monkeypatch):
         namespace_runs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
     )
     monkeypatch.setattr(
-        namespace_jobs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
+        namespace_jobs, "lock_environment_images_for_job", lambda *args, **kwargs: {}
     )

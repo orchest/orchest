@@ -163,6 +163,10 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
                 # is non-empty.
                 trigger_conditional_jupyter_build(app)
 
+                # Make environments unavailable to a user after an
+                # update.
+                utils.process_stale_environment_images()
+
             except FileExistsError:
                 app.logger.info("/tmp/cleanup_done exists. Skipping cleanup.")
             except Exception as e:
