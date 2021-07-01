@@ -254,7 +254,7 @@ const EnvironmentList = (props) => {
             </>
           )}
         </span>,
-        <span>{environmentBuild ? environmentBuild.status : "UNBUILT"}</span>,
+        <span>{environmentBuild ? environmentBuild.status : "NOT BUILT"}</span>,
       ]);
     }
     return listData;
