@@ -20,7 +20,13 @@ from typing import List, Optional, Set, Tuple
 import typer
 
 from app import spec, utils
-from app.config import ORCHEST_IMAGES, ORCHEST_WEBSERVER_ADDRESS, _on_start_images
+from app.config import (
+    ALLOWED_BUILD_FAILURES,
+    INTERNAL_ERR_MESSAGE,
+    ORCHEST_IMAGES,
+    ORCHEST_WEBSERVER_ADDRESS,
+    _on_start_images,
+)
 from app.debug import debug_dump, health_check
 from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
@@ -137,10 +143,13 @@ class OrchestApp:
         logger.info("Updating images:\n" + "\n".join(to_pull_images))
         self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
 
-        # Delete user-built environment images to avoid the issue of
-        # having environments with mismatching Orchest SDK versions.
-        logger.info("Deleting user-built environment images.")
-        self.resource_manager.remove_env_build_imgs()
+        # Add a tag to user environment images to mark them for removal.
+        # The orchest-api will deal with the rest of the logic related
+        # to making environment images unavailable to users on update
+        # to avoid the issue of having environments with mismatching
+        # Orchest SDK versions.
+        logger.info("Tagging user-built environment images for removal.")
+        self.resource_manager.tag_environment_images_for_removal()
 
         # Delete user-built Jupyter image to make sure the Jupyter
         # server is updated to the latest version of Orchest.
@@ -244,7 +253,7 @@ class OrchestApp:
                     stdouts["rabbitmq-server"]["id"],
                     (
                         'su rabbitmq -c "/opt/rabbitmq/sbin/rabbitmq-diagnostics '
-                        '-q check_port_connectivity"'
+                        '-q ping"'
                     ),
                 )
 
@@ -462,7 +471,7 @@ class OrchestApp:
 
         raise typer.Exit(code=exit_code)
 
-    def run(self, job_name, project_name, pipeline_name, wait=False):
+    def run(self, job_name, project_name, pipeline_name, wait=False, rm=False):
         """Queues the pipeline as a one-time job."""
         # Orchest has to be running for this command to work, since we
         # will be querying the orchest-webserver directly.
@@ -510,41 +519,15 @@ class OrchestApp:
             utils.echo("The given pipeline does not exist in the given project.")
             raise typer.Exit(code=1)
 
-        # Draft job.
-        utils.echo("Creating draft job.")
-        status_code, resp = utils.retry_func(
-            utils.get_response,
-            _wait_msg=wait_msg_template.format(endpoint="jobs"),
-            url=base_url.format(path="/catch/api-proxy/api/jobs/"),
-            data={
-                "draft": True,
-                "project_uuid": project_uuid,
-                "pipeline_uuid": pipeline_uuid,
-                "pipeline_name": pipeline_name,
-                "name": job_name,
-                "parameters": [],
-                "pipeline_run_spec": {
-                    "run_type": "full",
-                    "uuids": None,  # argument is ignored due to "full"
-                },
-            },
-            method="POST",
-        )
-        if status_code != 201:
-            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
-            raise typer.Exit(code=1)
-        job_uuid = resp["uuid"]
-
-        # NOTE: When creating a draft for a job, this triggers the
-        # required environment builds which we need to await before
-        # queueing the job.  This behavior is equal to the behavior
-        # through the `orchest-webserver`.
+        # Environments must be validated before POSTING the job draft,
+        # because image locking happens the moment a job is created.
         repeat = True
+        allowed_build_failures = ALLOWED_BUILD_FAILURES
         while repeat:
             try:
                 status_code, resp = utils.retry_func(
                     utils.get_response,
-                    _wait_msg="[jobs]: Environment builds have not yet succeeded.",
+                    _wait_msg="[jobs]: Some environment builds have not yet succeeded.",
                     url=base_url.format(
                         path="/catch/api-proxy/api/validations/environments"
                     ),
@@ -552,9 +535,7 @@ class OrchestApp:
                     method="POST",
                 )
             except RuntimeError:
-                utils.echo(
-                    "It seems like Orchest experienced an internal server error."
-                )
+                utils.echo(INTERNAL_ERR_MESSAGE)
                 raise typer.Exit(code=1)
             else:
                 if status_code != 201:
@@ -562,10 +543,92 @@ class OrchestApp:
                     raise typer.Exit(code=1)
 
                 repeat = resp.get("validation") != "pass"
-
                 if repeat:
-                    utils.echo("[Waiting]: environment builds have not yet succeeded.")
+                    # Try to solve each failure. See
+                    # namespace_validations for details about the
+                    # response.
+                    builds = []
+                    for env_uuid, action in zip(resp.get("fail"), resp.get("actions")):
+
+                        if action in ["BUILD", "RETRY"]:
+                            if action == "RETRY":
+                                allowed_build_failures -= 1
+                                if allowed_build_failures <= 0:
+                                    msg = (
+                                        "An environment has reached the "
+                                        "maximum build attempts, exiting."
+                                    )
+                                    utils.echo(msg)
+                                    raise typer.Exit(code=1)
+
+                            builds.append(
+                                {
+                                    "project_uuid": project_uuid,
+                                    "environment_uuid": env_uuid,
+                                }
+                            )
+
+                    if builds:
+                        msg = "Some environments are not built, issuing builds."
+                        if "RETRY" in resp.get("actions"):
+                            msg += " Some environments have previously failed to build."
+                        utils.echo(msg)
+                        try:
+                            status_code, _ = utils.retry_func(
+                                utils.get_response,
+                                _wait_msg=wait_msg_template.format(
+                                    endpoint="environments-builds"
+                                ),
+                                data={"environment_build_requests": builds},
+                                url=base_url.format(
+                                    path="/catch/api-proxy/api/environment-builds"
+                                ),
+                                method="POST",
+                            )
+                        except RuntimeError:
+                            utils.echo(INTERNAL_ERR_MESSAGE)
+                            raise typer.Exit(code=1)
+
+                        if status_code != 200:
+                            utils.echo(
+                                "[environments-builds]: Unexpected status code: "
+                                f"{status_code}."
+                            )
+                            raise typer.Exit(code=1)
+
+                    utils.echo(
+                        "[Waiting]: some environment builds have not yet succeeded."
+                    )
                     time.sleep(3)
+
+        # Draft job.
+        try:
+            utils.echo("Creating draft job.")
+            status_code, resp = utils.retry_func(
+                utils.get_response,
+                _wait_msg=wait_msg_template.format(endpoint="jobs"),
+                url=base_url.format(path="/catch/api-proxy/api/jobs/"),
+                data={
+                    "draft": True,
+                    "project_uuid": project_uuid,
+                    "pipeline_uuid": pipeline_uuid,
+                    "pipeline_name": pipeline_name,
+                    "name": job_name,
+                    "parameters": [],
+                    "pipeline_run_spec": {
+                        "run_type": "full",
+                        "uuids": None,  # argument is ignored due to "full"
+                    },
+                },
+                method="POST",
+            )
+        except RuntimeError:
+            utils.echo(INTERNAL_ERR_MESSAGE)
+            raise typer.Exit(code=1)
+        if status_code != 201:
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+            raise typer.Exit(code=1)
+        job_uuid = resp["uuid"]
 
         # Get pipeline definition needed to construct the stategy json.
         _, resp = utils.retry_func(
@@ -616,9 +679,7 @@ class OrchestApp:
                     url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
                 )
             except RuntimeError:
-                utils.echo(
-                    "It seems like Orchest experienced an internal server error."
-                )
+                utils.echo(INTERNAL_ERR_MESSAGE)
                 raise typer.Exit(code=1)
             else:
                 if status_code != 200:
@@ -632,6 +693,24 @@ class OrchestApp:
                     time.sleep(3)
 
         utils.echo(f"Successfully ran the {pipeline_name} pipeline as a one-time job.")
+
+        if not rm:
+            return
+
+        # Remove the job.
+        utils.echo("Removing job.")
+        status_code, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="jobs"),
+            url=base_url.format(path=f"/catch/api-proxy/api/jobs/cleanup/{job_uuid}"),
+            method="DELETE",
+        )
+        if status_code != 200:
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+            utils.echo("Could not remove job.")
+            raise typer.Exit(code=1)
+
+        utils.echo("Successfully removed job state.")
 
     def _is_restarting(self) -> bool:
         """Check if Orchest is restarting.

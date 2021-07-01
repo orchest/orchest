@@ -136,6 +136,7 @@ export const DialogBody = styled("div", {
   include: "box",
   paddingLeft: "$$padding",
   paddingRight: "$$padding",
+  color: "$gray800",
 });
 
 export const DialogFooter = styled("footer", {

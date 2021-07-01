@@ -5,6 +5,7 @@ import {
   MDCDialogReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
+import { Box } from "@orchest/design-system";
 import { RefManager, makeRequest } from "@orchest/lib-utils";
 import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
@@ -185,8 +186,12 @@ const BuildPendingDialog = (props) => {
       onClose={props.onClose}
       content={
         <div>
-          <p className="push-down">{state?.message}</p>
-          {state?.building && <MDCLinearProgressReact />}
+          <p>{state?.message}</p>
+          {state?.building && (
+            <Box css={{ marginTop: "$4" }}>
+              <MDCLinearProgressReact />
+            </Box>
+          )}
         </div>
       }
       actions={

@@ -61,7 +61,9 @@ def write_environment_dockerfile(
     """
     statements = []
     statements.append(f"FROM {base_image}")
-    # use this to cleanup in case of failure
+    # These labels are coupled with the logic that marks environment
+    # images for removal on update and the deletion of said stale
+    # images.
     statements.append("LABEL _orchest_env_build_is_intermediate=1")
     statements.append(f"LABEL _orchest_env_build_task_uuid={task_uuid}")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
