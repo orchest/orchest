@@ -1,7 +1,9 @@
+// @ts-check
 import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
   constructor(jupyterHolderJEl) {
+    // @ts-ignore
     this.jupyterHolder = $(jupyterHolderJEl);
     this.iframe = undefined;
     this.baseAddress = "";
@@ -56,10 +58,13 @@ class Jupyter {
   }
 
   _reloadFilesFromDisk() {
+    // @ts-ignore
     if (this.iframe.contentWindow._orchest_app) {
       this.reloadOnShow = false;
 
+      // @ts-ignore
       let lab = this.iframe.contentWindow._orchest_app;
+      // @ts-ignore
       let docManager = this.iframe.contentWindow._orchest_docmanager;
 
       let citer = lab.shell.widgets("main");
@@ -88,6 +93,7 @@ class Jupyter {
 
   isJupyterLoaded() {
     try {
+      // @ts-ignore
       let widgets = this.iframe.contentWindow._orchest_app.shell.widgets();
 
       // a widget is on screen
@@ -100,6 +106,7 @@ class Jupyter {
         }
       }
       return (
+        // @ts-ignore
         this.iframe.contentWindow._orchest_app !== undefined && widgetOnScreen
       );
     } catch {
@@ -110,10 +117,13 @@ class Jupyter {
   isJupyterShellRenderedCorrectly() {
     try {
       return (
+        // @ts-ignore
         this.iframe.contentWindow._orchest_app.shell.node.querySelector(
           "#jp-main-content-panel"
         ).clientWidth ===
+          // @ts-ignore
           this.iframe.contentWindow._orchest_app.shell.node.clientWidth ||
+        // @ts-ignore
         this.iframe.contentWindow._orchest_app.shell.node.querySelector(
           "#jp-main-content-panel"
         ).clientWidth > 500
@@ -150,7 +160,9 @@ class Jupyter {
       "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
       "is attached to it.";
 
+    // @ts-ignore
     if (this.iframe.contentWindow._orchest_app) {
+      // @ts-ignore
       let docManager = this.iframe.contentWindow._orchest_docmanager;
 
       let notebookWidget = docManager.findWidget(notebook);
@@ -164,6 +176,7 @@ class Jupyter {
           if (sessionContext.session.kernel.name !== kernel) {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
+              // @ts-ignore
               orchest.confirm("Warning", warningMessage, () => {
                 sessionContext
                   .changeKernel({ name: kernel })
@@ -186,6 +199,7 @@ class Jupyter {
               if (notebookSession.kernel.name !== kernel) {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
+                  // @ts-ignore
                   orchest.confirm("Warning", warningMessage, () => {
                     docManager.services.sessions
                       .shutdown(notebookSession.id)
@@ -223,10 +237,12 @@ class Jupyter {
       () => {
         if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
           try {
+            // @ts-ignore
             this.iframe.contentWindow._orchest_docmanager.openOrReveal(
               filePath
             );
             return (
+              // @ts-ignore
               this.iframe.contentWindow._orchest_docmanager.findWidget(
                 filePath
               ) !== undefined
@@ -247,7 +263,9 @@ class Jupyter {
   initializeJupyter() {
     this.iframe = document.createElement("iframe");
 
+    // @ts-ignore
     $(this.iframe).attr("width", "100%");
+    // @ts-ignore
     $(this.iframe).attr("height", "100%");
 
     this.jupyterHolder.append(this.iframe);
