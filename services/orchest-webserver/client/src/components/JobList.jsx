@@ -339,7 +339,9 @@ const JobList = (props) => {
     // get size of project dir to show warning if necessary
     fetchProjectDirSize();
 
-    return () => promiseManager.cancelCancelablePromises();
+    return () => {
+      promiseManager.cancelCancelablePromises();
+    };
   }, []);
 
   const pipelineOptions =

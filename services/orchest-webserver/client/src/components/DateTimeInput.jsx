@@ -4,7 +4,7 @@ import { parseISO } from "date-fns";
 import { MDCTextFieldReact } from "@orchest/lib-mdc";
 
 /**
- * @typedef {{ disabled?: boolean; onFocus?: any; }} TDateTimeInputProps
+ * @typedef {{ ref?: any; disabled?: boolean; onFocus?: any; }} TDateTimeInputProps
  * @type {React.FC<TDateTimeInputProps>}
  */
 const DateTimeInput = React.forwardRef(({ disabled, onFocus }, ref) => {
