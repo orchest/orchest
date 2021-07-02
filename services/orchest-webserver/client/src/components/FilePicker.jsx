@@ -6,7 +6,6 @@ import {
   collapseDoubleDots,
   RefManager,
 } from "@orchest/lib-utils";
-import useTimeout from "@/hooks/use-timeout";
 
 /**
  * @typedef {{
@@ -231,10 +230,16 @@ const FilePicker = React.forwardRef((props, ref) => {
     setBlurTimeout(0);
   };
 
-  useTimeout(() => {
-    if (document.activeElement !== refManager.refs.fileMenu)
-      setState((prevState) => ({ ...prevState, focused: false }));
-  }, blurTimeout);
+  React.useEffect(() => {
+    if (blurTimeout === null) return;
+
+    const manageFileMenuFocus = setTimeout(() => {
+      if (document.activeElement !== refManager.refs.fileMenu)
+        setState((prevState) => ({ ...prevState, focused: false }));
+    }, blurTimeout);
+
+    return () => clearTimeout(manageFileMenuFocus);
+  }, [blurTimeout]);
 
   React.useEffect(() => {
     props?.onChangeValue(value);
