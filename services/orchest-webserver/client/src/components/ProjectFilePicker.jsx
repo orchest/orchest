@@ -1,3 +1,6 @@
+// @ts-check
+// @TODO - Functional Component Transformation (then remove lines 1-2)
+//         https://github.com/orchest/orchest/issues/259
 import React, { Fragment } from "react";
 import {
   MDCButtonReact,
@@ -214,6 +217,7 @@ class ProjectFilePicker extends React.Component {
 
     // TODO: case insensitive extension checking?
     if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
+      // @ts-ignore
       orchest.alert(
         "Error",
         <div>
@@ -258,6 +262,7 @@ class ProjectFilePicker extends React.Component {
       })
       .catch((error) => {
         if (error.status == 409) {
+          // @ts-ignore
           orchest.alert("Error", "A file with this name already exists.");
         }
         console.log(error);
@@ -348,6 +353,7 @@ class ProjectFilePicker extends React.Component {
         })()}
         {this.state.cwd && this.state.tree && (
           <FilePicker
+            // @ts-ignore
             ref={this.refManager.nrefs.filePicker}
             tree={this.state.tree}
             cwd={this.state.cwd}

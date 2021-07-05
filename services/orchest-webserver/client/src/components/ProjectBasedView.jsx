@@ -1,3 +1,6 @@
+// @ts-check
+// @TODO - Functional Component Transformation (then remove lines 1-2)
+//         https://github.com/orchest/orchest/issues/259
 import React from "react";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import ProjectsView from "../views/ProjectsView";
@@ -8,6 +11,7 @@ class ProjectBasedView extends React.Component {
   }
 
   projectsButtonHandler() {
+    // @ts-ignore
     orchest.loadView(ProjectsView);
   }
 

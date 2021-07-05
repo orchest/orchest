@@ -1,3 +1,6 @@
+// @ts-check
+// @TODO - Functional Component Transformation (then remove lines 1-2)
+//         https://github.com/orchest/orchest/issues/259
 import React, { Fragment } from "react";
 import { MDCDataTableReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";

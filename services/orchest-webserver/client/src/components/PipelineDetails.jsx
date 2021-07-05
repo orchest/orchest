@@ -1,3 +1,6 @@
+// @ts-check
+// @TODO - Functional Component Transformation (then remove lines 1-2)
+//         https://github.com/orchest/orchest/issues/259
 import React from "react";
 import { RefManager } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
@@ -24,8 +27,11 @@ class PipelineDetails extends React.Component {
   }
 
   componentWillUnmount() {
+    // @ts-ignore
     $(window).off("resize.pipelineDetails");
+    // @ts-ignore
     $(window).off("mousemove.pipelineDetails");
+    // @ts-ignore
     $(window).off("mouseup.pipelineDetails");
   }
 
@@ -41,9 +47,13 @@ class PipelineDetails extends React.Component {
 
   componentDidMount() {
     // overflow checks
+    // @ts-ignore
     $(window).on("resize.pipelineDetails", this.overflowChecks.bind(this));
+    // @ts-ignore
     $(window).on("mousemove.pipelineDetails", this.onMouseMove.bind(this));
+    // @ts-ignore
     $(window).on("mousedown.pipelineDetails", this.onMouseDown.bind(this));
+    // @ts-ignore
     $(window).on("mouseup.pipelineDetails", this.onMouseUp.bind(this));
     this.overflowChecks();
   }
@@ -76,10 +86,14 @@ class PipelineDetails extends React.Component {
 
   // TODO: refactor to use OverflowListener
   overflowChecks() {
+    // @ts-ignore
     $(".overflowable").each(function () {
+      // @ts-ignore
       if ($(this).overflowing()) {
+        // @ts-ignore
         $(this).addClass("overflown");
       } else {
+        // @ts-ignore
         $(this).removeClass("overflown");
       }
     });

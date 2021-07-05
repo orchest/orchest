@@ -1,3 +1,6 @@
+// @ts-check
+// @TODO - Functional Component Transformation (then remove lines 1-2)
+//         https://github.com/orchest/orchest/issues/259
 import React from "react";
 import _ from "lodash";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -51,7 +54,9 @@ class PipelineDetailsProperties extends React.Component {
 
   componentWillUnmount() {
     this.promiseManager.cancelCancelablePromises();
+    // @ts-ignore
     $(document).off("mouseup.connectionList");
+    // @ts-ignore
     $(document).off("mousemove.connectionList");
   }
 
@@ -171,6 +176,7 @@ class PipelineDetailsProperties extends React.Component {
     this.props.onSave(step);
     if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
       let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
+      // @ts-ignore
       orchest.jupyter.setNotebookKernel(
         collapseDoubleDots(this.props.pipelineCwd + step["file_path"]).slice(1),
         kernelName
@@ -238,10 +244,12 @@ class PipelineDetailsProperties extends React.Component {
     let connectionItemOffset = 0;
     let oldConnectionIndex = 0;
     let newConnectionIndex = 0;
+    // @ts-ignore
     let numConnectionListItems = $(_this.refManager.refs.connectionList).find(
       ".connection-item"
     ).length;
 
+    // @ts-ignore
     $(this.refManager.refs.connectionList).on(
       "mousedown",
       ".connection-item",
@@ -249,10 +257,13 @@ class PipelineDetailsProperties extends React.Component {
         previousPosition = e.clientY;
         connectionItemOffset = 0;
 
+        // @ts-ignore
         $(_this.refManager.refs.connectionList).addClass("dragging");
 
+        // @ts-ignore
         oldConnectionIndex = $(this).index();
 
+        // @ts-ignore
         $(this).addClass("selected");
 
         console.log(
@@ -261,7 +272,9 @@ class PipelineDetailsProperties extends React.Component {
       }
     );
 
+    // @ts-ignore
     $(document).on("mousemove.connectionList", function (e) {
+      // @ts-ignore
       let selectedConnection = $(_this.refManager.refs.connectionList).find(
         ".connection-item.selected"
       );
@@ -301,6 +314,7 @@ class PipelineDetailsProperties extends React.Component {
         // evaluate swap classes for all elements in list besides selectedConnection
         for (let i = 0; i < numConnectionListItems; i++) {
           if (i != oldConnectionIndex) {
+            // @ts-ignore
             let connectionListItem = $(_this.refManager.refs.connectionList)
               .find(".connection-item")
               .eq(i);
@@ -319,7 +333,9 @@ class PipelineDetailsProperties extends React.Component {
     });
 
     // Note, listener should be unmounted
+    // @ts-ignore
     $(document).on("mouseup.connectionList", function (e) {
+      // @ts-ignore
       let selectedConnection = $(_this.refManager.refs.connectionList).find(
         ".connection-item.selected"
       );
@@ -328,11 +344,13 @@ class PipelineDetailsProperties extends React.Component {
         selectedConnection.css({ transform: "" });
         selectedConnection.removeClass("selected");
 
+        // @ts-ignore
         $(_this.refManager.refs.connectionList)
           .find(".connection-item")
           .removeClass("swapped-up")
           .removeClass("swapped-down");
 
+        // @ts-ignore
         $(_this.refManager.refs.connectionList).removeClass("dragging");
 
         _this.swapConnectionOrder(oldConnectionIndex, newConnectionIndex);

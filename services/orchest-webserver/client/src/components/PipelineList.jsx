@@ -1,3 +1,6 @@
+// @ts-check
+// @TODO - Functional Component Transformation (then remove lines 1-2)
+//         https://github.com/orchest/orchest/issues/259
 import React, { Fragment } from "react";
 import {
   makeRequest,
@@ -24,8 +27,6 @@ const INITIAL_PIPELINE_PATH = "pipeline.orchest";
 
 class PipelineList extends React.Component {
   static contextType = OrchestContext;
-
-  componentWillUnmount() {}
 
   constructor(props, context) {
     super(props, context);
@@ -96,6 +97,7 @@ class PipelineList extends React.Component {
       })
       .catch((e) => {
         if (e && e.status == 404) {
+          // @ts-ignore
           orchest.loadView(ProjectsView);
         }
       });
@@ -114,6 +116,7 @@ class PipelineList extends React.Component {
       props.queryArgs.read_only = "true";
     }
 
+    // @ts-ignore
     orchest.loadView(PipelineView, props);
   }
 
@@ -134,10 +137,12 @@ class PipelineList extends React.Component {
     let selectedIndices = this.refManager.refs.pipelineListView.getSelectedRowIndices();
 
     if (selectedIndices.length === 0) {
+      // @ts-ignore
       orchest.alert("Error", "You haven't selected a pipeline.");
       return;
     }
 
+    // @ts-ignore
     orchest.confirm(
       "Warning",
       "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
@@ -178,16 +183,19 @@ class PipelineList extends React.Component {
     let pipelinePath = this.state.createPipelinePath;
 
     if (!pipelineName) {
+      // @ts-ignore
       orchest.alert("Error", "Please enter a name.");
       return;
     }
 
     if (!pipelinePath) {
+      // @ts-ignore
       orchest.alert("Error", "Please enter the path for the pipeline.");
       return;
     }
 
     if (!pipelinePath.endsWith(".orchest")) {
+      // @ts-ignore
       orchest.alert("Error", "The path should end in the .orchest extension.");
       return;
     }
@@ -223,11 +231,13 @@ class PipelineList extends React.Component {
         if (!response.isCanceled) {
           try {
             let data = JSON.parse(response.body);
+            // @ts-ignore
             orchest.alert(
               "Error",
               "Could not create pipeline. " + data.message
             );
           } catch {
+            // @ts-ignore
             orchest.alert(
               "Error",
               "Could not create pipeline. Reason unknown."
