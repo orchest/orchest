@@ -46,13 +46,12 @@ const EditJobView = (props) => {
     selectedIndices: [],
     scheduleOption: "now",
     runJobLoading: false,
+    runJobCompleted: false,
     pipeline: undefined,
     cronString: undefined,
     strategyJSON: {},
     unsavedChanges: false,
   });
-
-  console.log(props, state);
 
   const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
@@ -69,8 +68,6 @@ const EditJobView = (props) => {
     fetchJobPromise.promise.then((response) => {
       try {
         let job = JSON.parse(response);
-
-        console.log(job);
 
         setState((prevState) => ({
           ...prevState,
@@ -390,25 +387,22 @@ const EditJobView = (props) => {
 
     putJobPromise.promise
       .then(() => {
-        setState((prevState) => ({ ...prevState, unsavedChanges: false }));
-        orchest.loadView(JobsView, {
-          queryArgs: {
-            project_uuid: state.job.project_uuid,
-          },
-        });
+        setState((prevState) => ({
+          ...prevState,
+          unsavedChanges: false,
+          runJobCompleted: true,
+        }));
       })
       .catch((response) => {
         if (!response.isCanceled) {
           try {
             let result = JSON.parse(response.body);
-
             orchest.alert("Error", "Failed to start job. " + result.message);
-
-            orchest.loadView(JobsView, {
-              queryArgs: {
-                project_uuid: state.job.project_uuid,
-              },
-            });
+            setState((prevState) => ({
+              ...prevState,
+              unsavedChanges: false,
+              runJobCompleted: true,
+            }));
           } catch (error) {
             console.log("error");
           }
@@ -619,13 +613,6 @@ const EditJobView = (props) => {
 
   React.useEffect(() => {
     fetchJob();
-
-    return () => {
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: false,
-      });
-    };
   }, []);
 
   React.useEffect(() => {
@@ -634,8 +621,6 @@ const EditJobView = (props) => {
       payload: state.unsavedChanges,
     });
   }, [state.unsavedChanges]);
-
-  React.useEffect(() => {}, [state.runJobLoading]);
 
   React.useEffect(() => {
     if (
@@ -648,6 +633,17 @@ const EditJobView = (props) => {
       setState((prevState) => ({ ...prevState, shouldFetchPipeline: false }));
     }
   }, [state.shouldFetchPipeline, state.job]);
+
+  React.useEffect(() => {
+    if (state.runJobCompleted) {
+      setState((prevState) => ({ ...prevState, runJobCompleted: false }));
+      orchest.loadView(JobsView, {
+        queryArgs: {
+          project_uuid: state.job.project_uuid,
+        },
+      });
+    }
+  }, [state.runJobCompleted]);
 
   return (
     <Layout>
