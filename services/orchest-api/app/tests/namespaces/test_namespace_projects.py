@@ -116,7 +116,7 @@ def test_delete_existing_with_job(
     client, celery, job, abortable_async_res, monkeypatch
 ):
     monkeypatch.setattr(
-        namespace_jobs, "lock_environment_images_for_run", lambda *args, **kwargs: {}
+        namespace_jobs, "lock_environment_images_for_job", lambda *args, **kwargs: {}
     )
     # client.put(f"/api/jobs/{job.uuid}", json={"confirm_draft": True})
 

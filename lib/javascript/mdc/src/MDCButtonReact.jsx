@@ -43,6 +43,7 @@ export class MDCButtonReact extends React.Component {
         }
         ref={this.refManager.nrefs.button}
         onClick={this.props.onClick}
+        form={this.props.form}
         className={topClasses}
         tabIndex="0"
         type={this.props.submitButton ? "submit" : "button"}

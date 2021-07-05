@@ -12,6 +12,7 @@ Jobs
    For reproducibility Orchest makes a full snapshot by copying the project directory. So make sure
    to write data to ``/data`` in your scripts, otherwise the data will be included in the snapshot.
 
+
 .. _parametrize pipeline section:
 
 Parametrizing your pipeline and steps
@@ -55,6 +56,7 @@ started on using parameters inside your scripts.
 Running a job
 -------------
 
+
 Make sure you have first read the previous section on how to parametrize your pipeline.  With jobs
 you get to try out all your modeling ideas by iterating over different parameter values. For now you
 can think of it as a `grid search <https://scikit-learn.org/stable/modules/grid_search.html>`_. To
@@ -76,3 +78,8 @@ To inspect the result of your job, simply click on the job you just created, cho
 pipeline run (the one you want to inspect) and open *View pipeline*. The pipeline is now opened in
 :ref:`read-only mode <read-only mode>` giving you the opportunity to check the logs or to open the
 HTML version of you notebooks.
+
+.. note::
+   Upon job creation, Orchest takes a snapshot of the required environments.  This way you can
+   freely iterate on and update your existing environments without worrying about breaking your
+   existing jobs.

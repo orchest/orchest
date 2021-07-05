@@ -187,7 +187,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
                 json.dump(pipeline_json, json_file, indent=4, sort_keys=True)
 
     def _revert(self):
-        Pipeline.query.filter(
+        Pipeline.query.filter_by(
             project_uuid=self.collateral_kwargs["project_uuid"],
             uuid=self.collateral_kwargs["pipeline_uuid"],
             path=self.collateral_kwargs["pipeline_path"],

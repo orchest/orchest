@@ -14,7 +14,6 @@ import {
 } from "@orchest/lib-utils";
 
 import {
-  checkGate,
   getPipelineJSONEndpoint,
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -342,22 +341,7 @@ class EditJobView extends React.Component {
     let validation = this.validateJobConfig();
 
     if (validation.pass === true) {
-      checkGate(this.state.job.project_uuid)
-        .then(() => {
-          this.runJob();
-        })
-        .catch((result) => {
-          if (result.reason === "gate-failed") {
-            orchest.requestBuild(
-              this.state.job.project_uuid,
-              result.data,
-              "CreateJob",
-              () => {
-                this.attemptRunJob();
-              }
-            );
-          }
-        });
+      this.runJob();
     } else {
       orchest.alert("Error", validation.reason);
     }
