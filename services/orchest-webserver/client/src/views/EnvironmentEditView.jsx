@@ -411,11 +411,6 @@ const EnvironmentEditView = (props) => {
   React.useEffect(() => {
     if (props.queryArgs.environment_uuid) fetchEnvironment();
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
