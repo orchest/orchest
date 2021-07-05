@@ -11,6 +11,19 @@ export interface IMainDrawerProps {
   selectedElement: string;
 }
 
+const items = [
+  [
+    { label: "Pipelines", icon: "device_hub", view: "PipelinesView" },
+    { label: "Jobs", icon: "pending_actions", view: "JobsView" },
+    { label: "Environments", icon: "view_comfy", view: "EnvironmentsView" },
+  ],
+  [
+    { label: "Projects", icon: "format_list_bulleted", view: "ProjectsView" },
+    { label: "File manager", icon: "folder_open", view: "FileManagerView" },
+    { label: "Settings", icon: "settings", view: "SettingsView" },
+  ],
+] as const;
+
 const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
   const context = useOrchest();
 
@@ -23,31 +36,16 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
   const setDrawerSelectedElement = (viewName) => {
     if (drawerIsMounted) {
       // resolve mapped parent view
-      let rootViewName = getViewDrawerParentViewName(viewName);
+      const rootViewName = getViewDrawerParentViewName(viewName);
 
-      let foundRootViewInList = false;
+      const selectedView = drawer?.list?.listElements
+        ?.map((listElement, i) => ({
+          index: i,
+          view: listElement.attributes.getNamedItem("data-react-view")?.value,
+        }))
+        ?.find((listElement) => listElement.view === rootViewName);
 
-      for (let x = 0; x < drawer?.list?.listElements?.length; x++) {
-        let listElement = drawer?.list?.listElements[x];
-
-        let elementViewName = listElement.attributes.getNamedItem(
-          "data-react-view"
-        );
-
-        if (elementViewName) {
-          elementViewName = elementViewName.value;
-
-          if (rootViewName === elementViewName) {
-            drawer.list.selectedIndex = x;
-            foundRootViewInList = true;
-            break;
-          }
-        }
-      }
-
-      if (!foundRootViewInList) {
-        drawer.list.selectedIndex = -1;
-      }
+      drawer.list.selectedIndex = selectedView?.index || -1;
     }
   };
 
@@ -77,34 +75,10 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
 
       initMDCDrawer.open = context.state.drawerIsOpen;
       initMDCDrawer.list.singleSelection = true;
-      initMDCDrawer.listen("MDCList:action", (e) => {
-        // @ts-ignore
-        let selectedIndex = e.detail.index;
-
-        let listElement = initMDCDrawer.list.listElements[selectedIndex];
-
-        if (listElement.attributes.getNamedItem("data-react-view")) {
-          let viewName = listElement.attributes.getNamedItem("data-react-view");
-          if (viewName) {
-            // @ts-ignore
-            viewName = viewName.value;
-            orchest.loadView(nameToComponent(viewName));
-          }
-        }
-      });
 
       initMDCDrawer.listen("MDCDrawer:opened", () => {
         document.body.focus();
       });
-
-      // // Avoid anchor link clicking default behavior.
-      Array.from(
-        window.document.querySelectorAll(".mdc-drawer a[href='#']")
-      ).map((drawerLink) =>
-        drawerLink.addEventListener("click", (e) => {
-          e.preventDefault();
-        })
-      );
 
       setDrawer(initMDCDrawer);
     }
@@ -114,79 +88,45 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
     <aside className="mdc-drawer mdc-drawer--dismissible" ref={drawerRef}>
       <div className="mdc-drawer__content">
         <nav className="mdc-list">
-          <a className="mdc-list-item" data-react-view="PipelinesView" href="#">
-            <span className="mdc-list-item__ripple" />
-            <i
-              className="material-icons mdc-list-item__graphic"
-              aria-hidden="true"
-            >
-              device_hub
-            </i>
-            <span className="mdc-list-item__text">Pipelines</span>
-          </a>
-          <a className="mdc-list-item" data-react-view="JobsView" href="#">
-            <span className="mdc-list-item__ripple" />
-            <i
-              className="material-icons mdc-list-item__graphic"
-              aria-hidden="true"
-            >
-              pending_actions
-            </i>
-            <span className="mdc-list-item__text">Jobs</span>
-          </a>
-          <a
-            className="mdc-list-item"
-            data-react-view="EnvironmentsView"
-            href="#"
-          >
-            <span className="mdc-list-item__ripple" />
-            <i
-              className="material-icons mdc-list-item__graphic"
-              aria-hidden="true"
-            >
-              view_comfy
-            </i>
-            <span className="mdc-list-item__text">Environments</span>
-          </a>
-          <li role="separator" className="mdc-list-divider" />
-          <a
-            className="mdc-list-item mdc-list-item--activated"
-            data-react-view="ProjectsView"
-            href="#"
-          >
-            <span className="mdc-list-item__ripple" />
-            <i
-              className="material-icons mdc-list-item__graphic"
-              aria-hidden="true"
-            >
-              format_list_bulleted
-            </i>
-            <span className="mdc-list-item__text">Projects</span>
-          </a>
-          <a
-            className="mdc-list-item"
-            data-react-view="FileManagerView"
-            href="#"
-          >
-            <span className="mdc-list-item__ripple" />
-            <i
-              className="material-icons mdc-list-item__graphic"
-              aria-hidden="true"
-            >
-              folder_open
-            </i>
-            <span className="mdc-list-item__text">File manager</span>
-          </a>
-          <a className="mdc-list-item" data-react-view="SettingsView" href="#">
-            <span className="mdc-list-item__ripple" />
-            <i
-              className="material-icons mdc-list-item__graphic"
-              aria-hidden="true"
-            >
-              settings
-            </i>
-            <span className="mdc-list-item__text">Settings</span>
-          </a>
+          {items
+            .map((group) =>
+              group.map((item) => {
+                return (
+                  <a
+                    key={item.view}
+                    className="mdc-list-item"
+                    data-react-view={item.view}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      orchest.loadView(nameToComponent(item.view));
+                    }}
+                  >
+                    <span className="mdc-list-item__ripple" />
+                    <i
+                      className="material-icons mdc-list-item__graphic"
+                      aria-hidden="true"
+                    >
+                      {item.icon}
+                    </i>
+                    <span className="mdc-list-item__text">{item.label}</span>
+                  </a>
+                );
+              })
+            )
+            .reduce(
+              (acc, cv, i) =>
+                acc === null ? (
+                  cv
+                ) : (
+                  <React.Fragment key={`mainDrawerGroup-${i}`}>
+                    {acc}
+                    <hr role="separator" className="mdc-list-divider" />
+                    {cv}
+                  </React.Fragment>
+                ),
+              null
+            )}
         </nav>
       </div>
     </aside>
