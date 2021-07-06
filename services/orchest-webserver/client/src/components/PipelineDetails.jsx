@@ -7,112 +7,11 @@ import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 import PipelineDetailsProperties from "./PipelineDetailsProperties";
 import PipelineDetailsLogs from "./PipelineDetailsLogs";
 
-class PipelineDetails extends React.Component {
-  constructor(props) {
-    super(props);
+const PipelineDetails = (props) => {
+  const { $ } = window;
+  const index = props.defaultViewIndex || 0;
 
-    let index = 0;
-
-    if (this.props.defaultViewIndex) {
-      index = this.props.defaultViewIndex;
-    }
-
-    this.state = {
-      subviewIndex: index,
-      draggingPaneColumn: false,
-      paneWidth: this.getPaneWidth(),
-    };
-
-    this.refManager = new RefManager();
-  }
-
-  componentWillUnmount() {
-    // @ts-ignore
-    $(window).off("resize.pipelineDetails");
-    // @ts-ignore
-    $(window).off("mousemove.pipelineDetails");
-    // @ts-ignore
-    $(window).off("mouseup.pipelineDetails");
-  }
-
-  onOpenNotebook() {
-    this.props.onOpenNotebook();
-  }
-
-  onOpenFilePreviewView(step_uuid) {
-    if (this.props.onOpenFilePreviewView) {
-      this.props.onOpenFilePreviewView(step_uuid);
-    }
-  }
-
-  componentDidMount() {
-    // overflow checks
-    // @ts-ignore
-    $(window).on("resize.pipelineDetails", this.overflowChecks.bind(this));
-    // @ts-ignore
-    $(window).on("mousemove.pipelineDetails", this.onMouseMove.bind(this));
-    // @ts-ignore
-    $(window).on("mousedown.pipelineDetails", this.onMouseDown.bind(this));
-    // @ts-ignore
-    $(window).on("mouseup.pipelineDetails", this.onMouseUp.bind(this));
-    this.overflowChecks();
-  }
-
-  onMouseMove(e) {
-    if (this.state.draggingPaneColumn) {
-      this.setState((state, _) => {
-        let deltaX = e.clientX - this.draggingPreviousClientX;
-        this.draggingPreviousClientX = e.clientX;
-
-        return {
-          paneWidth: Math.max(0, Math.max(50, state.paneWidth - deltaX)),
-        };
-      });
-    }
-  }
-
-  onMouseDown(e) {
-    this.draggingPreviousClientX = e.clientX;
-  }
-
-  onMouseUp() {
-    if (this.state.draggingPaneColumn) {
-      this.setState({
-        draggingPaneColumn: false,
-      });
-      this.savePaneWidth(this.state.paneWidth);
-    }
-  }
-
-  // TODO: refactor to use OverflowListener
-  overflowChecks() {
-    // @ts-ignore
-    $(".overflowable").each(function () {
-      // @ts-ignore
-      if ($(this).overflowing()) {
-        // @ts-ignore
-        $(this).addClass("overflown");
-      } else {
-        // @ts-ignore
-        $(this).removeClass("overflown");
-      }
-    });
-  }
-
-  onSelectSubview(index) {
-    this.setState({
-      subviewIndex: index,
-    });
-    this.props.onChangeView(index);
-  }
-
-  onColumnResizeMouseDown() {
-    this.setState({
-      draggingPaneColumn: true,
-    });
-  }
-
-  getPaneWidth() {
+  const getPaneWidth = () => {
     let initialPaneWidth = 450;
     let paneWidth = initialPaneWidth;
 
@@ -124,120 +23,203 @@ class PipelineDetails extends React.Component {
     }
 
     return paneWidth;
-  }
+  };
 
-  savePaneWidth(width) {
-    window.localStorage.setItem("orchest.pipelinedetails.paneWidth", width);
-  }
+  const [state, setState] = React.useState({
+    subviewIndex: index,
+    draggingPaneColumn: false,
+    paneWidth: getPaneWidth(),
+    draggingPreviousClientX: null,
+  });
 
-  render() {
-    let subView = undefined;
+  const [refManager] = React.useState(new RefManager());
 
-    switch (this.state.subviewIndex) {
-      case 0:
-        subView = (
-          <PipelineDetailsProperties
-            project_uuid={this.props.project_uuid}
-            pipeline_uuid={this.props.pipeline.uuid}
-            pipelineCwd={this.props.pipelineCwd}
-            readOnly={this.props.readOnly}
-            onNameUpdate={this.props.onNameUpdate}
-            onSave={this.props.onSave}
-            connections={this.props.connections}
-            step={this.props.step}
-            onChange={this.props.onChange}
-            saveHash={this.props.saveHash}
-          />
-        );
-        break;
-      case 1:
-        subView = (
-          <PipelineDetailsLogs
-            sio={this.props.sio}
-            project_uuid={this.props.project_uuid}
-            job_uuid={this.props.job_uuid}
-            run_uuid={this.props.run_uuid}
-            step_uuid={this.props.step.uuid}
-            pipeline_uuid={this.props.pipeline.uuid}
-          />
-        );
+  const onOpenNotebook = () => props.onOpenNotebook();
+
+  const onOpenFilePreviewView = (step_uuid) =>
+    props.onOpenFilePreviewView && props.onOpenFilePreviewView(step_uuid);
+
+  const onMouseMove = (e) => {
+    if (state.draggingPaneColumn) {
+      setState((prevState) => {
+        const deltaX = e.clientX - prevState.draggingPreviousClientX;
+
+        return {
+          ...prevState,
+          paneWidth: Math.max(0, Math.max(50, state.paneWidth - deltaX)),
+          draggingPreviousClientX: e.clientX,
+        };
+      });
     }
+  };
 
-    return (
+  const onMouseDown = (e) => {
+    console.log(e);
+    setState((prevState) => ({
+      ...prevState,
+      draggingPreviousClientX: e.clientX,
+    }));
+  };
+
+  const onMouseUp = () => {
+    if (state.draggingPaneColumn) {
+      setState((prevState) => ({
+        ...prevState,
+        draggingPaneColumn: false,
+      }));
+
+      savePaneWidth(state.paneWidth);
+    }
+  };
+
+  // TODO: refactor to use OverflowListener
+  const overflowChecks = () => {
+    $(".overflowable").each(function () {
+      if ($(this).overflowing()) {
+        $(this).addClass("overflown");
+      } else {
+        $(this).removeClass("overflown");
+      }
+    });
+  };
+
+  const onSelectSubview = (index) => {
+    setState((prevState) => ({
+      ...prevState,
+      subviewIndex: index,
+    }));
+    props.onChangeView(index);
+  };
+
+  const onColumnResizeMouseDown = () => {
+    setState((prevState) => ({
+      ...prevState,
+      draggingPaneColumn: true,
+    }));
+  };
+
+  const savePaneWidth = (width) => {
+    window.localStorage.setItem("orchest.pipelinedetails.paneWidth", width);
+  };
+
+  React.useEffect(() => {
+    // overflow checks
+    $(window).on("resize.pipelineDetails", overflowChecks.bind(this));
+    $(window).on("mousemove.pipelineDetails", onMouseMove.bind(this));
+    $(window).on("mousedown.pipelineDetails", onMouseDown.bind(this));
+    $(window).on("mouseup.pipelineDetails", onMouseUp.bind(this));
+    overflowChecks();
+
+    return () => {
+      $(window).off("resize.pipelineDetails");
+      $(window).off("mousemove.pipelineDetails");
+      $(window).off("mouseup.pipelineDetails");
+    };
+  }, []);
+
+  let subView = undefined;
+
+  switch (state.subviewIndex) {
+    case 0:
+      subView = (
+        <PipelineDetailsProperties
+          project_uuid={props.project_uuid}
+          pipeline_uuid={props.pipeline.uuid}
+          pipelineCwd={props.pipelineCwd}
+          readOnly={props.readOnly}
+          onNameUpdate={props.onNameUpdate}
+          onSave={props.onSave}
+          connections={props.connections}
+          step={props.step}
+          onChange={props.onChange}
+          saveHash={props.saveHash}
+        />
+      );
+      break;
+    case 1:
+      subView = (
+        <PipelineDetailsLogs
+          sio={props.sio}
+          project_uuid={props.project_uuid}
+          job_uuid={props.job_uuid}
+          run_uuid={props.run_uuid}
+          step_uuid={props.step.uuid}
+          pipeline_uuid={props.pipeline.uuid}
+        />
+      );
+  }
+
+  return (
+    <div
+      className={"pipeline-details pane"}
+      style={{ width: state.paneWidth + "px" }}
+    >
       <div
-        className={"pipeline-details pane"}
-        style={{ width: this.state.paneWidth + "px" }}
-      >
-        <div
-          className="col-drag-resize"
-          onMouseDown={this.onColumnResizeMouseDown.bind(this)}
-        ></div>
-        <div className={"overflowable"}>
-          <div className="input-group">
-            <MDCTabBarReact
-              ref={this.refManager.nrefs.tabBar}
-              selectedIndex={this.state.subviewIndex}
-              items={["Properties", "Logs"]}
-              icons={["tune", "view_headline"]}
-              onChange={this.onSelectSubview.bind(this)}
-            />
-          </div>
-
-          {subView}
+        className="col-drag-resize"
+        onMouseDown={onColumnResizeMouseDown.bind(this)}
+      ></div>
+      <div className={"overflowable"}>
+        <div className="input-group">
+          <MDCTabBarReact
+            ref={refManager.nrefs.tabBar}
+            selectedIndex={state.subviewIndex}
+            items={["Properties", "Logs"]}
+            icons={["tune", "view_headline"]}
+            onChange={onSelectSubview.bind(this)}
+          />
         </div>
 
-        <div className={"action-buttons-bottom"}>
-          {(() => {
-            return (
-              <div className={"file-actions"}>
-                {!this.props.readOnly && (
-                  <MDCButtonReact
-                    icon="launch"
-                    classNames={[
-                      "mdc-button--raised",
-                      "themed-secondary",
-                      "push-right",
-                    ]}
-                    label="Edit in JupyterLab"
-                    onClick={this.onOpenNotebook.bind(this)}
-                  />
-                )}
+        {subView}
+      </div>
+
+      <div className={"action-buttons-bottom"}>
+        {(() => {
+          return (
+            <div className={"file-actions"}>
+              {!props.readOnly && (
                 <MDCButtonReact
-                  icon="visibility"
-                  classNames={["mdc-button--raised"]}
-                  label="View file"
-                  onClick={this.onOpenFilePreviewView.bind(
-                    this,
-                    this.props.step.uuid
-                  )}
+                  icon="launch"
+                  classNames={[
+                    "mdc-button--raised",
+                    "themed-secondary",
+                    "push-right",
+                  ]}
+                  label="Edit in JupyterLab"
+                  onClick={onOpenNotebook.bind(this)}
                 />
-              </div>
-            );
+              )}
+              <MDCButtonReact
+                icon="visibility"
+                classNames={["mdc-button--raised"]}
+                label="View file"
+                onClick={onOpenFilePreviewView.bind(this, props.step.uuid)}
+              />
+            </div>
+          );
+        })()}
+
+        <div className={"general-actions"}>
+          <MDCButtonReact
+            icon="close"
+            label="Close"
+            onClick={props.onClose.bind(this)}
+          />
+
+          {(() => {
+            if (!props.readOnly) {
+              return (
+                <MDCButtonReact
+                  icon="delete"
+                  label="Delete"
+                  onClick={props.onDelete.bind(this)}
+                />
+              );
+            }
           })()}
-
-          <div className={"general-actions"}>
-            <MDCButtonReact
-              icon="close"
-              label="Close"
-              onClick={this.props.onClose.bind(this)}
-            />
-
-            {(() => {
-              if (!this.props.readOnly) {
-                return (
-                  <MDCButtonReact
-                    icon="delete"
-                    label="Delete"
-                    onClick={this.props.onDelete.bind(this)}
-                  />
-                );
-              }
-            })()}
-          </div>
         </div>
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default PipelineDetails;
