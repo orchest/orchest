@@ -76,13 +76,33 @@ class Pipeline(BaseModel):
 
     # Note that all relationships are lazy=select.
     interactive_sessions = db.relationship(
-        "InteractiveSession", lazy="select", passive_deletes=True, cascade="all, delete"
+        "InteractiveSession",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+        # NOTE: along with the other overlaps, this is necessary to
+        # silence a warning stemming from the fact that the target table
+        # in the relationship (InteractiveSession in this case) is also
+        # in a relationship with Project. The alternative is to add more
+        # boilerplate to 3 different tables, to support a use case where
+        # we would be using sqlalchemy "smart" behaviour to change a
+        # project uuid while also changing a related pipeline
+        # project_uuid to a different value.
+        overlaps="interactive_sessions",
     )
     jobs = db.relationship(
-        "Job", lazy="select", passive_deletes=True, cascade="all, delete"
+        "Job",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+        overlaps="jobs",
     )
     pipeline_runs = db.relationship(
-        "PipelineRun", lazy="select", passive_deletes=True, cascade="all, delete"
+        "PipelineRun",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+        overlaps="pipeline_runs",
     )
 
 
@@ -323,6 +343,13 @@ class Job(BaseModel):
         ),
     )
 
+    image_mappings = db.relationship(
+        "JobImageMapping",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
     # The status of a job can be DRAFT, PENDING, STARTED, SUCCESS,
     # ABORTED, FAILURE. Jobs start as DRAFT, this indicates that the job
     # has been created but that has not been started by the user. Once a
@@ -557,6 +584,7 @@ class PipelineRunImageMapping(BaseModel):
 
     Used to understand if an image can be removed from the docker
     environment if it's not used by a run which is PENDING or STARTED.
+    Currently, this only references interactive runs.
 
     """
 
@@ -583,6 +611,42 @@ class PipelineRunImageMapping(BaseModel):
     def __repr__(self):
         return (
             f"<PipelineRunImageMapping: {self.run_uuid} | "
+            f"{self.orchest_environment_uuid} | "
+            f"{self.docker_img_id}>"
+        )
+
+
+class JobImageMapping(BaseModel):
+    """Stores mappings between a job and the environment images it uses.
+
+    Used to understand if an image can be removed from the docker
+    environment if it's not used by a job which is PENDING or STARTED.
+
+    """
+
+    __tablename__ = "job_image_mappings"
+    __table_args__ = (
+        UniqueConstraint("job_uuid", "orchest_environment_uuid"),
+        UniqueConstraint("job_uuid", "docker_img_id"),
+    )
+
+    job_uuid = db.Column(
+        db.ForeignKey(Job.uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    orchest_environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+    docker_img_id = db.Column(
+        db.String(), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<JobImageMapping: {self.run_uuid} | "
             f"{self.orchest_environment_uuid} | "
             f"{self.docker_img_id}>"
         )

@@ -67,6 +67,10 @@ p {
   position: relative;
 }
 
+.mdc-tooltip {
+  white-space: initial;
+}
+
 .mdc-drawer .mdc-list-item {
   font-weight: 400;
 }
@@ -100,12 +104,6 @@ h2 {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.create-job-modal {
-  .mdc-linear-progress {
-    margin: var(--space-5) 0;
-  }
 }
 
 .header-bar {
@@ -223,6 +221,13 @@ h2 {
       }
       cursor: pointer;
     }
+  }
+}
+
+.material-icons.inline-icon {
+  position: absolute;
+  &.push-left {
+    margin-left: calc(var(--space-5) / 2);
   }
 }
 
@@ -420,6 +425,13 @@ a.button {
     }
   }
   .service-form {
+    h3 {
+      .inline-icon {
+        font-size: 22px;
+      }
+    }
+
+    white-space: initial;
     .columns {
       margin-bottom: var(--space-5);
     }
@@ -494,6 +506,10 @@ p > i.material-icons.float-left {
   }
 }
 
+.mdc-dialog {
+  z-index: 99;
+}
+
 /* override title styling on overflow */
 .mdc-dialog--scrollable .mdc-dialog__title {
   padding-bottom: 9px;
@@ -505,6 +521,53 @@ p > i.material-icons.float-left {
 .mdc-dialog--scrollable .mdc-dialog__content {
   padding-top: 0;
   padding-bottom: 20px;
+}
+
+.mdc-dialog__surface {
+  overflow: visible;
+
+  .mdc-dialog__actions {
+    padding: var(--space-5);
+    padding-top: 0;
+  }
+
+  .mdc-dialog__content {
+    overflow: visible;
+    line-height: inherit;
+  }
+
+  .mdc-select__menu {
+    position: absolute;
+  }
+}
+
+.mdc-dialog .mdc-dialog__title {
+  font-size: var(--fontSizes-xl);
+  line-height: var(--lineHeights-xl);
+  border-bottom: none;
+}
+
+.mdc-dialog .mdc-dialog__content {
+  color: var(--colors-gray800);
+  letter-spacing: normal;
+}
+
+.mdc-dialog .mdc-dialog__surface {
+  border-radius: var(--radii-md);
+  box-shadow: var(--shadows-2xl);
+  max-width: var(--sizes-sm);
+}
+
+.mdc-dialog {
+  .mdc-dialog__title,
+  .mdc-dialog__content,
+  .mdc-dialog__actions {
+    padding: 0 var(--space-4) var(--space-4);
+  }
+}
+
+.mdc-dialog .mdc-dialog__content {
+  padding-bottom: var(--space-5);
 }
 
 // rounded notched buttons
@@ -932,7 +995,7 @@ span.floating-button {
 
   .existing-pipeline-runs {
     .mdc-data-table {
-      $sizes: 10%, 60%, 30%;
+      $sizes: 10%, 30%, 30%, 30%;
 
       @for $i from 1 through length($sizes) {
         .mdc-data-table__header-cell:nth-child(#{$i}) {
@@ -1695,28 +1758,6 @@ table {
   .mdc-data-table__header-cell.mdc-data-table__header-cell--checkbox,
   .mdc-data-table__cell.mdc-data-table__cell--checkbox {
     width: 56px;
-  }
-}
-
-.mdc-dialog {
-  z-index: 99;
-}
-
-.mdc-dialog__surface {
-  overflow: visible;
-
-  .mdc-dialog__actions {
-    padding: var(--space-5);
-    padding-top: 0;
-  }
-
-  .mdc-dialog__content {
-    overflow: visible;
-    line-height: inherit;
-  }
-
-  .mdc-select__menu {
-    position: absolute;
   }
 }
 

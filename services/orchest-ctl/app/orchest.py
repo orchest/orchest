@@ -9,6 +9,7 @@ TODO:
       functionality. See: https://www.python.org/dev/peps/pep-0585/
 
 """
+import json
 import logging
 import os
 import re
@@ -19,7 +20,13 @@ from typing import List, Optional, Set, Tuple
 import typer
 
 from app import spec, utils
-from app.config import ORCHEST_IMAGES, _on_start_images
+from app.config import (
+    ALLOWED_BUILD_FAILURES,
+    INTERNAL_ERR_MESSAGE,
+    ORCHEST_IMAGES,
+    ORCHEST_WEBSERVER_ADDRESS,
+    _on_start_images,
+)
 from app.debug import debug_dump, health_check
 from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
@@ -61,6 +68,108 @@ class OrchestApp:
         )
         self.version(ext=True)
 
+    def update(self, mode=None, dev: bool = False):
+        """Update Orchest.
+
+        Args:
+            mode: The mode in which to update Orchest. This is either
+                ``None`` or ``"web"``, where the latter is used when
+                update is invoked through the update-server.
+
+        """
+        utils.echo("Updating...")
+
+        _, running_containers = self.resource_manager.get_containers(state="running")
+
+        if utils.is_orchest_running(running_containers):
+            if mode != "web":
+                # In the web updater it is not possible to cancel the
+                # update once started. So there is no value in showing
+                # this message or sleeping.
+                utils.echo(
+                    "Using Orchest whilst updating is NOT supported and will be shut"
+                    " down, killing all active pipeline runs and session. You have 2s"
+                    " to cancel the update operation."
+                )
+
+                # Give the user the option to cancel the update
+                # operation using a keyboard interrupt.
+                time.sleep(2)
+
+            skip_containers = []
+            if mode == "web":
+                # It is possible to pull new images whilst the older
+                # versions of those images are running. We will invoke
+                # Orchest restart from the webserver ui-updater.
+                skip_containers = [
+                    "orchest/update-server:latest",
+                    "orchest/auth-server:latest",
+                    "orchest/nginx-proxy:latest",
+                    "postgres:13.1",
+                ]
+
+            self.stop(skip_containers=skip_containers)
+
+        # Update the Orchest git repo to get the latest changes to the
+        # "userdir/" structure.
+        if not dev:
+            exit_code = utils.update_git_repo()
+            if exit_code == 0:
+                logger.info("Successfully updated git repo during update.")
+            elif exit_code == 21:
+                utils.echo("Cancelling update...")
+                utils.echo(
+                    "Make sure you have the master branch checked out before updating."
+                )
+                logger.error(
+                    "Failed update due to master branch not being checked out."
+                )
+                raise typer.Exit(code=1)
+            else:
+                utils.echo("Cancelling update...")
+                utils.echo(
+                    "It seems like you have unstaged changes in the 'orchest'"
+                    " repository. Please commit or stash them as 'orchest update'"
+                    " pulls the newest changes to the 'userdir/' using a rebase.",
+                )
+                logger.error("Failed update due to unstaged changes.")
+                raise typer.Exit(code=1)
+
+        # Get all installed images and pull new versions. The pulled
+        # images are checked to make sure optional images, e.g. lang
+        # specific images, are updated as well.
+        pulled_images = self.resource_manager.get_images()
+        to_pull_images = set(ORCHEST_IMAGES["minimal"]) | set(pulled_images)
+        logger.info("Updating images:\n" + "\n".join(to_pull_images))
+        self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
+
+        # Add a tag to user environment images to mark them for removal.
+        # The orchest-api will deal with the rest of the logic related
+        # to making environment images unavailable to users on update
+        # to avoid the issue of having environments with mismatching
+        # Orchest SDK versions.
+        logger.info("Tagging user-built environment images for removal.")
+        self.resource_manager.tag_environment_images_for_removal()
+
+        # Delete user-built Jupyter image to make sure the Jupyter
+        # server is updated to the latest version of Orchest.
+        logger.info("Deleting user-built Jupyter image.")
+        self.resource_manager.remove_jupyter_build_imgs()
+
+        # Delete Orchest dangling images.
+        self.resource_manager.remove_orchest_dangling_imgs()
+
+        if mode == "web":
+            utils.echo("Update completed.")
+        else:
+            utils.echo("Update completed. To start Orchest again, run:")
+            utils.echo("\torchest start")
+
+        utils.echo(
+            "Checking whether all containers are running the same version of Orchest."
+        )
+        self.version(ext=True)
+
     def start(self, container_config: dict):
         """Starts Orchest.
 
@@ -79,7 +188,7 @@ class OrchestApp:
         if missing_images or not self.resource_manager.is_network_installed():
             utils.echo("Before starting Orchest, make sure Orchest is installed. Run:")
             utils.echo("\torchest install")
-            return
+            raise typer.Exit(code=1)
 
         # Check that all images required for Orchest to start are in the
         # container_config.
@@ -96,22 +205,19 @@ class OrchestApp:
         # Orchest is already running
         ids, running_containers = self.resource_manager.get_containers(state="running")
         if not (start_req_images - set(running_containers)):
-            # TODO: Ideally this would print the port on which Orchest
-            #       is running. (Was started before and so we do not
-            #       simply know.)
             utils.echo("Orchest is already running...")
             return
 
         # Orchest is partially running and thus in an inconsistent
         # state. Possibly the start command was issued whilst Orchest
         # is still shutting down.
-        if running_containers:
+        if utils.is_orchest_running(running_containers):
             utils.echo(
                 "Orchest seems to be partially running. Before attempting to start"
                 " Orchest, shut the application down first:",
             )
             utils.echo("\torchest stop")
-            return
+            raise typer.Exit(code=1)
 
         # Remove old lingering containers.
         ids, exited_containers = self.resource_manager.get_containers(state="exited")
@@ -147,7 +253,7 @@ class OrchestApp:
                     stdouts["rabbitmq-server"]["id"],
                     (
                         'su rabbitmq -c "/opt/rabbitmq/sbin/rabbitmq-diagnostics '
-                        '-q check_port_connectivity"'
+                        '-q ping"'
                     ),
                 )
 
@@ -237,7 +343,6 @@ class OrchestApp:
         self.docker_client.run_containers(config_, use_name=True, detach=True)
 
     def status(self, ext=False):
-
         if self._is_restarting():
             utils.echo("Orchest is currently restarting.")
             raise typer.Exit(code=4)
@@ -280,105 +385,6 @@ class OrchestApp:
                     utils.echo("All services are ready.")
                 else:
                     raise typer.Exit(code=3)
-
-    def update(self, mode=None, dev: bool = False):
-        """Update Orchest.
-
-        Args:
-            mode: The mode in which to update Orchest. This is either
-                ``None`` or ``"web"``, where the latter is used when
-                update is invoked through the update-server.
-
-        """
-        utils.echo("Updating...")
-
-        _, running_containers = self.resource_manager.get_containers(state="running")
-
-        if utils.is_orchest_running(running_containers):
-            if mode != "web":
-                # In the web updater it is not possible to cancel the
-                # update once started. So there is no value in showing
-                # this message or sleeping.
-                utils.echo(
-                    "Using Orchest whilst updating is NOT supported and will be shut"
-                    " down, killing all active pipeline runs and session. You have 2s"
-                    " to cancel the update operation."
-                )
-
-                # Give the user the option to cancel the update
-                # operation using a keyboard interrupt.
-                time.sleep(2)
-
-            skip_containers = []
-            if mode == "web":
-                # It is possible to pull new images whilst the older
-                # versions of those images are running. We will invoke
-                # Orchest restart from the webserver ui-updater.
-                skip_containers = [
-                    "orchest/update-server:latest",
-                    "orchest/auth-server:latest",
-                    "orchest/nginx-proxy:latest",
-                    "postgres:13.1",
-                ]
-
-            self.stop(skip_containers=skip_containers)
-
-        # Update the Orchest git repo to get the latest changes to the
-        # "userdir/" structure.
-        if not dev:
-            exit_code = utils.update_git_repo()
-            if exit_code == 0:
-                logger.info("Successfully updated git repo during update.")
-            elif exit_code == 21:
-                utils.echo("Cancelling update...")
-                utils.echo(
-                    "Make sure you have the master branch checked out before updating."
-                )
-                logger.error(
-                    "Failed update due to master branch not being checked out."
-                )
-                return
-            else:
-                utils.echo("Cancelling update...")
-                utils.echo(
-                    "It seems like you have unstaged changes in the 'orchest'"
-                    " repository. Please commit or stash them as 'orchest update'"
-                    " pulls the newest changes to the 'userdir/' using a rebase.",
-                )
-                logger.error("Failed update due to unstaged changes.")
-                return
-
-        # Get all installed images and pull new versions. The pulled
-        # images are checked to make sure optional images, e.g. lang
-        # specific images, are updated as well.
-        pulled_images = self.resource_manager.get_images()
-        to_pull_images = set(ORCHEST_IMAGES["minimal"]) | set(pulled_images)
-        logger.info("Updating images:\n" + "\n".join(to_pull_images))
-        self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
-
-        # Delete user-built environment images to avoid the issue of
-        # having environments with mismatching Orchest SDK versions.
-        logger.info("Deleting user-built environment images.")
-        self.resource_manager.remove_env_build_imgs()
-
-        # Delete user-built Jupyter image to make sure the Jupyter
-        # server is updated to the latest version of Orchest.
-        logger.info("Deleting user-built Jupyter image.")
-        self.resource_manager.remove_jupyter_build_imgs()
-
-        # Delete Orchest dangling images.
-        self.resource_manager.remove_orchest_dangling_imgs()
-
-        if mode == "web":
-            utils.echo("Update completed.")
-        else:
-            utils.echo("Update completed. To start Orchest again, run:")
-            utils.echo("\torchest start")
-
-        utils.echo(
-            "Checking whether all containers are running the same version of Orchest."
-        )
-        self.version(ext=True)
 
     def version(self, ext=False):
         """Returns the version of Orchest.
@@ -465,6 +471,247 @@ class OrchestApp:
 
         raise typer.Exit(code=exit_code)
 
+    def run(self, job_name, project_name, pipeline_name, wait=False, rm=False):
+        """Queues the pipeline as a one-time job."""
+        # Orchest has to be running for this command to work, since we
+        # will be querying the orchest-webserver directly.
+        _, running_containers = self.resource_manager.get_containers(state="running")
+        if not utils.is_orchest_running(running_containers):
+            utils.echo("Orchest has to be running in order to queue a job. Run:")
+            utils.echo("\torchest start")
+            raise typer.Exit(code=1)
+
+        wait_msg_template = "[{endpoint}]: Could not reach Orchest."
+        base_url = f"{ORCHEST_WEBSERVER_ADDRESS}{{path}}"
+
+        # Get project information.
+        status_code, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="projects"),
+            url=base_url.format(path="/async/projects"),
+        )
+        if status_code != 200:
+            utils.echo(f"[projects]: Unexpected status code: {status_code}.")
+            raise typer.Exit(code=1)
+        for project in resp:
+            # NOTE: We use here that a project name/path is unique.
+            if project["path"] == project_name:
+                project_uuid = project["uuid"]
+                break
+        else:
+            utils.echo("The given project does not exist.")
+            raise typer.Exit(code=1)
+
+        # Get pipeline information.
+        status_code, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="pipelines"),
+            url=base_url.format(path=f"/async/pipelines/{project_uuid}"),
+        )
+        if status_code != 200:
+            utils.echo(f"[pipelines]: Unexpected status code: {status_code}.")
+            raise typer.Exit(code=1)
+        for pipeline in resp["result"]:
+            if pipeline["name"] == pipeline_name:
+                pipeline_uuid = pipeline["uuid"]
+                break
+        else:
+            utils.echo("The given pipeline does not exist in the given project.")
+            raise typer.Exit(code=1)
+
+        # Environments must be validated before POSTING the job draft,
+        # because image locking happens the moment a job is created.
+        repeat = True
+        allowed_build_failures = ALLOWED_BUILD_FAILURES
+        while repeat:
+            try:
+                status_code, resp = utils.retry_func(
+                    utils.get_response,
+                    _wait_msg="[jobs]: Some environment builds have not yet succeeded.",
+                    url=base_url.format(
+                        path="/catch/api-proxy/api/validations/environments"
+                    ),
+                    data={"project_uuid": project_uuid},
+                    method="POST",
+                )
+            except RuntimeError:
+                utils.echo(INTERNAL_ERR_MESSAGE)
+                raise typer.Exit(code=1)
+            else:
+                if status_code != 201:
+                    utils.echo(f"[validations]: Unexpected status code: {status_code}.")
+                    raise typer.Exit(code=1)
+
+                repeat = resp.get("validation") != "pass"
+                if repeat:
+                    # Try to solve each failure. See
+                    # namespace_validations for details about the
+                    # response.
+                    builds = []
+                    for env_uuid, action in zip(resp.get("fail"), resp.get("actions")):
+
+                        if action in ["BUILD", "RETRY"]:
+                            if action == "RETRY":
+                                allowed_build_failures -= 1
+                                if allowed_build_failures <= 0:
+                                    msg = (
+                                        "An environment has reached the "
+                                        "maximum build attempts, exiting."
+                                    )
+                                    utils.echo(msg)
+                                    raise typer.Exit(code=1)
+
+                            builds.append(
+                                {
+                                    "project_uuid": project_uuid,
+                                    "environment_uuid": env_uuid,
+                                }
+                            )
+
+                    if builds:
+                        msg = "Some environments are not built, issuing builds."
+                        if "RETRY" in resp.get("actions"):
+                            msg += " Some environments have previously failed to build."
+                        utils.echo(msg)
+                        try:
+                            status_code, _ = utils.retry_func(
+                                utils.get_response,
+                                _wait_msg=wait_msg_template.format(
+                                    endpoint="environments-builds"
+                                ),
+                                data={"environment_build_requests": builds},
+                                url=base_url.format(
+                                    path="/catch/api-proxy/api/environment-builds"
+                                ),
+                                method="POST",
+                            )
+                        except RuntimeError:
+                            utils.echo(INTERNAL_ERR_MESSAGE)
+                            raise typer.Exit(code=1)
+
+                        if status_code != 200:
+                            utils.echo(
+                                "[environments-builds]: Unexpected status code: "
+                                f"{status_code}."
+                            )
+                            raise typer.Exit(code=1)
+
+                    utils.echo(
+                        "[Waiting]: some environment builds have not yet succeeded."
+                    )
+                    time.sleep(3)
+
+        # Draft job.
+        try:
+            utils.echo("Creating draft job.")
+            status_code, resp = utils.retry_func(
+                utils.get_response,
+                _wait_msg=wait_msg_template.format(endpoint="jobs"),
+                url=base_url.format(path="/catch/api-proxy/api/jobs/"),
+                data={
+                    "draft": True,
+                    "project_uuid": project_uuid,
+                    "pipeline_uuid": pipeline_uuid,
+                    "pipeline_name": pipeline_name,
+                    "name": job_name,
+                    "parameters": [],
+                    "pipeline_run_spec": {
+                        "run_type": "full",
+                        "uuids": None,  # argument is ignored due to "full"
+                    },
+                },
+                method="POST",
+            )
+        except RuntimeError:
+            utils.echo(INTERNAL_ERR_MESSAGE)
+            raise typer.Exit(code=1)
+        if status_code != 201:
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+            raise typer.Exit(code=1)
+        job_uuid = resp["uuid"]
+
+        # Get pipeline definition needed to construct the stategy json.
+        _, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="pipelines"),
+            url=base_url.format(
+                path=f"/async/pipelines/json/{project_uuid}/{pipeline_uuid}"
+            ),
+        )
+        if resp["success"]:
+            pipeline_definition = json.loads(resp["pipeline_json"])
+        else:
+            utils.echo("Could not obtain the pipeline definition.")
+            raise typer.Exit(code=1)
+
+        utils.echo("Queueing job.")
+        parameters, strategy_json = construct_parameters_payload(pipeline_definition)
+        status_code, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="jobs"),
+            url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
+            data={
+                "confirm_draft": True,
+                "env_variables": {},  # TODO
+                "parameters": [parameters],
+                "strategy_json": strategy_json,
+            },
+            method="PUT",
+        )
+        if status_code != 200:
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+            raise typer.Exit(code=1)
+
+        utils.echo(
+            f"Successfully queued the {pipeline_name} pipeline as a one-time job."
+        )
+
+        if not wait:
+            return
+
+        repeat = True
+        end_states = ["SUCCESS", "ABORTED", "FAILURE"]
+        while repeat:
+            try:
+                status_code, resp = utils.retry_func(
+                    utils.get_response,
+                    _wait_msg=wait_msg_template.format(endpoint="jobs"),
+                    url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
+                )
+            except RuntimeError:
+                utils.echo(INTERNAL_ERR_MESSAGE)
+                raise typer.Exit(code=1)
+            else:
+                if status_code != 200:
+                    utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+                    raise typer.Exit(code=1)
+
+                repeat = resp.get("status") not in end_states
+
+                if repeat:
+                    utils.echo("[Waiting]: job has not finished running yet.")
+                    time.sleep(3)
+
+        utils.echo(f"Successfully ran the {pipeline_name} pipeline as a one-time job.")
+
+        if not rm:
+            return
+
+        # Remove the job.
+        utils.echo("Removing job.")
+        status_code, resp = utils.retry_func(
+            utils.get_response,
+            _wait_msg=wait_msg_template.format(endpoint="jobs"),
+            url=base_url.format(path=f"/catch/api-proxy/api/jobs/cleanup/{job_uuid}"),
+            method="DELETE",
+        )
+        if status_code != 200:
+            utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
+            utils.echo("Could not remove job.")
+            raise typer.Exit(code=1)
+
+        utils.echo("Successfully removed job state.")
+
     def _is_restarting(self) -> bool:
         """Check if Orchest is restarting.
 
@@ -539,3 +786,38 @@ def get_required_images(language: Optional[str], gpu: bool = False) -> List[str]
             required_images += gpu_images[language]
 
     return required_images
+
+
+def construct_parameters_payload(pipeline_definition: dict) -> Tuple[dict, dict]:
+    """Constructs the parameter payload for a one-off job.
+
+    Returns:
+        `parameters`: The default parameters for every step from the
+            `pipeline_definition`.
+        `stategy_json`: Strategy dictionary as required by the job.
+
+    """
+
+    def parse_parameters_format(value: dict) -> dict:
+        """Parses the parameter values to the correct format.
+
+        The format for the strategy JSON parameters is:
+            {a: "[1]", b: "[2]"}
+        whereas, the given value is:
+            {a: 1, b: 2}
+
+        """
+        return {p: str([v]) for p, v in value.items()}
+
+    strategy_json = {}
+    parameters = {}
+    for step_uuid, step_props in pipeline_definition["steps"].items():
+        if step_props["parameters"]:
+            strategy_json[step_uuid] = {
+                "key": step_uuid,
+                "title": step_props["title"],
+                "parameters": parse_parameters_format(step_props["parameters"]),
+            }
+            parameters[step_uuid] = step_props["parameters"]
+
+    return parameters, strategy_json

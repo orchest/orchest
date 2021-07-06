@@ -1,6 +1,7 @@
 from typing import List, Literal
 from unittest.mock import MagicMock, patch
 
+import click
 import pytest
 import typer
 
@@ -156,7 +157,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
 
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_images = MagicMock(return_value=installed_images)
-    resource_manager.remove_env_build_imgs = MagicMock(return_value=None)
+    resource_manager.tag_environment_images_for_removal = MagicMock(return_value=None)
     resource_manager.remove_jupyter_build_imgs = MagicMock(return_value=None)
 
     docker_client = orchest.DockerWrapper()
@@ -168,7 +169,11 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     app.stop = MagicMock(return_value=None)
     app.version = MagicMock(return_value=None)
 
-    app.update(mode=mode)
+    if update_exit_code != 0:
+        with pytest.raises(click.exceptions.Exit):
+            app.update(mode=mode)
+    else:
+        app.update(mode=mode)
 
     captured = capsys.readouterr()
     assert expected_stdout in captured.out
@@ -176,7 +181,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
     if update_exit_code != 0:
         return
 
-    resource_manager.remove_env_build_imgs.assert_called_once()
+    resource_manager.tag_environment_images_for_removal.assert_called_once()
     resource_manager.remove_jupyter_build_imgs.assert_called_once()
 
     to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(installed_images)
@@ -252,6 +257,7 @@ def test_start(
     expected_stdout,
     monkeypatch,
     capsys,
+    request,
 ):
     def create_vanilla_container_config(names: List[str]):
         if names is None:
@@ -297,11 +303,13 @@ def test_start(
 
     container_config = create_vanilla_container_config(container_config)
 
-    if expected_stdout == "ValueError":
+    if request.node.callspec.id == "invalid-config":
         with pytest.raises(ValueError):
             app.start(container_config)
-
         return
+    elif request.node.callspec.id in ["not-installed", "partially-running"]:
+        with pytest.raises(click.exceptions.Exit):
+            app.start(container_config)
     else:
         app.start(container_config)
 

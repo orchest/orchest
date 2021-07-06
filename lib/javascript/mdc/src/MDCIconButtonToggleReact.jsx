@@ -28,7 +28,9 @@ export class MDCIconButtonToggleReact extends React.Component {
   render() {
     return (
       <button
+        aria-describedby={this.props["aria-describedby"]}
         ref={this.refManager.nrefs.button}
+        disabled={this.props.disabled === true}
         title={this.props.tooltipText}
         className="mdc-icon-button material-icons"
         type={this.props.submitButton ? "submit" : "button"}

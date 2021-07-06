@@ -1,3 +1,4 @@
+// @ts-check
 import React, { Fragment } from "react";
 import {
   makeRequest,
@@ -12,57 +13,45 @@ import {
   MDCIconButtonToggleReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
+import { useInterval } from "@/hooks/use-interval";
 import EnvironmentEditView from "../views/EnvironmentEditView";
 import ProjectsView from "@/views/ProjectsView";
 
-class EnvironmentList extends React.Component {
-  constructor(props) {
-    super(props);
+/**
+ * @param {Object} props
+ * @param {string} props.project_uuid
+ */
+const EnvironmentList = (props) => {
+  const [
+    environmentBuildsInterval,
+    setEnvironmentBuildsInterval,
+  ] = React.useState(null);
+  const [state, setState] = React.useState({
+    environments: undefined,
+    environmentBuilds: {},
+    listData: undefined,
+  });
 
-    this.state = {
-      environments: undefined,
-      environmentBuilds: {},
-    };
+  const BUILD_POLL_FREQUENCY = 3000;
 
-    this.BUILD_POLL_FREQUENCY = 3000;
+  const orchest = window.orchest;
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
-    this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
-  }
-
-  componentDidMount() {
-    this.fetchEnvironments();
-    this.environmentBuildsPolling();
-  }
-
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-    clearInterval(this.environmentBuildsInterval);
-  }
-
-  environmentBuildsPolling() {
-    this.environmentBuildsRequest();
-    clearInterval(this.environmentBuildsInterval);
-    this.environmentBuildsInterval = setInterval(
-      this.environmentBuildsRequest.bind(this),
-      this.BUILD_POLL_FREQUENCY
-    );
-  }
-
-  environmentBuildsRequest() {
+  const environmentBuildsRequest = () => {
     let environmentBuildsRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${this.props.project_uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${props.project_uuid}`
       ),
-      this.promiseManager
+      promiseManager
     );
 
     environmentBuildsRequestPromise.promise
       .then((response) => {
         try {
           let environmentBuilds = JSON.parse(response).environment_builds;
-          this.updateStateForEnvironmentBuilds(environmentBuilds);
+          updateStateForEnvironmentBuilds(environmentBuilds);
         } catch (error) {
           console.error(error);
         }
@@ -70,27 +59,28 @@ class EnvironmentList extends React.Component {
       .catch((error) => {
         console.log(error);
       });
-  }
+  };
 
-  updateStateForEnvironmentBuilds(environmentBuilds) {
-    this.state.environmentBuilds = {};
-    for (let environmentBuild of environmentBuilds) {
-      this.state.environmentBuilds[
+  const updateStateForEnvironmentBuilds = (updatedEnvironmentBuilds) => {
+    let environmentBuilds = {};
+    for (let environmentBuild of updatedEnvironmentBuilds) {
+      environmentBuilds[
         environmentBuild.project_uuid + "-" + environmentBuild.environment_uuid
       ] = environmentBuild;
     }
 
-    this.setState({
-      environmentBuilds: this.state.environmentBuilds,
-      listData: this.processListData(this.state.environments),
-    });
-  }
+    setState((prevState) => ({
+      ...prevState,
+      environmentBuilds,
+      listData: processListData(prevState.environments, environmentBuilds),
+    }));
+  };
 
-  fetchEnvironments() {
+  const fetchEnvironments = () => {
     // fetch data sources
     let environmentsPromise = makeCancelable(
-      makeRequest("GET", `/store/environments/` + this.props.project_uuid),
-      this.promiseManager
+      makeRequest("GET", `/store/environments/` + props.project_uuid),
+      promiseManager
     );
 
     environmentsPromise.promise
@@ -98,14 +88,18 @@ class EnvironmentList extends React.Component {
         try {
           let environments = JSON.parse(result);
 
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             environments: environments,
-            listData: this.processListData(environments),
-          });
+            listData: processListData(
+              environments,
+              prevState.environmentBuilds
+            ),
+          }));
 
           // in case environmentListView exists, clear checks
-          if (this.refManager.refs.environmentListView) {
-            this.refManager.refs.environmentListView.setSelectedRowIds([]);
+          if (refManager.refs.environmentListView) {
+            refManager.refs.environmentListView.setSelectedRowIds([]);
           }
         } catch (error) {
           console.log(error);
@@ -119,27 +113,31 @@ class EnvironmentList extends React.Component {
 
         console.log("Error fetching Environments", err);
       });
-  }
+  };
 
-  onClickListItem(row, idx, e) {
-    let environment = this.state.environments[idx];
+  const onClickListItem = (row, idx, e) => {
+    let environment = state.environments[idx];
     orchest.loadView(EnvironmentEditView, {
       queryArgs: {
-        project_uuid: this.props.project_uuid,
+        project_uuid: props.project_uuid,
         environment_uuid: environment.uuid,
       },
     });
-  }
+  };
 
-  onCreateClick() {
+  const onCreateClick = () => {
     orchest.loadView(EnvironmentEditView, {
       queryArgs: {
-        project_uuid: this.props.project_uuid,
+        project_uuid: props.project_uuid,
       },
     });
-  }
+  };
 
-  _removeEnvironment(project_uuid, environment_uuid, environmentName) {
+  const _removeEnvironment = (
+    project_uuid,
+    environment_uuid,
+    environmentName
+  ) => {
     // ultimately remove Image
     makeRequest(
       "DELETE",
@@ -147,7 +145,7 @@ class EnvironmentList extends React.Component {
     )
       .then((_) => {
         // reload list once removal succeeds
-        this.fetchEnvironments();
+        fetchEnvironments();
       })
       .catch((e) => {
         let errorMessage = "unknown";
@@ -164,44 +162,47 @@ class EnvironmentList extends React.Component {
             errorMessage
         );
       });
-  }
+  };
 
-  removeEnvironment(project_uuid, environment_uuid, environmentName) {
+  const removeEnvironment = (
+    project_uuid,
+    environment_uuid,
+    environmentName
+  ) => {
     // validate if environment is in use, if it is, prompt user
     // specifically on remove
 
     makeRequest(
       "GET",
       `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
-    ).then((response) => {
-      let data = JSON.parse(response);
-      if (data.in_use) {
-        orchest.confirm(
-          "Warning",
-          "The environment you're trying to delete (" +
-            environmentName +
-            ") is in use. " +
-            "Are you sure you want to delete it? This will abort all sessions and jobs/interactive runs that are using it.",
-          () => {
-            this._removeEnvironment(
-              project_uuid,
-              environment_uuid,
-              environmentName
-            );
-          }
-        );
-      } else {
-        this._removeEnvironment(
-          project_uuid,
-          environment_uuid,
-          environmentName
-        );
+    ).then(
+      /** @param {string} response */
+      (response) => {
+        let data = JSON.parse(response);
+        if (data.in_use) {
+          orchest.confirm(
+            "Warning",
+            "The environment you're trying to delete (" +
+              environmentName +
+              ") is in use. " +
+              "Are you sure you want to delete it? This will abort all sessions and jobs/interactive runs that are using it.",
+            () => {
+              _removeEnvironment(
+                project_uuid,
+                environment_uuid,
+                environmentName
+              );
+            }
+          );
+        } else {
+          _removeEnvironment(project_uuid, environment_uuid, environmentName);
+        }
       }
-    });
-  }
+    );
+  };
 
-  onDeleteClick() {
-    let selectedIndices = this.refManager.refs.environmentListView.getSelectedRowIndices();
+  const onDeleteClick = () => {
+    let selectedIndices = refManager.refs.environmentListView.getSelectedRowIndices();
 
     if (selectedIndices.length === 0) {
       orchest.alert("Error", "You haven't selected any environments.");
@@ -213,19 +214,19 @@ class EnvironmentList extends React.Component {
       "Are you certain that you want to delete the selected environments?",
       () => {
         selectedIndices.forEach((idx) => {
-          let environment_uuid = this.state.environments[idx].uuid;
-          let project_uuid = this.state.environments[idx].project_uuid;
-          this.removeEnvironment(
+          let environment_uuid = state.environments[idx].uuid;
+          let project_uuid = state.environments[idx].project_uuid;
+          removeEnvironment(
             project_uuid,
             environment_uuid,
-            this.state.environments[idx].name
+            state.environments[idx].name
           );
         });
       }
     );
-  }
+  };
 
-  processListData(environments) {
+  const processListData = (environments, environmentBuilds) => {
     let listData = [];
 
     // check for undefined environments
@@ -234,9 +235,8 @@ class EnvironmentList extends React.Component {
     }
 
     for (let environment of environments) {
-      let environmentBuild = this.state.environmentBuilds[
-        this.props.project_uuid + "-" + environment.uuid
-      ];
+      let environmentBuild =
+        environmentBuilds[props.project_uuid + "-" + environment.uuid];
 
       listData.push([
         <span>{environment.name}</span>,
@@ -254,59 +254,72 @@ class EnvironmentList extends React.Component {
             </>
           )}
         </span>,
-        <span>{environmentBuild ? environmentBuild.status : ""}</span>,
+        <span>{environmentBuild ? environmentBuild.status : "NOT BUILT"}</span>,
       ]);
     }
     return listData;
-  }
+  };
 
-  render() {
-    return (
-      <div className={"environments-page"}>
-        <h2>Environments</h2>
+  useInterval(() => {
+    environmentBuildsRequest();
+  }, environmentBuildsInterval);
 
-        {(() => {
-          if (this.state.environments) {
-            return (
-              <Fragment>
-                <div className="push-down">
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised", "themed-secondary"]}
-                    icon="add"
-                    label="Create environment"
-                    onClick={this.onCreateClick.bind(this)}
-                  />
-                </div>
-                <div className={"environment-actions push-down"}>
-                  <MDCIconButtonToggleReact
-                    icon="delete"
-                    tooltipText="Delete environment"
-                    onClick={this.onDeleteClick.bind(this)}
-                  />
-                </div>
+  React.useEffect(() => {
+    fetchEnvironments();
+    environmentBuildsRequest();
+    setEnvironmentBuildsInterval(BUILD_POLL_FREQUENCY);
 
-                <MDCDataTableReact
-                  ref={this.refManager.nrefs.environmentListView}
-                  selectable
-                  onRowClick={this.onClickListItem.bind(this)}
-                  classNames={["fullwidth"]}
-                  headers={[
-                    "Environment",
-                    "Language",
-                    "GPU Support",
-                    "Build status",
-                  ]}
-                  rows={this.state.listData}
+    return () => {
+      promiseManager.cancelCancelablePromises();
+      setEnvironmentBuildsInterval(null);
+    };
+  }, []);
+
+  return (
+    <div className={"environments-page"}>
+      <h2>Environments</h2>
+
+      {(() => {
+        if (state.environments) {
+          return (
+            <Fragment>
+              <div className="push-down">
+                <MDCButtonReact
+                  classNames={["mdc-button--raised", "themed-secondary"]}
+                  icon="add"
+                  label="Create environment"
+                  onClick={onCreateClick.bind(this)}
                 />
-              </Fragment>
-            );
-          } else {
-            return <MDCLinearProgressReact />;
-          }
-        })()}
-      </div>
-    );
-  }
-}
+              </div>
+              <div className={"environment-actions push-down"}>
+                <MDCIconButtonToggleReact
+                  icon="delete"
+                  tooltipText="Delete environment"
+                  onClick={onDeleteClick.bind(this)}
+                />
+              </div>
+
+              <MDCDataTableReact
+                ref={refManager.nrefs.environmentListView}
+                selectable
+                onRowClick={onClickListItem.bind(this)}
+                classNames={["fullwidth"]}
+                headers={[
+                  "Environment",
+                  "Language",
+                  "GPU Support",
+                  "Build status",
+                ]}
+                rows={state.listData}
+              />
+            </Fragment>
+          );
+        } else {
+          return <MDCLinearProgressReact />;
+        }
+      })()}
+    </div>
+  );
+};
 
 export default EnvironmentList;

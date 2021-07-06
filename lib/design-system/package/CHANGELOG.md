@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file
 
+# 0.0.6 (2021-06-15)
+
+Version bump only
+
+# 0.0.5 (2021-06-15)
+
+## Refactor
+
+- `Alert` - refreshed to "compound component" API
+
+## Features
+
+- `Flex` - layout primitive (with `gap`)
+- `Grid` - layout primitive
+- `IconButton` - additional variants.
+- `Icon` - extended selection of icons.
+- Upgraded version of Stitches.
+
 # 0.0.4 (2021-05-24)
 
 ## Bug Fixes

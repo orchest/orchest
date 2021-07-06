@@ -22,9 +22,9 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    Orchest is in alpha.
 
 .. note::
-   The `stable docs <https://orchest.readthedocs.io/en/stable/index.html>`_ follow the latest
+   The `stable docs <https://orchest.readthedocs.io/en/stable/index.html>`_ follow the most recent
    release, whereas the `latest docs <https://orchest.readthedocs.io/en/latest/index.html>`_ follow
-   the master branch from `GitHub <http://www.github.com/orchest/orchest>`_.
+   the ``dev`` branch from `GitHub <http://www.github.com/orchest/orchest>`_.
 
 .. toctree::
    :maxdepth: 1

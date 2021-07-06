@@ -264,9 +264,7 @@ def test_job_put_revert(client, pipeline, monkeypatch):
     job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
 
     # Cause an exception so that running the job fails.
-    monkeypatch.setattr(
-        namespace_jobs, "lock_environment_images_for_run", raise_exception_function()
-    )
+    monkeypatch.setattr(namespace_jobs, "make_celery", raise_exception_function())
 
     resp = client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
     assert resp.status_code == 500

@@ -1,8 +1,11 @@
 FROM python:3.8-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
+# Needed to daemonize celery workers.
+RUN apt-get update && apt-get install -y supervisor && mkdir -p /var/log/supervisor
+
 # Get all requirements in place.
-COPY ./requirements.txt ./start_celery_workers.sh /orchest/services/orchest-api/
+COPY ./requirements.txt /orchest/services/orchest-api/
 COPY ./lib/python /orchest/lib/python
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`
@@ -13,9 +16,19 @@ RUN pip3 install -r requirements.txt
 # Application files.
 COPY ./app ./app
 
-# This `WORKDIR` is required for the context of the application of the
-# `start_celery_workers.sh` script.
+# Daemonization settings.
+COPY celery_daemon_configs/supervisord.conf /etc/supervisor/supervisord.conf
+COPY celery_daemon_configs/worker_builds.conf \
+     celery_daemon_configs/worker_interactive.conf \
+     celery_daemon_configs/worker_jobs.conf \
+     /etc/supervisor/conf.d/
+
+# To be consistent with the other services.
 WORKDIR /orchest/services/orchest-api/app/
+
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
-CMD ["./../start_celery_workers.sh"]
+# -n to run in the foreground, -m is the umask of the supervisord
+# process, the umask needs to be setup for each child/service process.
+# -u 0 is to run as root.
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-m 002", "-u 0"]

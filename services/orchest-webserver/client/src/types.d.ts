@@ -76,6 +76,7 @@ export interface IOrchestState
   sessionsKillAllInProgress?: boolean;
   config: IOrchestConfig;
   user_config: IOrchestUserConfig;
+  unsavedChanges: boolean;
   _sessionsToFetch?: IOrchestSessionUuid[] | [];
   _sessionsToggle?: IOrchestSessionUuid;
   _sessionsIsPolling?: boolean;
@@ -110,6 +111,7 @@ export type TOrchestAction =
       type: "sessionToggle";
       payload: IOrchestSessionUuid;
     }
+  | { type: "setUnsavedChanges"; payload: IOrchestState["unsavedChanges"] }
   | { type: "_sessionsToggleClear" }
   | {
       type: "_sessionsSet";

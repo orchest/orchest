@@ -1,63 +1,66 @@
-import React, { Fragment } from "react";
+// @ts-check
+import React from "react";
 import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";
 
-class ConfirmDialog extends React.Component {
-  constructor() {
-    super();
+/**
+ * @param {Object} props
+ * @param {any} [props.title]
+ * @param {any} [props.onCancel]
+ * @param {any} [props.onClose]
+ * @param {any} [props.onConfirm]
+ * @param {any} [props.content]
+ */
+const ConfirmDialog = (props) => {
+  const [refManager] = React.useState(new RefManager());
 
-    this.refManager = new RefManager();
-  }
+  const confirm = () => {
+    refManager.refs.dialog.close();
 
-  confirm() {
-    this.refManager.refs.dialog.close();
-
-    if (this.props.onConfirm) {
-      this.props.onConfirm();
+    if (props.onConfirm) {
+      props.onConfirm();
     }
-  }
+  };
 
-  cancel() {
-    this.refManager.refs.dialog.close();
+  const cancel = () => {
+    refManager.refs.dialog.close();
 
-    if (this.props.onCancel) {
-      this.props.onCancel();
+    if (props.onCancel) {
+      props.onCancel();
     }
-  }
+  };
 
-  onOpened() {
-    if (this.refManager.refs.okButton) {
-      this.refManager.refs.okButton.focus();
+  const onOpened = () => {
+    if (refManager.refs.okButton) {
+      refManager.refs.okButton.focus();
     }
-  }
+  };
 
-  render() {
-    return (
-      <MDCDialogReact
-        ref={this.refManager.nrefs.dialog}
-        title={this.props.title}
-        onClose={this.props.onClose}
-        onOpened={this.onOpened.bind(this)}
-        content={<p>{this.props.content}</p>}
-        actions={
-          <Fragment>
-            <MDCButtonReact
-              label="Cancel"
-              classNames={["push-right"]}
-              onClick={this.cancel.bind(this)}
-            />
-            <MDCButtonReact
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              submitButton
-              ref={this.refManager.nrefs.okButton}
-              label="Ok"
-              onClick={this.confirm.bind(this)}
-            />
-          </Fragment>
-        }
-      />
-    );
-  }
-}
+  return (
+    <MDCDialogReact
+      ref={refManager.nrefs.dialog}
+      title={props.title}
+      onClose={props.onClose}
+      onOpened={onOpened.bind(this)}
+      content={props.content && <p>{props.content}</p>}
+      actions={
+        <React.Fragment>
+          <MDCButtonReact
+            label="Cancel"
+            classNames={["push-right"]}
+            onClick={cancel.bind(this)}
+          />
+          <MDCButtonReact
+            classNames={["mdc-button--raised", "themed-secondary"]}
+            submitButton
+            ref={refManager.nrefs.okButton}
+            label="Ok"
+            onClick={confirm.bind(this)}
+          />
+        </React.Fragment>
+      }
+    />
+  );
+};
 
 export default ConfirmDialog;

@@ -1,3 +1,4 @@
+// @ts-check
 import React, { Fragment } from "react";
 import AlertDialog from "./AlertDialog";
 import { uuidv4 } from "@orchest/lib-utils";
@@ -27,81 +28,70 @@ function newslines2breaks(lines) {
   return lineElements;
 }
 
-class Dialogs extends React.Component {
-  constructor(props) {
-    super(props);
+const Dialogs = React.forwardRef((_, ref) => {
+  const [dialogs, setDialogs] = React.useState([]);
 
-    this.state = {
-      dialogs: [],
-    };
-  }
-
-  requestBuild(
+  const requestBuild = (
     project_uuid,
     environmentValidationData,
     requestedFromView,
     onBuildComplete,
     onCancel
-  ) {
+  ) => {
     let uuid = uuidv4();
-    this.state.dialogs.push(
+
+    setDialogs((prevDialogs) => [
+      ...prevDialogs,
       <BuildPendingDialog
         key={uuid}
-        uuid={uuid}
         project_uuid={project_uuid}
         environmentValidationData={environmentValidationData}
         requestedFromView={requestedFromView}
-        onBuildComplete={onBuildComplete}
+        onBuildComplete={() => {
+          onBuildComplete();
+        }}
         onCancel={onCancel}
         onClose={() => {
-          this.remove(uuid);
+          remove(uuid);
         }}
-      />
-    );
+      />,
+    ]);
+  };
 
-    this.setState({
-      dialogs: this.state.dialogs,
-    });
-  }
-
-  alert(title, content, onClose) {
+  const alert = (title, content, onClose) => {
     let uuid = uuidv4();
 
     if (typeof content == "string") {
       content = newslines2breaks(content);
     }
 
-    this.state.dialogs.push(
+    setDialogs((prevDialogs) => [
+      ...prevDialogs,
       <AlertDialog
         key={uuid}
-        uuid={uuid}
         onClose={() => {
           if (onClose) {
             onClose();
           }
-          this.remove(uuid);
+          remove(uuid);
         }}
         title={title}
         content={content}
-      />
-    );
+      />,
+    ]);
+  };
 
-    this.setState({
-      dialogs: this.state.dialogs,
-    });
-  }
-
-  confirm(title, content, onConfirm, onCancel) {
+  const confirm = (title, content, onConfirm, onCancel) => {
     let uuid = uuidv4();
 
     if (typeof content == "string") {
       content = newslines2breaks(content);
     }
 
-    this.state.dialogs.push(
+    setDialogs((prevDialogs) => [
+      ...prevDialogs,
       <ConfirmDialog
         key={uuid}
-        uuid={uuid}
         title={title}
         content={content}
         onConfirm={() => {
@@ -109,41 +99,31 @@ class Dialogs extends React.Component {
             onConfirm();
           }
         }}
-        onCancel={() => {
+        onClose={() => {
           if (onCancel) {
             onCancel();
           }
+          remove(uuid);
         }}
-        onClose={() => {
-          this.remove(uuid);
-        }}
-      />
+      />,
+    ]);
+  };
+
+  const remove = (uuid) => {
+    setDialogs((prevDialogs) =>
+      prevDialogs.filter((item) => item.key !== uuid)
     );
+  };
 
-    this.setState({
-      dialogs: this.state.dialogs,
-    });
-  }
+  React.useImperativeHandle(ref, () => ({
+    alert,
+    confirm,
+    remove,
+    requestBuild,
+  }));
 
-  remove(uuid) {
-    let index;
-    for (let x = 0; x < this.state.dialogs.length; x++) {
-      if (this.state.dialogs[x].props.uuid == uuid) {
-        index = x;
-        break;
-      }
-    }
-
-    this.state.dialogs.splice(index, 1);
-
-    this.setState({
-      dialogs: this.state.dialogs,
-    });
-  }
-
-  render() {
-    return this.state.dialogs;
-  }
-}
+  // return dialogs;
+  return <React.Fragment>{dialogs.length > 0 ? dialogs : null}</React.Fragment>;
+});
 
 export default Dialogs;

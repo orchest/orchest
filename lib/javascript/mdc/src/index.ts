@@ -11,3 +11,4 @@ export * from "./MDCSelectReact";
 export * from "./MDCSwitchReact";
 export * from "./MDCTabBarReact";
 export * from "./MDCTextFieldReact";
+export * from "./MDCTooltipReact";

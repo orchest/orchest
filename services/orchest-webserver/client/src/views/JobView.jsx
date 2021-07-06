@@ -20,16 +20,17 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
   envVariablesDictToArray,
-} from "../utils/webserver-utils";
+} from "@/utils/webserver-utils";
+import { Layout } from "@/components/Layout";
 import { DescriptionList } from "@/components/DescriptionList";
-import { StatusInline, StatusGroup } from "../components/Status";
-import ParamTree from "../components/ParamTree";
-import ParameterEditor from "../components/ParameterEditor";
-import SearchableTable from "../components/SearchableTable";
-import EnvVarList from "../components/EnvVarList";
-import PipelineView from "./PipelineView";
-import EditJobView from "./EditJobView";
-import JobsView from "./JobsView";
+import { StatusInline, StatusGroup } from "@/components/Status";
+import ParamTree from "@/components/ParamTree";
+import ParameterEditor from "@/components/ParameterEditor";
+import SearchableTable from "@/components/SearchableTable";
+import EnvVarList from "@/components/EnvVarList";
+import PipelineView from "@/views/PipelineView";
+import EditJobView from "@/views/EditJobView";
+import JobsView from "@/views/JobsView";
 
 /**
  * JobView-specific Type Definitions
@@ -173,8 +174,8 @@ const JobView = (props) => {
     pipeline: undefined,
   });
 
-  const promiseManager = new PromiseManager();
-  const refManager = new RefManager();
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
   React.useEffect(() => {
     fetchJob();
@@ -271,6 +272,11 @@ const JobView = (props) => {
         pipelineRuns[x].pipeline_run_index,
         formatPipelineParams(pipelineRuns[x].parameters),
         <StatusInline status={pipelineRuns[x].status} />,
+        pipelineRuns[x].started_time ? (
+          formatServerDateTime(pipelineRuns[x].started_time)
+        ) : (
+          <i>Not yet started</i>
+        ),
       ]);
     }
 
@@ -413,7 +419,7 @@ const JobView = (props) => {
             <SearchableTable
               rows={pipelineRunsToTableData(state.job.pipeline_runs)}
               detailRows={detailRows(state.job.pipeline_runs)}
-              headers={["ID", "Parameters", "Status"]}
+              headers={["ID", "Parameters", "Status", "Started at"]}
               selectedIndices={state.selectedIndices}
               onSelectionChanged={onPipelineRunsSelectionChanged.bind(this)}
             />
@@ -490,9 +496,12 @@ const JobView = (props) => {
             },
             {
               term: "Scheduled to run",
-              details: state.job.next_scheduled_time
-                ? formatServerDateTime(state.job.next_scheduled_time)
-                : formatServerDateTime(state.job.last_scheduled_time),
+              details:
+                state.job.status === "ABORTED"
+                  ? "Cancelled"
+                  : state.job.next_scheduled_time
+                  ? formatServerDateTime(state.job.next_scheduled_time)
+                  : formatServerDateTime(state.job.last_scheduled_time),
             },
           ]}
         />
@@ -549,7 +558,11 @@ const JobView = (props) => {
     );
   }
 
-  return <div className="view-page job-view">{rootView}</div>;
+  return (
+    <Layout>
+      <div className="view-page job-view">{rootView}</div>
+    </Layout>
+  );
 };
 
 export default JobView;

@@ -1,7 +1,7 @@
 import copy
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
@@ -21,7 +21,8 @@ from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
     get_env_uuids_missing_image,
     get_proj_pip_env_variables,
-    lock_environment_images_for_run,
+    lock_environment_images_for_job,
+    process_stale_environment_images,
     register_schema,
     update_status_db,
 )
@@ -53,71 +54,25 @@ class JobList(Resource):
     @api.doc("start_job")
     @api.expect(schema.job_spec)
     def post(self):
-        """Queues a new job."""
+        """Drafts a new job. Locks environment images for all its runs.
+
+        The environment images used by a job across its entire lifetime,
+        and thus its runs, will be the same. This is done by locking the
+        actual resource (docker image) that is backing the environment,
+        so that a new build of the environment will not affect the job.
+        To actually queue the job you need to issue a PUT request for
+        the DRAFT job you create here. The PUT needs to contain the
+        `confirm_draft` key.
+
+        """
         # TODO: possibly use marshal() on the post_data. Note that we
         # have moved over to using flask_restx
         # https://flask-restx.readthedocs.io/en/stable/api.html#flask_restx.marshal
         #       to make sure the default values etc. are filled in.
-
         try:
-            post_data = request.get_json()
-
-            scheduled_start = post_data.get("scheduled_start", None)
-            cron_schedule = post_data.get("cron_schedule", None)
-
-            # To be scheduled ASAP and to be run once.
-            if cron_schedule is None and scheduled_start is None:
-                next_scheduled_time = None
-
-            # To be scheduled according to argument, to be run once.
-            elif cron_schedule is None:
-                # Expected to be UTC.
-                next_scheduled_time = datetime.fromisoformat(scheduled_start)
-
-            # To follow a cron schedule. To be run an indefinite amount
-            # of times.
-            elif cron_schedule is not None and scheduled_start is None:
-                if not croniter.is_valid(cron_schedule):
-                    raise ValueError(f"Invalid cron schedule: {cron_schedule}")
-
-                # Check when is the next time the job should be
-                # scheduled starting from now.
-                next_scheduled_time = croniter(
-                    cron_schedule, datetime.now(timezone.utc)
-                ).get_next(datetime)
-
-            else:
-                raise ValueError("Can't define both cron_schedule and scheduled_start.")
-
-            job = {
-                "uuid": post_data["uuid"],
-                "name": post_data["name"],
-                "project_uuid": post_data["project_uuid"],
-                "pipeline_uuid": post_data["pipeline_uuid"],
-                "pipeline_name": post_data["pipeline_name"],
-                "schedule": cron_schedule,
-                "parameters": post_data["parameters"],
-                "env_variables": get_proj_pip_env_variables(
-                    post_data["project_uuid"], post_data["pipeline_uuid"]
-                ),
-                # NOTE: the definition of a service is currently
-                # persisted to disk and considered to be versioned,
-                # meaning that nothing in there is considered to be
-                # secret. If this changes, this dictionary needs to have
-                # secrets removed.
-                "pipeline_definition": post_data["pipeline_definition"],
-                "pipeline_run_spec": post_data["pipeline_run_spec"],
-                "total_scheduled_executions": 0,
-                "next_scheduled_time": next_scheduled_time,
-                "status": "DRAFT",
-                "strategy_json": post_data.get("strategy_json", {}),
-                "created_time": datetime.now(timezone.utc),
-            }
-            db.session.add(models.Job(**job))
-            db.session.commit()
-
+            with TwoPhaseExecutor(db.session) as tpe:
+                job = CreateJob(tpe).transaction(request.get_json())
         except Exception as e:
-            db.session.rollback()
             current_app.logger.error(e)
             return {"message": str(e)}, 500
 
@@ -244,66 +199,15 @@ class PipelineRun(Resource):
     @api.expect(schema.status_update)
     def put(self, job_uuid, run_uuid):
         """Set the status of a pipeline run."""
-        status_update = request.get_json()
 
         try:
-
-            filter_by = {
-                "job_uuid": job_uuid,
-                "uuid": run_uuid,
-            }
-
-            update_status_db(
-                status_update,
-                model=models.NonInteractivePipelineRun,
-                filter_by=filter_by,
-            )
-
-            # See if the job is done running (all its runs are done).
-            if status_update["status"] in ["SUCCESS", "FAILURE"]:
-
-                # The job has 1 run for every parameters set.
-                job = (
-                    db.session.query(
-                        models.Job.schedule,
-                        func.jsonb_array_length(models.Job.parameters),
-                    )
-                    .filter_by(uuid=job_uuid)
-                    .one()
+            with TwoPhaseExecutor(db.session) as tpe:
+                UpdateJobPipelineRun(tpe).transaction(
+                    job_uuid, run_uuid, request.get_json()
                 )
-
-                # Only non recurring jobs terminate to SUCCESS.
-                if job.schedule is None:
-
-                    completed_runs = (
-                        models.NonInteractivePipelineRun.query.filter_by(
-                            job_uuid=job_uuid
-                        )
-                        .filter(
-                            models.NonInteractivePipelineRun.status.in_(
-                                ["SUCCESS", "FAILURE"]
-                            )
-                        )
-                        .count()
-                    )
-
-                    current_app.logger.info(
-                        (
-                            f"Non recurring job {job_uuid} has completed "
-                            f"{completed_runs}/{job[1]} runs."
-                        )
-                    )
-
-                    if completed_runs == job[1]:
-                        models.Job.query.filter_by(uuid=job_uuid).update(
-                            {"status": "SUCCESS"}
-                        )
-
-            db.session.commit()
         except Exception as e:
-            db.session.rollback()
             current_app.logger.error(e)
-            return {"message": "Failed update operation."}, 500
+            return {"message": str(e)}, 500
 
         return {"message": "Status was updated successfully"}, 200
 
@@ -502,57 +406,33 @@ class RunJob(TwoPhaseFunction):
             db.session.bulk_save_objects(pipeline_steps)
 
         job.total_scheduled_executions += 1
+
+        # Prepare data for _collateral.
         self.collateral_kwargs["job"] = job.as_dict()
+
+        mappings = {
+            mapping.orchest_environment_uuid: mapping.docker_img_id
+            for mapping in job.image_mappings
+        }
+        run_config = job.pipeline_run_spec["run_config"]
+        run_config["env_uuid_docker_id_mappings"] = mappings
+        run_config["user_env_variables"] = job.env_variables
+        self.collateral_kwargs["run_config"] = run_config
+
         self.collateral_kwargs["tasks_to_launch"] = tasks_to_launch
 
     def _collateral(
         self,
         job: Dict[str, Any],
+        run_config: Dict[str, Any],
         tasks_to_launch: Tuple[str, Pipeline],
     ):
         # Safety check in case the job has no runs.
         if not tasks_to_launch:
             return
 
-        # Get docker ids of images to use and make it so that the
-        # images will not be deleted in case they become outdate by an
-        # an environment rebuild. Compute it only once because this way
-        # we are guaranteed that the mappings will be the same for all
-        # runs, having a new environment build terminate while
-        # submitting the different runs won't affect the job.
-        try:
-            env_uuid_docker_id_mappings = lock_environment_images_for_run(
-                # first (task_id, pipeline) -> task id.
-                tasks_to_launch[0][0],
-                job["project_uuid"],
-                # first (task_id, pipeline) -> pipeline.
-                tasks_to_launch[0][1].get_environments(),
-            )
-        except errors.ImageNotFound as e:
-            raise errors.ImageNotFound(
-                "Pipeline was referencing environments for "
-                f"which an image does not exist, {e}"
-            )
-
-        for task_id, _ in tasks_to_launch[1:]:
-            image_mappings = [
-                models.PipelineRunImageMapping(
-                    **{
-                        "run_uuid": task_id,
-                        "orchest_environment_uuid": env_uuid,
-                        "docker_img_id": docker_id,
-                    }
-                )
-                for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-            ]
-            db.session.bulk_save_objects(image_mappings)
-        db.session.commit()
-
         # Launch each task through celery.
         celery = make_celery(current_app)
-        run_config = job["pipeline_run_spec"]["run_config"]
-        run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
-        run_config["user_env_variables"] = job["env_variables"]
 
         for task_id, pipeline in tasks_to_launch:
             celery_job_kwargs = {
@@ -607,6 +487,7 @@ class AbortJob(TwoPhaseFunction):
         # to do.
         self.collateral_kwargs["run_uuids"] = run_uuids
         self.collateral_kwargs["job_uuid"] = job_uuid
+        self.collateral_kwargs["project_uuid"] = None
 
         job = (
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
@@ -615,6 +496,8 @@ class AbortJob(TwoPhaseFunction):
         )
         if job is None:
             return False
+
+        self.collateral_kwargs["project_uuid"] = job.project_uuid
 
         # No op if the job is already in an end state.
         if job.status in ["SUCCESS", "FAILURE", "ABORTED"]:
@@ -653,7 +536,7 @@ class AbortJob(TwoPhaseFunction):
 
         return True
 
-    def _collateral(self, run_uuids: List[str], **kwargs):
+    def _collateral(self, project_uuid: str, run_uuids: List[str], **kwargs):
         # Aborts and revokes all pipeline runs and waits for a reply for
         # 1.0s.
         celery = make_celery(current_app)
@@ -665,8 +548,91 @@ class AbortJob(TwoPhaseFunction):
             # its aborted status.
             res.abort()
 
+        if project_uuid is not None:
+            process_stale_environment_images(project_uuid)
+
+
+class CreateJob(TwoPhaseFunction):
+    """Create a job."""
+
+    def _transaction(
+        self,
+        job_spec: Dict[str, Any],
+    ) -> models.Job:
+        scheduled_start = job_spec.get("scheduled_start", None)
+        cron_schedule = job_spec.get("cron_schedule", None)
+
+        # To be scheduled ASAP and to be run once.
+        if cron_schedule is None and scheduled_start is None:
+            next_scheduled_time = None
+
+        # To be scheduled according to argument, to be run once.
+        elif cron_schedule is None:
+            # Expected to be UTC.
+            next_scheduled_time = datetime.fromisoformat(scheduled_start)
+
+        # To follow a cron schedule. To be run an indefinite amount
+        # of times.
+        elif cron_schedule is not None and scheduled_start is None:
+            if not croniter.is_valid(cron_schedule):
+                raise ValueError(f"Invalid cron schedule: {cron_schedule}")
+
+            # Check when is the next time the job should be
+            # scheduled starting from now.
+            next_scheduled_time = croniter(
+                cron_schedule, datetime.now(timezone.utc)
+            ).get_next(datetime)
+
+        else:
+            raise ValueError("Can't define both cron_schedule and scheduled_start.")
+
+        job = {
+            "uuid": job_spec["uuid"],
+            "name": job_spec["name"],
+            "project_uuid": job_spec["project_uuid"],
+            "pipeline_uuid": job_spec["pipeline_uuid"],
+            "pipeline_name": job_spec["pipeline_name"],
+            "schedule": cron_schedule,
+            "parameters": job_spec["parameters"],
+            "env_variables": get_proj_pip_env_variables(
+                job_spec["project_uuid"], job_spec["pipeline_uuid"]
+            ),
+            # NOTE: the definition of a service is currently
+            # persisted to disk and considered to be versioned,
+            # meaning that nothing in there is considered to be
+            # secret. If this changes, this dictionary needs to have
+            # secrets removed.
+            "pipeline_definition": job_spec["pipeline_definition"],
+            "pipeline_run_spec": job_spec["pipeline_run_spec"],
+            "total_scheduled_executions": 0,
+            "next_scheduled_time": next_scheduled_time,
+            "status": "DRAFT",
+            "strategy_json": job_spec.get("strategy_json", {}),
+            "created_time": datetime.now(timezone.utc),
+        }
+        db.session.add(models.Job(**job))
+
+        self.collateral_kwargs["project_uuid"] = job_spec["project_uuid"]
+        self.collateral_kwargs["job_uuid"] = job_spec["uuid"]
+        spec = copy.deepcopy(job_spec["pipeline_run_spec"])
+        spec["pipeline_definition"] = job_spec["pipeline_definition"]
+        pipeline = construct_pipeline(**spec)
+        self.collateral_kwargs["environment_uuids"] = pipeline.get_environments()
+        return job
+
+    def _collateral(
+        self, project_uuid: str, job_uuid: str, environment_uuids: Set[str]
+    ):
+        # This way all runs of a job will use the same environments. The
+        # images to use will be retrieved through the JobImageMapping
+        # model.
+        lock_environment_images_for_job(job_uuid, project_uuid, environment_uuids)
+
     def _revert(self):
-        pass
+        models.Job.query.filter_by(
+            uuid=self.collateral_kwargs["job_uuid"],
+        ).delete()
+        db.session.commit()
 
 
 class UpdateJob(TwoPhaseFunction):
@@ -811,9 +777,11 @@ class DeleteJob(TwoPhaseFunction):
     """Delete a job."""
 
     def _transaction(self, job_uuid):
+        self.collateral_kwargs["project_uuid"] = None
         job = models.Job.query.filter_by(uuid=job_uuid).one_or_none()
         if job is None:
             return False
+        self.collateral_kwargs["project_uuid"] = job.project_uuid
 
         # Abort the job, won't do anything if the job is not running.
         AbortJob(self.tpe).transaction(job_uuid)
@@ -824,5 +792,75 @@ class DeleteJob(TwoPhaseFunction):
         db.session.delete(job)
         return True
 
-    def _collateral(self):
-        pass
+    def _collateral(self, project_uuid: str):
+        if project_uuid is not None:
+            process_stale_environment_images(project_uuid)
+
+
+class UpdateJobPipelineRun(TwoPhaseFunction):
+    """Update a pipeline run of a job."""
+
+    def _transaction(self, job_uuid: str, run_uuid: str, status_update: Dict[str, Any]):
+        """Set the status of a pipeline run."""
+        # Setup for collateral/revert.
+        self.collateral_kwargs["project_uuid"] = None
+        self.collateral_kwargs["completed"] = False
+
+        filter_by = {
+            "job_uuid": job_uuid,
+            "uuid": run_uuid,
+        }
+
+        update_status_db(
+            status_update,
+            model=models.NonInteractivePipelineRun,
+            filter_by=filter_by,
+        )
+
+        # See if the job is done running (all its runs are done).
+        if status_update["status"] in ["SUCCESS", "FAILURE"]:
+
+            # The job has 1 run for every parameters set.
+            job = (
+                db.session.query(
+                    models.Job.project_uuid,
+                    models.Job.schedule,
+                    func.jsonb_array_length(models.Job.parameters),
+                )
+                .filter_by(uuid=job_uuid)
+                .one()
+            )
+            self.collateral_kwargs["project_uuid"] = job.project_uuid
+
+            # Only non recurring jobs terminate to SUCCESS.
+            if job.schedule is None:
+
+                completed_runs = (
+                    models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                    .filter(
+                        models.NonInteractivePipelineRun.status.in_(
+                            ["SUCCESS", "FAILURE"]
+                        )
+                    )
+                    .count()
+                )
+
+                current_app.logger.info(
+                    (
+                        f"Non recurring job {job_uuid} has completed "
+                        f"{completed_runs}/{job[2]} runs."
+                    )
+                )
+
+                if completed_runs == job[2]:
+                    models.Job.query.filter_by(uuid=job_uuid).update(
+                        {"status": "SUCCESS"}
+                    )
+                    # The job is completed.
+                    self.collateral_kwargs["completed"] = True
+
+        return {"message": "Status was updated successfully"}, 200
+
+    def _collateral(self, project_uuid: str, completed: bool):
+        if completed and project_uuid is not None:
+            process_stale_environment_images(project_uuid)

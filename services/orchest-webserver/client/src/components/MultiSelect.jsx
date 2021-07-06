@@ -24,8 +24,10 @@ const isNumeric = (value) => value.match("^\\d+$") != null;
  *    "aria-invalid"?: boolean;
  *    id: string;
  *    required?: boolean;
+ *    disabled: boolean;
  *    type?: "text" | "number";
  *    value: TMultiSelectInputValue;
+ *    onBlur: (event: any) => void
  *  } &
  *  Record<
  *    "onChange" | "onKeyDown" | "onKeyUp",
@@ -51,6 +53,7 @@ const isNumeric = (value) => value.match("^\\d+$") != null;
  *
  * @typedef {{
  *  onChange: (items: TMultiSelectItems) => void;
+ *  disabled?: boolean;
  *  } & Pick<TMultiSelectContext, "items" | "required" | "type">
  * } TMultiSelectProps
  *
@@ -69,6 +72,7 @@ export const MultiSelect = ({
   onChange,
   required,
   type = "text",
+  disabled = false,
   ...props
 }) => {
   const [error, setError] = React.useState(null);
@@ -92,7 +96,6 @@ export const MultiSelect = ({
 
   /** @type {TMultiSelectContext['removeItem']} */
   const removeItem = (item) => {
-    console.log("handle remove");
     setItems((prevState) =>
       prevState.filter((prevStateItem) => prevStateItem !== item)
     );
@@ -110,17 +113,45 @@ export const MultiSelect = ({
     htmlFor: inputId,
   });
 
+  const addItem = (value) => {
+    setItems((prevState) => [...prevState, value]);
+    setInputValue("");
+  };
+
+  const checkErrors = (value) => {
+    setError();
+
+    if (type === "number" && !isNumeric(value)) {
+      setError(`"${value}" is invalid. Please enter a number.`);
+    }
+
+    if (items.some((selectedItem) => selectedItem.value === value)) {
+      setError(`"${value}" already exists`);
+    }
+  };
   /** @type {TMultiSelectContext['getInputProps']} */
   const getInputProps = () => ({
     id: inputId,
     value: inputValue,
     required,
+    disabled: disabled,
     type: "text",
     ...(type === "number" && { inputMode: "numeric", pattern: "[0-9]*" }),
+    onBlur: (e) => {
+      const value = e.target.value;
+
+      if (isValueWhitespace(value)) {
+        setInputValue("");
+        return;
+      }
+
+      checkErrors(value);
+      if (!error) {
+        addItem({ value });
+      }
+    },
     onChange: (event) => {
       // clear any previous errors
-      setError();
-
       const value = event?.target?.value;
 
       if (isValueWhitespace(value)) {
@@ -128,14 +159,7 @@ export const MultiSelect = ({
         return;
       }
 
-      if (type === "number" && !isNumeric(value)) {
-        setError(`"${value}" is invalid. Please enter a number.`);
-      }
-
-      if (items.some((selectedItem) => selectedItem.value === value)) {
-        setError(`"${value}" already exists`);
-      }
-
+      checkErrors(value);
       setInputValue(value);
     },
     onKeyDown: (event) => {
@@ -151,9 +175,7 @@ export const MultiSelect = ({
 
       if (!error && event.key === "Enter") {
         if (isValueWhitespace(value)) return;
-
-        setItems((prevState) => [...prevState, { value }]);
-        setInputValue("");
+        addItem({ value });
       }
     },
     ...(error && { "aria-invalid": true, "aria-labelledby": errorId }),
@@ -274,6 +296,7 @@ export const MultiSelectInput = () => {
     setTabIndices(
       items.map((_, i) => (i === index ? value : value === 0 ? -1 : 0))
     );
+  const inputProps = getInputProps();
 
   return (
     <div
@@ -296,11 +319,14 @@ export const MultiSelectInput = () => {
               type="button"
               tabIndex={tabIndices[index]}
               onClick={() => {
-                removeItem(selectedItem);
+                if (!inputProps.disabled) {
+                  removeItem(selectedItem);
+                }
               }}
               css={{
                 marginLeft: "$1",
                 color: "$white",
+                opacity: inputProps.disabled ? 0.5 : 1,
                 backgroundColor: "$gray600",
                 padding: "calc($1 / 2)",
                 "&:hover, &:focus": { backgroundColor: "$gray800" },
@@ -314,7 +340,7 @@ export const MultiSelectInput = () => {
           <input
             type="text"
             className={multiSelectInputElement()}
-            {...getInputProps()}
+            {...inputProps}
           />
         </li>
       </ul>

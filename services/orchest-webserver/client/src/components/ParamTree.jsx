@@ -1,5 +1,6 @@
 import React from "react";
 import _ from "lodash";
+import { OrchestContext } from "@/hooks/orchest";
 import {
   Alert,
   AlertHeader,
@@ -9,6 +10,12 @@ import {
 } from "@orchest/design-system";
 
 class ParamTree extends React.Component {
+  static contextType = OrchestContext;
+
+  constructor(props, context) {
+    super(props, context);
+  }
+
   truncateParameterValue(value) {
     // stringify non string values
     if (!_.isString(value)) {
@@ -74,7 +81,9 @@ class ParamTree extends React.Component {
 
     // first list pipeline parameters
     let pipelineParameterization =
-      strategyJSON[orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]];
+      strategyJSON[
+        this.context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY
+      ];
     if (pipelineParameterization) {
       pipelineParameterElement = this.generateParameterElement(
         pipelineParameterization,
@@ -83,7 +92,9 @@ class ParamTree extends React.Component {
     }
 
     for (const stepUUID in strategyJSON) {
-      if (stepUUID == orchest.config["PIPELINE_PARAMETERS_RESERVED_KEY"]) {
+      if (
+        stepUUID == this.context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY
+      ) {
         continue;
       }
 
@@ -111,13 +122,15 @@ class ParamTree extends React.Component {
                   This pipeline doesn't have any parameters defined
                 </AlertHeader>
                 <AlertDescription>
-                  <Link
-                    target="_blank"
-                    href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
-                  >
-                    Learn more
-                  </Link>{" "}
-                  about parametrizing your pipelines and steps.
+                  <>
+                    <Link
+                      target="_blank"
+                      href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
+                    >
+                      Learn more
+                    </Link>{" "}
+                    about parametrizing your pipelines and steps.
+                  </>
                 </AlertDescription>
               </Alert>
             );

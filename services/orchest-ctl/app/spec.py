@@ -209,6 +209,9 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
             "Image": "orchest/celery-worker:latest",
             "Env": [
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
+                # Set a default log level because supervisor can't deal
+                # with non assigned env variables.
+                "ORCHEST_LOG_LEVEL=INFO",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],

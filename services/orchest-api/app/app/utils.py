@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 import requests
 from celery.utils.log import get_task_logger
@@ -12,6 +12,7 @@ from sqlalchemy.orm import undefer
 
 import app.models as models
 from _orchest.internals import config as _config
+from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app import schema
 from app.connections import db, docker_client
 
@@ -356,6 +357,67 @@ def lock_environment_images_for_session(
     return env_uuid_docker_id_mappings
 
 
+def lock_environment_images_for_job(
+    job_uuid: str, project_uuid: str, environment_uuids: Set[str]
+) -> Dict[str, str]:
+    """Retrieve the docker ids to use for the runs of a job.
+
+    See lock_environment_images_for_run for more details.
+
+    Args:
+        job_uuid:
+        project_uuid:
+        environment_uuids:
+
+    Returns:
+        A dictionary mapping environment uuids to the docker id of the
+        image, so that a job can make use of those images knowingly that
+        the images won't be deleted, even if they become outdated.
+
+    """
+    model = models.JobImageMapping
+
+    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
+        project_uuid, environment_uuids
+    )
+
+    job_image_mappings = [
+        model(
+            **{
+                "job_uuid": job_uuid,
+                "orchest_environment_uuid": env_uuid,
+                "docker_img_id": docker_id,
+            }
+        )
+        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
+    ]
+    db.session.bulk_save_objects(job_image_mappings)
+    db.session.commit()
+
+    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+        project_uuid, environment_uuids
+    )
+    while set(env_uuid_docker_id_mappings.values()) != set(
+        env_uuid_docker_id_mappings2.values()
+    ):
+        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
+            env_uuid_docker_id_mappings.items()
+        )
+        for env_uuid, docker_id in mappings_to_update:
+            model.query.filter(
+                model.job_uuid == job_uuid,
+                model.orchest_environment_uuid == env_uuid,
+            ).update({"docker_img_id": docker_id})
+        db.session.commit()
+
+        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
+
+        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+            project_uuid, environment_uuids
+        )
+    return env_uuid_docker_id_mappings
+
+
 def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
     """Get the list of interactive runs using a given environment.
 
@@ -383,32 +445,10 @@ def interactive_sessions_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    int_sess = models.InteractiveSession.query.filter(
+    return models.InteractiveSession.query.filter(
         models.InteractiveSession.project_uuid == project_uuid,
+        models.InteractiveSession.image_mappings.any(orchest_environment_uuid=env_uuid),
     ).all()
-
-    int_sess_using_env = []
-    prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-
-    # For each session, check if any service is making use of the env.
-    # TODO: do this at the db level using jsonb operators.
-    for sess in int_sess:
-        services = sess.user_services
-        if services is None:
-            continue
-
-        # Orchest environments used by the services.
-        envs = set()
-        for service in services.values():
-            img = service["image"]
-            if img.startswith(prefix):
-                img = img.replace(prefix, "")
-                envs.add(img)
-
-        if env_uuid in envs:
-            int_sess_using_env.append(sess)
-
-    return int_sess_using_env
 
 
 def jobs_using_environment(project_uuid: str, env_uuid: str):
@@ -420,28 +460,12 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
 
     Returns:
     """
-    future_jobs = models.Job.query.filter(
+
+    return models.Job.query.filter(
         models.Job.project_uuid == project_uuid,
+        models.Job.image_mappings.any(orchest_environment_uuid=env_uuid),
         models.Job.status.in_(["DRAFT", "PENDING", "STARTED"]),
     ).all()
-
-    # TODO: do this at the db level using jsonb operators.
-    future_jobs_using_env = []
-    for job in future_jobs:
-        steps = job.pipeline_definition["steps"]
-        envs = {step["environment"] for step in steps.values()}
-
-        # Check if any service will be using the image.
-        for service in job.pipeline_definition.get("services", {}).values():
-            image = service["image"]
-            prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-            if image.startswith(prefix):
-                envs.add(image.replace(prefix, ""))
-
-        if env_uuid in envs:
-            future_jobs_using_env.append(job)
-
-    return future_jobs_using_env
 
 
 def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
@@ -456,8 +480,8 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
 
     int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
     int_sess = interactive_sessions_using_environment(project_uuid, env_uuid)
-    exps = jobs_using_environment(project_uuid, env_uuid)
-    return len(int_runs) > 0 or len(exps) > 0 or len(int_sess) > 0
+    jobs = jobs_using_environment(project_uuid, env_uuid)
+    return len(int_runs) > 0 or len(int_sess) > 0 or len(jobs) > 0
 
 
 def is_docker_image_in_use(img_id: str) -> bool:
@@ -470,7 +494,7 @@ def is_docker_image_in_use(img_id: str) -> bool:
         bool:
     """
 
-    runs = models.PipelineRun.query.filter(
+    int_runs = models.PipelineRun.query.filter(
         models.PipelineRun.image_mappings.any(docker_img_id=img_id),
         models.PipelineRun.status.in_(["PENDING", "STARTED"]),
     ).all()
@@ -479,7 +503,12 @@ def is_docker_image_in_use(img_id: str) -> bool:
         models.InteractiveSession.image_mappings.any(docker_img_id=img_id),
     ).all()
 
-    return bool(runs) or bool(int_sessions)
+    jobs = models.Job.query.filter(
+        models.Job.image_mappings.any(docker_img_id=img_id),
+        models.Job.status.in_(["DRAFT", "PENDING", "STARTED"]),
+    ).all()
+
+    return bool(int_runs) or bool(int_sessions) or bool(jobs)
 
 
 def remove_if_dangling(img) -> bool:
@@ -555,3 +584,80 @@ def get_logger() -> logging.Logger:
     except Exception:
         pass
     return get_task_logger(__name__)
+
+
+def process_stale_environment_images(project_uuid: Optional[str] = None) -> None:
+    """Make stale environments unavailable to the user.
+
+    Args:
+        project_uuid: If specified, only this project environment images
+            will be processed.
+
+    After an update, all environment images are invalidated to avoid the
+    user having an environment with an SDK not compatible with the
+    latest version of Orchest. At the same time, we need to maintain
+    environment images that are in use by jobs. Environment images that
+    are stale and are not in use by any job get deleted.  Orchest-ctl
+    marks all environment images as "stale" on update, by adding a new
+    name/tag to them. This function goes through all environments
+    images, looking for images that have been marked as stale. Stale
+    images have their "real" name, orchest-env-<proj_uuid>-<env_uuid>
+    removed, so that the environment will have to be rebuilt to be
+    available to the user for new runs.  The invalidation semantics are
+    tied with the semantics of the validation module, which considers an
+    environment as existing based on the existance of the orchest-env-*
+    name.
+
+    """
+    filters = {"label": ["_orchest_env_build_is_intermediate=0"]}
+    if project_uuid is not None:
+        filters["label"].append(f"_orchest_project_uuid={project_uuid}")
+
+    env_imgs = docker_images_list_safe(docker_client, filters=filters)
+    for img in env_imgs:
+        _process_stale_environment_image(img)
+
+
+def _process_stale_environment_image(img) -> None:
+    pr_uuid = img.labels.get("_orchest_project_uuid")
+    env_uuid = img.labels.get("_orchest_environment_uuid")
+    build_uuid = img.labels.get("_orchest_env_build_task_uuid")
+
+    env_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+        project_uuid=pr_uuid, environment_uuid=env_uuid
+    )
+
+    removal_name = _config.ENVIRONMENT_IMAGE_REMOVAL_NAME.format(
+        project_uuid=pr_uuid, environment_uuid=env_uuid, build_uuid=build_uuid
+    )
+
+    if (
+        pr_uuid is None
+        or env_uuid is None
+        or build_uuid is None
+        or
+        # The image has not been marked for removal. This will happen
+        # everytime Orchest is started except for a start which is
+        # following an update.
+        f"{removal_name}:latest" not in img.tags
+        # Note that we can't check for env_name:latest not being in
+        # img.tags because it might not be there if the image has
+        # "survived" two updates in a row because a job is still
+        # using that.
+    ):
+        return
+
+    # This will just remove the orchest-env-* name/tag from the
+    # image, the image will still be available for jobs that are
+    # making use of that because the image still have the
+    # <removal_name>.
+    if f"{env_name}:latest" in img.tags:
+        docker_images_rm_safe(docker_client, env_name)
+
+    if not is_docker_image_in_use(img.id):
+        # Delete through id, hence deleting the image regardless
+        # of the fact that it has other tags. force=True is used to
+        # delete regardless of the existence of stopped containers, this
+        # is required because pipeline runs PUT to the orchest-api their
+        # finished state before deleting their stopped containers.
+        docker_images_rm_safe(docker_client, img.id, attempt_count=20, force=True)

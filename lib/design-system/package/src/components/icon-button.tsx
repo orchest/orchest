@@ -78,6 +78,7 @@ const StyledIconButton = styled(DEFAULT_TAG, {
   defaultVariants: {
     color: "gray",
     size: "4",
+    variant: "solid",
   },
 });
 

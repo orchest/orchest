@@ -7,16 +7,16 @@ import {
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import { OrchestContext } from "@/hooks/orchest";
-import EnvVarList from "../components/EnvVarList";
+import { Layout } from "@/components/Layout";
+import EnvVarList from "@/components/EnvVarList";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
-  updateGlobalUnsavedChanges,
-} from "../utils/webserver-utils";
-import PipelinesView from "./PipelinesView";
-import JobsView from "./JobsView";
-import EnvironmentsView from "./EnvironmentsView";
+} from "@/utils/webserver-utils";
+import PipelinesView from "@/views/PipelinesView";
+import JobsView from "@/views/JobsView";
+import EnvironmentsView from "@/views/EnvironmentsView";
 
 class ProjectSettingsView extends React.Component {
   static contextType = OrchestContext;
@@ -42,10 +42,21 @@ class ProjectSettingsView extends React.Component {
   componentDidMount() {
     this.fetchSettings();
     this.attachResizeListener();
+    this.context.dispatch({
+      type: "setUnsavedChanges",
+      payload: this.state.unsavedChanges,
+    });
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(_, prevState) {
     this.attachResizeListener();
+
+    if (this.state.unsavedChanges !== prevState.unsavedChanges) {
+      this.context.dispatch({
+        type: "setUnsavedChanges",
+        payload: this.state.unsavedChanges,
+      });
+    }
   }
 
   attachResizeListener() {
@@ -145,120 +156,123 @@ class ProjectSettingsView extends React.Component {
   }
 
   render() {
-    updateGlobalUnsavedChanges(this.state.unsavedChanges);
     return (
-      <div className={"view-page view-project-settings"}>
-        <form
-          className="project-settings-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
-          <div className="push-down">
-            <MDCButtonReact
-              label="Back to projects"
-              icon="arrow_back"
-              onClick={this.returnToProjects.bind(this)}
-            />
-          </div>
+      <Layout>
+        <div className={"view-page view-project-settings"}>
+          <form
+            className="project-settings-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
+          >
+            <div className="push-down">
+              <MDCButtonReact
+                label="Back to projects"
+                icon="arrow_back"
+                onClick={this.returnToProjects.bind(this)}
+              />
+            </div>
 
-          <h2>Project settings</h2>
-          {(() => {
-            if (this.state.envVariables) {
-              return (
-                <>
-                  <div className="project-settings trigger-overflow">
-                    <div className="columns four push-down top-labels">
-                      <div className="column">
-                        <label>Project</label>
-                        <h3>{this.state.projectName}</h3>
+            <h2>Project settings</h2>
+            {(() => {
+              if (this.state.envVariables) {
+                return (
+                  <>
+                    <div className="project-settings trigger-overflow">
+                      <div className="columns four push-down top-labels">
+                        <div className="column">
+                          <label>Project</label>
+                          <h3>{this.state.projectName}</h3>
+                        </div>
+                        <div className="column">
+                          <br />
+                          <h3>
+                            <button
+                              className="text-button"
+                              onClick={this.onClickProjectEntity.bind(
+                                this,
+                                PipelinesView,
+                                this.props.queryArgs.project_uuid
+                              )}
+                            >
+                              {this.state.pipeline_count +
+                                " " +
+                                (this.state.pipeline_count == 1
+                                  ? "pipeline"
+                                  : "pipelines")}
+                            </button>
+                          </h3>
+                        </div>
+                        <div className="column">
+                          <br />
+                          <h3>
+                            <button
+                              className="text-button"
+                              onClick={this.onClickProjectEntity.bind(
+                                this,
+                                JobsView,
+                                this.props.queryArgs.project_uuid
+                              )}
+                            >
+                              {this.state.job_count +
+                                " " +
+                                (this.state.job_count == 1 ? "job" : "jobs")}
+                            </button>
+                          </h3>
+                        </div>
+                        <div className="column">
+                          <br />
+                          <h3>
+                            <button
+                              className="text-button"
+                              onClick={this.onClickProjectEntity.bind(
+                                this,
+                                EnvironmentsView,
+                                this.props.queryArgs.project_uuid
+                              )}
+                            >
+                              {this.state.environment_count +
+                                " " +
+                                (this.state.environment_count == 1
+                                  ? "environment"
+                                  : "environments")}
+                            </button>
+                          </h3>
+                        </div>
+                        <div className="clear"></div>
                       </div>
-                      <div className="column">
-                        <br />
-                        <h3>
-                          <button
-                            className="text-button"
-                            onClick={this.onClickProjectEntity.bind(
-                              this,
-                              PipelinesView,
-                              this.props.queryArgs.project_uuid
-                            )}
-                          >
-                            {this.state.pipeline_count +
-                              " " +
-                              (this.state.pipeline_count == 1
-                                ? "pipeline"
-                                : "pipelines")}
-                          </button>
-                        </h3>
-                      </div>
-                      <div className="column">
-                        <br />
-                        <h3>
-                          <button
-                            className="text-button"
-                            onClick={this.onClickProjectEntity.bind(
-                              this,
-                              JobsView,
-                              this.props.queryArgs.project_uuid
-                            )}
-                          >
-                            {this.state.job_count +
-                              " " +
-                              (this.state.job_count == 1 ? "job" : "jobs")}
-                          </button>
-                        </h3>
-                      </div>
-                      <div className="column">
-                        <br />
-                        <h3>
-                          <button
-                            className="text-button"
-                            onClick={this.onClickProjectEntity.bind(
-                              this,
-                              EnvironmentsView,
-                              this.props.queryArgs.project_uuid
-                            )}
-                          >
-                            {this.state.environment_count +
-                              " " +
-                              (this.state.environment_count == 1
-                                ? "environment"
-                                : "environments")}
-                          </button>
-                        </h3>
-                      </div>
-                      <div className="clear"></div>
+
+                      <h3 className="push-down">
+                        Project environment variables
+                      </h3>
+
+                      <EnvVarList
+                        value={this.state.envVariables}
+                        onChange={(e, idx, type) =>
+                          this.handleChange(e, idx, type)
+                        }
+                        onDelete={(idx) => this.onDelete(idx)}
+                        readOnly={false}
+                        onAdd={this.addEnvPair.bind(this)}
+                      />
                     </div>
-
-                    <h3 className="push-down">Project environment variables</h3>
-
-                    <EnvVarList
-                      value={this.state.envVariables}
-                      onChange={(e, idx, type) =>
-                        this.handleChange(e, idx, type)
-                      }
-                      onDelete={(idx) => this.onDelete(idx)}
-                      readOnly={false}
-                      onAdd={this.addEnvPair.bind(this)}
-                    />
-                  </div>
-                  <div className="bottom-buttons observe-overflow">
-                    <MDCButtonReact
-                      label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      onClick={this.saveGeneralForm.bind(this)}
-                      icon="save"
-                    />
-                  </div>
-                </>
-              );
-            } else {
-              return <MDCLinearProgressReact />;
-            }
-          })()}
-        </form>
-      </div>
+                    <div className="bottom-buttons observe-overflow">
+                      <MDCButtonReact
+                        label={this.state.unsavedChanges ? "SAVE*" : "SAVE"}
+                        classNames={["mdc-button--raised", "themed-secondary"]}
+                        onClick={this.saveGeneralForm.bind(this)}
+                        icon="save"
+                      />
+                    </div>
+                  </>
+                );
+              } else {
+                return <MDCLinearProgressReact />;
+              }
+            })()}
+          </form>
+        </div>
+      </Layout>
     );
   }
 }

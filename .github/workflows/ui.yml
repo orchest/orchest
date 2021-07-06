@@ -3,7 +3,10 @@ name: UI
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - dev
+      - "release/**"
     paths:
       - "**package.json"
       - "lib/design-system/**"
@@ -11,10 +14,13 @@ on:
       - "services/auth-server/**"
       - "services/orchest-webserver/**"
   pull_request:
-    branches: [master]
+    branches:
+      - master
+      - dev
+      - "release/**"
 
 jobs:
-  check:
+  pnpm-linting:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

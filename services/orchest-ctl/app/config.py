@@ -61,3 +61,9 @@ ORCHEST_IMAGES = {
 }
 
 WRAP_LINES = 72
+
+ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:80"
+
+# CLI
+INTERNAL_ERR_MESSAGE = "It seems like Orchest experienced an internal server error."
+ALLOWED_BUILD_FAILURES = 5

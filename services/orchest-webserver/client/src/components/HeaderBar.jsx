@@ -121,11 +121,7 @@ export const HeaderBar = React.forwardRef((_, ref) => {
             onClick={logoutHandler.bind(this)}
           />
         )}
-        <MDCIconButtonToggleReact
-          icon="settings"
-          tooltipText="Settings"
-          onClick={orchest.loadView.bind(orchest, SettingsView)}
-        />
+
         <MDCIconButtonToggleReact
           icon="help"
           tooltipText="Help"
