@@ -17,18 +17,11 @@ const EnvironmentsView = (props) => {
     return () => dispatch({ type: "clearView" });
   }, []);
 
-  let childViewProperties = {};
-
-  if (props.project_uuid) {
-    childViewProperties.project_uuid = props.project_uuid;
-  }
-
   return (
     <Layout>
       <ProjectBasedView
         project_uuid={props.project_uuid}
         childView={EnvironmentList}
-        childViewProperties={childViewProperties}
       />
     </Layout>
   );
