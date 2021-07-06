@@ -1,132 +1,137 @@
-import React, { Fragment } from "react";
+// @ts-check
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import ParamTree from "./ParamTree";
 import "codemirror/mode/javascript/javascript";
 
-class ParameterEditor extends React.Component {
-  constructor(props) {
-    super(props);
+/**
+ * @typedef {{
+ *  strategyJSON?: any;
+ *  pipelineName: string;
+ *  readOnly?: boolean;
+ *  onParameterChange?: (value: any) => void;
+ * }} TParameterEditorProps
+ *
+ * @type React.FC<TParameterEditorProps>
+ */
+const ParameterEditor = (props) => {
+  const [state, setState] = React.useState({
+    strategyJSON: props.strategyJSON,
+    activeParameter: undefined,
+  });
 
-    this.state = {
-      strategyJSON: this.props.strategyJSON,
-      activeParameter: undefined,
-    };
-  }
+  React.useEffect(() => {
+    if (props.strategyJSON)
+      setState((prevState) => ({
+        ...prevState,
+        strategyJSON: props.strategyJSON,
+      }));
+  }, [props.strategyJSON]);
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.strategyJSON !== this.props.strategyJSON) {
-      this.setState({
-        strategyJSON: this.props.strategyJSON,
-      });
-    }
-  }
-
-  editParameter(key, strategyJSONKey) {
-    this.setState({
+  const editParameter = (key, strategyJSONKey) => {
+    setState((prevState) => ({
+      ...prevState,
       activeParameter: { key: key, strategyJSONKey: strategyJSONKey },
-    });
-  }
+    }));
+  };
 
-  render() {
-    return (
-      <div className="parameter-editor">
-        <div className="columns">
-          <div className="column">
-            <ParamTree
-              pipelineName={this.props.pipelineName}
-              strategyJSON={this.state.strategyJSON}
-              editParameter={this.editParameter.bind(this)}
-            />
-          </div>
-          <div className="column">
-            {(() => {
-              if (
-                this.state.activeParameter !== undefined &&
-                this.props.readOnly !== true
-              ) {
-                return (
-                  <Fragment>
-                    <CodeMirror
-                      value={
-                        this.state.strategyJSON[
-                          this.state.activeParameter.strategyJSONKey
-                        ].parameters[this.state.activeParameter.key]
-                      }
-                      options={{
-                        mode: "application/json",
-                        theme: "jupyter",
-                        lineNumbers: true,
-                      }}
-                      onBeforeChange={(editor, data, value) => {
-                        this.state.strategyJSON[
-                          this.state.activeParameter.strategyJSONKey
-                        ].parameters[this.state.activeParameter.key] = value;
-
-                        this.setState({
-                          strategyJSON: this.state.strategyJSON,
-                        });
-
-                        // only call onParameterChange if valid JSON Array
-                        try {
-                          if (Array.isArray(JSON.parse(value))) {
-                            this.props.onParameterChange(
-                              this.state.strategyJSON
-                            );
-                          }
-                        } catch {
-                          console.warn("Invalid JSON entered");
-                        }
-                      }}
-                    />
-                    {(() => {
-                      try {
-                        JSON.parse(
-                          this.state.strategyJSON[
-                            this.state.activeParameter.strategyJSONKey
-                          ].parameters[this.state.activeParameter.key]
-                        );
-                      } catch {
-                        return (
-                          <div className="warning push-up">
-                            <i className="material-icons">warning</i> Your input
-                            is not valid JSON.
-                          </div>
-                        );
-                      }
-                    })()}
-                  </Fragment>
-                );
-              } else if (
-                this.state.activeParameter !== undefined &&
-                this.props.readOnly === true
-              ) {
-                return (
-                  <>
-                    <CodeMirror
-                      value={
-                        this.state.strategyJSON[
-                          this.state.activeParameter.strategyJSONKey
-                        ].parameters[this.state.activeParameter.key]
-                      }
-                      options={{
-                        mode: "application/json",
-                        theme: "jupyter",
-                        lineNumbers: true,
-                      }}
-                    />
-                    <p className="push-up">
-                      <i>Read only</i>
-                    </p>
-                  </>
-                );
-              }
-            })()}
-          </div>
-          <div className="clear"></div>
+  return (
+    <div className="parameter-editor">
+      <div className="columns">
+        <div className="column">
+          <ParamTree
+            pipelineName={props.pipelineName}
+            strategyJSON={state.strategyJSON}
+            editParameter={editParameter.bind(this)}
+          />
         </div>
+        <div className="column">
+          {(() => {
+            if (
+              state.activeParameter !== undefined &&
+              props.readOnly !== true
+            ) {
+              return (
+                <React.Fragment>
+                  <CodeMirror
+                    value={
+                      state.strategyJSON[state.activeParameter.strategyJSONKey]
+                        .parameters[state.activeParameter.key]
+                    }
+                    options={{
+                      mode: "application/json",
+                      theme: "jupyter",
+                      lineNumbers: true,
+                    }}
+                    onBeforeChange={(editor, data, value) => {
+                      state.strategyJSON[
+                        state.activeParameter.strategyJSONKey
+                      ].parameters[state.activeParameter.key] = value;
+
+                      setState((prevState) => ({
+                        ...prevState,
+                        strategyJSON: state.strategyJSON,
+                      }));
+
+                      // only call onParameterChange if valid JSON Array
+                      try {
+                        if (Array.isArray(JSON.parse(value))) {
+                          props.onParameterChange(state.strategyJSON);
+                        }
+                      } catch {
+                        console.warn("Invalid JSON entered");
+                      }
+                    }}
+                  />
+                  {(() => {
+                    try {
+                      JSON.parse(
+                        state.strategyJSON[
+                          state.activeParameter.strategyJSONKey
+                        ].parameters[state.activeParameter.key]
+                      );
+                    } catch {
+                      return (
+                        <div className="warning push-up">
+                          <i className="material-icons">warning</i> Your input
+                          is not valid JSON.
+                        </div>
+                      );
+                    }
+                  })()}
+                </React.Fragment>
+              );
+            } else if (
+              state.activeParameter !== undefined &&
+              props.readOnly === true
+            ) {
+              return (
+                <>
+                  {/* 
+                   // @ts-ignore */}
+                  <CodeMirror
+                    value={
+                      state.strategyJSON[state.activeParameter.strategyJSONKey]
+                        .parameters[state.activeParameter.key]
+                    }
+                    options={{
+                      mode: "application/json",
+                      theme: "jupyter",
+                      lineNumbers: true,
+                    }}
+                  />
+                  <p className="push-up">
+                    <i>Read only</i>
+                  </p>
+                </>
+              );
+            }
+          })()}
+        </div>
+        <div className="clear"></div>
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default ParameterEditor;

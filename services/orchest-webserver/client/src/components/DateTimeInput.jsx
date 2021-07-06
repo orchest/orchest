@@ -1,62 +1,62 @@
+// @ts-check
 import React from "react";
 import { parseISO } from "date-fns";
 import { MDCTextFieldReact } from "@orchest/lib-mdc";
 
-class DateTimeInput extends React.Component {
-  constructor(props) {
-    super(props);
+/**
+ * @typedef {{ disabled?: boolean; onFocus?: any; }} TDateTimeInputProps
+ * @type {React.FC<TDateTimeInputProps>}
+ */
+const DateTimeInput = React.forwardRef(({ disabled, onFocus }, ref) => {
+  let date = new Date();
+  const [state, setState] = React.useState({
+    timeValue:
+      ("0" + date.getHours()).slice(-2) +
+      ":" +
+      ("0" + date.getMinutes()).slice(-2),
+    dateValue:
+      date.getFullYear() +
+      "-" +
+      ("0" + (date.getMonth() + 1)).slice(-2) +
+      "-" +
+      ("0" + date.getDate()).slice(-2),
+  });
 
-    let date = new Date();
-    this.state = {
-      timeValue:
-        ("0" + date.getHours()).slice(-2) +
-        ":" +
-        ("0" + date.getMinutes()).slice(-2),
-      dateValue:
-        date.getFullYear() +
-        "-" +
-        ("0" + (date.getMonth() + 1)).slice(-2) +
-        "-" +
-        ("0" + date.getDate()).slice(-2),
-    };
-  }
+  const getISOString = () =>
+    parseISO(state.dateValue + " " + state.timeValue).toISOString();
 
-  getISOString() {
-    return parseISO(
-      this.state.dateValue + " " + this.state.timeValue
-    ).toISOString();
-  }
+  React.useImperativeHandle(ref, () => ({
+    getISOString,
+  }));
 
-  render() {
-    return (
-      <div className="datetime-input">
-        <div>
-          <MDCTextFieldReact
-            label="Time"
-            inputType="time"
-            disabled={this.props.disabled}
-            value={this.state.timeValue}
-            onChange={(value) => {
-              this.setState({ timeValue: value });
-            }}
-            onFocus={this.props.onFocus}
-          />
-        </div>
-        <div>
-          <MDCTextFieldReact
-            label="Date"
-            inputType="date"
-            disabled={this.props.disabled}
-            value={this.state.dateValue}
-            onChange={(value) => {
-              this.setState({ dateValue: value });
-            }}
-            onFocus={this.props.onFocus}
-          />
-        </div>
+  return (
+    <div className="datetime-input">
+      <div>
+        <MDCTextFieldReact
+          label="Time"
+          inputType="time"
+          disabled={disabled}
+          value={state.timeValue}
+          onChange={(value) => {
+            setState((prevState) => ({ ...prevState, timeValue: value }));
+          }}
+          onFocus={onFocus}
+        />
       </div>
-    );
-  }
-}
+      <div>
+        <MDCTextFieldReact
+          label="Date"
+          inputType="date"
+          disabled={disabled}
+          value={state.dateValue}
+          onChange={(value) => {
+            setState((prevState) => ({ ...prevState, dateValue: value }));
+          }}
+          onFocus={onFocus}
+        />
+      </div>
+    </div>
+  );
+});
 
 export default DateTimeInput;
