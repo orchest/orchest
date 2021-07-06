@@ -1,9 +1,6 @@
 // @ts-check
-// @TODO - Functional Component Transformation (then remove lines 1-2)
-//         https://github.com/orchest/orchest/issues/259
 import React from "react";
 import _ from "lodash";
-import { OrchestContext } from "@/hooks/orchest";
 import {
   Alert,
   AlertHeader,
@@ -11,15 +8,23 @@ import {
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
+import { useOrchest } from "@/hooks/orchest";
 
-class ParamTree extends React.Component {
-  static contextType = OrchestContext;
+/**
+ * @typedef {{
+ *  pipelineName: string;
+ *  editParameter?: (parameterKey: any, key: any) => void;
+ *  strategyJSON: any;
+ * }} TParamTreeProps
+ *
+ * @type React.FC<TParamTreeProps>
+ */
+const ParamTree = (props) => {
+  const context = useOrchest();
 
-  constructor(props, context) {
-    super(props, context);
-  }
+  console.log(props);
 
-  truncateParameterValue(value) {
+  const truncateParameterValue = (value) => {
     // stringify non string values
     if (!_.isString(value)) {
       value = JSON.stringify(value);
@@ -29,15 +34,15 @@ class ParamTree extends React.Component {
     return value.length > maxLength
       ? value.substring(0, maxLength - 1) + "…"
       : value;
-  }
+  };
 
-  onEditParameter(parameterKey, key) {
-    if (this.props.editParameter) {
-      this.props.editParameter(parameterKey, key);
+  const onEditParameter = (parameterKey, key) => {
+    if (props.editParameter) {
+      props.editParameter(parameterKey, key);
     }
-  }
+  };
 
-  generateParameterElement(stepStrategy, includeTitle) {
+  const generateParameterElement = (stepStrategy, includeTitle) => {
     let elements = [];
 
     if (includeTitle === undefined) {
@@ -51,7 +56,7 @@ class ParamTree extends React.Component {
     for (let parameterKey in stepStrategy.parameters) {
       let parameterValueClasses = ["parameter-value"];
 
-      if (this.props.editParameter) {
+      if (props.editParameter) {
         parameterValueClasses.push("editable");
       }
 
@@ -63,99 +68,85 @@ class ParamTree extends React.Component {
           <div className="parameter-key">{parameterKey}:</div>
           <div
             className={parameterValueClasses.join(" ")}
-            onClick={this.onEditParameter.bind(
-              this,
-              parameterKey,
-              stepStrategy.key
-            )}
+            onClick={onEditParameter.bind(this, parameterKey, stepStrategy.key)}
           >
-            {this.truncateParameterValue(stepStrategy.parameters[parameterKey])}
+            {truncateParameterValue(stepStrategy.parameters[parameterKey])}
           </div>
         </div>
       );
     }
 
     return elements;
-  }
+  };
 
-  generateParameterTree(strategyJSON) {
+  const generateParameterTree = (strategyJSON) => {
     let pipelineParameterElement;
     let stepParameterElements = [];
 
     // first list pipeline parameters
     let pipelineParameterization =
-      strategyJSON[
-        this.context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY
-      ];
+      strategyJSON[context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY];
     if (pipelineParameterization) {
-      pipelineParameterElement = this.generateParameterElement(
+      pipelineParameterElement = generateParameterElement(
         pipelineParameterization,
         false
       );
     }
 
     for (const stepUUID in strategyJSON) {
-      if (
-        stepUUID == this.context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY
-      ) {
+      if (stepUUID == context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY) {
         continue;
       }
 
       stepParameterElements = stepParameterElements.concat(
-        this.generateParameterElement(strategyJSON[stepUUID])
+        generateParameterElement(strategyJSON[stepUUID])
       );
     }
 
     return [pipelineParameterElement, stepParameterElements];
-  }
-  render() {
-    let [
-      pipelineParameterElement,
-      stepParameterElements,
-    ] = this.generateParameterTree(this.props.strategyJSON);
+  };
 
-    return (
-      <div className="parameter-tree">
-        {(() => {
-          if (Object.keys(this.props.strategyJSON).length == 0) {
-            return (
-              <Alert status="info">
-                <AlertHeader>
-                  <IconLightBulbOutline />
-                  This pipeline doesn't have any parameters defined
-                </AlertHeader>
-                <AlertDescription>
-                  <>
-                    <Link
-                      target="_blank"
-                      href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
-                    >
-                      Learn more
-                    </Link>{" "}
-                    about parametrizing your pipelines and steps.
-                  </>
-                </AlertDescription>
-              </Alert>
-            );
-          }
-        })()}
+  let [pipelineParameterElement, stepParameterElements] = generateParameterTree(
+    props.strategyJSON
+  );
 
-        {pipelineParameterElement !== undefined && (
-          <div className="param-block">
-            <h3>Pipeline: {this.props.pipelineName}</h3>
-            {pipelineParameterElement}
-          </div>
-        )}
+  return (
+    <div className="parameter-tree">
+      {Object.keys(props.strategyJSON).length == 0 && (
+        <Alert status="info">
+          <AlertHeader>
+            <IconLightBulbOutline />
+            This pipeline doesn't have any parameters defined
+          </AlertHeader>
+          <AlertDescription>
+            <>
+              <Link
+                target="_blank"
+                href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
+              >
+                Learn more
+              </Link>{" "}
+              about parametrizing your pipelines and steps.
+            </>
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {stepParameterElements.length > 0 && (
-          <div className="param-block">
-            <h3>Steps</h3>
-            <div className="step-params">{stepParameterElements}</div>
-          </div>
-        )}
-      </div>
-    );
-  }
-}
+      {pipelineParameterElement !== undefined && (
+        <div className="param-block">
+          <h3>Pipeline: {props.pipelineName}</h3>
+          {pipelineParameterElement}
+        </div>
+      )}
+
+      {stepParameterElements.length > 0 && (
+        <div className="param-block">
+          <h3>Steps</h3>
+          <div className="step-params">{stepParameterElements}</div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default ParamTree;
