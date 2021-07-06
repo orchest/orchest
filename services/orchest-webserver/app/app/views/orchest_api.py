@@ -4,6 +4,7 @@ import requests
 from flask import current_app, jsonify, request
 
 from app import analytics
+from app.models import Pipeline, Project
 from app.utils import (
     create_job_directory,
     get_environments,
@@ -262,6 +263,17 @@ def register_orchest_api_views(app, db):
 
         project_uuid = json_obj["project_uuid"]
         pipeline_uuid = json_obj["pipeline_uuid"]
+
+        # Lock the project and pipeline row to avoid race conditions
+        # with RenameProject and MovePipeline, which are locking for
+        # update themselves.
+        Project.query.with_for_update().filter(
+            Project.uuid == project_uuid,
+        ).one()
+        Pipeline.query.with_for_update().filter(
+            Pipeline.project_uuid == project_uuid,
+            Pipeline.uuid == pipeline_uuid,
+        ).one()
 
         pipeline_path = pipeline_uuid_to_path(
             json_obj["pipeline_uuid"],

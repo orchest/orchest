@@ -27,7 +27,7 @@ class Project(BaseModel):
     # to avoid race conditions and inconsistencies when discovering new
     # projects or projects that were deleted through the filesystem,
     # given that discovery can be concurrent to project deletion or
-    # creation.
+    # creation or move.
     status = db.Column(
         db.String(15),
         unique=False,
@@ -49,6 +49,16 @@ class Pipeline(BaseModel):
         db.ForeignKey("projects.uuid", ondelete="CASCADE"), primary_key=True
     )
     path = db.Column(db.String(255), nullable=False)
+    # Can be: READY, MOVING. The status is used
+    # to avoid race conditions and inconsistencies when discovering new
+    # pipelines or pipelines that were deleted through the filesystem,
+    # given that discovery can be concurrent to a pipeline move.
+    status = db.Column(
+        db.String(15),
+        unique=False,
+        nullable=False,
+        server_default=text("'READY'"),
+    )
 
 
 # This class is only serialized on disk, it's never stored in the

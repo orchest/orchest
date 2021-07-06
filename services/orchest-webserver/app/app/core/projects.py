@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import uuid
@@ -7,6 +8,7 @@ import requests
 from flask.globals import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
+from app import error
 from app.connections import db
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
 from app.kernel_manager import populate_kernels
@@ -14,6 +16,8 @@ from app.models import BackgroundTask, Pipeline, Project
 from app.utils import (
     find_pipelines_in_dir,
     get_environments,
+    get_pipeline_path,
+    has_active_sessions,
     populate_default_environments,
     project_uuid_to_path,
     remove_project_jobs_directories,
@@ -188,12 +192,21 @@ class RenameProject(TwoPhaseFunction):
 
     def _transaction(self, project_uuid: str, new_name: str):
 
-        project = Project.query.filter(
-            Project.uuid == project_uuid,
-            Project.status == "READY"
-            # Raises sqlalchemy.orm.exc.NoResultFound if the query
-            # selects no rows.
-        ).one()
+        project = (
+            Project.query.with_for_update()
+            .filter(
+                Project.uuid == project_uuid,
+                Project.status == "READY"
+                # Raises sqlalchemy.orm.exc.NoResultFound if the query
+                # selects no rows.
+            )
+            .one()
+        )
+
+        # Note the with_for_update in the query, that is used to avoid
+        # race conditions with the session POST endpoint.
+        if has_active_sessions(project_uuid):
+            raise error.ActiveSession()
 
         old_name = project.path
         # This way it's not considered as if it was deleted on the FS.
@@ -219,29 +232,28 @@ class RenameProject(TwoPhaseFunction):
         old_path = os.path.join(current_app.config["PROJECTS_DIR"], old_name)
         new_path = os.path.join(current_app.config["PROJECTS_DIR"], new_name)
 
-        # NOTE: a running interactive session won't be affected, because
-        # the way docker does binding is by pointing to inodes.
         os.rename(old_path, new_path)
         # So that the moving can be reverted in case of failure of the
         # rest of the collateral.
         self.collateral_kwargs["moved"] = True
 
-        Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
-            {"status": "READY"}
-        )
+        Project.query.filter_by(uuid=project_uuid).update({"status": "READY"})
         db.session.commit()
 
     def _revert(self):
         # Move it back if necessary. This avoids the project being
         # discovered as a new one.
-        if self.collateral_kwargs["moved"]:
+        if self.collateral_kwargs.get("moved", False):
             old_path = os.path.join(
                 current_app.config["PROJECTS_DIR"], self.collateral_kwargs["old_name"]
             )
             new_path = os.path.join(
                 current_app.config["PROJECTS_DIR"], self.collateral_kwargs["new_name"]
             )
-            os.rename(new_path, old_path)
+            try:
+                os.rename(new_path, old_path)
+            except Exception as e:
+                current_app.logger.error(f"Error while reverting project move: {e}")
 
         Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
             {"status": "READY", "path": self.collateral_kwargs["old_name"]}
@@ -282,7 +294,10 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
         fs_removed_pipelines = [
             pipeline
             for pipeline in Pipeline.query.filter(Pipeline.path.notin_(pipeline_paths))
-            .filter(Pipeline.project_uuid == project_uuid)
+            .filter(
+                Pipeline.project_uuid == project_uuid,
+                Pipeline.status == "READY",
+            )
             .all()
         ]
         for pip in fs_removed_pipelines:
@@ -298,8 +313,22 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
         ]
         # TODO: handle existing pipeline assignments.
         new_pipelines_from_fs = set(pipeline_paths) - set(existing_pipeline_paths)
+
         for path in new_pipelines_from_fs:
-            AddPipelineFromFS(self.tpe).transaction(project_uuid, path)
+            pipeline_json_path = get_pipeline_path(
+                None, project_uuid, pipeline_path=path
+            )
+            with open(pipeline_json_path, "r") as json_file:
+                pipeline_uuid = json.load(json_file)["uuid"]
+            # This is not a new pipeline, the pipeline is being moved.
+            is_moving = (
+                Pipeline.query.filter_by(
+                    project_uuid=project_uuid, uuid=pipeline_uuid, status="MOVING"
+                ).count()
+                > 0
+            )
+            if not is_moving:
+                AddPipelineFromFS(self.tpe).transaction(project_uuid, path)
 
     def _collateral(self):
         pass

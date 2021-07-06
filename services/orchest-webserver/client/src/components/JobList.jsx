@@ -300,7 +300,7 @@ const JobList = (props) => {
       // keep only jobs that are related to a project!
       rows.push([
         jobs[x].name,
-        jobs[x].pipeline_name,
+        jobs[x].pipeline_definition.name,
         formatServerDateTime(jobs[x].created_time),
         <StatusInline
           css={{ verticalAlign: "bottom" }}

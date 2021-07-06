@@ -13,9 +13,10 @@ from sqlalchemy.orm.exc import NoResultFound
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
+from app import error
 from app.analytics import send_anonymized_pipeline_definition
 from app.config import CONFIG_CLASS as StaticConfig
-from app.core.pipelines import CreatePipeline, DeletePipeline
+from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
     CreateProject,
     DeleteProject,
@@ -372,8 +373,12 @@ def register_views(app, db):
         new_project_paths = set(project_paths) - set(existing_project_paths)
 
         # Do not do project discovery if a project is moving, because
-        # a new_project_path could actually be a moving project.
-        if Project.query.filter(Project.status.in_(["MOVING"])).all():
+        # a new_project_path could actually be a moving project. Given
+        # that a project has no (persisted) uuid, we won't be able to
+        # find if a new_project_path is actually a MOVING project. NOTE:
+        # we could wait in this endpoint until there is no more MOVING
+        # project.
+        if Project.query.filter(Project.status.in_(["MOVING"])).count() > 0:
             return
 
         # Use a TwoPhaseExecutor for each project so that issues in one
@@ -434,6 +439,13 @@ def register_views(app, db):
             try:
                 with TwoPhaseExecutor(db.session) as tpe:
                     RenameProject(tpe).transaction(project_uuid, new_name)
+            except error.ActiveSession:
+                return (
+                    jsonify(
+                        {"message": "Can't rename a project with active sessions."}
+                    ),
+                    409,
+                )
             except NoResultFound:
                 return jsonify({"message": "Project doesn't exist."}), 404
             except Exception as e:
@@ -567,10 +579,21 @@ def register_views(app, db):
     @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["PUT"])
     def pipeline_put(project_uuid, pipeline_uuid):
 
-        # While this seems suited to be in the orchest_api.py module,
-        # I've left it here because some pipeline data lives in the web
-        # server as well, and this PUT request might eventually update
-        # that.
+        path = request.json.get("path")
+        if path is not None:
+            try:
+                with TwoPhaseExecutor(db.session) as tpe:
+                    MovePipeline(tpe).transaction(project_uuid, pipeline_uuid, path)
+            except error.ActiveSession:
+                return (
+                    jsonify({"message": "Can't move a pipeline with active sessions."}),
+                    409,
+                )
+            except NoResultFound:
+                return jsonify({"message": "Pipeline doesn't exist."}), 404
+            except Exception as e:
+                return jsonify({"message": f"Failed to move pipeline: {e}."}), 500
+
         resp = requests.put(
             (
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
@@ -696,19 +719,19 @@ def register_views(app, db):
     )
     def pipelines_json(project_uuid, pipeline_uuid):
 
-        pipeline_json_path = get_pipeline_path(
-            pipeline_uuid,
-            project_uuid,
-            request.args.get("job_uuid"),
-            request.args.get("pipeline_run_uuid"),
-        )
-
         if request.method == "POST":
+
+            pipeline_json_path = get_pipeline_path(
+                pipeline_uuid,
+                project_uuid,
+                None,
+                request.args.get("pipeline_run_uuid"),
+            )
 
             pipeline_directory = get_pipeline_directory(
                 pipeline_uuid,
                 project_uuid,
-                request.args.get("job_uuid"),
+                None,
                 request.args.get("pipeline_run_uuid"),
             )
 
@@ -737,10 +760,27 @@ def register_views(app, db):
                 }
                 return jsonify(msg), 400
 
+            with open(pipeline_json_path, "r") as json_file:
+                old_pipeline_json = json.load(json_file)
+
             # Save the pipeline JSON again to make sure its keys are
             # sorted.
             with open(pipeline_json_path, "w") as json_file:
                 json.dump(pipeline_json, json_file, indent=4, sort_keys=True)
+
+            if old_pipeline_json["name"] != pipeline_json["name"]:
+                resp = requests.put(
+                    (
+                        f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                        f"/api/pipelines/{project_uuid}/{pipeline_uuid}"
+                    ),
+                    json={"name": pipeline_json["name"]},
+                )
+                if resp.status_code != 200:
+                    return (
+                        jsonify({"message": "Failed to PUT name to orchest-api."}),
+                        resp.status_code,
+                    )
 
             # Analytics call.
             send_anonymized_pipeline_definition(app, pipeline_json)
@@ -748,27 +788,47 @@ def register_views(app, db):
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 
         elif request.method == "GET":
-
-            if not os.path.isfile(pipeline_json_path):
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "reason": ".orchest file doesn't exist at location %s"
-                            % pipeline_json_path,
-                        }
-                    ),
-                    404,
+            # Job pipeline json retrieval is done through the orchest
+            # API because there might be a mismatch between the pipeline
+            # path in the webserver DB and the actual path in the
+            # snapshot because of a pipeline rename/move.
+            if request.args.get("job_uuid") is not None:
+                job_uuid = request.args.get("job_uuid")
+                resp = requests.get(
+                    "http://"
+                    + app.config["ORCHEST_API_ADDRESS"]
+                    + f"/api/jobs/{job_uuid}",
                 )
-            else:
-                with open(pipeline_json_path, "r") as json_file:
-                    pipeline_json = json.load(json_file)
-
-                # json.dumps because the front end expects it as a
-                # string.
+                pipeline_json = resp.json()["pipeline_definition"]
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
                 )
+            else:
+                pipeline_json_path = get_pipeline_path(
+                    pipeline_uuid,
+                    project_uuid,
+                    None,
+                    request.args.get("pipeline_run_uuid"),
+                )
+
+                if not os.path.isfile(pipeline_json_path):
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "reason": ".orchest file doesn't exist at location %s"
+                                % pipeline_json_path,
+                            }
+                        ),
+                        404,
+                    )
+                else:
+                    with open(pipeline_json_path, "r") as json_file:
+                        pipeline_json = json.load(json_file)
+
+                    return jsonify(
+                        {"success": True, "pipeline_json": json.dumps(pipeline_json)}
+                    )
 
     @app.route(
         "/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>",
