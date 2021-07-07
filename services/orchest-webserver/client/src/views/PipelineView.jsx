@@ -55,8 +55,7 @@ const PipelineView = (props) => {
     // they are part of a parent object that's passed by reference
     // and never updated. This make it possible to implement
     // complex event based UI logic with jQuery events without
-    // interacting without having to deal with React
-    // state batch update logic.
+    // having to deal with React state batch update logic.
     // Note: we might replace jQuery for complex event handling
     // like this in the future by using React events exclusively.
     eventVars: {
