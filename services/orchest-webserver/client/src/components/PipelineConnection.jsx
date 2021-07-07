@@ -8,7 +8,6 @@ import $ from "jquery";
  * @param {Object} props
  * @param {any} props.startNode
  * @param {any} props.endNode
- * @param {any} props.pipelineView
  * @param {any} props.pipelineViewEl
  * @param {string} props.startNodeUUID
  * @param {string} props.endNodeUUID
@@ -77,7 +76,7 @@ const PipelineConnection = (props) => {
       svgPathClickable.setAttribute("fill", "none");
       svgPathClickable.setAttribute("id", "path-clickable");
 
-      svgPathClickable.onclick = (e) => {
+      svgPathClickable.onmousedown = (e) => {
         if (props.onClick) {
           props.onClick(e, props.startNodeUUID, props.endNodeUUID);
         }
