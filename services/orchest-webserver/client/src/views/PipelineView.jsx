@@ -1,6 +1,8 @@
+// @ts-check
 import React from "react";
 import io from "socket.io-client";
 import _ from "lodash";
+import $ from "jquery";
 
 import {
   uuidv4,
@@ -95,14 +97,16 @@ const PipelineView = (props) => {
     pipelineRunning: false,
     waitingOnCancel: false,
     runUUID: undefined,
+    pendingRunUUIDs: undefined,
+    pendingRunType: undefined,
     stepExecutionState: {},
     steps: {},
     defaultDetailViewIndex: 0,
     shouldAutoStart: false,
+    isDeletingStep: false,
     // The save hash is used to propagate a save's side-effects
     // to components.
-    saveHash: "",
-    isDeletingStep: false,
+    saveHash: undefined,
   };
 
   if (props.queryArgs.run_uuid && props.queryArgs.job_uuid) {
@@ -111,29 +115,55 @@ const PipelineView = (props) => {
       "/catch/api-proxy/api/jobs/" + props.queryArgs.job_uuid + "/";
   }
 
-  let [state, _setState] = React.useState(initialState);
-  const setState = (newState, cb) => {
-    if (typeof newState === "function") {
-      _setState((prevState) => {
-        let updatedState = newState(prevState);
-        state = {
-          ...prevState,
-          ...updatedState,
-        };
-        if (cb) cb();
-        return state;
-      });
-    } else {
-      _setState((prevState) => {
-        state = {
-          ...prevState,
-          ...newState,
-        };
-        if (cb) cb();
-        return state;
+  const [state, _setState] = React.useState(initialState);
+  const setState = (newState) => {
+    _setState((prevState) => {
+      let updatedState;
+      if (newState instanceof Function) {
+        updatedState = newState(prevState);
+      } else {
+        updatedState = newState;
+      }
+      return {
+        ...prevState,
+        ...updatedState,
+      };
+    });
+  };
+
+  React.useEffect(() => {
+    pollPipelineStepStatuses();
+    startStatusInterval();
+  }, [state.runUUID]);
+
+  React.useEffect(() => {
+    if (state.saveHash !== undefined) {
+      if (
+        state.pendingRunUUIDs !== undefined &&
+        state.pendingRunType !== undefined
+      ) {
+        savePipeline(() => {
+          _runStepUUIDs(state.pendingRunUUIDs, state.pendingRunType);
+          setState({
+            pendingRunUUIDs: undefined,
+            pendingRunType: undefined,
+          });
+        });
+      } else {
+        savePipeline();
+      }
+    }
+  }, [state.saveHash, state.pendingRunUUIDs, state.pendingRunType]);
+
+  React.useEffect(() => {
+    if (state.currentOngoingSaves === 0) {
+      clearTimeout(state.timers.saveIndicatorTimeout);
+      dispatch({
+        type: "pipelineSetSaveStatus",
+        payload: "saved",
       });
     }
-  };
+  }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
     dispatch({
@@ -192,8 +222,11 @@ const PipelineView = (props) => {
       disconnectSocketIO();
 
       $(document).off("mouseup.initializePipeline");
+
       $(document).off("mousedown.initializePipeline");
+
       $(document).off("keyup.initializePipeline");
+
       $(document).off("keydown.initializePipeline");
 
       clearInterval(state.timers.pipelineStepStatusPollingInterval);
@@ -241,15 +274,9 @@ const PipelineView = (props) => {
           if (data["runs"].length > 0) {
             let run = data["runs"][0];
 
-            setState(
-              {
-                runUUID: run.uuid,
-              },
-              () => {
-                pollPipelineStepStatuses();
-                startStatusInterval();
-              }
-            );
+            setState({
+              runUUID: run.uuid,
+            });
           }
         } catch (e) {
           console.log("Error parsing return from orchest-api " + e);
@@ -257,7 +284,7 @@ const PipelineView = (props) => {
       })
       .catch((error) => {
         if (!error.isCanceled) {
-          console.error(erorr);
+          console.error(error);
         }
       });
   };
@@ -277,10 +304,6 @@ const PipelineView = (props) => {
         // store pipeline.json
         let formData = new FormData();
         formData.append("pipeline_json", JSON.stringify(pipelineJSON));
-
-        setState({
-          saveHash: uuidv4(),
-        });
 
         setState((state) => {
           return {
@@ -325,22 +348,11 @@ const PipelineView = (props) => {
   };
 
   const decrementSaveCounter = () => {
-    setState(
-      (state) => {
-        return {
-          currentOngoingSaves: state.currentOngoingSaves - 1,
-        };
-      },
-      () => {
-        if (state.currentOngoingSaves === 0) {
-          clearTimeout(state.timers.saveIndicatorTimeout);
-          dispatch({
-            type: "pipelineSetSaveStatus",
-            payload: "saved",
-          });
-        }
-      }
-    );
+    setState((state) => {
+      return {
+        currentOngoingSaves: state.currentOngoingSaves - 1,
+      };
+    });
   };
 
   const encodeJSON = () => {
@@ -569,12 +581,13 @@ const PipelineView = (props) => {
 
       deselectSteps();
 
-      let selectedConnection = getConnectionByUUIDs(startNodeUUID, endNodeUUID);
-      selectedConnection.selected = true;
-
-      state.eventVars.selectedConnection = selectedConnection;
-
+      state.eventVars.selectedConnection = getConnectionByUUIDs(
+        startNodeUUID,
+        endNodeUUID
+      );
+      state.eventVars.selectedConnection.selected = true;
       updateEventVars();
+
       setState((state) => {
         return {
           connections: state.connections,
@@ -592,7 +605,6 @@ const PipelineView = (props) => {
       startNodeUUID: outgoingJEl.parents(".pipeline-step").attr("data-uuid"),
       pipelineViewEl: state.refManager.refs.pipelineStepsHolder,
       selected: false,
-      onClick: onClickConnection,
     };
 
     if (incomingJEl) {
@@ -705,6 +717,7 @@ const PipelineView = (props) => {
           .attr("data-uuid");
 
         // check whether drag release was on .incomming-connections class
+
         let dragEndedInIcomingConnectionsElement = $(e.target).hasClass(
           "incoming-connections"
         );
@@ -759,6 +772,7 @@ const PipelineView = (props) => {
         }
 
         // clean up hover effects
+
         $(".incoming-connections").removeClass("hover");
       }
 
@@ -766,6 +780,7 @@ const PipelineView = (props) => {
       updateEventVars();
 
       // clean up creating-connection class
+
       $(".pipeline-step").removeClass("creating-connection");
     });
 
@@ -776,6 +791,7 @@ const PipelineView = (props) => {
         if (e.button === 0) {
           $(e.target).parents(".pipeline-step").addClass("creating-connection");
           // create connection
+
           createConnection($(e.target));
         }
       }
@@ -885,6 +901,7 @@ const PipelineView = (props) => {
         });
 
         // check for hovering over incoming-connections div
+
         if ($(e.target).hasClass("incoming-connections")) {
           $(e.target).addClass("hover");
         } else {
@@ -1014,8 +1031,9 @@ const PipelineView = (props) => {
       }
 
       if (stepDragged) {
-        // Trigger save through event queue (for perfomance)
-        savePipeline();
+        setState({
+          saveHash: uuidv4(),
+        });
       }
 
       if (e.button === 0 && state.eventVars.selectedSteps.length == 0) {
@@ -1309,12 +1327,10 @@ const PipelineView = (props) => {
         // to avoid repositioning flash (creating a step can affect the size of the viewport)
         step["meta_data"]["hidden"] = false;
 
-        setState({ steps: state.steps });
+        setState({ steps: state.steps, saveHash: uuidv4() });
         state.refManager.refs[step.uuid].updatePosition(
           state.steps[step.uuid].meta_data.position
         );
-
-        savePipeline();
       }, 0);
     });
   };
@@ -1359,7 +1375,12 @@ const PipelineView = (props) => {
       );
     }
 
-    savePipeline();
+    setState((state) => {
+      return {
+        steps: state.steps,
+        saveHash: uuidv4(),
+      };
+    });
   };
 
   const getStepExecutionState = (stepUUID) => {
@@ -1392,8 +1413,11 @@ const PipelineView = (props) => {
       );
     }
 
-    setTimeout(() => {
-      savePipeline();
+    setState((state) => {
+      return {
+        steps: state.steps,
+        saveHash: uuidv4(),
+      };
     });
   };
 
@@ -1424,8 +1448,8 @@ const PipelineView = (props) => {
           updateEventVars();
           setState({
             isDeletingStep: false,
+            saveHash: uuidv4(),
           });
-          savePipeline();
         },
         () => {
           setState({
@@ -1483,7 +1507,9 @@ const PipelineView = (props) => {
         state.eventVars.selectedSteps = [];
         updateEventVars();
         deleteStep(uuid);
-        savePipeline();
+        setState({
+          saveHash: uuidv4(),
+        });
       }
     );
   };
@@ -1618,27 +1644,29 @@ const PipelineView = (props) => {
   };
 
   const centerView = () => {
-    setState(
-      {
-        pipelineOffset: [
-          INITIAL_PIPELINE_POSITION[0],
-          INITIAL_PIPELINE_POSITION[1],
-        ],
-        scaleFactor: 1,
-      },
-      () => {
-        pipelineSetHolderOrigin([0, 0]);
-      }
-    );
+    setState({
+      pipelineOffset: [
+        INITIAL_PIPELINE_POSITION[0],
+        INITIAL_PIPELINE_POSITION[1],
+      ],
+      scaleFactor: 1,
+    });
+
+    // After render
+    setTimeout(() => {
+      pipelineSetHolderOrigin([0, 0]);
+    });
   };
 
   const centerPipelineOrigin = () => {
     let pipelineStepsOuterHolderJ = $(
       state.refManager.refs.pipelineStepsOuterHolder
     );
+
     let pipelineStepsOuterHolderOffset = $(
       state.refManager.refs.pipelineStepsOuterHolder
     ).offset();
+
     let pipelineStepsHolderOffset = $(
       state.refManager.refs.pipelineStepsHolder
     ).offset();
@@ -1844,8 +1872,12 @@ const PipelineView = (props) => {
       return;
     }
 
-    savePipeline(() => {
+    () => {
       _runStepUUIDs(uuids, type);
+    };
+
+    setState({
+      saveHash: uuidv4(),
     });
   };
 
@@ -1886,16 +1918,11 @@ const PipelineView = (props) => {
   };
 
   const onSaveDetails = (updatedStep) => {
-    // update step state based on latest state of pipelineDetails component
-
-    // update steps in setState even though reference objects are directly modified - this propagates state updates properly
     state.steps[updatedStep.uuid] = updatedStep;
-
     setState({
       steps: state.steps,
+      saveHash: uuidv4(),
     });
-
-    savePipeline();
   };
 
   const deselectSteps = () => {
@@ -1962,6 +1989,7 @@ const PipelineView = (props) => {
 
   const pipelineSetHolderSize = () => {
     // TODO: resize canvas based on pipeline size
+
     let jElStepOuterHolder = $(state.refManager.refs.pipelineStepsOuterHolder);
 
     if (jElStepOuterHolder.filter(":visible").length > 0) {
@@ -2024,6 +2052,7 @@ const PipelineView = (props) => {
     if (e.button === 0) {
       if (state.eventVars.keysDown[32]) {
         // space held while clicking, means canvas drag
+
         $(state.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
         state.eventVars.draggingPipeline = true;
       }
@@ -2214,6 +2243,7 @@ const PipelineView = (props) => {
         key={x}
         scaleFactor={state.scaleFactor}
         scaleCorrectedPosition={scaleCorrectedPosition}
+        onClick={onClickConnection}
         {...connection}
       />
     );
