@@ -768,9 +768,7 @@ const PipelineView = (props) => {
           state.eventVars.newConnection.endNode = $(e.target);
           state.eventVars.newConnection.endNodeUUID = endNodeUUID;
 
-          setState((state) => {
-            return { connnections: state.eventVars.connections };
-          });
+          updateEventVars();
 
           state.refManager.refs[endNodeUUID].props.onConnect(
             startNodeUUID,
