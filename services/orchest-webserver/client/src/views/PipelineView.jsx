@@ -72,6 +72,7 @@ const PipelineView = (props) => {
       openedStep: undefined,
       openedMultistep: undefined,
       selectedSteps: [],
+      showServices: false,
       stepSelector: {
         active: false,
         x1: 0,
@@ -101,7 +102,6 @@ const PipelineView = (props) => {
     initializedPipeline: false,
     promiseManager: new PromiseManager(),
     refManager: new RefManager(),
-    showServices: false,
     runStatusEndpoint: "/catch/api-proxy/api/runs/",
     pipelineRunning: false,
     waitingOnCancel: false,
@@ -469,18 +469,16 @@ const PipelineView = (props) => {
   };
 
   const showServices = () => {
-    if (!state.showServices) {
-      setState({
-        showServices: true,
-      });
+    if (!state.eventVars.showServices) {
+      state.eventVars.showServices = true;
+      updateEventVars();
     }
   };
 
   const hideServices = () => {
-    if (state.showServices) {
-      setState({
-        showServices: false,
-      });
+    if (state.eventVars.showServices) {
+      state.eventVars.showServices = false;
+      updateEventVars();
     }
   };
 
@@ -2402,7 +2400,7 @@ const PipelineView = (props) => {
                 icon="tune"
               />
 
-              {state.showServices && servicesAvailable() && (
+              {state.eventVars.showServices && servicesAvailable() && (
                 <div className="services-status">
                   <h3>Running services</h3>
                   {generateServiceEndpoints()}
