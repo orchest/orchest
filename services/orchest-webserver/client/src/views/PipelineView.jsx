@@ -43,6 +43,7 @@ const DRAG_CLICK_SENSITIVITY = 3;
 const CANVAS_VIEW_MULTIPLE = 3;
 const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
+const DEFAULT_SCALE_FACTOR = 1;
 
 const PipelineView = (props) => {
   const orchest = window.orchest;
@@ -56,6 +57,7 @@ const PipelineView = (props) => {
       mouseClientY: 0,
       prevPosition: [],
       doubleClickFirstClick: false,
+      isDeletingStep: false,
       selectedConnection: undefined,
       selectedItem: undefined,
       newConnection: undefined,
@@ -70,6 +72,8 @@ const PipelineView = (props) => {
         x2: 0,
         y2: 0,
       },
+      scaleFactor: DEFAULT_SCALE_FACTOR,
+      connections: [],
     },
     timers: {
       pipelineStepStatusPollingInterval: undefined,
@@ -84,7 +88,6 @@ const PipelineView = (props) => {
       INITIAL_PIPELINE_POSITION[0],
       INITIAL_PIPELINE_POSITION[1],
     ],
-    scaleFactor: 1,
     // misc. state
     sio: undefined,
     currentOngoingSaves: 0,
@@ -92,7 +95,6 @@ const PipelineView = (props) => {
     promiseManager: new PromiseManager(),
     refManager: new RefManager(),
     showServices: false,
-    connections: [],
     runStatusEndpoint: "/catch/api-proxy/api/runs/",
     pipelineRunning: false,
     waitingOnCancel: false,
@@ -103,7 +105,6 @@ const PipelineView = (props) => {
     steps: {},
     defaultDetailViewIndex: 0,
     shouldAutoStart: false,
-    isDeletingStep: false,
     // The save hash is used to propagate a save's side-effects
     // to components.
     saveHash: undefined,
@@ -166,6 +167,14 @@ const PipelineView = (props) => {
   }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
+    if (props.queryArgs && props.queryArgs.read_only !== "true") {
+      setState({ shouldAutoStart: true });
+    } else {
+      setState({ shouldAutoStart: false });
+    }
+  }, [props]);
+
+  React.useEffect(() => {
     dispatch({
       type: "setView",
       payload: "pipeline",
@@ -202,7 +211,6 @@ const PipelineView = (props) => {
         }
       }
 
-      setState({ shouldAutoStart: true });
       connectSocketIO();
       initializeResizeHandlers();
 
@@ -235,13 +243,23 @@ const PipelineView = (props) => {
   }, []);
 
   React.useEffect(() => {
+    if (
+      state.pipelineOffset[0] == INITIAL_PIPELINE_POSITION[0] &&
+      state.pipelineOffset[1] == INITIAL_PIPELINE_POSITION[1] &&
+      state.eventVars.scaleFactor == DEFAULT_SCALE_FACTOR
+    ) {
+      pipelineSetHolderOrigin([0, 0]);
+    }
+  }, [state.eventVars.scaleFactor, state.pipelineOffset]);
+
+  React.useEffect(() => {
     // fetch pipeline when uuid changed
     fetchPipelineAndInitialize();
   }, [props.queryArgs.pipeline_uuid]);
 
   React.useEffect(() => {
     handleSession();
-  }, [session, state.sessionsIsLoading]);
+  }, [session, state.sessionsIsLoading, props, state.shouldAutoStart]);
 
   const loadViewInEdit = () => {
     let newProps = {};
@@ -560,12 +578,12 @@ const PipelineView = (props) => {
   };
 
   const getConnectionByUUIDs = (startNodeUUID, endNodeUUID) => {
-    for (let x = 0; x < state.connections.length; x++) {
+    for (let x = 0; x < state.eventVars.connections.length; x++) {
       if (
-        state.connections[x].startNodeUUID === startNodeUUID &&
-        state.connections[x].endNodeUUID === endNodeUUID
+        state.eventVars.connections[x].startNodeUUID === startNodeUUID &&
+        state.eventVars.connections[x].endNodeUUID === endNodeUUID
       ) {
-        return state.connections[x];
+        return state.eventVars.connections[x];
       }
     }
   };
@@ -584,12 +602,6 @@ const PipelineView = (props) => {
       );
       state.eventVars.selectedConnection.selected = true;
       updateEventVars();
-
-      setState((state) => {
-        return {
-          connections: state.connections,
-        };
-      });
     }
   };
 
@@ -610,11 +622,10 @@ const PipelineView = (props) => {
         .attr("data-uuid");
     }
 
-    setState((state) => {
-      return {
-        connections: state.connections.concat([newConnection]),
-      };
-    });
+    state.eventVars.connections = state.eventVars.connections.concat([
+      newConnection,
+    ]);
+    updateEventVars();
 
     if (!incomingJEl) {
       state.eventVars.newConnection = newConnection;
@@ -694,8 +705,11 @@ const PipelineView = (props) => {
 
   const removeConnection = (connection) => {
     setState((state) => {
-      state.connections.splice(state.connections.indexOf(connection), 1);
-      return { connnections: state.connections };
+      state.eventVars.connections.splice(
+        state.eventVars.connections.indexOf(connection),
+        1
+      );
+      return { connnections: state.eventVars.connections };
     });
 
     if (connection.endNodeUUID) {
@@ -750,7 +764,7 @@ const PipelineView = (props) => {
           state.eventVars.newConnection.endNodeUUID = endNodeUUID;
 
           setState((state) => {
-            return { connnections: state.connections };
+            return { connnections: state.eventVars.connections };
           });
 
           state.refManager.refs[endNodeUUID].props.onConnect(
@@ -796,7 +810,7 @@ const PipelineView = (props) => {
 
     $(document).on("keydown.initializePipeline", (e) => {
       if (
-        !state.isDeletingStep &&
+        !state.eventVars.isDeletingStep &&
         !activeElementIsInput() &&
         (e.keyCode === 8 || e.keyCode === 46)
       ) {
@@ -820,15 +834,15 @@ const PipelineView = (props) => {
     $(state.refManager.refs.pipelineStepsOuterHolder).on("mousemove", (e) => {
       if (state.eventVars.selectedItem !== undefined) {
         let delta = [
-          scaleCorrectedPosition(e.clientX, state.scaleFactor) -
+          scaleCorrectedPosition(e.clientX, state.eventVars.scaleFactor) -
             state.eventVars.prevPosition[0],
-          scaleCorrectedPosition(e.clientY, state.scaleFactor) -
+          scaleCorrectedPosition(e.clientY, state.eventVars.scaleFactor) -
             state.eventVars.prevPosition[1],
         ];
 
         state.eventVars.prevPosition = [
-          scaleCorrectedPosition(e.clientX, state.scaleFactor),
-          scaleCorrectedPosition(e.clientY, state.scaleFactor),
+          scaleCorrectedPosition(e.clientX, state.eventVars.scaleFactor),
+          scaleCorrectedPosition(e.clientY, state.eventVars.scaleFactor),
         ];
 
         let step = state.steps[state.eventVars.selectedItem];
@@ -877,28 +891,21 @@ const PipelineView = (props) => {
         ).offset();
 
         state.eventVars.newConnection.xEnd =
-          scaleCorrectedPosition(e.clientX, state.scaleFactor) -
+          scaleCorrectedPosition(e.clientX, state.eventVars.scaleFactor) -
           scaleCorrectedPosition(
             pipelineStepHolderOffset.left,
-            state.scaleFactor
+            state.eventVars.scaleFactor
           );
         state.eventVars.newConnection.yEnd =
-          scaleCorrectedPosition(e.clientY, state.scaleFactor) -
+          scaleCorrectedPosition(e.clientY, state.eventVars.scaleFactor) -
           scaleCorrectedPosition(
             pipelineStepHolderOffset.top,
-            state.scaleFactor
+            state.eventVars.scaleFactor
           );
 
         updateEventVars();
 
-        setState((state) => {
-          return {
-            connections: state.connections,
-          };
-        });
-
         // check for hovering over incoming-connections div
-
         if ($(e.target).hasClass("incoming-connections")) {
           $(e.target).addClass("hover");
         } else {
@@ -909,11 +916,7 @@ const PipelineView = (props) => {
   };
 
   const updateConnectionPosition = () => {
-    setState((state) => {
-      return {
-        connections: state.connections,
-      };
-    });
+    updateEventVars();
   };
 
   const initializePipelineNavigationListeners = () => {
@@ -1050,23 +1053,19 @@ const PipelineView = (props) => {
         }
       }
 
-      // using timeouts to set global (this) after all event listeners
-      // have processed.
-      setTimeout(() => {
-        state.eventVars.selectedItem = undefined;
-        updateEventVars();
+      state.eventVars.selectedItem = undefined;
+      updateEventVars();
 
-        if (state.eventVars.draggingPipeline) {
-          state.eventVars.draggingPipeline = false;
-          updateEventVars();
-        }
-      });
+      if (state.eventVars.draggingPipeline) {
+        state.eventVars.draggingPipeline = false;
+        updateEventVars();
+      }
     });
 
     $(state.refManager.refs.pipelineStepsHolder).on("mousedown", (e) => {
       state.eventVars.prevPosition = [
-        scaleCorrectedPosition(e.clientX, state.scaleFactor),
-        scaleCorrectedPosition(e.clientY, state.scaleFactor),
+        scaleCorrectedPosition(e.clientX, state.eventVars.scaleFactor),
+        scaleCorrectedPosition(e.clientY, state.eventVars.scaleFactor),
       ];
     });
 
@@ -1334,13 +1333,10 @@ const PipelineView = (props) => {
   const selectStep = (pipelineStepUUID) => {
     state.eventVars.openedStep = pipelineStepUUID;
     state.eventVars.selectedSteps = [pipelineStepUUID];
-
     updateEventVars();
   };
 
   const onClickStepHandler = (stepUUID) => {
-    // as the selectStep is quite expensive (trigger large React render)
-    // we free up the event loop queue by calling it through setTimeout
     setTimeout(() => {
       selectStep(stepUUID);
     });
@@ -1421,9 +1417,8 @@ const PipelineView = (props) => {
     // The if is to avoid the dialog appearing when no steps are
     // selected and the delete button is pressed.
     if (state.eventVars.selectedSteps.length > 0) {
-      setState({
-        isDeletingStep: true,
-      });
+      state.eventVars.isDeletingStep = true;
+      updateEventVars();
 
       orchest.confirm(
         "Warning",
@@ -1441,16 +1436,15 @@ const PipelineView = (props) => {
           }
 
           state.eventVars.selectedSteps = [];
+          state.eventVars.isDeletingStep = false;
           updateEventVars();
           setState({
-            isDeletingStep: false,
             saveHash: uuidv4(),
           });
         },
         () => {
-          setState({
-            isDeletingStep: false,
-          });
+          state.eventVars.isDeletingStep = false;
+          updateEventVars();
         }
       );
     }
@@ -1638,17 +1632,16 @@ const PipelineView = (props) => {
   };
 
   const centerView = () => {
+    state.eventVars.scaleFactor = DEFAULT_SCALE_FACTOR;
+    updateEventVars();
+
     setState({
       pipelineOffset: [
         INITIAL_PIPELINE_POSITION[0],
         INITIAL_PIPELINE_POSITION[1],
       ],
-      scaleFactor: 1,
-    });
-
-    // After render
-    setTimeout(() => {
-      pipelineSetHolderOrigin([0, 0]);
+      pipelineStepsHolderOffsetLeft: 0,
+      pipelineStepsHolderOffsetTop: 0,
     });
   };
 
@@ -1670,13 +1663,13 @@ const PipelineView = (props) => {
         pipelineStepsOuterHolderOffset.left -
           pipelineStepsHolderOffset.left +
           pipelineStepsOuterHolderJ.width() / 2,
-        state.scaleFactor
+        state.eventVars.scaleFactor
       ),
       scaleCorrectedPosition(
         pipelineStepsOuterHolderOffset.top -
           pipelineStepsHolderOffset.top +
           pipelineStepsOuterHolderJ.height() / 2,
-        state.scaleFactor
+        state.eventVars.scaleFactor
       ),
     ];
 
@@ -1685,20 +1678,20 @@ const PipelineView = (props) => {
 
   const zoomOut = () => {
     centerPipelineOrigin();
-    setState((state) => {
-      return {
-        scaleFactor: Math.max(state.scaleFactor - 0.25, 0.25),
-      };
-    });
+    state.eventVars.scaleFactor = Math.max(
+      state.eventVars.scaleFactor - 0.25,
+      0.25
+    );
+    updateEventVars();
   };
 
   const zoomIn = () => {
     centerPipelineOrigin();
-    setState((state) => {
-      return {
-        scaleFactor: Math.min(state.scaleFactor + 0.25, 2),
-      };
-    });
+    state.eventVars.scaleFactor = Math.min(
+      state.eventVars.scaleFactor + 0.25,
+      2
+    );
+    updateEventVars();
   };
 
   const scaleCorrectedPosition = (position, scaleFactor) => {
@@ -1720,7 +1713,10 @@ const PipelineView = (props) => {
     let initialY =
       pipelineStepsHolderOffset.top - pipelineStepsOuterHolderOffset.top;
 
-    let translateXY = originTransformScaling([...newOrigin], state.scaleFactor);
+    let translateXY = originTransformScaling(
+      [...newOrigin],
+      state.eventVars.scaleFactor
+    );
 
     setState({
       pipelineOrigin: newOrigin,
@@ -1753,14 +1749,12 @@ const PipelineView = (props) => {
     if (e.nativeEvent.deltaMode == 0x01 || e.nativeEvent.deltaMode == 0x02) {
       deltaY = getScrollLineHeight() * deltaY;
     }
-    setState((state) => {
-      return {
-        scaleFactor: Math.min(
-          Math.max(state.scaleFactor - deltaY / 3000, 0.25),
-          2
-        ),
-      };
-    });
+
+    state.eventVars.scaleFactor = Math.min(
+      Math.max(state.eventVars.scaleFactor - deltaY / 3000, 0.25),
+      2
+    );
+    updateEventVars();
   };
 
   const runSelectedSteps = () => {
@@ -1848,7 +1842,7 @@ const PipelineView = (props) => {
   };
 
   const runStepUUIDs = (uuids, type) => {
-    if (session.status !== "RUNNING") {
+    if (!session || session.status !== "RUNNING") {
       orchest.alert(
         "Error",
         "There is no active session. Please start the session first."
@@ -1935,12 +1929,6 @@ const PipelineView = (props) => {
     state.eventVars.selectedConnection.selected = false;
     state.eventVars.selectedConnection = undefined;
     updateEventVars();
-
-    setState((state) => {
-      return {
-        connections: state.connections,
-      };
-    });
   };
 
   const getSelectedSteps = () => {
@@ -1999,11 +1987,11 @@ const PipelineView = (props) => {
     return [
       scaleCorrectedPosition(
         state.eventVars.mouseClientX - pipelineStepsolderOffset.left,
-        state.scaleFactor
+        state.eventVars.scaleFactor
       ),
       scaleCorrectedPosition(
         state.eventVars.mouseClientY - pipelineStepsolderOffset.top,
-        state.scaleFactor
+        state.eventVars.scaleFactor
       ),
     ];
   };
@@ -2058,16 +2046,16 @@ const PipelineView = (props) => {
 
         state.eventVars.stepSelector.active = true;
         state.eventVars.stepSelector.x1 = state.eventVars.stepSelector.x2 =
-          scaleCorrectedPosition(e.clientX, state.scaleFactor) -
+          scaleCorrectedPosition(e.clientX, state.eventVars.scaleFactor) -
           scaleCorrectedPosition(
             pipelineStepHolderOffset.left,
-            state.scaleFactor
+            state.eventVars.scaleFactor
           );
         state.eventVars.stepSelector.y1 = state.eventVars.stepSelector.y2 =
-          scaleCorrectedPosition(e.clientY, state.scaleFactor) -
+          scaleCorrectedPosition(e.clientY, state.eventVars.scaleFactor) -
           scaleCorrectedPosition(
             pipelineStepHolderOffset.top,
-            state.scaleFactor
+            state.eventVars.scaleFactor
           );
 
         state.eventVars.selectedSteps = getSelectedSteps();
@@ -2085,14 +2073,17 @@ const PipelineView = (props) => {
       ).offset();
 
       state.eventVars.stepSelector.x2 =
-        scaleCorrectedPosition(e.clientX, state.scaleFactor) -
+        scaleCorrectedPosition(e.clientX, state.eventVars.scaleFactor) -
         scaleCorrectedPosition(
           pipelineStepHolderOffset.left,
-          state.scaleFactor
+          state.eventVars.scaleFactor
         );
       state.eventVars.stepSelector.y2 =
-        scaleCorrectedPosition(e.clientY, state.scaleFactor) -
-        scaleCorrectedPosition(pipelineStepHolderOffset.top, state.scaleFactor);
+        scaleCorrectedPosition(e.clientY, state.eventVars.scaleFactor) -
+        scaleCorrectedPosition(
+          pipelineStepHolderOffset.top,
+          state.eventVars.scaleFactor
+        );
 
       state.eventVars.selectedSteps = getSelectedSteps();
       updateEventVars();
@@ -2225,12 +2216,12 @@ const PipelineView = (props) => {
   }
 
   let connectionComponents = [];
-  for (let x = 0; x < state.connections.length; x++) {
-    let connection = state.connections[x];
+  for (let x = 0; x < state.eventVars.connections.length; x++) {
+    let connection = state.eventVars.connections[x];
     connectionComponents.push(
       <PipelineConnection
         key={x}
-        scaleFactor={state.scaleFactor}
+        scaleFactor={state.eventVars.scaleFactor}
         scaleCorrectedPosition={scaleCorrectedPosition}
         onClick={onClickConnection}
         {...connection}
@@ -2444,7 +2435,7 @@ const PipelineView = (props) => {
                     state.pipelineOffset[1] +
                     "px)" +
                     "scale(" +
-                    state.scaleFactor +
+                    state.eventVars.scaleFactor +
                     ")",
                   left: state.pipelineStepsHolderOffsetLeft,
                   top: state.pipelineStepsHolderOffsetTop,
