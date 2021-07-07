@@ -255,7 +255,7 @@ class MovePipeline(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         self.collateral_kwargs["old_path"] = old_path
-        self.collateral_kwargs["new_path"] = new_project_relative_path
+        self.collateral_kwargs["new_path"] = os.path.normpath(new_project_relative_path)
 
     def _collateral(
         self,
