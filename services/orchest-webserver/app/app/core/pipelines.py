@@ -87,7 +87,9 @@ class CreatePipeline(TwoPhaseFunction):
 class DeletePipeline(TwoPhaseFunction):
     """Cleanup a pipeline from Orchest."""
 
-    def _transaction(self, project_uuid: str, pipeline_uuid: str):
+    def _transaction(
+        self, project_uuid: str, pipeline_uuid: str, remove_file: bool = True
+    ):
         """Remove a pipeline from the db"""
         # Necessary because get_pipeline_path is going to query the db
         # entry, but the db entry does not exist anymore because it has
@@ -100,18 +102,20 @@ class DeletePipeline(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         self.collateral_kwargs["pipeline_json_path"] = pipeline_json_path
+        self.collateral_kwargs["remove_file"] = remove_file
 
     def _collateral(
-        self, project_uuid: str, pipeline_uuid: str, pipeline_json_path: str
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+        pipeline_json_path: str,
+        remove_file: bool,
     ):
         """Remove a pipeline from the FS and the orchest-api"""
 
-        # CleanupPipelineFromOrchest can be used when deleting a
-        # pipeline through Orchest or when cleaning up a pipeline that
-        # was deleted through the filesystem by the user, so the file
-        # might not be there.
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(pipeline_json_path)
+        if remove_file:
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(pipeline_json_path)
 
         # Orchest-api deletion.
         url = (
@@ -242,6 +246,11 @@ class MovePipeline(TwoPhaseFunction):
 
         if new_project_relative_path.startswith("/"):
             new_project_relative_path = new_project_relative_path[1:]
+        # It is important to normalize the path because
+        # find_pipelines_in_dir will return normalized paths as well,
+        # which are used to deteced pipelines that were deleted through
+        # the file system in SyncProjectPipelinesDBState.
+        new_project_relative_path = os.path.normpath(new_project_relative_path)
 
         old_path = pipeline.path
         # This way it's not considered as if it was deleted on the FS.
@@ -255,7 +264,7 @@ class MovePipeline(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         self.collateral_kwargs["old_path"] = old_path
-        self.collateral_kwargs["new_path"] = os.path.normpath(new_project_relative_path)
+        self.collateral_kwargs["new_path"] = new_project_relative_path
 
     def _collateral(
         self,

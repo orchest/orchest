@@ -476,7 +476,11 @@ def find_pipelines_in_dir(path, relative_to=None):
                         if root.startswith("/"):
                             root = root[1:]
 
-                    pipelines.append(os.path.join(root, fName))
+                    # Path normalization is important for correctly
+                    # detecting pipelines that were deleted through the
+                    # file system in SyncProjectPipelinesDBState, i.e.
+                    # to avoid false positives.
+                    pipelines.append(os.path.normpath(os.path.join(root, fName)))
 
     return pipelines
 

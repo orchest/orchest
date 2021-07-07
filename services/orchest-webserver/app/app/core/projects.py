@@ -301,7 +301,9 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
             .all()
         ]
         for pip in fs_removed_pipelines:
-            DeletePipeline(self.tpe).transaction(pip.project_uuid, pip.uuid)
+            DeletePipeline(self.tpe).transaction(
+                pip.project_uuid, pip.uuid, remove_file=False
+            )
 
         # Identify all pipeline paths that are not yet a pipeline, that
         # is, pipelines that were added through the filesystem.
