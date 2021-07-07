@@ -714,7 +714,7 @@ const PipelineView = (props) => {
         state.eventVars.connections.indexOf(connection),
         1
       );
-      return { connnections: state.eventVars.connections };
+      updateEventVars();
     });
 
     if (connection.endNodeUUID) {
@@ -796,7 +796,6 @@ const PipelineView = (props) => {
       updateEventVars();
 
       // clean up creating-connection class
-
       $(".pipeline-step").removeClass("creating-connection");
     });
 
@@ -807,7 +806,6 @@ const PipelineView = (props) => {
         if (e.button === 0) {
           $(e.target).parents(".pipeline-step").addClass("creating-connection");
           // create connection
-
           createConnection($(e.target));
         }
       }
