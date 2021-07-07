@@ -222,11 +222,8 @@ const PipelineView = (props) => {
       disconnectSocketIO();
 
       $(document).off("mouseup.initializePipeline");
-
       $(document).off("mousedown.initializePipeline");
-
       $(document).off("keyup.initializePipeline");
-
       $(document).off("keydown.initializePipeline");
 
       clearInterval(state.timers.pipelineStepStatusPollingInterval);
@@ -1260,7 +1257,6 @@ const PipelineView = (props) => {
   };
 
   const updateJupyterInstance = () => {
-    const session = get.session(props.queryArgs);
     const base_url = session?.notebook_server_info?.base_url;
 
     if (base_url) {
@@ -1521,8 +1517,6 @@ const PipelineView = (props) => {
   };
 
   const openNotebook = (stepUUID) => {
-    const session = get.session(props.queryArgs);
-
     if (session === undefined) {
       orchest.alert(
         "Error",
@@ -1854,8 +1848,6 @@ const PipelineView = (props) => {
   };
 
   const runStepUUIDs = (uuids, type) => {
-    const session = get.session(props.queryArgs);
-
     if (session.status !== "RUNNING") {
       orchest.alert(
         "Error",
@@ -1872,17 +1864,16 @@ const PipelineView = (props) => {
       return;
     }
 
-    () => {
-      _runStepUUIDs(uuids, type);
-    };
-
     setState({
+      pendingRunUUIDs: uuids,
+      pendingRunType: type,
       saveHash: uuidv4(),
     });
   };
 
   const startStatusInterval = () => {
     // initialize interval
+    clearInterval(state.timers.pipelineStepStatusPollingInterval);
     state.timers.pipelineStepStatusPollingInterval = setInterval(
       pollPipelineStepStatuses.bind(this),
       STATUS_POLL_FREQUENCY
@@ -2034,7 +2025,6 @@ const PipelineView = (props) => {
   };
 
   const servicesAvailable = () => {
-    const session = get.session(props.queryArgs);
     if (
       (!props.queryArgs.job_uuid && session && session.status == "RUNNING") ||
       (props.queryArgs.job_uuid && state.pipelineJson && state.pipelineRunning)
@@ -2129,7 +2119,6 @@ const PipelineView = (props) => {
   const getServices = () => {
     let services;
     if (!props.queryArgs.job_uuid) {
-      const session = get.session(props.queryArgs);
       if (session && session.user_services) {
         services = session.user_services;
       }
