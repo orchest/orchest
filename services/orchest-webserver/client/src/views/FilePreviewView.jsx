@@ -38,13 +38,18 @@ const FilePreviewView = (props) => {
     parentSteps: [],
     childSteps: [],
   });
+
   const [cachedScrollPosition, setCachedScrollPosition] = React.useState(
     undefined
   );
+  const [
+    isRestoringScrollPosition,
+    setIsRestoringScrollPosition,
+  ] = React.useState(false);
+  const [retryIntervals, setRetryIntervals] = React.useState([]);
 
   const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
-  const retryIntervals = [];
 
   const loadPipelineView = () => {
     orchest.loadView(PipelineView, {
@@ -181,43 +186,49 @@ const FilePreviewView = (props) => {
     ));
   };
 
-  const restorePreviousScrollPosition = () => {
-    if (
-      state.fileDescription.ext == "ipynb" &&
-      refManager.refs.htmlNotebookIframe
-    ) {
-      retryIntervals.push(
-        setWithRetry(
-          cachedScrollPosition,
-          (value) => {
-            refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
-              refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
-              value
-            );
-          },
-          () => {
-            return refManager.refs.htmlNotebookIframe.contentWindow.scrollY;
-          },
-          25,
-          100
-        )
-      );
-    } else if (refManager.refs.fileViewer) {
-      retryIntervals.push(
-        setWithRetry(
-          cachedScrollPosition,
-          (value) => {
-            refManager.refs.fileViewer.scrollTop = value;
-          },
-          () => {
-            return refManager.refs.fileViewer.scrollTop;
-          },
-          25,
-          100
-        )
-      );
+  React.useEffect(() => {
+    if (isRestoringScrollPosition) {
+      setIsRestoringScrollPosition(false);
+
+      if (
+        state.fileDescription.ext == "ipynb" &&
+        refManager.refs.htmlNotebookIframe
+      ) {
+        setRetryIntervals((prevRetryIntervals) => [
+          ...prevRetryIntervals,
+          setWithRetry(
+            cachedScrollPosition,
+            (value) => {
+              refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
+                refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
+                value
+              );
+            },
+            () => {
+              return refManager.refs.htmlNotebookIframe.contentWindow.scrollY;
+            },
+            25,
+            100
+          ),
+        ]);
+      } else if (refManager.refs.fileViewer) {
+        setRetryIntervals((prevRetryIntervals) => [
+          ...prevRetryIntervals,
+          setWithRetry(
+            cachedScrollPosition,
+            (value) => {
+              refManager.refs.fileViewer.scrollTop = value;
+            },
+            () => {
+              return refManager.refs.fileViewer.scrollTop;
+            },
+            25,
+            100
+          ),
+        ]);
+      }
     }
-  };
+  }, [isRestoringScrollPosition]);
 
   const loadFile = () => {
     // cache scroll position
@@ -242,7 +253,7 @@ const FilePreviewView = (props) => {
     fetchAll()
       .then(() => {
         if (attemptRestore) {
-          restorePreviousScrollPosition();
+          setIsRestoringScrollPosition(true);
         }
       })
       .catch(() => {
@@ -253,15 +264,15 @@ const FilePreviewView = (props) => {
       });
   };
 
+  console.log(retryIntervals, cachedScrollPosition);
+
   React.useEffect(() => {
     loadFile();
 
     return () => {
       promiseManager.cancelCancelablePromises();
 
-      for (let interval of retryIntervals) {
-        clearInterval(interval);
-      }
+      retryIntervals.map((retryInterval) => clearInterval(retryInterval));
     };
   }, []);
 
