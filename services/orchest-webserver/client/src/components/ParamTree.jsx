@@ -22,8 +22,6 @@ import { useOrchest } from "@/hooks/orchest";
 const ParamTree = (props) => {
   const context = useOrchest();
 
-  console.log(props);
-
   const truncateParameterValue = (value) => {
     // stringify non string values
     if (!_.isString(value)) {
