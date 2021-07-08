@@ -264,8 +264,6 @@ const FilePreviewView = (props) => {
       });
   };
 
-  console.log(retryIntervals, cachedScrollPosition);
-
   React.useEffect(() => {
     loadFile();
 
