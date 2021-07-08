@@ -1,3 +1,4 @@
+// @ts-check
 import React, { Fragment } from "react";
 import io from "socket.io-client";
 import { XTerm } from "xterm-for-react";
@@ -9,121 +10,86 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { formatServerDateTime } from "../utils/webserver-utils";
+import { useInterval } from "@/hooks/use-interval";
 
-class ImageBuild extends React.Component {
-  constructor(props) {
-    super(props);
+const BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
 
-    this.BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
-    this.END_STATUSES = ["SUCCESS", "FAILURE", "ABORTED"];
+let socket;
 
-    this.state = {
-      building: false,
-      ignoreIncomingLogs: this.props.ignoreIncomingLogs,
-    };
+const ImageBuild = (props) => {
+  const [state, setState] = React.useState({
+    building: false,
+    ignoreIncomingLogs: props.ignoreIncomingLogs,
+  });
 
-    // initialize Xterm addons
-    this.fitAddon = new FitAddon();
-    this.refManager = new RefManager();
-    this.promiseManager = new PromiseManager();
-  }
+  const [isPolling, setIsPolling] = React.useState(null);
 
-  componentWillUnmount() {
-    if (this.socket) {
-      this.socket.close();
-    }
-    clearTimeout(this.buildTimeout);
-    this.promiseManager.cancelCancelablePromises();
+  const [fitAddon] = React.useState(new FitAddon());
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
-    window.removeEventListener("resize", this.fitTerminal.bind(this));
-  }
-
-  componentDidMount() {
-    this.connectSocketIO();
-    this.fitTerminal();
-    this.buildPolling(true);
-
-    window.addEventListener("resize", this.fitTerminal.bind(this));
-  }
-
-  buildPolling(triggerDirectly) {
-    if (triggerDirectly) {
-      this.buildRequest();
-    }
-
-    clearTimeout(this.buildTimeout);
-    this.buildTimeout = setTimeout(
-      () => {
-        this.buildRequest();
-        this.buildPolling(false);
-      },
-      this.props.building
-        ? this.BUILD_POLL_FREQUENCY[1]
-        : this.BUILD_POLL_FREQUENCY[0]
-    );
-  }
-
-  buildRequest() {
+  const buildRequest = () => {
     let buildRequestPromise = makeCancelable(
-      makeRequest("GET", this.props.buildRequestEndpoint),
-      this.promiseManager
+      makeRequest("GET", props.buildRequestEndpoint),
+      promiseManager
     );
 
     buildRequestPromise.promise
       .then((response) => {
-        let builds = JSON.parse(response)[this.props.buildsKey];
+        let builds = JSON.parse(response)[props.buildsKey];
         if (builds.length > 0) {
-          this.props.onUpdateBuild(builds[0]);
+          props.onUpdateBuild(builds[0]);
         }
       })
       .catch((error) => {
         console.error(error);
       });
-  }
+  };
 
-  connectSocketIO() {
+  const connectSocketIO = () => {
     // disable polling
-    this.socket = io.connect(this.props.socketIONamespace, {
+    socket = io.connect(props.socketIONamespace, {
       transports: ["websocket"],
     });
 
-    this.socket.on("sio_streamed_task_data", (data) => {
+    socket.on("sio_streamed_task_data", (data) => {
       // ignore terminal outputs from other builds
-      if (data.identity == this.props.streamIdentity) {
+      if (data.identity == props.streamIdentity) {
         if (
           data["action"] == "sio_streamed_task_output" &&
-          !this.state.ignoreIncomingLogs
+          !state.ignoreIncomingLogs
         ) {
           let lines = data.output.split("\n");
           for (let x = 0; x < lines.length; x++) {
             if (x == lines.length - 1) {
-              this.refManager.refs.term.terminal.write(lines[x]);
+              refManager.refs.term.terminal.write(lines[x]);
             } else {
-              this.refManager.refs.term.terminal.write(lines[x] + "\n\r");
+              refManager.refs.term.terminal.write(lines[x] + "\n\r");
             }
           }
         } else if (data["action"] == "sio_streamed_task_started") {
           // This blocking mechanism makes sure old build logs are
           // not displayed after the user has started a build
           // during an ongoing build.
-          this.refManager.refs.term.terminal.reset();
-          this.setState({
+          refManager.refs.term.terminal.reset();
+          setState((prevState) => ({
+            ...prevState,
             ignoreIncomingLogs: false,
-          });
-          this.props.onBuildStart();
+          }));
+          props.onBuildStart();
         }
       }
     });
-  }
+  };
 
-  fitTerminal() {
+  const fitTerminal = () => {
     if (
-      this.refManager.refs.term &&
-      this.refManager.refs.term.terminal.element.offsetParent
+      refManager.refs.term &&
+      refManager.refs.term.terminal.element.offsetParent
     ) {
       setTimeout(() => {
         try {
-          this.fitAddon.fit();
+          fitAddon.fit();
         } catch {
           console.warn(
             "fitAddon.fit() failed - Xterm only allows fit when element is visible."
@@ -131,63 +97,75 @@ class ImageBuild extends React.Component {
         }
       });
     }
-  }
+  };
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.ignoreIncomingLogs != this.props.ignoreIncomingLogs) {
-      this.setState({
-        ignoreIncomingLogs: this.props.ignoreIncomingLogs,
-      });
-      if (this.refManager.refs.terminal && this.props.ignoreIncomingLogs) {
-        this.refManager.refs.term.terminal.reset();
-      }
+  useInterval(
+    () => buildRequest(),
+    isPolling &&
+      (props.build ? BUILD_POLL_FREQUENCY[1] : BUILD_POLL_FREQUENCY[0])
+  );
+
+  React.useEffect(() => {
+    connectSocketIO();
+    fitTerminal();
+    setIsPolling(true);
+    window.addEventListener("resize", fitTerminal.bind(this));
+
+    return () => {
+      if (socket) socket.close();
+      promiseManager.cancelCancelablePromises();
+      window.removeEventListener("resize", fitTerminal.bind(this));
+    };
+  }, []);
+
+  React.useEffect(() => fitTerminal());
+
+  React.useEffect(() => {
+    setState((prevState) => ({
+      ...prevState,
+      ignoreIncomingLogs: props.ignoreIncomingLogs,
+    }));
+    if (refManager.refs.terminal && props.ignoreIncomingLogs) {
+      refManager.refs.term.terminal.reset();
     }
+  }, [props.ignoreIncomingLogs]);
 
-    if (prevProps.buildFetchHash != this.props.buildFetchHash) {
-      this.buildPolling(true);
-    }
+  React.useEffect(() => {
+    setIsPolling(true);
+  }, [props.buildFetchHash]);
 
-    this.fitTerminal();
-  }
-
-  render() {
-    return (
-      <Fragment>
-        {(() => {
-          if (this.props.build) {
-            return (
-              <div className="build-notice push-down">
-                <div>
-                  <span className="build-label">Build status:</span>
-                  {this.props.build.status}
-                </div>
-                <div>
-                  <span className="build-label">Build requested:</span>
-                  {this.props.build.requested_time ? (
-                    formatServerDateTime(this.props.build.requested_time)
-                  ) : (
-                    <i>not yet requested</i>
-                  )}
-                </div>
-                <div>
-                  <span className="build-label">Build finished:</span>
-                  {this.props.build.finished_time ? (
-                    formatServerDateTime(this.props.build.finished_time)
-                  ) : (
-                    <i>not yet finished</i>
-                  )}
-                </div>
-              </div>
-            );
-          }
-        })()}
-
-        <div className={"xterm-holder push-down"}>
-          <XTerm addons={[this.fitAddon]} ref={this.refManager.nrefs.term} />
+  return (
+    <Fragment>
+      {props.build && (
+        <div className="build-notice push-down">
+          <div>
+            <span className="build-label">Build status:</span>
+            {props.build.status}
+          </div>
+          <div>
+            <span className="build-label">Build requested:</span>
+            {props.build.requested_time ? (
+              formatServerDateTime(props.build.requested_time)
+            ) : (
+              <i>not yet requested</i>
+            )}
+          </div>
+          <div>
+            <span className="build-label">Build finished:</span>
+            {props.build.finished_time ? (
+              formatServerDateTime(props.build.finished_time)
+            ) : (
+              <i>not yet finished</i>
+            )}
+          </div>
         </div>
-      </Fragment>
-    );
-  }
-}
+      )}
+
+      <div className={"xterm-holder push-down"}>
+        <XTerm addons={[fitAddon]} ref={refManager.nrefs.term} />
+      </div>
+    </Fragment>
+  );
+};
 
 export default ImageBuild;

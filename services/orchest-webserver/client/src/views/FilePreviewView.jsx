@@ -1,3 +1,4 @@
+// @ts-check
 import React, { Fragment } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/python/python";
@@ -21,108 +22,86 @@ import {
 } from "@/utils/webserver-utils";
 import PipelineView from "@/views/PipelineView";
 
-class FilePreviewView extends React.Component {
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
+const MODE_MAPPING = {
+  py: "text/x-python",
+  sh: "text/x-sh",
+  r: "text/x-rsrc",
+};
 
-    for (let interval of this.retryIntervals) {
-      clearInterval(interval);
-    }
-  }
+const FilePreviewView = (props) => {
+  const { orchest } = window;
 
-  loadPipelineView() {
+  const [state, setState] = React.useState({
+    notebookHtml: undefined,
+    fileDescription: undefined,
+    loadingFile: true,
+    parentSteps: [],
+    childSteps: [],
+  });
+
+  const [cachedScrollPosition, setCachedScrollPosition] = React.useState(
+    undefined
+  );
+  const [
+    isRestoringScrollPosition,
+    setIsRestoringScrollPosition,
+  ] = React.useState(false);
+  const [retryIntervals, setRetryIntervals] = React.useState([]);
+
+  const [refManager] = React.useState(new RefManager());
+  const [promiseManager] = React.useState(new PromiseManager());
+
+  const loadPipelineView = () => {
     orchest.loadView(PipelineView, {
       queryArgs: {
-        pipeline_uuid: this.props.queryArgs.pipeline_uuid,
-        project_uuid: this.props.queryArgs.project_uuid,
-        read_only: this.props.queryArgs.read_only,
-        job_uuid: this.props.queryArgs.job_uuid,
-        run_uuid: this.props.queryArgs.run_uuid,
+        pipeline_uuid: props.queryArgs.pipeline_uuid,
+        project_uuid: props.queryArgs.project_uuid,
+        read_only: props.queryArgs.read_only,
+        job_uuid: props.queryArgs.job_uuid,
+        run_uuid: props.queryArgs.run_uuid,
       },
     });
-  }
+  };
 
-  componentDidMount() {
-    this.loadFile();
-  }
-
-  constructor(props) {
-    super(props);
-
-    this.MODE_MAPPING = {
-      py: "text/x-python",
-      sh: "text/x-sh",
-      r: "text/x-rsrc",
-    };
-
-    this.state = {
-      notebookHtml: undefined,
-      fileDescription: undefined,
-      loadingFile: true,
-      parentSteps: [],
-      childSteps: [],
-    };
-
-    this.refManager = new RefManager();
-    this.promiseManager = new PromiseManager();
-    this.retryIntervals = [];
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      this.props.queryArgs.step_uuid !== prevProps.queryArgs.step_uuid ||
-      this.props.queryArgs.pipeline_uuid !== prevProps.queryArgs.pipeline_uuid
-    ) {
-      // Clear old state
-      this.setState(
-        {
-          fileDescription: undefined,
-          notebookHtml: undefined,
-        },
-        () => {
-          this.loadFile();
-        }
-      );
-    }
-  }
-
-  fetchPipeline() {
-    return new Promise((resolve, reject) => {
-      this.setState({
+  const fetchPipeline = () =>
+    new Promise((resolve, reject) => {
+      setState((prevState) => ({
+        ...prevState,
         loadingFile: true,
-      });
+      }));
 
-      let pipelineURL = this.props.queryArgs.job_uuid
+      let pipelineURL = props.queryArgs.job_uuid
         ? getPipelineJSONEndpoint(
-            this.props.queryArgs.pipeline_uuid,
-            this.props.queryArgs.project_uuid,
-            this.props.queryArgs.job_uuid,
-            this.props.queryArgs.run_uuid
+            props.queryArgs.pipeline_uuid,
+            props.queryArgs.project_uuid,
+            props.queryArgs.job_uuid,
+            props.queryArgs.run_uuid
           )
         : getPipelineJSONEndpoint(
-            this.props.queryArgs.pipeline_uuid,
-            this.props.queryArgs.project_uuid
+            props.queryArgs.pipeline_uuid,
+            props.queryArgs.project_uuid
           );
 
       let fetchPipelinePromise = makeCancelable(
         makeRequest("GET", pipelineURL),
-        this.promiseManager
+        promiseManager
       );
 
       fetchPipelinePromise.promise
         .then((response) => {
           let pipelineJSON = JSON.parse(JSON.parse(response)["pipeline_json"]);
 
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             parentSteps: getPipelineStepParents(
-              this.props.queryArgs.step_uuid,
+              props.queryArgs.step_uuid,
               pipelineJSON
             ),
             childSteps: getPipelineStepChildren(
-              this.props.queryArgs.step_uuid,
+              props.queryArgs.step_uuid,
               pipelineJSON
             ),
-          });
+          }));
 
           resolve();
         })
@@ -131,53 +110,55 @@ class FilePreviewView extends React.Component {
           reject();
         });
     });
-  }
 
-  fetchAll() {
-    return new Promise((resolve, reject) => {
-      this.setState({
+  const fetchAll = () =>
+    new Promise((resolve, reject) => {
+      setState((prevState) => ({
+        ...prevState,
         loadingFile: true,
-      });
+      }));
 
       let fetchAllPromise = makeCancelable(
-        Promise.all([this.fetchFile(), this.fetchPipeline()]),
-        this.promiseManager
+        Promise.all([fetchFile(), fetchPipeline()]),
+        promiseManager
       );
 
       fetchAllPromise.promise
         .then(() => {
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             loadingFile: false,
-          });
+          }));
           resolve();
         })
         .catch(() => {
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             loadingFile: false,
-          });
+          }));
           reject();
         });
     });
-  }
 
-  fetchFile() {
-    return new Promise((resolve, reject) => {
-      let fileURL = `/async/file-viewer/${this.props.queryArgs.project_uuid}/${this.props.queryArgs.pipeline_uuid}/${this.props.queryArgs.step_uuid}`;
-      if (this.props.queryArgs.run_uuid) {
-        fileURL += "?pipeline_run_uuid=" + this.props.queryArgs.run_uuid;
-        fileURL += "&job_uuid=" + this.props.queryArgs.job_uuid;
+  const fetchFile = () =>
+    new Promise((resolve, reject) => {
+      let fileURL = `/async/file-viewer/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}/${props.queryArgs.step_uuid}`;
+      if (props.queryArgs.run_uuid) {
+        fileURL += "?pipeline_run_uuid=" + props.queryArgs.run_uuid;
+        fileURL += "&job_uuid=" + props.queryArgs.job_uuid;
       }
 
       let fetchFilePromise = makeCancelable(
         makeRequest("GET", fileURL),
-        this.promiseManager
+        promiseManager
       );
 
       fetchFilePromise.promise
         .then((response) => {
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             fileDescription: JSON.parse(response),
-          });
+          }));
           resolve();
         })
         .catch((err) => {
@@ -185,88 +166,94 @@ class FilePreviewView extends React.Component {
           reject();
         });
     });
-  }
 
-  stepNavigate(stepUUID) {
-    let propClone = JSON.parse(JSON.stringify(this.props));
+  const stepNavigate = (stepUUID) => {
+    let propClone = JSON.parse(JSON.stringify(props));
     propClone.queryArgs.step_uuid = stepUUID;
 
     orchest.loadView(FilePreviewView, propClone);
-  }
+  };
 
-  renderNavStep(steps) {
+  const renderNavStep = (steps) => {
     return steps.map((step) => (
       <button
         key={step.uuid}
-        onClick={this.stepNavigate.bind(this, step.uuid)}
+        onClick={stepNavigate.bind(this, step.uuid)}
         className="text-button"
       >
         {step.title}
       </button>
     ));
-  }
+  };
 
-  restorePreviousScrollPosition() {
-    if (
-      this.state.fileDescription.ext == "ipynb" &&
-      this.refManager.refs.htmlNotebookIframe
-    ) {
-      this.retryIntervals.push(
-        setWithRetry(
-          this.cachedScrollPosition,
-          (value) => {
-            this.refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
-              this.refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
-              value
-            );
-          },
-          () => {
-            return this.refManager.refs.htmlNotebookIframe.contentWindow
-              .scrollY;
-          },
-          25,
-          100
-        )
-      );
-    } else if (this.refManager.refs.fileViewer) {
-      this.retryIntervals.push(
-        setWithRetry(
-          this.cachedScrollPosition,
-          (value) => {
-            this.refManager.refs.fileViewer.scrollTop = value;
-          },
-          () => {
-            return this.refManager.refs.fileViewer.scrollTop;
-          },
-          25,
-          100
-        )
-      );
+  React.useEffect(() => {
+    if (isRestoringScrollPosition) {
+      setIsRestoringScrollPosition(false);
+
+      if (
+        state.fileDescription.ext == "ipynb" &&
+        refManager.refs.htmlNotebookIframe
+      ) {
+        setRetryIntervals((prevRetryIntervals) => [
+          ...prevRetryIntervals,
+          setWithRetry(
+            cachedScrollPosition,
+            (value) => {
+              refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
+                refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
+                value
+              );
+            },
+            () => {
+              return refManager.refs.htmlNotebookIframe.contentWindow.scrollY;
+            },
+            25,
+            100
+          ),
+        ]);
+      } else if (refManager.refs.fileViewer) {
+        setRetryIntervals((prevRetryIntervals) => [
+          ...prevRetryIntervals,
+          setWithRetry(
+            cachedScrollPosition,
+            (value) => {
+              refManager.refs.fileViewer.scrollTop = value;
+            },
+            () => {
+              return refManager.refs.fileViewer.scrollTop;
+            },
+            25,
+            100
+          ),
+        ]);
+      }
     }
-  }
+  }, [isRestoringScrollPosition]);
 
-  loadFile() {
+  const loadFile = () => {
     // cache scroll position
     let attemptRestore = false;
 
-    if (this.state.fileDescription) {
+    if (state.fileDescription) {
       // File was loaded before, requires restoring scroll position.
       attemptRestore = true;
-      this.cachedScrollPosition = 0;
+      setCachedScrollPosition(0);
       if (
-        this.state.fileDescription.ext == "ipynb" &&
-        this.refManager.refs.htmlNotebookIframe
+        state.fileDescription.ext == "ipynb" &&
+        refManager.refs.htmlNotebookIframe
       ) {
-        this.cachedScrollPosition = this.refManager.refs.htmlNotebookIframe.contentWindow.scrollY;
-      } else if (this.refManager.refs.fileViewer) {
-        this.cachedScrollPosition = this.refManager.refs.fileViewer.scrollTop;
+        setCachedScrollPosition(
+          refManager.refs.htmlNotebookIframe.contentWindow.scrollY
+        );
+      } else if (refManager.refs.fileViewer) {
+        setCachedScrollPosition(refManager.refs.fileViewer.scrollTop);
       }
     }
 
-    this.fetchAll()
+    fetchAll()
       .then(() => {
         if (attemptRestore) {
-          this.restorePreviousScrollPosition();
+          setIsRestoringScrollPosition(true);
         }
       })
       .catch(() => {
@@ -275,105 +262,122 @@ class FilePreviewView extends React.Component {
           "Failed to load file. Make sure the path of the pipeline step is correct."
         );
       });
-  }
+  };
 
-  render() {
-    let parentStepElements = this.renderNavStep(this.state.parentSteps);
-    let childStepElements = this.renderNavStep(this.state.childSteps);
+  React.useEffect(() => {
+    loadFile();
 
-    return (
-      <Layout>
-        <div
-          className={"view-page file-viewer no-padding"}
-          ref={this.refManager.nrefs.fileViewer}
-        >
-          <div className="top-buttons">
-            <MDCButtonReact
-              classNames={["refresh-button"]}
-              icon="refresh"
-              onClick={this.loadFile.bind(this)}
-            />
-            <MDCButtonReact
-              classNames={["close-button"]}
-              icon="close"
-              onClick={this.loadPipelineView.bind(this)}
-            />
-          </div>
+    return () => {
+      promiseManager.cancelCancelablePromises();
 
-          {(() => {
-            if (this.state.loadingFile) {
-              return <MDCLinearProgressReact />;
-            } else if (
-              this.state.fileDescription != undefined &&
-              this.state.parentSteps != undefined
-            ) {
-              let fileComponent;
+      retryIntervals.map((retryInterval) => clearInterval(retryInterval));
+    };
+  }, []);
 
-              if (this.state.fileDescription.ext != "ipynb") {
-                let fileMode = this.MODE_MAPPING[
-                  this.state.fileDescription.ext.toLowerCase()
-                ];
-                if (!fileMode) {
-                  fileMode = null;
-                }
+  React.useEffect(() => {
+    setState((prevState) => ({
+      ...prevState,
+      fileDescription: undefined,
+      notebookHtml: undefined,
+    }));
+    loadFile();
+  }, [props.queryArgs.step_uuid, props.queryArgs.pipeline_uuid]);
 
-                fileComponent = (
-                  <CodeMirror
-                    value={this.state.fileDescription.content}
-                    options={{
-                      mode: fileMode,
-                      theme: "jupyter",
-                      lineNumbers: true,
-                      readOnly: true,
-                    }}
-                  />
-                );
-              } else if (this.state.fileDescription.ext == "ipynb") {
-                fileComponent = (
-                  <iframe
-                    ref={this.refManager.nrefs.htmlNotebookIframe}
-                    className={"notebook-iframe borderless fullsize"}
-                    srcDoc={this.state.fileDescription.content}
-                  ></iframe>
-                );
-              } else {
-                fileComponent = (
-                  <div>
-                    <p>
-                      Something went wrong loading the file. Please try again by
-                      reloading the page.
-                    </p>
-                  </div>
-                );
+  let parentStepElements = renderNavStep(state.parentSteps);
+  let childStepElements = renderNavStep(state.childSteps);
+
+  return (
+    <Layout>
+      <div
+        className={"view-page file-viewer no-padding"}
+        ref={refManager.nrefs.fileViewer}
+      >
+        <div className="top-buttons">
+          <MDCButtonReact
+            classNames={["refresh-button"]}
+            icon="refresh"
+            onClick={loadFile.bind(this)}
+          />
+          <MDCButtonReact
+            classNames={["close-button"]}
+            icon="close"
+            onClick={loadPipelineView.bind(this)}
+          />
+        </div>
+
+        {(() => {
+          if (state.loadingFile) {
+            return <MDCLinearProgressReact />;
+          } else if (
+            state.fileDescription != undefined &&
+            state.parentSteps != undefined
+          ) {
+            let fileComponent;
+
+            if (state.fileDescription.ext != "ipynb") {
+              let fileMode =
+                MODE_MAPPING[state.fileDescription.ext.toLowerCase()];
+              if (!fileMode) {
+                fileMode = null;
               }
 
-              return (
-                <Fragment>
-                  <div className="file-description">
-                    <h3>
-                      Step: {this.state.fileDescription.step_title} (
-                      {this.state.fileDescription.filename})
-                    </h3>
-                    <div className="step-navigation">
-                      <div className="parents">
-                        <span>Parent steps</span>
-                        {parentStepElements}
-                      </div>
-                      <div className="children">
-                        <span>Child steps</span>
-                        {childStepElements}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="file-holder">{fileComponent}</div>
-                </Fragment>
+              fileComponent = (
+                // @ts-ignore
+                <CodeMirror
+                  value={state.fileDescription.content}
+                  options={{
+                    mode: fileMode,
+                    theme: "jupyter",
+                    lineNumbers: true,
+                    readOnly: true,
+                  }}
+                />
+              );
+            } else if (state.fileDescription.ext == "ipynb") {
+              fileComponent = (
+                <iframe
+                  ref={refManager.nrefs.htmlNotebookIframe}
+                  className={"notebook-iframe borderless fullsize"}
+                  srcDoc={state.fileDescription.content}
+                ></iframe>
+              );
+            } else {
+              fileComponent = (
+                <div>
+                  <p>
+                    Something went wrong loading the file. Please try again by
+                    reloading the page.
+                  </p>
+                </div>
               );
             }
-          })()}
-        </div>
-      </Layout>
-    );
-  }
-}
+
+            return (
+              <Fragment>
+                <div className="file-description">
+                  <h3>
+                    Step: {state.fileDescription.step_title} (
+                    {state.fileDescription.filename})
+                  </h3>
+                  <div className="step-navigation">
+                    <div className="parents">
+                      <span>Parent steps</span>
+                      {parentStepElements}
+                    </div>
+                    <div className="children">
+                      <span>Child steps</span>
+                      {childStepElements}
+                    </div>
+                  </div>
+                </div>
+                <div className="file-holder">{fileComponent}</div>
+              </Fragment>
+            );
+          }
+        })()}
+      </div>
+    </Layout>
+  );
+};
 
 export default FilePreviewView;

@@ -1,24 +1,31 @@
+// @ts-check
 import React from "react";
 import { RefManager } from "@orchest/lib-utils";
 
-class PipelineStep extends React.Component {
-  constructor() {
-    super();
+/**
+ * @typedef {{
+ *  selected?: boolean;
+ *  step?: any;
+ *  executionState?: {
+ *    finished_time: number;
+ *    server_time: number;
+ *    started_time: number;
+ *    status: "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED" | "PENDING";
+ *  }
+ * }} TPipelineStepProps
+ *
+ * @type React.FC<TPipelineStepProps>
+ */
+const PipelineStep = React.forwardRef((props, ref) => {
+  const [refManager] = React.useState(new RefManager());
 
-    this.refManager = new RefManager();
-  }
-
-  componentDidMount() {
-    this.updatePosition(this.props.step.meta_data.position);
-  }
-
-  updatePosition(position) {
+  const updatePosition = (position) => {
     // note: DOM update outside of normal React loop for performance
-    this.refManager.refs.container.style.transform =
+    refManager.refs.container.style.transform =
       "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
-  }
+  };
 
-  formatSeconds(seconds) {
+  const formatSeconds = (seconds) => {
     // Hours, minutes and seconds
     let hrs = ~~(seconds / 3600);
     let mins = ~~((seconds % 3600) / 60);
@@ -33,108 +40,96 @@ class PipelineStep extends React.Component {
     }
     ret += secs + "s";
     return ret;
+  };
+
+  React.useEffect(() => updatePosition(props.step.meta_data.position), []);
+
+  React.useImperativeHandle(ref, () => ({
+    updatePosition,
+    props,
+    refManager,
+  }));
+
+  let stateText = "Ready";
+
+  if (props.executionState.status === "SUCCESS") {
+    let seconds = Math.round(
+      (props.executionState.finished_time - props.executionState.started_time) /
+        1000
+    );
+
+    stateText = "Completed (" + formatSeconds(seconds) + ")";
   }
+  if (props.executionState.status === "FAILURE") {
+    let seconds = 0;
 
-  render() {
-    let classNames = ["pipeline-step"];
-
-    if (this.props.selected) {
-      classNames.push("selected");
-    }
-
-    let stateText = "Ready";
-
-    classNames.push(this.props.executionState.status);
-
-    if (this.props.executionState.status === "SUCCESS") {
-      let seconds = Math.round(
-        (this.props.executionState.finished_time -
-          this.props.executionState.started_time) /
+    if (props.executionState.started_time !== undefined) {
+      seconds = Math.round(
+        (props.executionState.finished_time -
+          props.executionState.started_time) /
           1000
       );
-
-      stateText = "Completed (" + this.formatSeconds(seconds) + ")";
-    }
-    if (this.props.executionState.status === "FAILURE") {
-      let seconds = 0;
-
-      if (this.props.executionState.started_time !== undefined) {
-        seconds = Math.round(
-          (this.props.executionState.finished_time -
-            this.props.executionState.started_time) /
-            1000
-        );
-      }
-
-      stateText = "Failure (" + this.formatSeconds(seconds) + ")";
-    }
-    if (this.props.executionState.status === "STARTED") {
-      let seconds = 0;
-
-      if (this.props.executionState.started_time !== undefined) {
-        seconds = Math.round(
-          (this.props.executionState.server_time -
-            this.props.executionState.started_time) /
-            1000
-        );
-      }
-
-      stateText = "Running (" + this.formatSeconds(seconds) + ")";
-    }
-    if (this.props.executionState.status == "PENDING") {
-      stateText = "Pending";
-    }
-    if (this.props.executionState.status == "ABORTED") {
-      stateText = "Aborted";
     }
 
-    if (
-      this.props.step &&
-      this.props.step["meta_data"] &&
-      this.props.step["meta_data"]["hidden"] === true
-    ) {
-      classNames.push("hidden");
+    stateText = "Failure (" + formatSeconds(seconds) + ")";
+  }
+  if (props.executionState.status === "STARTED") {
+    let seconds = 0;
+
+    if (props.executionState.started_time !== undefined) {
+      seconds = Math.round(
+        (props.executionState.server_time - props.executionState.started_time) /
+          1000
+      );
     }
 
-    return (
-      <div
-        data-uuid={this.props.step.uuid}
-        ref={this.refManager.nrefs.container}
-        className={classNames.join(" ")}
-      >
-        <div className={"incoming-connections connection-point"}>
-          <div className="inner-dot"></div>
-        </div>
-        <div className={"execution-indicator"}>
-          {(() => {
-            if (this.props.executionState.status === "SUCCESS") {
-              return <span className="success">✓ </span>;
-            }
-          })()}
-          {(() => {
-            if (this.props.executionState.status === "FAILURE") {
-              return <span className="failure">✗ </span>;
-            }
-          })()}
-          {(() => {
-            if (this.props.executionState.status === "ABORTED") {
-              return <span className="aborted">❗ </span>;
-            }
-          })()}
-          {stateText}
-        </div>
-        <div className="step-label-holder">
-          <div className={"step-label"}>
-            {this.props.step.title}
-            <span className="filename">{this.props.step.file_path}</span>
-          </div>
-        </div>
-        <div className={"outgoing-connections connection-point"}>
-          <div className="inner-dot"></div>
+    stateText = "Running (" + formatSeconds(seconds) + ")";
+  }
+  if (props.executionState.status == "PENDING") {
+    stateText = "Pending";
+  }
+  if (props.executionState.status == "ABORTED") {
+    stateText = "Aborted";
+  }
+
+  return (
+    <div
+      data-uuid={props.step.uuid}
+      ref={refManager.nrefs.container}
+      className={[
+        "pipeline-step",
+        props.executionState.status,
+        props.selected && "selected",
+        props.step &&
+          props.step["meta_data"] &&
+          props.step["meta_data"]["hidden"] === true &&
+          "hidden",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <div className={"incoming-connections connection-point"}>
+        <div className="inner-dot"></div>
+      </div>
+      <div className={"execution-indicator"}>
+        {{
+          SUCCESS: <span className="success">✓ </span>,
+          FAILURE: <span className="failure">✗ </span>,
+          ABORTED: <span className="aborted">❗ </span>,
+        }[props.executionState.status] || null}
+        {stateText}
+      </div>
+      <div className="step-label-holder">
+        <div className={"step-label"}>
+          {props.step.title}
+          <span className="filename">{props.step.file_path}</span>
         </div>
       </div>
-    );
-  }
-}
+      <div className={"outgoing-connections connection-point"}>
+        <div className="inner-dot"></div>
+      </div>
+    </div>
+  );
+});
 
 export default PipelineStep;

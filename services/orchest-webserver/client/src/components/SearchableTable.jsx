@@ -1,102 +1,96 @@
-import React, { Fragment } from "react";
+import React from "react";
 import { MDCDataTableReact, MDCTextFieldReact } from "@orchest/lib-mdc";
-import { RefManager } from "@orchest/lib-utils";
 
-class SearchableTable extends React.Component {
-  constructor(props) {
-    super(props);
+/**
+ * @typedef {{
+ *  selectable?: boolean;
+ *  headers: any[];
+ *  rows: any[];
+ *  detailRows?: any[];
+ *  selectedIndices?: any[];
+ *  onRowClick?: () => void;
+ *  onSelectionChanged?: () => void;
+ *  ref?: any;
+ * }} TSearchableTableProps
+ *
+ * @type React.FC<TSearchableTableProps>
+ */
+const SearchableTable = React.forwardRef((props, ref) => {
+  /**
+   * @type React.MutableRefObject<{
+   *  getSelectedRowIndices: () => any;
+   *  setSelectedRowIds: (rowIds: any) => any;
+   * }> */
+  const tableRef = React.useRef(null);
 
-    this.state = {
-      rowSearchMask: new Array(this.props.rows.length).fill(1),
-      searchValue: "",
-    };
+  const [state, setState] = React.useState({
+    rowSearchMask: new Array(props.rows.length).fill(1),
+    searchValue: "",
+  });
 
-    this.refManager = new RefManager();
-  }
-
-  onSearchChange(searchValue) {
+  const onSearchChange = (searchValue) => {
     // case insensitive search
-    let value = searchValue.toLocaleLowerCase();
+    const value = searchValue.toLocaleLowerCase();
 
-    let rowSearchMask = new Array(this.props.rows.length).fill(0);
+    const rowSearchMask =
+      value.length === 0
+        ? new Array(props.rows.length).fill(1)
+        : props.rows.map((row) =>
+            row.join(" ").toLocaleLowerCase().indexOf(value) !== -1 ? 1 : 0
+          );
 
-    if (value.length === 0) {
-      rowSearchMask.fill(1);
-    } else {
-      for (let x = 0; x < this.props.rows.length; x++) {
-        let concattedSearchString = this.props.rows[x]
-          .join(" ")
-          .toLocaleLowerCase();
-
-        if (concattedSearchString.indexOf(value) !== -1) {
-          rowSearchMask[x] = 1;
-        }
-      }
-    }
-
-    this.setState({
+    setState({
       rowSearchMask: rowSearchMask,
       searchValue,
     });
-  }
+  };
 
-  componentDidUpdate(prevProps) {
-    if (this.props.rows !== prevProps.rows) {
-      this.setState({
-        rowSearchMask: new Array(this.props.rows.length).fill(1),
-      });
-    }
-  }
+  const filteredRows = (rows) =>
+    !rows ? null : rows.filter((_, i) => state.rowSearchMask[i] === 1);
 
-  getSelectedRowIndices() {
-    return this.refManager.refs.table.getSelectedRowIndices();
-  }
+  React.useEffect(
+    () =>
+      setState((prevState) => ({
+        ...prevState,
+        rowSearchMask: new Array(props.rows.length).fill(1),
+      })),
+    [props.rows]
+  );
 
-  setSelectedRowIds(rowIds) {
-    this.refManager.refs.table.setSelectedRowIds(rowIds);
-  }
+  const getSelectedRowIndices = () => tableRef.current.getSelectedRowIndices();
 
-  filteredRows(rows) {
-    if (!rows) {
-      return;
-    }
+  const setSelectedRowIds = (rowIds) =>
+    tableRef.current.setSelectedRowIds(rowIds);
 
-    let filteredRows = [];
+  React.useImperativeHandle(ref, () => ({
+    getSelectedRowIndices,
+    setSelectedRowIds,
+  }));
 
-    for (let x = 0; x < rows.length; x++) {
-      if (this.state.rowSearchMask[x] === 1) {
-        filteredRows.push(rows[x]);
-      }
-    }
+  return (
+    <React.Fragment>
+      <MDCTextFieldReact
+        onChange={onSearchChange.bind(this)}
+        value={state.searchValue}
+        classNames={["mdc-text-field--outlined", "fullwidth", "search"]}
+        notched={true}
+        label="Search"
+      />
 
-    return filteredRows;
-  }
-
-  render() {
-    return (
-      <Fragment>
-        <MDCTextFieldReact
-          onChange={this.onSearchChange.bind(this)}
-          value={this.state.searchValue}
-          classNames={["mdc-text-field--outlined", "fullwidth", "search"]}
-          notched={true}
-          label="Search"
-        />
-
-        <MDCDataTableReact
-          ref={this.refManager.nrefs.table}
-          selectable={this.props.selectable}
-          selectedIndices={this.filteredRows(this.props.selectedIndices)}
-          onSelectionChanged={this.props.onSelectionChanged}
-          onRowClick={this.props.onRowClick}
-          classNames={["fullwidth"]}
-          headers={this.props.headers}
-          rows={this.filteredRows(this.props.rows)}
-          detailRows={this.filteredRows(this.props.detailRows)}
-        />
-      </Fragment>
-    );
-  }
-}
+      <MDCDataTableReact
+        // @ts-ignore
+        ref={tableRef}
+        selectable={props.selectable}
+        selectedIndices={filteredRows(props.selectedIndices)}
+        onSelectionChanged={props.onSelectionChanged}
+        onRowClick={props.onRowClick}
+        classNames={["fullwidth"]}
+        headers={props.headers}
+        rows={filteredRows(props.rows)}
+        detailRows={filteredRows(props.detailRows)}
+      />
+    </React.Fragment>
+  );
+});
 
 export default SearchableTable;

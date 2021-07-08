@@ -1,49 +1,42 @@
+// @ts-check
 import React from "react";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import ProjectsView from "../views/ProjectsView";
+import ProjectsView from "@/views/ProjectsView";
 
-class ProjectBasedView extends React.Component {
-  constructor(props) {
-    super(props);
-  }
+/**
+ * @typedef {{
+ *  project_uuid?: string;
+ *  childView?: any;
+ * }} TProjectBasedViewProps
+ *
+ * @type React.FC<TProjectBasedViewProps>
+ */
+const ProjectBasedView = (props) => {
+  const { orchest } = window;
 
-  projectsButtonHandler() {
-    orchest.loadView(ProjectsView);
-  }
+  const TagName = props.childView;
 
-  render() {
-    let TagName = this.props.childView;
-
-    return (
-      <div className="view-page">
-        {this.props.project_uuid ? (
-          <TagName
-            {...{
-              ...this.props.childViewProps,
-              ...{
-                project_uuid: this.props.project_uuid,
-                key: this.props.project_uuid,
-              },
-            }}
+  return (
+    <div className="view-page">
+      {props.project_uuid ? (
+        <TagName project_uuid={props.project_uuid} key={props.project_uuid} />
+      ) : (
+        <div>
+          <p className="push-down">
+            It looks like you don't have any projects yet! To get started using
+            Orchest create your first project.
+          </p>
+          <MDCButtonReact
+            classNames={["mdc-button--raised", "themed-secondary"]}
+            onClick={() => orchest.loadView(ProjectsView)}
+            label="Create your first project!"
+            icon="add"
+            submitButton
           />
-        ) : (
-          <div>
-            <p className="push-down">
-              It looks like you don't have any projects yet! To get started
-              using Orchest create your first project.
-            </p>
-            <MDCButtonReact
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              onClick={this.projectsButtonHandler.bind(this)}
-              label="Create your first project!"
-              icon="add"
-              submitButton
-            />
-          </div>
-        )}
-      </div>
-    );
-  }
-}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default ProjectBasedView;
