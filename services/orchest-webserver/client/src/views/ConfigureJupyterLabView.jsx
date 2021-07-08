@@ -228,7 +228,11 @@ const ConfigureJupyterLabView = () => {
         buildImage();
       }
     }
-  }, [context.state.sessionsKillAllInProgress, state.sessionKillStatus]);
+  }, [
+    context.state.sessions,
+    context.state.sessionsKillAllInProgress,
+    state.sessionKillStatus,
+  ]);
 
   return (
     <OrchestSessionsConsumer>
