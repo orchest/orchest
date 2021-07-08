@@ -1,27 +1,29 @@
 // @ts-check
-
 import React from "react";
 import { globalMDCVars } from "@orchest/lib-utils";
-import $ from "jquery";
-
-/**
- * @param {Object} props
- * @param {any} props.startNode
- * @param {any} props.endNode
- * @param {any} props.pipelineViewEl
- * @param {string} props.startNodeUUID
- * @param {string} props.endNodeUUID
- * @param {any} props.onClick
- * @param {Number} props.xEnd
- * @param {Number} props.yEnd
- * @param {boolean} props.selected
- * @param {Number} props.scaleFactor
- * @param {any} props.scaleCorrectedPosition
- */
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
 
+/**
+ * @typedef {{
+ *  startNode: any;
+ *  endNode: any;
+ *  pipelineViewEl: any;
+ *  startNodeUUID: any;
+ *  endNodeUUID: any;
+ *  onClick: any;
+ *  xEnd: Number;
+ *  yEnd: Number;
+ *  selected: boolean;
+ *  scaleFactor: Number;
+ *  scaleCorrectedPosition: any;
+ * }} TPipelineConnectionProps
+ *
+ * @type React.FC<TPipelineConnectionProps>
+ */
 const PipelineConnection = (props) => {
+  const { $ } = window;
+
   const connectionHolder = React.useRef(null);
 
   const curvedHorizontal = function (x1, y1, x2, y2) {
