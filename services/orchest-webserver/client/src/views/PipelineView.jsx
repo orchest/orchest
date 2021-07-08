@@ -138,135 +138,6 @@ const PipelineView = (props) => {
     });
   };
 
-  React.useEffect(() => {
-    pollPipelineStepStatuses();
-    startStatusInterval();
-  }, [state.runUUID]);
-
-  React.useEffect(() => {
-    if (state.saveHash !== undefined) {
-      if (
-        state.pendingRunUUIDs !== undefined &&
-        state.pendingRunType !== undefined
-      ) {
-        savePipeline(() => {
-          _runStepUUIDs(state.pendingRunUUIDs, state.pendingRunType);
-          setState({
-            pendingRunUUIDs: undefined,
-            pendingRunType: undefined,
-          });
-        });
-      } else {
-        savePipeline();
-      }
-    }
-  }, [state.saveHash, state.pendingRunUUIDs, state.pendingRunType]);
-
-  React.useEffect(() => {
-    if (state.currentOngoingSaves === 0) {
-      clearTimeout(state.timers.saveIndicatorTimeout);
-      dispatch({
-        type: "pipelineSetSaveStatus",
-        payload: "saved",
-      });
-    }
-  }, [state.currentOngoingSaves]);
-
-  React.useEffect(() => {
-    if (props.queryArgs && props.queryArgs.read_only !== "true") {
-      setState({ shouldAutoStart: true });
-    } else {
-      setState({ shouldAutoStart: false });
-    }
-  }, [props]);
-
-  React.useEffect(() => {
-    dispatch({
-      type: "setView",
-      payload: "pipeline",
-    });
-
-    if (areQueryArgsValid()) {
-      if (props.queryArgs.run_uuid && props.queryArgs.job_uuid) {
-        try {
-          pollPipelineStepStatuses();
-          startStatusInterval();
-        } catch (e) {
-          console.log("could not start pipeline status updates: " + e);
-        }
-      } else {
-        if (props.queryArgs.read_only === "true") {
-          // for non pipelineRun - read only check gate
-          let checkGatePromise = checkGate(props.queryArgs.project_uuid);
-          checkGatePromise
-            .then(() => {
-              loadViewInEdit();
-            })
-            .catch((result) => {
-              if (result.reason === "gate-failed") {
-                orchest.requestBuild(
-                  props.queryArgs.project_uuid,
-                  result.data,
-                  "Pipeline",
-                  () => {
-                    loadViewInEdit();
-                  }
-                );
-              }
-            });
-        }
-      }
-
-      connectSocketIO();
-      initializeResizeHandlers();
-
-      // Edit mode fetches latest interactive run
-      if (props.queryArgs.read_only !== "true") {
-        fetchActivePipelineRuns();
-      }
-    } else {
-      loadDefaultPipeline();
-    }
-
-    return () => {
-      dispatch({
-        type: "clearView",
-      });
-
-      disconnectSocketIO();
-
-      $(document).off("mouseup.initializePipeline");
-      $(document).off("mousedown.initializePipeline");
-      $(document).off("keyup.initializePipeline");
-      $(document).off("keydown.initializePipeline");
-
-      clearInterval(state.timers.pipelineStepStatusPollingInterval);
-      clearTimeout(state.timers.doubleClickTimeout);
-      clearTimeout(state.timers.saveIndicatorTimeout);
-
-      state.promiseManager.cancelCancelablePromises();
-    };
-  }, []);
-
-  React.useEffect(() => {
-    if (
-      state.pipelineOffset[0] == INITIAL_PIPELINE_POSITION[0] &&
-      state.pipelineOffset[1] == INITIAL_PIPELINE_POSITION[1] &&
-      state.eventVars.scaleFactor == DEFAULT_SCALE_FACTOR
-    ) {
-      pipelineSetHolderOrigin([0, 0]);
-    }
-  }, [state.eventVars.scaleFactor, state.pipelineOffset]);
-
-  React.useEffect(() => {
-    // fetch pipeline when uuid changed
-    fetchPipelineAndInitialize();
-  }, [props.queryArgs.pipeline_uuid]);
-
-  React.useEffect(() => {
-    handleSession();
-  }, [session, state.sessionsIsLoading, props, state.shouldAutoStart]);
-
   const loadViewInEdit = () => {
     let newProps = {};
     Object.assign(newProps, props);
@@ -2278,6 +2149,135 @@ const PipelineView = (props) => {
       break;
     }
   }
+
+  React.useEffect(() => {
+    pollPipelineStepStatuses();
+    startStatusInterval();
+  }, [state.runUUID]);
+
+  React.useEffect(() => {
+    if (state.saveHash !== undefined) {
+      if (
+        state.pendingRunUUIDs !== undefined &&
+        state.pendingRunType !== undefined
+      ) {
+        savePipeline(() => {
+          _runStepUUIDs(state.pendingRunUUIDs, state.pendingRunType);
+          setState({
+            pendingRunUUIDs: undefined,
+            pendingRunType: undefined,
+          });
+        });
+      } else {
+        savePipeline();
+      }
+    }
+  }, [state.saveHash, state.pendingRunUUIDs, state.pendingRunType]);
+
+  React.useEffect(() => {
+    if (state.currentOngoingSaves === 0) {
+      clearTimeout(state.timers.saveIndicatorTimeout);
+      dispatch({
+        type: "pipelineSetSaveStatus",
+        payload: "saved",
+      });
+    }
+  }, [state.currentOngoingSaves]);
+
+  React.useEffect(() => {
+    if (props.queryArgs && props.queryArgs.read_only !== "true") {
+      setState({ shouldAutoStart: true });
+    } else {
+      setState({ shouldAutoStart: false });
+    }
+  }, [props]);
+
+  React.useEffect(() => {
+    dispatch({
+      type: "setView",
+      payload: "pipeline",
+    });
+
+    if (areQueryArgsValid()) {
+      if (props.queryArgs.run_uuid && props.queryArgs.job_uuid) {
+        try {
+          pollPipelineStepStatuses();
+          startStatusInterval();
+        } catch (e) {
+          console.log("could not start pipeline status updates: " + e);
+        }
+      } else {
+        if (props.queryArgs.read_only === "true") {
+          // for non pipelineRun - read only check gate
+          let checkGatePromise = checkGate(props.queryArgs.project_uuid);
+          checkGatePromise
+            .then(() => {
+              loadViewInEdit();
+            })
+            .catch((result) => {
+              if (result.reason === "gate-failed") {
+                orchest.requestBuild(
+                  props.queryArgs.project_uuid,
+                  result.data,
+                  "Pipeline",
+                  () => {
+                    loadViewInEdit();
+                  }
+                );
+              }
+            });
+        }
+      }
+
+      connectSocketIO();
+      initializeResizeHandlers();
+
+      // Edit mode fetches latest interactive run
+      if (props.queryArgs.read_only !== "true") {
+        fetchActivePipelineRuns();
+      }
+    } else {
+      loadDefaultPipeline();
+    }
+
+    return () => {
+      dispatch({
+        type: "clearView",
+      });
+
+      disconnectSocketIO();
+
+      $(document).off("mouseup.initializePipeline");
+      $(document).off("mousedown.initializePipeline");
+      $(document).off("keyup.initializePipeline");
+      $(document).off("keydown.initializePipeline");
+
+      clearInterval(state.timers.pipelineStepStatusPollingInterval);
+      clearTimeout(state.timers.doubleClickTimeout);
+      clearTimeout(state.timers.saveIndicatorTimeout);
+
+      state.promiseManager.cancelCancelablePromises();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (
+      state.pipelineOffset[0] == INITIAL_PIPELINE_POSITION[0] &&
+      state.pipelineOffset[1] == INITIAL_PIPELINE_POSITION[1] &&
+      state.eventVars.scaleFactor == DEFAULT_SCALE_FACTOR
+    ) {
+      pipelineSetHolderOrigin([0, 0]);
+    }
+  }, [state.eventVars.scaleFactor, state.pipelineOffset]);
+
+  React.useEffect(() => {
+    // fetch pipeline when uuid changed
+    fetchPipelineAndInitialize();
+  }, [props.queryArgs.pipeline_uuid]);
+
+  React.useEffect(() => {
+    handleSession();
+  }, [session, state.sessionsIsLoading, props, state.shouldAutoStart]);
 
   return (
     <OrchestSessionsConsumer>
