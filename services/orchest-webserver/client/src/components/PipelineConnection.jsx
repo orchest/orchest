@@ -97,8 +97,6 @@ const PipelineConnection = (props) => {
       let xEnd = props.xEnd !== undefined ? props.xEnd : x;
       let yEnd = props.yEnd !== undefined ? props.yEnd : y;
 
-      let classes = ["connection"];
-
       // set xEnd and yEnd if endNode is defined
       if (props.endNode) {
         let endNodePosition = nodeCenter(props.endNode, props.pipelineViewEl);
@@ -116,13 +114,8 @@ const PipelineConnection = (props) => {
         xOffset = targetX;
       }
 
-      if (targetX < arrowWidth * 10) {
-        classes.push("flipped-horizontal");
-      }
-
       if (targetY < 0) {
         yOffset = targetY;
-        classes.push("flipped");
       }
 
       let styles = {
@@ -150,13 +143,19 @@ const PipelineConnection = (props) => {
       svgPathClickable.setAttribute("d", svgPath.getAttribute("d"));
 
       if (props.selected) {
-        classes.push("selected");
         svgPath.setAttribute("stroke", THEME_SECONDARY);
         svgPath.setAttribute("stroke-width", "3");
       } else {
         svgPath.setAttribute("stroke", "black");
         svgPath.setAttribute("stroke-width", "2");
       }
+
+      const classes = [
+        "connection",
+        targetX < arrowWidth * 10 && "flipped-horizontal",
+        targetY < 0 && "flipped",
+        props.selected && "selected",
+      ].filter(Boolean);
 
       connectionHolder.current.className = "";
       connectionHolder.current.classList.add(...classes);
