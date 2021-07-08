@@ -442,14 +442,32 @@ def register_views(app, db):
             except error.ActiveSession:
                 return (
                     jsonify(
-                        {"message": "Can't rename a project with active sessions."}
+                        {
+                            "message": "Can't rename a project with active sessions.",
+                            # TODO: we need a standardized way of
+                            # communicating with the frontend.
+                            "code": 0,
+                        }
+                    ),
+                    409,
+                )
+            except sqlalchemy.exc.IntegrityError:
+                return (
+                    jsonify(
+                        {
+                            "message": "A project with this name already exists.",
+                            "code": 1,
+                        }
                     ),
                     409,
                 )
             except NoResultFound:
                 return jsonify({"message": "Project doesn't exist."}), 404
             except Exception as e:
-                return jsonify({"message": f"Failed to rename project: {e}."}), 500
+                return (
+                    jsonify({"message": f"Failed to rename project: {e}. {type(e)}"}),
+                    500,
+                )
 
         resp = requests.put(
             (
