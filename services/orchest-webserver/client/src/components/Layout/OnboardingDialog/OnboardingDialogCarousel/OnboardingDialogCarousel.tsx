@@ -1,6 +1,5 @@
-// @ts-check
 import * as React from "react";
-import { css } from "@orchest/design-system";
+import { css, ICSSProp } from "@orchest/design-system";
 import { m, AnimatePresence } from "framer-motion";
 import { useOnboardingDialogCarousel } from "./use-onboarding-dialog-carousel";
 
@@ -20,31 +19,27 @@ export const OnboardingDialogCarouselSlide = ({ children, ...props }) => {
     <m.div
       custom={slideDirection}
       variants={{
-        enter:
-          /** @param {number} slideDirection */
-          (slideDirection) => {
-            return {
-              x: slideDirection > 0 ? 1000 : -1000,
-              opacity: 0,
-              height: 0,
-            };
-          },
+        enter: (slideDirection: number) => {
+          return {
+            x: slideDirection > 0 ? 1000 : -1000,
+            opacity: 0,
+            height: 0,
+          };
+        },
         center: {
           zIndex: 1,
           x: 0,
           opacity: 1,
           height: "auto",
         },
-        exit:
-          /** @param {number} slideDirection */
-          (slideDirection) => {
-            return {
-              zIndex: 0,
-              x: slideDirection < 0 ? 1000 : -1000,
-              opacity: 0,
-              height: 0,
-            };
-          },
+        exit: (slideDirection: number) => {
+          return {
+            zIndex: 0,
+            x: slideDirection < 0 ? 1000 : -1000,
+            opacity: 0,
+            height: 0,
+          };
+        },
       }}
       initial="enter"
       animate="center"
@@ -101,16 +96,20 @@ const indicatorButton = css({
 });
 const indicatorLabel = css({ include: "screenReaderOnly" });
 
-/**
- * @type React.FC<import('./types').TOnboardingDialogCarouselIndicatorProps>
- */
-export const OnboardingDialogCarouselIndicator = ({ css, className }) => {
+interface IOnboardingDialogCarouselIndicatorProps
+  extends React.HTMLAttributes<HTMLUListElement>,
+    ICSSProp {}
+
+export const OnboardingDialogCarouselIndicator: React.FC<IOnboardingDialogCarouselIndicatorProps> = ({
+  css,
+  className,
+}) => {
   const { length, slideIndex, setSlide } = useOnboardingDialogCarousel();
 
   return (
     <ul role="list" className={indicatorList({ css, className })}>
       {Array(length)
-        .fill()
+        .fill(0)
         .map((_, i) => (
           <li
             key={`indicatorListItem-${i}`}

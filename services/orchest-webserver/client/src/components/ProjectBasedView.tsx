@@ -1,17 +1,13 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import ProjectsView from "@/views/ProjectsView";
 
-/**
- * @typedef {{
- *  project_uuid?: string;
- *  childView?: any;
- * }} TProjectBasedViewProps
- *
- * @type React.FC<TProjectBasedViewProps>
- */
-const ProjectBasedView = (props) => {
+export interface IProjectBasedViewProps {
+  project_uuid?: string;
+  childView?: any;
+}
+
+const ProjectBasedView: React.FC<IProjectBasedViewProps> = (props) => {
   const { orchest } = window;
 
   const TagName = props.childView;

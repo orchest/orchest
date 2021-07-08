@@ -1,9 +1,7 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { OnboardingDialog } from "./OnboardingDialog";
 
-/** @type React.FC<{}> */
-export const Layout = (props) => {
+export const Layout: React.FC = (props) => {
   return (
     <React.Fragment>
       {props.children}

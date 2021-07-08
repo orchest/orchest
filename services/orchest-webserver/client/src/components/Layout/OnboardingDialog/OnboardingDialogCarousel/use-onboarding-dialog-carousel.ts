@@ -1,4 +1,3 @@
-// @ts-check
 import useSWR from "swr";
 import { wrapNumber } from "@/utils/wrap-number";
 import { onboardingDialogCarouselSlides } from "./content";
@@ -21,12 +20,10 @@ export const useOnboardingDialogCarousel = () => {
   const slideIndex = wrapNumber(0, length, slideIndexState);
   const isLastSlide = slideIndex === length - 1;
 
-  /** @param {[number,number]} slide */
-  const setSlide = (slide) =>
+  const setSlide = (slide: [number, number]) =>
     setState((prevState) => ({ ...prevState, slide }));
 
-  /** @param {number} newSlideDirection */
-  const cycleSlide = (newSlideDirection) =>
+  const cycleSlide = (newSlideDirection: number) =>
     setState((prevState) => {
       const [prevSlideIndex] = prevState?.slide || initialState?.slide;
 
@@ -36,8 +33,7 @@ export const useOnboardingDialogCarousel = () => {
       };
     });
 
-  /** @param {boolean} isAnimating */
-  const setIsAnimating = (isAnimating) =>
+  const setIsAnimating = (isAnimating: boolean) =>
     setState((prevState) => ({ ...prevState, isAnimating }));
 
   return {

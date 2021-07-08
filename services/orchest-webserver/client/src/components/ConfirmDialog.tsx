@@ -1,17 +1,16 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";
 
-/**
- * @param {Object} props
- * @param {any} [props.title]
- * @param {any} [props.onCancel]
- * @param {any} [props.onClose]
- * @param {any} [props.onConfirm]
- * @param {any} [props.content]
- */
-const ConfirmDialog = (props) => {
+export interface IConfirmDialogProps {
+  title?: any;
+  onCancel?: any;
+  onClose?: any;
+  onConfirm?: any;
+  content?: any;
+}
+
+const ConfirmDialog: React.FC<IConfirmDialogProps> = (props) => {
   const [refManager] = React.useState(new RefManager());
 
   const confirm = () => {

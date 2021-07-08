@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   css,
   Dialog,
@@ -12,7 +11,7 @@ import {
   IconServicesSolid,
 } from "@orchest/design-system";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import { templates } from "./content";
+import { templates, IServiceTemplate } from "./content";
 
 // we'll extract this into the design-system later
 const createServiceButton = css({
@@ -35,8 +34,13 @@ const createServiceButton = css({
   },
 });
 
-/** @type React.FC<import('./types').TServiceTemplatesDialogProps> */
-export const ServiceTemplatesDialog = ({ onSelection }) => {
+export interface IServiceTemplatesDialogProps {
+  onSelection?: (templateConfig: IServiceTemplate["config"]) => void;
+}
+
+export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
+  onSelection,
+}) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

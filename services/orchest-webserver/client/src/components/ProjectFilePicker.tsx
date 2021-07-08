@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   MDCButtonReact,
   MDCDialogReact,
@@ -17,7 +16,7 @@ import {
 } from "@orchest/lib-utils";
 import FilePicker from "./FilePicker";
 
-const ProjectFilePicker = (props) => {
+const ProjectFilePicker: React.FC<any> = (props) => {
   const [state, setState] = React.useState({
     createFileModal: false,
     selectedFileExists: null,

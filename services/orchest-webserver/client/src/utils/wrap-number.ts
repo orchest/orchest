@@ -1,13 +1,4 @@
-// @ts-check
-
-/**
- * Wraps a number when it leaves the specified range.
- * @param {number} min
- * @param {number} max
- * @param {number} index
- * @returns number
- */
-export const wrapNumber = (min, max, index) => {
+export const wrapNumber = (min: number, max: number, index: number) => {
   if (min == max) {
     return min;
   }

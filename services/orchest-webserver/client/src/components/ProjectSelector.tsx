@@ -8,7 +8,13 @@ import {
 } from "@orchest/lib-utils";
 import { useOrchest } from "@/hooks/orchest";
 
-const ProjectSelector = React.forwardRef((_, ref) => {
+export type TProjectSelectorRef = any;
+export type TProjectSelectorProps = any;
+
+const ProjectSelector = React.forwardRef<
+  TProjectSelectorRef,
+  TProjectSelectorProps
+>((_, ref) => {
   const { state, dispatch } = useOrchest();
   const [selectItems, setSelectItems] = React.useState(null);
   const [projects, setProjects] = React.useState(null);

@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   Box,
   Dialog,
@@ -32,12 +31,11 @@ import ProjectsView from "@/views/ProjectsView";
 import SearchableTable from "./SearchableTable";
 import { StatusInline } from "./Status";
 
-/**
- * @typedef {{ project_uuid: string; }} TJobListProps
- *
- * @type React.FC<TJobListProps>
- */
-const JobList = (props) => {
+export interface IJobListProps {
+  project_uuid: string;
+}
+
+const JobList: React.FC<IJobListProps> = (props) => {
   const [state, setState] = React.useState({
     deleting: false,
     jobs: undefined,
@@ -165,15 +163,12 @@ const JobList = (props) => {
     }
   };
 
-  /**
-   * @param {Record<
-   *  'pipeline_uuid' |
-   *  'pipeline_name' |
-   *  'project_uuid' |
-   *  'name',
-   * string>} [rerun]
-   */
-  const onSubmitModal = (rerun) => {
+  const onSubmitModal = (
+    rerun?: Record<
+      "pipeline_uuid" | "pipeline_name" | "project_uuid" | "name",
+      string
+    >
+  ) => {
     if (!rerun) {
       if (refManager.refs.formJobName.mdc.value.length == 0) {
         orchest.alert("Error", "Please enter a name for your job.");

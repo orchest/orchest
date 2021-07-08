@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   MDCButtonReact,
   MDCCircularProgressReact,
@@ -9,11 +8,13 @@ import { useOrchest } from "@/hooks/orchest";
 import PipelineView from "../views/PipelineView";
 import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
-import SettingsView from "../views/SettingsView";
 import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
 
-export const HeaderBar = React.forwardRef((_, ref) => {
+// HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
+export type THeaderBarRef = HTMLDivElement;
+
+export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
   const orchest = window.orchest;
 
   const { state, dispatch, get } = useOrchest();

@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import _ from "lodash";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/javascript/javascript";
@@ -29,7 +28,7 @@ const KERNEL_OPTIONS = [
   ["julia", "Julia"],
 ];
 
-const PipelineDetailsProperties = (props) => {
+const PipelineDetailsProperties: React.FC<any> = (props) => {
   const { $, orchest } = window;
 
   const [state, setState] = React.useState({

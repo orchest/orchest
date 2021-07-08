@@ -1,15 +1,14 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";
 
-/**
- * @param {Object} props
- * @param {any} [props.title]
- * @param {any} [props.onClose]
- * @param {any} [props.content]
- */
-const AlertDialog = (props) => {
+export interface IAlertDialogProps {
+  title: string;
+  onClose: () => void;
+  content: string;
+}
+
+const AlertDialog: React.FC<IAlertDialogProps> = (props) => {
   const [refManager] = React.useState(new RefManager());
 
   const close = () => {

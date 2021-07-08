@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import _ from "lodash";
 import {
   Alert,
@@ -10,16 +9,13 @@ import {
 } from "@orchest/design-system";
 import { useOrchest } from "@/hooks/orchest";
 
-/**
- * @typedef {{
- *  pipelineName: string;
- *  editParameter?: (parameterKey: any, key: any) => void;
- *  strategyJSON: any;
- * }} TParamTreeProps
- *
- * @type React.FC<TParamTreeProps>
- */
-const ParamTree = (props) => {
+export interface IParamTreeProps {
+  pipelineName: string;
+  editParameter?: (parameterKey: any, key: any) => void;
+  strategyJSON: any;
+}
+
+const ParamTree: React.FC<IParamTreeProps> = (props) => {
   const context = useOrchest();
 
   const truncateParameterValue = (value) => {
@@ -40,7 +36,7 @@ const ParamTree = (props) => {
     }
   };
 
-  const generateParameterElement = (stepStrategy, includeTitle) => {
+  const generateParameterElement = (stepStrategy, includeTitle?) => {
     let elements = [];
 
     if (includeTitle === undefined) {

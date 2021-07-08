@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import {
   makeRequest,
   makeCancelable,
@@ -17,11 +16,11 @@ import { useInterval } from "@/hooks/use-interval";
 import EnvironmentEditView from "../views/EnvironmentEditView";
 import ProjectsView from "@/views/ProjectsView";
 
-/**
- * @param {Object} props
- * @param {string} props.project_uuid
- */
-const EnvironmentList = (props) => {
+export interface IEnvironmentListProps {
+  project_uuid: string;
+}
+
+const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const [
     environmentBuildsInterval,
     setEnvironmentBuildsInterval,
@@ -175,30 +174,23 @@ const EnvironmentList = (props) => {
     makeRequest(
       "GET",
       `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
-    ).then(
-      /** @param {string} response */
-      (response) => {
-        let data = JSON.parse(response);
-        if (data.in_use) {
-          orchest.confirm(
-            "Warning",
-            "The environment you're trying to delete (" +
-              environmentName +
-              ") is in use. " +
-              "Are you sure you want to delete it? This will abort all sessions and jobs/interactive runs that are using it.",
-            () => {
-              _removeEnvironment(
-                project_uuid,
-                environment_uuid,
-                environmentName
-              );
-            }
-          );
-        } else {
-          _removeEnvironment(project_uuid, environment_uuid, environmentName);
-        }
+    ).then((response: string) => {
+      let data = JSON.parse(response);
+      if (data.in_use) {
+        orchest.confirm(
+          "Warning",
+          "The environment you're trying to delete (" +
+            environmentName +
+            ") is in use. " +
+            "Are you sure you want to delete it? This will abort all sessions and jobs/interactive runs that are using it.",
+          () => {
+            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+          }
+        );
+      } else {
+        _removeEnvironment(project_uuid, environment_uuid, environmentName);
       }
-    );
+    });
   };
 
   const onDeleteClick = () => {
@@ -282,7 +274,7 @@ const EnvironmentList = (props) => {
       {(() => {
         if (state.environments) {
           return (
-            <Fragment>
+            <React.Fragment>
               <div className="push-down">
                 <MDCButtonReact
                   classNames={["mdc-button--raised", "themed-secondary"]}
@@ -312,7 +304,7 @@ const EnvironmentList = (props) => {
                 ]}
                 rows={state.listData}
               />
-            </Fragment>
+            </React.Fragment>
           );
         } else {
           return <MDCLinearProgressReact />;

@@ -1,13 +1,9 @@
-// @ts-check
-import React from "react";
-import LogViewer from "./LogViewer";
+import * as React from "react";
+import LogViewer, { ILogViewerProps } from "./LogViewer";
 
-/**
- * @typedef {import("./LogViewer").TLogViewProps} TPipelineDetailsLogs
- *
- * @type React.FC<TPipelineDetailsLogs>
- */
-const PipelineDetailsLogs = (props) => (
+export interface IPipelineDetailsLogsProps extends ILogViewerProps {}
+
+const PipelineDetailsLogs: React.FC<IPipelineDetailsLogsProps> = (props) => (
   <div className={"detail-subview"}>
     <LogViewer {...props} />
   </div>

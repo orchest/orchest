@@ -1,22 +1,20 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
-import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
+import { IOrchestSession } from "@/types";
 
-/**
- * @typedef {import("@/types").IOrchestSession} IOrchestSession
- *
- * @typedef {Object} SessionToggleButtonProps
- * @property {IOrchestSession['pipeline_uuid']} pipeline_uuid
- * @property {IOrchestSession['project_uuid']} project_uuid
- * @property {string} [className]
- * @property {boolean} [switch]
- */
+export type TSessionToggleButtonRef = HTMLButtonElement;
+export interface ISessionToggleButtonProps
+  extends React.HTMLAttributes<TSessionToggleButtonRef> {
+  pipeline_uuid: IOrchestSession["pipeline_uuid"];
+  project_uuid: IOrchestSession["project_uuid"];
+  switch?: boolean;
+}
 
-/**
- * @type {React.FC<SessionToggleButtonProps>}
- */
-const SessionToggleButton = React.forwardRef((props, ref) => {
+const SessionToggleButton = React.forwardRef<
+  TSessionToggleButtonRef,
+  ISessionToggleButtonProps
+>((props, ref) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const { state, dispatch, get } = useOrchest();
 
@@ -52,7 +50,7 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
     <React.Fragment>
       {props.switch ? (
         <MDCSwitchReact
-          ref={ref}
+          ref={ref as any}
           {...sharedProps}
           onChange={handleEvent}
           classNames={props.className}
@@ -60,7 +58,7 @@ const SessionToggleButton = React.forwardRef((props, ref) => {
         />
       ) : (
         <MDCButtonReact
-          ref={ref}
+          ref={ref as any}
           {...sharedProps}
           onClick={handleEvent}
           classNames={[

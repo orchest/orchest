@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   MDCButtonReact,
   MDCDialogReact,
@@ -17,16 +16,16 @@ const buildFailMessage = `Some environment builds of this project have failed.
   but you might need to change the environment setup script in 
   order for the build to succeed.`;
 
-/**
- * @param {Object} props
- * @param {any} [props.environmentValidationData]
- * @param {string} [props.project_uuid]
- * @param {string} [props.requestedFromView]
- * @param {any} [props.onBuildComplete]
- * @param {any} [props.onCancel]
- * @param {any} [props.onClose]
- */
-const BuildPendingDialog = (props) => {
+export interface IBuildPendingDialogProps {
+  environmentValidationData: any;
+  project_uuid: string;
+  requestedFromView: string;
+  onBuildComplete: any;
+  onCancel: any;
+  onClose: any;
+}
+
+const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
   const [gateInterval, setGateInterval] = React.useState(null);
   const [state, setState] = React.useState(null);
 

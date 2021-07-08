@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
@@ -82,8 +81,7 @@ const iconListItem = css({
   "> i": { fontSize: "2rem", color: "$gray700", marginBottom: "$2" },
 });
 
-/** @type React.FC<{}> */
-export const OnboardingDialog = () => {
+export const OnboardingDialog: React.FC = () => {
   const { orchest } = window;
 
   const {
@@ -103,8 +101,7 @@ export const OnboardingDialog = () => {
 
   const onOpen = () => setIsOnboardingDialogOpen(true);
 
-  /** @param {{loadQuickstart?: boolean}} [options] */
-  const onClose = ({ loadQuickstart } = {}) => {
+  const onClose = ({ loadQuickstart }: { loadQuickstart?: boolean } = {}) => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide([0, 0]);
       loadQuickstart &&

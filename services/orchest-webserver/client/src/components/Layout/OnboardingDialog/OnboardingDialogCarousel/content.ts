@@ -1,4 +1,23 @@
-// @ts-check
+export type TOnboardingDialogCarouselSlide = { title: string } & (
+  | { variant?: never; code?: never; icons?: never; description?: never }
+  | { variant: "pipeline-diagram" }
+  | {
+      variant: "icons";
+      description: string;
+      icons: { icon: string; label: string }[];
+    }
+  | {
+      variant: "code";
+      description: string;
+      code: { title: string; lines: string[] };
+    }
+  | ({
+      variant: "end";
+    } & Record<
+      "description",
+      { withQuickstart: string; withoutQuickstart: string }
+    >)
+);
 
 /**
  * ⚠️ IMPORTANT: PLEASE READ
@@ -8,10 +27,7 @@
  */
 export const ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT = "16rem";
 
-/**
- * @type {import('./types').TOnboardingDialogCarouselSlide[]}
- */
-export const onboardingDialogCarouselSlides = [
+export const onboardingDialogCarouselSlides: TOnboardingDialogCarouselSlide[] = [
   {
     variant: "icons",
     title: "Discover Orchest",

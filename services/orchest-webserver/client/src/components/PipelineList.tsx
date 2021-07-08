@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   makeRequest,
   makeCancelable,
@@ -23,7 +22,9 @@ import ProjectsView from "@/views/ProjectsView";
 const INITIAL_PIPELINE_NAME = "";
 const INITIAL_PIPELINE_PATH = "pipeline.orchest";
 
-const PipelineList = (props) => {
+const PipelineList: React.FC<any> = (props) => {
+  const { orchest } = window;
+
   const context = useOrchest();
 
   const [state, setState] = React.useState({
@@ -98,6 +99,7 @@ const PipelineList = (props) => {
     };
 
     if (readOnly) {
+      // @ts-ignore
       pipelineProps.queryArgs.read_only = "true";
     }
 
@@ -171,19 +173,16 @@ const PipelineList = (props) => {
     let pipelinePath = state.createPipelinePath;
 
     if (!pipelineName) {
-      // @ts-ignore
       orchest.alert("Error", "Please enter a name.");
       return;
     }
 
     if (!pipelinePath) {
-      // @ts-ignore
       orchest.alert("Error", "Please enter the path for the pipeline.");
       return;
     }
 
     if (!pipelinePath.endsWith(".orchest")) {
-      // @ts-ignore
       orchest.alert("Error", "The path should end in the .orchest extension.");
       return;
     }
@@ -217,13 +216,12 @@ const PipelineList = (props) => {
         if (!response.isCanceled) {
           try {
             let data = JSON.parse(response.body);
-            // @ts-ignore
+
             orchest.alert(
               "Error",
               "Could not create pipeline. " + data.message
             );
           } catch {
-            // @ts-ignore
             orchest.alert(
               "Error",
               "Could not create pipeline. Reason unknown."

@@ -1,4 +1,3 @@
-// @ts-check
 import { useOnboardingDialog } from "./OnboardingDialog";
 
 export const useLayout = () => {

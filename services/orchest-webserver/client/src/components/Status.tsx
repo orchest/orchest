@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   Text,
   IconCheckSolid,
@@ -10,11 +9,18 @@ import {
   IconCrossCircleOutline,
   styled,
   IconDraftOutline,
+  ICSSProp,
+  ITextProps,
 } from "@orchest/design-system";
 
-/**
- * @typedef {"DRAFT" | "PENDING" | "STARTED" | "SUCCESS" | "ABORTED" | "FAILURE" | ({} & string)} TStatus
- */
+export type TStatus =
+  | "DRAFT"
+  | "PENDING"
+  | "STARTED"
+  | "SUCCESS"
+  | "ABORTED"
+  | "FAILURE"
+  | ({} & string);
 
 const StatusInlineRoot = styled(Text, {
   include: "box",
@@ -23,14 +29,17 @@ const StatusInlineRoot = styled(Text, {
   "> *:first-child": { marginRight: "$2" },
 });
 
-/**
- * @param {Object} props
- * @param {TStatus} props.status
- * @param {string} [props.className],
- * @param {import('@orchest/design-system').ITextProps['size']} [props.size]
- * @param {import('@orchest/design-system').CSS} [props.css]
- */
-export const StatusInline = ({ status, size = "sm", ...props }) => (
+export interface IStatusInlineProps extends ICSSProp {
+  status: TStatus;
+  className?: string;
+  size?: ITextProps["size"];
+}
+
+export const StatusInline: React.FC<IStatusInlineProps> = ({
+  status,
+  size = "sm",
+  ...props
+}) => (
   <StatusInlineRoot as="span" size={size} {...props}>
     {
       {
@@ -104,17 +113,23 @@ const StatusGroupDescription = styled(Text, {
   color: "$textSecondary",
 });
 
-/**
- * @param {Object} props
- * @param {TStatus} props.status
- * @param {React.ReactNode} [props.icon]
- * @param {string} props.title
- * @param {string} [props.description]
- * @param {string} [props.className],
- * @param {import('@orchest/design-system').ITextProps['size']} [props.size]
- * @param {import('@orchest/design-system').CSS} [props.css]
- */
-export const StatusGroup = ({ title, description, icon, status, ...props }) => (
+export interface IStatusGroupProps
+  extends React.HTMLAttributes<HTMLDListElement>,
+    ICSSProp {
+  status: TStatus;
+  icon?: React.ReactNode;
+  title: string;
+  description?: string;
+  size?: ITextProps["size"];
+}
+
+export const StatusGroup: React.FC<IStatusGroupProps> = ({
+  title,
+  description,
+  icon,
+  status,
+  ...props
+}) => (
   <StatusGroupRoot rows={description ? 2 : 1} {...props}>
     <StatusGroupIcon>
       {icon ||

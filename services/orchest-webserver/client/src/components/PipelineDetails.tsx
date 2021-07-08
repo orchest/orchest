@@ -1,12 +1,11 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { RefManager } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 import PipelineDetailsProperties from "./PipelineDetailsProperties";
 import PipelineDetailsLogs from "./PipelineDetailsLogs";
 import { useLocalStorage } from "@/hooks/local-storage";
 
-const PipelineDetails = ({ defaultViewIndex = 0, ...props }) => {
+const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const { $ } = window;
 
   const [storedPaneWidth, setStoredPaneWidth] = useLocalStorage(

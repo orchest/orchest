@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import io from "socket.io-client";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
@@ -16,7 +15,7 @@ const BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
 
 let socket;
 
-const ImageBuild = (props) => {
+const ImageBuild: React.FC<any> = (props) => {
   const [state, setState] = React.useState({
     building: false,
     ignoreIncomingLogs: props.ignoreIncomingLogs,
@@ -135,7 +134,7 @@ const ImageBuild = (props) => {
   }, [props.buildFetchHash]);
 
   return (
-    <Fragment>
+    <React.Fragment>
       {props.build && (
         <div className="build-notice push-down">
           <div>
@@ -164,7 +163,7 @@ const ImageBuild = (props) => {
       <div className={"xterm-holder push-down"}>
         <XTerm addons={[fitAddon]} ref={refManager.nrefs.term} />
       </div>
-    </Fragment>
+    </React.Fragment>
   );
 };
 

@@ -1,16 +1,19 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import cronstrue from "cronstrue";
 import parser from "cron-parser";
 import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 
-/**
- * @param {Object} props
- * @param {boolean} [props.disabled]
- * @param {string} props.cronString
- * @param {(value: string) => {}} props.onChange
- */
-export const CronScheduleInput = ({ cronString, disabled, onChange }) => {
+export interface ICronScheduleInputProps {
+  disabled: boolean;
+  cronString: string;
+  onChange: (value: string) => void;
+}
+
+export const CronScheduleInput: React.FC<ICronScheduleInputProps> = ({
+  cronString,
+  disabled,
+  onChange,
+}) => {
   const [state, setState] = React.useState(cronString);
 
   const handleButton = (changedCronString) => {

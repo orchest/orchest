@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { DIALOG_ANIMATION_DURATION } from "@orchest/design-system";
 import { useLocalStorage } from "@/hooks/local-storage";
 import { useProjects } from "@/hooks/projects";
@@ -30,8 +29,10 @@ export const useOnboardingDialog = () => {
         };
   const hasQuickstart = typeof quickstart !== "undefined";
 
-  /** @type import('./types').TSetIsOnboardingDialogOpen */
-  const setIsOnboardingDialogOpen = (isOpen, onOpen) => {
+  const setIsOnboardingDialogOpen = (
+    isOpen: boolean,
+    onOpen?: (boolean) => void
+  ) => {
     if (isOpen) {
       setState({ isOpen: true, shouldFetchQuickstart: true });
     } else {

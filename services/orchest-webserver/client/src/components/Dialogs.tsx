@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import AlertDialog from "./AlertDialog";
 import { uuidv4 } from "@orchest/lib-utils";
 import ConfirmDialog from "./ConfirmDialog";
@@ -11,18 +10,18 @@ function newslines2breaks(lines) {
   }
 
   // subtitute newlines for line breaks
-  let linesArr = lines.split("\n");
+  let linesArr = lines.spslit("\n");
 
   let lineElements = linesArr.map((line, index) => {
     if (index !== linesArr.length - 1) {
       return (
-        <Fragment key={index}>
+        <React.Fragment key={index}>
           {line}
           <br />
-        </Fragment>
+        </React.Fragment>
       );
     } else {
-      return <Fragment key={index}>{line}</Fragment>;
+      return <React.Fragment key={index}>{line}</React.Fragment>;
     }
   });
   return lineElements;

@@ -1,27 +1,25 @@
-import React from "react";
+import * as React from "react";
 import { MDCDataTableReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 
-/**
- * @typedef {{
- *  selectable?: boolean;
- *  headers: any[];
- *  rows: any[];
- *  detailRows?: any[];
- *  selectedIndices?: any[];
- *  onRowClick?: () => void;
- *  onSelectionChanged?: () => void;
- *  ref?: any;
- * }} TSearchableTableProps
- *
- * @type React.FC<TSearchableTableProps>
- */
-const SearchableTable = React.forwardRef((props, ref) => {
-  /**
-   * @type React.MutableRefObject<{
-   *  getSelectedRowIndices: () => any;
-   *  setSelectedRowIds: (rowIds: any) => any;
-   * }> */
-  const tableRef = React.useRef(null);
+export type TSearchableTableRef = any;
+export interface ISearchableTableProps {
+  selectable?: boolean;
+  headers: any[];
+  rows: any[];
+  detailRows?: any[];
+  selectedIndices?: any[];
+  onRowClick?: () => void;
+  onSelectionChanged?: () => void;
+}
+
+const SearchableTable = React.forwardRef<
+  TSearchableTableRef,
+  ISearchableTableProps
+>((props, ref) => {
+  const tableRef = React.useRef<{
+    getSelectedRowIndices: () => any;
+    setSelectedRowIds: (rowIds: any) => any;
+  }>(null);
 
   const [state, setState] = React.useState({
     rowSearchMask: new Array(props.rows.length).fill(1),
@@ -78,8 +76,7 @@ const SearchableTable = React.forwardRef((props, ref) => {
       />
 
       <MDCDataTableReact
-        // @ts-ignore
-        ref={tableRef}
+        ref={tableRef as any}
         selectable={props.selectable}
         selectedIndices={filteredRows(props.selectedIndices)}
         onSelectionChanged={props.onSelectionChanged}

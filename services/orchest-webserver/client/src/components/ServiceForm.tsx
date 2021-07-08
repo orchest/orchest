@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import _ from "lodash";
 import { Box } from "@orchest/design-system";
 import {
@@ -25,7 +24,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 
-const ServiceForm = (props) => {
+const ServiceForm: React.FC<any> = (props) => {
   const environmentPrefix = "environment@";
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);

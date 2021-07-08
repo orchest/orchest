@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
@@ -7,20 +6,17 @@ import { useInterval } from "@/hooks/use-interval";
 
 const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
-/**
- * @typedef {{
- *   sio: Record<'on' | 'off' | 'emit', any>;
- *   step_uuid?: string;
- *   pipeline_uuid: string;
- *   project_uuid: string;
- *   job_uuid: string;
- *   run_uuid: string;
- *   service_name?: string;
- * }} TLogViewProps
- *
- * @type React.FC<TLogViewProps>
- */
-const LogViewer = (props) => {
+export interface ILogViewerProps {
+  sio: Record<"on" | "off" | "emit", any>;
+  step_uuid?: string;
+  pipeline_uuid: string;
+  project_uuid: string;
+  job_uuid: string;
+  run_uuid: string;
+  service_name?: string;
+}
+
+const LogViewer: React.FC<ILogViewerProps> = (props) => {
   const [sessionUuid, setSessionUuid] = React.useState(null);
   const [heartbeatInterval, setHeartbeatInterval] = React.useState(null);
 

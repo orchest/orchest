@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   IconPostgreSQL,
   IconRedis,
@@ -9,8 +8,24 @@ import {
 } from "@/icons";
 import { IconDraftOutline } from "@orchest/design-system";
 
-/** @type {import('./types').TServiceTemplates} templates */
-export const templates = {
+export interface IServiceTemplate {
+  label: string;
+  icon?: React.ReactNode;
+  config?: Partial<Record<"command" | "image" | "name", string>> & {
+    binds?: { [key: string]: string };
+    env_variables?: { [key: string]: string };
+    ports?: number[];
+    preserve_base_path?: boolean;
+    entrypoint?: string;
+    scope?: ("interactive" | "noninteractive")[];
+  };
+}
+
+export interface IServiceTemplates {
+  [key: string]: IServiceTemplate;
+}
+
+export const templates: IServiceTemplates = {
   tensorboard: {
     label: "TensorBoard",
     icon: <IconTensorBoard />,

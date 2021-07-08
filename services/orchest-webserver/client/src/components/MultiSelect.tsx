@@ -1,4 +1,3 @@
-// @ts-check
 import * as React from "react";
 import {
   css,
@@ -8,65 +7,56 @@ import {
   IconCrossSolid,
 } from "@orchest/design-system";
 
-/** @param {string} value */
-const isValueWhitespace = (value) => !value.replace(/\s/g, "").length;
-/** @param {string} value */
-const isNumeric = (value) => value.match("^\\d+$") != null;
+const isValueWhitespace = (value: string) => !value.replace(/\s/g, "").length;
+const isNumeric = (value: string) => value.match("^\\d+$") != null;
 
-/**
- * @typedef { React.KeyboardEvent<HTMLInputElement>
- *  & { target: HTMLInputElement }
- * } TMultiSelectInputEvent
- *
- * @typedef { string } TMultiSelectInputValue
- * @typedef {{
- *    "aria-labelledby"?: string;
- *    "aria-invalid"?: boolean;
- *    id: string;
- *    required?: boolean;
- *    disabled: boolean;
- *    type?: "text" | "number";
- *    value: TMultiSelectInputValue;
- *    onBlur: (event: any) => void
- *  } &
- *  Record<
- *    "onChange" | "onKeyDown" | "onKeyUp",
- *    (event: TMultiSelectInputEvent) => void
- *  >} TMultiSelectInputProps
- *
- * @typedef {{ value: string }} TMultiSelectItem
- * @typedef { TMultiSelectItem[] } TMultiSelectItems
- *
- * @typedef {{
- *    getErrorProps: () => { id: string; "aria-live"?: any; };
- *    getInputProps: () => TMultiSelectInputProps;
- *    getLabelProps: () => Record<"id" | "htmlFor", string>;
- *    inputValue: TMultiSelectInputValue;
- *    setInputValue: React.Dispatch<TMultiSelectInputValue>;
- *    items: TMultiSelectItems;
- *    setItems: React.Dispatch<TMultiSelectItems>;
- *    error?: string;
- *    setError?: React.Dispatch<string>;
- *    removeItem?: (item: TMultiSelectItem) => void;
- *   } & Pick<TMultiSelectInputProps, "required" | "type">
- * } TMultiSelectContext
- *
- * @typedef {{
- *  onChange: (items: TMultiSelectItems) => void;
- *  disabled?: boolean;
- *  } & Pick<TMultiSelectContext, "items" | "required" | "type">
- * } TMultiSelectProps
- *
- * @type {React.Context<TMultiSelectContext>}
- */
-const MultiSelectContext = React.createContext(null);
+type TMultiSelectInputRef = HTMLInputElement;
+type TMultiSelectInputEvent = React.KeyboardEvent<TMultiSelectInputRef> & {
+  target: TMultiSelectInputRef;
+};
+type TMultiSelectInputValue = string;
+interface IMultiSelectInputProps
+  extends Record<
+    "onChange" | "onKeyDown" | "onKeyUp",
+    (event: TMultiSelectInputEvent) => void
+  > {
+  "aria-labelledby"?: string;
+  "aria-invalid"?: boolean;
+  id: string;
+  required?: boolean;
+  disabled?: boolean;
+  type?: "text" | "number";
+  value: TMultiSelectInputValue;
+  onBlur?: (event: any) => void;
+}
+
+interface IMultiSelectItem {
+  value: string;
+}
+type TMultiSelectItems = IMultiSelectItem[];
+type TMultiSelectContext = {
+  getErrorProps: () => { id: string; "aria-live"?: any };
+  getInputProps: () => IMultiSelectInputProps;
+  getLabelProps: () => Record<"id" | "htmlFor", string>;
+  inputValue: TMultiSelectInputValue;
+  setInputValue: React.Dispatch<TMultiSelectInputValue>;
+  items: TMultiSelectItems;
+  setItems: React.Dispatch<TMultiSelectItems>;
+  error?: string;
+  setError?: React.Dispatch<string>;
+  removeItem?: (item: IMultiSelectItem) => void;
+} & Pick<IMultiSelectInputProps, "required" | "type">;
+
+export type TMultiSelectProps = {
+  onChange: (items: TMultiSelectItems) => void;
+  disabled?: boolean;
+} & Pick<TMultiSelectContext, "items" | "required" | "type">;
+
+const MultiSelectContext = React.createContext<TMultiSelectContext>(null);
 
 const useMultiSelect = () => React.useContext(MultiSelectContext);
 
-/**
- * @type {React.FC<TMultiSelectProps>}
- */
-export const MultiSelect = ({
+export const MultiSelect: React.FC<TMultiSelectProps> = ({
   children,
   items: initialItems = [],
   onChange,
@@ -75,7 +65,7 @@ export const MultiSelect = ({
   disabled = false,
   ...props
 }) => {
-  const [error, setError] = React.useState(null);
+  const [error, setError] = React.useState<string>(null);
   const [inputValue, setInputValue] = React.useState("");
   const [items, setItems] = React.useState(initialItems);
 
@@ -94,21 +84,18 @@ export const MultiSelect = ({
     if (hasChanged.current && onChange) onChange(items);
   }, [items]);
 
-  /** @type {TMultiSelectContext['removeItem']} */
-  const removeItem = (item) => {
+  const removeItem: TMultiSelectContext["removeItem"] = (item) => {
     setItems((prevState) =>
       prevState.filter((prevStateItem) => prevStateItem !== item)
     );
   };
 
-  /** @type {TMultiSelectContext['getErrorProps']} */
-  const getErrorProps = () => ({
+  const getErrorProps: TMultiSelectContext["getErrorProps"] = () => ({
     id: errorId,
     "aria-live": "polite",
   });
 
-  /** @type {TMultiSelectContext['getLabelProps']} */
-  const getLabelProps = () => ({
+  const getLabelProps: TMultiSelectContext["getLabelProps"] = () => ({
     id: labelId,
     htmlFor: inputId,
   });
@@ -119,7 +106,7 @@ export const MultiSelect = ({
   };
 
   const checkErrors = (value) => {
-    setError();
+    setError(null);
 
     if (type === "number" && !isNumeric(value)) {
       setError(`"${value}" is invalid. Please enter a number.`);
@@ -129,8 +116,8 @@ export const MultiSelect = ({
       setError(`"${value}" already exists`);
     }
   };
-  /** @type {TMultiSelectContext['getInputProps']} */
-  const getInputProps = () => ({
+
+  const getInputProps: TMultiSelectContext["getInputProps"] = () => ({
     id: inputId,
     value: inputValue,
     required,
@@ -203,8 +190,10 @@ export const MultiSelect = ({
   );
 };
 
-/** @type {React.FC<{screenReaderOnly?: boolean}>} */
-export const MultiSelectLabel = ({ children, screenReaderOnly }) => {
+export const MultiSelectLabel: React.FC<{ screenReaderOnly?: boolean }> = ({
+  children,
+  screenReaderOnly,
+}) => {
   const { getLabelProps } = useMultiSelect();
 
   return (
@@ -283,16 +272,14 @@ const multiSelectInputElement = css({
   minWidth: "8ch",
 });
 
-/** @type {React.FC<{}>} */
-export const MultiSelectInput = () => {
+export const MultiSelectInput: React.FC = () => {
   const { error, getInputProps, items, removeItem } = useMultiSelect();
 
   const [tabIndices, setTabIndices] = React.useState(
     Array(items.length).fill(-1)
   );
 
-  /** @param {{ index: number; value: -1 | 0; }} props */
-  const setTabIndex = ({ index, value }) =>
+  const setTabIndex = ({ index, value }: { index: number; value: -1 | 0 }) =>
     setTabIndices(
       items.map((_, i) => (i === index ? value : value === 0 ? -1 : 0))
     );

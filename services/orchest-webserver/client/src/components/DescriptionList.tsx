@@ -1,6 +1,5 @@
-// @ts-check
-import React from "react";
-import { css, Grid } from "@orchest/design-system";
+import * as React from "react";
+import { css, Grid, ICSSProp, TGridVariants } from "@orchest/design-system";
 
 const descriptionPair = css({
   include: "box",
@@ -18,23 +17,21 @@ const descriptionDetails = css({
   lineHeight: "$xl",
 });
 
-/**
- * @typedef {React.ReactChild} TItemValue
- * @typedef {import('@orchest/design-system').TGridVariants} TGridVariants
- *
- * @param {Object} props
- *
- * @param {Record<"term" | "details", TItemValue>[]} props.items
- * @param {TGridVariants['columns']} [props.columns]
- * @param {TGridVariants['gap']} [props.gap]
- * @param {TGridVariants['columnGap']} [props.columnGap]
- * @param {TGridVariants['rowGap']} [props.rowGap]
- *
- * @param {import('@orchest/design-system').CSS} [props.css]
- * @param {string} [props.className]
- */
-export const DescriptionList = ({ items, ...props }) => (
-  <Grid as="dl" {...props}>
+const DEFAULT_ELEMENT = "dl";
+
+export type TDescriptionListRef = HTMLDListElement;
+export interface IDescriptionListProps
+  extends React.HTMLAttributes<TDescriptionListRef>,
+    TGridVariants,
+    ICSSProp {
+  items: Record<"term" | "details", React.ReactChild>[];
+}
+
+export const DescriptionList: React.FC<IDescriptionListProps> = ({
+  items,
+  ...props
+}) => (
+  <Grid as={DEFAULT_ELEMENT} {...props}>
     {items.map((item, i) => (
       <div key={i} className={descriptionPair()}>
         <dt className={descriptionTerm()}>{item.term}</dt>

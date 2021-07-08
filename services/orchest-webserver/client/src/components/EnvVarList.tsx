@@ -1,20 +1,19 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import {
   MDCButtonReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 
-/**
- * @param {Object} props
- * @param {any} [props.value]
- * @param {any} [props.onChange]
- * @param {any} [props.onAdd]
- * @param {any} [props.onDelete]
- * @param {boolean} [props.readOnly]
- */
-export const EnvVarList = (props) => (
+export interface IEnvVarListProps {
+  value?: any;
+  onChange?: any;
+  onAdd?: any;
+  onDelete?: any;
+  readOnly?: boolean;
+}
+
+export const EnvVarList: React.FC<IEnvVarListProps> = (props) => (
   <div className="environment-variables-list">
     {(!props.value || props.value.length == 0) && (
       <p className="push-down">

@@ -1,20 +1,16 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import ParamTree from "./ParamTree";
 import "codemirror/mode/javascript/javascript";
 
-/**
- * @typedef {{
- *  strategyJSON?: any;
- *  pipelineName: string;
- *  readOnly?: boolean;
- *  onParameterChange?: (value: any) => void;
- * }} TParameterEditorProps
- *
- * @type React.FC<TParameterEditorProps>
- */
-const ParameterEditor = (props) => {
+export interface IParameterEditorProps {
+  strategyJSON?: any;
+  pipelineName: string;
+  readOnly?: boolean;
+  onParameterChange?: (value: any) => void;
+}
+
+const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
   const [state, setState] = React.useState({
     strategyJSON: props.strategyJSON,
     activeParameter: undefined,
