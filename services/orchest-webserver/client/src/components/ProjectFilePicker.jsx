@@ -1,4 +1,5 @@
-import React, { Fragment } from "react";
+// @ts-check
+import React from "react";
 import {
   MDCButtonReact,
   MDCDialogReact,
@@ -16,51 +17,31 @@ import {
 } from "@orchest/lib-utils";
 import FilePicker from "./FilePicker";
 
-class ProjectFilePicker extends React.Component {
-  constructor(props) {
-    super(props);
+const ProjectFilePicker = (props) => {
+  const [state, setState] = React.useState({
+    createFileModal: false,
+    selectedFileExists: null,
+    fileName: "",
+    selectedExtension: "." + ALLOWED_STEP_EXTENSIONS[0],
+    createFileDir: "",
+    tree: undefined,
+    cwd: null,
+  });
 
-    this.state = {
-      createFileModal: false,
-      selectedFileExists: "undetermined",
-      fileName: "",
-      selectedExtension: "." + ALLOWED_STEP_EXTENSIONS[0],
-      createFileDir: "",
-      tree: undefined,
-    };
+  const [refManager] = React.useState(new RefManager());
+  const [promiseManager] = React.useState(new PromiseManager());
 
-    this.refManager = new RefManager();
-    this.promiseManager = new PromiseManager();
-  }
+  const onChangeFileValue = (value) => props.onChange(value);
 
-  componentDidMount() {
-    this.fetchDirectoryDetails();
-    this.checkFileValidity();
-  }
-
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.value != this.props.value) {
-      this.checkFileValidity();
-    }
-  }
-
-  onChangeFileValue(value) {
-    this.props.onChange(value);
-  }
-
-  fetchDirectoryDetails() {
+  const fetchDirectoryDetails = () => {
     // will be populated by async requests
     let tree, cwd;
 
     let promises = [];
 
     let treeFetchPromise = makeCancelable(
-      makeRequest("GET", `/async/file-picker-tree/${this.props.project_uuid}`),
-      this.promiseManager
+      makeRequest("GET", `/async/file-picker-tree/${props.project_uuid}`),
+      promiseManager
     );
     promises.push(treeFetchPromise.promise);
     treeFetchPromise.promise
@@ -76,9 +57,9 @@ class ProjectFilePicker extends React.Component {
     let cwdFetchPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/async/file-picker-tree/pipeline-cwd/${this.props.project_uuid}/${this.props.pipeline_uuid}`
+        `/async/file-picker-tree/pipeline-cwd/${props.project_uuid}/${props.pipeline_uuid}`
       ),
-      this.promiseManager
+      promiseManager
     );
     promises.push(cwdFetchPromise.promise);
 
@@ -95,19 +76,20 @@ class ProjectFilePicker extends React.Component {
 
     Promise.all(promises)
       .then(() => {
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           tree: tree,
           cwd: cwd,
-        });
+        }));
       })
       .catch((error) => {
         if (!error.isCanceled) {
           console.error(error);
         }
       });
-  }
+  };
 
-  valueValidator(value) {
+  const valueValidator = (value) => {
     if (value == "" && value.endsWith("/")) {
       return false;
     }
@@ -116,110 +98,98 @@ class ProjectFilePicker extends React.Component {
       return false;
     }
     return true;
-  }
+  };
 
-  checkFileValidity() {
+  const checkFileValidity = () => {
     // only check file existence if it passes rule based validation
-    if (this.valueValidator(this.props.value)) {
+    if (valueValidator(props.value)) {
       let existencePromise = makeCancelable(
         makeRequest(
           "POST",
-          `/async/project-files/exists/${this.props.project_uuid}/${this.props.pipeline_uuid}`,
+          `/async/project-files/exists/${props.project_uuid}/${props.pipeline_uuid}`,
           {
             type: "json",
             content: {
-              relative_path: this.props.value,
+              relative_path: props.value,
             },
           }
         ),
-        this.promiseManager
+        promiseManager
       );
 
       existencePromise.promise
         .then(() => {
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             selectedFileExists: true,
-          });
+          }));
         })
         .catch((e) => {
           if (!e.isCanceled) {
             // rely on 404 behaviour for detecting file existence
-            this.setState({
-              selectedFileExists: false,
-            });
+            setState((prevState) => ({
+              ...prevState,
+              selectedFileExists: true,
+            }));
           }
         });
     } else {
       // do indicate invalid value for these value
-      this.setState({
+      setState((prevState) => ({
+        ...prevState,
         selectedFileExists: false,
-      });
+      }));
     }
-  }
+  };
 
-  onCreateFile(dir) {
+  const onCreateFile = (dir) => {
     let fileNameProposal = "";
-    if (this.props.value) {
-      fileNameProposal = this.props.value
+    if (props.value) {
+      fileNameProposal = props.value
         .split("/")
         .slice(-1)
         .join("/")
         .split(".")[0];
     }
 
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       fileName: fileNameProposal,
       createFileDir: dir,
       createFileModal: true,
-    });
-  }
+    }));
+  };
 
-  getFullProjectPath() {
-    return (
-      this.state.createFileDir +
-      this.state.fileName +
-      this.state.selectedExtension
-    );
-  }
+  const getFullProjectPath = () =>
+    state.createFileDir + state.fileName + state.selectedExtension;
 
-  onCancelModal() {
-    this.refManager.refs.createFileDialog.close();
-  }
+  const onCancelModal = () => refManager.refs.createFileDialog.close();
 
-  onCloseCreateFileModal() {
-    this.setState({
+  const onCloseCreateFileModal = () =>
+    setState((prevState) => ({
+      ...prevState,
       createFileModal: false,
-    });
-  }
+    }));
 
-  onChangeNewFilename(value) {
-    this.setState((state, _) => {
-      return {
-        fileName: value,
-      };
-    });
-  }
+  const onChangeNewFilename = (value) =>
+    setState((prevState) => ({ ...prevState, fileName: value }));
 
-  onChangeNewFilenameExtension(value) {
-    this.setState((state, _) => {
-      return {
-        selectedExtension: value,
-      };
-    });
-  }
+  const onChangeNewFilenameExtension = (value) =>
+    setState((prevState) => ({ ...prevState, selectedExtension: value }));
 
-  onSubmitModal() {
+  const onSubmitModal = () => {
     // validate extensions
-    let extension = extensionFromFilename(this.getFullProjectPath());
+    let extension = extensionFromFilename(getFullProjectPath());
 
     // TODO: case insensitive extension checking?
     if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
+      // @ts-ignore
       orchest.alert(
         "Error",
         <div>
           <p>Invalid file extension</p>
           Extension {extension} is not in allowed set of{" "}
-          {this.allowedExtensionsMarkup()}.
+          {allowedExtensionsMarkup()}.
         </div>
       );
 
@@ -229,143 +199,141 @@ class ProjectFilePicker extends React.Component {
     let createPromise = makeCancelable(
       makeRequest(
         "POST",
-        `/async/project-files/create/${this.props.project_uuid}/${this.props.pipeline_uuid}/${this.props.step_uuid}`,
+        `/async/project-files/create/${props.project_uuid}/${props.pipeline_uuid}/${props.step_uuid}`,
         {
           type: "json",
           content: {
-            file_path: this.getFullProjectPath(),
+            file_path: getFullProjectPath(),
           },
         }
       ),
-      this.promiseManager
+      promiseManager
     );
 
     createPromise.promise
       .then(() => {
-        this.onChangeFileValue(
-          absoluteToRelativePath(
-            this.getFullProjectPath(),
-            this.state.cwd
-          ).slice(1)
+        onChangeFileValue(
+          absoluteToRelativePath(getFullProjectPath(), state.cwd).slice(1)
         );
 
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           createFileModal: false,
-        });
+        }));
 
         // fetch file tree again with new file in it
-        this.fetchDirectoryDetails();
+        fetchDirectoryDetails();
       })
       .catch((error) => {
         if (error.status == 409) {
+          // @ts-ignore
           orchest.alert("Error", "A file with this name already exists.");
         }
         console.log(error);
       });
-  }
+  };
 
-  onFocus() {
-    // fetch on focus
-    this.fetchDirectoryDetails();
-  }
+  const onFocus = () => fetchDirectoryDetails();
 
-  allowedExtensionsMarkup() {
+  const allowedExtensionsMarkup = () => {
     return ALLOWED_STEP_EXTENSIONS.map((el, index) => {
       return (
         <span key={el}>
           <span className="code">.{el}</span>
           {index < ALLOWED_STEP_EXTENSIONS.length - 1 ? (
-            <Fragment>&nbsp;, </Fragment>
+            <React.Fragment>&nbsp;, </React.Fragment>
           ) : (
             ""
           )}
         </span>
       );
     });
-  }
+  };
 
-  render() {
-    return (
-      <Fragment>
-        {(() => {
-          if (this.state.createFileModal) {
-            return (
-              <MDCDialogReact
-                title="Create a new file"
-                onClose={this.onCloseCreateFileModal.bind(this)}
-                ref={this.refManager.nrefs.createFileDialog}
-                content={
-                  <div className="create-file-input">
-                    <div className="push-down">
-                      Supported file extensions are:&nbsp;
-                      {this.allowedExtensionsMarkup()}.
-                    </div>
+  React.useEffect(() => {
+    fetchDirectoryDetails();
+    checkFileValidity();
 
-                    <div className="push-down field-select-combo">
-                      <MDCTextFieldReact
-                        label="File name"
-                        value={this.state.fileName}
-                        onChange={this.onChangeNewFilename.bind(this)}
-                      />
-                      <MDCSelectReact
-                        ref={this.refManager.nrefs.createFileExtensionDropdown}
-                        label="Extension"
-                        value={this.state.selectedExtension}
-                        options={ALLOWED_STEP_EXTENSIONS.map((el) => [
-                          "." + el,
-                        ])}
-                        onChange={this.onChangeNewFilenameExtension.bind(this)}
-                      />
-                    </div>
-                    <MDCTextFieldReact
-                      label="Path in project"
-                      value={this.getFullProjectPath()}
-                      classNames={["fullwidth push-down"]}
-                      disabled
-                    />
-                  </div>
-                }
-                actions={
-                  <Fragment>
-                    <MDCButtonReact
-                      icon="close"
-                      label="Cancel"
-                      classNames={["push-right"]}
-                      onClick={this.onCancelModal.bind(this)}
-                    />
-                    <MDCButtonReact
-                      icon="add"
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      label="Create file"
-                      submitButton
-                      onClick={this.onSubmitModal.bind(this)}
-                    />
-                  </Fragment>
-                }
+    return () => promiseManager.cancelCancelablePromises();
+  }, []);
+
+  React.useEffect(() => checkFileValidity(), [props.value]);
+
+  return (
+    <React.Fragment>
+      {state.createFileModal && (
+        <MDCDialogReact
+          title="Create a new file"
+          onClose={onCloseCreateFileModal.bind(this)}
+          ref={refManager.nrefs.createFileDialog}
+          content={
+            <div className="create-file-input">
+              <div className="push-down">
+                Supported file extensions are:&nbsp;
+                {allowedExtensionsMarkup()}.
+              </div>
+
+              <div className="push-down field-select-combo">
+                <MDCTextFieldReact
+                  label="File name"
+                  value={state.fileName}
+                  onChange={onChangeNewFilename.bind(this)}
+                />
+                <MDCSelectReact
+                  ref={refManager.nrefs.createFileExtensionDropdown}
+                  label="Extension"
+                  value={state.selectedExtension}
+                  options={ALLOWED_STEP_EXTENSIONS.map((el) => ["." + el])}
+                  onChange={onChangeNewFilenameExtension.bind(this)}
+                />
+              </div>
+              <MDCTextFieldReact
+                label="Path in project"
+                value={getFullProjectPath()}
+                classNames={["fullwidth push-down"]}
+                disabled
               />
-            );
+            </div>
           }
-        })()}
-        {this.state.cwd && this.state.tree && (
-          <FilePicker
-            ref={this.refManager.nrefs.filePicker}
-            tree={this.state.tree}
-            cwd={this.state.cwd}
-            onFocus={this.onFocus.bind(this)}
-            value={this.props.value}
-            icon={this.state.selectedFileExists ? "check" : "warning"}
-            iconTitle={
-              this.state.selectedFileExists
-                ? "File exists in the project directory."
-                : "Warning: this file wasn't found in the project directory."
-            }
-            onCreateFile={this.onCreateFile.bind(this)}
-            onChangeValue={this.onChangeFileValue.bind(this)}
-          />
-        )}
-      </Fragment>
-    );
-  }
-}
+          actions={
+            <React.Fragment>
+              <MDCButtonReact
+                icon="close"
+                label="Cancel"
+                classNames={["push-right"]}
+                onClick={onCancelModal.bind(this)}
+              />
+              <MDCButtonReact
+                icon="add"
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                label="Create file"
+                submitButton
+                onClick={onSubmitModal.bind(this)}
+              />
+            </React.Fragment>
+          }
+        />
+      )}
+      {state.cwd && state.tree && (
+        <FilePicker
+          // @ts-ignore
+          ref={refManager.nrefs.filePicker}
+          tree={state.tree}
+          cwd={state.cwd}
+          onFocus={onFocus.bind(this)}
+          value={props.value}
+          icon={state.selectedFileExists ? "check" : "warning"}
+          iconTitle={
+            state.selectedFileExists
+              ? "File exists in the project directory."
+              : "Warning: this file wasn't found in the project directory."
+          }
+          onCreateFile={onCreateFile.bind(this)}
+          onChangeValue={onChangeFileValue.bind(this)}
+        />
+      )}
+    </React.Fragment>
+  );
+};
 
 export default ProjectFilePicker;

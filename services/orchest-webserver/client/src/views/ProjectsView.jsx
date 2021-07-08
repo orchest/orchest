@@ -1,3 +1,4 @@
+// @ts-check
 import React, { Fragment } from "react";
 import {
   MDCButtonReact,
@@ -14,82 +15,62 @@ import {
   RefManager,
   validURL,
 } from "@orchest/lib-utils";
-import { OrchestContext } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
 import ProjectSettingsView from "@/views/ProjectSettingsView";
 import PipelinesView from "@/views/PipelinesView";
 
-class ProjectsView extends React.Component {
-  static contextType = OrchestContext;
+const ERROR_MAPPING = {
+  "project move failed": "failed to move project because the directory exists.",
+  "project name contains illegal character":
+    "project name contains illegal character(s).",
+};
 
-  componentWillUnmount() {}
+const ProjectsView = (props) => {
+  const { orchest } = window;
 
-  constructor(props, context) {
-    super(props, context);
+  const context = useOrchest();
 
-    this.state = {
-      createModal: false,
-      showImportModal: false,
-      loading: true,
-      // import dialog
-      import_url: "",
-      import_project_name: "",
-      // create dialog
-      create_project_name: "",
-    };
+  const [state, setState] = React.useState({
+    createModal: false,
+    showImportModal: false,
+    loading: true,
+    // import dialog
+    import_url: "",
+    import_project_name: "",
+    // create dialog
+    create_project_name: "",
+    projects: null,
+    listData: null,
+    importResult: undefined,
+    fetchListAndSetProject: "",
+  });
 
-    this.ERROR_MAPPING = {
-      "project move failed":
-        "failed to move project because the directory exists.",
-      "project name contains illegal character":
-        "project name contains illegal character(s).",
-    };
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
+  const [backgroundTaskPoller] = React.useState(new BackgroundTaskPoller());
+  backgroundTaskPoller.POLL_FREQUENCY = 1000;
 
-    this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
-    this.backgroundTaskPoller = new BackgroundTaskPoller();
-    this.backgroundTaskPoller.POLL_FREQUENCY = 1000;
-  }
-
-  getMappedErrorMessage(key) {
-    if (this.ERROR_MAPPING[key] !== undefined) {
-      return this.ERROR_MAPPING[key];
+  const getMappedErrorMessage = (key) => {
+    if (ERROR_MAPPING[key] !== undefined) {
+      return ERROR_MAPPING[key];
     } else {
       return "undefined error. Please try again.";
     }
-  }
+  };
 
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-    this.backgroundTaskPoller.removeAllTasks();
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      this.props.queryArgs &&
-      prevProps.queryArgs &&
-      this.props.queryArgs.import_url != prevProps.queryArgs.import_url
-    ) {
-      this.conditionalShowImportFromURL();
-    }
-  }
-
-  conditionalShowImportFromURL() {
-    if (this.props.queryArgs && this.props.queryArgs.import_url) {
-      this.setState({
-        import_url: this.props.queryArgs.import_url,
+  const conditionalShowImportFromURL = () => {
+    if (props?.queryArgs?.import_url) {
+      setState((prevState) => ({
+        ...prevState,
+        import_url: props.queryArgs.import_url,
         showImportModal: true,
-      });
+      }));
     }
-  }
+  };
 
-  componentDidMount() {
-    this.fetchList();
-    this.conditionalShowImportFromURL();
-  }
-
-  processListData(projects) {
+  const processListData = (projects) => {
     let listData = [];
 
     for (let project of projects) {
@@ -102,76 +83,71 @@ class ProjectsView extends React.Component {
         <MDCIconButtonToggleReact
           icon={"settings"}
           onClick={() => {
-            this.openSettings(project);
+            openSettings(project);
           }}
         />,
       ]);
     }
 
     return listData;
-  }
+  };
 
-  fetchList(cb) {
+  /** @param {string} [fetchListAndSetProject] */
+  const fetchList = (fetchListAndSetProject) => {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
-      this.promiseManager
+      promiseManager
     );
 
     fetchListPromise.promise.then((response) => {
       let projects = JSON.parse(response);
 
-      this.setState(
-        {
-          listData: this.processListData(projects),
-          projects: projects,
-          loading: false,
-        },
-        () => {
-          // Verify selected project UUID
-          if (
-            this.context.state.project_uuid !== undefined &&
-            projects.filter(
-              (project) => project.uuid == this.context.state.project_uuid
-            ).length == 0
-          ) {
-            this.context.dispatch({
-              type: "projectSet",
-              payload: projects.length > 0 ? projects[0].uuid : null,
-            });
-          }
+      setState((prevState) => ({
+        ...prevState,
+        fetchListAndSetProject,
+        listData: processListData(projects),
+        projects: projects,
+        loading: false,
+      }));
 
-          if (cb) {
-            cb();
-          }
-        }
-      );
+      // Verify selected project UUID
+      if (
+        context.state.project_uuid !== undefined &&
+        projects.filter((project) => project.uuid == context.state.project_uuid)
+          .length == 0
+      ) {
+        context.dispatch({
+          type: "projectSet",
+          payload: projects.length > 0 ? projects[0].uuid : null,
+        });
+      }
 
-      if (this.refManager.refs.projectListView) {
-        this.refManager.refs.projectListView.setSelectedRowIds([]);
+      if (refManager.refs.projectListView) {
+        refManager.refs.projectListView.setSelectedRowIds([]);
       }
     });
-  }
+  };
 
-  openSettings(project) {
+  const openSettings = (project) => {
     orchest.loadView(ProjectSettingsView, {
       queryArgs: {
         project_uuid: project.uuid,
       },
     });
-  }
+  };
 
-  onClickListItem(row, idx, e) {
-    let project = this.state.projects[idx];
-    this.context.dispatch({
+  const onClickListItem = (row, idx, e) => {
+    let project = state.projects[idx];
+    context.dispatch({
       type: "projectSet",
       payload: project.uuid,
     });
     orchest.loadView(PipelinesView);
-  }
+  };
 
-  onDeleteClick() {
-    let selectedIndices = this.refManager.refs.projectListView.getSelectedRowIndices();
+  const onDeleteClick = () => {
+    let selectedIndices = refManager.refs.projectListView.getSelectedRowIndices();
 
     if (selectedIndices.length === 0) {
       orchest.alert("Error", "You haven't selected a project.");
@@ -182,27 +158,28 @@ class ProjectsView extends React.Component {
       "Warning",
       "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
       () => {
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           loading: true,
-        });
+        }));
 
         let deletePromises = [];
 
         selectedIndices.forEach((index) => {
-          let project_uuid = this.state.projects[index].uuid;
-          deletePromises.push(this.deleteProjectRequest(project_uuid));
+          let project_uuid = state.projects[index].uuid;
+          deletePromises.push(deleteProjectRequest(project_uuid));
         });
 
         Promise.all(deletePromises).then(() => {
-          this.fetchList();
+          fetchList();
         });
       }
     );
-  }
+  };
 
-  deleteProjectRequest(project_uuid) {
-    if (this.context.state.project_uuid == project_uuid) {
-      this.context.dispatch({
+  const deleteProjectRequest = (project_uuid) => {
+    if (context.state.project_uuid == project_uuid) {
+      context.dispatch({
         type: "projectSet",
         payload: null,
       });
@@ -226,23 +203,24 @@ class ProjectsView extends React.Component {
     });
 
     return deletePromise;
-  }
+  };
 
-  onCreateClick() {
-    this.setState({
+  const onCreateClick = () => {
+    setState((prevState) => ({
+      ...prevState,
       createModal: true,
-    });
-  }
+    }));
+  };
 
-  onSubmitModal() {
-    let projectName = this.state.create_project_name;
+  const onSubmitModal = () => {
+    let projectName = state.create_project_name;
 
     if (projectName.length == 0) {
       orchest.alert("Error", "Project name cannot be empty.");
       return;
     }
 
-    let projectNameValidation = this.validProjectName(projectName);
+    let projectNameValidation = validProjectName(projectName);
     if (!projectNameValidation.valid) {
       orchest.alert(
         "Error",
@@ -260,16 +238,7 @@ class ProjectsView extends React.Component {
     })
       .then((_) => {
         // reload list once creation succeeds
-        this.fetchList(() => {
-          let createdProject = this.state.projects.filter((proj) => {
-            return proj.path == projectName;
-          })[0];
-
-          this.context.dispatch({
-            type: "projectSet",
-            payload: createdProject.uuid,
-          });
-        });
+        fetchList(projectName);
       })
       .catch((response) => {
         try {
@@ -281,17 +250,19 @@ class ProjectsView extends React.Component {
         }
       })
       .finally(() => {
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           create_project_name: "",
-        });
+        }));
       });
 
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       createModal: false,
-    });
-  }
+    }));
+  };
 
-  validProjectName(projectName) {
+  const validProjectName = (projectName) => {
     if (projectName.match("[^A-Za-z0-9_.-]")) {
       return {
         valid: false,
@@ -303,11 +274,11 @@ class ProjectsView extends React.Component {
       };
     }
     return { valid: true };
-  }
+  };
 
-  onSubmitImport() {
-    let gitURL = this.state.import_url;
-    let gitProjectName = this.state.import_project_name;
+  const onSubmitImport = () => {
+    let gitURL = state.import_url;
+    let gitProjectName = state.import_project_name;
 
     if (!validURL(gitURL) || !gitURL.startsWith("https://")) {
       orchest.alert(
@@ -317,7 +288,7 @@ class ProjectsView extends React.Component {
       return;
     }
 
-    let projectNameValidation = this.validProjectName(gitProjectName);
+    let projectNameValidation = validProjectName(gitProjectName);
     if (!projectNameValidation.valid) {
       orchest.alert(
         "Error",
@@ -327,11 +298,12 @@ class ProjectsView extends React.Component {
       return;
     }
 
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       importResult: {
         status: "PENDING",
       },
-    });
+    }));
 
     let jsonData = { url: gitURL };
 
@@ -343,287 +315,292 @@ class ProjectsView extends React.Component {
     makeRequest("POST", `/async/projects/import-git`, {
       type: "json",
       content: jsonData,
-    }).then((response) => {
-      let data = JSON.parse(response);
+    }).then(
+      /** @param {string} response */
+      (response) => {
+        let data = JSON.parse(response);
 
-      this.backgroundTaskPoller.startPollingBackgroundTask(
-        data.uuid,
-        (result) => {
-          this.setState({
+        backgroundTaskPoller.startPollingBackgroundTask(data.uuid, (result) => {
+          setState((prevState) => ({
+            ...prevState,
             importResult: result,
 
             // This way the modal will not be reopened if it was closed
             // by the user.
             showImportModal:
-              this.state.showImportModal && result.status != "SUCCESS",
-          });
-
-          let cb;
+              prevState.showImportModal && result.status != "SUCCESS",
+          }));
 
           if (result.status == "SUCCESS") {
-            cb = () => {
-              let importedProject = this.state.projects.filter((proj) => {
-                return proj.path == result.result;
-              })[0];
-
-              this.context.dispatch({
-                type: "projectSet",
-                payload: importedProject.uuid,
-              });
-            };
-
-            this.setState({
+            setState((prevState) => ({
+              ...prevState,
               import_project_name: "",
               import_url: "",
-            });
+            }));
           }
 
-          this.fetchList(cb);
-        }
-      );
-    });
-  }
+          fetchList(result.status === "SUCCESS" ? result.result : undefined);
+        });
+      }
+    );
+  };
 
-  onCancelModal() {
-    this.refManager.refs.createProjectDialog.close();
-  }
+  const onCancelModal = () => {
+    refManager.refs.createProjectDialog.close();
+  };
 
-  onCloseCreateProjectModal() {
-    this.setState({
+  const onCloseCreateProjectModal = () => {
+    setState((prevState) => ({
+      ...prevState,
       createModal: false,
-    });
-  }
+    }));
+  };
 
-  onCancelImport() {
-    this.refManager.refs.importProjectDialog.close();
-  }
+  const onCancelImport = () => {
+    refManager.refs.importProjectDialog.close();
+  };
 
-  onCloseImportProjectModal() {
-    this.setState({
+  const onCloseImportProjectModal = () => {
+    setState((prevState) => ({
+      ...prevState,
       showImportModal: false,
       import_project_name: "",
       import_url: "",
-    });
-  }
+    }));
+  };
 
-  onImport() {
-    this.setState({
+  const onImport = () => {
+    setState((prevState) => ({
+      ...prevState,
       importResult: undefined,
       showImportModal: true,
-    });
-  }
+    }));
+  };
 
-  handleChange(key, value) {
+  const handleChange = (key, value) => {
     let updateObj = {};
     updateObj[key] = value;
-    this.setState(updateObj);
-  }
+    setState((prevState) => ({ ...prevState, ...updateObj }));
+  };
 
-  render() {
-    return (
-      <Layout>
-        <div className={"view-page projects-view"}>
-          {(() => {
-            if (this.state.showImportModal) {
-              return (
-                <MDCDialogReact
-                  title="Import a project"
-                  onClose={this.onCloseImportProjectModal.bind(this)}
-                  ref={this.refManager.nrefs.importProjectDialog}
-                  content={
-                    <div className="project-import-modal">
-                      {this.props.queryArgs &&
-                        this.props.queryArgs.import_url !== undefined && (
-                          <div className="push-down warning">
-                            <p>
-                              <i className="material-icons">warning</i> The
-                              import URL was pre-filled. Make sure you trust the{" "}
-                              <span className="code">git</span> repository
-                              you're importing.
-                            </p>
-                          </div>
-                        )}
-                      <p className="push-down">
-                        Import a <span className="code">git</span> repository by
-                        specifying the <span className="code">HTTPS</span> URL
-                        below:
-                      </p>
-                      <MDCTextFieldReact
-                        classNames={["fullwidth push-down"]}
-                        label="Git repository URL"
-                        value={this.state.import_url}
-                        onChange={this.handleChange.bind(this, "import_url")}
-                      />
+  React.useEffect(() => {
+    fetchList();
+    conditionalShowImportFromURL();
 
-                      <MDCTextFieldReact
-                        classNames={["fullwidth"]}
-                        label="Project name (optional)"
-                        value={this.state.import_project_name}
-                        onChange={this.handleChange.bind(
-                          this,
-                          "import_project_name"
-                        )}
-                      />
+    return () => {
+      promiseManager.cancelCancelablePromises();
+      backgroundTaskPoller.removeAllTasks();
+    };
+  }, []);
 
-                      {(() => {
-                        if (this.state.importResult) {
-                          let result;
+  React.useEffect(() => {
+    conditionalShowImportFromURL();
+  }, [props?.queryArgs]);
 
-                          if (this.state.importResult.status === "PENDING") {
-                            result = <MDCLinearProgressReact />;
-                          } else if (
-                            this.state.importResult.status === "FAILURE"
-                          ) {
-                            result = (
-                              <p>
-                                <i className="material-icons float-left">
-                                  error
-                                </i>{" "}
-                                Import failed:{" "}
-                                {this.getMappedErrorMessage(
-                                  this.state.importResult.result
-                                )}
-                              </p>
-                            );
-                          }
+  React.useEffect(() => {
+    if (state.fetchListAndSetProject && state.fetchListAndSetProject !== "") {
+      const createdProject = state.projects.filter((proj) => {
+        return proj.path == state.fetchListAndSetProject;
+      })[0];
 
-                          return <div className="push-up">{result}</div>;
-                        }
-                      })()}
-                      <p className="push-up">
-                        To import <b>private </b>
-                        <span className="code">git</span> repositories upload
-                        them directly through the File Manager into the{" "}
-                        <span className="code">projects/</span> directory.
-                      </p>
-                    </div>
-                  }
-                  actions={
-                    <Fragment>
-                      <MDCButtonReact
-                        icon="close"
-                        label="Close"
-                        classNames={["push-right"]}
-                        onClick={this.onCancelImport.bind(this)}
-                      />
-                      <MDCButtonReact
-                        icon="input"
-                        // So that the button is disabled when in a states
-                        // that requires so (currently ["PENDING"]).
-                        disabled={["PENDING"].includes(
-                          this.state.importResult !== undefined
-                            ? this.state.importResult.status
-                            : undefined
-                        )}
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        label="Import"
-                        submitButton
-                        onClick={this.onSubmitImport.bind(this)}
-                      />
-                    </Fragment>
-                  }
-                />
-              );
-            }
-          })()}
+      context.dispatch({
+        type: "projectSet",
+        payload: createdProject.uuid,
+      });
+    }
+  }, [state?.fetchListAndSetProject]);
 
-          {(() => {
-            if (this.state.createModal) {
-              return (
-                <MDCDialogReact
-                  title="Create a new project"
-                  onClose={this.onCloseCreateProjectModal.bind(this)}
-                  ref={this.refManager.nrefs.createProjectDialog}
-                  content={
+  return (
+    <Layout>
+      <div className={"view-page projects-view"}>
+        {(() => {
+          if (state.showImportModal) {
+            return (
+              <MDCDialogReact
+                title="Import a project"
+                onClose={onCloseImportProjectModal.bind(this)}
+                ref={refManager.nrefs.importProjectDialog}
+                content={
+                  <div className="project-import-modal">
+                    {props.queryArgs &&
+                      props.queryArgs.import_url !== undefined && (
+                        <div className="push-down warning">
+                          <p>
+                            <i className="material-icons">warning</i> The import
+                            URL was pre-filled. Make sure you trust the{" "}
+                            <span className="code">git</span> repository you're
+                            importing.
+                          </p>
+                        </div>
+                      )}
+                    <p className="push-down">
+                      Import a <span className="code">git</span> repository by
+                      specifying the <span className="code">HTTPS</span> URL
+                      below:
+                    </p>
+                    <MDCTextFieldReact
+                      classNames={["fullwidth push-down"]}
+                      label="Git repository URL"
+                      value={state.import_url}
+                      onChange={handleChange.bind(this, "import_url")}
+                    />
+
                     <MDCTextFieldReact
                       classNames={["fullwidth"]}
-                      label="Project name"
-                      value={this.state.create_project_name}
-                      onChange={this.handleChange.bind(
-                        this,
-                        "create_project_name"
-                      )}
+                      label="Project name (optional)"
+                      value={state.import_project_name}
+                      onChange={handleChange.bind(this, "import_project_name")}
                     />
-                  }
-                  actions={
-                    <Fragment>
-                      <MDCButtonReact
-                        icon="close"
-                        label="Cancel"
-                        classNames={["push-right"]}
-                        onClick={this.onCancelModal.bind(this)}
-                      />
-                      <MDCButtonReact
-                        icon="format_list_bulleted"
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        label="Create project"
-                        submitButton
-                        onClick={this.onSubmitModal.bind(this)}
-                      />
-                    </Fragment>
-                  }
-                />
-              );
-            }
-          })()}
 
-          <h2>Projects</h2>
+                    {(() => {
+                      if (state.importResult) {
+                        let result;
 
-          {(() => {
-            if (this.state.loading) {
-              return <MDCLinearProgressReact />;
-            } else {
-              return (
-                <Fragment>
-                  <div className="push-down">
+                        if (state.importResult.status === "PENDING") {
+                          result = <MDCLinearProgressReact />;
+                        } else if (state.importResult.status === "FAILURE") {
+                          result = (
+                            <p>
+                              <i className="material-icons float-left">error</i>{" "}
+                              Import failed:{" "}
+                              {getMappedErrorMessage(state.importResult.result)}
+                            </p>
+                          );
+                        }
+
+                        return <div className="push-up">{result}</div>;
+                      }
+                    })()}
+                    <p className="push-up">
+                      To import <b>private </b>
+                      <span className="code">git</span> repositories upload them
+                      directly through the File Manager into the{" "}
+                      <span className="code">projects/</span> directory.
+                    </p>
+                  </div>
+                }
+                actions={
+                  <Fragment>
                     <MDCButtonReact
-                      classNames={[
-                        "mdc-button--raised",
-                        "themed-secondary",
-                        "push-right",
-                      ]}
-                      icon="add"
-                      label="Add project"
-                      onClick={this.onCreateClick.bind(this)}
+                      icon="close"
+                      label="Close"
+                      classNames={["push-right"]}
+                      onClick={onCancelImport.bind(this)}
                     />
                     <MDCButtonReact
-                      classNames={["mdc-button--raised"]}
                       icon="input"
-                      label="Import project"
-                      onClick={this.onImport.bind(this)}
+                      // So that the button is disabled when in a states
+                      // that requires so (currently ["PENDING"]).
+                      disabled={["PENDING"].includes(
+                        state.importResult !== undefined
+                          ? state.importResult.status
+                          : undefined
+                      )}
+                      classNames={["mdc-button--raised", "themed-secondary"]}
+                      label="Import"
+                      submitButton
+                      onClick={onSubmitImport.bind(this)}
                     />
-                  </div>
-                  <div className={"pipeline-actions push-down"}>
-                    <MDCIconButtonToggleReact
-                      icon="delete"
-                      tooltipText="Delete project"
-                      onClick={this.onDeleteClick.bind(this)}
-                    />
-                  </div>
+                  </Fragment>
+                }
+              />
+            );
+          }
+        })()}
 
-                  <MDCDataTableReact
-                    ref={this.refManager.nrefs.projectListView}
-                    selectable
-                    onRowClick={this.onClickListItem.bind(this)}
+        {(() => {
+          if (state.createModal) {
+            return (
+              <MDCDialogReact
+                title="Create a new project"
+                onClose={onCloseCreateProjectModal.bind(this)}
+                ref={refManager.nrefs.createProjectDialog}
+                content={
+                  <MDCTextFieldReact
                     classNames={["fullwidth"]}
-                    headers={[
-                      "Project",
-                      "Pipelines",
-                      "Active sessions",
-                      "Jobs",
-                      "Environments",
-                      "Settings",
-                    ]}
-                    rows={this.state.listData}
+                    label="Project name"
+                    value={state.create_project_name}
+                    onChange={handleChange.bind(this, "create_project_name")}
                   />
-                </Fragment>
-              );
-            }
-          })()}
-        </div>
-      </Layout>
-    );
-  }
-}
+                }
+                actions={
+                  <Fragment>
+                    <MDCButtonReact
+                      icon="close"
+                      label="Cancel"
+                      classNames={["push-right"]}
+                      onClick={onCancelModal.bind(this)}
+                    />
+                    <MDCButtonReact
+                      icon="format_list_bulleted"
+                      classNames={["mdc-button--raised", "themed-secondary"]}
+                      label="Create project"
+                      submitButton
+                      onClick={onSubmitModal.bind(this)}
+                    />
+                  </Fragment>
+                }
+              />
+            );
+          }
+        })()}
+
+        <h2>Projects</h2>
+
+        {(() => {
+          if (state.loading) {
+            return <MDCLinearProgressReact />;
+          } else {
+            return (
+              <Fragment>
+                <div className="push-down">
+                  <MDCButtonReact
+                    classNames={[
+                      "mdc-button--raised",
+                      "themed-secondary",
+                      "push-right",
+                    ]}
+                    icon="add"
+                    label="Add project"
+                    onClick={onCreateClick.bind(this)}
+                  />
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    icon="input"
+                    label="Import project"
+                    onClick={onImport.bind(this)}
+                  />
+                </div>
+                <div className={"pipeline-actions push-down"}>
+                  <MDCIconButtonToggleReact
+                    icon="delete"
+                    tooltipText="Delete project"
+                    onClick={onDeleteClick.bind(this)}
+                  />
+                </div>
+
+                <MDCDataTableReact
+                  ref={refManager.nrefs.projectListView}
+                  selectable
+                  onRowClick={onClickListItem.bind(this)}
+                  classNames={["fullwidth"]}
+                  headers={[
+                    "Project",
+                    "Pipelines",
+                    "Active sessions",
+                    "Jobs",
+                    "Environments",
+                    "Settings",
+                  ]}
+                  rows={state.listData}
+                />
+              </Fragment>
+            );
+          }
+        })()}
+      </div>
+    </Layout>
+  );
+};
 
 export default ProjectsView;

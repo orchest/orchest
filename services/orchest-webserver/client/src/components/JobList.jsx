@@ -409,7 +409,11 @@ const JobList = (props) => {
                         ref={refManager.nrefs.formPipeline}
                         label="Pipeline"
                         classNames={["fullwidth"]}
-                        value={pipelineOptions[0][0]}
+                        value={
+                          pipelineOptions &&
+                          pipelineOptions[0] &&
+                          pipelineOptions[0][0]
+                        }
                         options={pipelineOptions}
                       />
                     </React.Fragment>

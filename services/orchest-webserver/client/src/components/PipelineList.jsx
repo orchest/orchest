@@ -1,4 +1,5 @@
-import React, { Fragment } from "react";
+// @ts-check
+import React from "react";
 import {
   makeRequest,
   makeCancelable,
@@ -13,7 +14,7 @@ import {
   MDCDialogReact,
   MDCDataTableReact,
 } from "@orchest/lib-mdc";
-import { OrchestContext } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";
@@ -22,38 +23,22 @@ import ProjectsView from "@/views/ProjectsView";
 const INITIAL_PIPELINE_NAME = "";
 const INITIAL_PIPELINE_PATH = "pipeline.orchest";
 
-class PipelineList extends React.Component {
-  static contextType = OrchestContext;
+const PipelineList = (props) => {
+  const context = useOrchest();
 
-  componentWillUnmount() {}
+  const [state, setState] = React.useState({
+    loading: true,
+    createModal: false,
+    createPipelineName: INITIAL_PIPELINE_NAME,
+    createPipelinePath: INITIAL_PIPELINE_PATH,
+    listData: null,
+    pipelines: null,
+  });
 
-  constructor(props, context) {
-    super(props, context);
+  const [promiseManager] = React.useState(new PromiseManager());
+  const [refManager] = React.useState(new RefManager());
 
-    this.state = {
-      loading: true,
-      createModal: false,
-      createPipelineName: INITIAL_PIPELINE_NAME,
-      createPipelinePath: INITIAL_PIPELINE_PATH,
-    };
-
-    this.promiseManager = new PromiseManager();
-    this.refManager = new RefManager();
-  }
-
-  componentWillUnmount() {
-    this.promiseManager.cancelCancelablePromises();
-  }
-
-  componentDidMount() {
-    this.fetchList(() => {
-      this.setState({
-        loading: false,
-      });
-    });
-  }
-
-  processListData(pipelines) {
+  const processListData = (pipelines) => {
     let listData = [];
 
     for (let pipeline of pipelines) {
@@ -62,7 +47,7 @@ class PipelineList extends React.Component {
         <span>{pipeline.name}</span>,
         <span>{pipeline.path}</span>,
         <SessionToggleButton
-          project_uuid={this.context.state.project_uuid}
+          project_uuid={context.state.project_uuid}
           pipeline_uuid={pipeline.uuid}
           switch={true}
           className="consume-click"
@@ -71,296 +56,314 @@ class PipelineList extends React.Component {
     }
 
     return listData;
-  }
+  };
 
-  fetchList(onComplete) {
+  const fetchList = (onComplete) => {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${this.props.project_uuid}`),
-      this.promiseManager
+      makeRequest("GET", `/async/pipelines/${props.project_uuid}`),
+      promiseManager
     );
 
     fetchListPromise.promise
       .then((response) => {
         let data = JSON.parse(response);
-        this.setState({
-          listData: this.processListData(data.result),
+        setState((prevState) => ({
+          ...prevState,
+          listData: processListData(data.result),
           pipelines: data.result,
-        });
+        }));
 
-        if (this.refManager.refs.pipelineListView) {
-          this.refManager.refs.pipelineListView.setSelectedRowIds([]);
+        if (refManager.refs.pipelineListView) {
+          refManager.refs.pipelineListView.setSelectedRowIds([]);
         }
 
         onComplete();
       })
       .catch((e) => {
         if (e && e.status == 404) {
+          // @ts-ignore
           orchest.loadView(ProjectsView);
         }
       });
-  }
+  };
 
-  openPipeline(pipeline, readOnly) {
+  const openPipeline = (pipeline, readOnly) => {
     // load pipeline view
-    let props = {
+    let pipelineProps = {
       queryArgs: {
         pipeline_uuid: pipeline.uuid,
-        project_uuid: this.props.project_uuid,
+        project_uuid: props.project_uuid,
       },
     };
 
     if (readOnly) {
-      props.queryArgs.read_only = "true";
+      pipelineProps.queryArgs.read_only = "true";
     }
 
-    orchest.loadView(PipelineView, props);
-  }
+    // @ts-ignore
+    orchest.loadView(PipelineView, pipelineProps);
+  };
 
-  onClickListItem(row, idx, e) {
-    let pipeline = this.state.pipelines[idx];
+  const onClickListItem = (row, idx, e) => {
+    let pipeline = state.pipelines[idx];
 
-    let checkGatePromise = checkGate(this.props.project_uuid);
+    let checkGatePromise = checkGate(props.project_uuid);
     checkGatePromise
       .then(() => {
-        this.openPipeline(pipeline, false);
+        openPipeline(pipeline, false);
       })
       .catch((result) => {
-        this.openPipeline(pipeline, true);
+        openPipeline(pipeline, true);
       });
-  }
+  };
 
-  onDeleteClick() {
-    let selectedIndices = this.refManager.refs.pipelineListView.getSelectedRowIndices();
+  const onDeleteClick = () => {
+    let selectedIndices = refManager.refs.pipelineListView.getSelectedRowIndices();
 
     if (selectedIndices.length === 0) {
+      // @ts-ignore
       orchest.alert("Error", "You haven't selected a pipeline.");
       return;
     }
 
+    // @ts-ignore
     orchest.confirm(
       "Warning",
       "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
       () => {
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           loading: true,
-        });
+        }));
 
         selectedIndices.forEach((index) => {
-          let pipeline_uuid = this.state.pipelines[index].uuid;
+          let pipeline_uuid = state.pipelines[index].uuid;
 
           // deleting the pipeline will also take care of running
           // sessions, runs, jobs
           makeRequest(
             "DELETE",
-            `/async/pipelines/delete/${this.props.project_uuid}/${pipeline_uuid}`
+            `/async/pipelines/delete/${props.project_uuid}/${pipeline_uuid}`
           ).then((_) => {
             // reload list once removal succeeds
-            this.fetchList(() => {
-              this.setState({
+            fetchList(() => {
+              setState((prevState) => ({
+                ...prevState,
                 loading: false,
-              });
+              }));
             });
           });
         });
       }
     );
-  }
+  };
 
-  onCreateClick() {
-    this.setState({
+  const onCreateClick = () => {
+    setState((prevState) => ({
+      ...prevState,
       createModal: true,
-    });
-  }
+    }));
+  };
 
-  onSubmitModal() {
-    let pipelineName = this.state.createPipelineName;
-    let pipelinePath = this.state.createPipelinePath;
+  const onSubmitModal = () => {
+    let pipelineName = state.createPipelineName;
+    let pipelinePath = state.createPipelinePath;
 
     if (!pipelineName) {
+      // @ts-ignore
       orchest.alert("Error", "Please enter a name.");
       return;
     }
 
     if (!pipelinePath) {
+      // @ts-ignore
       orchest.alert("Error", "Please enter the path for the pipeline.");
       return;
     }
 
     if (!pipelinePath.endsWith(".orchest")) {
+      // @ts-ignore
       orchest.alert("Error", "The path should end in the .orchest extension.");
       return;
     }
 
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       loading: true,
-    });
+    }));
 
     let createPipelinePromise = makeCancelable(
-      makeRequest(
-        "POST",
-        `/async/pipelines/create/${this.props.project_uuid}`,
-        {
-          type: "json",
-          content: {
-            name: pipelineName,
-            pipeline_path: pipelinePath,
-          },
-        }
-      ),
-      this.promiseManager
+      makeRequest("POST", `/async/pipelines/create/${props.project_uuid}`, {
+        type: "json",
+        content: {
+          name: pipelineName,
+          pipeline_path: pipelinePath,
+        },
+      }),
+      promiseManager
     );
 
     createPipelinePromise.promise
       .then((_) => {
-        this.fetchList(() => {
-          this.setState({
+        fetchList(() => {
+          setState((prevState) => ({
+            ...prevState,
             loading: false,
-          });
+          }));
         });
       })
       .catch((response) => {
         if (!response.isCanceled) {
           try {
             let data = JSON.parse(response.body);
+            // @ts-ignore
             orchest.alert(
               "Error",
               "Could not create pipeline. " + data.message
             );
           } catch {
+            // @ts-ignore
             orchest.alert(
               "Error",
               "Could not create pipeline. Reason unknown."
             );
           }
 
-          this.setState({
+          setState((prevState) => ({
+            ...prevState,
             loading: false,
-          });
+          }));
         }
       })
       .finally(() => {
         // reload list once creation succeeds
-        this.setState({
+        setState((prevState) => ({
+          ...prevState,
           createPipelineName: INITIAL_PIPELINE_NAME,
           createPipelinePath: INITIAL_PIPELINE_PATH,
-        });
+        }));
       });
 
-    this.setState({
+    setState((prevState) => ({
+      ...prevState,
       createModal: false,
-    });
-  }
+    }));
+  };
 
-  onCancelModal() {
-    this.refManager.refs.createPipelineDialog.close();
-  }
+  const onCancelModal = () => {
+    refManager.refs.createPipelineDialog.close();
+  };
 
-  onCloseCreatePipelineModal() {
-    this.setState({
+  const onCloseCreatePipelineModal = () => {
+    setState((prevState) => ({
+      ...prevState,
       createModal: false,
       createPipelineName: INITIAL_PIPELINE_NAME,
       createPipelinePath: INITIAL_PIPELINE_PATH,
+    }));
+  };
+
+  React.useEffect(() => {
+    fetchList(() => {
+      setState((prevState) => ({
+        ...prevState,
+        loading: false,
+      }));
     });
-  }
 
-  render() {
-    if (!this.state.loading) {
-      return (
-        <div className={"pipelines-view"}>
-          {(() => {
-            if (this.state.createModal) {
-              return (
-                <MDCDialogReact
-                  title="Create a new pipeline"
-                  onClose={this.onCloseCreatePipelineModal.bind(this)}
-                  ref={this.refManager.nrefs.createPipelineDialog}
-                  content={
-                    <Fragment>
-                      <MDCTextFieldReact
-                        classNames={["fullwidth push-down"]}
-                        value={this.state.createPipelineName}
-                        label="Pipeline name"
-                        onChange={(value) => {
-                          this.setState({
-                            createPipelinePath:
-                              value.toLowerCase().replace(/[\W]/g, "_") +
-                              ".orchest",
-                            createPipelineName: value,
-                          });
-                        }}
-                      />
-                      <MDCTextFieldReact
-                        ref={this.refManager.nrefs.createPipelinePathField}
-                        classNames={["fullwidth"]}
-                        label="Pipeline path"
-                        onChange={(value) => {
-                          this.setState({
-                            createPipelinePath: value,
-                          });
-                        }}
-                        value={this.state.createPipelinePath}
-                      />
-                    </Fragment>
-                  }
-                  actions={
-                    <Fragment>
-                      <MDCButtonReact
-                        icon="close"
-                        label="Cancel"
-                        classNames={["push-right"]}
-                        onClick={this.onCancelModal.bind(this)}
-                      />
-                      <MDCButtonReact
-                        icon="add"
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        label="Create pipeline"
-                        submitButton
-                        onClick={this.onSubmitModal.bind(this)}
-                      />
-                    </Fragment>
-                  }
-                />
-              );
-            }
-          })()}
+    return () => promiseManager.cancelCancelablePromises();
+  }, []);
 
-          <h2>Pipelines</h2>
-          <div className="push-down">
-            <MDCButtonReact
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              icon="add"
-              label="Create pipeline"
-              onClick={this.onCreateClick.bind(this)}
-            />
-          </div>
-          <div className={"pipeline-actions push-down"}>
-            <MDCIconButtonToggleReact
-              icon="delete"
-              tooltipText="Delete pipeline"
-              onClick={this.onDeleteClick.bind(this)}
-            />
-          </div>
+  return state.loading ? (
+    <div className={"pipelines-view"}>
+      <h2>Pipelines</h2>
+      <MDCLinearProgressReact />
+    </div>
+  ) : (
+    <div className={"pipelines-view"}>
+      {state.createModal && (
+        <MDCDialogReact
+          title="Create a new pipeline"
+          onClose={onCloseCreatePipelineModal.bind(this)}
+          ref={refManager.nrefs.createPipelineDialog}
+          content={
+            <React.Fragment>
+              <MDCTextFieldReact
+                classNames={["fullwidth push-down"]}
+                value={state.createPipelineName}
+                label="Pipeline name"
+                onChange={(value) => {
+                  setState((prevState) => ({
+                    ...prevState,
+                    createPipelinePath:
+                      value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
+                    createPipelineName: value,
+                  }));
+                }}
+              />
+              <MDCTextFieldReact
+                ref={refManager.nrefs.createPipelinePathField}
+                classNames={["fullwidth"]}
+                label="Pipeline path"
+                onChange={(value) => {
+                  setState((prevState) => ({
+                    ...prevState,
 
-          <MDCDataTableReact
-            ref={this.refManager.nrefs.pipelineListView}
-            selectable
-            onRowClick={this.onClickListItem.bind(this)}
-            classNames={["fullwidth"]}
-            headers={["Pipeline", "Path", "Session"]}
-            rows={this.state.listData}
-          />
-        </div>
-      );
-    } else {
-      return (
-        <div className={"pipelines-view"}>
-          <h2>Pipelines</h2>
-          <MDCLinearProgressReact />
-        </div>
-      );
-    }
-  }
-}
+                    createPipelineName: value,
+                  }));
+                }}
+                value={state.createPipelinePath}
+              />
+            </React.Fragment>
+          }
+          actions={
+            <React.Fragment>
+              <MDCButtonReact
+                icon="close"
+                label="Cancel"
+                classNames={["push-right"]}
+                onClick={onCancelModal.bind(this)}
+              />
+              <MDCButtonReact
+                icon="add"
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                label="Create pipeline"
+                submitButton
+                onClick={onSubmitModal.bind(this)}
+              />
+            </React.Fragment>
+          }
+        />
+      )}
+
+      <h2>Pipelines</h2>
+      <div className="push-down">
+        <MDCButtonReact
+          classNames={["mdc-button--raised", "themed-secondary"]}
+          icon="add"
+          label="Create pipeline"
+          onClick={onCreateClick.bind(this)}
+        />
+      </div>
+      <div className={"pipeline-actions push-down"}>
+        <MDCIconButtonToggleReact
+          icon="delete"
+          tooltipText="Delete pipeline"
+          onClick={onDeleteClick.bind(this)}
+        />
+      </div>
+
+      <MDCDataTableReact
+        ref={refManager.nrefs.pipelineListView}
+        selectable
+        onRowClick={onClickListItem.bind(this)}
+        classNames={["fullwidth"]}
+        headers={["Pipeline", "Path", "Session"]}
+        rows={state.listData}
+      />
+    </div>
+  );
+};
 
 export default PipelineList;
