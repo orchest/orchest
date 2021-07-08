@@ -2,7 +2,6 @@
 import React from "react";
 import io from "socket.io-client";
 import _ from "lodash";
-import $ from "jquery";
 
 import {
   uuidv4,
@@ -46,7 +45,7 @@ const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
 const PipelineView = (props) => {
-  const orchest = window.orchest;
+  const { $, orchest } = window;
   const { get, state: orchestState, dispatch } = useOrchest();
   const session = get.session(props.queryArgs);
 
