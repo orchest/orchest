@@ -4,6 +4,7 @@ import { RefManager } from "@orchest/lib-utils";
 
 /**
  * @typedef {{
+ *  ref?: any;
  *  selected?: boolean;
  *  step?: any;
  *  executionState?: {
@@ -12,6 +13,9 @@ import { RefManager } from "@orchest/lib-utils";
  *    started_time: number;
  *    status: "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED" | "PENDING";
  *  }
+ *  onConnect?: any;
+ *  onClick?: any;
+ *  onDoubleClick?: any;
  * }} TPipelineStepProps
  *
  * @type React.FC<TPipelineStepProps>
