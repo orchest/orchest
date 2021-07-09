@@ -1,6 +1,6 @@
 import * as React from "react";
 import _ from "lodash";
-import { Box } from "@orchest/design-system";
+import { Box, styled } from "@orchest/design-system";
 import {
   MDCTextFieldReact,
   MDCCheckboxReact,

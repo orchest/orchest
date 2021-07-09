@@ -10,7 +10,7 @@
     "prebuild": "pnpm run build --filter '@orchest/design-system-vite-plugin'",
     "predev": "pnpm run prebuild",
     "serve": "vite preview",
-    "ts:check": "tsc -p tsconfig.json --noEmit --incremental"
+    "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@orchest/design-system": "workspace:*",
