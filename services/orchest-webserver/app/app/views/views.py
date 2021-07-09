@@ -23,6 +23,8 @@ from app.core.projects import (
     ImportGitProject,
     RenameProject,
     SyncProjectPipelinesDBState,
+    discoverFSCreatedProjects,
+    discoverFSDeletedProjects,
 )
 from app.kernel_manager import populate_kernels
 from app.models import Environment, Pipeline, Project
@@ -326,74 +328,6 @@ def register_views(app, db):
             return background_task_schema.dump(task)
 
     api.add_resource(ImportGitProjectListResource, "/async/projects/import-git")
-
-    def discoverFSDeletedProjects():
-        """Cleanup projects that were deleted from the filesystem."""
-
-        project_paths = [
-            entry.name
-            for entry in os.scandir(app.config["PROJECTS_DIR"])
-            if entry.is_dir()
-        ]
-
-        fs_removed_projects = Project.query.filter(
-            Project.path.notin_(project_paths),
-            # This way we do not delete a project that is already being
-            # deleted twice, and avoid considering a project that is
-            # being initialized as deleted from the filesystem, or that
-            # it is moving.
-            Project.status.in_(["READY"]),
-        ).all()
-
-        # Use a TwoPhaseExecutor for each project so that issues in one
-        # project do not hinder the deletion of others.
-        for proj_uuid in [project.uuid for project in fs_removed_projects]:
-            try:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    DeleteProject(tpe).transaction(proj_uuid)
-            except Exception as e:
-                current_app.logger.error(
-                    (
-                        "Error during project deletion (discovery) of "
-                        f"{proj_uuid}: {e}."
-                    )
-                )
-
-    def discoverFSCreatedProjects():
-        """Detect projects that were added through the file system."""
-
-        # Detect new projects by detecting directories that were not
-        # registered in the db as projects.
-        existing_project_paths = [project.path for project in Project.query.all()]
-        project_paths = [
-            entry.name
-            for entry in os.scandir(app.config["PROJECTS_DIR"])
-            if entry.is_dir()
-        ]
-        new_project_paths = set(project_paths) - set(existing_project_paths)
-
-        # Do not do project discovery if a project is moving, because
-        # a new_project_path could actually be a moving project. Given
-        # that a project has no (persisted) uuid, we won't be able to
-        # find if a new_project_path is actually a MOVING project. NOTE:
-        # we could wait in this endpoint until there is no more MOVING
-        # project.
-        if Project.query.filter(Project.status.in_(["MOVING"])).count() > 0:
-            return
-
-        # Use a TwoPhaseExecutor for each project so that issues in one
-        # project do not hinder the discovery of others.
-        for new_project_path in new_project_paths:
-            try:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    CreateProject(tpe).transaction(new_project_path)
-            except Exception as e:
-                current_app.logger.error(
-                    (
-                        "Error during project initialization (discovery) of "
-                        f"{new_project_path}: {e}."
-                    )
-                )
 
     @app.route("/async/projects/<project_uuid>", methods=["GET"])
     def project_get(project_uuid):
