@@ -6,7 +6,8 @@
     "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "swr": ["node_modules/swr/"]
     }
   }
 } 

@@ -1,26 +1,18 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { uuidv4 } from "@orchest/lib-utils";
 import { OrchestContext } from "./context";
 import { OrchestSessionsProvider } from "./sessions";
 import { isSession, isCurrentSession } from "./utils";
 import { useLocalStorage } from "../local-storage";
+import type {
+  TOrchestAction,
+  IOrchestGet,
+  IOrchestState,
+  IOrchestConfig,
+  IOrchestUserConfig,
+} from "@/types";
 
-/**
- * @typedef {import("@/types").TOrchestAction} TOrchestAction
- * @typedef {import("@/types").IOrchestGet} IOrchestGet
- * @typedef {import("@/types").IOrchestSessionUuid} IOrchestSessionUuid
- * @typedef {import("@/types").IOrchestSession} IOrchestSession
- * @typedef {import("@/types").IOrchestState} IOrchestState
- * @typedef {import("@/types").IOrchestContext} IOrchestContext
- */
-
-/**
- * @param {IOrchestState} state
- * @param {TOrchestAction} action
- * @returns
- */
-const reducer = (state, action) => {
+const reducer = (state: IOrchestState, action: TOrchestAction) => {
   switch (action.type) {
     case "alert":
       return { ...state, alert: action.payload };
@@ -87,7 +79,16 @@ const initialState = {
   _sessionsToggle: null,
 };
 
-export const OrchestProvider = ({ config, user_config, children }) => {
+export interface IOrchestProviderProps {
+  config: IOrchestConfig;
+  user_config: IOrchestUserConfig;
+}
+
+export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
+  config,
+  user_config,
+  children,
+}) => {
   const orchest = window.orchest;
 
   const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
@@ -96,7 +97,6 @@ export const OrchestProvider = ({ config, user_config, children }) => {
     undefined
   );
 
-  /** @type {[IOrchestState, React.Dispatch<TOrchestAction>]} */
   const [state, dispatch] = React.useReducer(reducer, {
     ...initialState,
     drawerIsOpen,
@@ -105,8 +105,7 @@ export const OrchestProvider = ({ config, user_config, children }) => {
     user_config,
   });
 
-  /** @type {IOrchestGet} */
-  const get = {
+  const get: IOrchestGet = {
     session: (session) =>
       state?.sessions?.find((stateSession) => isSession(session, stateSession)),
     currentSession: state?.sessions?.find((session) =>

@@ -1,11 +1,6 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 
-/**
- * @param {() => void} callback
- * @param {number | null} delay
- */
-export const useInterval = (callback, delay) => {
+export const useInterval = (callback: () => void, delay: number | null) => {
   const savedCallback = React.useRef(callback);
 
   React.useEffect(() => {

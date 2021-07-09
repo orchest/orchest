@@ -1,14 +1,11 @@
-// @ts-check
-// originally from https://usehooks.com/useLocalStorage/ (converted to JSDoc)
-import React from "react";
+import * as React from "react";
 
-/** @type {import('./types').useLocalStorage} */
-export const useLocalStorage = (key, initialValue) => {
+export const useLocalStorage = <T>(key: string, initialValue: T) => {
   const privateKey = `orchest.${key}`;
 
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
-  const [storedValue, setStoredValue] = React.useState(() => {
+  const [storedValue, setStoredValue] = React.useState<T>(() => {
     try {
       // Get from local storage by key
       const item = window.localStorage.getItem(privateKey);
@@ -22,7 +19,7 @@ export const useLocalStorage = (key, initialValue) => {
   });
   // Return a wrapped version of useState's setter function that ...
   // ... persists the new value to localStorage.
-  const setValue = (value) => {
+  const setValue = (value: T | ((val: T) => T)) => {
     if (value === undefined) {
       return;
     }
@@ -39,5 +36,6 @@ export const useLocalStorage = (key, initialValue) => {
       console.log(error);
     }
   };
-  return [storedValue, setValue];
+
+  return [storedValue, setValue] as const;
 };

@@ -1,35 +1,29 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import { useOrchest } from "./context";
 import { isSession } from "./utils";
+import type { IOrchestSessionUuid, IOrchestSession } from "@/types";
 
-/**
- * @typedef {import("@/types").IOrchestSessionUuid } IOrchestSessionUuid
- * @typedef {import("@/types").IOrchestSession} IOrchestSession
- * @typedef {IOrchestSession['status']} TSessionStatus
- */
+type TSessionStatus = IOrchestSession["status"];
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
 
 /* Matchers
   =========================================== */
 
-/**  @param {TSessionStatus} status */
-const isLaunchable = (status) => !status;
+const isLaunchable = (status: TSessionStatus) => !status;
 
-/**  @param {TSessionStatus} status */
-const isStoppable = (status) => ["RUNNING", "LAUNCHING"].includes(status);
+const isStoppable = (status: TSessionStatus) =>
+  ["RUNNING", "LAUNCHING"].includes(status);
 
-/**  @param {TSessionStatus} status */
-const isWorking = (status) => ["LAUNCHING", "STOPPING"].includes(status);
+const isWorking = (status: TSessionStatus) =>
+  ["LAUNCHING", "STOPPING"].includes(status);
 
 /* Fetchers
   =========================================== */
 
-/**  @param {IOrchestSessionUuid} props */
-const stopSession = ({ pipeline_uuid, project_uuid }) =>
+const stopSession = ({ pipeline_uuid, project_uuid }: IOrchestSessionUuid) =>
   fetcher([ENDPOINT, project_uuid, "/", pipeline_uuid].join(""), {
     method: "DELETE",
   });
@@ -37,7 +31,7 @@ const stopSession = ({ pipeline_uuid, project_uuid }) =>
 /* Provider
   =========================================== */
 
-export const OrchestSessionsProvider = ({ children }) => {
+export const OrchestSessionsProvider: React.FC = ({ children }) => {
   const { state, dispatch } = useOrchest();
 
   const { _sessionsIsPolling } = state;
@@ -90,11 +84,11 @@ export const OrchestSessionsProvider = ({ children }) => {
     /**
      * Any session-specific cache mutations must be made with this helper to
      * ensure we're only mutating the requested session
-     * @param {Partial<IOrchestSession>} [newSessionData]
-     * @param {boolean} [shouldRevalidate]
-     * @returns
      */
-    const mutateSession = (newSessionData, shouldRevalidate) =>
+    const mutateSession = (
+      newSessionData?: Partial<IOrchestSession>,
+      shouldRevalidate?: boolean
+    ) =>
       mutate(
         (cachedData) =>
           newSessionData && {
@@ -235,7 +229,7 @@ export const OrchestSessionsProvider = ({ children }) => {
  * In the meantime, we'll wrap this Component around session-dependent views or
  * components to explicitly trigger polling.
  */
-export const OrchestSessionsConsumer = ({ children }) => {
+export const OrchestSessionsConsumer: React.FC = ({ children }) => {
   const { dispatch } = useOrchest();
 
   React.useEffect(() => {

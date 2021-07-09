@@ -1,10 +1,6 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
+import type { IOrchestContext } from "@/types";
 
-/**
- * @typedef {import("@/types").IOrchestContext} IOrchestContext
- * @type {React.Context<IOrchestContext>}
- */
-export const OrchestContext = React.createContext(null);
+export const OrchestContext = React.createContext<IOrchestContext>(null);
 
 export const useOrchest = () => React.useContext(OrchestContext);
