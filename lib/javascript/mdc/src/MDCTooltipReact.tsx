@@ -1,11 +1,14 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCTooltip } from "@material/tooltip";
 import { RefManager } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCTooltipReact extends React.Component {
+export class MDCTooltipReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCTooltip;
+
   constructor() {
+    // @ts-ignore
     super();
     this.refManager = new RefManager();
   }

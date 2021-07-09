@@ -1,10 +1,13 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCTabBar } from "@material/tab-bar";
 import { RefManager } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCTabBarReact extends React.Component {
+export class MDCTabBarReact extends React.Component<any, any> {
+  refManager: RefManager;
+  tabBar: MDCTabBar;
+  buttons: any[];
+
   constructor(props) {
     super(props);
 
@@ -26,7 +29,7 @@ export class MDCTabBarReact extends React.Component {
     this.tabBar.focusOnActivate = false;
     this.tabBar.activateTab(this.state.active_tab_index);
 
-    this.tabBar.listen("MDCTabBar:activated", (details) => {
+    this.tabBar.listen("MDCTabBar:activated", (details: any) => {
       this.setState({ active_tab_index: details.detail.index });
 
       if (this.props.onChange) {

@@ -1,12 +1,16 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCFormField } from "@material/form-field";
 import { MDCRadio } from "@material/radio";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCRadioReact extends React.Component {
+export class MDCRadioReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCRadio;
+  mdcField: MDCFormField;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -28,11 +32,14 @@ export class MDCRadioReact extends React.Component {
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
     }
-    topClasses = topClasses.join(" ");
+
     let randomFor = uuidv4();
 
     return (
-      <div className={topClasses} ref={this.refManager.nrefs.formField}>
+      <div
+        className={topClasses.join(" ")}
+        ref={this.refManager.nrefs.formField}
+      >
         <div className="mdc-radio" ref={this.refManager.nrefs.radio}>
           <input
             onChange={this.onChange.bind(this)}

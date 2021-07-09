@@ -1,8 +1,11 @@
-// @ts-nocheck
 import * as React from "react";
 
 // used in orchest-webserver and mdc-components only
 export class RefManager {
+  _refs: any;
+  refs: any;
+  nrefs: any;
+
   constructor() {
     this._refs = {};
 
@@ -13,6 +16,7 @@ export class RefManager {
         }
         return target[name].current;
       },
+      // @ts-ignore
       set: (target, name, value, receiver) => {
         target[name] = value;
       },
@@ -21,6 +25,7 @@ export class RefManager {
     this.nrefs = new Proxy(this._refs, {
       get: (target, name, receiver) => {
         if (!target[name]) {
+          // @ts-ignore
           target[name] = new React.createRef();
         }
 
@@ -32,6 +37,8 @@ export class RefManager {
 
 // used in orchest-webserver only
 export class PromiseManager {
+  cancelablePromises: any[];
+
   constructor() {
     this.cancelablePromises = [];
   }

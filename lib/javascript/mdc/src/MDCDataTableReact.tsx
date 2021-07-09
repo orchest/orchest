@@ -1,10 +1,13 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCDataTable } from "@material/data-table";
 import { RefManager, someParentHasClass } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCDataTableReact extends React.Component {
+export class MDCDataTableReact extends React.Component<any, any> {
+  mdc: MDCDataTable;
+  mdcInvalidated: boolean;
+  refManager: RefManager;
+
   constructor(props) {
     super(props);
 
@@ -157,8 +160,6 @@ export class MDCDataTableReact extends React.Component {
       topClasses.push("row-clickable");
     }
 
-    topClasses = topClasses.join(" ");
-
     let tableHeaders = [];
     for (let x = 0; x < this.props.headers.length; x++) {
       tableHeaders.push(
@@ -252,7 +253,10 @@ export class MDCDataTableReact extends React.Component {
     }
 
     return (
-      <div className={topClasses} ref={this.refManager.nrefs.dataTable}>
+      <div
+        className={topClasses.join(" ")}
+        ref={this.refManager.nrefs.dataTable}
+      >
         <div className="mdc-data-table__table-container">
           <table className="mdc-data-table__table" aria-label="Data table">
             <thead>

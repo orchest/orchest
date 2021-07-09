@@ -1,11 +1,14 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCSwitch } from "@material/switch";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCSwitchReact extends React.Component {
+export class MDCSwitchReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCSwitch;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -13,6 +16,7 @@ export class MDCSwitchReact extends React.Component {
 
   componentDidMount() {
     this.mdc = new MDCSwitch(this.refManager.refs.switch);
+    // @ts-ignore
     this.mdc.foundation.handleChange = this.onChange.bind(this);
   }
 
@@ -30,19 +34,20 @@ export class MDCSwitchReact extends React.Component {
     if (this.props.disabled === true) {
       mdcClasses.push("mdc-switch--disabled");
     }
-    mdcClasses = mdcClasses.join(" ");
 
     let topClasses = ["mdc-switch-wrapper"];
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
     }
-    topClasses = topClasses.join(" ");
 
     let randomFor = uuidv4();
 
     return (
-      <div className={topClasses}>
-        <div className={mdcClasses} ref={this.refManager.nrefs.switch}>
+      <div className={topClasses.join(" ")}>
+        <div
+          className={mdcClasses.join(" ")}
+          ref={this.refManager.nrefs.switch}
+        >
           <div className="mdc-switch__track" />
           <div className="mdc-switch__thumb-underlay">
             <div className="mdc-switch__thumb" />

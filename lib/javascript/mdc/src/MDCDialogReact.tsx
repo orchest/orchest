@@ -1,11 +1,14 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCDialog } from "@material/dialog";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCDialogReact extends React.Component {
+export class MDCDialogReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCDialog;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -39,6 +42,7 @@ export class MDCDialogReact extends React.Component {
         className="mdc-dialog"
         role="alertdialog"
         aria-modal="true"
+        // @ts-ignore
         tabIndex="0"
         aria-labelledby={"dialog-title-" + id_uuid}
         aria-describedby={"dialog-content-" + id_uuid}

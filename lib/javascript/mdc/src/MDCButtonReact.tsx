@@ -1,11 +1,14 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCRipple } from "@material/ripple";
 import { RefManager } from "@orchest/lib-utils";
 
 // used in orchest-webserver and orchest-authserver
-export class MDCButtonReact extends React.Component {
+export class MDCButtonReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCRipple;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -32,7 +35,6 @@ export class MDCButtonReact extends React.Component {
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
     }
-    topClasses = topClasses.join(" ");
 
     return (
       <button
@@ -45,7 +47,8 @@ export class MDCButtonReact extends React.Component {
         ref={this.refManager.nrefs.button}
         onClick={this.props.onClick}
         form={this.props.form}
-        className={topClasses}
+        className={topClasses.join(" ")}
+        // @ts-ignore
         tabIndex="0"
         type={this.props.submitButton ? "submit" : "button"}
       >

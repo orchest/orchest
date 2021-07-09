@@ -1,12 +1,16 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCFormField } from "@material/form-field";
 import { MDCCheckbox } from "@material/checkbox";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCCheckboxReact extends React.Component {
+export class MDCCheckboxReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCCheckbox;
+  mdcField: MDCFormField;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -38,11 +42,14 @@ export class MDCCheckboxReact extends React.Component {
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
     }
-    topClasses = topClasses.join(" ");
+
     let randomFor = uuidv4();
 
     return (
-      <div className={topClasses} ref={this.refManager.nrefs.formField}>
+      <div
+        className={topClasses.join(" ")}
+        ref={this.refManager.nrefs.formField}
+      >
         <div className="mdc-checkbox" ref={this.refManager.nrefs.checkbox}>
           <input
             type="checkbox"

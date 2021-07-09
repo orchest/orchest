@@ -1,11 +1,15 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCTextField } from "@material/textfield";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used in orchest-webserver and orchest-authserver
-export class MDCTextFieldReact extends React.Component {
+export class MDCTextFieldReact extends React.Component<any> {
+  refManager: RefManager;
+  ghostFocus: any;
+  mdc: MDCTextField;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -168,6 +172,7 @@ export class MDCTextFieldReact extends React.Component {
   }
 }
 
+// @ts-ignore
 MDCTextFieldReact.defaultProps = {
   inputType: "text",
 };

@@ -1,11 +1,14 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCLinearProgress } from "@material/linear-progress";
 import { RefManager } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCLinearProgressReact extends React.Component {
+export class MDCLinearProgressReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCLinearProgress;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -21,13 +24,12 @@ export class MDCLinearProgressReact extends React.Component {
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
     }
-    topClasses = topClasses.join(" ");
 
     return (
       <div
         role="progressbar"
         ref={this.refManager.nrefs.progress}
-        className={topClasses}
+        className={topClasses.join(" ")}
         aria-label="Progress Bar"
       >
         <div className="mdc-linear-progress__buffer">

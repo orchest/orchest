@@ -1,11 +1,14 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCCircularProgress } from "@material/circular-progress";
 import { RefManager } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCCircularProgressReact extends React.Component {
+export class MDCCircularProgressReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCCircularProgress;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();
@@ -24,15 +27,16 @@ export class MDCCircularProgressReact extends React.Component {
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
     }
-    topClasses = topClasses.join(" ");
 
     return (
       <div
         ref={this.refManager.nrefs.progress}
-        className={topClasses}
+        className={topClasses.join(" ")}
         role="progressbar"
         aria-label="Circular Progress Bar"
+        // @ts-ignore
         aria-valuemin="0"
+        // @ts-ignore
         aria-valuemax="1"
       >
         <div className="mdc-circular-progress__determinate-container">

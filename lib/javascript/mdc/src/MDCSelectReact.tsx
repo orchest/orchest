@@ -1,11 +1,14 @@
-// @ts-nocheck
 import * as React from "react";
 import { MDCSelect } from "@material/select";
 import { arraysEqual, RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCSelectReact extends React.Component {
+export class MDCSelectReact extends React.Component<any> {
+  refManager: RefManager;
+  mdc: MDCSelect;
+
   constructor() {
+    // @ts-ignore
     super();
 
     this.refManager = new RefManager();

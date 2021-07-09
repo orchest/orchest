@@ -1,9 +1,11 @@
-// @ts-nocheck
 import * as React from "react";
 import { RefManager } from "@orchest/lib-utils";
 import { MDCList } from "@material/list";
 
-export class MDCDrawerReact extends React.Component {
+export class MDCDrawerReact extends React.Component<any> {
+  refManager: RefManager;
+  list: MDCList;
+
   constructor(props) {
     super(props);
     this.refManager = new RefManager();
@@ -18,11 +20,13 @@ export class MDCDrawerReact extends React.Component {
 
     this.list.listen("MDCList:action", (e) => {
       if (this.props.action) {
+        // @ts-ignore
         this.list.selectedIndex = e.detail.index;
         this.props.action(
           e,
           this.props.items.filter((el) => {
             return typeof el != "string";
+            // @ts-ignore
           })[this.list.selectedIndex]
         );
       }
