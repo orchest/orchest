@@ -1,4 +1,3 @@
-// @ts-check
 import _ from "lodash";
 import Ajv from "ajv";
 
@@ -254,21 +253,18 @@ export function checkGate(project_uuid) {
         project_uuid: project_uuid,
       },
     })
-      .then(
-        /** @param {string} response */
-        (response) => {
-          try {
-            let json = JSON.parse(response);
-            if (json.validation === "pass") {
-              resolve();
-            } else {
-              reject({ reason: "gate-failed", data: json });
-            }
-          } catch (error) {
-            console.error(error);
+      .then((response: string) => {
+        try {
+          let json = JSON.parse(response);
+          if (json.validation === "pass") {
+            resolve(undefined);
+          } else {
+            reject({ reason: "gate-failed", data: json });
           }
+        } catch (error) {
+          console.error(error);
         }
-      )
+      })
       .catch((error) => {
         reject({ reason: "request-failed", error: error });
       });
@@ -276,6 +272,8 @@ export function checkGate(project_uuid) {
 }
 
 export class OverflowListener {
+  triggerOverflow: any;
+
   constructor() {}
 
   attach() {
@@ -304,6 +302,11 @@ export class OverflowListener {
 }
 
 export class BackgroundTaskPoller {
+  END_STATUSES: ["SUCCESS", "FAILURE"];
+  POLL_FREQUENCY: number;
+  taskCallbacks: any;
+  activeTasks: any;
+
   constructor() {
     this.END_STATUSES = ["SUCCESS", "FAILURE"];
     this.POLL_FREQUENCY = 3000;
@@ -341,8 +344,7 @@ export class BackgroundTaskPoller {
 
   requestStatus(taskUUID) {
     makeRequest("GET", `/async/background-tasks/${taskUUID}`).then(
-      /** @param {string} response */
-      (response) => {
+      (response: string) => {
         try {
           let data = JSON.parse(response);
           if (this.END_STATUSES.indexOf(data.status) !== -1) {
@@ -405,8 +407,8 @@ export function getPipelineJSONEndpoint(
 export function getPipelineStepParents(stepUUID, pipelineJSON) {
   let incomingConnections = [];
   for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if (step.uuid == stepUUID) {
-      incomingConnections = step.incoming_connections;
+    if ((step as any).uuid == stepUUID) {
+      incomingConnections = (step as any).incoming_connections;
       break;
     }
   }
@@ -423,7 +425,7 @@ export function getPipelineStepChildren(stepUUID, pipelineJSON) {
   let childSteps = [];
 
   for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if (step.incoming_connections.indexOf(stepUUID) !== -1) {
+    if ((step as any).incoming_connections.indexOf(stepUUID) !== -1) {
       childSteps.push(step);
     }
   }
@@ -606,7 +608,7 @@ export function loadIntercom(
     var d = document;
     var i = function () {
       i.c(arguments);
-    };
+    } as any;
     i.q = [];
     i.c = function (args) {
       i.q.push(args);

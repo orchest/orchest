@@ -176,4 +176,4 @@ export const pipelineSchema = {
   },
   required: ["name", "settings", "steps", "version"],
   type: "object",
-};
+} as const;
