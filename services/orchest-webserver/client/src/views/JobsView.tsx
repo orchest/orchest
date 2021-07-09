@@ -1,15 +1,15 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
+import type { IOrchestState } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import JobList from "@/components/JobList";
 import ProjectBasedView from "@/components/ProjectBasedView";
 
-/**
- * @param {Object} props
- * @param { import('../types').IOrchestState['project_uuid'] } props.project_uuid
- */
-const JobsView = (props) => {
+export interface IJobsViewProps {
+  project_uuid: IOrchestState["project_uuid"];
+}
+
+const JobsView: React.FC<IJobsViewProps> = (props) => {
   const { dispatch } = useOrchest();
 
   React.useEffect(() => {

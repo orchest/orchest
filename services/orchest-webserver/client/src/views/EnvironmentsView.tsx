@@ -1,15 +1,16 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
+import type { IOrchestState } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvironmentList from "@/components/EnvironmentList";
 import ProjectBasedView from "@/components/ProjectBasedView";
 
-/**
- * @param {Object} props
- * @param { import('../types').IOrchestState['project_uuid'] } props.project_uuid
- */
-const EnvironmentsView = (props) => {
+export interface IEnvironmentsViewProps {
+  project_uuid: IOrchestState["project_uuid"];
+  queryArgs?: any;
+}
+
+const EnvironmentsView: React.FC<IEnvironmentsViewProps> = (props) => {
   const { dispatch } = useOrchest();
 
   React.useEffect(() => {

@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import io from "socket.io-client";
 import _ from "lodash";
 

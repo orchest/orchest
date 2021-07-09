@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   PromiseManager,
@@ -15,7 +14,7 @@ import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import PipelinesView from "@/views/PipelinesView";
 
-const JupyterLabView = (props) => {
+const JupyterLabView: React.FC<any> = (props) => {
   const { state, dispatch, get } = useOrchest();
 
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(

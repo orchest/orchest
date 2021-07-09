@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
@@ -10,14 +9,13 @@ import {
   PromiseManager,
   makeCancelable,
 } from "@orchest/lib-utils";
-import { OrchestContext, useOrchest } from "@/hooks/orchest";
+import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import UpdateView from "@/views/UpdateView";
 import ManageUsersView from "@/views/ManageUsersView";
 import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
 
-/** @type React.FC<{}> */
-const SettingsView = () => {
+const SettingsView: React.FC<any> = () => {
   const { orchest } = window;
 
   const context = useOrchest();
@@ -131,35 +129,32 @@ const SettingsView = () => {
         .catch((e) => {
           console.error(e);
         })
-        .then(
-          /** @param {string} data */
-          (data) => {
-            let shouldReload = false;
+        .then((data: string) => {
+          let shouldReload = false;
 
-            try {
-              let configJSON = JSON.parse(data);
+          try {
+            let configJSON = JSON.parse(data);
 
-              setState((prevState) => ({
-                ...prevState,
-                configJSON,
-                config: JSON.stringify(
-                  configToVisibleConfig(configJSON),
-                  null,
-                  2
-                ),
-              }));
+            setState((prevState) => ({
+              ...prevState,
+              configJSON,
+              config: JSON.stringify(
+                configToVisibleConfig(configJSON),
+                null,
+                2
+              ),
+            }));
 
-              // Refresh the page when auth gets enabled in the config.
-              shouldReload = configJSON.AUTH_ENABLED && !authWasEnabled;
-            } catch (error) {
-              console.warn("Received invalid JSON config from the server.");
-            }
-
-            if (shouldReload) {
-              location.reload();
-            }
+            // Refresh the page when auth gets enabled in the config.
+            shouldReload = configJSON.AUTH_ENABLED && !authWasEnabled;
+          } catch (error) {
+            console.warn("Received invalid JSON config from the server.");
           }
-        );
+
+          if (shouldReload) {
+            location.reload();
+          }
+        });
     } catch (error) {
       console.error(error);
       console.error("Tried to save config which is invalid JSON.");

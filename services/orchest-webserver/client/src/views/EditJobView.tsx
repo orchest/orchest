@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import _ from "lodash";
 import {
   MDCTabBarReact,
@@ -31,7 +30,7 @@ import EnvVarList from "@/components/EnvVarList";
 import JobView from "@/views/JobView";
 import JobsView from "@/views/JobsView";
 
-const EditJobView = (props) => {
+const EditJobView: React.FC<any> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();
@@ -368,8 +367,10 @@ const EditJobView = (props) => {
         );
       }
 
+      // @ts-ignore
       jobPUTData.next_scheduled_time = formValueScheduledStart;
     } else if (state.scheduleOption === "cron") {
+      // @ts-ignore
       jobPUTData.cron_schedule = state.cronString;
     }
     // Else: both entries are undefined, the run is considered to be
@@ -649,7 +650,7 @@ const EditJobView = (props) => {
     <Layout>
       <div className="view-page job-view">
         {state.job && state.pipeline ? (
-          <Fragment>
+          <React.Fragment>
             <DescriptionList
               gap="5"
               columnGap="10"
@@ -838,7 +839,7 @@ const EditJobView = (props) => {
                 icon="close"
               />
             </div>
-          </Fragment>
+          </React.Fragment>
         ) : (
           <MDCLinearProgressReact />
         )}

@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/python/python";
 import "codemirror/mode/shell/shell";
@@ -26,9 +25,9 @@ const MODE_MAPPING = {
   py: "text/x-python",
   sh: "text/x-sh",
   r: "text/x-rsrc",
-};
+} as const;
 
-const FilePreviewView = (props) => {
+const FilePreviewView: React.FC<any> = (props) => {
   const { orchest } = window;
 
   const [state, setState] = React.useState({
@@ -103,7 +102,7 @@ const FilePreviewView = (props) => {
             ),
           }));
 
-          resolve();
+          resolve(undefined);
         })
         .catch((err) => {
           console.log(err);
@@ -129,7 +128,7 @@ const FilePreviewView = (props) => {
             ...prevState,
             loadingFile: false,
           }));
-          resolve();
+          resolve(undefined);
         })
         .catch(() => {
           setState((prevState) => ({
@@ -159,7 +158,7 @@ const FilePreviewView = (props) => {
             ...prevState,
             fileDescription: JSON.parse(response),
           }));
-          resolve();
+          resolve(undefined);
         })
         .catch((err) => {
           console.log(err);
@@ -353,7 +352,7 @@ const FilePreviewView = (props) => {
             }
 
             return (
-              <Fragment>
+              <React.Fragment>
                 <div className="file-description">
                   <h3>
                     Step: {state.fileDescription.step_title} (
@@ -371,7 +370,7 @@ const FilePreviewView = (props) => {
                   </div>
                 </div>
                 <div className="file-holder">{fileComponent}</div>
-              </Fragment>
+              </React.Fragment>
             );
           }
         })()}

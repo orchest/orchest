@@ -1,7 +1,6 @@
-// @ts-check
+import * as React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
-import React from "react";
 import {
   uuidv4,
   makeRequest,
@@ -15,7 +14,7 @@ import ImageBuildLog from "@/components/ImageBuildLog";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const ConfigureJupyterLabView = () => {
+const ConfigureJupyterLabView: React.FC = () => {
   const context = useOrchest();
 
   const { orchest } = window;

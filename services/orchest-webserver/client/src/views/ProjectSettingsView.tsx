@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import ProjectsView from "./ProjectsView";
 import {
   makeRequest,
@@ -19,7 +18,7 @@ import PipelinesView from "@/views/PipelinesView";
 import JobsView from "@/views/JobsView";
 import EnvironmentsView from "@/views/EnvironmentsView";
 
-const ProjectSettingsView = (props) => {
+const ProjectSettingsView: React.FC<any> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();

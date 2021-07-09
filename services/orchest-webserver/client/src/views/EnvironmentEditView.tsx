@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
 import { uuidv4 } from "@orchest/lib-utils";
@@ -27,7 +26,7 @@ import EnvironmentsView from "@/views/EnvironmentsView";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const EnvironmentEditView = (props) => {
+const EnvironmentEditView: React.FC<any> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();
@@ -111,23 +110,20 @@ const EnvironmentEditView = (props) => {
             environment: state.environment,
           },
         })
-          .then(
-            /** @param {string} response */
-            (response) => {
-              let result = JSON.parse(response);
+          .then((response: string) => {
+            let result = JSON.parse(response);
 
-              state.environment.uuid = result.uuid;
+            state.environment.uuid = result.uuid;
 
-              setState((prevState) => ({
-                ...prevState,
-                environment: state.environment,
-                newEnvironment: false,
-                unsavedChanges: false,
-              }));
+            setState((prevState) => ({
+              ...prevState,
+              environment: state.environment,
+              newEnvironment: false,
+              unsavedChanges: false,
+            }));
 
-              resolve();
-            }
-          )
+            resolve(undefined);
+          })
           .catch((error) => {
             console.log(error);
 
@@ -274,7 +270,7 @@ const EnvironmentEditView = (props) => {
             </div>
           }
           actions={
-            <Fragment>
+            <React.Fragment>
               <MDCButtonReact
                 classNames={["push-right"]}
                 label="Cancel"
@@ -287,7 +283,7 @@ const EnvironmentEditView = (props) => {
                 submitButton
                 onClick={submitAddCustomBaseImage.bind(this)}
               />
-            </Fragment>
+            </React.Fragment>
           }
         />
       ),
@@ -451,7 +447,7 @@ const EnvironmentEditView = (props) => {
             {
               {
                 0: (
-                  <Fragment>
+                  <React.Fragment>
                     <div className="environment-properties">
                       <MDCTextFieldReact
                         classNames={["fullwidth", "push-down-7"]}
@@ -582,7 +578,7 @@ const EnvironmentEditView = (props) => {
                         }
                       })()}
                     </div>
-                  </Fragment>
+                  </React.Fragment>
                 ),
                 1: (
                   <>

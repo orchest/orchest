@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   checkHeartbeat,
@@ -10,8 +9,7 @@ import {
 import { Layout } from "@/components/Layout";
 import { useInterval } from "@/hooks/use-interval";
 
-/** @type React.FC<{}> */
-const UpdateView = () => {
+const UpdateView: React.FC<null> = () => {
   const { orchest } = window;
 
   const [state, setState] = React.useState((prevState) => ({
@@ -139,7 +137,7 @@ const UpdateView = () => {
           }
 
           return (
-            <Fragment>
+            <React.Fragment>
               <MDCButtonReact
                 classNames={["push-down"]}
                 label="Start update"
@@ -149,7 +147,7 @@ const UpdateView = () => {
               />
 
               {elements}
-            </Fragment>
+            </React.Fragment>
           );
         })()}
       </div>

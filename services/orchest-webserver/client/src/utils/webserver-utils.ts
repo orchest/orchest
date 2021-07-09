@@ -433,7 +433,7 @@ export function getPipelineStepChildren(stepUUID, pipelineJSON) {
   return childSteps;
 }
 
-export function setWithRetry(value, setter, getter, retries, delay, interval) {
+export function setWithRetry(value, setter, getter, retries, delay, interval?) {
   if (retries == 0) {
     console.warn("Failed to set with retry for setter (timeout):", setter);
     clearInterval(interval);

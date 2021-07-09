@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
@@ -41,7 +40,7 @@ import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import PipelineView from "@/views/PipelineView";
 
-const PipelineSettingsView = (props) => {
+const PipelineSettingsView: React.FC<any> = (props) => {
   const orchest = window.orchest;
 
   const { dispatch, get } = useOrchest();
@@ -520,26 +519,23 @@ const PipelineSettingsView = (props) => {
       `/async/pipelines/json/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`,
       { type: "FormData", content: formData }
     )
-      .then(
-        /** @param {string} response */
-        (response) => {
-          let result = JSON.parse(response);
-          if (result.success) {
-            setState((prevState) => ({
-              ...prevState,
-              unsavedChanges: false,
-            }));
+      .then((response: string) => {
+        let result = JSON.parse(response);
+        if (result.success) {
+          setState((prevState) => ({
+            ...prevState,
+            unsavedChanges: false,
+          }));
 
-            // Sync name changes with the global context
-            dispatch({
-              type: "pipelineSet",
-              payload: {
-                pipelineName: pipelineJson?.name,
-              },
-            });
-          }
+          // Sync name changes with the global context
+          dispatch({
+            type: "pipelineSet",
+            payload: {
+              pipelineName: pipelineJson?.name,
+            },
+          });
         }
-      )
+      })
       .catch((response) => {
         console.error("Could not save: pipeline definition OR Notebook JSON");
         console.error(response);

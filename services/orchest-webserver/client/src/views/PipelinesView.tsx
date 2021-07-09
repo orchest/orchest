@@ -1,15 +1,16 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
+import type { IOrchestState } from "@/types";
+
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import PipelineList from "@/components/PipelineList";
 import ProjectBasedView from "@/components/ProjectBasedView";
 
-/**
- * @param {Object} props
- * @param { import('../types').IOrchestState['project_uuid'] } props.project_uuid
- */
-const PipelinesView = (props) => {
+export interface IPipelinesViewProps {
+  project_uuid: IOrchestState["project_uuid"];
+}
+
+const PipelinesView: React.FC<IPipelinesViewProps> = (props) => {
   const { dispatch } = useOrchest();
 
   React.useEffect(() => {

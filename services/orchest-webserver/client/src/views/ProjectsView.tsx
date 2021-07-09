@@ -1,5 +1,4 @@
-// @ts-check
-import React, { Fragment } from "react";
+import * as React from "react";
 import {
   MDCButtonReact,
   MDCDataTableReact,
@@ -25,9 +24,9 @@ const ERROR_MAPPING = {
   "project move failed": "failed to move project because the directory exists.",
   "project name contains illegal character":
     "project name contains illegal character(s).",
-};
+} as const;
 
-const ProjectsView = (props) => {
+const ProjectsView: React.FC<any> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();
@@ -92,8 +91,7 @@ const ProjectsView = (props) => {
     return listData;
   };
 
-  /** @param {string} [fetchListAndSetProject] */
-  const fetchList = (fetchListAndSetProject) => {
+  const fetchList = (fetchListAndSetProject?: string) => {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
       makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
@@ -309,40 +307,37 @@ const ProjectsView = (props) => {
 
     // only add project_name if use entered a value in the form
     if (gitProjectName.length > 0) {
-      jsonData.project_name = gitProjectName;
+      (jsonData as any).project_name = gitProjectName;
     }
 
     makeRequest("POST", `/async/projects/import-git`, {
       type: "json",
       content: jsonData,
-    }).then(
-      /** @param {string} response */
-      (response) => {
-        let data = JSON.parse(response);
+    }).then((response: string) => {
+      let data = JSON.parse(response);
 
-        backgroundTaskPoller.startPollingBackgroundTask(data.uuid, (result) => {
+      backgroundTaskPoller.startPollingBackgroundTask(data.uuid, (result) => {
+        setState((prevState) => ({
+          ...prevState,
+          importResult: result,
+
+          // This way the modal will not be reopened if it was closed
+          // by the user.
+          showImportModal:
+            prevState.showImportModal && result.status != "SUCCESS",
+        }));
+
+        if (result.status == "SUCCESS") {
           setState((prevState) => ({
             ...prevState,
-            importResult: result,
-
-            // This way the modal will not be reopened if it was closed
-            // by the user.
-            showImportModal:
-              prevState.showImportModal && result.status != "SUCCESS",
+            import_project_name: "",
+            import_url: "",
           }));
+        }
 
-          if (result.status == "SUCCESS") {
-            setState((prevState) => ({
-              ...prevState,
-              import_project_name: "",
-              import_url: "",
-            }));
-          }
-
-          fetchList(result.status === "SUCCESS" ? result.result : undefined);
-        });
-      }
-    );
+        fetchList(result.status === "SUCCESS" ? result.result : undefined);
+      });
+    });
   };
 
   const onCancelModal = () => {
@@ -480,7 +475,7 @@ const ProjectsView = (props) => {
                   </div>
                 }
                 actions={
-                  <Fragment>
+                  <React.Fragment>
                     <MDCButtonReact
                       icon="close"
                       label="Close"
@@ -501,7 +496,7 @@ const ProjectsView = (props) => {
                       submitButton
                       onClick={onSubmitImport.bind(this)}
                     />
-                  </Fragment>
+                  </React.Fragment>
                 }
               />
             );
@@ -524,7 +519,7 @@ const ProjectsView = (props) => {
                   />
                 }
                 actions={
-                  <Fragment>
+                  <React.Fragment>
                     <MDCButtonReact
                       icon="close"
                       label="Cancel"
@@ -538,7 +533,7 @@ const ProjectsView = (props) => {
                       submitButton
                       onClick={onSubmitModal.bind(this)}
                     />
-                  </Fragment>
+                  </React.Fragment>
                 }
               />
             );
@@ -552,7 +547,7 @@ const ProjectsView = (props) => {
             return <MDCLinearProgressReact />;
           } else {
             return (
-              <Fragment>
+              <React.Fragment>
                 <div className="push-down">
                   <MDCButtonReact
                     classNames={[
@@ -594,7 +589,7 @@ const ProjectsView = (props) => {
                   ]}
                   rows={state.listData}
                 />
-              </Fragment>
+              </React.Fragment>
             );
           }
         })()}

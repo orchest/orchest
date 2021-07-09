@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { PieChart } from "react-minimal-pie-chart";
 import { Box, Flex, Text } from "@orchest/design-system";
 import cronstrue from "cronstrue";
@@ -23,7 +22,7 @@ import {
 } from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
 import { DescriptionList } from "@/components/DescriptionList";
-import { StatusInline, StatusGroup } from "@/components/Status";
+import { StatusInline, StatusGroup, TStatus } from "@/components/Status";
 import ParamTree from "@/components/ParamTree";
 import ParameterEditor from "@/components/ParameterEditor";
 import SearchableTable from "@/components/SearchableTable";
@@ -32,29 +31,23 @@ import PipelineView from "@/views/PipelineView";
 import EditJobView from "@/views/EditJobView";
 import JobsView from "@/views/JobsView";
 
-/**
- * JobView-specific Type Definitions
- *
- * @typedef {import("../components/Status").TStatus} TStatus
- *
- * @typedef {Extract<
- *  TStatus,
- *  "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED"
- * >} TSharedStatus
- *
- * @typedef {TSharedStatus | Extract<TStatus, "DRAFT">} TJobStatus
- *
- * @typedef {TSharedStatus} TPipelineRunStatus
- * @typedef {Record<TPipelineRunStatus, number>} TPipelineRunStatusTotals
- * @typedef {{status: TPipelineRunStatus}} TPipelineRun
- */
+type TSharedStatus = Extract<
+  TStatus,
+  "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED"
+>;
+type TJobStatus = TStatus | "DRAFT";
 
-/**
- * @param {Object} props
- * @param {TJobStatus} [props.status]
- * @param {TPipelineRun[]} [props.pipeline_runs]
- */
-const JobStatus = ({ status, pipeline_runs = [] }) => {
+type TPipelineRun = { status: TSharedStatus };
+
+interface IJobStatusProps {
+  status?: TJobStatus;
+  pipeline_runs?: TPipelineRun[];
+}
+
+const JobStatus: React.FC<IJobStatusProps> = ({
+  status,
+  pipeline_runs = [],
+}) => {
   const count = pipeline_runs.reduce(
     (acc, cv, i) =>
       cv && {
@@ -157,11 +150,11 @@ const JobStatus = ({ status, pipeline_runs = [] }) => {
   );
 };
 
-/**
- * @param {Object} props
- * @param {{job_uuid: string}} props.queryArgs
- */
-const JobView = (props) => {
+export interface IJobViewProps {
+  queryArgs?: { job_uuid: string };
+}
+
+const JobView: React.FC<IJobViewProps> = (props) => {
   const orchest = window.orchest;
 
   const { dispatch } = useOrchest();
@@ -190,26 +183,23 @@ const JobView = (props) => {
     makeRequest(
       "GET",
       `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}`
-    ).then(
-      /** @param {string} response */
-      (response) => {
-        try {
-          let job = JSON.parse(response);
+    ).then((response: string) => {
+      try {
+        let job = JSON.parse(response);
 
-          setState((prevState) => ({
-            ...prevState,
-            job,
-            refreshing: false,
-            envVariables: envVariablesDictToArray(job["env_variables"]),
-          }));
+        setState((prevState) => ({
+          ...prevState,
+          job,
+          refreshing: false,
+          envVariables: envVariablesDictToArray(job["env_variables"]),
+        }));
 
-          fetchPipeline(job);
-        } catch (error) {
-          setState((prevState) => ({ ...prevState, refreshing: false }));
-          console.error("Failed to fetch job.", error);
-        }
+        fetchPipeline(job);
+      } catch (error) {
+        setState((prevState) => ({ ...prevState, refreshing: false }));
+        console.error("Failed to fetch job.", error);
       }
-    );
+    });
   };
 
   const fetchPipeline = (job) => {
@@ -219,20 +209,17 @@ const JobView = (props) => {
       job.uuid
     );
 
-    makeRequest("GET", pipelineJSONEndpoint).then(
-      /** @param {string} response */
-      (response) => {
-        let result = JSON.parse(response);
-        if (result.success) {
-          let pipeline = JSON.parse(result["pipeline_json"]);
+    makeRequest("GET", pipelineJSONEndpoint).then((response: string) => {
+      let result = JSON.parse(response);
+      if (result.success) {
+        let pipeline = JSON.parse(result["pipeline_json"]);
 
-          setState((prevState) => ({ ...prevState, pipeline }));
-        } else {
-          console.warn("Could not load pipeline.json");
-          console.log(result);
-        }
+        setState((prevState) => ({ ...prevState, pipeline }));
+      } else {
+        console.warn("Could not load pipeline.json");
+        console.log(result);
       }
-    );
+    });
   };
 
   const reload = () => {

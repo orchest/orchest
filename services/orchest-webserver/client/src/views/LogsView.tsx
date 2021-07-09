@@ -1,5 +1,4 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import PipelineView from "./PipelineView";
 import io from "socket.io-client";
 
@@ -23,7 +22,7 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/components/LogViewer";
 
-const LogsView = (props) => {
+const LogsView: React.FC<any> = (props) => {
   const orchest = window.orchest;
   const { dispatch, get } = useOrchest();
   const [promiseManager] = React.useState(new PromiseManager());
@@ -229,16 +228,13 @@ const LogsView = (props) => {
     makeRequest(
       "GET",
       `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}`
-    ).then(
-      /** @param {string} response */
-      (response) => {
-        try {
-          setJob(JSON.parse(response));
-        } catch (error) {
-          console.error("Failed to fetch job.", error);
-        }
+    ).then((response: string) => {
+      try {
+        setJob(JSON.parse(response));
+      } catch (error) {
+        console.error("Failed to fetch job.", error);
       }
-    );
+    });
   };
 
   const hasLoaded = () => {

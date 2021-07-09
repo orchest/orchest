@@ -1,10 +1,9 @@
-// @ts-check
-import React from "react";
+import * as React from "react";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import { Layout, useLayout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
 
-const HelpView = () => {
+const HelpView: React.FC = () => {
   const { state } = useOrchest();
   const { setIsOnboardingDialogOpen } = useLayout();
 
