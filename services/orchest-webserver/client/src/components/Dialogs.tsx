@@ -4,13 +4,13 @@ import { uuidv4 } from "@orchest/lib-utils";
 import ConfirmDialog from "./ConfirmDialog";
 import BuildPendingDialog from "./BuildPendingDialog";
 
-function newslines2breaks(lines) {
+function newslines2breaks(lines: string) {
   if (lines === undefined) {
     return [];
   }
 
   // subtitute newlines for line breaks
-  let linesArr = lines.spslit("\n");
+  let linesArr = lines.split("\n");
 
   let lineElements = linesArr.map((line, index) => {
     if (index !== linesArr.length - 1) {
