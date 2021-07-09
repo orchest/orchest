@@ -1,7 +1,12 @@
-// @ts-check
 import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
+  jupyterHolder: any;
+  iframe: any;
+  baseAddress: string;
+  reloadOnShow: boolean;
+  pendingKernelChanges: any;
+
   constructor(jupyterHolderJEl) {
     // @ts-ignore
     this.jupyterHolder = $(jupyterHolderJEl);
@@ -233,6 +238,7 @@ class Jupyter {
       return;
     }
 
+    // @ts-ignore
     tryUntilTrue(
       () => {
         if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
