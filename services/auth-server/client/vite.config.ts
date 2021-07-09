@@ -19,7 +19,7 @@ export default defineConfig({
     },
   },
   css: {
-    preprocessOptions: {
+    preprocessorOptions: {
       scss: {
         includePaths: ["node_modules"],
       },
