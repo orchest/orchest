@@ -3,7 +3,6 @@
   <img src="docs/source/img/logo.png" width="350px" />
 </a>
 </p>
-<br/>
 
 <p align="center">
 <a href=https://orchest.readthedocs.io/en/stable>
