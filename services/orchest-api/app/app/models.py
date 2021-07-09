@@ -38,6 +38,7 @@ class BaseModel(db.Model):
                 ans[key] = copy.deepcopy(value)
         return ans
 
+
 class Project(BaseModel):
     __tablename__ = "projects"
 
