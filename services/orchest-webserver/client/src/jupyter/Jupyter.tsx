@@ -238,7 +238,6 @@ class Jupyter {
       return;
     }
 
-    // @ts-ignore
     tryUntilTrue(
       () => {
         if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {

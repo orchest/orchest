@@ -389,8 +389,8 @@ export function cleanServerDateTime(dateTimeString) {
 export function getPipelineJSONEndpoint(
   pipeline_uuid,
   project_uuid,
-  job_uuid,
-  pipeline_run_uuid
+  job_uuid?,
+  pipeline_run_uuid?
 ) {
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
@@ -464,7 +464,7 @@ export function setWithRetry(value, setter, getter, retries, delay, interval) {
   }
 }
 
-export function tryUntilTrue(action, retries, delay, interval) {
+export function tryUntilTrue(action, retries, delay, interval?) {
   let hasWorked = false;
 
   setWithRetry(
