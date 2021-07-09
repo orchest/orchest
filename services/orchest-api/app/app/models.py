@@ -31,13 +31,12 @@ class BaseModel(db.Model):
 
         Can be used to sanitize a status update.
         """
-        data = copy.deepcopy(data)
+        ans = {}
         columns = [c.name for c in cls.__table__.columns]
-        for key in list(data.keys()):
-            if key not in columns:
-                data.pop(key)
-        return data
-
+        for key, value in data.items():
+            if key in columns:
+                ans[key] = copy.deepcopy(value)
+        return ans
 
 class Project(BaseModel):
     __tablename__ = "projects"
