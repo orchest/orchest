@@ -85,12 +85,6 @@ The software in this repository is licensed as follows:
   "Apache-2.0" license as defined in "orchest-sdk/LICENSE".
 - Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
 
-## We love your feedback
-
-We would love to hear what you think and add features based on your ideas. Come chat
-with us on [our Slack Channel](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
-or open an [issue on GitHub](https://github.com/orchest/orchest/issues).
-
 ## Contributing
 
 Contributions are more than welcome! Please see our
