@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCLinearProgress } from "@material/linear-progress";
 import { RefManager } from "@orchest/lib-utils";
 

@@ -1,4 +1,5 @@
-import React, { Fragment } from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCRipple } from "@material/ripple";
 import { RefManager } from "@orchest/lib-utils";
 
@@ -53,12 +54,12 @@ export class MDCButtonReact extends React.Component {
         {(() => {
           if (this.props.icon && this.props.label !== undefined) {
             return (
-              <Fragment>
+              <React.Fragment>
                 <i className="material-icons mdc-button__icon">
                   {this.props.icon}
                 </i>
                 <span className="mdc-button__label">{this.props.label}</span>
-              </Fragment>
+              </React.Fragment>
             );
           }
           if (this.props.icon) {

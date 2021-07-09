@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCTabBar } from "@material/tab-bar";
 import { RefManager } from "@orchest/lib-utils";
 

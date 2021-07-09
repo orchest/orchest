@@ -1,4 +1,5 @@
-import React, { Fragment } from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCTextField } from "@material/textfield";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 
@@ -98,11 +99,11 @@ export class MDCTextFieldReact extends React.Component {
     }
 
     let label = (
-      <Fragment>
+      <React.Fragment>
         <label className="mdc-floating-label" htmlFor={randomFor}>
           {this.props.label}
         </label>
-      </Fragment>
+      </React.Fragment>
     );
 
     let iconRight;
@@ -121,7 +122,7 @@ export class MDCTextFieldReact extends React.Component {
 
     if (this.props.notched === true) {
       label = (
-        <Fragment>
+        <React.Fragment>
           <div className="mdc-notched-outline mdc-notched-outline--upgraded">
             <div className="mdc-notched-outline__leading"></div>
             <div className="mdc-notched-outline__notch">
@@ -131,7 +132,7 @@ export class MDCTextFieldReact extends React.Component {
             </div>
             <div className="mdc-notched-outline__trailing"></div>
           </div>
-        </Fragment>
+        </React.Fragment>
       );
     }
 

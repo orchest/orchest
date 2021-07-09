@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCCircularProgress } from "@material/circular-progress";
 import { RefManager } from "@orchest/lib-utils";
 

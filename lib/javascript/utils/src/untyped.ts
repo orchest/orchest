@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 
 // used in orchest-webserver and mdc-components only
 export class RefManager {

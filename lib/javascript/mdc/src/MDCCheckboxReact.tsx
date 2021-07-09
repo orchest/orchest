@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCFormField } from "@material/form-field";
 import { MDCCheckbox } from "@material/checkbox";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";

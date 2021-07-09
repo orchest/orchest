@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCDataTable } from "@material/data-table";
 import { RefManager, someParentHasClass } from "@orchest/lib-utils";
 

@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { MDCIconButtonToggle } from "@material/icon-button";
 import { RefManager } from "@orchest/lib-utils";
 

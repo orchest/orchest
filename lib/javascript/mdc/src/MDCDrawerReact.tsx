@@ -1,4 +1,5 @@
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { RefManager } from "@orchest/lib-utils";
 import { MDCList } from "@material/list";
 
