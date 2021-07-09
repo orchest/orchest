@@ -1,13 +1,7 @@
-// @ts-check
-import React from "react";
-import { icon } from "@orchest/design-system";
+import * as React from "react";
+import { icon, IIconRef, IIconProps } from "@orchest/design-system";
 
-/**
- * @typedef {import('@orchest/design-system').IIconProps} IIconProps
- */
-
-/** @type {React.FC<IIconProps>}  */
-export const IconPostgreSQL = React.forwardRef(
+export const IconPostgreSQL = React.forwardRef<IIconRef, IIconProps>(
   ({ className, css, size, ...props }, ref) => (
     <svg
       ref={ref}
@@ -88,8 +82,7 @@ export const IconPostgreSQL = React.forwardRef(
   )
 );
 
-/** @type {React.FC<IIconProps>}  */
-export const IconRedis = React.forwardRef(
+export const IconRedis = React.forwardRef<IIconRef, IIconProps>(
   ({ className, css, size, ...props }, ref) => (
     <svg
       ref={ref}
@@ -139,8 +132,7 @@ export const IconRedis = React.forwardRef(
   )
 );
 
-/** @type {React.FC<IIconProps>}  */
-export const IconStreamlit = React.forwardRef(
+export const IconStreamlit = React.forwardRef<IIconRef, IIconProps>(
   ({ className, css, size, ...props }, ref) => (
     <svg
       ref={ref}
@@ -166,8 +158,7 @@ export const IconStreamlit = React.forwardRef(
   )
 );
 
-/** @type {React.FC<IIconProps>}  */
-export const IconTensorBoard = React.forwardRef(
+export const IconTensorBoard = React.forwardRef<IIconRef, IIconProps>(
   ({ className, css, size, ...props }, ref) => (
     <svg
       ref={ref}
@@ -213,8 +204,7 @@ export const IconTensorBoard = React.forwardRef(
   )
 );
 
-/** @type {React.FC<IIconProps>}  */
-export const IconVSCode = React.forwardRef(
+export const IconVSCode = React.forwardRef<IIconRef, IIconProps>(
   ({ className, css, size, ...props }, ref) => (
     <svg
       ref={ref}
