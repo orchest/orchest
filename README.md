@@ -17,10 +17,11 @@
 </a>
 <a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>
   <img src="https://img.shields.io/badge/Slack-blue?style=flat&logo=slack&labelColor=5c5c5c">
-</a> 
+</a>
 </p>
 
 ## Hello, world! 👋
+
 Orchest is a browser based IDE for Data Science. It integrates your favorite Data Science tools out
 of the box, so you don’t have to. The application is easy to use and can run on your laptop as well
 as on a large scale cloud cluster.
@@ -31,8 +32,8 @@ as on a large scale cloud cluster.
   <i>A preview of creating pipelines in Orchest. Watch the <a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ">full video</a> to learn more</a></i>.
  </p>
 
-Read the [docs](https://orchest.readthedocs.io/en/stable/); get the 
-[code](https://github.com/orchest/orchest#installation); ask us 
+Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
+[code](https://github.com/orchest/orchest#installation); ask us
 [anything](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)!
 
 ## Features
@@ -97,6 +98,7 @@ The software in this repository is licensed as follows:
 - Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
 
 ## Slack Community
+
 Join our Slack to chat about Orchest, ask questions, and share tips.
 
 [![Join us on Slack](https://img.shields.io/badge/%20-Join%20us%20on%20Slack-blue?style=for-the-badge&logo=slack&labelColor=5c5c5c)](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
