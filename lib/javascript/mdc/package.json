@@ -6,7 +6,7 @@
   "license": "AGPL-3.0-only",
   "main": "src/index.ts",
   "scripts": {
-    "ts:check": "tsc -p tsconfig.json --noEmit --incremental"
+    "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
     "@orchest/lib-utils": "workspace:*",
