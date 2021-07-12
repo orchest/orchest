@@ -1,11 +1,15 @@
 {
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    "outDir": "dist",
+    "baseUrl": "./",
+    "declaration": true,
+    "declarationMap":true,
     "paths": {
       // required to prevent transient dependency warnings
-      "@stitches/core": ["node_modules/@stitches/core"]
-    }
+      "@stitches/core": ["node_modules/@stitches/core"],
+      "@stitches/react": ["node_modules/@stitches/react"]
+    },
   },
   "ts-node": {
     "compilerOptions": {

@@ -18,7 +18,7 @@
     "postbuild": "ts-node -r tsconfig-paths/register src/scripts/post-build.ts",
     "prepublishOnly": "pnpm run build && pnpm run postbuild",
     "ts:build": "tsc --emitDeclarationOnly --outDir dist",
-    "ts:check": "tsc -p tsconfig.json --noEmit --incremental"
+    "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
     "react": "^16.13.1",
