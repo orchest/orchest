@@ -1,5 +1,5 @@
-// @ts-check
-import React from "react";
+// @ts-nocheck
+import * as React from "react";
 import { globalMDCVars } from "@orchest/lib-utils";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
