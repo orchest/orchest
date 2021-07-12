@@ -219,12 +219,19 @@ def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
 def are_environment_variables_valid(env_variables: Dict[str, str]) -> bool:
     return isinstance(env_variables, dict) and all(
         [
-            isinstance(var, str)
-            and re.match(r"^[0-9a-zA-Z\-_]+$", var)
-            and isinstance(value, str)
+            is_env_var_name_valid(var) and isinstance(value, str)
             for var, value in env_variables.items()
         ]
     )
+
+
+def is_env_var_name_valid(name: str) -> bool:
+    # Needs to be kept in sync with the FE.
+    return isinstance(name, str) and re.match(r"^[0-9a-zA-Z\-_]+$", name)
+
+
+def make_env_var_name_valid(name: str) -> str:
+    return re.sub("[^0-9a-zA-Z\-_]", "_", name)
 
 
 def is_service_name_valid(service_name: str) -> bool:
@@ -261,7 +268,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and isinstance(service.get("env_variables_inherit", []), list)
         and all(
             [
-                isinstance(var, str) and var
+                is_env_var_name_valid(var)
                 for var in service.get("env_variables_inherit", [])
             ]
         )
