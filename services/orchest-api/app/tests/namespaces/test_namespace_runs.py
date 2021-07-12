@@ -33,12 +33,12 @@ def test_runlist_post_success(client, celery, pipeline):
 
 def test_runlist_post_success_env_vars(client, celery, pipeline):
     # Prepare proj/pipeline env variables.
-    proj_env_vars = {"var1": 1, "var2": 2}
+    proj_env_vars = {"var1": "1", "var2": "2"}
     client.put(
         f"/api/projects/{pipeline.project.uuid}", json={"env_variables": proj_env_vars}
     )
 
-    pipe_env_vars = {"var2": "overwritten", "var3": 3}
+    pipe_env_vars = {"var2": "overwritten", "var3": "3"}
     client.put(
         f"/api/pipelines/{pipeline.project.uuid}/{pipeline.uuid}",
         json={"env_variables": pipe_env_vars},

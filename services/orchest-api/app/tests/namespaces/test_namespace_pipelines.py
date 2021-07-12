@@ -11,7 +11,7 @@ def test_pipelinelist_post(client, project):
     pipeline = {
         "project_uuid": project.uuid,
         "uuid": gen_uuid(),
-        "env_variables": {"a": [1]},
+        "env_variables": {"a": "[1]"},
     }
     client.post("/api/pipelines/", json=pipeline)
 
@@ -26,7 +26,7 @@ def test_pipelinelist_post_no_project(client):
     pipeline = {
         "project_uuid": gen_uuid(),
         "uuid": gen_uuid(),
-        "env_variables": {"a": [1]},
+        "env_variables": {"a": "[1]"},
     }
     resp = client.post("/api/pipelines/", json=pipeline)
 
@@ -37,7 +37,7 @@ def test_pipelinelist_post_same_uuid(client, project):
     pipeline = {
         "project_uuid": project.uuid,
         "uuid": gen_uuid(),
-        "env_variables": {"a": [1]},
+        "env_variables": {"a": "[1]"},
     }
 
     resp1 = client.post("/api/pipelines/", json=pipeline)
@@ -53,7 +53,7 @@ def test_pipelinelist_post_n(client, project):
         pipeline = {
             "project_uuid": project.uuid,
             "uuid": gen_uuid(),
-            "env_variables": {"a": [1]},
+            "env_variables": {"a": "[1]"},
         }
         client.post("/api/pipelines/", json=pipeline)
 
@@ -65,7 +65,7 @@ def test_pipeline_get(client, project):
     pipeline = {
         "project_uuid": project.uuid,
         "uuid": gen_uuid(),
-        "env_variables": {"a": [1]},
+        "env_variables": {"a": "[1]"},
     }
     client.post("/api/pipelines/", json=pipeline)
 
@@ -84,11 +84,11 @@ def test_pipeline_put(client, project):
     pipeline = {
         "project_uuid": project.uuid,
         "uuid": gen_uuid(),
-        "env_variables": {"a": [1]},
+        "env_variables": {"a": "[1]"},
     }
     client.post("/api/pipelines/", json=pipeline)
 
-    pipeline["env_variables"] = {"b": {"x": 1}}
+    pipeline["env_variables"] = {"b": '{"x": ""}'}
     client.put(f'/api/pipelines/{project.uuid}/{pipeline["uuid"]}', json=pipeline)
 
     data = client.get(f'/api/pipelines/{project.uuid}/{pipeline["uuid"]}').get_json()
@@ -105,7 +105,7 @@ def test_delete_existing(client, project):
     pipeline = {
         "project_uuid": project.uuid,
         "uuid": gen_uuid(),
-        "env_variables": {"a": [1]},
+        "env_variables": {"a": "[1]"},
     }
 
     client.post("/api/pipelines/", json=pipeline)
