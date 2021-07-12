@@ -1,27 +1,23 @@
-// @ts-nocheck
 import * as React from "react";
 import { globalMDCVars } from "@orchest/lib-utils";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
 
-/**
- * @typedef {{
- *  startNode: any;
- *  endNode: any;
- *  pipelineViewEl: any;
- *  startNodeUUID: any;
- *  endNodeUUID: any;
- *  onClick: any;
- *  xEnd: Number;
- *  yEnd: Number;
- *  selected: boolean;
- *  scaleFactor: Number;
- *  scaleCorrectedPosition: any;
- * }} TPipelineConnectionProps
- *
- * @type React.FC<TPipelineConnectionProps>
- */
-const PipelineConnection = (props) => {
+export interface IPipelineConnectionProps {
+  startNode: any;
+  endNode: any;
+  pipelineViewEl: any;
+  startNodeUUID: any;
+  endNodeUUID: any;
+  onClick: any;
+  xEnd: Number;
+  yEnd: Number;
+  selected: boolean;
+  scaleFactor: Number;
+  scaleCorrectedPosition: any;
+}
+
+const PipelineConnection: React.FC<IPipelineConnectionProps> = (props) => {
   const { $ } = window;
 
   const connectionHolder = React.useRef(null);
@@ -37,7 +33,7 @@ const PipelineConnection = (props) => {
   };
 
   const localElementPosition = (el, parentEl) => {
-    let position = {};
+    let position = {} as any;
     position.x = props.scaleCorrectedPosition(
       el.offset().left - $(parentEl).offset().left,
       props.scaleFactor
@@ -50,7 +46,7 @@ const PipelineConnection = (props) => {
   };
 
   const nodeCenter = (el, parentEl) => {
-    let nodePosition = localElementPosition(el, parentEl);
+    let nodePosition = localElementPosition(el, parentEl) as any;
     nodePosition.x += el.width() / 2;
     nodePosition.y += el.height() / 2;
     return nodePosition;
@@ -91,7 +87,10 @@ const PipelineConnection = (props) => {
       const svgPadding = 5;
       const arrowWidth = 7;
 
-      let startNodePosition = nodeCenter(props.startNode, props.pipelineViewEl);
+      let startNodePosition = nodeCenter(
+        props.startNode,
+        props.pipelineViewEl
+      ) as any;
       let x = startNodePosition.x;
       let y = startNodePosition.y;
       let xEnd = props.xEnd !== undefined ? props.xEnd : x;
@@ -99,7 +98,10 @@ const PipelineConnection = (props) => {
 
       // set xEnd and yEnd if endNode is defined
       if (props.endNode) {
-        let endNodePosition = nodeCenter(props.endNode, props.pipelineViewEl);
+        let endNodePosition = nodeCenter(
+          props.endNode,
+          props.pipelineViewEl
+        ) as any;
         xEnd = endNodePosition.x;
         yEnd = endNodePosition.y;
       }
