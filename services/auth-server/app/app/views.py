@@ -142,6 +142,9 @@ def register_views(app):
                     db.session.commit()
 
                     redirect_url = request.args.get("redirect_url", "/")
+                    import_url = request.args.get("import_url")
+                    if import_url is not None:
+                        redirect_url += "?" + "import_url=" + import_url
 
                     resp = redirect_response(redirect_url, redirect_type)
                     resp.set_cookie("auth_token", token.token)
