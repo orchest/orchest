@@ -34,15 +34,15 @@ Simply follow the steps below to install Orchest.
 Now that you have installed Orchest, get started with the :ref:`quickstart <quickstart>` tutorial.
 
 .. note::
-   For Linux/WSL 2 users, please take the following into account regarding the Docker 
+   For Linux/WSL 2 users, please take the following into account regarding the Docker
    networking configuration.
 
    Docker has `some network interruption issues <https://github.com/docker/for-linux/issues/914>`_,
    if you're connecting to Orchest from the same machine on which you're running it
    (e.g. using ``localhost``) it's recommended to disable IPv6 networking.
-   
-   It's recommended to disable IPv6 at the kernel level using a boot directive like ``ipv6.disable=1``. 
-   `This article <https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_ 
+
+   It's recommended to disable IPv6 at the kernel level using a boot directive like ``ipv6.disable=1``.
+   `This article <https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_
    describes how to do that for Ubuntu Linux.
 
 .. note::
@@ -75,7 +75,7 @@ You can expect the build to finish in roughly 15 minutes.
    git clone https://github.com/orchest/orchest.git && cd orchest
 
    # Check out the version you would like to build.
-   git checkout v2021.03.3
+   git checkout v2021.05.0
 
    # Build all Docker containers from source (in parallel).
    scripts/build_container.sh
@@ -85,8 +85,8 @@ You can expect the build to finish in roughly 15 minutes.
 
 .. tip::
 
-    We recommend building a tagged commit indicating a release. Other commits cannot be considered
-    stable.
+    We recommend building a tagged commit indicating a stable release. Sadly, releases before
+    ``v2021.05.0`` can not be build due to a dependency mismatch.
 
 GPU support
 -----------
