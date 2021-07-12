@@ -13,6 +13,7 @@ from sqlalchemy.orm import joinedload, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
+from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
@@ -688,6 +689,8 @@ class UpdateJob(TwoPhaseFunction):
                         "a job which is not a cron job."
                     )
                 )
+            if not _utils.are_environment_variables_valid(env_variables):
+                raise ValueError(("Invalid environment variables definition."))
             job.env_variables = env_variables
 
         if next_scheduled_time is not None:

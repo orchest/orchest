@@ -8,6 +8,7 @@ from flask_restx import Namespace, Resource
 from sqlalchemy.orm import undefer
 
 import app.models as models
+from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
@@ -34,9 +35,12 @@ class PipelineList(Resource):
     @api.marshal_with(schema.pipeline)
     def post(self):
         """Create a new pipeline."""
+        pipeline = request.get_json()
+        pipeline["env_variables"] = pipeline.get("env_variables", {})
+        if not _utils.are_environment_variables_valid(pipeline["env_variables"]):
+            return {"message": ("Invalid environment variables definition.")}, 400
+
         try:
-            pipeline = request.get_json()
-            pipeline["env_variables"] = pipeline.get("env_variables", {})
             db.session.add(models.Pipeline(**pipeline))
             db.session.commit()
         except Exception as e:
@@ -67,11 +71,16 @@ class Pipeline(Resource):
     @api.doc("update_pipeline")
     def put(self, project_uuid, pipeline_uuid):
         """Update a pipeline."""
+        req_json = request.get_json()
+        if not _utils.are_environment_variables_valid(
+            req_json.get("env_variables", {})
+        ):
+            return {"message": ("Invalid environment variables definition.")}, 400
 
         try:
             models.Pipeline.query.filter_by(
                 project_uuid=project_uuid, uuid=pipeline_uuid
-            ).update(request.get_json())
+            ).update(req_json)
             db.session.commit()
         except Exception as e:
             db.session.rollback()

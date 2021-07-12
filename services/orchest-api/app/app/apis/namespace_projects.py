@@ -8,6 +8,7 @@ from flask_restx import Namespace, Resource
 from sqlalchemy.orm import undefer
 
 import app.models as models
+from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.apis.namespace_environment_images import DeleteProjectEnvironmentImages
@@ -36,9 +37,11 @@ class ProjectList(Resource):
     @api.marshal_with(schema.project)
     def post(self):
         """Create a new project."""
+        project = request.get_json()
+        project["env_variables"] = project.get("env_variables", {})
+        if not _utils.are_environment_variables_valid(project["env_variables"]):
+            return {"message": ("Invalid environment variables definition.")}, 400
         try:
-            project = request.get_json()
-            project["env_variables"] = project.get("env_variables", {})
             db.session.add(models.Project(**project))
             db.session.commit()
         except Exception as e:
@@ -68,9 +71,14 @@ class Project(Resource):
     @api.doc("update_project")
     def put(self, project_uuid):
         """Update a project."""
+        req_json = request.get_json()
+        if not _utils.are_environment_variables_valid(
+            req_json.get("env_variables", {})
+        ):
+            return {"message": ("Invalid environment variables definition.")}, 400
 
         try:
-            models.Project.query.filter_by(uuid=project_uuid).update(request.get_json())
+            models.Project.query.filter_by(uuid=project_uuid).update(req_json)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
