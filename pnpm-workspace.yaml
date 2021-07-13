@@ -1,4 +1,5 @@
 packages:
+  - "cypress"
   - "lib/design-system/*"
   - "lib/javascript/*"
   - "services/*/client"
