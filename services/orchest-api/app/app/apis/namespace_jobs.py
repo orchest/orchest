@@ -690,7 +690,7 @@ class UpdateJob(TwoPhaseFunction):
                     )
                 )
             if not _utils.are_environment_variables_valid(env_variables):
-                raise ValueError(("Invalid environment variables definition."))
+                raise ValueError("Invalid environment variables definition.")
             job.env_variables = env_variables
 
         if next_scheduled_time is not None:
