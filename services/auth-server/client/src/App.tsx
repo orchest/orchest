@@ -25,18 +25,14 @@ export default class App extends React.Component {
   }
 
   render() {
-    const view = window.location.pathname.split("/")[1];
-    const urlSearchParams = new URLSearchParams(window.location.search);
-    const queryArgs = urlSearchParams.toString();
-
     if (this.state.config) {
-      switch (view) {
+      switch (this.props.view) {
         case "login":
           return (
             <Login
               cloud={this.state.config.CLOUD}
               cloudURL={this.state.config.CLOUD_URL}
-              queryArgs={queryArgs}
+              queryArgs={this.props.queryArgs}
             />
           );
         case "admin":
