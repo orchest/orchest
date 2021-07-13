@@ -32,6 +32,7 @@ export default class App extends React.Component {
             <Login
               cloud={this.state.config.CLOUD}
               cloudURL={this.state.config.CLOUD_URL}
+              queryArgs={this.props.queryArgs}
             />
           );
         case "admin":

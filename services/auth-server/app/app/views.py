@@ -141,7 +141,15 @@ def register_views(app):
                     db.session.add(token)
                     db.session.commit()
 
-                    redirect_url = request.args.get("redirect_url", "/")
+                    # Returns a shallow mutable copy of the immutable
+                    # multi dict.
+                    request_args = request.args.copy()
+                    redirect_url = request_args.pop("redirect_url", "/")
+                    query_args = "&".join(
+                        [arg + "=" + value for arg, value in request_args.items()]
+                    )
+                    if query_args:
+                        redirect_url += "?" + query_args
 
                     resp = redirect_response(redirect_url, redirect_type)
                     resp.set_cookie("auth_token", token.token)
