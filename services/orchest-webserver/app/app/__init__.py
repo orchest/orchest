@@ -168,7 +168,9 @@ def create_app():
             if os.path.isfile(file_path):
                 return send_from_directory(app.config["STATIC_DIR"], path)
             else:
-                return send_from_directory(app.config["STATIC_DIR"], "index.html")
+                return send_from_directory(
+                    app.config["STATIC_DIR"], "index.html", cache_timeout=0
+                )
 
     register_views(app, db)
     register_orchest_api_views(app, db)

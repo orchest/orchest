@@ -145,7 +145,7 @@ export function someParentHasClass(element, classname) {
 }
 
 // used in mdc-components only
-export function checkHeartbeat(url, retries) {
+export function checkHeartbeat(url, retries?) {
   if (retries === undefined) {
     retries = 250;
   }

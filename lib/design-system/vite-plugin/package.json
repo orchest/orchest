@@ -12,7 +12,7 @@
     "es:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs",
     "es:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=cjs --watch --log-level=error",
     "ts:build": "tsc -p tsconfig.json --emitDeclarationOnly --outDir dist",
-    "ts:check": "tsc -p tsconfig.json --noEmit --incremental",
+    "ts:check": "tsc -p tsconfig.json --noEmit",
     "ts:watch": "tsc -p tsconfig.json --emitDeclarationOnly --outDir dist -w"
   },
   "dependencies": {
