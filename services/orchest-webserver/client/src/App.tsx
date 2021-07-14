@@ -305,7 +305,7 @@ const App = () => {
   return (
     <>
       <HeaderBar />
-      <div className="app-container">
+      <div className="app-container" data-testid="app">
         <MainDrawer selectedElement={state.activeViewName} />
         <main className="main-content" id="main-content">
           {view || null}

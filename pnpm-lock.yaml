@@ -3,11 +3,15 @@ lockfileVersion: 5.3
 importers:
   .:
     specifiers:
+      "@testing-library/cypress": 7.0.6
       cypress: 7.7.0
+      cypress-localstorage-commands: 1.4.5
       syncpack: 5.7.11
       typescript: 4.3.2
     devDependencies:
+      "@testing-library/cypress": 7.0.6_cypress@7.7.0
       cypress: 7.7.0
+      cypress-localstorage-commands: 1.4.5_cypress@7.7.0
       syncpack: 5.7.11
       typescript: 4.3.2
 
@@ -483,6 +487,17 @@ packages:
       "@babel/helper-plugin-utils": 7.13.0
     dev: true
 
+  /@babel/runtime-corejs3/7.14.7:
+    resolution:
+      {
+        integrity: sha512-Wvzcw4mBYbTagyBVZpAJWI06auSIj033T/yNE0Zn1xcup83MieCddZA7ls3kme17L4NOGBrQ09Q+nKB41RLWBA==,
+      }
+    engines: { node: ">=6.9.0" }
+    dependencies:
+      core-js-pure: 3.15.2
+      regenerator-runtime: 0.13.7
+    dev: true
+
   /@babel/runtime/7.12.5:
     resolution:
       {
@@ -499,7 +514,6 @@ packages:
       }
     dependencies:
       regenerator-runtime: 0.13.7
-    dev: false
 
   /@babel/template/7.12.13:
     resolution:
@@ -634,6 +648,20 @@ packages:
         integrity: sha512-sqKVVVOe5ivCaXDWivIJYVSaEgdQK9ul7a4Kity5Iw7u9+wBAPbX1RMSnLLmp7O4Vzj0WOWwMAJsTL00xwaNug==,
       }
     dev: false
+
+  /@jest/types/26.6.2:
+    resolution:
+      {
+        integrity: sha512-fC6QCp7Sc5sX6g8Tvbmj4XUTbyrik0akgRy03yjXbQaBWWNWGE7SGtJk98m0N8nzegD/7SggrUlivxo5ax4KWQ==,
+      }
+    engines: { node: ">= 10.14.2" }
+    dependencies:
+      "@types/istanbul-lib-coverage": 2.0.3
+      "@types/istanbul-reports": 3.0.1
+      "@types/node": 15.0.1
+      "@types/yargs": 15.0.14
+      chalk: 4.1.0
+    dev: true
 
   /@material/animation/10.0.0:
     resolution:
@@ -1624,6 +1652,69 @@ packages:
       react: 16.13.1
     dev: false
 
+  /@testing-library/cypress/7.0.6_cypress@7.7.0:
+    resolution:
+      {
+        integrity: sha512-atnjqlkEt6spU4Mv7evvpA8fMXeRw7AN2uTKOR1dP6WBvBixVwAYMZY+1fMOaZULWAj9vGLCXXvmw++u3TxuCQ==,
+      }
+    engines: { node: ">=10", npm: ">=6" }
+    peerDependencies:
+      cypress: ^2.1.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+    dependencies:
+      "@babel/runtime": 7.14.0
+      "@testing-library/dom": 7.31.2
+      cypress: 7.7.0
+    dev: true
+
+  /@testing-library/dom/7.31.2:
+    resolution:
+      {
+        integrity: sha512-3UqjCpey6HiTZT92vODYLPxTBWlM8ZOOjr3LX5F37/VRipW2M1kX6I/Cm4VXzteZqfGfagg8yXywpcOgQBlNsQ==,
+      }
+    engines: { node: ">=10" }
+    dependencies:
+      "@babel/code-frame": 7.12.13
+      "@babel/runtime": 7.14.0
+      "@types/aria-query": 4.2.2
+      aria-query: 4.2.2
+      chalk: 4.1.0
+      dom-accessibility-api: 0.5.6
+      lz-string: 1.4.4
+      pretty-format: 26.6.2
+    dev: true
+
+  /@types/aria-query/4.2.2:
+    resolution:
+      {
+        integrity: sha512-HnYpAE1Y6kRyKM/XkEuiRQhTHvkzMBurTHnpFLYLBGPIylZNPs9jJcuOOYWxPLJCSEtmZT0Y8rHDokKN7rRTig==,
+      }
+    dev: true
+
+  /@types/istanbul-lib-coverage/2.0.3:
+    resolution:
+      {
+        integrity: sha512-sz7iLqvVUg1gIedBOvlkxPlc8/uVzyS5OwGz1cKjXzkl3FpL3al0crU8YGU1WoHkxn0Wxbw5tyi6hvzJKNzFsw==,
+      }
+    dev: true
+
+  /@types/istanbul-lib-report/3.0.0:
+    resolution:
+      {
+        integrity: sha512-plGgXAPfVKFoYfa9NpYDAkseG+g6Jr294RqeqcqDixSbU34MZVJRi/P+7Y8GDpzkEwLaGZZOpKIEmeVZNtKsrg==,
+      }
+    dependencies:
+      "@types/istanbul-lib-coverage": 2.0.3
+    dev: true
+
+  /@types/istanbul-reports/3.0.1:
+    resolution:
+      {
+        integrity: sha512-c3mAZEuK0lvBp8tmuL74XRKn1+y2dcwOUpH7x4WrF6gk1GIgiluDRgMYQtw2OFcBvAJWlt6ASU3tSqxp0Uu0Aw==,
+      }
+    dependencies:
+      "@types/istanbul-lib-report": 3.0.0
+    dev: true
+
   /@types/json5/0.0.29:
     resolution: { integrity: sha1-7ihweulOEdK4J7y+UnC86n8+ce4= }
     dev: true
@@ -1692,6 +1783,22 @@ packages:
       {
         integrity: sha512-JYM8x9EGF163bEyhdJBpR2QX1R5naCJHC8ucJylJ3w9/CVBaskdQ8WqBf8MmQrd1kRvp/a4TS8HJ+bxzR7ZJYQ==,
       }
+    dev: true
+
+  /@types/yargs-parser/20.2.1:
+    resolution:
+      {
+        integrity: sha512-7tFImggNeNBVMsn0vLrpn1H1uPrUBdnARPTpZoitY37ZrdJREzf7I16tMrlK3hen349gr1NYh8CmZQa7CTG6Aw==,
+      }
+    dev: true
+
+  /@types/yargs/15.0.14:
+    resolution:
+      {
+        integrity: sha512-yEJzHoxf6SyQGhBhIYGXQDSCkJjB6HohDShto7m8vaKg9Yp0Yn8+71J9eakh2bnPg6BfsH9PRMhiRTZnd4eXGQ==,
+      }
+    dependencies:
+      "@types/yargs-parser": 20.2.1
     dev: true
 
   /@types/yauzl/2.9.2:
@@ -1850,6 +1957,17 @@ packages:
     dependencies:
       tslib: 1.14.1
     dev: false
+
+  /aria-query/4.2.2:
+    resolution:
+      {
+        integrity: sha512-o/HelwhuKpTj/frsOsbNLNgnNGVIFsVP/SW2BSF14gVl7kAfMOJ6/8wUAUvG1R1NHKrfG+2sHZTu0yauT1qBrA==,
+      }
+    engines: { node: ">=6.0" }
+    dependencies:
+      "@babel/runtime": 7.14.0
+      "@babel/runtime-corejs3": 7.14.7
+    dev: true
 
   /array-filter/1.0.0:
     resolution: { integrity: sha1-uveeYubvTCpMC4MSMtr/7CUfnYM= }
@@ -2533,6 +2651,14 @@ packages:
     dependencies:
       safe-buffer: 5.1.2
 
+  /core-js-pure/3.15.2:
+    resolution:
+      {
+        integrity: sha512-D42L7RYh1J2grW8ttxoY1+17Y4wXZeKe7uyplAI3FkNQyI5OgBIAjUfFiTPfL1rs0qLpxaabITNbjKl1Sp82tA==,
+      }
+    requiresBuild: true
+    dev: true
+
   /core-util-is/1.0.2:
     resolution: { integrity: sha1-tf1UIgqivFq1eqtxQMlAdUUDwac= }
 
@@ -2676,6 +2802,18 @@ packages:
       {
         integrity: sha512-KxnUB0ZMlnUWCsx2Z8MUsr6qV6ja1w9ArPErJaJaF8a5SOWoHLIszeCTKGRGRgtLgYrs1E8CHkNSP1VZTTPc9g==,
       }
+    dev: true
+
+  /cypress-localstorage-commands/1.4.5_cypress@7.7.0:
+    resolution:
+      {
+        integrity: sha512-mr86nv74GvOE4zOFwoMrksFCykNSbRh57Pg7xUGpm2ax+wfHhqwBA56Sn5dhHV73gzz7C6B1kfNpMrjMH/hgyg==,
+      }
+    engines: { node: 10.x || 12.x || 14.x || 15.x || 16.x }
+    peerDependencies:
+      cypress: ^2.1.0 || 3.x || 4.x || 5.x || 6.x || 7.x
+    dependencies:
+      cypress: 7.7.0
     dev: true
 
   /cypress/7.7.0:
@@ -2878,6 +3016,13 @@ packages:
       miller-rabin: 4.0.1
       randombytes: 2.1.0
     dev: false
+
+  /dom-accessibility-api/0.5.6:
+    resolution:
+      {
+        integrity: sha512-DplGLZd8L1lN64jlT27N9TVSESFR5STaEJvX+thCby7fuCHonfPpAlodYc3vuUYbDuDec5w8AMP7oCM5TWFsqw==,
+      }
+    dev: true
 
   /domain-browser/1.2.0:
     resolution:
@@ -4220,6 +4365,11 @@ packages:
       }
     dev: false
 
+  /lz-string/1.4.4:
+    resolution: { integrity: sha1-wNjq82BZ9wV5bh40SBHPTEmNOiY= }
+    hasBin: true
+    dev: true
+
   /make-dir/3.1.0:
     resolution:
       {
@@ -4931,6 +5081,19 @@ packages:
     engines: { node: ">=6" }
     dev: true
 
+  /pretty-format/26.6.2:
+    resolution:
+      {
+        integrity: sha512-7AeGuCYNGmycyQbCqd/3PWH4eOoX/OiCa0uphp57NVTeAGdJGaAliecxwBDHYQCIvrW7aDBZCYeNTP/WX69mkg==,
+      }
+    engines: { node: ">= 10" }
+    dependencies:
+      "@jest/types": 26.6.2
+      ansi-regex: 5.0.0
+      ansi-styles: 4.3.0
+      react-is: 17.0.2
+    dev: true
+
   /process-nextick-args/2.0.1:
     resolution:
       {
@@ -5104,6 +5267,13 @@ packages:
         integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==,
       }
 
+  /react-is/17.0.2:
+    resolution:
+      {
+        integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==,
+      }
+    dev: true
+
   /react-minimal-pie-chart/8.2.0_react-dom@16.13.1+react@16.13.1:
     resolution:
       {
@@ -5272,7 +5442,6 @@ packages:
       {
         integrity: sha512-a54FxoJDIr27pgf7IgeQGxmqUNYrcV338lf/6gH456HZ/PhX+5BcwHXG9ajESmwe6WRO0tAzRUrRmNONWgkrew==,
       }
-    dev: false
 
   /request-progress/3.0.0:
     resolution: { integrity: sha1-TKdUCBx/7GP1BeT6qCWqBs1mnb4= }

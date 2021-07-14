@@ -4,7 +4,7 @@
     "allowJs": true,
     "baseUrl": ".",
     "isolatedModules": false,
-    "types": ["cypress", "node"],
+    "types": ["node", "cypress", "cypress-localstorage-commands", "@testing-library/cypress"],
   },
   "include": ["**/*.ts"]
 }
