@@ -51,6 +51,7 @@ export class MDCButtonReact extends React.Component<any> {
         // @ts-ignore
         tabIndex="0"
         type={this.props.submitButton ? "submit" : "button"}
+        data-testid={this.props["data-testid"]}
       >
         <div className="mdc-button__ripple"></div>
 
