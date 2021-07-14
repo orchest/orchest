@@ -14,11 +14,9 @@ importers:
   cypress:
     specifiers:
       "@types/node": 15.0.1
-      cypress: 7.7.0
       typescript: 4.3.2
     devDependencies:
       "@types/node": 15.0.1
-      cypress: 7.7.0
       typescript: 4.3.2
 
   lib/design-system/package:
