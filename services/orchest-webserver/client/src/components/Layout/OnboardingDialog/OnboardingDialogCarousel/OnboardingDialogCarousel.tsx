@@ -18,10 +18,13 @@ export const OnboardingDialogCarouselSlide = ({ children, ...props }) => {
     slideDirection,
     slideIndex,
     setIsAnimating,
+    length,
   } = useOnboardingDialogCarousel();
   return (
     <m.div
-      data-testid={`onboarding__slide-${slideIndex}`}
+      data-test-id="onboarding-slide"
+      data-test-index={slideIndex}
+      data-test-length={length}
       custom={slideDirection}
       variants={{
         enter: (slideDirection: number) => {
@@ -115,7 +118,7 @@ export const OnboardingDialogCarouselIndicator: React.FC<IOnboardingDialogCarous
     <ul
       role="list"
       className={indicatorList({ css, className })}
-      data-testid="onboarding__indicator-list"
+      data-test-id="onboarding-indicator-list"
     >
       {Array(length)
         .fill(0)
@@ -124,14 +127,14 @@ export const OnboardingDialogCarouselIndicator: React.FC<IOnboardingDialogCarous
             key={`indicatorListItem-${i}`}
             className={indicatorListItem()}
             aria-current={i === slideIndex ? "step" : undefined}
-            data-testid="onboarding__indicator-list-item"
+            data-test-id="onboarding-indicator-list-item"
           >
             <button
               className={indicatorButton({ isCurrent: i === slideIndex })}
               onClick={() => {
                 if (i !== slideIndex) setSlide([i, slideIndex > i ? -1 : 1]);
               }}
-              data-testid="onboarding__indicator-button"
+              data-test-id="onboarding-indicator-button"
             >
               <span className={indicatorLabel()}>Slide {i + 1}</span>
             </button>
