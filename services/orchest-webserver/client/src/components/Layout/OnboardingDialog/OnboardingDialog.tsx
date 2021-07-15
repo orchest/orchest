@@ -127,6 +127,7 @@ export const OnboardingDialog: React.FC = () => {
           label="Close"
           onClick={() => onClose()}
           css={{ position: "absolute", top: "$4", right: "$4" }}
+          data-test-id="onboarding-close"
         >
           <IconCrossSolid />
         </IconButton>

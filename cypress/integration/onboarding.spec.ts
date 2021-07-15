@@ -1,6 +1,7 @@
 import projectsWithQuickstart from "../fixtures/async/projects/with-quickstart.json";
 
 enum TEST_ID {
+  CLOSE = "onboarding-close",
   COMPLETE_WITH_QUICKSTART = "onboarding-complete-with-quickstart",
   COMPLETE_WITHOUT_QUICKSTART = "onboarding-complete-without-quickstart",
   DIALOG_CONTENT = "onboarding-dialog-content",
@@ -51,41 +52,84 @@ describe("onboarding", () => {
       cy.findByTestId(TEST_ID.NEXT).should("exist").and("be.visible");
     });
 
-    // it("should allow navigation to the next slide", () => {
-    //   const visitNextSlideIfPossible = () => {
-    //     cy.findByTestId(TEST_ID.DIALOG_CONTENT).then(($dialogContent) => {
-    //       const slideLength = $dialogContent[0].getAttribute("data-length");
+    context("should allow navigation to the next slide", () => {
+      it("via the 'next' button", () => {
+        const visitNextSlideIfPossible = () => {
+          cy.findByTestId(TEST_ID.SLIDE).then(($slide) => {
+            const index = parseFloat($slide.attr("data-test-index"));
+            const length = parseFloat($slide.attr("data-test-length"));
 
-    //       return;
-    //     });
-    //   };
+            if (index === length - 1) {
+              cy.log("prevent forwards navigation on the last slide");
+              cy.findByTestId(TEST_ID.NEXT).should("not.exist");
+              return;
+            }
 
-    //   visitNextSlideIfPossible();
-    // });
+            cy.findByTestId(TEST_ID.NEXT)
+              .should("exist")
+              .click()
+              .then(() => {
+                cy.findByTestId(TEST_ID.SLIDE).should(
+                  "have.attr",
+                  "data-test-index",
+                  `${index + 1}`
+                );
+              });
+            visitNextSlideIfPossible();
+          });
+        };
 
-    it("should allow navigation to any slide via the indicators", () => {
-      cy.findAllByTestId(TEST_ID.INDICATOR_LIST_ITEM).each(
-        (listItem, index, listItems) => {
-          cy.findAllByTestId(TEST_ID.SLIDE).should(
-            "have.attr",
-            "data-test-length",
-            listItems.length
-          );
+        visitNextSlideIfPossible();
+      });
 
-          cy.wrap(listItem)
-            .within(() => {
-              cy.findByTestId(TEST_ID.INDICATOR_BUTTON)
-                .should("exist")
-                .and("be.visible")
-                .click();
-            })
-            .should("have.attr", "aria-current", "step");
+      it("via the indicators", () => {
+        cy.findAllByTestId(TEST_ID.INDICATOR_LIST_ITEM).each(
+          (listItem, index, listItems) => {
+            cy.findAllByTestId(TEST_ID.SLIDE).should(
+              "have.attr",
+              "data-test-length",
+              listItems.length
+            );
 
-          cy.findByTestId(TEST_ID.SLIDE)
-            .should("exist")
-            .and("have.attr", "data-test-index", index);
-        }
-      );
+            cy.wrap(listItem)
+              .within(() => {
+                cy.findByTestId(TEST_ID.INDICATOR_BUTTON)
+                  .should("exist")
+                  .and("be.visible")
+                  .click();
+              })
+              .should("have.attr", "aria-current", "step");
+
+            cy.findByTestId(TEST_ID.SLIDE)
+              .should("exist")
+              .and("have.attr", "data-test-index", index);
+          }
+        );
+      });
+    });
+
+    context.only("should be closable", () => {
+      before(() => {
+        cy.clearLocalStorageSnapshot();
+      });
+
+      afterEach(() => {
+        cy.findByTestId(TEST_ID.DIALOG_CONTENT).should("not.exist");
+        cy.getOnboardingCompleted().should("equal", "true");
+        cy.log("should not reopen on reload");
+        cy.reload().then(() =>
+          cy.getOnboardingCompleted().should("equal", "true")
+        );
+        cy.clearLocalStorageSnapshot();
+      });
+
+      // The plan was originally to add a test for closing the overlay, but
+      // cypress seems to make this fairly difficult. For now we'll assume that
+      // this is tested on the Radix side – if our close button works.
+
+      it("via the 'close' button", () => {
+        cy.findByTestId(TEST_ID.CLOSE).click();
+      });
     });
 
     context("has quickstart project", () => {
@@ -123,8 +167,9 @@ describe("onboarding", () => {
       });
 
       it("should not show the dialog again after completion", () => {
-        cy.reload();
-        expectOnboardingCompleted();
+        cy.reload().then(() => {
+          expectOnboardingCompleted();
+        });
       });
     });
 
@@ -159,8 +204,9 @@ describe("onboarding", () => {
       });
 
       it("should not show the dialog again after completion", () => {
-        cy.reload();
-        expectOnboardingCompleted();
+        cy.reload().then(() => {
+          expectOnboardingCompleted();
+        });
       });
     });
   });
