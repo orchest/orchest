@@ -108,7 +108,7 @@ describe("onboarding", () => {
       });
     });
 
-    context.only("should be closable", () => {
+    context("should be closable", () => {
       before(() => {
         cy.clearLocalStorageSnapshot();
       });
