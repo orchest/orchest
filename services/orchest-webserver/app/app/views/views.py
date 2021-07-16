@@ -12,7 +12,7 @@ from nbconvert import HTMLExporter
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
-from app.analytics import send_anonymized_pipeline_definition
+from app import analytics
 from app.config import CONFIG_CLASS as StaticConfig
 from app.core.pipelines import CreatePipeline, DeletePipeline
 from app.core.projects import (
@@ -728,8 +728,9 @@ def register_views(app, db):
                 json.dump(pipeline_json, json_file, indent=4, sort_keys=True)
 
             # Analytics call.
-            send_anonymized_pipeline_definition(app, pipeline_json)
-
+            analytics.send_event(
+                app, "pipeline save", {"pipeline_definition": pipeline_json}
+            )
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 
         elif request.method == "GET":
