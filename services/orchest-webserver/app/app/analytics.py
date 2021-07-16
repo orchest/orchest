@@ -51,6 +51,7 @@ def send_event(
         app: The Flask application that received the event.
         event_name: The name of the event. Events should be named like:
             "[noun] [verb]", such as "movie played" or "movie updated".
+            Regex for noun: [a-z\-]+, e.g. "pipeline-run".
         event_properties: Any information that describes the event. This
             information will be anonimzed and send to the telemetry
             service.
@@ -124,13 +125,17 @@ class _Anonimizer:
         To determine how the properties need to be anonimized, the given
         `event_name` is used.
 
+        NOTE: `event_name` must follow the regex r'[a-z\-]+ [a-z]+'.
+
         Raises:
             ValueError: Doesn't know how to anonimize the given event.
         """
         self.event_name = event_name
 
         try:
-            self._anonimization_func = getattr(self, event_name.replace(" ", "_"))
+            self._anonimization_func = getattr(
+                self, event_name.replace(" ", "_").replace("-", "_")
+            )
         except AttributeError:
             raise ValueError(
                 f"No implementation exists to anonimize event '{event_name}'."
