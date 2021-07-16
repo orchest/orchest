@@ -2,6 +2,7 @@ import projectsWithQuickstart from "../fixtures/async/projects/with-quickstart.j
 
 enum TEST_ID {
   CLOSE = "onboarding-close",
+  OPEN = "onboarding-open",
   COMPLETE_WITH_QUICKSTART = "onboarding-complete-with-quickstart",
   COMPLETE_WITHOUT_QUICKSTART = "onboarding-complete-without-quickstart",
   DIALOG_CONTENT = "onboarding-dialog-content",
@@ -16,198 +17,157 @@ const QUICKSTART_PROJECT_UUID = projectsWithQuickstart.find(
   (project) => project.path === "quickstart"
 ).uuid;
 
-const expectOnboardingCompleted = () => {
-  cy.getOnboardingCompleted().should("equal", "true");
-  cy.findByTestId(TEST_ID.DIALOG_CONTENT).should("not.exist");
-};
-
 describe("onboarding", () => {
-  before(() => {
-    cy.clearLocalStorageSnapshot();
-  });
-
-  beforeEach(() => {
-    cy.visit("/");
-  });
-
-  context("has completed onboarding", () => {
-    before(() => {
+  context("should be visible", () => {
+    beforeEach(() => {
       cy.clearLocalStorageSnapshot();
     });
 
-    beforeEach(() => {
-      cy.setOnboardingCompleted("true");
+    afterEach(() => {
+      cy.findByTestId(TEST_ID.DIALOG_CONTENT).should("exist").and("be.visible");
     });
 
-    it("should not show dialog on first visit", () => {
-      expectOnboardingCompleted();
+    context("on first visit", () => {
+      ["/", "/help"].map((view) => {
+        it(`in ${view}`, () => {
+          cy.visit(view);
+          cy.getOnboardingCompleted().should("equal", null);
+        });
+      });
+    });
+
+    context("when toggled", () => {
+      ["/help"].map((view) => {
+        it(`in ${view}`, () => {
+          cy.setOnboardingCompleted("true");
+          cy.visit(view);
+          cy.findByTestId(TEST_ID.OPEN).should("exist").click();
+        });
+      });
     });
   });
 
-  context("hasn't completed onboarding", () => {
-    it("should show dialog on first visit", function () {
-      cy.getOnboardingCompleted().should("equal", null);
-
-      cy.findByTestId(TEST_ID.DIALOG_CONTENT).should("exist").and("be.visible");
-      cy.findByTestId(TEST_ID.NEXT).should("exist").and("be.visible");
+  context("should not be visible", () => {
+    beforeEach(() => {
+      cy.clearLocalStorageSnapshot();
+      cy.visit("/");
     });
 
-    context("should allow navigation to the next slide", () => {
-      it("via the 'next' button", () => {
-        const visitNextSlideIfPossible = () => {
-          cy.findByTestId(TEST_ID.SLIDE).then(($slide) => {
-            const index = parseFloat($slide.attr("data-test-index"));
-            const length = parseFloat($slide.attr("data-test-length"));
-
-            if (index === length - 1) {
-              cy.log("prevent forwards navigation on the last slide");
-              cy.findByTestId(TEST_ID.NEXT).should("not.exist");
-              return;
-            }
-
-            cy.findByTestId(TEST_ID.NEXT)
-              .should("exist")
-              .click()
-              .then(() => {
-                cy.findByTestId(TEST_ID.SLIDE).should(
-                  "have.attr",
-                  "data-test-index",
-                  `${index + 1}`
-                );
-              });
-            visitNextSlideIfPossible();
-          });
-        };
-
-        visitNextSlideIfPossible();
-      });
-
-      it("via the indicators", () => {
-        cy.findAllByTestId(TEST_ID.INDICATOR_LIST_ITEM).each(
-          (listItem, index, listItems) => {
-            cy.findAllByTestId(TEST_ID.SLIDE).should(
-              "have.attr",
-              "data-test-length",
-              listItems.length
-            );
-
-            cy.wrap(listItem)
-              .within(() => {
-                cy.findByTestId(TEST_ID.INDICATOR_BUTTON)
-                  .should("exist")
-                  .and("be.visible")
-                  .click();
-              })
-              .should("have.attr", "aria-current", "step");
-
-            cy.findByTestId(TEST_ID.SLIDE)
-              .should("exist")
-              .and("have.attr", "data-test-index", index);
-          }
-        );
-      });
-    });
-
-    context("should be closable", () => {
-      before(() => {
-        cy.clearLocalStorageSnapshot();
-      });
-
-      afterEach(() => {
+    afterEach(() => {
+      const expectOnboardingCompleted = () => {
         cy.findByTestId(TEST_ID.DIALOG_CONTENT).should("not.exist");
         cy.getOnboardingCompleted().should("equal", "true");
-        cy.log("should not reopen on reload");
-        cy.reload().then(() =>
-          cy.getOnboardingCompleted().should("equal", "true")
-        );
-        cy.clearLocalStorageSnapshot();
-      });
+      };
 
-      // The plan was originally to add a test for closing the overlay, but
-      // cypress seems to make this fairly difficult. For now we'll assume that
-      // this is tested on the Radix side – if our close button works.
-
-      it("via the 'close' button", () => {
-        cy.findByTestId(TEST_ID.CLOSE).click();
+      expectOnboardingCompleted();
+      cy.reload().then(() => {
+        expectOnboardingCompleted();
       });
     });
 
-    context("has quickstart project", () => {
-      before(() => {
-        cy.clearLocalStorageSnapshot();
-      });
+    // The plan was originally to add a test for closing the overlay, but
+    // cypress seems to make this fairly difficult. For now we'll assume that
+    // this is tested on the Radix side – if our close button works.
 
-      beforeEach(() => {
-        cy.restoreLocalStorage();
-      });
+    it("when the 'close' button is pressed", () => {
+      cy.findByTestId(TEST_ID.CLOSE).click();
+    });
 
-      afterEach(() => {
-        cy.saveLocalStorage();
-      });
+    it("if user has already completed onboarding", () => {
+      cy.setOnboardingCompleted("true");
+    });
 
-      it("should load the quickstart pipeline on completion", () => {
-        cy.intercept("GET", "/async/projects", {
-          fixture: "async/projects/with-quickstart.json",
-        });
-
-        cy.log("Navigate to last slide");
-        cy.findAllByTestId(TEST_ID.INDICATOR_BUTTON).last().click();
-
-        cy.findByTestId(TEST_ID.COMPLETE_WITH_QUICKSTART)
-          .should("exist")
-          .and("be.visible")
-          .click()
-          .then(() => {
-            cy.url()
-              .should("include", "/pipeline")
-              .and("include", `project_uuid=${QUICKSTART_PROJECT_UUID}`);
-
-            expectOnboardingCompleted();
+    context("if user has just completed onboarding", () => {
+      [true, false].map((withQuickstart) => {
+        it(`${withQuickstart ? "with" : "without"} quickstart pipeline`, () => {
+          cy.intercept("GET", "/async/projects", {
+            fixture: `async/projects/${
+              withQuickstart ? "with" : "without"
+            }-quickstart.json`,
           });
-      });
 
-      it("should not show the dialog again after completion", () => {
-        cy.reload().then(() => {
-          expectOnboardingCompleted();
+          cy.findAllByTestId(TEST_ID.INDICATOR_BUTTON)
+            .last()
+            .click()
+            .then(() => {
+              cy.findByTestId(
+                withQuickstart
+                  ? TEST_ID.COMPLETE_WITH_QUICKSTART
+                  : TEST_ID.COMPLETE_WITHOUT_QUICKSTART
+              )
+                .should("exist")
+                .and("be.visible")
+                .click()
+                .then(() => {
+                  if (!withQuickstart) {
+                    return;
+                  }
+
+                  cy.log("Should redirect to pipeline");
+                  cy.url()
+                    .should("include", "/pipeline")
+                    .and("include", `project_uuid=${QUICKSTART_PROJECT_UUID}`);
+                });
+            });
         });
       });
     });
+  });
 
-    context("doesn't have quickstart project", () => {
-      before(() => {
-        cy.clearLocalStorageSnapshot();
-      });
+  context("should allow navigation", () => {
+    it("via the 'next' button", () => {
+      const visitNextSlideIfPossible = () => {
+        cy.findByTestId(TEST_ID.SLIDE).then(($slide) => {
+          const index = parseFloat($slide.attr("data-test-index"));
+          const length = parseFloat($slide.attr("data-test-length"));
 
-      beforeEach(() => {
-        cy.restoreLocalStorage();
-      });
+          if (index === length - 1) {
+            cy.log("prevent forwards navigation on the last slide");
+            cy.findByTestId(TEST_ID.NEXT).should("not.exist");
+            return;
+          }
 
-      afterEach(() => {
-        cy.saveLocalStorage();
-      });
-
-      it("should close the dialog on completion", () => {
-        cy.intercept("GET", "/async/projects", {
-          fixture: "async/projects/without-quickstart.json",
+          cy.findByTestId(TEST_ID.NEXT)
+            .should("exist")
+            .and("be.visible")
+            .click()
+            .then(() => {
+              cy.findByTestId(TEST_ID.SLIDE).should(
+                "have.attr",
+                "data-test-index",
+                `${index + 1}`
+              );
+            });
+          visitNextSlideIfPossible();
         });
+      };
 
-        cy.log("Navigate to last slide");
-        cy.findAllByTestId(TEST_ID.INDICATOR_BUTTON).last().click();
+      visitNextSlideIfPossible();
+    });
 
-        cy.findByTestId(TEST_ID.COMPLETE_WITHOUT_QUICKSTART)
-          .should("exist")
-          .and("be.visible")
-          .click()
-          .then(() => {
-            expectOnboardingCompleted();
-          });
-      });
+    it("via the indicators", () => {
+      cy.findAllByTestId(TEST_ID.INDICATOR_LIST_ITEM).each(
+        (listItem, index, listItems) => {
+          cy.findAllByTestId(TEST_ID.SLIDE).should(
+            "have.attr",
+            "data-test-length",
+            listItems.length
+          );
 
-      it("should not show the dialog again after completion", () => {
-        cy.reload().then(() => {
-          expectOnboardingCompleted();
-        });
-      });
+          cy.wrap(listItem)
+            .within(() => {
+              cy.findByTestId(TEST_ID.INDICATOR_BUTTON)
+                .should("exist")
+                .and("be.visible")
+                .click();
+            })
+            .should("have.attr", "aria-current", "step");
+
+          cy.findByTestId(TEST_ID.SLIDE)
+            .should("exist")
+            .and("have.attr", "data-test-index", index);
+        }
+      );
     });
   });
 });
