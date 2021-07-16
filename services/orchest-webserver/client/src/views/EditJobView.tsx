@@ -18,6 +18,7 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
 } from "@/utils/webserver-utils";
+import type { IViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { DescriptionList } from "@/components/DescriptionList";
@@ -30,7 +31,7 @@ import EnvVarList from "@/components/EnvVarList";
 import JobView from "@/views/JobView";
 import JobsView from "@/views/JobsView";
 
-const EditJobView: React.FC<any> = (props) => {
+const EditJobView: React.FC<IViewProps> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();

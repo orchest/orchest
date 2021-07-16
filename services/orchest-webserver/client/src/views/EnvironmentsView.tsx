@@ -1,14 +1,15 @@
 import * as React from "react";
-import type { IOrchestState } from "@/types";
+import type { IViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvironmentList from "@/components/EnvironmentList";
-import ProjectBasedView from "@/components/ProjectBasedView";
+import ProjectBasedView, {
+  IProjectBasedViewProps,
+} from "@/components/ProjectBasedView";
 
-export interface IEnvironmentsViewProps {
-  project_uuid: IOrchestState["project_uuid"];
-  queryArgs?: any;
-}
+export interface IEnvironmentsViewProps
+  extends IViewProps,
+    IProjectBasedViewProps {}
 
 const EnvironmentsView: React.FC<IEnvironmentsViewProps> = (props) => {
   const { dispatch } = useOrchest();

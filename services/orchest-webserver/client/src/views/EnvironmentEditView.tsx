@@ -19,6 +19,7 @@ import {
   LANGUAGE_MAP,
   DEFAULT_BASE_IMAGES,
 } from "@orchest/lib-utils";
+import type { IViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
@@ -26,7 +27,7 @@ import EnvironmentsView from "@/views/EnvironmentsView";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const EnvironmentEditView: React.FC<any> = (props) => {
+const EnvironmentEditView: React.FC<IViewProps> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();

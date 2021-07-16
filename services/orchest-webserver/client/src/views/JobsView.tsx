@@ -1,13 +1,13 @@
 import * as React from "react";
-import type { IOrchestState } from "@/types";
+import type { IViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import JobList from "@/components/JobList";
-import ProjectBasedView from "@/components/ProjectBasedView";
+import ProjectBasedView, {
+  IProjectBasedViewProps,
+} from "@/components/ProjectBasedView";
 
-export interface IJobsViewProps {
-  project_uuid: IOrchestState["project_uuid"];
-}
+export interface IJobsViewProps extends IViewProps, IProjectBasedViewProps {}
 
 const JobsView: React.FC<IJobsViewProps> = (props) => {
   const { dispatch } = useOrchest();
