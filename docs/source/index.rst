@@ -55,3 +55,4 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    developer_guide/development_workflow
    developer_guide/front_end
    developer_guide/implementation_details
+   developer_guide/testing
