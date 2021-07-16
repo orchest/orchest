@@ -2,13 +2,170 @@ import copy
 import os
 import time
 import uuid
+from typing import Optional
 
 import posthog
+from flask.app import Flask
 from posthog.request import APIError
 
 from app.config import CONFIG_CLASS as StaticConfig
 from app.utils import write_config
 
+
+class AnalyticsServiceError(Exception):
+    """The third party analytics service experienced an error."""
+
+    pass
+
+
+def send_heartbeat_signal(app: Flask) -> None:
+    """Sends a heartbeat signal to the telemetry service."""
+    # A user is considered to be active if the user has triggered any
+    # webserver logs in the last half of the `TELEMETRY_INTERVAL`.
+    active = None
+    try:
+        t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
+    except OSError as e:
+        app.logger.error(
+            "Analytics heartbeat failed to identify whether the user is active."
+        )
+        app.logger.debug("Exception while reading request log recency %s" % e)
+    else:
+        diff_minutes = (time.time() - t) / 60
+        active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
+
+    # Value of None indicates that the user's activity could not be
+    # determined.
+    event_properties = {"active": active}
+    send_event(app, "heartbeat trigger", event_properties)
+
+
+def send_event(
+    app: Flask, event_name: str, event_properties: Optional[dict] = None
+) -> bool:
+    """Sends an anonimized telemetry event.
+
+    The telemetry data is send to our self-hosted telemetry service.
+
+    Args:
+        app: The Flask application that received the event.
+        event_name: The name of the event. Events should be named like:
+            "[noun] [verb]", such as "movie played" or "movie updated".
+        event_properties: Any information that describes the event. This
+            information will be anonimzed and send to the telemetry
+            service.
+
+    Returns:
+        True if the event (including its information) was successfully
+        send to the telemetry service. False otherwise.
+
+    """
+    if app.config["TELEMETRY_DISABLED"]:
+        return False
+
+    if event_properties is None:
+        event_data = {"event_properties": {}}
+    else:
+        event_data = {"event_properties": copy.deepcopy(event_properties)}
+
+    anonimize = _Anonimizer(event_name)
+    try:
+        anonimize(event_data["event_properties"])
+    except ValueError as e:
+        app.logger.error(f"Failed to anonimize analytics event '{event_name}': {e}.")
+
+        # We only want to send anonimized data.
+        return False
+
+    _add_app_properties(event_data, app)
+
+    telemetry_uuid = _get_telemetry_uuid(app)
+    try:
+        _send_event(telemetry_uuid, event_name, event_data)
+    except AnalyticsServiceError as e:
+        app.logger.error(f"Failed to send analytics event '{event_name}': {e}.")
+        return False
+    else:
+        app.logger.debug(f"Successfully sent analytics event '{event_name}'.")
+        return True
+
+
+def _send_event(telemetry_uuid: str, event_name: str, event_data: dict) -> None:
+    try:
+        posthog.capture(telemetry_uuid, event_name, event_data)
+    except APIError as e:
+        raise AnalyticsServiceError(
+            f"PostHog experienced an error while capturing the event: {e}."
+        )
+
+
+def _add_app_properties(data: dict, app: Flask) -> None:
+    data["app_properties"] = {
+        "orchest_version": app.config.get("ORCHEST_REPO_TAG"),
+        "dev": StaticConfig.FLASK_ENV == "development",
+        "cloud": StaticConfig.CLOUD,
+    }
+
+
+def _get_telemetry_uuid(app: Flask) -> str:
+    telemetry_uuid = app.config.get("TELEMETRY_UUID")
+
+    if telemetry_uuid is None:
+        telemetry_uuid = str(uuid.uuid4())
+        write_config(app, "TELEMETRY_UUID", telemetry_uuid)
+
+    return telemetry_uuid
+
+
+class _Anonimizer:
+    def __init__(self, event_name: str) -> None:
+        """Anonimizes the event properties of the given event.
+
+        To determine how the properties need to be anonimized, the given
+        `event_name` is used.
+
+        Raises:
+            ValueError: Doesn't know how to anonimize the given event.
+        """
+        self.event_name = event_name
+
+        try:
+            self._anonimization_func = getattr(self, event_name.replace(" ", "_"))
+        except AttributeError:
+            raise ValueError(
+                f"No implementation exists to anonimize event '{event_name}'."
+            )
+
+    def __call__(self, event_properties: dict) -> None:
+        return self._anonimization_func(event_properties)
+
+    @staticmethod
+    def pipeline_save(event_properties):
+        pass
+
+    # --- Events that don't require any anonimization ---
+    @staticmethod
+    def view_load(event_properties):
+        return event_properties
+
+    @staticmethod
+    def alert_show(event_properties):
+        return event_properties
+
+    @staticmethod
+    def confirm_show(event_properties):
+        return event_properties
+
+    @staticmethod
+    def build_request(event_properties):
+        return event_properties
+
+    @staticmethod
+    def heartbeat_trigger(event_properties):
+        return event_properties
+
+
+##################################################
 
 # Analytics related functions
 def send_job_create(app, job):
@@ -164,68 +321,6 @@ def send_pipeline_run_cancel(app, pipeline_identifier, run_type):
             "run_type": run_type,
         },
     )
-
-
-def get_telemetry_uuid(app):
-
-    # get UUID if it exists
-    if "TELEMETRY_UUID" in app.config:
-        telemetry_uuid = app.config["TELEMETRY_UUID"]
-    else:
-        telemetry_uuid = str(uuid.uuid4())
-        write_config(app, "TELEMETRY_UUID", telemetry_uuid)
-
-    return telemetry_uuid
-
-
-def send_event(app, event, properties):
-    if app.config["TELEMETRY_DISABLED"]:
-        return False
-
-    try:
-        telemetry_uuid = get_telemetry_uuid(app)
-
-        properties["dev"] = StaticConfig.FLASK_ENV == "development"
-        properties["cloud"] = StaticConfig.CLOUD
-
-        properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
-
-        posthog.capture(telemetry_uuid, event, properties)
-        app.logger.debug(
-            "Sending event[%s] to Posthog for anonymized user [%s] with properties: %s"
-            % (event, telemetry_uuid, properties)
-        )
-        return True
-    except (Exception, APIError) as e:
-        app.logger.error("Could not send event through posthog %s" % e)
-        return False
-
-
-def analytics_ping(app):
-    """
-    Note: telemetry can be disabled by including TELEMETRY_DISABLED in
-    your user config.json.
-    """
-    try:
-        properties = {"active": check_active(app)}
-        send_event(app, "heartbeat trigger", properties)
-
-    except Exception as e:
-        app.logger.warning("Exception while sending telemetry request %s" % e)
-
-
-def check_active(app):
-    try:
-        t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
-
-        diff_minutes = (time.time() - t) / 60
-
-        return diff_minutes < (
-            app.config["TELEMETRY_INTERVAL"] * 0.5
-        )  # check whether user was active in last half of TELEMETRY_INTERVAL
-    except OSError as e:
-        app.logger.debug("Exception while reading request log recency %s" % e)
-        return False
 
 
 def send_session_start(app, session_config):

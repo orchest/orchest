@@ -25,7 +25,7 @@ from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import _proxy, is_werkzeug_parent
-from app.analytics import analytics_ping
+from app import analytics
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
 from app.kernel_manager import populate_kernels
@@ -146,11 +146,11 @@ def create_app():
         posthog.host = app.config["POSTHOG_HOST"]
 
         # send a ping now
-        analytics_ping(app)
+        analytics.send_heartbeat_signal(app)
 
         # and every 15 minutes
         scheduler.add_job(
-            analytics_ping,
+            analytics.send_heartbeat_signal,
             "interval",
             minutes=app.config["TELEMETRY_INTERVAL"],
             args=[app],
