@@ -45,7 +45,9 @@ jobs:
       - name: Pre cleanup
         run: |
           ./orchest stop
-          [ ! -z "$(docker ps -a -q)" ] && docker rm $(docker ps -a -q)
+          [ ! -z "$(docker ps -a -q)" ] && docker rm -fv $(docker ps -a -q)
+          docker image prune -f
+          docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q 
           sudo bash scripts/clean_userdir.sh
 
       - name: Build and Start Orchest
@@ -69,5 +71,7 @@ jobs:
       - name: Post cleanup
         run: |
           ./orchest stop
-          [ ! -z "$(docker ps -a -q)" ] && docker rm $(docker ps -a -q)
+          [ ! -z "$(docker ps -a -q)" ] && docker rm -fv $(docker ps -a -q)
+          docker image prune -f
+          docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q 
           sudo bash scripts/clean_userdir.sh
