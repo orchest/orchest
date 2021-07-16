@@ -55,7 +55,7 @@ jobs:
           bash scripts/build_container.sh
           ./orchest start --cloud
 
-      # Can't use the action provide by cypress because of
+      # Can't use the action provided by cypress because of
       # https://github.com/cypress-io/github-action/issues/145.
       - name: "Run tests"
         run: |
@@ -64,8 +64,9 @@ jobs:
         env:
           CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          # Recommended: pass the GitHub token lets this action correctly
-          # determine the unique run id necessary to re-run the checks
+          # Recommended: passing the GitHub token lets this action
+          # correctly determine the unique run id necessary to re-run
+          # the checks.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Post cleanup
