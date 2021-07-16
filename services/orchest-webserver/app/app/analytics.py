@@ -25,11 +25,11 @@ def send_heartbeat_signal(app: Flask) -> None:
     active = None
     try:
         t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
-    except OSError as e:
+    except OSError:
         app.logger.error(
-            "Analytics heartbeat failed to identify whether the user is active."
+            "Analytics heartbeat failed to identify whether the user is active.",
+            exc_info=True,
         )
-        app.logger.debug("Exception while reading request log recency %s" % e)
     else:
         diff_minutes = (time.time() - t) / 60
         active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
@@ -85,7 +85,8 @@ def send_event(
         return False
     except RuntimeError:
         app.logger.error(
-            f"Failed to anonymize analytics event data for '{event_name}'."
+            f"Failed to anonymize analytics event data for '{event_name}'.",
+            exc_info=True,
         )
         # We only want to send anonymized data.
         return False
@@ -95,8 +96,10 @@ def send_event(
     telemetry_uuid = _get_telemetry_uuid(app)
     try:
         _send_event(telemetry_uuid, event_name, event_data)
-    except AnalyticsServiceError as e:
-        app.logger.error(f"Failed to send analytics event '{event_name}': {e}.")
+    except AnalyticsServiceError:
+        app.logger.error(
+            f"Failed to send analytics event '{event_name}'.", exc_info=True
+        )
         return False
     else:
         app.logger.debug(f"Successfully sent analytics event '{event_name}'.")
@@ -106,9 +109,9 @@ def send_event(
 def _send_event(telemetry_uuid: str, event_name: str, event_data: dict) -> None:
     try:
         posthog.capture(telemetry_uuid, event_name, event_data)
-    except APIError as e:
+    except APIError:
         raise AnalyticsServiceError(
-            f"PostHog experienced an error while capturing the event: {e}."
+            "PostHog experienced an error while capturing the event."
         )
 
 
