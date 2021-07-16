@@ -421,6 +421,7 @@ def register_orchest_api_views(app, db):
                     "run_uuid": resp.json().get("uuid"),
                     "run_type": "interactive",
                     "pipeline_definition": json_obj["pipeline_definition"],
+                    "step_uuids_to_execute": json_obj["uuids"],
                 },
             )
 
