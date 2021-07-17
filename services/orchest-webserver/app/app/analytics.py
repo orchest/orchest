@@ -157,7 +157,7 @@ class _Anonymizer:
             )
 
     def __call__(self, event_properties: dict) -> dict:
-        """anonymizes the given properties in place.
+        """Anonymizes the given properties in place.
 
         Optionally returns derived properties from the anonymized
         properties, e.g. returning the number of step parameters instead
@@ -242,7 +242,7 @@ class _Anonymizer:
     # -----------------------------
     # Events that don't require any anonymization. However this way of
     # implementation clearly shows us all the telemetry events we
-    # current support.
+    # currently support.
     # -----------------------------
     @staticmethod
     def view_load(event_properties) -> None:
