@@ -78,11 +78,11 @@ Organizing tests can be tricky, but it doesn't have to be - think of it like a t
 If you're still stuck, see `onboarding.spec.ts
 <https://github.com/orchest/orchest/blob/master/cypress/integration/onboarding.spec.ts>`_.
 
-Slowing Things Down
-"""""""""""""""""""
+Debugging
+~~~~~~~~~
 
-By default, Cypress operates as fast as the browser can go – this can make it difficult to see if
-your tests are working during development.
+By default, Cypress operates as fast as the browser can go – this can make it difficult to debug
+tests during development.
 
 To make things easier, try:
 
