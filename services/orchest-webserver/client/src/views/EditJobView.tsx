@@ -1,4 +1,5 @@
 import * as React from "react";
+import parser from "cron-parser";
 import _ from "lodash";
 import {
   MDCTabBarReact,
@@ -306,6 +307,7 @@ const EditJobView: React.FC<any> = (props) => {
   };
 
   const validateJobConfig = () => {
+    // At least one selected pipeline run.
     if (state.selectedIndices.reduce((acc, val) => acc + val, 0) == 0) {
       return {
         pass: false,
@@ -313,6 +315,17 @@ const EditJobView: React.FC<any> = (props) => {
           "You selected 0 pipeline runs. Please choose at least one pipeline run configuration.",
       };
     }
+
+    // Valid cron string.
+    try {
+      parser.parseExpression(state.cronString);
+    } catch (err) {
+      return {
+        pass: false,
+        reason: "Invalid cron schedule: " + state.cronString,
+      };
+    }
+
     return { pass: true };
   };
 
