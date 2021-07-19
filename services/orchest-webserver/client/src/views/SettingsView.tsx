@@ -9,13 +9,14 @@ import {
   PromiseManager,
   makeCancelable,
 } from "@orchest/lib-utils";
+import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import UpdateView from "@/views/UpdateView";
 import ManageUsersView from "@/views/ManageUsersView";
 import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
 
-const SettingsView: React.FC<any> = () => {
+const SettingsView: React.FC<TViewProps> = () => {
   const { orchest } = window;
 
   const context = useOrchest();

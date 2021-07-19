@@ -12,6 +12,7 @@ import {
   makeCancelable,
 } from "@orchest/lib-utils";
 
+import type { TViewProps } from "@/types";
 import { Layout } from "@/components/Layout";
 import {
   getPipelineJSONEndpoint,
@@ -27,7 +28,7 @@ const MODE_MAPPING = {
   r: "text/x-rsrc",
 } as const;
 
-const FilePreviewView: React.FC<any> = (props) => {
+const FilePreviewView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
 
   const [state, setState] = React.useState({

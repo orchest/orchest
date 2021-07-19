@@ -8,13 +8,14 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import type { TViewProps } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const ConfigureJupyterLabView: React.FC = () => {
+const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
   const context = useOrchest();
 
   const { orchest } = window;

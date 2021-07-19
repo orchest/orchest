@@ -14,6 +14,7 @@ import {
   RefManager,
   validURL,
 } from "@orchest/lib-utils";
+import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
@@ -26,7 +27,7 @@ const ERROR_MAPPING = {
     "project name contains illegal character(s).",
 } as const;
 
-const ProjectsView: React.FC<any> = (props) => {
+const ProjectsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();
