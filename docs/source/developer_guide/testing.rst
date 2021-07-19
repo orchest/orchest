@@ -66,17 +66,23 @@ and prone to change.
 Grouping
 """"""""
 
-Organizing tests can be tricky, but it doesn't have to be - think of it like a tree:
+Organizing tests can be tricky – think of the `test interface
+<https://docs.cypress.io/guides/core-concepts/writing-and-organizing-tests#Test-Structure>`_
+like a directory tree:
 
-* Wrap your entire specification with a ``describe()``.
-* Group similar behaviours with ``context()``.
+* ``describe()`` – the top-level user-journey or business logic.
 
-   * Use hooks to run `shared checks and cleanup
-     <https://docs.cypress.io/guides/core-concepts/writing-and-organizing-tests#Hooks>`_.
-   * Write each test in an ``it()``.
+   * ``context()`` – shared/similar behavior patterns.
 
-If you're still stuck, see `onboarding.spec.ts
-<https://github.com/orchest/orchest/blob/master/cypress/integration/onboarding.spec.ts>`_.
+      * ``it()`` – individual/use-case behavior.
+
+Inside each level, make use of hooks to run `shared checks and cleanup
+<https://docs.cypress.io/guides/core-concepts/writing-and-organizing-tests#Hooks>`_.
+
+.. tip::
+   **For example;** if you're testing a Dialog component, you may want to group various "close" actions
+   inside a ``context()``. Inside that ``context()``, an ``afterEach()`` hook could be used to assert
+   the Dialog is no longer visible.
 
 Debugging
 ~~~~~~~~~
