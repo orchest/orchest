@@ -27,17 +27,19 @@ export default class App extends React.Component {
   render() {
     if (this.state.config) {
       switch (this.props.view) {
-        case "login":
+        case "/login":
           return (
             <Login
               cloud={this.state.config.CLOUD}
               cloudURL={this.state.config.CLOUD_URL}
+              queryArgs={this.props.queryArgs}
             />
           );
-        case "admin":
+        case "/login/admin":
           return <Admin />;
       }
     } else {
+      console.log("The given view is not defined: " + this.props.view);
       return null;
     }
   }

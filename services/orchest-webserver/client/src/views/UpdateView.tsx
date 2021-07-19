@@ -6,10 +6,11 @@ import {
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
+import type { TViewProps } from "@/types";
 import { Layout } from "@/components/Layout";
 import { useInterval } from "@/hooks/use-interval";
 
-const UpdateView: React.FC<null> = () => {
+const UpdateView: React.FC<TViewProps> = () => {
   const { orchest } = window;
 
   const [state, setState] = React.useState((prevState) => ({

@@ -1,4 +1,5 @@
 import * as React from "react";
+import parser from "cron-parser";
 import _ from "lodash";
 import {
   MDCTabBarReact,
@@ -18,6 +19,7 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
 } from "@/utils/webserver-utils";
+import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { DescriptionList } from "@/components/DescriptionList";
@@ -30,7 +32,7 @@ import EnvVarList from "@/components/EnvVarList";
 import JobView from "@/views/JobView";
 import JobsView from "@/views/JobsView";
 
-const EditJobView: React.FC<any> = (props) => {
+const EditJobView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();
@@ -306,6 +308,7 @@ const EditJobView: React.FC<any> = (props) => {
   };
 
   const validateJobConfig = () => {
+    // At least one selected pipeline run.
     if (state.selectedIndices.reduce((acc, val) => acc + val, 0) == 0) {
       return {
         pass: false,
@@ -313,6 +316,17 @@ const EditJobView: React.FC<any> = (props) => {
           "You selected 0 pipeline runs. Please choose at least one pipeline run configuration.",
       };
     }
+
+    // Valid cron string.
+    try {
+      parser.parseExpression(state.cronString);
+    } catch (err) {
+      return {
+        pass: false,
+        reason: "Invalid cron schedule: " + state.cronString,
+      };
+    }
+
     return { pass: true };
   };
 

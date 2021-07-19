@@ -21,7 +21,8 @@ export default class Login extends React.Component {
     formData.append("username", this.state.username);
     formData.append("password", this.state.password);
 
-    makeRequest("POST", "/login/submit", {
+    let queryString = this.props.queryArgs ? "?" + this.props.queryArgs : "";
+    makeRequest("POST", "/login/submit" + queryString, {
       type: "FormData",
       content: formData,
     })
