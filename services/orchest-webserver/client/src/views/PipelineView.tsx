@@ -14,6 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
   checkGate,
@@ -44,7 +45,10 @@ const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
-const PipelineView = (props) => {
+interface IPipelineViewProps
+  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+
+const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { $, orchest } = window;
   const { get, state: orchestState, dispatch } = useOrchest();
   const session = get.session(props.queryArgs);
