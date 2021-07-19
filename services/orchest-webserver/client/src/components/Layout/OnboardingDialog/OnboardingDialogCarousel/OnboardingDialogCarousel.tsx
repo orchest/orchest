@@ -1,5 +1,5 @@
 import * as React from "react";
-import { css, ICSSProp } from "@orchest/design-system";
+import { styled, ICSSProp } from "@orchest/design-system";
 import { m, AnimatePresence } from "framer-motion";
 import { useOnboardingDialogCarousel } from "./use-onboarding-dialog-carousel";
 
@@ -58,21 +58,21 @@ export const OnboardingDialogCarouselSlide = ({ children, ...props }) => {
   );
 };
 
-const indicatorList = css({
+const IndicatorList = styled("ul", {
   include: "box",
   display: "flex",
   width: "100%",
   listStyleType: "none",
   justifyContent: "center",
 });
-const indicatorListItem = css({
+const IndicatorListItem = styled("li", {
   include: "box",
   display: "block",
   "& + &": {
     marginLeft: "$2",
   },
 });
-const indicatorButton = css({
+const IndicatorButton = styled("button", {
   include: "box",
   appearance: "none",
   width: "$space$2",
@@ -94,38 +94,36 @@ const indicatorButton = css({
     },
   },
 });
-const indicatorLabel = css({ include: "screenReaderOnly" });
+const IndicatorLabel = styled("span", { include: "screenReaderOnly" });
 
 interface IOnboardingDialogCarouselIndicatorProps
   extends React.HTMLAttributes<HTMLUListElement>,
     ICSSProp {}
 
-export const OnboardingDialogCarouselIndicator: React.FC<IOnboardingDialogCarouselIndicatorProps> = ({
-  css,
-  className,
-}) => {
+export const OnboardingDialogCarouselIndicator: React.FC<IOnboardingDialogCarouselIndicatorProps> = (
+  props
+) => {
   const { length, slideIndex, setSlide } = useOnboardingDialogCarousel();
 
   return (
-    <ul role="list" className={indicatorList({ css, className })}>
+    <IndicatorList role="list" {...props}>
       {Array(length)
         .fill(0)
         .map((_, i) => (
-          <li
+          <IndicatorListItem
             key={`indicatorListItem-${i}`}
-            className={indicatorListItem()}
             aria-current={i === slideIndex ? "step" : undefined}
           >
-            <button
-              className={indicatorButton({ isCurrent: i === slideIndex })}
+            <IndicatorButton
+              isCurrent={i === slideIndex}
               onClick={() => {
                 if (i !== slideIndex) setSlide([i, slideIndex > i ? -1 : 1]);
               }}
             >
-              <span className={indicatorLabel()}>Slide {i + 1}</span>
-            </button>
-          </li>
+              <IndicatorLabel>Slide {i + 1}</IndicatorLabel>
+            </IndicatorButton>
+          </IndicatorListItem>
         ))}
-    </ul>
+    </IndicatorList>
   );
 };
