@@ -13,7 +13,7 @@ import {
   makeCancelable,
   RefManager,
 } from "@orchest/lib-utils";
-import type { IViewProps } from "@/types";
+import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { commaSeparatedString } from "@/utils/text";
 import {
@@ -151,7 +151,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   );
 };
 
-const JobView: React.FC<IViewProps> = (props) => {
+const JobView: React.FC<TViewProps> = (props) => {
   const orchest = window.orchest;
 
   const { dispatch } = useOrchest();

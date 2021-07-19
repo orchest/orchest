@@ -7,7 +7,7 @@ import {
   uuidv4,
   collapseDoubleDots,
 } from "@orchest/lib-utils";
-import type { IViewProps } from "@/types";
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useInterval } from "@/hooks/use-interval";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
@@ -15,12 +15,8 @@ import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import PipelinesView from "@/views/PipelinesView";
 
-export interface IJupyterLabViewProps extends IViewProps {
-  queryArgs: {
-    project_uuid: IViewProps["queryArgs"]["project_uuid"];
-    pipeline_uuid: IViewProps["queryArgs"]["pipeline_uuid"];
-  };
-}
+export interface IJupyterLabViewProps
+  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
 
 const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
   const { state, dispatch, get } = useOrchest();

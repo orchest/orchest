@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { IViewProps } from "@/types";
+import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvironmentList from "@/components/EnvironmentList";
@@ -8,7 +8,7 @@ import ProjectBasedView, {
 } from "@/components/ProjectBasedView";
 
 export interface IEnvironmentsViewProps
-  extends IViewProps,
+  extends TViewProps,
     IProjectBasedViewProps {}
 
 const EnvironmentsView: React.FC<IEnvironmentsViewProps> = (props) => {

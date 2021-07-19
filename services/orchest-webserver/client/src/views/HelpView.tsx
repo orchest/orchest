@@ -1,10 +1,10 @@
 import * as React from "react";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { IViewProps } from "@/types";
+import type { TViewProps } from "@/types";
 import { Layout, useLayout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
 
-const HelpView: React.FC<IViewProps> = () => {
+const HelpView: React.FC<TViewProps> = () => {
   const { state } = useOrchest();
   const { setIsOnboardingDialogOpen } = useLayout();
 

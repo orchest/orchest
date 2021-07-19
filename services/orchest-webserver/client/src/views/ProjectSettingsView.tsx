@@ -6,6 +6,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
@@ -18,7 +19,7 @@ import PipelinesView from "@/views/PipelinesView";
 import JobsView from "@/views/JobsView";
 import EnvironmentsView from "@/views/EnvironmentsView";
 
-const ProjectSettingsView: React.FC<any> = (props) => {
+const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();
