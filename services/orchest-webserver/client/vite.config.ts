@@ -10,18 +10,9 @@ export default (conditions) =>
     server: {
       host: "0.0.0.0",
       proxy: conditions.mode === "development" && {
-        "^/(analytics|api|async|catch|container-file-manager|heartbeat|store|update-server)/*": {
-          target: "http://localhost:8000",
-          changeOrigin: true,
-        },
-        "^/login/*": {
-          target: "http://localhost:3001/login/",
-          changeOrigin: true,
-          rewrite: (path) => {
-            console.log(path.replace("/login", ""));
-            return path.replace("/login", "");
-          },
-        },
+        "^/(analytics|api|async|catch|container-file-manager|heartbeat|store|update-server)/*":
+          "http://localhost:8000",
+        "^/login/*": "http://localhost:3001",
       },
     },
     resolve: {

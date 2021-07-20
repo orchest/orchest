@@ -11,10 +11,7 @@ export default (conditions) =>
       host: "0.0.0.0",
       port: 3001,
       proxy: conditions.mode === "development" && {
-        "^/login/(server-config|submit|users)/*": {
-          target: "http://localhost:8000",
-          changeOrigin: true,
-        },
+        "^/login/(server-config|submit|users)/*": "http://localhost:8000",
       },
     },
     define: {
