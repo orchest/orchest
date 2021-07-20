@@ -340,8 +340,10 @@ def _anonymize_pipeline_definition(definition: dict) -> dict:
         step.pop("file_path")
         step_parameters_count += len(step.pop("parameters", {}))
 
-        env = step.get("environment")
-        if env is not None:
+        # NOTE: a step with no defined environments will have a step
+        # equal to "".
+        env = step.get("environment", "")
+        if len(env) > 0:
             environments.add(env)
 
     derived_properties = {
