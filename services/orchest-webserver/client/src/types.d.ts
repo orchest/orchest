@@ -134,3 +134,28 @@ export interface IOrchestContext {
   dispatch: React.Dispatch<TOrchestAction>;
   get: IOrchestGet;
 }
+
+export interface IQueryArgs
+  extends Partial<
+    Record<
+      | "environment_uuid"
+      | "import_url"
+      | "initial_tab"
+      | "job_uuid"
+      | "pipeline_uuid"
+      | "project_uuid"
+      | "run_uuid"
+      | "step_uuid",
+      string
+    >
+  > {
+  read_only?: "true" | "false";
+}
+
+export type TViewProps = {
+  queryArgs?: IQueryArgs;
+};
+
+export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
+  queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
+};

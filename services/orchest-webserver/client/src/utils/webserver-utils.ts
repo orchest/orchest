@@ -6,25 +6,26 @@ import { format, parseISO } from "date-fns";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
 
-import ConfigureJupyterLabView from "../views/ConfigureJupyterLabView";
-import EditJobView from "../views/EditJobView";
-import EnvironmentEditView from "../views/EnvironmentEditView";
-import EnvironmentsView from "../views/EnvironmentsView";
-import FileManagerView from "../views/FileManagerView";
-import FilePreviewView from "../views/FilePreviewView";
-import HelpView from "../views/HelpView";
-import JobsView from "../views/JobsView";
-import JobView from "../views/JobView";
-import JupyterLabView from "../views/JupyterLabView";
-import LogsView from "../views/LogsView";
-import ManageUsersView from "../views/ManageUsersView";
-import PipelineSettingsView from "../views/PipelineSettingsView";
-import PipelinesView from "../views/PipelinesView";
-import PipelineView from "../views/PipelineView";
-import ProjectSettingsView from "../views/ProjectSettingsView";
-import ProjectsView from "../views/ProjectsView";
-import SettingsView from "../views/SettingsView";
-import UpdateView from "../views/UpdateView";
+import type { IQueryArgs } from "@/types";
+import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
+import EditJobView from "@/views/EditJobView";
+import EnvironmentEditView from "@/views/EnvironmentEditView";
+import EnvironmentsView from "@/views/EnvironmentsView";
+import FileManagerView from "@/views/FileManagerView";
+import FilePreviewView from "@/views/FilePreviewView";
+import HelpView from "@/views/HelpView";
+import JobsView from "@/views/JobsView";
+import JobView from "@/views/JobView";
+import JupyterLabView from "@/views/JupyterLabView";
+import LogsView from "@/views/LogsView";
+import ManageUsersView from "@/views/ManageUsersView";
+import PipelineSettingsView from "@/views/PipelineSettingsView";
+import PipelinesView from "@/views/PipelinesView";
+import PipelineView from "@/views/PipelineView";
+import ProjectSettingsView from "@/views/ProjectSettingsView";
+import ProjectsView from "@/views/ProjectsView";
+import SettingsView from "@/views/SettingsView";
+import UpdateView from "@/views/UpdateView";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 
 const ajv = new Ajv({
@@ -558,7 +559,7 @@ export function decodeRoute(pathname, search) {
   return [TagName, { queryArgs: queryArgProps }];
 }
 
-export function queryArgPropsToQueryArgs(queryArgProps) {
+export function queryArgPropsToQueryArgs(queryArgProps: IQueryArgs) {
   // note: only string based query args are supported
   if (!queryArgProps || Object.keys(queryArgProps).length == 0) {
     return "";
@@ -573,7 +574,7 @@ export function queryArgPropsToQueryArgs(queryArgProps) {
   return "?" + searchParams.toString();
 }
 
-export function queryArgsToQueryArgProps(search) {
+export function queryArgsToQueryArgProps(search: string): IQueryArgs {
   // note: only string based query args are supported
   // note: search includes '?' prefix
   let searchParams = new URLSearchParams(search);

@@ -1,7 +1,7 @@
 import * as React from "react";
-import { css, ExtractVariants, ICSSProp } from "@orchest/design-system";
+import { styled, ExtractVariants, ICSSProp } from "@orchest/design-system";
 
-const svg = css({
+const PipelineDiagramSvg = styled("svg", {
   include: "box",
   display: "block",
   width: "100%",
@@ -10,25 +10,21 @@ const svg = css({
 });
 
 type TPipelineDiagramRef = SVGSVGElement;
-type TPipelineDiagramVariants = ExtractVariants<typeof svg>;
+type TPipelineDiagramVariants = ExtractVariants<typeof PipelineDiagramSvg>;
 
-interface IPipelineDiagramProps
-  extends React.HTMLAttributes<TPipelineDiagramRef>,
-    TPipelineDiagramVariants,
-    ICSSProp {}
+interface IPipelineDiagramProps extends TPipelineDiagramVariants, ICSSProp {}
 
 export const PipelineDiagram = React.forwardRef<
   TPipelineDiagramRef,
   IPipelineDiagramProps
->(({ className, css, ...props }, ref) => (
-  <svg
+>((props, ref) => (
+  <PipelineDiagramSvg
     ref={ref}
     width="366"
     height="192"
     viewBox="0 0 366 192"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={svg({ className, css })}
     {...props}
   >
     <title>
@@ -153,5 +149,5 @@ export const PipelineDiagram = React.forwardRef<
         <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
       </filter>
     </defs>
-  </svg>
+  </PipelineDiagramSvg>
 ));

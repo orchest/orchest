@@ -71,7 +71,9 @@ const StyledIconButton = styled(DEFAULT_TAG, {
     },
     rounded: {
       true: {
-        borderRadius: "$rounded",
+        "&&": {
+          borderRadius: "$rounded",
+        },
       },
     },
   },

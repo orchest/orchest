@@ -1,14 +1,15 @@
 import * as React from "react";
-import type { IOrchestState } from "@/types";
-
+import type { TViewProps } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import PipelineList from "@/components/PipelineList";
-import ProjectBasedView from "@/components/ProjectBasedView";
+import ProjectBasedView, {
+  IProjectBasedViewProps,
+} from "@/components/ProjectBasedView";
 
-export interface IPipelinesViewProps {
-  project_uuid: IOrchestState["project_uuid"];
-}
+export interface IPipelinesViewProps
+  extends TViewProps,
+    IProjectBasedViewProps {}
 
 const PipelinesView: React.FC<IPipelinesViewProps> = (props) => {
   const { dispatch } = useOrchest();
