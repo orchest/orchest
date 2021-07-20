@@ -4,14 +4,14 @@ importers:
   .:
     specifiers:
       "@testing-library/cypress": 7.0.6
-      cypress: 7.7.0
+      cypress: 8.0.0
       cypress-localstorage-commands: 1.4.5
       syncpack: 5.7.11
       typescript: 4.3.2
     devDependencies:
-      "@testing-library/cypress": 7.0.6_cypress@7.7.0
-      cypress: 7.7.0
-      cypress-localstorage-commands: 1.4.5_cypress@7.7.0
+      "@testing-library/cypress": 7.0.6_cypress@8.0.0
+      cypress: 8.0.0
+      cypress-localstorage-commands: 1.4.5_cypress@8.0.0
       syncpack: 5.7.11
       typescript: 4.3.2
 
@@ -1652,7 +1652,7 @@ packages:
       react: 16.13.1
     dev: false
 
-  /@testing-library/cypress/7.0.6_cypress@7.7.0:
+  /@testing-library/cypress/7.0.6_cypress@8.0.0:
     resolution:
       {
         integrity: sha512-atnjqlkEt6spU4Mv7evvpA8fMXeRw7AN2uTKOR1dP6WBvBixVwAYMZY+1fMOaZULWAj9vGLCXXvmw++u3TxuCQ==,
@@ -1663,7 +1663,7 @@ packages:
     dependencies:
       "@babel/runtime": 7.14.0
       "@testing-library/dom": 7.31.2
-      cypress: 7.7.0
+      cypress: 8.0.0
     dev: true
 
   /@testing-library/dom/7.31.2:
@@ -2804,7 +2804,7 @@ packages:
       }
     dev: true
 
-  /cypress-localstorage-commands/1.4.5_cypress@7.7.0:
+  /cypress-localstorage-commands/1.4.5_cypress@8.0.0:
     resolution:
       {
         integrity: sha512-mr86nv74GvOE4zOFwoMrksFCykNSbRh57Pg7xUGpm2ax+wfHhqwBA56Sn5dhHV73gzz7C6B1kfNpMrjMH/hgyg==,
@@ -2813,13 +2813,13 @@ packages:
     peerDependencies:
       cypress: ^2.1.0 || 3.x || 4.x || 5.x || 6.x || 7.x
     dependencies:
-      cypress: 7.7.0
+      cypress: 8.0.0
     dev: true
 
-  /cypress/7.7.0:
+  /cypress/8.0.0:
     resolution:
       {
-        integrity: sha512-uYBYXNoI5ym0UxROwhQXWTi8JbUEjpC6l/bzoGZNxoKGsLrC1SDPgIDJMgLX/MeEdPL0UInXLDUWN/rSyZUCjQ==,
+        integrity: sha512-Hhbc7FtbeCSg5Ui2zxXQLynk7IYGIygG8NqTauS4EtCWyp2k6s4g8P4KUZXwRbhuryN/+/dCd1kPtFbhBx8MuQ==,
       }
     engines: { node: ">=12.0.0" }
     hasBin: true
