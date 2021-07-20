@@ -1,7 +1,9 @@
 import copy
+import logging
 import os
 import time
 import uuid
+from enum import Enum
 from typing import Optional
 
 import posthog
@@ -11,6 +13,8 @@ from posthog.request import APIError
 from app.config import CONFIG_CLASS as StaticConfig
 from app.utils import write_config
 
+logger = logging.getLogger(__name__)
+
 
 class AnalyticsServiceError(Exception):
     """The third party analytics service experienced an error."""
@@ -18,10 +22,86 @@ class AnalyticsServiceError(Exception):
     pass
 
 
+class Event(Enum):
+    # NOTE: values must follow the regex r'[a-z\-]+ [a-z]+' and have
+    # names like: "[noun] [verb]", e.g. "movie played" or
+    # "movie updated".
+    ALERT_SHOW = "alert show"
+    BUILD_REQUEST = "build request"
+    CONFIRM_SHOW = "confirm show"
+    ENVIRONMENT_BUILD_CANCEL = "environment-build cancel"
+    ENVIRONMENT_BUILD_START = "environment-build start"
+    HEARTBEAT_TRIGGER = "heartbeat trigger"
+    JOB_CANCEL = "job cancel"
+    JOB_CREATE = "job create"
+    JOB_DELETE = "job delete"
+    JOB_UPDATE = "job update"
+    JUPYTER_BUILD_START = "jupyter-build start"
+    JUPYTER_BUILD_CANCEL = "jupyter-build cancel"
+    PIPELINE_RUN_CANCEL = "pipeline-run cancel"
+    PIPELINE_RUN_START = "pipeline-run start"
+    PIPELINE_SAVE = "pipeline save"
+    SESSION_RESTART = "session restart"
+    SESSION_START = "session start"
+    SESSION_STOP = "session stop"
+    VIEW_LOAD = "view load"
+
+    def anonymize(self, event_properties: dict) -> dict:
+        """Anonymizes the given properties in place.
+
+        To determine how the properties need to be anonymized
+        `self.value` is used.
+
+        Args:
+            event_properties: The properties that describe the event.
+                The exact properties that need to be anonymized are then
+                cherry-picked.
+
+        Returns:
+            Optionally returns derived properties from the anonymized
+            properties, e.g. returning the number of step parameters
+            instead of the actual parameter names, and indicates the
+            property it was derived from. Example::
+
+                {
+                    "job_definition": {
+                        "parameterized_runs_count": ...
+                    },
+                }
+
+            where the `"parameterized_runs_count"` was derived from an
+            attribute in the `"job_definition"`.
+
+            If no properties are derived, then an empty dict is
+            returned.
+
+        """
+        try:
+            anonimization_func = getattr(
+                _Anonymizer, self.value.replace(" ", "_").replace("-", "_")
+            )
+        except AttributeError:
+            # No need to anonymize the event.
+            logger.debug(f"Analytics event '{self}' does not need anonymization.")
+            return {}
+
+        try:
+            return anonimization_func(event_properties)
+        except Exception:
+            raise RuntimeError(
+                f"Unexpected error while anonimizing event data for '{self}'."
+            )
+
+
 def send_heartbeat_signal(app: Flask) -> None:
-    """Sends a heartbeat signal to the telemetry service."""
-    # A user is considered to be active if the user has triggered any
-    # webserver logs in the last half of the `TELEMETRY_INTERVAL`.
+    """Sends a heartbeat signal to the telemetry service.
+
+    A user is considered to be active if the user has triggered any
+    webserver logs in the last half of the `TELEMETRY_INTERVAL`.
+
+    """
+    # Value of None indicates that the user's activity could not be
+    # determined.
     active = None
     try:
         t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
@@ -34,14 +114,11 @@ def send_heartbeat_signal(app: Flask) -> None:
         diff_minutes = (time.time() - t) / 60
         active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
 
-    # Value of None indicates that the user's activity could not be
-    # determined.
-    event_properties = {"active": active}
-    send_event(app, "heartbeat trigger", event_properties)
+    send_event(app, Event.HEARTBEAT_TRIGGER, {"active": active})
 
 
 def send_event(
-    app: Flask, event_name: str, event_properties: Optional[dict] = None
+    app: Flask, event: Event, event_properties: Optional[dict] = None
 ) -> bool:
     """Sends an anonymized telemetry event.
 
@@ -56,16 +133,14 @@ def send_event(
 
     Args:
         app: The Flask application that received the event.
-        event_name: The name of the event. Events should be named like:
-            "[noun] [verb]", such as "movie played" or "movie updated".
-            Regex for noun: [a-z\-]+, e.g. "pipeline-run".
+        event: The event to send.
         event_properties: Any information that describes the event. This
             information will be anonimzed and send to the telemetry
             service.
 
     Returns:
         True if the event (including its information) was successfully
-        send to the telemetry service. False otherwise.
+        sent to the telemetry service. False otherwise.
 
     """
     if app.config["TELEMETRY_DISABLED"]:
@@ -77,15 +152,12 @@ def send_event(
         event_data = {"event_properties": copy.deepcopy(event_properties)}
 
     try:
-        anonymize = _Anonymizer(event_name)
-        event_data["derived_properties"] = anonymize(event_data["event_properties"])
-    except ValueError:
-        app.logger.error(f"Unknown how to anonymize analytics event '{event_name}'.")
-        # We only want to send anonymized data.
-        return False
+        event_data["derived_properties"] = event.anonymize(
+            event_data["event_properties"]
+        )
     except RuntimeError:
         app.logger.error(
-            f"Failed to anonymize analytics event data for '{event_name}'.",
+            f"Failed to anonymize analytics event data for '{event}'.",
             exc_info=True,
         )
         # We only want to send anonymized data.
@@ -95,14 +167,12 @@ def send_event(
 
     telemetry_uuid = _get_telemetry_uuid(app)
     try:
-        _send_event(telemetry_uuid, event_name, event_data)
+        _send_event(telemetry_uuid, event.value, event_data)
     except AnalyticsServiceError:
-        app.logger.error(
-            f"Failed to send analytics event '{event_name}'.", exc_info=True
-        )
+        app.logger.error(f"Failed to send analytics event '{event}'.", exc_info=True)
         return False
     else:
-        app.logger.debug(f"Successfully sent analytics event '{event_name}'.")
+        app.logger.debug(f"Successfully sent analytics event '{event}'.")
         return True
 
 
@@ -134,61 +204,10 @@ def _get_telemetry_uuid(app: Flask) -> str:
 
 
 class _Anonymizer:
-    def __init__(self, event_name: str) -> None:
-        """Anonymizes the event properties of the given event.
-
-        To determine how the properties need to be anonymized, the given
-        `event_name` is used.
-
-        NOTE: `event_name` must follow the regex r'[a-z\-]+ [a-z]+'.
-
-        Raises:
-            ValueError: Doesn't know how to anonymize the given event.
-        """
-        self.event_name = event_name
-
-        try:
-            self._anonimization_func = getattr(
-                self, event_name.replace(" ", "_").replace("-", "_")
-            )
-        except AttributeError:
-            raise ValueError(
-                f"No implementation exists to anonymize event '{event_name}'."
-            )
-
-    def __call__(self, event_properties: dict) -> dict:
-        """Anonymizes the given properties in place.
-
-        Optionally returns derived properties from the anonymized
-        properties, e.g. returning the number of step parameters instead
-        of the actual parameter names, and indicates the property it was
-        derived from. Example::
-
-            {
-                "job_definition": {
-                    "parameterized_runs_count": ...
-                },
-            }
-
-        where the `"parameterized_runs_count"` was derived from an
-        attribute in the `"job_definition"`.
-
-        """
-        try:
-            derived_properties = self._anonimization_func(event_properties)
-        except Exception:
-            derived_properties = None
-            raise RuntimeError(
-                "Unexpected error while anonimizing event data"
-                f" for '{self.event_name}'."
-            )
-
-        if derived_properties is None:
-            return {}
-        return derived_properties
+    """Anonymizes the event properties of the given event."""
 
     @staticmethod
-    def job_create(event_properties):
+    def job_create(event_properties: dict) -> dict:
         job_def = event_properties["job_definition"]
         job_def.pop("name", None)
         job_def.pop("pipeline_name", None)
@@ -204,7 +223,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def job_update(event_properties):
+    def job_update(event_properties: dict) -> dict:
         job_def = event_properties["job_definition"]
         job_def.pop("strategy_json", None)
 
@@ -216,7 +235,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def session_start(event_properties):
+    def session_start(event_properties: dict) -> dict:
         derived_properties = {"services": {}}
         for sname, sdef in event_properties.get("services", {}).items():
             derived_properties["services"][sname] = _anonymize_service_definition(sdef)
@@ -224,7 +243,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def pipeline_run_start(event_properties):
+    def pipeline_run_start(event_properties: dict) -> dict:
         pdef = event_properties["pipeline_definition"]
         derived_properties = {
             "pipeline_definition": _anonymize_pipeline_definition(pdef),
@@ -232,65 +251,12 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def pipeline_save(event_properties):
+    def pipeline_save(event_properties: dict) -> dict:
         pdef = event_properties["pipeline_definition"]
         derived_properties = {
             "pipeline_definition": _anonymize_pipeline_definition(pdef),
         }
         return derived_properties
-
-    # -----------------------------
-    # Events that don't require any anonymization. However this way of
-    # implementation clearly shows us all the telemetry events we
-    # currently support.
-    # -----------------------------
-    @staticmethod
-    def view_load(event_properties) -> None:
-        return
-
-    @staticmethod
-    def alert_show(event_properties) -> None:
-        return
-
-    @staticmethod
-    def confirm_show(event_properties) -> None:
-        return
-
-    @staticmethod
-    def build_request(event_properties) -> None:
-        return
-
-    @staticmethod
-    def heartbeat_trigger(event_properties) -> None:
-        return
-
-    @staticmethod
-    def job_cancel(event_properties) -> None:
-        return
-
-    @staticmethod
-    def job_delete(event_properties) -> None:
-        return
-
-    @staticmethod
-    def environment_build_start(event_properties) -> None:
-        return
-
-    @staticmethod
-    def environment_build_cancel(event_properties) -> None:
-        return
-
-    @staticmethod
-    def session_stop(event_properties) -> None:
-        return
-
-    @staticmethod
-    def session_restart(event_properties) -> None:
-        return
-
-    @staticmethod
-    def pipeline_run_cancel(event_properties) -> None:
-        return
 
 
 def _anonymize_service_definition(definition: dict) -> dict:

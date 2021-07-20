@@ -729,7 +729,9 @@ def register_views(app, db):
 
             # Analytics call.
             analytics.send_event(
-                app, "pipeline save", {"pipeline_definition": pipeline_json}
+                app,
+                analytics.Event.PIPELINE_SAVE,
+                {"pipeline_definition": pipeline_json},
             )
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 

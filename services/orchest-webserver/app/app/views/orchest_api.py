@@ -85,7 +85,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            "environment-build cancel",
+            analytics.Event.ENVIRONMENT_BUILD_CANCEL,
             {"environment_build_uuid": environment_build_uuid},
         )
         return resp.content, resp.status_code, resp.headers.items()
@@ -121,7 +121,7 @@ def register_orchest_api_views(app, db):
         for environment_build_request in environment_build_requests:
             analytics.send_event(
                 app,
-                "environment-build start",
+                analytics.Event.ENVIRONMENT_BUILD_START,
                 {
                     "environment_uuid": environment_build_request["environment_uuid"],
                     "project_uuid": environment_build_request["project_uuid"],
@@ -149,7 +149,7 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jupyter-builds/",
         )
-        analytics.send_event(app, "jupyter-build start", {})
+        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_START, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds/<build_uuid>", methods=["DELETE"])
@@ -159,7 +159,7 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jupyter-builds/%s" % build_uuid,
         )
-        analytics.send_event(app, "jupyter-build cancel", {})
+        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_CANCEL, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -239,7 +239,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            "job create",
+            analytics.Event.JOB_CREATE,
             {
                 "job_definition": json_obj,
                 "snapshot_size": get_project_snapshot_size(json_obj["project_uuid"]),
@@ -273,7 +273,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            "session stop",
+            analytics.Event.SESSION_STOP,
             {"project_uuid": project_uuid, "pipeline_uuid": pipeline_uuid},
         )
         return resp.content, resp.status_code, resp.headers.items()
@@ -313,7 +313,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            "session start",
+            analytics.Event.SESSION_START,
             {
                 "project_uuid": project_uuid,
                 "pipeline_uuid": pipeline_uuid,
@@ -346,7 +346,7 @@ def register_orchest_api_views(app, db):
             if active_runs:
                 analytics.send_event(
                     app,
-                    "session restart",
+                    analytics.Event.SESSION_RESTART,
                     {
                         "project_uuid": project_uuid,
                         "pipeline_uuid": pipeline_uuid,
@@ -374,7 +374,7 @@ def register_orchest_api_views(app, db):
 
                 analytics.send_event(
                     app,
-                    "session restart",
+                    analytics.Event.SESSION_RESTART,
                     {
                         "project_uuid": project_uuid,
                         "pipeline_uuid": pipeline_uuid,
@@ -416,7 +416,7 @@ def register_orchest_api_views(app, db):
 
             analytics.send_event(
                 app,
-                "pipeline-run start",
+                analytics.Event.PIPELINE_RUN_START,
                 {
                     "run_uuid": resp.json().get("uuid"),
                     "run_type": "interactive",
@@ -461,7 +461,7 @@ def register_orchest_api_views(app, db):
 
             analytics.send_event(
                 app,
-                "pipeline-run cancel",
+                analytics.Event.PIPELINE_RUN_CANCEL,
                 {"run_uuid": run_uuid, "run_type": "interactive"},
             )
             return resp.content, resp.status_code, resp.headers.items()
@@ -473,7 +473,7 @@ def register_orchest_api_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/%s" % (job_uuid),
         )
 
-        analytics.send_event(app, "job cancel", {"job_uuid": job_uuid})
+        analytics.send_event(app, analytics.Event.JOB_CANCEL, {"job_uuid": job_uuid})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["PUT"])
@@ -485,7 +485,9 @@ def register_orchest_api_views(app, db):
         )
 
         analytics.send_event(
-            app, "job update", {"job_uuid": job_uuid, "job_definition": request.json}
+            app,
+            analytics.Event.JOB_UPDATE,
+            {"job_uuid": job_uuid, "job_definition": request.json},
         )
         return resp.content, resp.status_code, resp.headers.items()
 
@@ -547,7 +549,11 @@ def register_orchest_api_views(app, db):
                 )
 
                 remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
-                analytics.send_event(app, "job delete", {"job_uuid": job_uuid})
+                analytics.send_event(
+                    app,
+                    analytics.Event.JOB_DELETE,
+                    {"job_uuid": job_uuid},
+                )
                 return resp.content, resp.status_code, resp.headers.items()
 
             elif resp.status_code == 404:
