@@ -2,7 +2,7 @@ import * as React from "react";
 import { useId } from "@radix-ui/react-id";
 import { styled } from "../core";
 import {
-  icon,
+  Icon,
   IconChevronLeftOutline,
   IconChevronRightOutline,
 } from "../icons";
@@ -118,7 +118,7 @@ const StyledAlertHeader = styled("p", {
   display: "flex",
   alignItems: "center",
   fontWeight: "$bold",
-  [`> .${icon}, > svg:not([class])`]: {
+  [`> ${Icon}, > svg:not([class])`]: {
     display: "inline-flex",
     flexShrink: 0,
     alignSelf: "center",

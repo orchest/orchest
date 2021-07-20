@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   css,
+  styled,
   Dialog,
   DialogBody,
   DialogContent,
@@ -14,7 +15,7 @@ import { MDCButtonReact } from "@orchest/lib-mdc";
 import { templates, IServiceTemplate } from "./content";
 
 // we'll extract this into the design-system later
-const createServiceButton = css({
+const CreateServiceButton = styled("button", {
   appearance: "none",
   display: "inline-flex",
   backgroundColor: "$background",
@@ -60,9 +61,8 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
               const template = templates[item];
               return (
                 <li key={item}>
-                  <button
+                  <CreateServiceButton
                     disabled={!template.config}
-                    className={createServiceButton()}
                     onClick={(e) => {
                       e.preventDefault();
 
@@ -72,7 +72,7 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
                   >
                     {template?.icon || <IconServicesSolid />}
                     {template.label}
-                  </button>
+                  </CreateServiceButton>
                 </li>
               );
             })}

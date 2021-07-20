@@ -1,6 +1,6 @@
 import * as React from "react";
 import {
-  css,
+  styled,
   useId,
   Box,
   IconButton,
@@ -207,7 +207,7 @@ export const MultiSelectLabel: React.FC<{ screenReaderOnly?: boolean }> = ({
   );
 };
 
-const multiSelectInputContainer = css({
+const MultiSelectInputContainer = styled("div", {
   $$borderWidth: "1px",
   include: "box",
   position: "relative",
@@ -238,7 +238,7 @@ const multiSelectInputContainer = css({
   },
 });
 
-const multiSelectInputList = css({
+const MultiSelectInputList = styled("ul", {
   $$gap: "$space$2",
   $$gapOuter: "calc(($$gap * -1) / 2)",
   $$gapInner: "calc($$gap / 2)",
@@ -252,7 +252,7 @@ const multiSelectInputList = css({
   "> li": { margin: "$$gapInner", "&:last-child": { flexGrow: 1 } },
 });
 
-const multiSelectInputChip = css({
+const MultiSelectInputChip = styled("li", {
   include: "box",
   display: "inline-flex",
   alignItems: "center",
@@ -261,7 +261,7 @@ const multiSelectInputChip = css({
   borderRadius: "$rounded",
 });
 
-const multiSelectInputElement = css({
+const MultiSelectInputElement = styled("input", {
   include: "box",
   display: "block",
   width: "100%",
@@ -286,16 +286,13 @@ export const MultiSelectInput: React.FC = () => {
   const inputProps = getInputProps();
 
   return (
-    <div
-      className={multiSelectInputContainer({ hasError: error ? true : false })}
-    >
-      <ul role="list" className={multiSelectInputList()}>
+    <MultiSelectInputContainer hasError={error ? true : false}>
+      <MultiSelectInputList role="list">
         {items.map((selectedItem, index) => (
-          <li
+          <MultiSelectInputChip
             key={index}
             onClick={() => setTabIndex({ index, value: 0 })}
             onBlur={() => setTabIndex({ index, value: -1 })}
-            className={multiSelectInputChip()}
           >
             {selectedItem.value}
             <IconButton
@@ -321,21 +318,17 @@ export const MultiSelectInput: React.FC = () => {
             >
               <IconCrossSolid />
             </IconButton>
-          </li>
+          </MultiSelectInputChip>
         ))}
         <li>
-          <input
-            type="text"
-            className={multiSelectInputElement()}
-            {...inputProps}
-          />
+          <MultiSelectInputElement type="text" {...inputProps} />
         </li>
-      </ul>
-    </div>
+      </MultiSelectInputList>
+    </MultiSelectInputContainer>
   );
 };
 
-const multiSelectError = css({
+const MultiSelectErrorText = styled("div", {
   include: "box",
   marginTop: "$2",
   color: "$error",
@@ -348,11 +341,8 @@ export const MultiSelectError = () => {
   const { error, getErrorProps } = useMultiSelect();
 
   return (
-    <div
-      {...getErrorProps()}
-      className={multiSelectError({ isVisible: error ? true : false })}
-    >
+    <MultiSelectErrorText {...getErrorProps()} isVisible={error ? true : false}>
       {error}
-    </div>
+    </MultiSelectErrorText>
   );
 };
