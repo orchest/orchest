@@ -89,7 +89,7 @@ importers:
       ts-node: 9.1.1
       tsconfig-paths: 3.9.0
       typescript: 4.3.2
-      vite: 2.3.7
+      vite: 2.4.2
     dependencies:
       "@orchest/design-system": link:../package
     devDependencies:
@@ -102,7 +102,7 @@ importers:
       ts-node: 9.1.1_typescript@4.3.2
       tsconfig-paths: 3.9.0
       typescript: 4.3.2
-      vite: 2.3.7
+      vite: 2.4.2
 
   lib/javascript/mdc:
     specifiers:
@@ -142,7 +142,7 @@ importers:
       react-dom: ^16.13.1
       sass: 1.32.8
       typescript: 4.3.2
-      vite: 2.3.7
+      vite: 2.4.2
     dependencies:
       "@orchest/lib-mdc": link:../../../lib/javascript/mdc
       "@orchest/lib-utils": link:../../../lib/javascript/utils
@@ -153,7 +153,7 @@ importers:
       "@vitejs/plugin-react-refresh": 1.3.3
       sass: 1.32.8
       typescript: 4.3.2
-      vite: 2.3.7
+      vite: 2.4.2
 
   services/orchest-webserver/client:
     specifiers:
@@ -184,7 +184,7 @@ importers:
       socket.io-client: ^2.3.0
       swr: 0.5.5
       typescript: 4.3.2
-      vite: 2.3.7
+      vite: 2.4.2
       vite-plugin-stitches: 0.0.1
       xterm-addon-fit: ^0.4.0
       xterm-for-react: ^1.0.4
@@ -211,7 +211,7 @@ importers:
       react-minimal-pie-chart: 8.2.0_react-dom@16.13.1+react@16.13.1
       socket.io-client: 2.4.0
       swr: 0.5.5_react@16.13.1
-      vite-plugin-stitches: 0.0.1_vite@2.3.7
+      vite-plugin-stitches: 0.0.1_vite@2.4.2
       xterm-addon-fit: 0.4.0
       xterm-for-react: 1.0.4_react-dom@16.13.1+react@16.13.1
     devDependencies:
@@ -220,7 +220,7 @@ importers:
       "@vitejs/plugin-react-refresh": 1.3.3
       sass: 1.32.8
       typescript: 4.3.2
-      vite: 2.3.7
+      vite: 2.4.2
 
 packages:
   /@babel/code-frame/7.12.11:
@@ -2639,10 +2639,10 @@ packages:
     resolution: { integrity: sha1-wsNYJlYkfDnqEHyx5mUrb58kUjw= }
     dev: false
 
-  /esbuild/0.12.7:
+  /esbuild/0.12.15:
     resolution:
       {
-        integrity: sha512-vxENKWBo928ErLiT/uUv8Sl2EoC5cF3cZzCTc8hDEh9ZAZ75xblJCr72NeJo74lxWaGopIePZPIWq1qDpLUHQQ==,
+        integrity: sha512-72V4JNd2+48eOVCXx49xoSWHgC3/cCy96e7mbXKY+WOWghN00cCmlGnwVLRhRHorvv0dgCyuMYBZlM2xDM5OQw==,
       }
     hasBin: true
     requiresBuild: true
@@ -4080,10 +4080,10 @@ packages:
       source-map: 0.6.1
     dev: false
 
-  /postcss/8.3.0:
+  /postcss/8.3.5:
     resolution:
       {
-        integrity: sha512-+ogXpdAjWGa+fdYY5BQ96V/6tAo+TdSSIMP5huJBIygdWwKtVoB5JWZ7yUd4xZ8r+8Kvvx4nyg/PQ071H4UtcQ==,
+        integrity: sha512-NxTuJocUhYGsMiMFHDUkmjSKT3EdH4/WbGF6GCi1NDGk+vbcUTun4fpbOqaPtD8IIsztA2ilZm2DhYCuyN58gA==,
       }
     engines: { node: ^10 || ^12 || >=14 }
     dependencies:
@@ -5233,7 +5233,7 @@ packages:
       spdx-expression-parse: 3.0.1
     dev: true
 
-  /vite-plugin-stitches/0.0.1_vite@2.3.7:
+  /vite-plugin-stitches/0.0.1_vite@2.4.2:
     resolution:
       {
         integrity: sha512-P4wm6NziiXgujnTw+RrWZUAqV9X4GgottMgluEP0ixg46irwWQgnlJmwoPW5CMH3S4bX7Ji+7AvQ2E/0POXAYA==,
@@ -5242,19 +5242,19 @@ packages:
       "@stitches/core": ">= 0.1.0"
       vite: ">= 2.1.5"
     dependencies:
-      vite: 2.3.7
+      vite: 2.4.2
     dev: false
 
-  /vite/2.3.7:
+  /vite/2.4.2:
     resolution:
       {
-        integrity: sha512-Y0xRz11MPYu/EAvzN94+FsOZHbSvO6FUvHv127CyG7mV6oDoay2bw+g5y9wW3Blf8OY3chaz3nc/DcRe1IQ3Nw==,
+        integrity: sha512-2MifxD2I9fjyDmmEzbULOo3kOUoqX90A58cT6mECxoVQlMYFuijZsPQBuA14mqSwvV3ydUsqnq+BRWXyO9Qa+w==,
       }
     engines: { node: ">=12.0.0" }
     hasBin: true
     dependencies:
-      esbuild: 0.12.7
-      postcss: 8.3.0
+      esbuild: 0.12.15
+      postcss: 8.3.5
       resolve: 1.20.0
       rollup: 2.45.1
     optionalDependencies:
