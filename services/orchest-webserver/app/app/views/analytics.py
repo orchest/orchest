@@ -1,5 +1,3 @@
-import os
-
 from flask import request
 
 from app import analytics
