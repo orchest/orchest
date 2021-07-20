@@ -1342,8 +1342,16 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
     // visually delete incoming connections from GUI
     let step = state.steps[uuid];
+    let connectionsToRemove = [];
+
+    // removeConnection modifies incoming_connections, hence the double
+    // loop.
     for (let x = 0; x < step.incoming_connections.length; x++) {
-      let connection = getConnectionByUUIDs(step.incoming_connections[x], uuid);
+      connectionsToRemove.push(
+        getConnectionByUUIDs(step.incoming_connections[x], uuid)
+      );
+    }
+    for (let connection of connectionsToRemove) {
       removeConnection(connection);
     }
 
