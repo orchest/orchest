@@ -14,7 +14,7 @@ export type TProjectSelectorProps = any;
 const ProjectSelector = React.forwardRef<
   TProjectSelectorRef,
   TProjectSelectorProps
->((_, ref) => {
+>((props, ref) => {
   const { state, dispatch } = useOrchest();
   const [selectItems, setSelectItems] = React.useState(null);
   const [projects, setProjects] = React.useState(null);
@@ -103,6 +103,7 @@ const ProjectSelector = React.forwardRef<
       options={selectItems}
       onChange={onChangeProject.bind(this)}
       value={state?.project_uuid}
+      data-test-id={props["data-test-id"]}
     />
   ) : (
     <MDCLinearProgressReact ref={ref} />

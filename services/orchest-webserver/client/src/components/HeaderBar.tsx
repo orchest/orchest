@@ -52,9 +52,10 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
   };
 
   return (
-    <header className="header-bar" ref={ref}>
+    <header ref={ref} className="header-bar" data-test-id="header-bar">
       <div className="header-bar-left">
         <button
+          data-test-id="header-bar-toggle"
           onClick={(e) => {
             e.preventDefault();
             dispatch({ type: "drawerToggle" });
@@ -65,7 +66,9 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         </button>
         <img src="/image/logo.svg" className="logo" />
 
-        {isProjectSelectorVisible && <ProjectSelector />}
+        {isProjectSelectorVisible && (
+          <ProjectSelector data-test-id="header-bar-project-selector" />
+        )}
       </div>
 
       {state.pipelineName && (
@@ -73,15 +76,21 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
           <div className="pipeline-name">
             <div className="pipelineStatusIndicator">
               {state.pipelineSaveStatus == "saved" ? (
-                <i title="Pipeline saved" className="material-icons">
+                <i
+                  title="Pipeline saved"
+                  className="material-icons"
+                  data-test-id="header-bar-pipeline-saved"
+                >
                   check_circle
                 </i>
               ) : (
-                <MDCCircularProgressReact />
+                <MDCCircularProgressReact data-test-id="header-bar-pipeline-saving" />
               )}
             </div>
 
-            {state.pipelineName}
+            <span data-test-id="header-bar-pipeline-name">
+              {state.pipelineName}
+            </span>
           </div>
         </div>
       )}
@@ -89,6 +98,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
       <div className="header-bar-actions">
         {state.pipelineName && !state.pipelineIsReadOnly && (
           <SessionToggleButton
+            data-test-id="header-bar-session-toggle"
             pipeline_uuid={state.pipeline_uuid}
             project_uuid={state.project_uuid}
           />
@@ -96,6 +106,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
 
         {state.pipelineName && state.view == "jupyter" && (
           <MDCButtonReact
+            data-test-id="header-bar-switch-to-pipeline"
             classNames={["mdc-button--outlined"]}
             onClick={showPipeline.bind(this)}
             icon="device_hub"
@@ -107,6 +118,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
           !state.pipelineIsReadOnly &&
           state.view == "pipeline" && (
             <MDCButtonReact
+              data-test-id="header-bar-switch-to-jupyter"
               disabled={get.currentSession?.status !== "RUNNING"}
               classNames={["mdc-button--outlined"]}
               onClick={showJupyter.bind(this)}
@@ -117,6 +129,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
 
         {state?.user_config.AUTH_ENABLED && (
           <MDCIconButtonToggleReact
+            data-test-id="header-bar-logout"
             icon="logout"
             tooltipText="Logout"
             onClick={logoutHandler.bind(this)}
@@ -124,6 +137,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         )}
 
         <MDCIconButtonToggleReact
+          data-test-id="header-bar-help"
           icon="help"
           tooltipText="Help"
           onClick={orchest.loadView.bind(orchest, HelpView)}

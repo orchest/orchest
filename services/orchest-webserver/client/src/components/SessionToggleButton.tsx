@@ -9,6 +9,7 @@ export interface ISessionToggleButtonProps
   pipeline_uuid: IOrchestSession["pipeline_uuid"];
   project_uuid: IOrchestSession["project_uuid"];
   switch?: boolean;
+  "data-test-id"?: string;
 }
 
 const SessionToggleButton = React.forwardRef<
@@ -25,6 +26,7 @@ const SessionToggleButton = React.forwardRef<
   });
 
   const sharedProps = {
+    "data-test-id": props["data-test-id"],
     disabled: isLoading || ["STOPPING", "LAUNCHING"].includes(session?.status),
     label:
       {

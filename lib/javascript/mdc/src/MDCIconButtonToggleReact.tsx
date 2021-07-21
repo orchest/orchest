@@ -40,6 +40,7 @@ export class MDCIconButtonToggleReact extends React.Component<any> {
         title={this.props.tooltipText}
         className="mdc-icon-button material-icons"
         type={this.props.submitButton ? "submit" : "button"}
+        data-test-id={this.props["data-test-id"]}
       >
         {this.props.icon}
       </button>

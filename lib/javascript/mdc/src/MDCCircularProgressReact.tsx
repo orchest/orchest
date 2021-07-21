@@ -38,6 +38,7 @@ export class MDCCircularProgressReact extends React.Component<any> {
         aria-valuemin="0"
         // @ts-ignore
         aria-valuemax="1"
+        data-test-id={this.props["data-test-id"]}
       >
         <div className="mdc-circular-progress__determinate-container">
           <svg
