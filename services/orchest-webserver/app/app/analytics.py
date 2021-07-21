@@ -1,86 +1,278 @@
 import copy
+import logging
 import os
 import time
 import uuid
+from enum import Enum
+from typing import Optional
 
 import posthog
+from flask.app import Flask
 from posthog.request import APIError
 
 from app.config import CONFIG_CLASS as StaticConfig
 from app.utils import write_config
 
+logger = logging.getLogger(__name__)
 
-# Analytics related functions
-def send_job_create(app, job):
-    # Anonymize .
-    job = copy.deepcopy(job)
-    job.pop("name", None)
-    job.pop("pipeline_name", None)
-    job.pop("pipeline_definition", None)
-    job["pipeline_run_spec"].pop("run_config")
-    job_parameterized_runs_count = len(job.pop("parameters", []))
 
-    props = {
-        "definition": job,
-        "parameterized_runs_count": job_parameterized_runs_count,
+class AnalyticsServiceError(Exception):
+    """The third party analytics service experienced an error."""
+
+    pass
+
+
+class Event(Enum):
+    # NOTE: values must follow the regex r'[a-z\-]+ [a-z]+' and have
+    # names like: "[noun] [verb]", e.g. "movie played" or
+    # "movie updated".
+    ALERT_SHOW = "alert show"
+    BUILD_REQUEST = "build request"
+    CONFIRM_SHOW = "confirm show"
+    ENVIRONMENT_BUILD_CANCEL = "environment-build cancel"
+    ENVIRONMENT_BUILD_START = "environment-build start"
+    HEARTBEAT_TRIGGER = "heartbeat trigger"
+    JOB_CANCEL = "job cancel"
+    JOB_CREATE = "job create"
+    JOB_DELETE = "job delete"
+    JOB_UPDATE = "job update"
+    JUPYTER_BUILD_START = "jupyter-build start"
+    JUPYTER_BUILD_CANCEL = "jupyter-build cancel"
+    PIPELINE_RUN_CANCEL = "pipeline-run cancel"
+    PIPELINE_RUN_START = "pipeline-run start"
+    PIPELINE_SAVE = "pipeline save"
+    SESSION_RESTART = "session restart"
+    SESSION_START = "session start"
+    SESSION_STOP = "session stop"
+    VIEW_LOAD = "view load"
+
+    def anonymize(self, event_properties: dict) -> dict:
+        """Anonymizes the given properties in place.
+
+        To determine how the properties need to be anonymized
+        `self.value` is used.
+
+        Args:
+            event_properties: The properties that describe the event.
+                The exact properties that need to be anonymized are then
+                cherry-picked.
+
+        Returns:
+            Optionally returns derived properties from the anonymized
+            properties, e.g. returning the number of step parameters
+            instead of the actual parameter names, and indicates the
+            property it was derived from. Example::
+
+                {
+                    "job_definition": {
+                        "parameterized_runs_count": ...
+                    },
+                }
+
+            where the `"parameterized_runs_count"` was derived from an
+            attribute in the `"job_definition"`.
+
+            If no properties are derived, then an empty dict is
+            returned.
+
+        """
+        try:
+            anonimization_func = getattr(
+                _Anonymizer, self.value.replace(" ", "_").replace("-", "_")
+            )
+        except AttributeError:
+            # No need to anonymize the event.
+            logger.debug(f"Analytics event '{self}' does not need anonymization.")
+            return {}
+
+        try:
+            return anonimization_func(event_properties)
+        except Exception:
+            raise RuntimeError(
+                f"Unexpected error while anonimizing event data for '{self}'."
+            )
+
+
+def send_heartbeat_signal(app: Flask) -> None:
+    """Sends a heartbeat signal to the telemetry service.
+
+    A user is considered to be active if the user has triggered any
+    webserver logs in the last half of the `TELEMETRY_INTERVAL`.
+
+    """
+    # Value of None indicates that the user's activity could not be
+    # determined.
+    active = None
+    try:
+        t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
+    except OSError:
+        app.logger.error(
+            "Analytics heartbeat failed to identify whether the user is active.",
+            exc_info=True,
+        )
+    else:
+        diff_minutes = (time.time() - t) / 60
+        active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
+
+    send_event(app, Event.HEARTBEAT_TRIGGER, {"active": active})
+
+
+def send_event(
+    app: Flask, event: Event, event_properties: Optional[dict] = None
+) -> bool:
+    """Sends an anonymized telemetry event.
+
+    The telemetry data is send to our self-hosted telemetry service and
+    is always in the format::
+
+        {
+            "event_properties": ...  # anonymized event properties
+            "derived_properties": ...  # derived from removed properties
+            "app_properties": ...  # Orchest application properties
+        }
+
+    Args:
+        app: The Flask application that received the event.
+        event: The event to send.
+        event_properties: Any information that describes the event. This
+            information will be anonimzed and send to the telemetry
+            service.
+
+    Returns:
+        True if the event (including its information) was successfully
+        sent to the telemetry service. False otherwise.
+
+    """
+    if app.config["TELEMETRY_DISABLED"]:
+        return False
+
+    if event_properties is None:
+        event_data = {"event_properties": {}}
+    else:
+        event_data = {"event_properties": copy.deepcopy(event_properties)}
+
+    try:
+        event_data["derived_properties"] = event.anonymize(
+            event_data["event_properties"]
+        )
+    except RuntimeError:
+        app.logger.error(
+            f"Failed to anonymize analytics event data for '{event}'.",
+            exc_info=True,
+        )
+        # We only want to send anonymized data.
+        return False
+
+    _add_app_properties(event_data, app)
+
+    telemetry_uuid = _get_telemetry_uuid(app)
+    try:
+        _send_event(telemetry_uuid, event.value, event_data)
+    except AnalyticsServiceError:
+        app.logger.error(f"Failed to send analytics event '{event}'.", exc_info=True)
+        return False
+    else:
+        app.logger.debug(f"Successfully sent analytics event '{event}'.")
+        return True
+
+
+def _send_event(telemetry_uuid: str, event_name: str, event_data: dict) -> None:
+    try:
+        posthog.capture(telemetry_uuid, event_name, event_data)
+    except APIError:
+        raise AnalyticsServiceError(
+            "PostHog experienced an error while capturing the event."
+        )
+
+
+def _add_app_properties(data: dict, app: Flask) -> None:
+    data["app_properties"] = {
+        "orchest_version": app.config.get("ORCHEST_REPO_TAG"),
+        "dev": StaticConfig.FLASK_ENV == "development",
+        "cloud": StaticConfig.CLOUD,
     }
-    send_event(app, "job create", props)
 
 
-def send_job_update(app, job_uuid, update_payload):
-    # Anonymize.
-    up = copy.deepcopy(update_payload)
-    env_variables_count = len(up.pop("env_variables", {}))
-    parameterized_runs_count = len(up.pop("parameters", []))
-    # Redundant info.
-    up.pop("strategy_json", {})
+def _get_telemetry_uuid(app: Flask) -> str:
+    telemetry_uuid = app.config.get("TELEMETRY_UUID")
 
-    props = {
-        "uuid": job_uuid,
-        # So that we can distinguish between jobs to be run immediately,
-        # one time scheduled jobs, cron jobs.
-        "definition": up,
-        "env_variables_count": env_variables_count,
-        "parameterized_runs_count": parameterized_runs_count,
+    if telemetry_uuid is None:
+        telemetry_uuid = str(uuid.uuid4())
+        write_config(app, "TELEMETRY_UUID", telemetry_uuid)
+
+    return telemetry_uuid
+
+
+class _Anonymizer:
+    """Anonymizes the event properties of the given event."""
+
+    @staticmethod
+    def job_create(event_properties: dict) -> dict:
+        job_def = event_properties["job_definition"]
+        job_def.pop("name", None)
+        job_def.pop("pipeline_name", None)
+        # TODO: Could also send an anonymized version of the pipeline
+        # definition.
+        job_def.pop("pipeline_definition", None)
+        job_def["pipeline_run_spec"].pop("run_config", None)
+
+        derived_properties = {"job_definition": {}}
+        derived_properties["job_definition"] = {
+            "parameterized_runs_count": len(job_def.pop("parameters", [])),
+        }
+        return derived_properties
+
+    @staticmethod
+    def job_update(event_properties: dict) -> dict:
+        job_def = event_properties["job_definition"]
+        job_def.pop("strategy_json", None)
+
+        derived_properties = {"job_definition": {}}
+        derived_properties["job_definition"] = {
+            "env_variables_count": len(job_def.pop("env_variables", {})),
+            "parameterized_runs_count": len(job_def.pop("parameters", [])),
+        }
+        return derived_properties
+
+    @staticmethod
+    def session_start(event_properties: dict) -> dict:
+        derived_properties = {"services": {}}
+        for sname, sdef in event_properties.get("services", {}).items():
+            derived_properties["services"][sname] = _anonymize_service_definition(sdef)
+
+        return derived_properties
+
+    @staticmethod
+    def pipeline_run_start(event_properties: dict) -> dict:
+        pdef = event_properties["pipeline_definition"]
+        derived_properties = {
+            "pipeline_definition": _anonymize_pipeline_definition(pdef),
+        }
+        return derived_properties
+
+    @staticmethod
+    def pipeline_save(event_properties: dict) -> dict:
+        pdef = event_properties["pipeline_definition"]
+        derived_properties = {
+            "pipeline_definition": _anonymize_pipeline_definition(pdef),
+        }
+        return derived_properties
+
+
+def _anonymize_service_definition(definition: dict) -> dict:
+    definition.pop("command", None)
+    definition.pop("entrypoint", None)
+    definition.pop("env_variables", None)
+    definition.pop("env_variables_inherit", None)
+
+    derived_properties = {
+        "binds_count": len(definition.pop("binds", {})),
     }
-    send_event(app, "job update", props)
+    return derived_properties
 
 
-def send_job_cancel(app, job_uuid):
-    props = {"uuid": job_uuid}
-    send_event(app, "job cancel", props)
-
-
-def send_job_delete(app, job_uuid):
-    props = {"uuid": job_uuid}
-    send_event(app, "job delete", props)
-
-
-def send_env_build_start(app, environment_build_request):
-    # Anonymize.
-    req = copy.deepcopy(environment_build_request)
-    props = {"uuid": req["environment_uuid"], "project_uuid": req["project_uuid"]}
-    send_event(app, "environment-build start", props)
-
-
-def send_env_build_cancel(app, uuid):
-    props = {"uuid": uuid}
-    send_event(app, "environment-build cancel", props)
-
-
-def anonymize_service(service):
-    service = copy.deepcopy(service)
-    service.pop("command", None)
-    service.pop("entrypoint", None)
-    service.pop("env_variables", None)
-    service.pop("env_variables_inherit", None)
-    binds = service.pop("binds", {})
-    service["binds_count"] = len(binds)
-    return service
-
-
-def send_anonymized_pipeline_definition(app, pipeline):
-    """Sends anonymized pings of an anonymized pipeline definition.
+def _anonymize_pipeline_definition(definition: dict) -> dict:
+    """Anonymizes the given pipeline definition.
 
     We send the anonymized pipeline definition to understand the
     typical structure of pipelines created in Orchest. This teaches how
@@ -102,14 +294,9 @@ def send_anonymized_pipeline_definition(app, pipeline):
           This way we can later extract new metrics.
 
     """
-    # Make a copy so that we can remove potentially sensitive fields.
-    pipeline = copy.deepcopy(pipeline)
+    definition.pop("name", None)
 
-    # Statistics construction.
-    pipeline.pop("name")
-    pipeline_parameters_count = len(pipeline.pop("parameters", {}))
-
-    steps = pipeline.get("steps", {})
+    steps = definition.get("steps", {})
     step_count = len(steps)
 
     environments = set()
@@ -119,142 +306,22 @@ def send_anonymized_pipeline_definition(app, pipeline):
         step.pop("file_path")
         step_parameters_count += len(step.pop("parameters", {}))
 
+        # NOTE: a step with no defined environments will have a step
+        # equal to "".
         env = step.get("environment", "")
-        if len(env):
+        if len(env) > 0:
             environments.add(env)
 
-    services = pipeline.get("services", {})
-    for sname, sdef in list(services.items()):
-        services[sname] = anonymize_service(sdef)
-
-    send_event(
-        app,
-        "pipeline save",
-        {
-            "step_count": step_count,
-            "step_parameters_count": step_parameters_count,
-            "pipeline_parameters_count": pipeline_parameters_count,
-            "environment_count": len(environments),
-            "definition": pipeline,
-        },
-    )
-
-
-def send_pipeline_run_start(app, pipeline_identifier, project_path, run_type):
-    project_size = sum(
-        d.stat().st_size for d in os.scandir(project_path) if d.is_file()
-    )
-    send_event(
-        app,
-        "pipeline_run start",
-        {
-            "identifier": pipeline_identifier,
-            "project_size": project_size,
-            "run_type": run_type,
-        },
-    )
-
-
-def send_pipeline_run_cancel(app, pipeline_identifier, run_type):
-    send_event(
-        app,
-        "pipeline_run cancel",
-        {
-            "identifier": pipeline_identifier,
-            "run_type": run_type,
-        },
-    )
-
-
-def get_telemetry_uuid(app):
-
-    # get UUID if it exists
-    if "TELEMETRY_UUID" in app.config:
-        telemetry_uuid = app.config["TELEMETRY_UUID"]
-    else:
-        telemetry_uuid = str(uuid.uuid4())
-        write_config(app, "TELEMETRY_UUID", telemetry_uuid)
-
-    return telemetry_uuid
-
-
-def send_event(app, event, properties):
-    if app.config["TELEMETRY_DISABLED"]:
-        return False
-
-    try:
-        telemetry_uuid = get_telemetry_uuid(app)
-
-        properties["dev"] = StaticConfig.FLASK_ENV == "development"
-        properties["cloud"] = StaticConfig.CLOUD
-
-        properties["orchest_version"] = app.config["ORCHEST_REPO_TAG"]
-
-        posthog.capture(telemetry_uuid, event, properties)
-        app.logger.debug(
-            "Sending event[%s] to Posthog for anonymized user [%s] with properties: %s"
-            % (event, telemetry_uuid, properties)
-        )
-        return True
-    except (Exception, APIError) as e:
-        app.logger.error("Could not send event through posthog %s" % e)
-        return False
-
-
-def analytics_ping(app):
-    """
-    Note: telemetry can be disabled by including TELEMETRY_DISABLED in
-    your user config.json.
-    """
-    try:
-        properties = {"active": check_active(app)}
-        send_event(app, "heartbeat trigger", properties)
-
-    except Exception as e:
-        app.logger.warning("Exception while sending telemetry request %s" % e)
-
-
-def check_active(app):
-    try:
-        t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
-
-        diff_minutes = (time.time() - t) / 60
-
-        return diff_minutes < (
-            app.config["TELEMETRY_INTERVAL"] * 0.5
-        )  # check whether user was active in last half of TELEMETRY_INTERVAL
-    except OSError as e:
-        app.logger.debug("Exception while reading request log recency %s" % e)
-        return False
-
-
-def send_session_start(app, session_config):
-
-    services = {
-        sname: anonymize_service(sdef)
-        for sname, sdef in session_config.get("services", {}).items()
+    derived_properties = {
+        "pipeline_parameters_count": len(definition.pop("parameters", {})),
+        "step_count": step_count,
+        "unique_environments_count": len(environments),
+        "step_parameters_count": step_parameters_count,
+        "services": {},
     }
 
-    props = {
-        "project_uuid": session_config["project_uuid"],
-        "pipeline_uuid": session_config["pipeline_uuid"],
-        "services": services,
-    }
-    send_event(app, "session start", props)
+    services = definition.get("services", {})
+    for sname, sdef in services.items():
+        derived_properties["services"][sname] = _anonymize_service_definition(sdef)
 
-
-def send_session_stop(app, project_uuid, pipeline_uuid):
-    props = {
-        "project_uuid": project_uuid,
-        "pipeline_uuid": pipeline_uuid,
-    }
-    send_event(app, "session stop", props)
-
-
-def send_session_restart(app, project_uuid, pipeline_uuid, active_runs):
-    props = {
-        "project_uuid": project_uuid,
-        "pipeline_uuid": pipeline_uuid,
-        "active_runs": active_runs,
-    }
-    send_event(app, "session restart", props)
+    return derived_properties
