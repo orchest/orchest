@@ -11,18 +11,45 @@ export interface IMainDrawerProps {
   selectedElement: string;
 }
 
-const items = [
+type TMainDrawerItem = Record<"label" | "icon" | "view" | "href", string>;
+
+const items: TMainDrawerItem[][] = [
   [
-    { label: "Pipelines", icon: "device_hub", view: "PipelinesView" },
-    { label: "Jobs", icon: "pending_actions", view: "JobsView" },
-    { label: "Environments", icon: "view_comfy", view: "EnvironmentsView" },
+    {
+      label: "Pipelines",
+      icon: "device_hub",
+      view: "PipelinesView",
+      href: "/pipelines",
+    },
+    { label: "Jobs", icon: "pending_actions", view: "JobsView", href: "/jobs" },
+    {
+      label: "Environments",
+      icon: "view_comfy",
+      view: "EnvironmentsView",
+      href: "/environments",
+    },
   ],
   [
-    { label: "Projects", icon: "format_list_bulleted", view: "ProjectsView" },
-    { label: "File manager", icon: "folder_open", view: "FileManagerView" },
-    { label: "Settings", icon: "settings", view: "SettingsView" },
+    {
+      label: "Projects",
+      icon: "format_list_bulleted",
+      view: "ProjectsView",
+      href: "/projects",
+    },
+    {
+      label: "File manager",
+      icon: "folder_open",
+      view: "FileManagerView",
+      href: "/file-manager",
+    },
+    {
+      label: "Settings",
+      icon: "settings",
+      view: "SettingsView",
+      href: "/settings",
+    },
   ],
-] as const;
+];
 
 const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
   const context = useOrchest();
@@ -45,7 +72,8 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
         }))
         ?.find((listElement) => listElement.view === rootViewName);
 
-      drawer.list.selectedIndex = selectedView?.index || -1;
+      drawer.list.selectedIndex =
+        typeof selectedView?.index === "number" ? selectedView.index : -1;
     }
   };
 
@@ -85,7 +113,11 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
   }, []);
 
   return (
-    <aside className="mdc-drawer mdc-drawer--dismissible" ref={drawerRef}>
+    <aside
+      ref={drawerRef}
+      data-test-id="main-drawer"
+      className="mdc-drawer mdc-drawer--dismissible"
+    >
       <div className="mdc-drawer__content">
         <nav className="mdc-list">
           {items
@@ -94,9 +126,10 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
                 return (
                   <a
                     key={item.view}
-                    className="mdc-list-item"
+                    data-test-id="main-drawer-item"
                     data-react-view={item.view}
-                    href="#"
+                    className="mdc-list-item"
+                    href={item.href}
                     onClick={(e) => {
                       e.preventDefault();
                       orchest.loadView(nameToComponent(item.view));
