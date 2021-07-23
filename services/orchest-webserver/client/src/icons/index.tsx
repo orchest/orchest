@@ -1,14 +1,13 @@
 import * as React from "react";
-import { icon, IIconRef, IIconProps } from "@orchest/design-system";
+import { Icon, IIconRef, IIconProps } from "@orchest/design-system";
 
 export const IconPostgreSQL = React.forwardRef<IIconRef, IIconProps>(
-  ({ className, css, size, ...props }, ref) => (
-    <svg
+  (props, ref) => (
+    <Icon
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
       fill="none"
-      className={icon({ className, css, size })}
       {...props}
     >
       <g clipPath="url(#clip0)">
@@ -78,18 +77,17 @@ export const IconPostgreSQL = React.forwardRef<IIconRef, IIconProps>(
           <path fill="#fff" transform="translate(1)" d="M0 0h62.09v64H0z" />
         </clipPath>
       </defs>
-    </svg>
+    </Icon>
   )
 );
 
 export const IconRedis = React.forwardRef<IIconRef, IIconProps>(
-  ({ className, css, size, ...props }, ref) => (
-    <svg
+  (props, ref) => (
+    <Icon
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
       fill="none"
-      className={icon({ className, css, size })}
       {...props}
     >
       <path
@@ -128,18 +126,17 @@ export const IconRedis = React.forwardRef<IIconRef, IIconProps>(
         d="M36.689 17.573l9.635-3.784.007 6.83-.945.366-8.697-3.412z"
         fill="#9A2928"
       />
-    </svg>
+    </Icon>
   )
 );
 
 export const IconStreamlit = React.forwardRef<IIconRef, IIconProps>(
-  ({ className, css, size, ...props }, ref) => (
-    <svg
+  (props, ref) => (
+    <Icon
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
       fill="none"
-      className={icon({ className, css, size })}
       {...props}
     >
       <path
@@ -154,18 +151,17 @@ export const IconStreamlit = React.forwardRef<IIconRef, IIconProps>(
         d="M32.898 15.542c-.496-.723-1.576-.723-2.054 0L20.691 30.64l11.173 5.896 21.175 11.17c.133-.13.24-.256.352-.39.16-.196.308-.407.44-.642L43.043 30.64 32.898 15.542z"
         fill="#BD4043"
       />
-    </svg>
+    </Icon>
   )
 );
 
 export const IconTensorBoard = React.forwardRef<IIconRef, IIconProps>(
-  ({ className, css, size, ...props }, ref) => (
-    <svg
+  (props, ref) => (
+    <Icon
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
       fill="none"
-      className={icon({ className, css, size })}
       {...props}
     >
       <mask
@@ -200,18 +196,17 @@ export const IconTensorBoard = React.forwardRef<IIconRef, IIconProps>(
           <stop offset="1" stopColor="#FFA800" />
         </linearGradient>
       </defs>
-    </svg>
+    </Icon>
   )
 );
 
 export const IconVSCode = React.forwardRef<IIconRef, IIconProps>(
-  ({ className, css, size, ...props }, ref) => (
-    <svg
+  (props, ref) => (
+    <Icon
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
       fill="none"
-      className={icon({ className, css, size })}
       {...props}
     >
       <g clipPath="url(#icon-vscode_clip0)">
@@ -321,6 +316,6 @@ export const IconVSCode = React.forwardRef<IIconRef, IIconProps>(
           <path fill="#fff" d="M0 0h64v64H0z" />
         </clipPath>
       </defs>
-    </svg>
+    </Icon>
   )
 );
