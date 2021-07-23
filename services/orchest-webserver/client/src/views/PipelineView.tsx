@@ -2317,42 +2317,44 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 <MDCButtonReact onClick={zoomIn.bind(this)} icon="add" />
               </div>
 
-              {state.eventVars.selectedSteps.length > 0 &&
-              !state.eventVars.stepSelector.active &&
-              props.queryArgs.read_only !== "true" ? (
+              {props.queryArgs.read_only !== "true" ? (
                 <React.Fragment>
-                  {!state.pipelineRunning && (
-                    <div className="selection-buttons">
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        onClick={runSelectedSteps.bind(this)}
-                        label="Run selected steps"
-                      />
-                      {selectedStepsHasIncoming && (
+                  {!state.pipelineRunning &&
+                    state.eventVars.selectedSteps.length > 0 &&
+                    !state.eventVars.stepSelector.active && (
+                      <div className="selection-buttons">
                         <MDCButtonReact
                           classNames={[
                             "mdc-button--raised",
                             "themed-secondary",
                           ]}
-                          onClick={onRunIncoming.bind(this)}
-                          label="Run incoming steps"
+                          onClick={runSelectedSteps.bind(this)}
+                          label="Run selected steps"
                         />
-                      )}
-                    </div>
-                  )}
-
-                  {state.pipelineRunning &&
-                    props.queryArgs.read_only !== "true" && (
-                      <div className="selection-buttons">
-                        <MDCButtonReact
-                          classNames={["mdc-button--raised"]}
-                          onClick={cancelRun.bind(this)}
-                          icon="close"
-                          disabled={state.waitingOnCancel}
-                          label="Cancel run"
-                        />
+                        {selectedStepsHasIncoming && (
+                          <MDCButtonReact
+                            classNames={[
+                              "mdc-button--raised",
+                              "themed-secondary",
+                            ]}
+                            onClick={onRunIncoming.bind(this)}
+                            label="Run incoming steps"
+                          />
+                        )}
                       </div>
                     )}
+
+                  {state.pipelineRunning && (
+                    <div className="selection-buttons">
+                      <MDCButtonReact
+                        classNames={["mdc-button--raised"]}
+                        onClick={cancelRun.bind(this)}
+                        icon="close"
+                        disabled={state.waitingOnCancel}
+                        label="Cancel run"
+                      />
+                    </div>
+                  )}
                 </React.Fragment>
               ) : null}
             </div>
