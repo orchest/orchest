@@ -37,6 +37,25 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const onMouseDown = (e) =>
     setClientX({ previous: e.clientX, current: e.clientX });
 
+  const onMouseUp = () => onColumnResizeMouseUp();
+
+  const onColumnResizeMouseUp = () => {
+    // This pattern allows you to use the latest state
+    // value in event handlers that are captured
+    // when the functional component is first initialized.
+    setIsDragging((isDragging) => {
+      if (isDragging) {
+        setPaneWidth((paneWidth) => {
+          setStoredPaneWidth(paneWidth.toString());
+          return paneWidth;
+        });
+        return false;
+      } else {
+        return isDragging;
+      }
+    });
+  };
+
   // TODO: refactor to use OverflowListener
   const overflowChecks = () => {
     $(".overflowable").each(function () {
@@ -54,25 +73,21 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   };
 
   const onColumnResizeMouseDown = () => setIsDragging(true);
-  const onColumnResizeMouseUp = () => {
-    if (isDragging) {
-      setStoredPaneWidth(paneWidth.toString());
-      setIsDragging(false);
-    }
-  };
 
   React.useEffect(() => {
     // overflow checks
     overflowChecks();
 
-    $(window).on("resize.pipelineDetails", overflowChecks.bind(this));
-    $(window).on("mousemove.pipelineDetails", onMouseMove.bind(this));
-    $(window).on("mousedown.pipelineDetails", onMouseDown.bind(this));
+    $(window).on("resize.pipelineDetails", overflowChecks);
+    $(window).on("mousemove.pipelineDetails", onMouseMove);
+    $(window).on("mousedown.pipelineDetails", onMouseDown);
+    $(window).on("mouseup.pipelineDetails", onMouseUp);
 
     return () => {
       $(window).off("resize.pipelineDetails");
       $(window).off("mousemove.pipelineDetails");
       $(window).off("mousedown.pipelineDetails");
+      $(window).off("mouseup.pipelineDetails");
     };
   }, []);
 
