@@ -170,7 +170,7 @@ const App = () => {
           viewName,
           dynamicProps,
         },
-        /* `title` argument for pushState was deprecated, 
+        /* `title` argument for pushState was deprecated,
       document.title should be used instead. */
         "",
         pathname + search
@@ -240,7 +240,7 @@ const App = () => {
     onCancel
   ) => {
     // Analytics call
-    sendEvent("build-request request", {
+    sendEvent("build request", {
       requestedFromView: requestedFromView,
     });
 

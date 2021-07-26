@@ -10,6 +10,7 @@ import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
 import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
+import ProjectsView from "@/views/ProjectsView";
 
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
 export type THeaderBarRef = HTMLDivElement;
@@ -64,8 +65,11 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
           menu
         </button>
         <img
+          className="pointer logo"
+          onClick={() => {
+            orchest.loadView(ProjectsView);
+          }}
           src="/image/logo.svg"
-          className="logo"
           data-test-id="orchest-logo"
         />
         {isProjectSelectorVisible && <ProjectSelector />}
