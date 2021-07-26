@@ -28,11 +28,11 @@ Cypress.Commands.add("getOnboardingCompleted", () =>
 
 // Make sure no test impacts the data directory.
 Cypress.Commands.add("cleanDataDir", () =>
-  cy.exec(`rm -rf ${DATA_DIR} && mkdir -p ${TESTS_DATA_DIR}`)
+  cy.exec(`rm -rf ${DATA_DIR} && git checkout ${DATA_DIR}`)
 );
 
 Cypress.Commands.add("cleanProjectsDir", () =>
-  cy.exec(`rm -rf ${PROJECTS_DIR} && mkdir ${PROJECTS_DIR}`)
+  cy.exec(`rm -rf ${PROJECTS_DIR} && git checkout ${PROJECTS_DIR}`)
 );
 
 Cypress.Commands.add("createProject", (name) => {
