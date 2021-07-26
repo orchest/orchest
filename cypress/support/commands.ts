@@ -23,9 +23,9 @@ declare global {
 }
 
 const LOCAL_STORAGE_KEY = "orchest.onboarding_completed";
-const DATA_DIR = "userdir/data/";
-const PROJECTS_DIR = "userdir/projects/";
-const TESTS_DATA_DIR = DATA_DIR + "integration-tests";
+const DATA_DIR = "userdir/data";
+const PROJECTS_DIR = "userdir/projects";
+const TESTS_DATA_DIR = DATA_DIR + "/integration-tests";
 
 Cypress.Commands.add("setOnboardingCompleted", (value: TBooleanString) => {
   cy.setLocalStorage(LOCAL_STORAGE_KEY, value);
@@ -35,13 +35,11 @@ Cypress.Commands.add("getOnboardingCompleted", () =>
   cy.getLocalStorage(LOCAL_STORAGE_KEY)
 );
 
-// Make sure no test impacts the data directory.
-Cypress.Commands.add("cleanDataDir", () =>
-  cy.exec(`rm -rf ${DATA_DIR} && git checkout ${DATA_DIR}`)
-);
+// Make sure no test impacts the data directory. Note that
+Cypress.Commands.add("cleanDataDir", () => cy.exec(`rm -rf ${DATA_DIR}/*`));
 
 Cypress.Commands.add("cleanProjectsDir", () =>
-  cy.exec(`rm -rf ${PROJECTS_DIR} && git checkout ${PROJECTS_DIR}`)
+  cy.exec(`rm -rf ${PROJECTS_DIR}/*`)
 );
 
 Cypress.Commands.add("createProject", (name) => {
