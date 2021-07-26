@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         # Run copies of the current job in parallel.
-        browser: [firefox]
+        browser: [chrome]
         # See link if you plan to increase parallelism.
         # https://docs.cypress.io/guides/guides/parallelization#Run-completion-delay
         instance: [1]
