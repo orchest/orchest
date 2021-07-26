@@ -1,6 +1,10 @@
 import "cypress-localstorage-commands";
 import "@testing-library/cypress/add-commands";
 import { TEST_ID } from "../support/common";
+import { LOCAL_STORAGE_KEY } from "../support/common";
+import { DATA_DIR } from "../support/common";
+import { PROJECTS_DIR } from "../support/common";
+import { TESTS_DATA_DIR } from "../support/common";
 
 type TBooleanString = "true" | "false";
 
@@ -22,11 +26,6 @@ declare global {
   }
 }
 
-const LOCAL_STORAGE_KEY = "orchest.onboarding_completed";
-const DATA_DIR = "userdir/data";
-const PROJECTS_DIR = "userdir/projects";
-const TESTS_DATA_DIR = DATA_DIR + "/integration-tests";
-
 Cypress.Commands.add("setOnboardingCompleted", (value: TBooleanString) => {
   cy.setLocalStorage(LOCAL_STORAGE_KEY, value);
 });
@@ -36,13 +35,14 @@ Cypress.Commands.add("getOnboardingCompleted", () =>
 );
 
 // Make sure no test impacts the data directory. Note that
-Cypress.Commands.add("cleanDataDir", () => cy.exec(`rm -rf ${DATA_DIR}/*`));
+Cypress.Commands.add("cleanDataDir", () => cy.exec(`rm -rf ${DATA_DIR}/*`, {failOnNonZeroExit: false}));
 
 Cypress.Commands.add("cleanProjectsDir", () =>
-  cy.exec(`rm -rf ${PROJECTS_DIR}/*`)
+  cy.exec(`rm -rf ${PROJECTS_DIR}/*`, {failOnNonZeroExit: false})
 );
 
 Cypress.Commands.add("createProject", (name) => {
+  cy.visit("/projects");
   cy.findByTestId(TEST_ID.ADD_PROJECT)
     .should("exist")
     .and("be.visible")
@@ -55,6 +55,7 @@ Cypress.Commands.add("createProject", (name) => {
 });
 
 Cypress.Commands.add("importProject", (url, name) => {
+  cy.visit("/projects");
   cy.findByTestId(TEST_ID.IMPORT_PROJECT)
     .should("exist")
     .and("be.visible")
@@ -81,4 +82,6 @@ before(() => {
 beforeEach(() => {
   cy.cleanDataDir();
   cy.cleanProjectsDir();
+  // Force rediscovery of deleted projects.
+  cy.visit("/projects");
 });
