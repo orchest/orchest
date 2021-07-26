@@ -252,6 +252,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={saveGeneralForm.bind(this)}
                   icon="save"
+                  data-test-id="project-settings-save"
                 />
               </div>
             </>

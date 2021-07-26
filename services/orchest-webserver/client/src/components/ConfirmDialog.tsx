@@ -48,6 +48,7 @@ const ConfirmDialog: React.FC<IConfirmDialogProps> = (props) => {
             label="Cancel"
             classNames={["push-right"]}
             onClick={cancel.bind(this)}
+            data-test-id="confirm-dialog-cancel"
           />
           <MDCButtonReact
             classNames={["mdc-button--raised", "themed-secondary"]}
@@ -55,6 +56,7 @@ const ConfirmDialog: React.FC<IConfirmDialogProps> = (props) => {
             ref={refManager.nrefs.okButton}
             label="Ok"
             onClick={confirm.bind(this)}
+            data-test-id="confirm-dialog-ok"
           />
         </React.Fragment>
       }

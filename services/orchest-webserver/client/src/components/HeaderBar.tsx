@@ -63,8 +63,11 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         >
           menu
         </button>
-        <img src="/image/logo.svg" className="logo" />
-
+        <img
+          src="/image/logo.svg"
+          className="logo"
+          data-test-id="orchest-logo"
+        />
         {isProjectSelectorVisible && <ProjectSelector />}
       </div>
 

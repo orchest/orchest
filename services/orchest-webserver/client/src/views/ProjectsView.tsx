@@ -85,6 +85,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
           onClick={() => {
             openSettings(project);
           }}
+          data-test-id={`settings-button-${project.path}`}
         />,
       ]);
     }
@@ -416,6 +417,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                 title="Import a project"
                 onClose={onCloseImportProjectModal.bind(this)}
                 ref={refManager.nrefs.importProjectDialog}
+                data-test-id="import-project-dialog"
                 content={
                   <div className="project-import-modal">
                     {props.queryArgs &&
@@ -439,6 +441,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                       label="Git repository URL"
                       value={state.import_url}
                       onChange={handleChange.bind(this, "import_url")}
+                      data-test-id="project-url-textfield"
                     />
 
                     <MDCTextFieldReact
@@ -446,6 +449,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                       label="Project name (optional)"
                       value={state.import_project_name}
                       onChange={handleChange.bind(this, "import_project_name")}
+                      data-test-id="project-name-textfield"
                     />
 
                     {(() => {
@@ -496,6 +500,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                       label="Import"
                       submitButton
                       onClick={onSubmitImport.bind(this)}
+                      data-test-id="import-project-ok"
                     />
                   </React.Fragment>
                 }
@@ -517,6 +522,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     label="Project name"
                     value={state.create_project_name}
                     onChange={handleChange.bind(this, "create_project_name")}
+                    data-test-id="project-name-textfield"
                   />
                 }
                 actions={
@@ -533,6 +539,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                       label="Create project"
                       submitButton
                       onClick={onSubmitModal.bind(this)}
+                      data-test-id="create-project"
                     />
                   </React.Fragment>
                 }
@@ -559,12 +566,14 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     icon="add"
                     label="Add project"
                     onClick={onCreateClick.bind(this)}
+                    data-test-id="add-project"
                   />
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
                     icon="input"
                     label="Import project"
                     onClick={onImport.bind(this)}
+                    data-test-id="import-project"
                   />
                 </div>
                 <div className={"pipeline-actions push-down"}>
@@ -572,6 +581,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     icon="delete"
                     tooltipText="Delete project"
                     onClick={onDeleteClick.bind(this)}
+                    data-test-id="delete-project"
                   />
                 </div>
 
@@ -589,6 +599,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     "Settings",
                   ]}
                   rows={state.listData}
+                  data-test-id="projects-table"
                 />
               </React.Fragment>
             );

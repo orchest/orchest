@@ -201,6 +201,7 @@ export class MDCDataTableReact extends React.Component<any, any> {
           key={x}
           data-row-id={"u" + x}
           className="mdc-data-table__row"
+          data-test-id={this.props["data-test-id"] + "-row"}
         >
           {(() => {
             if (this.props.selectable) {
@@ -275,6 +276,9 @@ export class MDCDataTableReact extends React.Component<any, any> {
                             disabled={this.props.rows.length == 0}
                             className="mdc-checkbox__native-control"
                             aria-label="Toggle all rows"
+                            data-test-id={
+                              this.props["data-test-id"] + "-toggle-all-rows"
+                            }
                           />
                           <div className="mdc-checkbox__background">
                             <svg
@@ -299,7 +303,12 @@ export class MDCDataTableReact extends React.Component<any, any> {
                 {tableHeaders}
               </tr>
             </thead>
-            <tbody className="mdc-data-table__content">{tableRows}</tbody>
+            <tbody
+              className="mdc-data-table__content"
+              data-test-id={this.props["data-test-id"] + "-body"}
+            >
+              {tableRows}
+            </tbody>
           </table>
         </div>
       </div>

@@ -103,6 +103,7 @@ const ProjectSelector = React.forwardRef<
       options={selectItems}
       onChange={onChangeProject.bind(this)}
       value={state?.project_uuid}
+      data-test-id="project-selector"
     />
   ) : (
     <MDCLinearProgressReact ref={ref} />
