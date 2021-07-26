@@ -7,8 +7,17 @@ type TBooleanString = "true" | "false";
 declare global {
   namespace Cypress {
     interface Chainable {
-      setOnboardingCompleted(value: TBooleanString): void;
+      addProjectEnvVar(
+        project: string,
+        name: string,
+        value: string
+      ): Chainable<undefined>;
+      cleanDataDir(): Chainable<undefined>;
+      cleanProjectsDir(): Chainable<undefined>;
+      createProject(name: string): Chainable<undefined>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
+      importProject(url: string, name?: string): Chainable<undefined>;
+      setOnboardingCompleted(value: TBooleanString): void;
     }
   }
 }
