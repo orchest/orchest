@@ -23,9 +23,18 @@ declare global {
       deleteAllUsers(): Chainable<undefined>;
       deleteUser(name: string): Chainable<undefined>;
       getIframe(data_test_id: string): Chainable<JQuery<any>>;
+      getProjectUUID(project: string): Chainable<string>;
+      getEnvironmentUUID(
+        projectUUID: string,
+        environment: string
+      ): Chainable<string>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
       importProject(url: string, name?: string): Chainable<undefined>;
       setOnboardingCompleted(value: TBooleanString): Chainable<undefined>;
+      totalEnvironmentImages(
+        project?: string,
+        environment?: string
+      ): Chainable<number>;
     }
   }
 }
@@ -150,13 +159,98 @@ Cypress.Commands.add("getIframe", (data_test_id: string) => {
   );
 });
 
+Cypress.Commands.add("getProjectUUID", (project: string) => {
+  return cy
+    .request("async/projects")
+    .its("body")
+    .then((body: Array<any>) =>
+      cy.wrap(body.filter((obj) => obj.path == project)[0].uuid)
+    );
+});
+
+Cypress.Commands.add(
+  "getEnvironmentUUID",
+  (projectUUID: string, environment: string) => {
+    return cy
+      .request(`store/environments/${projectUUID}`)
+      .its("body")
+      .then((body: Array<any>) =>
+        cy.wrap(body.filter((obj) => obj.name == environment)[0].uuid)
+      );
+  }
+);
+
+Cypress.Commands.add(
+  "totalEnvironmentImages",
+  (project?: string, environment?: string) => {
+    if (project === undefined && environment === undefined) {
+      return cy
+        .exec(
+          'docker images --filter "label=_orchest_environment_uuid" -q | wc -l'
+        )
+        .its("stdout")
+        .then((stdout) => cy.wrap(parseInt(stdout)));
+    } else if (project !== undefined && environment === undefined) {
+      cy.getProjectUUID(project).then((proj_uuid) => {
+        return cy
+          .exec(
+            `docker images --filter "label=_orchest_project_uuid=${proj_uuid}" -q | wc -l`
+          )
+          .its("stdout")
+          .then((stdout) => cy.wrap(parseInt(stdout)));
+      });
+    } else if (project !== undefined && environment !== undefined) {
+      cy.getProjectUUID(project).then((proj_uuid) => {
+        cy.getEnvironmentUUID(proj_uuid, environment).then((env_uuid) => {
+          console.log(env_uuid);
+          return cy
+            .exec(
+              `docker images --filter "label=_orchest_environment_uuid=${env_uuid}" -q | wc -l`
+            )
+            .its("stdout")
+            .then((stdout) => cy.wrap(parseInt(stdout)));
+        });
+      });
+    } else {
+      throw new Error('"project" must be defined if environment is passed.');
+    }
+  }
+);
+
 before(() => {
   cy.configureCypressTestingLibrary({ testIdAttribute: "data-test-id" });
 });
+
+// This function is necessary because, as of now, cypress does not
+// support retry-ability of custom commands. It can hacked into but not
+// if you need to use cypress commands within the custom command. We
+// need to use cy.exec to run system commands, and it is one of the few
+// cypress commands that does not have retry-ability when following
+// assertions fail.
+/**
+ * @param {expected}  p1 - Expected number of environment images.
+ * @param {retries} p2 - How many times to retry if expected != value.
+ */
+function assertTotalEnvironmentImages(expected: number, retries = 5) {
+  cy.totalEnvironmentImages().then((total) => {
+    if (total != expected) {
+      retries--;
+      if (retries > 0) {
+        cy.wait(1000);
+        assertTotalEnvironmentImages(expected, retries);
+      } else {
+        throw new Error(
+          `Total environment images: expected ${expected}, total ${total}`
+        );
+      }
+    }
+  });
+}
 
 beforeEach(() => {
   cy.cleanDataDir();
   cy.cleanProjectsDir();
   // Force rediscovery of deleted projects.
   cy.visit("/projects");
+  assertTotalEnvironmentImages(0);
 });
