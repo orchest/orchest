@@ -16,14 +16,14 @@ describe("file system interactions", () => {
     cy.findAllByTestId("projects-table-row").should("have.length", 1);
   });
 
-  it("delete a project through the FS", () => {
+  it("deletes a project through the FS", () => {
     cy.createProject(PROJECT_NAMES.P1);
     cy.exec(`rm -rf ${PROJECTS_DIR}/${PROJECT_NAMES.P1}`);
     cy.visit("/projects");
     cy.findAllByTestId("projects-table-row").should("have.length", 0);
   });
 
-  it("create multiple projects through the FS", () => {
+  it("creates multiple projects through the FS", () => {
     let projects = Array.from(Array(50).keys());
     projects.map((project) => {
       cy.exec(`mkdir ${PROJECTS_DIR}/${project}`);
@@ -35,7 +35,7 @@ describe("file system interactions", () => {
     );
   });
 
-  it("delete multiple projects through the FS", () => {
+  it("deletes multiple projects through the FS", () => {
     let projects = Array.from(Array(5).keys());
     projects.map((project) => {
       cy.createProject(project.toString());

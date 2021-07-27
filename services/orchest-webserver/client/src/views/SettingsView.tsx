@@ -444,6 +444,7 @@ const SettingsView: React.FC<TViewProps> = () => {
               onClick={onClickManageUsers.bind(this)}
               icon="people"
               label="Manage users"
+              data-test-id="manage-users"
             />
           </div>
           <div className="clear"></div>
