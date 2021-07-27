@@ -400,10 +400,15 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         return proj.path == state.fetchListAndSetProject;
       })[0];
 
-      context.dispatch({
-        type: "projectSet",
-        payload: createdProject.uuid,
-      });
+      // Needed to avoid a race condition where the project does not
+      // exist anymore because it has been removed between a POST and a
+      // get request.
+      if (createdProject !== undefined) {
+        context.dispatch({
+          type: "projectSet",
+          payload: createdProject.uuid,
+        });
+      }
     }
   }, [state?.fetchListAndSetProject]);
 
