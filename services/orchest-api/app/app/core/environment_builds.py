@@ -330,6 +330,10 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                     f"_orchest_env_build_task_uuid={task_uuid}",
                 ]
             }
+            # Necessary to avoid the case where the abortion of a task
+            # comes too late, leaving a dangling image.
+            if AbortableAsyncResult(task_uuid).is_aborted():
+                filters["label"].pop()
 
             # Artifacts of this build (intermediate containers, images,
             # etc.)

@@ -231,7 +231,7 @@ before(() => {
  * @param {expected}  p1 - Expected number of environment images.
  * @param {retries} p2 - How many times to retry if expected != value.
  */
-function assertTotalEnvironmentImages(expected: number, retries = 5) {
+function assertTotalEnvironmentImages(expected: number, retries = 10) {
   cy.totalEnvironmentImages().then((total) => {
     if (total != expected) {
       retries--;
