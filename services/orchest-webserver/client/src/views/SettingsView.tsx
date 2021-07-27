@@ -414,6 +414,7 @@ const SettingsView: React.FC<TViewProps> = () => {
                       label="Restart"
                       icon="power_settings_new"
                       onClick={restartOrchest.bind(this)}
+                      data-test-id="restart"
                     />
                   </React.Fragment>
                 );

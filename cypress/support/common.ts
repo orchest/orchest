@@ -22,6 +22,7 @@ export enum TEST_ID {
   PROJECT_NAME_TEXTFIELD = "project-name-textfield",
   PROJECT_SETTINGS_SAVE = "project-settings-save",
   PROJECT_URL_TEXTFIELD = "project-url-textfield",
+  RESTART = "restart",
 }
 
 export const LOCAL_STORAGE_KEY = "orchest.onboarding_completed";
