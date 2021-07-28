@@ -212,17 +212,28 @@ const PipelineList: React.FC<any> = (props) => {
           let resp = JSON.parse(e.body);
 
           if (resp.code == 0) {
+            orchest.alert("Error", "");
+          } else if (resp.code == 1) {
             orchest.alert(
               "Error",
               "Cannot change the pipeline path if an interactive session is running. Please stop it first."
             );
-          } else if (resp.code == 1) {
+          } else if (resp.code == 2) {
             orchest.alert(
               "Error",
-              'Cannnot change the pipeline path, a pipeline path with the name "' +
+              'Cannot change the pipeline path, a pipeline path with the name "' +
                 state.editPipelinePath +
                 '" already exists.'
             );
+          } else if (resp.code == 3) {
+            orchest.alert("Error", "The pipeline does not exist.");
+          } else if (resp.code == 4) {
+            orchest.alert(
+              "Error",
+              'The pipeline file name should end with ".orchest".'
+            );
+          } else if (resp.code == 5) {
+            orchest.alert("Error", "The pipeline file does not exist.");
           }
         } catch (error) {
           console.error(e);

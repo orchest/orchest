@@ -277,12 +277,21 @@ class MovePipeline(TwoPhaseFunction):
 
         old_path = get_pipeline_path(None, project_uuid, pipeline_path=old_path)
         new_path = get_pipeline_path(None, project_uuid, pipeline_path=new_path)
+        if old_path == new_path:
+            return
+
         project_path = os.path.abspath(get_project_directory(project_uuid))
         new_path_abs = os.path.abspath(new_path)
         if not new_path_abs.startswith(project_path):
             raise ValueError(
                 "New pipeline path points outside of the project directory."
             )
+
+        if not os.path.exists(old_path):
+            raise error.PipelineFileDoesNotExist()
+
+        if os.path.exists(new_path):
+            raise error.PipelineFileExists()
 
         # Update the pipeline definition by adjusting the step file
         # paths, since they should be relative to the pipeline file.

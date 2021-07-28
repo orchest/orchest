@@ -537,13 +537,33 @@ def register_views(app, db):
                     MovePipeline(tpe).transaction(project_uuid, pipeline_uuid, path)
             except error.ActiveSession:
                 return (
-                    jsonify({"message": "Can't move a pipeline with active sessions."}),
+                    jsonify(
+                        {
+                            "message": "Can't move a pipeline with active sessions.",
+                            "code": 1,
+                        }
+                    ),
+                    409,
+                )
+            except error.PipelineFileExists:
+                return (
+                    jsonify({"message": "File exists.", "code": 2}),
                     409,
                 )
             except NoResultFound:
-                return jsonify({"message": "Pipeline doesn't exist."}), 404
+                return jsonify({"message": "Pipeline doesn't exist.", "code": 3}), 404
+            except ValueError:
+                return jsonify({"message": "Invalid file name.", "code": 4}), 409
+            except error.PipelineFileDoesNotExist:
+                return (
+                    jsonify({"message": "Pipeline file doesn't exist.", "code": 5}),
+                    409,
+                )
             except Exception as e:
-                return jsonify({"message": f"Failed to move pipeline: {e}."}), 500
+                return (
+                    jsonify({"message": f"Failed to move pipeline: {e}.", "code": 0}),
+                    500,
+                )
 
         resp = requests.put(
             (
