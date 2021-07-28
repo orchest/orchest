@@ -14,3 +14,9 @@ class PipelineFileDoesNotExist(Exception):
     """A pipeline file does not exists when it should."""
 
     pass
+
+
+class OutOfProjectError(Exception):
+    """Attempting to do an operation outside of a project directory."""
+
+    pass

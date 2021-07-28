@@ -559,6 +559,13 @@ def register_views(app, db):
                     jsonify({"message": "Pipeline file doesn't exist.", "code": 5}),
                     409,
                 )
+            except error.OutOfProjectError:
+                return (
+                    jsonify(
+                        {"message": "Can't move outside of the project.", "code": 6}
+                    ),
+                    409,
+                )
             except Exception as e:
                 return (
                     jsonify({"message": f"Failed to move pipeline: {e}.", "code": 0}),

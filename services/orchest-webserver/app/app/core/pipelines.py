@@ -281,7 +281,7 @@ class MovePipeline(TwoPhaseFunction):
         project_path = os.path.abspath(get_project_directory(project_uuid))
         new_path_abs = os.path.abspath(new_path)
         if not new_path_abs.startswith(project_path):
-            raise ValueError(
+            raise error.OutOfProjectError(
                 "New pipeline path points outside of the project directory."
             )
 

@@ -226,7 +226,7 @@ const PipelineList: React.FC<any> = (props) => {
           } else if (resp.code == 2) {
             orchest.alert(
               "Error",
-              'Cannot change the pipeline path, a pipeline path with the name "' +
+              'Cannot change the pipeline path, a file path with the name "' +
                 state.editPipelinePath +
                 '" already exists.'
             );
@@ -239,6 +239,11 @@ const PipelineList: React.FC<any> = (props) => {
             );
           } else if (resp.code == 5) {
             orchest.alert("Error", "The pipeline file does not exist.");
+          } else if (resp.code == 6) {
+            orchest.alert(
+              "Error",
+              "Can't move the pipeline outside of the project."
+            );
           }
         } catch (error) {
           console.error(e);
