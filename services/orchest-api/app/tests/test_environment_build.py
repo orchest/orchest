@@ -41,7 +41,7 @@ def test_environment_build(
     monkeypatch,
 ):
     def mock_cleanup_docker_artifacts(filters):
-        docker_cleanup_uuid_request.append(filters["label"][1].split("=")[1])
+        docker_cleanup_uuid_request.append(filters["label"][-1].split("=")[1])
 
     def mock_put_request(self, url, json=None, *args, **kwargs):
         put_requests.append(json["status"])

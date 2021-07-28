@@ -333,7 +333,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             # Necessary to avoid the case where the abortion of a task
             # comes too late, leaving a dangling image.
             if AbortableAsyncResult(task_uuid).is_aborted():
-                filters["label"].pop()
+                filters["label"].pop(0)
 
             # Artifacts of this build (intermediate containers, images,
             # etc.)
