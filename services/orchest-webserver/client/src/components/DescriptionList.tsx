@@ -1,18 +1,18 @@
 import * as React from "react";
-import { css, Grid, ICSSProp, TGridVariants } from "@orchest/design-system";
+import { styled, Grid, ICSSProp, TGridVariants } from "@orchest/design-system";
 
-const descriptionPair = css({
+const DescriptionPair = styled("div", {
   include: "box",
   display: "flex",
   flexDirection: "column",
 });
 
-const descriptionTerm = css({
+const DescriptionTerm = styled("dt", {
   include: "box",
   gridRow: 1,
 });
 
-const descriptionDetails = css({
+const DescriptionDetails = styled("dd", {
   fontSize: "$xl",
   lineHeight: "$xl",
 });
@@ -33,10 +33,10 @@ export const DescriptionList: React.FC<IDescriptionListProps> = ({
 }) => (
   <Grid as={DEFAULT_ELEMENT} {...props}>
     {items.map((item, i) => (
-      <div key={i} className={descriptionPair()}>
-        <dt className={descriptionTerm()}>{item.term}</dt>
-        <dd className={descriptionDetails()}>{item.details}</dd>
-      </div>
+      <DescriptionPair key={i}>
+        <DescriptionTerm>{item.term}</DescriptionTerm>
+        <DescriptionDetails>{item.details}</DescriptionDetails>
+      </DescriptionPair>
     ))}
   </Grid>
 );

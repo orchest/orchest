@@ -26,6 +26,7 @@ import {
   MDCLinearProgressReact,
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
@@ -40,7 +41,10 @@ import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import PipelineView from "@/views/PipelineView";
 
-const PipelineSettingsView: React.FC<any> = (props) => {
+export interface IPipelineSettingsView
+  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+
+const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   const orchest = window.orchest;
 
   const { dispatch, get } = useOrchest();

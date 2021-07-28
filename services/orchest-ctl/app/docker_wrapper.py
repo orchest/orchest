@@ -603,6 +603,11 @@ class OrchestResourceManager:
             }
 
         stdouts = self.docker_client.run_containers(configs, detach=False)
+        container_ids = [c["id"] for c in stdouts.values()]
+        self.docker_client.remove_containers(container_ids)
+
+        res = {}
         for img in stdouts.keys():
-            stdouts[img] = stdouts[img]["stdout"][0].rstrip()
-        return stdouts
+            res[img] = stdouts[img]["stdout"][0].rstrip()
+
+        return res

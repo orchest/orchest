@@ -7,7 +7,8 @@ Design system
 Usage
 ~~~~~
 
-**Consuming components**
+Consuming components
+""""""""""""""""""""
 
 All components are available as named exports:
 
@@ -22,7 +23,8 @@ All components are available as named exports:
      <div>
    );
 
-**Creating custom components**
+Creating custom components
+""""""""""""""""""""""""""
 
 The design system houses components that we'll *need to use everywhere*, not the a place for *all*
 of our components.
