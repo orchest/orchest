@@ -150,29 +150,44 @@ Cypress.Commands.add("deleteAllUsers", () => {
     .each((del) => {
       cy.wrap(del).scrollIntoView().should("be.visible").click({ force: true });
     });
+  cy.wait("@allDeletes");
 });
 
 Cypress.Commands.add(
   "createEnvironment",
   (name: string, script?: string, build?: boolean, waitBuild?: boolean) => {
     cy.visit("environments");
-    cy.findByTestId(TEST_ID.ENVIRONMENTS_CREATE).click();
-    cy.findByTestId(TEST_ID.ENVIRONMENTS_ENV_NAME).clear().type(name);
-    cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE).click();
-    cy.findByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_CREATE).should("be.visible").click();
+
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_ENV_NAME)
+      .should("be.visible")
+      .type("{selectall}{backspace}" + name);
+
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).scrollIntoView().click();
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE)
+      .scrollIntoView()
+      .should("be.visible")
+      .click();
     if (script !== undefined) {
       let deletions = "{backspace}".repeat(30);
       cy.get(".CodeMirror-line")
         .first()
         .type(deletions + script);
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE).click();
+      cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE).scrollIntoView().click();
     }
     if (build) {
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_START_BUILD).click();
+      cy.findByTestId(TEST_ID.ENVIRONMENTS_START_BUILD)
+        .scrollIntoView()
+        .should("be.visible")
+        .click();
       if (waitBuild) {
-        cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS).contains("SUCCESS");
+        cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
+          .scrollIntoView()
+          .should("be.visible")
+          .contains("SUCCESS");
       }
     }
+    cy.wait("@allPosts");
   }
 );
 
@@ -181,6 +196,7 @@ Cypress.Commands.add("deleteAllEnvironments", () => {
   cy.findByTestId(TEST_ID.ENVIRONMENTS_TOGGLE_ALL_ROWS).click();
   cy.findByTestId(TEST_ID.ENVIRONMENTS_DELETE).click();
   cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
+  cy.wait("@allDeletes");
 });
 
 Cypress.Commands.add("getIframe", (data_test_id: string) => {
@@ -261,6 +277,15 @@ before(() => {
 });
 
 beforeEach(() => {
+  // When these intercept declarations where in "before()" cypress was
+  // reporting issues.
+  cy.intercept(/.*/).as("allRequests");
+  cy.intercept("GET", /.*/).as("allGets");
+  cy.intercept("POST", /.*/).as("allPosts");
+  cy.intercept("PUT", /.*/).as("allPuts");
+  cy.intercept("DELETE", /.*/).as("allDeletes");
+  cy.intercept("GET", /\/store\/environments\/.*/).as("storeGets");
+
   cy.cleanDataDir();
   cy.cleanProjectsDir();
   // Force rediscovery of deleted projects.
