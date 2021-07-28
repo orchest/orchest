@@ -4,6 +4,7 @@ import { TEST_ID } from "../support/common";
 import { LOCAL_STORAGE_KEY } from "../support/common";
 import { DATA_DIR } from "../support/common";
 import { PROJECTS_DIR } from "../support/common";
+import { assertTotalEnvironmentImages } from "../support/common";
 import { TESTS_DATA_DIR } from "../support/common";
 
 type TBooleanString = "true" | "false";
@@ -17,18 +18,25 @@ declare global {
         value: string
       ): Chainable<undefined>;
       cleanDataDir(): Chainable<undefined>;
-      cleanProjectsDir(): Chainable<undefined>;
+      createEnvironment(
+        name: string,
+        script?: string,
+        build?: boolean,
+        waitBuild?: boolean
+      ): Chainable<undefined>;
       createProject(name: string): Chainable<undefined>;
+      cleanProjectsDir(): Chainable<undefined>;
       createUser(name: string, password: string): Chainable<undefined>;
+      deleteAllEnvironments(): Chainable<undefined>;
       deleteAllUsers(): Chainable<undefined>;
       deleteUser(name: string): Chainable<undefined>;
-      getIframe(data_test_id: string): Chainable<JQuery<any>>;
-      getProjectUUID(project: string): Chainable<string>;
       getEnvironmentUUID(
         projectUUID: string,
         environment: string
       ): Chainable<string>;
+      getIframe(data_test_id: string): Chainable<JQuery<any>>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
+      getProjectUUID(project: string): Chainable<string>;
       importProject(url: string, name?: string): Chainable<undefined>;
       setOnboardingCompleted(value: TBooleanString): Chainable<undefined>;
       totalEnvironmentImages(
@@ -144,6 +152,37 @@ Cypress.Commands.add("deleteAllUsers", () => {
     });
 });
 
+Cypress.Commands.add(
+  "createEnvironment",
+  (name: string, script?: string, build?: boolean, waitBuild?: boolean) => {
+    cy.visit("environments");
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_CREATE).click();
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_ENV_NAME).clear().type(name);
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE).click();
+    cy.findByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
+    if (script !== undefined) {
+      let deletions = "{backspace}".repeat(30);
+      cy.get(".CodeMirror-line")
+        .first()
+        .type(deletions + script);
+      cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE).click();
+    }
+    if (build) {
+      cy.findByTestId(TEST_ID.ENVIRONMENTS_START_BUILD).click();
+      if (waitBuild) {
+        cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS).contains("SUCCESS");
+      }
+    }
+  }
+);
+
+Cypress.Commands.add("deleteAllEnvironments", () => {
+  cy.visit("/environments");
+  cy.findByTestId(TEST_ID.ENVIRONMENTS_TOGGLE_ALL_ROWS).click();
+  cy.findByTestId(TEST_ID.ENVIRONMENTS_DELETE).click();
+  cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
+});
+
 Cypress.Commands.add("getIframe", (data_test_id: string) => {
   // Simplify the logging to avoid cluttering logs.
   cy.log(`getIframe "${data_test_id}"`);
@@ -220,32 +259,6 @@ Cypress.Commands.add(
 before(() => {
   cy.configureCypressTestingLibrary({ testIdAttribute: "data-test-id" });
 });
-
-// This function is necessary because, as of now, cypress does not
-// support retry-ability of custom commands. It can hacked into but not
-// if you need to use cypress commands within the custom command. We
-// need to use cy.exec to run system commands, and it is one of the few
-// cypress commands that does not have retry-ability when following
-// assertions fail.
-/**
- * @param {expected}  p1 - Expected number of environment images.
- * @param {retries} p2 - How many times to retry if expected != value.
- */
-function assertTotalEnvironmentImages(expected: number, retries = 10) {
-  cy.totalEnvironmentImages().then((total) => {
-    if (total != expected) {
-      retries--;
-      if (retries > 0) {
-        cy.wait(1000);
-        assertTotalEnvironmentImages(expected, retries);
-      } else {
-        throw new Error(
-          `Total environment images: expected ${expected}, total ${total}`
-        );
-      }
-    }
-  });
-}
 
 beforeEach(() => {
   cy.cleanDataDir();

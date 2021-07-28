@@ -212,6 +212,9 @@ export class MDCDataTableReact extends React.Component<any, any> {
                       type="checkbox"
                       className="mdc-checkbox__native-control consume-click"
                       aria-labelledby={"u" + x}
+                      data-test-id={
+                        this.props["data-test-id"] + "-row-checkbox"
+                      }
                     />
                     <div className="mdc-checkbox__background">
                       <svg
