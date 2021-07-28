@@ -94,10 +94,6 @@ export class MDCTextFieldReact extends React.Component<any> {
     ) {
       this.mdc.value = this.getPropValue();
     }
-
-    if (prevProps.initialCursorPosition != this.props.initialCursorPosition) {
-      this.setCursorPositionOnProps();
-    }
   }
 
   render() {
