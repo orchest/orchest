@@ -184,6 +184,11 @@ const PipelineList: React.FC<any> = (props) => {
   };
 
   const onSubmitEditPipelinePathModal = () => {
+    if (!state.editPipelinePath.endsWith(".orchest")) {
+      orchest.alert("Error", "The path should end in the .orchest extension.");
+      return;
+    }
+
     setState((prevState) => ({
       ...prevState,
       editPipelinePathModalBusy: true,
@@ -438,6 +443,9 @@ const PipelineList: React.FC<any> = (props) => {
                 classNames={["fullwidth push-down"]}
                 value={state.editPipelinePath}
                 label="Pipeline path"
+                initialCursorPosition={state.editPipelinePath.indexOf(
+                  ".orchest"
+                )}
                 onChange={(value) => {
                   setState((prevState) => ({
                     ...prevState,
