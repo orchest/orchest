@@ -248,7 +248,7 @@ class MovePipeline(TwoPhaseFunction):
             new_project_relative_path = new_project_relative_path[1:]
         # It is important to normalize the path because
         # find_pipelines_in_dir will return normalized paths as well,
-        # which are used to deteced pipelines that were deleted through
+        # which are used to detect pipelines that were deleted through
         # the file system in SyncProjectPipelinesDBState.
         new_project_relative_path = os.path.normpath(new_project_relative_path)
 
@@ -277,8 +277,6 @@ class MovePipeline(TwoPhaseFunction):
 
         old_path = get_pipeline_path(None, project_uuid, pipeline_path=old_path)
         new_path = get_pipeline_path(None, project_uuid, pipeline_path=new_path)
-        if old_path == new_path:
-            return
 
         project_path = os.path.abspath(get_project_directory(project_uuid))
         new_path_abs = os.path.abspath(new_path)
@@ -290,7 +288,7 @@ class MovePipeline(TwoPhaseFunction):
         if not os.path.exists(old_path):
             raise error.PipelineFileDoesNotExist()
 
-        if os.path.exists(new_path):
+        if os.path.exists(new_path) and old_path != new_path:
             raise error.PipelineFileExists()
 
         # Update the pipeline definition by adjusting the step file
@@ -320,6 +318,10 @@ class MovePipeline(TwoPhaseFunction):
                     raise Exception("Incorrect pipeline.")
                 json.dump(pipeline_def, json_file, indent=4, sort_keys=True)
 
+        # Create the parent directories if needed.
+        directories, _ = os.path.split(new_path)
+        if directories:
+            os.makedirs(directories, exist_ok=True)
         os.rename(old_path, new_path)
 
         # So that the moving can be reverted in case of failure of the
