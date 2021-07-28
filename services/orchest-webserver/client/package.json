@@ -10,7 +10,7 @@
     "prebuild": "pnpm run build --filter '@orchest/design-system-vite-plugin'",
     "predev": "pnpm run prebuild",
     "serve": "vite preview",
-    "ts:check": "tsc -p tsconfig.json --noEmit --incremental"
+    "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@orchest/design-system": "workspace:*",
@@ -23,8 +23,8 @@
     "cronstrue": "^1.108.0",
     "dashify": "^2.0.0",
     "date-fns": "2.20.1",
-    "isomorphic-unfetch": "3.1.0",
     "framer-motion": "4.1.17",
+    "isomorphic-unfetch": "3.1.0",
     "jquery": "^3.5.1",
     "lodash": "^4.17.20",
     "material-components-web": "10.0.0",

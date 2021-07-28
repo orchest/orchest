@@ -19,6 +19,8 @@
 
 @use "../../../../../node_modules/@material/circular-progress";
 
+@use "../../../../../node_modules/@material/icon-button";
+
 // end of @material
 // =============================================================================
 
@@ -451,6 +453,9 @@ a.button {
 }
 
 .projects-view {
+  .mdc-data-table__table {
+    table-layout: auto;
+  }
   .mdc-data-table {
     .mdc-button {
       color: theme.$secondary;
@@ -795,6 +800,10 @@ iframe.fullsize {
   display: none;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 button.text-button {
   border: 0;
   border-bottom: 1px dotted #c6cbd1;
@@ -1132,6 +1141,10 @@ strong {
     color: theme.$secondary;
     text-decoration: underline;
   }
+
+  .mdc-icon-button {
+    @include icon-button.size(38px);
+  }
 }
 
 .mdc-circular-progress {
@@ -1238,6 +1251,16 @@ span.code {
   padding: 2px 4px;
   display: inline-block;
   margin-bottom: 4px;
+}
+
+.mdc-icon-table-wrapper {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+  .mdc-icon-button {
+    margin-left: 10px;
+  }
 }
 
 .mdc-switch-wrapper {

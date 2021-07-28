@@ -145,7 +145,7 @@ class Pipeline:
                 return step
 
         raise error.StepUUIDResolveError(
-            "Step does not exist in the pipeline with UUID: {uuid}."
+            f"Step does not exist in the pipeline with UUID: {uuid}."
         )
 
     def get_params(self) -> Dict[str, Any]:

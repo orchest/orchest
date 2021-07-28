@@ -13,8 +13,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
-from app import error
-from app.analytics import send_anonymized_pipeline_definition
+from app import analytics, error
 from app.config import CONFIG_CLASS as StaticConfig
 from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
@@ -735,8 +734,11 @@ def register_views(app, db):
                     )
 
             # Analytics call.
-            send_anonymized_pipeline_definition(app, pipeline_json)
-
+            analytics.send_event(
+                app,
+                analytics.Event.PIPELINE_SAVE,
+                {"pipeline_definition": pipeline_json},
+            )
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 
         elif request.method == "GET":
