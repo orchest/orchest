@@ -5,6 +5,8 @@ import {
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 
+import { isValidEnvironmentVariableName } from "@/utils/webserver-utils";
+
 export interface IEnvVarListProps {
   value?: any;
   onChange?: any;
@@ -30,10 +32,14 @@ export const EnvVarList: React.FC<IEnvVarListProps> = (props) => (
           <li key={idx}>
             <MDCTextFieldReact
               value={pair["name"]}
-              onChange={(e) => props.onChange(e, idx, "name")}
+              onChange={(e) => {
+                props.onChange(e, idx, "name");
+              }}
               label="Name"
               disabled={props.readOnly === true}
-              classNames={["column push-down push-right"]}
+              classNames={["column push-down push-right"].concat(
+                isValidEnvironmentVariableName(pair["name"]) ? [] : ["invalid"]
+              )}
             />
             <MDCTextFieldReact
               value={pair["value"]}

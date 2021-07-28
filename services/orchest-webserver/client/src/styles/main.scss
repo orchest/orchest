@@ -570,6 +570,13 @@ p > i.material-icons.float-left {
   padding-bottom: var(--space-5);
 }
 
+.mdc-text-field.invalid {
+  &:not(.mdc-text-field--disabled) .mdc-text-field__input,
+  &:not(.mdc-text-field--disabled) .mdc-floating-label {
+    color: var(--colors-red700);
+  }
+}
+
 // rounded notched buttons
 .mdc-text-field--outlined {
   .mdc-text-field__input {
@@ -1063,7 +1070,7 @@ span.floating-button {
   padding: calc(var(--space-5) / 2);
   border-radius: 3px;
   color: #fff;
-  background: #b00020;
+  background: var(--color-red700);
   font-size: 15px;
 
   .material-icons {
