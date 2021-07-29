@@ -18,12 +18,12 @@ def test_joblist_get_empty(client, query_string):
 
 @pytest.mark.parametrize(
     "proj_env_variables",
-    [{}, {"var1": "project-value", "var2": 10}],
+    [{}, {"var1": "project-value", "var2": "10"}],
     ids=["no-proj-variables", "proj-variables"],
 )
 @pytest.mark.parametrize(
     "pipe_env_variables",
-    [{}, {"var1": "pipeline-value", "var3": [1]}],
+    [{}, {"var1": "pipeline-value", "var3": "[1]"}],
     ids=["no-pipe-variables", "pipe-variables"],
 )
 @pytest.mark.parametrize(
@@ -101,12 +101,12 @@ def test_job_get_empty(client):
 def test_job_get_exist(client, pipeline):
     project = pipeline.project
 
-    proj_env_variables = {"var1": 1, "var2": 2}
+    proj_env_variables = {"var1": "1", "var2": "2"}
     client.put(
         f"/api/projects/{project.uuid}", json={"env_variables": proj_env_variables}
     )
 
-    pipe_env_variables = {"var2": ["hello"], "var3": {}}
+    pipe_env_variables = {"var2": '["hello"]', "var3": "{}"}
     client.put(
         f"/api/pipelines/{project.uuid}/{pipeline.uuid}",
         json={"env_variables": pipe_env_variables},
@@ -123,7 +123,7 @@ def test_job_get_exist(client, pipeline):
 
 @pytest.mark.parametrize(
     "env_variables",
-    [None, {}, {"var1": "project-value", "var2": 10}],
+    [None, {}, {"var1": "project-value", "var2": "10"}],
     ids=["no-env-variables", "empty-env-variables", "env-variables"],
 )
 @pytest.mark.parametrize(

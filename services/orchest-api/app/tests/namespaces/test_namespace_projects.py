@@ -9,7 +9,7 @@ def test_projectlist_get_empty(client):
 
 
 def test_projectlist_post(client):
-    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": "[1]"}}
 
     client.post("/api/projects/", json=project)
     data = client.get("/api/projects/").get_json()["projects"][0]
@@ -20,7 +20,7 @@ def test_projectlist_post(client):
 
 
 def test_projectlist_post_same_uuid(client):
-    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": "   [1]   "}}
     resp1 = client.post("/api/projects/", json=project)
     resp2 = client.post("/api/projects/", json=project)
 
@@ -31,7 +31,7 @@ def test_projectlist_post_same_uuid(client):
 def test_projectlist_post_n(client):
     n = 5
     for _ in range(n):
-        project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
+        project = {"uuid": gen_uuid(), "env_variables": {"a": "[1]"}}
         client.post("/api/projects/", json=project)
 
     data = client.get("/api/projects/").get_json()["projects"]
@@ -39,7 +39,7 @@ def test_projectlist_post_n(client):
 
 
 def test_project_get(client):
-    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": "[1]"}}
 
     client.post("/api/projects/", json=project)
     data = client.get(f'/api/projects/{project["uuid"]}').get_json()
@@ -54,10 +54,10 @@ def test_project_get_non_existent(client):
 
 
 def test_project_put(client):
-    project = {"uuid": gen_uuid(), "env_variables": {"a": [1]}}
+    project = {"uuid": gen_uuid(), "env_variables": {"a": "[1]"}}
 
     client.post("/api/projects/", json=project)
-    project["env_variables"] = {"b": {"x": 1}}
+    project["env_variables"] = {"b": '{"x": ""}'}
     client.put(f'/api/projects/{project["uuid"]}', json=project)
 
     data = client.get(f'/api/projects/{project["uuid"]}').get_json()

@@ -216,6 +216,24 @@ def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
         time.sleep(1)
 
 
+def are_environment_variables_valid(env_variables: Dict[str, str]) -> bool:
+    return isinstance(env_variables, dict) and all(
+        [
+            is_env_var_name_valid(var) and isinstance(value, str)
+            for var, value in env_variables.items()
+        ]
+    )
+
+
+def is_env_var_name_valid(name: str) -> bool:
+    # Needs to be kept in sync with the FE.
+    return isinstance(name, str) and re.match(r"^[0-9a-zA-Z\-_]+$", name)
+
+
+def make_env_var_name_valid(name: str) -> str:
+    return re.sub("[^0-9a-zA-Z\-_]", "_", name)
+
+
 def is_service_name_valid(service_name: str) -> bool:
     # NOTE: this is enforced at the GUI level as well, needs to be kept
     # in sync.
@@ -250,17 +268,11 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and isinstance(service.get("env_variables_inherit", []), list)
         and all(
             [
-                isinstance(var, str) and var
+                is_env_var_name_valid(var)
                 for var in service.get("env_variables_inherit", [])
             ]
         )
-        and isinstance(service.get("env_variables", {}), dict)
-        and all(
-            [
-                isinstance(var, str) and isinstance(value, str) and var
-                for var, value in service.get("env_variables", {}).items()
-            ]
-        )
+        and are_environment_variables_valid(service.get("env_variables", {}))
     )
 
 

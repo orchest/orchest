@@ -34,6 +34,7 @@ import {
   envVariablesDictToArray,
   OverflowListener,
   validatePipeline,
+  isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
@@ -496,6 +497,31 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     return pipelineCopy;
   };
 
+  const validateServiceEnvironmentVariables = (pipeline: any) => {
+    for (let serviceName in pipeline.services) {
+      let service = pipeline.services[serviceName];
+
+      if (service.env_variables === undefined) {
+        continue;
+      }
+
+      for (let envVariableName of Object.keys(service.env_variables)) {
+        if (!isValidEnvironmentVariableName(envVariableName)) {
+          orchest.alert(
+            "Error",
+            'Invalid environment variable name: "' +
+              envVariableName +
+              '" in service "' +
+              service.name +
+              '".'
+          );
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   const saveGeneralForm = (e) => {
     e.preventDefault();
 
@@ -508,11 +534,28 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       return;
     }
 
+    // Validate environment variables of services
+    if (!validateServiceEnvironmentVariables(pipelineJson)) {
+      return;
+    }
+
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
     if (envVariables === undefined) {
       onSelectSubview(1);
       return;
+    }
+
+    // Validate pipeline level environment variables
+    for (let envVariableName of Object.keys(envVariables)) {
+      if (!isValidEnvironmentVariableName(envVariableName)) {
+        orchest.alert(
+          "Error",
+          'Invalid environment variable name: "' + envVariableName + '".'
+        );
+        onSelectSubview(1);
+        return;
+      }
     }
 
     let formData = new FormData();
