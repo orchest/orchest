@@ -457,7 +457,7 @@ const JobView: React.FC<TViewProps> = (props) => {
           css={{ marginBottom: "$5" }}
           items={[
             { term: "Name", details: state.job.name },
-            { term: "Pipeline", details: state.pipeline.name },
+            { term: "Pipeline", details: state.job.pipeline_name },
             { term: "Status", details: <JobStatus {...state.job} /> },
             {
               term: "Schedule",

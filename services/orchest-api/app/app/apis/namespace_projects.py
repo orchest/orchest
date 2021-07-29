@@ -71,19 +71,18 @@ class Project(Resource):
     @api.doc("update_project")
     def put(self, project_uuid):
         """Update a project."""
-        req_json = request.get_json()
-        if not _utils.are_environment_variables_valid(
-            req_json.get("env_variables", {})
-        ):
+        update = request.get_json()
+        update = models.Project.keep_column_entries(update)
+        if not _utils.are_environment_variables_valid(update.get("env_variables", {})):
             return {"message": ("Invalid environment variables definition.")}, 400
-
-        try:
-            models.Project.query.filter_by(uuid=project_uuid).update(req_json)
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(e)
-            return {"message": "Failed update operation."}, 500
+        if update:
+            try:
+                models.Project.query.filter_by(uuid=project_uuid).update(update)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(e)
+                return {"message": "Failed update operation."}, 500
 
         return {"message": "Project was updated successfully."}, 200
 

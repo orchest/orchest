@@ -32,6 +32,10 @@ const PipelineList: React.FC<any> = (props) => {
     createModal: false,
     createPipelineName: INITIAL_PIPELINE_NAME,
     createPipelinePath: INITIAL_PIPELINE_PATH,
+    editPipelinePathModal: false,
+    editPipelinePathModalBusy: false,
+    editPipelinePath: undefined,
+    editPipelinePathUUID: undefined,
     listData: null,
     pipelines: null,
   });
@@ -46,7 +50,17 @@ const PipelineList: React.FC<any> = (props) => {
       // @TODO Get the current Project on the Pipelines page
       listData.push([
         <span>{pipeline.name}</span>,
-        <span>{pipeline.path}</span>,
+        <span className="mdc-icon-table-wrapper">
+          {pipeline.path}{" "}
+          <span className="consume-click">
+            <MDCIconButtonToggleReact
+              icon="edit"
+              onClick={() => {
+                onEditClick(pipeline.uuid, pipeline.path);
+              }}
+            />
+          </span>
+        </span>,
         <SessionToggleButton
           project_uuid={context.state.project_uuid}
           pipeline_uuid={pipeline.uuid}
@@ -159,6 +173,95 @@ const PipelineList: React.FC<any> = (props) => {
         });
       }
     );
+  };
+
+  const onCloseEditPipelineModal = () => {
+    setState((prevState) => ({
+      ...prevState,
+      editPipelinePathModal: false,
+      editPipelinePathModalBusy: false,
+    }));
+  };
+
+  const onSubmitEditPipelinePathModal = () => {
+    if (!state.editPipelinePath.endsWith(".orchest")) {
+      orchest.alert("Error", "The path should end in the .orchest extension.");
+      return;
+    }
+
+    setState((prevState) => ({
+      ...prevState,
+      editPipelinePathModalBusy: true,
+    }));
+
+    makeRequest(
+      "PUT",
+      `/async/pipelines/${props.project_uuid}/${state.editPipelinePathUUID}`,
+      {
+        type: "json",
+        content: {
+          path: state.editPipelinePath,
+        },
+      }
+    )
+      .then((_) => {
+        fetchList(() => {
+          setState((prevState) => ({
+            ...prevState,
+            loading: false,
+          }));
+        });
+      })
+      .catch((e) => {
+        try {
+          let resp = JSON.parse(e.body);
+
+          if (resp.code == 0) {
+            orchest.alert("Error", "");
+          } else if (resp.code == 1) {
+            orchest.alert(
+              "Error",
+              "Cannot change the pipeline path if an interactive session is running. Please stop it first."
+            );
+          } else if (resp.code == 2) {
+            orchest.alert(
+              "Error",
+              'Cannot change the pipeline path, a file path with the name "' +
+                state.editPipelinePath +
+                '" already exists.'
+            );
+          } else if (resp.code == 3) {
+            orchest.alert("Error", "The pipeline does not exist.");
+          } else if (resp.code == 4) {
+            orchest.alert(
+              "Error",
+              'The pipeline file name should end with ".orchest".'
+            );
+          } else if (resp.code == 5) {
+            orchest.alert("Error", "The pipeline file does not exist.");
+          } else if (resp.code == 6) {
+            orchest.alert(
+              "Error",
+              "Can't move the pipeline outside of the project."
+            );
+          }
+        } catch (error) {
+          console.error(e);
+          console.error(error);
+        }
+      })
+      .finally(() => {
+        onCloseEditPipelineModal();
+      });
+  };
+
+  const onEditClick = (pipeline_uuid, pipeline_path) => {
+    setState((prevState) => ({
+      ...prevState,
+      editPipelinePathUUID: pipeline_uuid,
+      editPipelinePath: pipeline_path,
+      editPipelinePathModal: true,
+    }));
   };
 
   const onCreateClick = () => {
@@ -329,6 +432,49 @@ const PipelineList: React.FC<any> = (props) => {
                 label="Create pipeline"
                 submitButton
                 onClick={onSubmitModal.bind(this)}
+              />
+            </React.Fragment>
+          }
+        />
+      )}
+
+      {state.editPipelinePathModal && (
+        <MDCDialogReact
+          title="Edit pipeline path"
+          onClose={onCloseEditPipelineModal}
+          content={
+            <React.Fragment>
+              <MDCTextFieldReact
+                classNames={["fullwidth push-down"]}
+                value={state.editPipelinePath}
+                label="Pipeline path"
+                initialCursorPosition={state.editPipelinePath.indexOf(
+                  ".orchest"
+                )}
+                onChange={(value) => {
+                  setState((prevState) => ({
+                    ...prevState,
+                    editPipelinePath: value,
+                  }));
+                }}
+              />
+            </React.Fragment>
+          }
+          actions={
+            <React.Fragment>
+              <MDCButtonReact
+                icon="close"
+                label="Cancel"
+                classNames={["push-right"]}
+                onClick={onCloseEditPipelineModal}
+              />
+              <MDCButtonReact
+                icon="save"
+                disabled={state.editPipelinePathModalBusy}
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                label="Save"
+                submitButton
+                onClick={onSubmitEditPipelinePathModal}
               />
             </React.Fragment>
           }

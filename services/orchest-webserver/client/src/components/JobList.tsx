@@ -13,6 +13,7 @@ import {
   MDCButtonReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
+  MDCDialogReact,
   MDCSelectReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
@@ -41,6 +42,10 @@ const JobList: React.FC<IJobListProps> = (props) => {
     jobs: undefined,
     pipelines: undefined,
     projectSnapshotSize: undefined,
+    editJobNameModal: false,
+    editJobNameModalBusy: false,
+    editJobName: undefined,
+    editJobNameUUID: undefined,
   });
 
   const [isCreateDialogLoading, setIsCreateDialogLoading] = React.useState(
@@ -289,12 +294,62 @@ const JobList: React.FC<IJobListProps> = (props) => {
     }
   };
 
+  const onEditJobNameClick = (jobUUID, jobName) => {
+    setState((prevState) => ({
+      ...prevState,
+      editJobName: jobName,
+      editJobNameUUID: jobUUID,
+      editJobNameModal: true,
+    }));
+  };
+
+  const onCloseEditJobNameModal = () => {
+    setState((prevState) => ({
+      ...prevState,
+      editJobNameModal: false,
+      editJobNameModalBusy: false,
+    }));
+  };
+
+  const onSubmitEditJobNameModal = () => {
+    setState((prevState) => ({
+      ...prevState,
+      editJobNameModalBusy: true,
+    }));
+
+    makeRequest("PUT", `/catch/api-proxy/api/jobs/${state.editJobNameUUID}`, {
+      type: "json",
+      content: {
+        name: state.editJobName,
+      },
+    })
+      .then((_) => {
+        fetchList();
+      })
+      .catch((e) => {
+        console.error(e);
+      })
+      .finally(() => {
+        onCloseEditJobNameModal();
+      });
+  };
+
   const jobListToTableData = (jobs) => {
     let rows = [];
     for (let x = 0; x < jobs.length; x++) {
       // keep only jobs that are related to a project!
       rows.push([
-        jobs[x].name,
+        <span className="mdc-icon-table-wrapper">
+          {jobs[x].name}{" "}
+          <span className="consume-click">
+            <MDCIconButtonToggleReact
+              icon="edit"
+              onClick={() => {
+                onEditJobNameClick(jobs[x].uuid, jobs[x].name);
+              }}
+            />
+          </span>
+        </span>,
         jobs[x].pipeline_name,
         formatServerDateTime(jobs[x].created_time),
         <StatusInline
@@ -342,6 +397,46 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   return (
     <div className={"jobs-page"}>
+      {state.editJobNameModal && (
+        <MDCDialogReact
+          title="Edit job name"
+          onClose={onCloseEditJobNameModal}
+          content={
+            <React.Fragment>
+              <MDCTextFieldReact
+                classNames={["fullwidth push-down"]}
+                value={state.editJobName}
+                label="Job name"
+                onChange={(value) => {
+                  setState((prevState) => ({
+                    ...prevState,
+                    editJobName: value,
+                  }));
+                }}
+              />
+            </React.Fragment>
+          }
+          actions={
+            <React.Fragment>
+              <MDCButtonReact
+                icon="close"
+                label="Cancel"
+                classNames={["push-right"]}
+                onClick={onCloseEditJobNameModal}
+              />
+              <MDCButtonReact
+                icon="save"
+                disabled={state.editJobNameModalBusy}
+                classNames={["mdc-button--raised", "themed-secondary"]}
+                label="Save"
+                submitButton
+                onClick={onSubmitEditJobNameModal}
+              />
+            </React.Fragment>
+          }
+        />
+      )}
+
       <h2>Jobs</h2>
 
       {state.jobs && state.pipelines ? (

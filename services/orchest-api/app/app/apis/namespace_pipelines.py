@@ -71,21 +71,35 @@ class Pipeline(Resource):
     @api.doc("update_pipeline")
     def put(self, project_uuid, pipeline_uuid):
         """Update a pipeline."""
-        req_json = request.get_json()
-        if not _utils.are_environment_variables_valid(
-            req_json.get("env_variables", {})
-        ):
+        update = request.get_json()
+
+        # Keep mutable job pipeline name entry up to date so that the
+        # job views reflect the newest name.
+        if "name" in update:
+            try:
+                models.Job.query.filter_by(
+                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+                ).update({"pipeline_name": update["name"]})
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(e)
+                return {"message": "Failed name update operation."}, 500
+
+        update = models.Pipeline.keep_column_entries(update)
+        if not _utils.are_environment_variables_valid(update.get("env_variables", {})):
             return {"message": ("Invalid environment variables definition.")}, 400
 
-        try:
-            models.Pipeline.query.filter_by(
-                project_uuid=project_uuid, uuid=pipeline_uuid
-            ).update(req_json)
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(e)
-            return {"message": "Failed update operation."}, 500
+        if update:
+            try:
+                models.Pipeline.query.filter_by(
+                    project_uuid=project_uuid, uuid=pipeline_uuid
+                ).update(update)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(e)
+                return {"message": "Failed update operation."}, 500
 
         return {"message": "Pipeline was updated successfully."}, 200
 

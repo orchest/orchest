@@ -8,18 +8,22 @@ import sqlalchemy
 from flask import current_app, jsonify, request
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
+from sqlalchemy.orm.exc import NoResultFound
 
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
-from app import analytics
+from app import analytics, error
 from app.config import CONFIG_CLASS as StaticConfig
-from app.core.pipelines import CreatePipeline, DeletePipeline
+from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
     CreateProject,
     DeleteProject,
     ImportGitProject,
+    RenameProject,
     SyncProjectPipelinesDBState,
+    discoverFSCreatedProjects,
+    discoverFSDeletedProjects,
 )
 from app.kernel_manager import populate_kernels
 from app.models import Environment, Pipeline, Project
@@ -324,64 +328,6 @@ def register_views(app, db):
 
     api.add_resource(ImportGitProjectListResource, "/async/projects/import-git")
 
-    def discoverFSDeletedProjects():
-        """Cleanup projects that were deleted from the filesystem."""
-
-        project_paths = [
-            entry.name
-            for entry in os.scandir(app.config["PROJECTS_DIR"])
-            if entry.is_dir()
-        ]
-
-        fs_removed_projects = Project.query.filter(
-            Project.path.notin_(project_paths),
-            # This way we do not delete a project that is already being
-            # deleted twice, and avoid considering a project that is
-            # being initialized as deleted from the filesystem.
-            Project.status.in_(["READY"]),
-        ).all()
-
-        # Use a TwoPhaseExecutor for each project so that issues in one
-        # project do not hinder the deletion of others.
-        for proj_uuid in [project.uuid for project in fs_removed_projects]:
-            try:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    DeleteProject(tpe).transaction(proj_uuid)
-            except Exception as e:
-                current_app.logger.error(
-                    (
-                        "Error during project deletion (discovery) of "
-                        f"{proj_uuid}: {e}."
-                    )
-                )
-
-    def discoverFSCreatedProjects():
-        """Detect projects that were added through the file system."""
-
-        # Detect new projects by detecting directories that were not
-        # registered in the db as projects.
-        existing_project_paths = [project.path for project in Project.query.all()]
-        project_paths = [
-            entry.name
-            for entry in os.scandir(app.config["PROJECTS_DIR"])
-            if entry.is_dir()
-        ]
-        new_project_paths = set(project_paths) - set(existing_project_paths)
-
-        # Use a TwoPhaseExecutor for each project so that issues in one
-        # project do not hinder the discovery of others.
-        for new_project_path in new_project_paths:
-            try:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    CreateProject(tpe).transaction(new_project_path)
-            except Exception as e:
-                current_app.logger.error(
-                    (
-                        "Error during project initialization (discovery) of "
-                        f"{new_project_path}: {e}."
-                    )
-                )
-
     @app.route("/async/projects/<project_uuid>", methods=["GET"])
     def project_get(project_uuid):
         project = Project.query.filter(Project.uuid == project_uuid).first()
@@ -420,10 +366,42 @@ def register_views(app, db):
     @app.route("/async/projects/<project_uuid>", methods=["PUT"])
     def project_put(project_uuid):
 
-        # While this seems suited to be in the orchest_api.py module,
-        # I've left it here because some project data lives in the web
-        # server as well, and this PUT request might eventually update
-        # that.
+        # Move the project on the FS and update the db.
+        new_name = request.json.get("name")
+        if new_name is not None:
+            try:
+                with TwoPhaseExecutor(db.session) as tpe:
+                    RenameProject(tpe).transaction(project_uuid, new_name)
+            except error.ActiveSession:
+                return (
+                    jsonify(
+                        {
+                            "message": "Can't rename a project with active sessions.",
+                            # TODO: we need a standardized way of
+                            # communicating with the frontend.
+                            "code": 0,
+                        }
+                    ),
+                    409,
+                )
+            except sqlalchemy.exc.IntegrityError:
+                return (
+                    jsonify(
+                        {
+                            "message": "A project with this name already exists.",
+                            "code": 1,
+                        }
+                    ),
+                    409,
+                )
+            except NoResultFound:
+                return jsonify({"message": "Project doesn't exist."}), 404
+            except Exception as e:
+                return (
+                    jsonify({"message": f"Failed to rename project: {e}. {type(e)}"}),
+                    500,
+                )
+
         resp = requests.put(
             (
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
@@ -552,10 +530,48 @@ def register_views(app, db):
     @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["PUT"])
     def pipeline_put(project_uuid, pipeline_uuid):
 
-        # While this seems suited to be in the orchest_api.py module,
-        # I've left it here because some pipeline data lives in the web
-        # server as well, and this PUT request might eventually update
-        # that.
+        path = request.json.get("path")
+        if path is not None:
+            try:
+                with TwoPhaseExecutor(db.session) as tpe:
+                    MovePipeline(tpe).transaction(project_uuid, pipeline_uuid, path)
+            except error.ActiveSession:
+                return (
+                    jsonify(
+                        {
+                            "message": "Can't move a pipeline with active sessions.",
+                            "code": 1,
+                        }
+                    ),
+                    409,
+                )
+            except error.PipelineFileExists:
+                return (
+                    jsonify({"message": "File exists.", "code": 2}),
+                    409,
+                )
+            except NoResultFound:
+                return jsonify({"message": "Pipeline doesn't exist.", "code": 3}), 404
+            except ValueError:
+                return jsonify({"message": "Invalid file name.", "code": 4}), 409
+            except error.PipelineFileDoesNotExist:
+                return (
+                    jsonify({"message": "Pipeline file doesn't exist.", "code": 5}),
+                    409,
+                )
+            except error.OutOfProjectError:
+                return (
+                    jsonify(
+                        {"message": "Can't move outside of the project.", "code": 6}
+                    ),
+                    409,
+                )
+            except Exception as e:
+                return (
+                    jsonify({"message": f"Failed to move pipeline: {e}.", "code": 0}),
+                    500,
+                )
+
         resp = requests.put(
             (
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
@@ -681,19 +697,19 @@ def register_views(app, db):
     )
     def pipelines_json(project_uuid, pipeline_uuid):
 
-        pipeline_json_path = get_pipeline_path(
-            pipeline_uuid,
-            project_uuid,
-            request.args.get("job_uuid"),
-            request.args.get("pipeline_run_uuid"),
-        )
-
         if request.method == "POST":
+
+            pipeline_json_path = get_pipeline_path(
+                pipeline_uuid,
+                project_uuid,
+                None,
+                request.args.get("pipeline_run_uuid"),
+            )
 
             pipeline_directory = get_pipeline_directory(
                 pipeline_uuid,
                 project_uuid,
-                request.args.get("job_uuid"),
+                None,
                 request.args.get("pipeline_run_uuid"),
             )
 
@@ -722,10 +738,27 @@ def register_views(app, db):
                 }
                 return jsonify(msg), 400
 
+            with open(pipeline_json_path, "r") as json_file:
+                old_pipeline_json = json.load(json_file)
+
             # Save the pipeline JSON again to make sure its keys are
             # sorted.
             with open(pipeline_json_path, "w") as json_file:
                 json.dump(pipeline_json, json_file, indent=4, sort_keys=True)
+
+            if old_pipeline_json["name"] != pipeline_json["name"]:
+                resp = requests.put(
+                    (
+                        f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                        f"/api/pipelines/{project_uuid}/{pipeline_uuid}"
+                    ),
+                    json={"name": pipeline_json["name"]},
+                )
+                if resp.status_code != 200:
+                    return (
+                        jsonify({"message": "Failed to PUT name to orchest-api."}),
+                        resp.status_code,
+                    )
 
             # Analytics call.
             analytics.send_event(
@@ -736,26 +769,47 @@ def register_views(app, db):
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 
         elif request.method == "GET":
-
-            if not os.path.isfile(pipeline_json_path):
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "reason": ".orchest file doesn't exist at location %s"
-                            % pipeline_json_path,
-                        }
-                    ),
-                    404,
+            # Job pipeline json retrieval is done through the orchest
+            # API because there might be a mismatch between the pipeline
+            # path in the webserver DB and the actual path in the
+            # snapshot because of a pipeline rename/move.
+            if request.args.get("job_uuid") is not None:
+                job_uuid = request.args.get("job_uuid")
+                resp = requests.get(
+                    "http://"
+                    + app.config["ORCHEST_API_ADDRESS"]
+                    + f"/api/jobs/{job_uuid}",
                 )
-            else:
-                pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
-
-                # json.dumps because the front end expects it as a
-                # string.
+                pipeline_json = resp.json()["pipeline_definition"]
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
                 )
+            else:
+                pipeline_json_path = get_pipeline_path(
+                    pipeline_uuid,
+                    project_uuid,
+                    None,
+                    request.args.get("pipeline_run_uuid"),
+                )
+
+                if not os.path.isfile(pipeline_json_path):
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "reason": ".orchest file doesn't exist at location %s"
+                                % pipeline_json_path,
+                            }
+                        ),
+                        404,
+                    )
+                else:
+                    with open(pipeline_json_path, "r") as json_file:
+                        pipeline_json = json.load(json_file)
+
+                    return jsonify(
+                        {"success": True, "pipeline_json": json.dumps(pipeline_json)}
+                    )
 
     @app.route(
         "/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>",
