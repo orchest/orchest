@@ -118,6 +118,7 @@ class Job(Resource):
 
         job_update = request.get_json()
 
+        name = job_update.get("name", None)
         cron_schedule = job_update.get("cron_schedule", None)
         parameters = job_update.get("parameters", None)
         env_variables = job_update.get("env_variables", None)
@@ -129,6 +130,7 @@ class Job(Resource):
             with TwoPhaseExecutor(db.session) as tpe:
                 UpdateJob(tpe).transaction(
                     job_uuid,
+                    name,
                     cron_schedule,
                     parameters,
                     env_variables,
@@ -639,6 +641,7 @@ class UpdateJob(TwoPhaseFunction):
     def _transaction(
         self,
         job_uuid: str,
+        name: str,
         cron_schedule: str,
         parameters: Dict[str, Any],
         env_variables: Dict[str, str],
@@ -647,6 +650,9 @@ class UpdateJob(TwoPhaseFunction):
         confirm_draft,
     ):
         job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+
+        if name is not None:
+            job.name = name
 
         if cron_schedule is not None:
             if job.schedule is None and job.status != "DRAFT":

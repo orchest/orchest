@@ -33,6 +33,19 @@ export class MDCTextFieldReact extends React.Component<any> {
   componentDidMount() {
     this.mdc = new MDCTextField(this.refManager.refs.input);
     this.mdc.value = this.getPropValue();
+
+    // set initial cursor position
+    if (this.props.initialCursorPosition !== undefined) {
+      this.setCursorPositionOnProps();
+    }
+  }
+
+  setCursorPositionOnProps() {
+    this.refManager.refs.nativeInput.focus();
+    this.refManager.refs.nativeInput.setSelectionRange(
+      this.props.initialCursorPosition,
+      this.props.initialCursorPosition
+    );
   }
 
   onChange() {

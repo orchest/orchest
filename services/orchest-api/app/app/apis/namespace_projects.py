@@ -68,14 +68,16 @@ class Project(Resource):
     @api.doc("update_project")
     def put(self, project_uuid):
         """Update a project."""
-
-        try:
-            models.Project.query.filter_by(uuid=project_uuid).update(request.get_json())
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(e)
-            return {"message": "Failed update operation."}, 500
+        update = request.get_json()
+        update = models.Project.keep_column_entries(update)
+        if update:
+            try:
+                models.Project.query.filter_by(uuid=project_uuid).update(update)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(e)
+                return {"message": "Failed update operation."}, 500
 
         return {"message": "Project was updated successfully."}, 200
 
