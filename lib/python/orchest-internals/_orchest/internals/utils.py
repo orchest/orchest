@@ -38,6 +38,11 @@ def run_orchest_ctl(client, command):
                 target="/orchest-host",
                 type="bind",
             ),
+            docker.types.Mount(
+                source=os.environ.get("HOST_CONFIG_DIR"),
+                target="/config",
+                type="bind",
+            ),
         ],
         environment={
             "HOST_CONFIG_DIR": os.environ.get("HOST_CONFIG_DIR"),

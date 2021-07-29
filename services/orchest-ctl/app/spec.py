@@ -167,6 +167,10 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
     if env is None:
         env = utils.get_env()
 
+    max_job_runs_parallelism = utils.get_orchest_config().get(
+        "MAX_JOB_RUNS_PARALLELISM", 1
+    )
+
     # name -> request body
     container_config = {
         "orchest-api": {
@@ -209,6 +213,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
             "Image": "orchest/celery-worker:latest",
             "Env": [
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
+                f"MAX_JOB_RUNS_PARALLELISM={max_job_runs_parallelism}",
                 # Set a default log level because supervisor can't deal
                 # with non assigned env variables.
                 "ORCHEST_LOG_LEVEL=INFO",
