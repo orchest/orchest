@@ -49,20 +49,24 @@ const SettingsView: React.FC<TViewProps> = () => {
       promiseManager
     );
 
-    getConfigPromise.promise.then((data) => {
-      try {
-        let configJSON = JSON.parse(data);
-        let visibleJSON = configToVisibleConfig(configJSON);
+    getConfigPromise.promise
+      .then((data) => {
+        try {
+          let configJSON = JSON.parse(data);
+          let visibleJSON = configToVisibleConfig(configJSON);
 
-        setState((prevState) => ({
-          ...prevState,
-          configJSON,
-          config: JSON.stringify(visibleJSON, null, 2),
-        }));
-      } catch (error) {
-        console.warn("Received invalid JSON config from the server.");
-      }
-    });
+          setState((prevState) => ({
+            ...prevState,
+            configJSON,
+            config: JSON.stringify(visibleJSON, null, 2),
+          }));
+        } catch (error) {
+          console.warn("Received invalid JSON config from the server.");
+        }
+        // Needs to be here in case the request is cancelled, will otherwise
+        // result in an uncaught error that can throw off cypress.
+      })
+      .catch((error) => console.log(error));
   };
 
   const onClickManageUsers = () => {

@@ -63,27 +63,31 @@ const ProjectSelector = React.forwardRef<
     );
 
     // @ts-ignore
-    fetchProjectsPromise.promise.then((response) => {
-      let projectsRes = JSON.parse(response);
+    fetchProjectsPromise.promise
+      .then((response) => {
+        let projectsRes = JSON.parse(response);
 
-      // validate the currently selected project, if its invalid
-      // it will be set to undefined
-      let project_uuid = state.project_uuid;
-      if (project_uuid !== undefined) {
-        validatePreSelectedProject(project_uuid, projectsRes);
-      }
+        // validate the currently selected project, if its invalid
+        // it will be set to undefined
+        let project_uuid = state.project_uuid;
+        if (project_uuid !== undefined) {
+          validatePreSelectedProject(project_uuid, projectsRes);
+        }
 
-      // either there was no selected project or the selection
-      // was invalid, set the selection to the first project if possible
-      project_uuid = state.project_uuid;
-      if (project_uuid === undefined && projectsRes.length > 0) {
-        project_uuid = projectsRes[0].uuid;
-        onChangeProject(project_uuid);
-      }
+        // either there was no selected project or the selection
+        // was invalid, set the selection to the first project if possible
+        project_uuid = state.project_uuid;
+        if (project_uuid === undefined && projectsRes.length > 0) {
+          project_uuid = projectsRes[0].uuid;
+          onChangeProject(project_uuid);
+        }
 
-      setSelectItems(listProcess(projectsRes));
-      setProjects(projectsRes);
-    });
+        setSelectItems(listProcess(projectsRes));
+        setProjects(projectsRes);
+        // Needs to be here in case the request is cancelled, will otherwise
+        // result in an uncaught error that can throw off cypress.
+      })
+      .catch((error) => console.log(error));
   };
 
   React.useEffect(() => {
