@@ -354,9 +354,8 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         "Please make sure you enter a valid project name. " +
           projectNameValidation.reason
       );
-      return false;
     }
-    return true;
+    return projectNameValidation.valid;
   };
 
   const onSubmitImport = () => {
