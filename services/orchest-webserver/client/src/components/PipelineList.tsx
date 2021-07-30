@@ -19,8 +19,8 @@ import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../views/PipelineView";
 import ProjectsView from "@/views/ProjectsView";
 
-const INITIAL_PIPELINE_NAME = "";
-const INITIAL_PIPELINE_PATH = "pipeline.orchest";
+const INITIAL_PIPELINE_NAME = "Main";
+const INITIAL_PIPELINE_PATH = "main.orchest";
 
 const PipelineList: React.FC<any> = (props) => {
   const { orchest } = window;
@@ -410,8 +410,7 @@ const PipelineList: React.FC<any> = (props) => {
                 onChange={(value) => {
                   setState((prevState) => ({
                     ...prevState,
-
-                    createPipelineName: value,
+                    createPipelinePath: value,
                   }));
                 }}
                 value={state.createPipelinePath}

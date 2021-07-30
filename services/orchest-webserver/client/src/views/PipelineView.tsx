@@ -1185,7 +1185,10 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
       // wait for single render call
       setTimeout(() => {
-        step["meta_data"]["position"] = [
+        // Assumes step.uuid doesn't change
+        let _step = state.steps[step.uuid];
+
+        _step["meta_data"]["position"] = [
           -state.pipelineOffset[0] +
             state.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
             190 / 2,
@@ -1195,7 +1198,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         ];
 
         // to avoid repositioning flash (creating a step can affect the size of the viewport)
-        step["meta_data"]["hidden"] = false;
+        _step["meta_data"]["hidden"] = false;
 
         setState({ steps: state.steps, saveHash: uuidv4() });
         state.refManager.refs[step.uuid].updatePosition(

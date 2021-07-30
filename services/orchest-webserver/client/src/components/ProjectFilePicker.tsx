@@ -315,8 +315,6 @@ const ProjectFilePicker: React.FC<any> = (props) => {
       )}
       {state.cwd && state.tree && (
         <FilePicker
-          // @ts-ignore
-          ref={refManager.nrefs.filePicker}
           tree={state.tree}
           cwd={state.cwd}
           onFocus={onFocus.bind(this)}

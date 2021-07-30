@@ -92,6 +92,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const onSubmitEditProjectPathModal = () => {
+    if (!validateProjectNameAndAlert(state.editProjectPath)) {
+      return;
+    }
+
     setState((prevState) => ({
       ...prevState,
       editProjectPathModalBusy: true,
@@ -287,18 +291,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   const onSubmitModal = () => {
     let projectName = state.create_project_name;
 
-    if (projectName.length == 0) {
-      orchest.alert("Error", "Project name cannot be empty.");
-      return;
-    }
-
-    let projectNameValidation = validProjectName(projectName);
-    if (!projectNameValidation.valid) {
-      orchest.alert(
-        "Error",
-        "Please make sure you enter a valid project name. " +
-          projectNameValidation.reason
-      );
+    if (!validateProjectNameAndAlert(projectName)) {
       return;
     }
 
@@ -335,7 +328,12 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const validProjectName = (projectName) => {
-    if (projectName.match("[^A-Za-z0-9_.-]")) {
+    if (projectName === undefined || projectName.length == 0) {
+      return {
+        valid: false,
+        reason: "Project name cannot be empty.",
+      };
+    } else if (projectName.match("[^A-Za-z0-9_.-]")) {
       return {
         valid: false,
         reason:
@@ -346,6 +344,19 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       };
     }
     return { valid: true };
+  };
+
+  const validateProjectNameAndAlert = (projectName) => {
+    let projectNameValidation = validProjectName(projectName);
+    if (!projectNameValidation.valid) {
+      orchest.alert(
+        "Error",
+        "Please make sure you enter a valid project name. " +
+          projectNameValidation.reason
+      );
+      return false;
+    }
+    return true;
   };
 
   const onSubmitImport = () => {
@@ -360,13 +371,11 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       return;
     }
 
-    let projectNameValidation = validProjectName(gitProjectName);
-    if (!projectNameValidation.valid) {
-      orchest.alert(
-        "Error",
-        "Please make sure you enter a valid project name. " +
-          projectNameValidation.reason
-      );
+    // Note: can have empty project name for import (uses inferred repo name by git)
+    if (
+      gitProjectName.length > 0 &&
+      !validateProjectNameAndAlert(gitProjectName)
+    ) {
       return;
     }
 
