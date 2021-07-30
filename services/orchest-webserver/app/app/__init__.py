@@ -31,7 +31,7 @@ from app.connections import db, ma
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import get_repo_tag, get_user_conf
+from app.utils import get_repo_tag, get_user_conf, migrate_user_config
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -64,6 +64,7 @@ def create_app():
 
     # read directory mount based config into Flask config
     try:
+        migrate_user_config()
         conf_data = get_user_conf()
         app.config.update(conf_data)
     except Exception:

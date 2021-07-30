@@ -45,6 +45,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     listData: null,
     importResult: undefined,
     fetchListAndSetProject: "",
+    editProjectPathModal: false,
+    editProjectPathModalBusy: false,
+    editProjectPathUUID: undefined,
+    editProjectPath: undefined,
   });
 
   const [promiseManager] = React.useState(new PromiseManager());
@@ -70,12 +74,81 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     }
   };
 
+  const onEditProjectName = (projectUUID, projectPath) => {
+    setState((prevState) => ({
+      ...prevState,
+      editProjectPathUUID: projectUUID,
+      editProjectPath: projectPath,
+      editProjectPathModal: true,
+    }));
+  };
+
+  const onCloseEditProjectPathModal = () => {
+    setState((prevState) => ({
+      ...prevState,
+      editProjectPathModal: false,
+      editProjectPathModalBusy: false,
+    }));
+  };
+
+  const onSubmitEditProjectPathModal = () => {
+    setState((prevState) => ({
+      ...prevState,
+      editProjectPathModalBusy: true,
+    }));
+
+    makeRequest("PUT", `/async/projects/${state.editProjectPathUUID}`, {
+      type: "json",
+      content: {
+        name: state.editProjectPath,
+      },
+    })
+      .then((_) => {
+        fetchList();
+      })
+      .catch((e) => {
+        try {
+          let resp = JSON.parse(e.body);
+
+          if (resp.code == 0) {
+            orchest.alert(
+              "Error",
+              "Cannnot rename project when an interactive session is running."
+            );
+          } else if (resp.code == 1) {
+            orchest.alert(
+              "Error",
+              'Cannnot rename project, a project with the name "' +
+                state.editProjectPath +
+                '" already exists.'
+            );
+          }
+        } catch (error) {
+          console.error(e);
+          console.error(error);
+        }
+      })
+      .finally(() => {
+        onCloseEditProjectPathModal();
+      });
+  };
+
   const processListData = (projects) => {
     let listData = [];
 
     for (let project of projects) {
       listData.push([
-        <span>{project.path}</span>,
+        <span className="mdc-icon-table-wrapper">
+          {project.path}{" "}
+          <span className="consume-click">
+            <MDCIconButtonToggleReact
+              icon="edit"
+              onClick={() => {
+                onEditProjectName(project.uuid, project.path);
+              }}
+            />
+          </span>
+        </span>,
         <span>{project.pipeline_count}</span>,
         <span>{project.session_count}</span>,
         <span>{project.job_count}</span>,
@@ -415,104 +488,140 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   return (
     <Layout>
       <div className={"view-page projects-view"}>
-        {(() => {
-          if (state.showImportModal) {
-            return (
-              <MDCDialogReact
-                title="Import a project"
-                onClose={onCloseImportProjectModal.bind(this)}
-                ref={refManager.nrefs.importProjectDialog}
+        {state.showImportModal && (
+          <MDCDialogReact
+            title="Import a project"
+            onClose={onCloseImportProjectModal.bind(this)}
+            ref={refManager.nrefs.importProjectDialog}
+            content={
+              <div
+                className="project-import-modal"
                 data-test-id="import-project-dialog"
-                content={
-                  <div className="project-import-modal">
-                    {props.queryArgs &&
-                      props.queryArgs.import_url !== undefined && (
-                        <div className="push-down warning">
-                          <p>
-                            <i className="material-icons">warning</i> The import
-                            URL was pre-filled. Make sure you trust the{" "}
-                            <span className="code">git</span> repository you're
-                            importing.
-                          </p>
-                        </div>
-                      )}
-                    <p className="push-down">
-                      Import a <span className="code">git</span> repository by
-                      specifying the <span className="code">HTTPS</span> URL
-                      below:
-                    </p>
-                    <MDCTextFieldReact
-                      classNames={["fullwidth push-down"]}
-                      label="Git repository URL"
-                      value={state.import_url}
-                      onChange={handleChange.bind(this, "import_url")}
-                      data-test-id="project-url-textfield"
-                    />
-
-                    <MDCTextFieldReact
-                      classNames={["fullwidth"]}
-                      label="Project name (optional)"
-                      value={state.import_project_name}
-                      onChange={handleChange.bind(this, "import_project_name")}
-                      data-test-id="project-name-textfield"
-                    />
-
-                    {(() => {
-                      if (state.importResult) {
-                        let result;
-
-                        if (state.importResult.status === "PENDING") {
-                          result = <MDCLinearProgressReact />;
-                        } else if (state.importResult.status === "FAILURE") {
-                          result = (
-                            <p>
-                              <i className="material-icons float-left">error</i>{" "}
-                              Import failed:{" "}
-                              {getMappedErrorMessage(state.importResult.result)}
-                            </p>
-                          );
-                        }
-
-                        return <div className="push-up">{result}</div>;
-                      }
-                    })()}
-                    <p className="push-up">
-                      To import <b>private </b>
-                      <span className="code">git</span> repositories upload them
-                      directly through the File Manager into the{" "}
-                      <span className="code">projects/</span> directory.
+              >
+                {props.queryArgs && props.queryArgs.import_url !== undefined && (
+                  <div className="push-down warning">
+                    <p>
+                      <i className="material-icons">warning</i> The import URL
+                      was pre-filled. Make sure you trust the{" "}
+                      <span className="code">git</span> repository you're
+                      importing.
                     </p>
                   </div>
-                }
-                actions={
-                  <React.Fragment>
-                    <MDCButtonReact
-                      icon="close"
-                      label="Close"
-                      classNames={["push-right"]}
-                      onClick={onCancelImport.bind(this)}
-                    />
-                    <MDCButtonReact
-                      icon="input"
-                      // So that the button is disabled when in a states
-                      // that requires so (currently ["PENDING"]).
-                      disabled={["PENDING"].includes(
-                        state.importResult !== undefined
-                          ? state.importResult.status
-                          : undefined
-                      )}
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      label="Import"
-                      submitButton
-                      onClick={onSubmitImport.bind(this)}
-                      data-test-id="import-project-ok"
-                    />
-                  </React.Fragment>
-                }
-              />
-            );
-          }
-        })()}
+                )}
+                <p className="push-down">
+                  Import a <span className="code">git</span> repository by
+                  specifying the <span className="code">HTTPS</span> URL below:
+                </p>
+                <MDCTextFieldReact
+                  classNames={["fullwidth push-down"]}
+                  label="Git repository URL"
+                  value={state.import_url}
+                  onChange={handleChange.bind(this, "import_url")}
+                  data-test-id="project-url-textfield"
+                />
+
+                <MDCTextFieldReact
+                  classNames={["fullwidth"]}
+                  label="Project name (optional)"
+                  value={state.import_project_name}
+                  onChange={handleChange.bind(this, "import_project_name")}
+                  data-test-id="project-name-textfield"
+                />
+
+                {(() => {
+                  if (state.importResult) {
+                    let result;
+
+                    if (state.importResult.status === "PENDING") {
+                      result = <MDCLinearProgressReact />;
+                    } else if (state.importResult.status === "FAILURE") {
+                      result = (
+                        <p>
+                          <i className="material-icons float-left">error</i>{" "}
+                          Import failed:{" "}
+                          {getMappedErrorMessage(state.importResult.result)}
+                        </p>
+                      );
+                    }
+
+                    return <div className="push-up">{result}</div>;
+                  }
+                })()}
+                <p className="push-up">
+                  To import <b>private </b>
+                  <span className="code">git</span> repositories upload them
+                  directly through the File Manager into the{" "}
+                  <span className="code">projects/</span> directory.
+                </p>
+              </div>
+            }
+            actions={
+              <React.Fragment>
+                <MDCButtonReact
+                  icon="close"
+                  label="Close"
+                  classNames={["push-right"]}
+                  onClick={onCancelImport.bind(this)}
+                />
+                <MDCButtonReact
+                  icon="input"
+                  // So that the button is disabled when in a states
+                  // that requires so (currently ["PENDING"]).
+                  disabled={["PENDING"].includes(
+                    state.importResult !== undefined
+                      ? state.importResult.status
+                      : undefined
+                  )}
+                  classNames={["mdc-button--raised", "themed-secondary"]}
+                  label="Import"
+                  submitButton
+                  onClick={onSubmitImport.bind(this)}
+                  data-test-id="import-project-ok"
+                />
+              </React.Fragment>
+            }
+          />
+        )}
+
+        {state.editProjectPathModal && (
+          <MDCDialogReact
+            title="Edit project name"
+            onClose={onCloseEditProjectPathModal}
+            content={
+              <React.Fragment>
+                <MDCTextFieldReact
+                  classNames={["fullwidth push-down"]}
+                  value={state.editProjectPath}
+                  label="Project name"
+                  onChange={(value) => {
+                    setState((prevState) => ({
+                      ...prevState,
+                      editProjectPath: value,
+                    }));
+                  }}
+                />
+              </React.Fragment>
+            }
+            actions={
+              <React.Fragment>
+                <MDCButtonReact
+                  icon="close"
+                  label="Cancel"
+                  classNames={["push-right"]}
+                  onClick={onCloseEditProjectPathModal}
+                />
+                <MDCButtonReact
+                  icon="save"
+                  disabled={state.editProjectPathModalBusy}
+                  classNames={["mdc-button--raised", "themed-secondary"]}
+                  label="Save"
+                  submitButton
+                  onClick={onSubmitEditProjectPathModal}
+                />
+              </React.Fragment>
+            }
+          />
+        )}
 
         {(() => {
           if (state.createModal) {

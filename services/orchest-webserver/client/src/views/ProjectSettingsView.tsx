@@ -14,6 +14,7 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
+  isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import PipelinesView from "@/views/PipelinesView";
 import JobsView from "@/views/JobsView";
@@ -70,6 +71,17 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     // Do not go through if env variables are not correctly defined.
     if (envVariables === undefined) {
       return;
+    }
+
+    // Validate environment variable names
+    for (let envVariableName of Object.keys(envVariables)) {
+      if (!isValidEnvironmentVariableName(envVariableName)) {
+        orchest.alert(
+          "Error",
+          'Invalid environment variable name: "' + envVariableName + '".'
+        );
+        return;
+      }
     }
 
     // perform PUT to update

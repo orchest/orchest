@@ -332,14 +332,12 @@ def containers_version_dump(
 def orchest_config_dump(path: str) -> None:
     """Get the Orchest config file, with telemetry UUID removed"""
 
-    # Copy the config
-    with open("/config/config.json") as input_json_file:
-        config = json.load(input_json_file)
-        # Removed for privacy.
-        del config["TELEMETRY_UUID"]
+    config = utils.get_orchest_config()
+    # Removed for privacy.
+    del config["TELEMETRY_UUID"]
 
-        with open(os.path.join(path, "config.json"), "w") as output_json_file:
-            json.dump(config, output_json_file)
+    with open(os.path.join(path, "config.json"), "w") as output_json_file:
+        json.dump(config, output_json_file)
 
 
 def health_check_dump(resource_manager: OrchestResourceManager, path: str) -> None:

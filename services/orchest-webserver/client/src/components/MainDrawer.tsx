@@ -45,7 +45,8 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
         }))
         ?.find((listElement) => listElement.view === rootViewName);
 
-      drawer.list.selectedIndex = selectedView?.index || -1;
+      drawer.list.selectedIndex =
+        selectedView !== undefined ? selectedView.index : -1;
     }
   };
 

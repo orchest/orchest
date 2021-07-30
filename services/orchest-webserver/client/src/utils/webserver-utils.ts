@@ -109,6 +109,10 @@ export function componentName(TagName) {
   }
 }
 
+export function isValidEnvironmentVariableName(name) {
+  return /^[0-9a-zA-Z\-_]+$/gm.test(name);
+}
+
 export function validatePipeline(pipelineJson) {
   let errors = [];
 
