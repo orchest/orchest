@@ -203,6 +203,9 @@ class RenameProject(TwoPhaseFunction):
             .one()
         )
 
+        if "/" in new_name:
+            raise error.InvalidProjectName()
+
         # Note the with_for_update in the query, that is used to avoid
         # race conditions with the session POST endpoint.
         if has_active_sessions(project_uuid):

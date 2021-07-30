@@ -394,6 +394,16 @@ def register_views(app, db):
                     ),
                     409,
                 )
+            except error.InvalidProjectName:
+                return (
+                    jsonify(
+                        {
+                            "message": "Invalid project name.",
+                            "code": 2,
+                        }
+                    ),
+                    400,
+                )
             except NoResultFound:
                 return jsonify({"message": "Project doesn't exist."}), 404
             except Exception as e:

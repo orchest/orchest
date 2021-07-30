@@ -4,6 +4,11 @@ class ActiveSession(Exception):
     pass
 
 
+class InvalidProjectName(Exception):
+
+    pass
+
+
 class PipelineFileExists(Exception):
     """A pipeline file exists when it should not."""
 
