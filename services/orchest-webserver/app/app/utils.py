@@ -332,6 +332,16 @@ def get_user_conf_raw():
         current_app.logger.debug(e)
 
 
+def migrate_user_config():
+    config = get_user_conf_raw()
+    if config is None:
+        return
+    config = json.loads(config)
+    if "MAX_JOB_RUNS_PARALLELISM" not in config:
+        config["MAX_JOB_RUNS_PARALLELISM"] = 1
+        save_user_conf_raw(json.dumps(config))
+
+
 def save_user_conf_raw(config):
     try:
         with open("/config/config.json", "w") as f:

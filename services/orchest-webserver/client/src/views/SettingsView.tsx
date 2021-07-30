@@ -30,6 +30,7 @@ const SettingsView: React.FC<TViewProps> = () => {
     configJSON: undefined,
     version: undefined,
     unsavedChanges: false,
+    requiresRestart: false,
   });
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -42,6 +43,8 @@ const SettingsView: React.FC<TViewProps> = () => {
       setState((prevState) => ({ ...prevState, version: data }));
     });
   };
+
+  const REQUIRES_RESTART_ON_CHANGE = ["MAX_JOB_RUNS_PARALLELISM"];
 
   const getConfig = () => {
     let getConfigPromise = makeCancelable(
@@ -121,6 +124,9 @@ const SettingsView: React.FC<TViewProps> = () => {
         ...prevState,
         configJSON: joinedConfig,
         unsavedChanges: false,
+        requiresRestart: REQUIRES_RESTART_ON_CHANGE.some(
+          (key) => state.configJSON[key] != joinedConfig[key]
+        ),
       }));
 
       makeRequest("POST", "/async/user-config", {
@@ -195,6 +201,7 @@ const SettingsView: React.FC<TViewProps> = () => {
           ...prevState,
           restarting: true,
           status: "restarting",
+          requiresRestart: false,
         }));
 
         makeRequest("POST", "/async/restart")
@@ -313,6 +320,16 @@ const SettingsView: React.FC<TViewProps> = () => {
                           <div className="warning push-up">
                             <i className="material-icons">warning</i> Your input
                             is not valid JSON.
+                          </div>
+                        );
+                      }
+                    })()}
+                    {(() => {
+                      if (state.requiresRestart) {
+                        return (
+                          <div className="warning push-up">
+                            <i className="material-icons">info</i> Restart
+                            Orchest to have the changes take effect.
                           </div>
                         );
                       }

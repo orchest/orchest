@@ -243,6 +243,14 @@ def register_views(app, db):
                         else:
                             config.pop(setting, None)
 
+                j_run_parall = config.get("MAX_JOB_RUNS_PARALLELISM")
+                if not (isinstance(j_run_parall, int) and j_run_parall > 0):
+                    config["MAX_JOB_RUNS_PARALLELISM"] = 1
+
+                auth = config.get("AUTH_ENABLED")
+                if not isinstance(auth, bool):
+                    config["AUTH_ENABLED"] = False
+
                 # Save the updated configuration.
                 save_user_conf_raw(json.dumps(config))
                 current_config = config
