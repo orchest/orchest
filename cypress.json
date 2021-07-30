@@ -3,5 +3,6 @@
   "experimentalStudio": true,
   "ignoreTestFiles": "**/examples/*",
   "testFiles": "**/*.spec.{ts,tsx}",
-  "chromeWebSecurity": false
+  "chromeWebSecurity": false,
+  "videoUploadOnPasses": false
 }
