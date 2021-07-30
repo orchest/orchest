@@ -4,5 +4,6 @@
   "ignoreTestFiles": "**/examples/*",
   "testFiles": "**/*.spec.{ts,tsx}",
   "chromeWebSecurity": false,
+  "videoCompression": false,
   "videoUploadOnPasses": false
 }
