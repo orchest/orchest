@@ -1048,6 +1048,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const fetchPipelineAndInitialize = () => {
+    let promises = [];
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       props.queryArgs.pipeline_uuid,
       props.queryArgs.project_uuid,
@@ -1055,55 +1056,40 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       props.queryArgs.run_uuid
     );
 
+    if (props.queryArgs.read_only !== "true") {
+      // fetch pipeline cwd
+      let cwdFetchPromise = makeCancelable(
+        makeRequest(
+          "GET",
+          `/async/file-picker-tree/pipeline-cwd/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
+        ),
+        state.promiseManager
+      );
+      promises.push(cwdFetchPromise.promise);
+
+      cwdFetchPromise.promise
+        .then((cwdPromiseResult) => {
+          // relativeToAbsolutePath expects trailing / for directories
+          let cwd = JSON.parse(cwdPromiseResult)["cwd"] + "/";
+          setState({
+            pipelineCwd: cwd,
+          });
+        })
+        .catch((error) => {
+          if (!error.isCanceled) {
+            console.error(error);
+          }
+        });
+    }
+
     let fetchPipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
       state.promiseManager
     );
+    promises.push(fetchPipelinePromise.promise);
 
-    // fetch pipeline cwd
-    let cwdFetchPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/file-picker-tree/pipeline-cwd/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
-      ),
-      state.promiseManager
-    );
-
-    fetchPipelinePromise.promise.catch((error) => {
-      if (!error.isCanceled) {
-        if (props.queryArgs.job_uuid) {
-          // This case is hit when a user tries to load a pipeline that belongs
-          // to a run that has not started yet. The project files are only
-          // copied when the run starts. Before start, the pipeline.json thus
-          // cannot be found. Alert the user about missing pipeline and return
-          // to JobView.
-
-          orchest.alert(
-            "Error",
-            "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-            () => {
-              orchest.loadView(JobView, {
-                queryArgs: {
-                  job_uuid: props.queryArgs.job_uuid,
-                },
-              });
-            }
-          );
-        } else {
-          console.error("Could not load pipeline.json");
-          console.error(error);
-        }
-      }
-    });
-
-    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise])
-      .then(([cwdPromiseResult, fetchPipelinePromiseResult]) => {
-        // relativeToAbsolutePath expects trailing / for directories
-        let cwd = JSON.parse(cwdPromiseResult)["cwd"] + "/";
-        setState({
-          pipelineCwd: cwd,
-        });
-
+    fetchPipelinePromise.promise
+      .then((fetchPipelinePromiseResult) => {
         let result = JSON.parse(fetchPipelinePromiseResult);
         if (result.success) {
           let pipelineJson = decodeJSON(JSON.parse(result["pipeline_json"]));
@@ -1121,12 +1107,41 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               pipelineName: pipelineJson.name,
             },
           });
-
-          initializePipeline();
         } else {
           console.error("Could not load pipeline.json");
           console.error(result);
         }
+      })
+      .catch((error) => {
+        if (!error.isCanceled) {
+          if (props.queryArgs.job_uuid) {
+            // This case is hit when a user tries to load a pipeline that belongs
+            // to a run that has not started yet. The project files are only
+            // copied when the run starts. Before start, the pipeline.json thus
+            // cannot be found. Alert the user about missing pipeline and return
+            // to JobView.
+
+            orchest.alert(
+              "Error",
+              "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+              () => {
+                orchest.loadView(JobView, {
+                  queryArgs: {
+                    job_uuid: props.queryArgs.job_uuid,
+                  },
+                });
+              }
+            );
+          } else {
+            console.error("Could not load pipeline.json");
+            console.error(error);
+          }
+        }
+      });
+
+    Promise.all(promises)
+      .then(() => {
+        initializePipeline();
       })
       .catch((error) => {
         console.error(error);
@@ -1906,7 +1921,12 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       (!props.queryArgs.job_uuid && session && session.status == "RUNNING") ||
       (props.queryArgs.job_uuid && state.pipelineJson && state.pipelineRunning)
     ) {
-      return Object.keys(getServices()).length > 0;
+      let services = getServices();
+      if (services !== undefined) {
+        return Object.keys(services).length > 0;
+      } else {
+        return false;
+      }
     } else {
       return false;
     }
