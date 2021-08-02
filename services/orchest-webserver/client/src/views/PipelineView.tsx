@@ -664,8 +664,10 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         $(".incoming-connections").removeClass("hover");
       }
 
-      state.eventVars.newConnection = undefined;
-      updateEventVars();
+      if (state.eventVars.newConnection !== undefined) {
+        state.eventVars.newConnection = undefined;
+        updateEventVars();
+      }
 
       // clean up creating-connection class
       $(".pipeline-step").removeClass("creating-connection");
@@ -927,9 +929,10 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
           deselectSteps();
         }
       }
-
-      state.eventVars.selectedItem = undefined;
-      updateEventVars();
+      if (state.eventVars.selectedItem !== undefined) {
+        state.eventVars.selectedItem = undefined;
+        updateEventVars();
+      }
 
       if (state.eventVars.draggingPipeline) {
         state.eventVars.draggingPipeline = false;

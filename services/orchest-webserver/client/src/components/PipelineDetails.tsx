@@ -29,13 +29,26 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const onOpenFilePreviewView = (step_uuid) =>
     props.onOpenFilePreviewView && props.onOpenFilePreviewView(step_uuid);
 
-  const onMouseMove = (e) =>
-    setClientX((prev) => ({
-      previous: prev.current,
-      current: e.clientX,
-    }));
-  const onMouseDown = (e) =>
-    setClientX({ previous: e.clientX, current: e.clientX });
+  const onMouseMove = (e) => {
+    setIsDragging((isDragging) => {
+      if (isDragging) {
+        setClientX((prev) => ({
+          previous: prev.current,
+          current: e.clientX,
+        }));
+      }
+      return isDragging;
+    });
+  };
+
+  const onMouseDown = (e) => {
+    setIsDragging((isDragging) => {
+      if (isDragging) {
+        setClientX({ previous: e.clientX, current: e.clientX });
+      }
+      return isDragging;
+    });
+  };
 
   const onMouseUp = () => onColumnResizeMouseUp();
 
