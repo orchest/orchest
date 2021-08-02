@@ -319,6 +319,7 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
         # TODO: handle existing pipeline assignments.
         new_pipelines_from_fs = set(pipeline_paths) - set(existing_pipeline_paths)
 
+        removed_pipelines_uuid = {pip.uuid for pip in fs_removed_pipelines}
         for path in new_pipelines_from_fs:
             pipeline_json_path = get_pipeline_path(
                 None, project_uuid, pipeline_path=path
@@ -333,7 +334,11 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
                 > 0
             )
             if not is_moving:
-                AddPipelineFromFS(self.tpe).transaction(project_uuid, path)
+                AddPipelineFromFS(self.tpe).transaction(
+                    project_uuid,
+                    path,
+                    is_replacing=pipeline_uuid in removed_pipelines_uuid,
+                )
 
     def _collateral(self):
         pass
