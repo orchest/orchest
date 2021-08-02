@@ -199,10 +199,10 @@ class AddPipelineFromFS(TwoPhaseFunction):
         # of the pipeline entry in the orchest-api needs to be updated
         # when replacing.
         resp = requests.get(
-            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/'
             f"{project_uuid}/{pipeline_uuid}",
         )
-        if resp == 404:
+        if resp.status_code == 404:
             resp = requests.post(
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
                 json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
