@@ -13,10 +13,10 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     "450"
   );
 
-  const [isDragging, setIsDragging] = React.useState(false);
-  const [clientX, setClientX] = React.useState({
-    previous: null,
-    current: null,
+  const [, setIsDragging] = React.useState(false);
+  const [, setClientX] = React.useState({
+    previous: 0,
+    current: 0,
   });
   const [paneWidth, setPaneWidth] = React.useState(
     storedPaneWidth != null ? parseFloat(storedPaneWidth) : null
@@ -32,10 +32,18 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const onMouseMove = (e) => {
     setIsDragging((isDragging) => {
       if (isDragging) {
-        setClientX((prev) => ({
-          previous: prev.current,
-          current: e.clientX,
-        }));
+        setClientX((prev) => {
+          const deltaX = e.clientX - prev.current;
+
+          setPaneWidth((prevPaneWidth) =>
+            Math.max(0, Math.max(50, prevPaneWidth - deltaX))
+          );
+
+          return {
+            previous: prev.current,
+            current: e.clientX,
+          };
+        });
       }
       return isDragging;
     });
@@ -103,15 +111,6 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
       $(window).off("mouseup.pipelineDetails");
     };
   }, []);
-
-  React.useEffect(() => {
-    if (isDragging) {
-      const deltaX = clientX.current - clientX.previous;
-      setPaneWidth((prevPaneWidth) =>
-        Math.max(0, Math.max(50, prevPaneWidth - deltaX))
-      );
-    }
-  }, [clientX, isDragging]);
 
   return (
     <div className="pipeline-details pane" style={{ width: paneWidth + "px" }}>
