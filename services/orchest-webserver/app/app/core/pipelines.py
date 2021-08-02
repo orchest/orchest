@@ -132,7 +132,7 @@ class AddPipelineFromFS(TwoPhaseFunction):
     user has manually added it.
     """
 
-    def _transaction(self, project_uuid: str, pipeline_path: str, is_replacing: bool):
+    def _transaction(self, project_uuid: str, pipeline_path: str):
 
         pipeline_json_path = get_pipeline_path(
             None, project_uuid, pipeline_path=pipeline_path
@@ -150,7 +150,6 @@ class AddPipelineFromFS(TwoPhaseFunction):
             self.collateral_kwargs["pipeline_uuid"] = None
             self.collateral_kwargs["pipeline_path"] = None
             self.collateral_kwargs["pipeline_json"] = None
-            self.collateral_kwargs["is_replacing"] = is_replacing
 
             # If the pipeline has its own uuid and the uuid is not in
             # the DB already then the pipeline does not need to have a
@@ -189,7 +188,6 @@ class AddPipelineFromFS(TwoPhaseFunction):
         pipeline_uuid: str,
         pipeline_path: str,
         pipeline_json: str,
-        is_replacing: bool,
     ):
         # At the project level, pipeline files with the same UUID are
         # considered to be the same pipeline. If we are "replacing" the
@@ -200,7 +198,11 @@ class AddPipelineFromFS(TwoPhaseFunction):
         # still be there. Currently, we don't need to PUT since no field
         # of the pipeline entry in the orchest-api needs to be updated
         # when replacing.
-        if not is_replacing:
+        resp = requests.get(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
+            f"{project_uuid}/{pipeline_uuid}",
+        )
+        if resp == 404:
             resp = requests.post(
                 f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
                 json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
