@@ -14,10 +14,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   );
 
   const [, setIsDragging] = React.useState(false);
-  const [, setClientX] = React.useState({
-    previous: 0,
-    current: 0,
-  });
+
   const [paneWidth, setPaneWidth] = React.useState(
     storedPaneWidth != null ? parseFloat(storedPaneWidth) : null
   );
@@ -32,33 +29,24 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const onMouseMove = (e) => {
     setIsDragging((isDragging) => {
       if (isDragging) {
-        setClientX((prev) => {
-          const deltaX = e.clientX - prev.current;
-
-          setPaneWidth((prevPaneWidth) =>
-            Math.max(0, Math.max(50, prevPaneWidth - deltaX))
+        setPaneWidth((prevPaneWidth) => {
+          return Math.max(
+            0,
+            Math.max(
+              50,
+              prevPaneWidth -
+                e.originalEvent.movementX / window.devicePixelRatio
+            )
           );
-
-          return {
-            previous: prev.current,
-            current: e.clientX,
-          };
         });
       }
       return isDragging;
     });
   };
 
-  const onMouseDown = (e) => {
-    setIsDragging((isDragging) => {
-      if (isDragging) {
-        setClientX({ previous: e.clientX, current: e.clientX });
-      }
-      return isDragging;
-    });
+  const onMouseUp = () => {
+    onColumnResizeMouseUp();
   };
-
-  const onMouseUp = () => onColumnResizeMouseUp();
 
   const onColumnResizeMouseUp = () => {
     // This pattern allows you to use the latest state
@@ -101,13 +89,11 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
 
     $(window).on("resize.pipelineDetails", overflowChecks);
     $(window).on("mousemove.pipelineDetails", onMouseMove);
-    $(window).on("mousedown.pipelineDetails", onMouseDown);
     $(window).on("mouseup.pipelineDetails", onMouseUp);
 
     return () => {
       $(window).off("resize.pipelineDetails");
       $(window).off("mousemove.pipelineDetails");
-      $(window).off("mousedown.pipelineDetails");
       $(window).off("mouseup.pipelineDetails");
     };
   }, []);
