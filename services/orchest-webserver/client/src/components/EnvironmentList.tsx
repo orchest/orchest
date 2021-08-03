@@ -26,6 +26,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     setEnvironmentBuildsInterval,
   ] = React.useState(null);
   const [state, setState] = React.useState({
+    isDeleting: false,
     environments: undefined,
     environmentBuilds: {},
     listData: undefined,
@@ -194,28 +195,54 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   };
 
   const onDeleteClick = () => {
-    let selectedIndices = refManager.refs.environmentListView.getSelectedRowIndices();
+    if (!state.isDeleting) {
+      setState((prevState) => ({
+        ...prevState,
+        isDeleting: true,
+      }));
 
-    if (selectedIndices.length === 0) {
-      orchest.alert("Error", "You haven't selected any environments.");
-      return;
-    }
+      let selectedIndices = refManager.refs.environmentListView.getSelectedRowIndices();
 
-    orchest.confirm(
-      "Warning",
-      "Are you certain that you want to delete the selected environments?",
-      () => {
-        selectedIndices.forEach((idx) => {
-          let environment_uuid = state.environments[idx].uuid;
-          let project_uuid = state.environments[idx].project_uuid;
-          removeEnvironment(
-            project_uuid,
-            environment_uuid,
-            state.environments[idx].name
-          );
-        });
+      if (selectedIndices.length === 0) {
+        orchest.alert("Error", "You haven't selected any environments.");
+
+        setState((prevState) => ({
+          ...prevState,
+          isDeleting: false,
+        }));
+
+        return;
       }
-    );
+
+      orchest.confirm(
+        "Warning",
+        "Are you certain that you want to delete the selected environments?",
+        () => {
+          selectedIndices.forEach((idx) => {
+            let environment_uuid = state.environments[idx].uuid;
+            let project_uuid = state.environments[idx].project_uuid;
+            removeEnvironment(
+              project_uuid,
+              environment_uuid,
+              state.environments[idx].name
+            );
+          });
+
+          setState((prevState) => ({
+            ...prevState,
+            isDeleting: false,
+          }));
+        },
+        () => {
+          setState((prevState) => ({
+            ...prevState,
+            isDeleting: false,
+          }));
+        }
+      );
+    } else {
+      console.error("Delete UI in progress.");
+    }
   };
 
   const processListData = (environments, environmentBuilds) => {
@@ -287,6 +314,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                 <MDCIconButtonToggleReact
                   icon="delete"
                   tooltipText="Delete environment"
+                  disabled={state.isDeleting}
                   onClick={onDeleteClick.bind(this)}
                 />
               </div>
