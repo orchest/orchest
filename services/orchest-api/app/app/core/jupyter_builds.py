@@ -1,4 +1,7 @@
+import logging
 import os
+import signal
+import time
 from datetime import datetime
 from typing import Any
 
@@ -52,9 +55,11 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, flag, path):
     """
     statements = []
     statements.append("FROM orchest/jupyter-server:latest")
-    # use this to cleanup in case of failure
-    statements.append("LABEL _orchest_jupyter_build_is_intermediate=1")
+    # The task uuid is applied first so that if a build is aborted early
+    # any produced artifact will at least have this label and will thus
+    # "searchable" through this label, e.g for cleanups.
     statements.append(f"LABEL _orchest_jupyter_build_task_uuid={task_uuid}")
+    statements.append("LABEL _orchest_jupyter_build_is_intermediate=1")
 
     statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
 
@@ -202,9 +207,24 @@ def build_jupyter_task(task_uuid):
                 ]
             }
 
+            # Necessary to avoid the case where the abortion of a task
+            # comes too late, leaving a dangling image.
+            if AbortableAsyncResult(task_uuid).is_aborted():
+                filters["label"].pop(0)
+
             # Artifacts of this build (intermediate containers, images,
-            # etc.)
-            cleanup_docker_artifacts(filters)
+            # etc.) See the build task docstring in
+            # environment_builds.py for why this needs to be here.
+            if os.fork() == 0:
+                for _ in range(10):
+                    time.sleep(0.5)
+                    try:
+                        cleanup_docker_artifacts(filters)
+                    except Exception as e:
+                        logging.error(e)
+                # To avoid running any celery code that would run once
+                # the task is done.
+                os.kill(os.getpid(), signal.SIGKILL)
 
     # The status of the Celery task is SUCCESS since it has finished
     # running. Not related to the actual state of the build, e.g.
