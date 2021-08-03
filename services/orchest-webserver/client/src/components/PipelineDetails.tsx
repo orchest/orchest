@@ -14,6 +14,9 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   );
 
   const [, setIsDragging] = React.useState(false);
+  const [eventVars] = React.useState({
+    prevClientX: 0,
+  });
 
   const [paneWidth, setPaneWidth] = React.useState(
     storedPaneWidth != null ? parseFloat(storedPaneWidth) : null
@@ -27,16 +30,15 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     props.onOpenFilePreviewView && props.onOpenFilePreviewView(step_uuid);
 
   const onMouseMove = (e) => {
+    let prevClientX = eventVars.prevClientX;
+    eventVars.prevClientX = e.clientX;
+
     setIsDragging((isDragging) => {
       if (isDragging) {
         setPaneWidth((prevPaneWidth) => {
           return Math.max(
             0,
-            Math.max(
-              50,
-              prevPaneWidth -
-                e.originalEvent.movementX / window.devicePixelRatio
-            )
+            Math.max(50, prevPaneWidth - (e.clientX - prevClientX))
           );
         });
       }
@@ -46,6 +48,10 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
 
   const onMouseUp = () => {
     onColumnResizeMouseUp();
+  };
+
+  const onMouseDown = (e) => {
+    eventVars.prevClientX = e.clientX;
   };
 
   const onColumnResizeMouseUp = () => {
@@ -89,11 +95,13 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
 
     $(window).on("resize.pipelineDetails", overflowChecks);
     $(window).on("mousemove.pipelineDetails", onMouseMove);
+    $(window).on("mousedown.pipelineDetails", onMouseDown);
     $(window).on("mouseup.pipelineDetails", onMouseUp);
 
     return () => {
       $(window).off("resize.pipelineDetails");
       $(window).off("mousemove.pipelineDetails");
+      $(window).off("mousedown.pipelineDetails");
       $(window).off("mouseup.pipelineDetails");
     };
   }, []);
