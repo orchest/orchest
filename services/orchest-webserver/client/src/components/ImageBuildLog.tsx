@@ -110,6 +110,9 @@ const ImageBuild: React.FC<any> = (props) => {
     setIsPolling(true);
     window.addEventListener("resize", fitTerminal.bind(this));
 
+    // Fetch build on initial load
+    buildRequest();
+
     return () => {
       if (socket) socket.close();
       promiseManager.cancelCancelablePromises();

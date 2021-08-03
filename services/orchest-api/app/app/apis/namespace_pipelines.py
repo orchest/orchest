@@ -149,6 +149,10 @@ class DeletePipeline(TwoPhaseFunction):
         # Stop any interactive session related to the pipeline.
         StopInteractiveSession(self.tpe).transaction(project_uuid, pipeline_uuid)
 
+        models.Pipeline.query.filter_by(
+            project_uuid=project_uuid, uuid=pipeline_uuid
+        ).update({"env_variables": {}})
+
         # Note that we do not delete the pipeline from the db since we
         # are not deleting jobs related to the pipeline. Deleting the
         # pipeline would delete cascade jobs.

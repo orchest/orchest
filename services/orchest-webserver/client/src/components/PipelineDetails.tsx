@@ -13,11 +13,12 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     "450"
   );
 
-  const [isDragging, setIsDragging] = React.useState(false);
-  const [clientX, setClientX] = React.useState({
-    previous: null,
-    current: null,
+  const [, setIsDragging] = React.useState(false);
+  const [eventVars] = React.useState({
+    prevClientX: 0,
+    cumulativeDeltaX: 0,
   });
+
   const [paneWidth, setPaneWidth] = React.useState(
     storedPaneWidth != null ? parseFloat(storedPaneWidth) : null
   );
@@ -29,15 +30,34 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const onOpenFilePreviewView = (step_uuid) =>
     props.onOpenFilePreviewView && props.onOpenFilePreviewView(step_uuid);
 
-  const onMouseMove = (e) =>
-    setClientX((prev) => ({
-      previous: prev.current,
-      current: e.clientX,
-    }));
-  const onMouseDown = (e) =>
-    setClientX({ previous: e.clientX, current: e.clientX });
+  const onMouseMove = (e) => {
+    let prevClientX = eventVars.prevClientX;
+    eventVars.prevClientX = e.clientX;
+    eventVars.cumulativeDeltaX += e.clientX - prevClientX;
 
-  const onMouseUp = () => onColumnResizeMouseUp();
+    setIsDragging((isDragging) => {
+      if (isDragging) {
+        setPaneWidth((prevPaneWidth) => {
+          let newPaneWidth = Math.max(
+            0,
+            Math.max(50, prevPaneWidth - eventVars.cumulativeDeltaX)
+          );
+
+          eventVars.cumulativeDeltaX = 0;
+          return newPaneWidth;
+        });
+      }
+      return isDragging;
+    });
+  };
+
+  const onMouseUp = () => {
+    onColumnResizeMouseUp();
+  };
+
+  const onMouseDown = (e) => {
+    eventVars.prevClientX = e.clientX;
+  };
 
   const onColumnResizeMouseUp = () => {
     // This pattern allows you to use the latest state
@@ -72,7 +92,10 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     props.onChangeView(index);
   };
 
-  const onColumnResizeMouseDown = () => setIsDragging(true);
+  const onColumnResizeMouseDown = () => {
+    eventVars.cumulativeDeltaX = 0;
+    setIsDragging(true);
+  };
 
   React.useEffect(() => {
     // overflow checks
@@ -90,15 +113,6 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
       $(window).off("mouseup.pipelineDetails");
     };
   }, []);
-
-  React.useEffect(() => {
-    if (isDragging) {
-      const deltaX = clientX.current - clientX.previous;
-      setPaneWidth((prevPaneWidth) =>
-        Math.max(0, Math.max(50, prevPaneWidth - deltaX))
-      );
-    }
-  }, [clientX, isDragging]);
 
   return (
     <div className="pipeline-details pane" style={{ width: paneWidth + "px" }}>

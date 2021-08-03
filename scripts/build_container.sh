@@ -176,7 +176,7 @@ function cleanup() {
                 rm -rf $i/orchest-sdk 2> /dev/null
             fi
             if containsElement "${image}" "${PNPM_IMAGES[@]}" ; then
-                rm -rf $build_ctx/pnpm_files 2>/dev/null
+                rm -rf $i/pnpm_files 2>/dev/null
             fi
 
             rm $i/.dockerignore 2> /dev/null

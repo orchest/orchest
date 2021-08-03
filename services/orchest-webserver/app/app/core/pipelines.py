@@ -189,12 +189,26 @@ class AddPipelineFromFS(TwoPhaseFunction):
         pipeline_path: str,
         pipeline_json: str,
     ):
-        resp = requests.post(
-            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
-            json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
+        # At the project level, pipeline files with the same UUID are
+        # considered to be the same pipeline. If we are "replacing" the
+        # pipeline it's because the previous pipeline was deleted and
+        # this new pipeline has been discovered through the FS. DELETEs
+        # of a pipeline to the orchest-api don't actually delete the
+        # pipeline, so we don't need to POST, since the old entry will
+        # still be there. Currently, we don't need to PUT since no field
+        # of the pipeline entry in the orchest-api needs to be updated
+        # when replacing.
+        resp = requests.get(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/'
+            f"{project_uuid}/{pipeline_uuid}",
         )
-        if resp.status_code != 201:
-            raise Exception("Orchest-api pipeline creation failed.")
+        if resp.status_code == 404:
+            resp = requests.post(
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
+                json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
+            )
+            if resp.status_code != 201:
+                raise Exception("Orchest-api pipeline creation failed.")
 
         if new_uuid:
             pipeline_json_path = get_pipeline_path(
