@@ -16,6 +16,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const [, setIsDragging] = React.useState(false);
   const [eventVars] = React.useState({
     prevClientX: 0,
+    cumulativeDeltaX: 0,
   });
 
   const [paneWidth, setPaneWidth] = React.useState(
@@ -32,14 +33,18 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const onMouseMove = (e) => {
     let prevClientX = eventVars.prevClientX;
     eventVars.prevClientX = e.clientX;
+    eventVars.cumulativeDeltaX += e.clientX - prevClientX;
 
     setIsDragging((isDragging) => {
       if (isDragging) {
         setPaneWidth((prevPaneWidth) => {
-          return Math.max(
+          let newPaneWidth = Math.max(
             0,
-            Math.max(50, prevPaneWidth - (e.clientX - prevClientX))
+            Math.max(50, prevPaneWidth - eventVars.cumulativeDeltaX)
           );
+
+          eventVars.cumulativeDeltaX = 0;
+          return newPaneWidth;
         });
       }
       return isDragging;
@@ -87,7 +92,10 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     props.onChangeView(index);
   };
 
-  const onColumnResizeMouseDown = () => setIsDragging(true);
+  const onColumnResizeMouseDown = () => {
+    eventVars.cumulativeDeltaX = 0;
+    setIsDragging(true);
+  };
 
   React.useEffect(() => {
     // overflow checks
