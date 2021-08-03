@@ -24,12 +24,13 @@ describe("file system interactions", () => {
   });
 
   it("creates multiple projects through the FS", () => {
-    let projects = Array.from(Array(50).keys());
+    let projects = Array.from(Array(20).keys());
     projects.map((project) => {
       cy.exec(`mkdir ${PROJECTS_DIR}/${project}`);
     });
     cy.visit("/projects");
-    cy.findAllByTestId("projects-table-row", { timeout: 15000 }).should(
+    cy.findByTestId("projects-table-body", { timeout: 10000 }).should("exist");
+    cy.findAllByTestId("projects-table-row", { timeout: 10000 }).should(
       "have.length",
       projects.length
     );

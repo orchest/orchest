@@ -180,11 +180,15 @@ Cypress.Commands.add(
         .scrollIntoView()
         .should("be.visible")
         .click();
+      cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
+        .scrollIntoView()
+        .should("be.visible")
+        .contains(/PENDING|STARTED/);
       if (waitBuild) {
         cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
           .scrollIntoView()
           .should("be.visible")
-          .contains("SUCCESS");
+          .contains("SUCCESS", { timeout: 20000 });
       }
     }
     cy.wait("@allPosts");
@@ -241,7 +245,7 @@ Cypress.Commands.add(
     if (project === undefined && environment === undefined) {
       return cy
         .exec(
-          'docker images --filter "label=_orchest_environment_uuid" -q | wc -l'
+          'docker images --filter "label=_orchest_env_build_task_uuid" -q | wc -l'
         )
         .its("stdout")
         .then((stdout) => cy.wrap(parseInt(stdout)));
