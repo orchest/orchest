@@ -442,13 +442,13 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
     setState((prevState) => ({
       ...prevState,
+      unsavedChanges: true,
       pipelineJson: {
         ...prevState.pipelineJson,
         settings: {
           ...prevState.pipelineJson?.settings,
           auto_eviction: value,
         },
-        unsavedChanges: true,
       },
     }));
   };
