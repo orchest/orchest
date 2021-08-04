@@ -26,6 +26,7 @@ import {
   MDCLinearProgressReact,
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
@@ -33,6 +34,7 @@ import {
   envVariablesDictToArray,
   OverflowListener,
   validatePipeline,
+  isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
@@ -40,7 +42,10 @@ import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import PipelineView from "@/views/PipelineView";
 
-const PipelineSettingsView: React.FC<any> = (props) => {
+export interface IPipelineSettingsView
+  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+
+const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   const orchest = window.orchest;
 
   const { dispatch, get } = useOrchest();
@@ -437,13 +442,13 @@ const PipelineSettingsView: React.FC<any> = (props) => {
 
     setState((prevState) => ({
       ...prevState,
+      unsavedChanges: true,
       pipelineJson: {
         ...prevState.pipelineJson,
         settings: {
           ...prevState.pipelineJson?.settings,
           auto_eviction: value,
         },
-        unsavedChanges: true,
       },
     }));
   };
@@ -492,6 +497,31 @@ const PipelineSettingsView: React.FC<any> = (props) => {
     return pipelineCopy;
   };
 
+  const validateServiceEnvironmentVariables = (pipeline: any) => {
+    for (let serviceName in pipeline.services) {
+      let service = pipeline.services[serviceName];
+
+      if (service.env_variables === undefined) {
+        continue;
+      }
+
+      for (let envVariableName of Object.keys(service.env_variables)) {
+        if (!isValidEnvironmentVariableName(envVariableName)) {
+          orchest.alert(
+            "Error",
+            'Invalid environment variable name: "' +
+              envVariableName +
+              '" in service "' +
+              service.name +
+              '".'
+          );
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   const saveGeneralForm = (e) => {
     e.preventDefault();
 
@@ -504,11 +534,28 @@ const PipelineSettingsView: React.FC<any> = (props) => {
       return;
     }
 
+    // Validate environment variables of services
+    if (!validateServiceEnvironmentVariables(pipelineJson)) {
+      return;
+    }
+
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
     if (envVariables === undefined) {
       onSelectSubview(1);
       return;
+    }
+
+    // Validate pipeline level environment variables
+    for (let envVariableName of Object.keys(envVariables)) {
+      if (!isValidEnvironmentVariableName(envVariableName)) {
+        orchest.alert(
+          "Error",
+          'Invalid environment variable name: "' + envVariableName + '".'
+        );
+        onSelectSubview(1);
+        return;
+      }
     }
 
     let formData = new FormData();

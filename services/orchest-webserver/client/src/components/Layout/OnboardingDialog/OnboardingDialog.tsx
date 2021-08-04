@@ -2,7 +2,7 @@ import * as React from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
-  css,
+  styled,
   Box,
   Flex,
   Dialog,
@@ -27,8 +27,8 @@ import {
 } from "./OnboardingDialogCarousel";
 import { useOnboardingDialog } from "./use-onboarding-dialog";
 
-const codeHeader = css({ include: "box", textAlign: "right" });
-const codeHeading = css({
+const CodeHeader = styled("header", { include: "box", textAlign: "right" });
+const CodeHeading = styled("h1", {
   include: "box",
   display: "inline-block",
   padding: "$1 $2",
@@ -39,14 +39,14 @@ const codeHeading = css({
   backgroundColor: "$primary",
   color: "$white",
 });
-const codeWindow = css({
+const CodeWindow = styled("div", {
   include: "box",
   border: "2px $gray300 solid",
   borderRadius: "$md",
   borderTopRightRadius: 0,
   padding: "$1",
 });
-const codeList = css({
+const CodeList = styled("ul", {
   include: "box",
   fontFamily: "monospace",
   textAlign: "left",
@@ -56,7 +56,7 @@ const codeList = css({
   padding: "$2",
   paddingLeft: "$7",
 });
-const codeListItem = css({
+const CodeListItem = styled("li", {
   include: "box",
   fontSize: "$sm",
   lineHeight: "$sm",
@@ -67,13 +67,13 @@ const codeListItem = css({
   },
 });
 
-const iconList = css({
+const IconList = styled("ul", {
   include: "box",
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(0, 1fr))",
   gridAutoFlow: "column",
 });
-const iconListItem = css({
+const IconListItem = styled("li", {
   include: "box",
   display: "flex",
   flexDirection: "column",
@@ -168,20 +168,16 @@ export const OnboardingDialog: React.FC = () => {
                         <React.Fragment>
                           <Text>{item.description}</Text>
                           <article>
-                            <header className={codeHeader()}>
-                              <h1 className={codeHeading()}>
-                                {item.code.title}
-                              </h1>
-                            </header>
-                            <div className={codeWindow()}>
-                              <ul role="list" className={codeList()}>
+                            <CodeHeader>
+                              <CodeHeading>{item.code.title}</CodeHeading>
+                            </CodeHeader>
+                            <CodeWindow>
+                              <CodeList role="list">
                                 {item.code.lines.map((line, i) => (
-                                  <li key={line} className={codeListItem()}>
-                                    {line}
-                                  </li>
+                                  <CodeListItem key={line}>{line}</CodeListItem>
                                 ))}
-                              </ul>
-                            </div>
+                              </CodeList>
+                            </CodeWindow>
                           </article>
                         </React.Fragment>
                       )}
@@ -189,12 +185,9 @@ export const OnboardingDialog: React.FC = () => {
                       {item.variant === "icons" && (
                         <React.Fragment>
                           <Text>{item.description}</Text>
-                          <ul className={iconList()}>
+                          <IconList>
                             {item.icons.map(({ icon, label }) => (
-                              <li
-                                key={[icon, label].join("-")}
-                                className={iconListItem()}
-                              >
+                              <IconListItem key={[icon, label].join("-")}>
                                 <i
                                   aria-hidden={true}
                                   className="material-icons"
@@ -202,9 +195,9 @@ export const OnboardingDialog: React.FC = () => {
                                   {icon}
                                 </i>
                                 {label}
-                              </li>
+                              </IconListItem>
                             ))}
-                          </ul>
+                          </IconList>
                         </React.Fragment>
                       )}
 

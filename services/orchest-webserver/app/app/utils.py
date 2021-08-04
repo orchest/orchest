@@ -332,6 +332,16 @@ def get_user_conf_raw():
         current_app.logger.debug(e)
 
 
+def migrate_user_config():
+    config = get_user_conf_raw()
+    if config is None:
+        return
+    config = json.loads(config)
+    if "MAX_JOB_RUNS_PARALLELISM" not in config:
+        config["MAX_JOB_RUNS_PARALLELISM"] = 1
+        save_user_conf_raw(json.dumps(config))
+
+
 def save_user_conf_raw(config):
     try:
         with open("/config/config.json", "w") as f:
@@ -476,7 +486,11 @@ def find_pipelines_in_dir(path, relative_to=None):
                         if root.startswith("/"):
                             root = root[1:]
 
-                    pipelines.append(os.path.join(root, fName))
+                    # Path normalization is important for correctly
+                    # detecting pipelines that were deleted through the
+                    # file system in SyncProjectPipelinesDBState, i.e.
+                    # to avoid false positives.
+                    pipelines.append(os.path.normpath(os.path.join(root, fName)))
 
     return pipelines
 
@@ -801,3 +815,14 @@ def check_pipeline_correctness(pipeline_json):
         invalid_entries["services"] = "invalid_value"
 
     return invalid_entries
+
+
+def has_active_sessions(project_uuid: str, pipeline_uuid=None):
+    args = {"project_uuid": project_uuid}
+    if pipeline_uuid is not None:
+        args["pipeline_uuid"] = pipeline_uuid
+    resp = requests.get(
+        f"http://{_config.ORCHEST_API_ADDRESS}/api/sessions/"
+        + request_args_to_string(args),
+    )
+    return bool(resp.json()["sessions"])

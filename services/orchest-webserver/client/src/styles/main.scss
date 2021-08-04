@@ -19,6 +19,8 @@
 
 @use "../../../../../node_modules/@material/circular-progress";
 
+@use "../../../../../node_modules/@material/icon-button";
+
 // end of @material
 // =============================================================================
 
@@ -451,6 +453,9 @@ a.button {
 }
 
 .projects-view {
+  .mdc-data-table__table {
+    table-layout: auto;
+  }
   .mdc-data-table {
     .mdc-button {
       color: theme.$secondary;
@@ -568,6 +573,13 @@ p > i.material-icons.float-left {
 
 .mdc-dialog .mdc-dialog__content {
   padding-bottom: var(--space-5);
+}
+
+.mdc-text-field.invalid {
+  &:not(.mdc-text-field--disabled) .mdc-text-field__input,
+  &:not(.mdc-text-field--disabled) .mdc-floating-label {
+    color: var(--colors-red700);
+  }
 }
 
 // rounded notched buttons
@@ -793,6 +805,10 @@ iframe.fullsize {
 
 .hidden {
   display: none;
+}
+
+.pointer {
+  cursor: pointer;
 }
 
 button.text-button {
@@ -1059,7 +1075,7 @@ span.floating-button {
   padding: calc(var(--space-5) / 2);
   border-radius: 3px;
   color: #fff;
-  background: #b00020;
+  background: var(--colors-red700);
   font-size: 15px;
 
   .material-icons {
@@ -1131,6 +1147,10 @@ strong {
   a {
     color: theme.$secondary;
     text-decoration: underline;
+  }
+
+  .mdc-icon-button {
+    @include icon-button.size(38px);
   }
 }
 
@@ -1238,6 +1258,16 @@ span.code {
   padding: 2px 4px;
   display: inline-block;
   margin-bottom: 4px;
+}
+
+.mdc-icon-table-wrapper {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+  .mdc-icon-button {
+    margin-left: 10px;
+  }
 }
 
 .mdc-switch-wrapper {

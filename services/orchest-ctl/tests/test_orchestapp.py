@@ -104,12 +104,18 @@ def test_status(
         (False, None, "Orchest version: v0.1.6"),
         (
             True,
-            {"A": {"stdout": ["v0.1.6\n"]}, "B": {"stdout": ["v0.1.6\n"]}},
+            {
+                "A": {"id": "", "stdout": ["v0.1.6\n"]},
+                "B": {"id": "", "stdout": ["v0.1.6\n"]},
+            },
             "v0.1.6",
         ),
         (
             True,
-            {"A": {"stdout": ["v0.1.6\n"]}, "B": {"stdout": ["v0.1.5\n"]}},
+            {
+                "A": {"id": "", "stdout": ["v0.1.6\n"]},
+                "B": {"id": "", "stdout": ["v0.1.5\n"]},
+            },
             "Not all containers are running on the same version of Orchest",
         ),
     ],
@@ -124,6 +130,7 @@ def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch):
 
     docker_client = orchest.DockerWrapper()
     docker_client.run_containers = MagicMock(return_value=exec_stdout)
+    docker_client.remove_containers = MagicMock(return_value=None)
     resource_manager.docker_client = docker_client
 
     app = orchest.OrchestApp()

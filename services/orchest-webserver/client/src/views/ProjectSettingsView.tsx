@@ -6,6 +6,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
@@ -13,12 +14,13 @@ import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   OverflowListener,
+  isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import PipelinesView from "@/views/PipelinesView";
 import JobsView from "@/views/JobsView";
 import EnvironmentsView from "@/views/EnvironmentsView";
 
-const ProjectSettingsView: React.FC<any> = (props) => {
+const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
 
   const context = useOrchest();
@@ -69,6 +71,17 @@ const ProjectSettingsView: React.FC<any> = (props) => {
     // Do not go through if env variables are not correctly defined.
     if (envVariables === undefined) {
       return;
+    }
+
+    // Validate environment variable names
+    for (let envVariableName of Object.keys(envVariables)) {
+      if (!isValidEnvironmentVariableName(envVariableName)) {
+        orchest.alert(
+          "Error",
+          'Invalid environment variable name: "' + envVariableName + '".'
+        );
+        return;
+      }
     }
 
     // perform PUT to update

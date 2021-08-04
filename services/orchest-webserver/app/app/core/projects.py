@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import uuid
@@ -6,7 +7,8 @@ from typing import Optional
 import requests
 from flask.globals import current_app
 
-from _orchest.internals.two_phase_executor import TwoPhaseFunction
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from app import error
 from app.connections import db
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
 from app.kernel_manager import populate_kernels
@@ -14,6 +16,8 @@ from app.models import BackgroundTask, Pipeline, Project
 from app.utils import (
     find_pipelines_in_dir,
     get_environments,
+    get_pipeline_path,
+    has_active_sessions,
     populate_default_environments,
     project_uuid_to_path,
     remove_project_jobs_directories,
@@ -177,6 +181,87 @@ class DeleteProject(TwoPhaseFunction):
         Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
             {"status": "READY"}
         )
+        db.session.commit()
+
+
+class RenameProject(TwoPhaseFunction):
+    """Rename a project.
+
+    Renames a project, moving it to another path.
+    """
+
+    def _transaction(self, project_uuid: str, new_name: str):
+
+        project = (
+            Project.query.with_for_update()
+            .filter(
+                Project.uuid == project_uuid,
+                Project.status == "READY"
+                # Raises sqlalchemy.orm.exc.NoResultFound if the query
+                # selects no rows.
+            )
+            .one()
+        )
+
+        if "/" in new_name:
+            raise error.InvalidProjectName()
+
+        # Note the with_for_update in the query, that is used to avoid
+        # race conditions with the session POST endpoint.
+        if has_active_sessions(project_uuid):
+            raise error.ActiveSession()
+
+        old_name = project.path
+        # This way it's not considered as if it was deleted on the FS.
+        # Project discovery might think that the still not moved
+        # directory is a new project, but that is taken care of in the
+        # discovery logic.
+        project.status = "MOVING"
+        project.path = new_name
+
+        # To be used by the collateral effect.
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["old_name"] = old_name
+        self.collateral_kwargs["new_name"] = new_name
+
+    def _collateral(
+        self,
+        project_uuid: str,
+        old_name: str,
+        new_name: str,
+    ):
+        """Move a project to another path, i.e. rename it."""
+
+        old_path = os.path.join(current_app.config["PROJECTS_DIR"], old_name)
+        new_path = os.path.join(current_app.config["PROJECTS_DIR"], new_name)
+
+        os.rename(old_path, new_path)
+        # So that the moving can be reverted in case of failure of the
+        # rest of the collateral.
+        self.collateral_kwargs["moved"] = True
+
+        Project.query.filter_by(uuid=project_uuid).update({"status": "READY"})
+        db.session.commit()
+
+    def _revert(self):
+        # Move it back if necessary. This avoids the project being
+        # discovered as a new one.
+        if self.collateral_kwargs.get("moved", False):
+            old_path = os.path.join(
+                current_app.config["PROJECTS_DIR"], self.collateral_kwargs["old_name"]
+            )
+            new_path = os.path.join(
+                current_app.config["PROJECTS_DIR"], self.collateral_kwargs["new_name"]
+            )
+            try:
+                os.rename(new_path, old_path)
+            except Exception as e:
+                current_app.logger.error(f"Error while reverting project move: {e}")
+
+        Project.query.filter_by(uuid=self.collateral_kwargs["project_uuid"]).update(
+            {"status": "READY", "path": self.collateral_kwargs["old_name"]}
+        )
+        db.session.commit()
 
 
 class SyncProjectPipelinesDBState(TwoPhaseFunction):
@@ -212,11 +297,16 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
         fs_removed_pipelines = [
             pipeline
             for pipeline in Pipeline.query.filter(Pipeline.path.notin_(pipeline_paths))
-            .filter(Pipeline.project_uuid == project_uuid)
+            .filter(
+                Pipeline.project_uuid == project_uuid,
+                Pipeline.status == "READY",
+            )
             .all()
         ]
         for pip in fs_removed_pipelines:
-            DeletePipeline(self.tpe).transaction(pip.project_uuid, pip.uuid)
+            DeletePipeline(self.tpe).transaction(
+                pip.project_uuid, pip.uuid, remove_file=False
+            )
 
         # Identify all pipeline paths that are not yet a pipeline, that
         # is, pipelines that were added through the filesystem.
@@ -228,8 +318,22 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
         ]
         # TODO: handle existing pipeline assignments.
         new_pipelines_from_fs = set(pipeline_paths) - set(existing_pipeline_paths)
+
         for path in new_pipelines_from_fs:
-            AddPipelineFromFS(self.tpe).transaction(project_uuid, path)
+            pipeline_json_path = get_pipeline_path(
+                None, project_uuid, pipeline_path=path
+            )
+            with open(pipeline_json_path, "r") as json_file:
+                pipeline_uuid = json.load(json_file)["uuid"]
+            # This is not a new pipeline, the pipeline is being moved.
+            is_moving = (
+                Pipeline.query.filter_by(
+                    project_uuid=project_uuid, uuid=pipeline_uuid, status="MOVING"
+                ).count()
+                > 0
+            )
+            if not is_moving:
+                AddPipelineFromFS(self.tpe).transaction(project_uuid, path)
 
     def _collateral(self):
         pass
@@ -274,6 +378,7 @@ class ImportGitProject(TwoPhaseFunction):
 
     def _revert(self):
         BackgroundTask.query.filter_by(uuid=self.collateral_kwargs["n_uuid"]).delete()
+        db.session.commit()
 
 
 # Need to have these two functions here because of circular imports.
@@ -301,3 +406,70 @@ def build_environments_for_project(project_uuid):
     return build_environments(
         [environment.uuid for environment in environments], project_uuid
     )
+
+
+def discoverFSDeletedProjects():
+    """Cleanup projects that were deleted from the filesystem."""
+
+    project_paths = [
+        entry.name
+        for entry in os.scandir(current_app.config["PROJECTS_DIR"])
+        if entry.is_dir()
+    ]
+
+    fs_removed_projects = Project.query.filter(
+        Project.path.notin_(project_paths),
+        # This way we do not delete a project that is already being
+        # deleted twice, and avoid considering a project that is
+        # being initialized as deleted from the filesystem, or that
+        # it is moving.
+        Project.status.in_(["READY"]),
+    ).all()
+
+    # Use a TwoPhaseExecutor for each project so that issues in one
+    # project do not hinder the deletion of others.
+    for proj_uuid in [project.uuid for project in fs_removed_projects]:
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                DeleteProject(tpe).transaction(proj_uuid)
+        except Exception as e:
+            current_app.logger.error(
+                ("Error during project deletion (discovery) of " f"{proj_uuid}: {e}.")
+            )
+
+
+def discoverFSCreatedProjects():
+    """Detect projects that were added through the file system."""
+
+    # Detect new projects by detecting directories that were not
+    # registered in the db as projects.
+    existing_project_paths = [project.path for project in Project.query.all()]
+    project_paths = [
+        entry.name
+        for entry in os.scandir(current_app.config["PROJECTS_DIR"])
+        if entry.is_dir()
+    ]
+    new_project_paths = set(project_paths) - set(existing_project_paths)
+
+    # Do not do project discovery if a project is moving, because
+    # a new_project_path could actually be a moving project. Given
+    # that a project has no (persisted) uuid, we won't be able to
+    # find if a new_project_path is actually a MOVING project. NOTE:
+    # we could wait in this endpoint until there is no more MOVING
+    # project.
+    if Project.query.filter(Project.status.in_(["MOVING"])).count() > 0:
+        return
+
+    # Use a TwoPhaseExecutor for each project so that issues in one
+    # project do not hinder the discovery of others.
+    for new_project_path in new_project_paths:
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                CreateProject(tpe).transaction(new_project_path)
+        except Exception as e:
+            current_app.logger.error(
+                (
+                    "Error during project initialization (discovery) of "
+                    f"{new_project_path}: {e}."
+                )
+            )

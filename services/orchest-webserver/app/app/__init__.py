@@ -25,13 +25,13 @@ from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import _proxy, is_werkzeug_parent
-from app.analytics import analytics_ping
+from app import analytics
 from app.config import CONFIG_CLASS
 from app.connections import db, ma
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import get_repo_tag, get_user_conf
+from app.utils import get_repo_tag, get_user_conf, migrate_user_config
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -64,6 +64,7 @@ def create_app():
 
     # read directory mount based config into Flask config
     try:
+        migrate_user_config()
         conf_data = get_user_conf()
         app.config.update(conf_data)
     except Exception:
@@ -146,11 +147,11 @@ def create_app():
         posthog.host = app.config["POSTHOG_HOST"]
 
         # send a ping now
-        analytics_ping(app)
+        analytics.send_heartbeat_signal(app)
 
         # and every 15 minutes
         scheduler.add_job(
-            analytics_ping,
+            analytics.send_heartbeat_signal,
             "interval",
             minutes=app.config["TELEMETRY_INTERVAL"],
             args=[app],

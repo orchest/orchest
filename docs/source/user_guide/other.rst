@@ -18,20 +18,28 @@ Example content:
 .. code-block:: json
 
    {
-     "TELEMETRY_UUID": "69b40767-e315-4953-8a2b-355833e344b8",
+     "AUTH_ENABLED": false,
+     "MAX_JOB_RUNS_PARALLELISM": 1,
      "TELEMETRY_DISABLED": false,
-     "AUTH_ENABLED": false
+     "TELEMETRY_UUID": "69b40767-e315-4953-8a2b-355833e344b8"
    }
 
 Explanation of possible configuration settings:
 
-``TELEMETRY_UUID``
-    UUID to track usage across user sessions.
+``AUTH_ENABLED``
+    Enable authentication, see :ref:`authentication <authentication>`.
+
+``MAX_JOB_RUNS_PARALLELISM``
+    Controls the level of parallelism of job runs. By default, only one
+    run at a time will be executed, across all jobs. You need to restart
+    Orchest for this change to take effect.
+
 ``TELEMETRY_DISABLED``
     Option to disable telemetry completely.
 
-``AUTH_ENABLED``
-    Enable authentication, see :ref:`authentication <authentication>`.
+``TELEMETRY_UUID``
+    UUID to track usage across user sessions.
+
 
 .. note::
    We do not use any third-party to track telemetry, see what telemetry we track and how in `our

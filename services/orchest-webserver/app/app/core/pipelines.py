@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import json
 import os
 import uuid
@@ -7,9 +8,16 @@ import requests
 from flask.globals import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
+from app import error
 from app.connections import db
 from app.models import Pipeline
-from app.utils import get_pipeline_directory, get_pipeline_path
+from app.utils import (
+    check_pipeline_correctness,
+    get_pipeline_directory,
+    get_pipeline_path,
+    get_project_directory,
+    has_active_sessions,
+)
 
 
 class CreatePipeline(TwoPhaseFunction):
@@ -79,7 +87,9 @@ class CreatePipeline(TwoPhaseFunction):
 class DeletePipeline(TwoPhaseFunction):
     """Cleanup a pipeline from Orchest."""
 
-    def _transaction(self, project_uuid: str, pipeline_uuid: str):
+    def _transaction(
+        self, project_uuid: str, pipeline_uuid: str, remove_file: bool = True
+    ):
         """Remove a pipeline from the db"""
         # Necessary because get_pipeline_path is going to query the db
         # entry, but the db entry does not exist anymore because it has
@@ -92,18 +102,20 @@ class DeletePipeline(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
         self.collateral_kwargs["pipeline_json_path"] = pipeline_json_path
+        self.collateral_kwargs["remove_file"] = remove_file
 
     def _collateral(
-        self, project_uuid: str, pipeline_uuid: str, pipeline_json_path: str
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+        pipeline_json_path: str,
+        remove_file: bool,
     ):
         """Remove a pipeline from the FS and the orchest-api"""
 
-        # CleanupPipelineFromOrchest can be used when deleting a
-        # pipeline through Orchest or when cleaning up a pipeline that
-        # was deleted through the filesystem by the user, so the file
-        # might not be there.
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(pipeline_json_path)
+        if remove_file:
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(pipeline_json_path)
 
         # Orchest-api deletion.
         url = (
@@ -133,17 +145,24 @@ class AddPipelineFromFS(TwoPhaseFunction):
             pipeline_json = json.load(json_file)
             file_pipeline_uuid = pipeline_json.get("uuid")
 
+            self.collateral_kwargs["new_uuid"] = None
+            self.collateral_kwargs["project_uuid"] = None
+            self.collateral_kwargs["pipeline_uuid"] = None
+            self.collateral_kwargs["pipeline_path"] = None
+            self.collateral_kwargs["pipeline_json"] = None
+
             # If the pipeline has its own uuid and the uuid is not in
-            # the db already then the pipeline does not need to have a
+            # the DB already then the pipeline does not need to have a
             # new uuid assigned and written to disk.
             if (
-                file_pipeline_uuid
-                and Pipeline.query.filter(Pipeline.uuid == file_pipeline_uuid)
-                .filter(Pipeline.project_uuid == project_uuid)
-                .count()
+                file_pipeline_uuid is not None
+                and Pipeline.query.filter_by(
+                    project_uuid=project_uuid, uuid=file_pipeline_uuid, status="READY"
+                ).count()
                 == 0
             ):
                 self.collateral_kwargs["new_uuid"] = False
+
             else:
                 self.collateral_kwargs["new_uuid"] = True
                 # Generate a new uuid for the pipeline.
@@ -170,12 +189,26 @@ class AddPipelineFromFS(TwoPhaseFunction):
         pipeline_path: str,
         pipeline_json: str,
     ):
-        resp = requests.post(
-            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
-            json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
+        # At the project level, pipeline files with the same UUID are
+        # considered to be the same pipeline. If we are "replacing" the
+        # pipeline it's because the previous pipeline was deleted and
+        # this new pipeline has been discovered through the FS. DELETEs
+        # of a pipeline to the orchest-api don't actually delete the
+        # pipeline, so we don't need to POST, since the old entry will
+        # still be there. Currently, we don't need to PUT since no field
+        # of the pipeline entry in the orchest-api needs to be updated
+        # when replacing.
+        resp = requests.get(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/'
+            f"{project_uuid}/{pipeline_uuid}",
         )
-        if resp.status_code != 201:
-            raise Exception("Orchest-api pipeline creation failed.")
+        if resp.status_code == 404:
+            resp = requests.post(
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/pipelines/',
+                json={"project_uuid": project_uuid, "uuid": pipeline_uuid},
+            )
+            if resp.status_code != 201:
+                raise Exception("Orchest-api pipeline creation failed.")
 
         if new_uuid:
             pipeline_json_path = get_pipeline_path(
@@ -192,4 +225,156 @@ class AddPipelineFromFS(TwoPhaseFunction):
             uuid=self.collateral_kwargs["pipeline_uuid"],
             path=self.collateral_kwargs["pipeline_path"],
         ).delete()
+        db.session.commit()
+
+
+class MovePipeline(TwoPhaseFunction):
+    """Move a pipeline.
+
+    Moves a pipeline, moving it to another path.
+    """
+
+    def _transaction(
+        self, project_uuid: str, pipeline_uuid: str, new_project_relative_path: str
+    ):
+
+        pipeline = (
+            Pipeline.query.with_for_update()
+            .filter(
+                Pipeline.project_uuid == project_uuid,
+                Pipeline.uuid == pipeline_uuid,
+                Pipeline.status == "READY"
+                # Raises sqlalchemy.orm.exc.NoResultFound if the query
+                # selects no rows.
+            )
+            .one()
+        )
+
+        # Note the with_for_update in the query, that is used to avoid
+        # race conditions with the session POST endpoint.
+        if has_active_sessions(project_uuid, pipeline_uuid):
+            raise error.ActiveSession()
+
+        if not new_project_relative_path.endswith(".orchest"):
+            raise ValueError('Path must end with ".orchest".')
+
+        if new_project_relative_path.startswith("/"):
+            new_project_relative_path = new_project_relative_path[1:]
+        # It is important to normalize the path because
+        # find_pipelines_in_dir will return normalized paths as well,
+        # which are used to detect pipelines that were deleted through
+        # the file system in SyncProjectPipelinesDBState.
+        new_project_relative_path = os.path.normpath(new_project_relative_path)
+
+        old_path = pipeline.path
+        # This way it's not considered as if it was deleted on the FS.
+        # Pipeline discovery might think that the still not moved file
+        # is a new pipeline, but that is taken care of in the discovery
+        # logic.
+        pipeline.status = "MOVING"
+        pipeline.path = new_project_relative_path
+
+        # To be used by the collateral effect.
+        self.collateral_kwargs["project_uuid"] = project_uuid
+        self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
+        self.collateral_kwargs["old_path"] = old_path
+        self.collateral_kwargs["new_path"] = new_project_relative_path
+
+    def _collateral(
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+        old_path: str,
+        new_path: str,
+    ):
+        """Move a pipeline to another path, i.e. rename it."""
+
+        old_path = get_pipeline_path(None, project_uuid, pipeline_path=old_path)
+        new_path = get_pipeline_path(None, project_uuid, pipeline_path=new_path)
+
+        project_path = os.path.abspath(get_project_directory(project_uuid))
+        new_path_abs = os.path.abspath(new_path)
+        if not new_path_abs.startswith(project_path):
+            raise error.OutOfProjectError(
+                "New pipeline path points outside of the project directory."
+            )
+
+        if not os.path.exists(old_path):
+            raise error.PipelineFileDoesNotExist()
+
+        if os.path.exists(new_path) and old_path != new_path:
+            raise error.PipelineFileExists()
+
+        # Update the pipeline definition by adjusting the step file
+        # paths, since they should be relative to the pipeline file.
+        rel_path = os.path.relpath(
+            os.path.split(old_path)[0], os.path.split(new_path)[0]
+        )
+        if rel_path != ".":
+            with open(old_path, "r") as json_file:
+                pipeline_def = json.load(json_file)
+                self.collateral_kwargs["pipeline_def_backup"] = copy.deepcopy(
+                    pipeline_def
+                )
+            for step in pipeline_def["steps"].values():
+                step_f_prefix, step_f_name = os.path.split(step["file_path"])
+                file_path = os.path.normpath(
+                    # Get to the "previous" position + use the relative
+                    # path of the notebook w.r.t. the previous position,
+                    # then normalize to cleanup paths such as
+                    # 1/2/3/../../2 , that would become 1/2.
+                    os.path.join(rel_path, step_f_prefix, step_f_name)
+                )
+                step["file_path"] = file_path
+            with open(old_path, "w") as json_file:
+                errors = check_pipeline_correctness(pipeline_def)
+                if errors:
+                    raise Exception("Incorrect pipeline.")
+                json.dump(pipeline_def, json_file, indent=4, sort_keys=True)
+
+        # Create the parent directories if needed.
+        directories, _ = os.path.split(new_path)
+        if directories:
+            os.makedirs(directories, exist_ok=True)
+        os.rename(old_path, new_path)
+
+        # So that the moving can be reverted in case of failure of the
+        # rest of the collateral.
+        self.collateral_kwargs["moved"] = True
+
+        Pipeline.query.filter_by(
+            project_uuid=project_uuid,
+            uuid=pipeline_uuid,
+        ).update({"status": "READY"})
+        db.session.commit()
+
+    def _revert(self):
+        project_uuid = self.collateral_kwargs["project_uuid"]
+        pipeline_uuid = self.collateral_kwargs["pipeline_uuid"]
+
+        old_path = get_pipeline_path(
+            None, project_uuid, pipeline_path=self.collateral_kwargs["old_path"]
+        )
+
+        # Move it back if necessary. This avoids the pipeline being
+        # discovered as a new one.
+        if self.collateral_kwargs.get("moved", False):
+            new_path = get_pipeline_path(
+                None, project_uuid, pipeline_path=self.collateral_kwargs["new_path"]
+            )
+            try:
+                os.rename(new_path, old_path)
+            except Exception as e:
+                current_app.logger.error(f"Error while reverting pipeline move: {e}")
+
+        # Restore the original pipeline step relative paths.
+        pp_bk = self.collateral_kwargs.get("pipeline_def_backup")
+        if pp_bk is not None:
+            with open(old_path, "w") as json_file:
+                json.dump(pp_bk, json_file, indent=4, sort_keys=True)
+
+        Pipeline.query.filter_by(
+            project_uuid=project_uuid,
+            uuid=pipeline_uuid,
+        ).update({"status": "READY", "path": self.collateral_kwargs["old_path"]})
         db.session.commit()

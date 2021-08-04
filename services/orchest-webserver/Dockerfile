@@ -5,7 +5,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 RUN apt-get update && apt-get install -y ca-certificates git && update-ca-certificates --fresh
 
 # Install nodejs
-RUN curl -sL https://deb.nodesource.com/setup_15.x | bash - && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 
 # Install the Python requirements before the JS compiling, because
 # changes in the front-end often include JS changes meaning that its

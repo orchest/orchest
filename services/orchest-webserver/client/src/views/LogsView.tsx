@@ -13,6 +13,7 @@ import {
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
 
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
@@ -22,7 +23,10 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/components/LogViewer";
 
-const LogsView: React.FC<any> = (props) => {
+export interface ILogsViewProps
+  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+
+const LogsView: React.FC<ILogsViewProps> = (props) => {
   const orchest = window.orchest;
   const { dispatch, get } = useOrchest();
   const [promiseManager] = React.useState(new PromiseManager());

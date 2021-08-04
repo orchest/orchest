@@ -13,6 +13,7 @@ import {
   makeCancelable,
   RefManager,
 } from "@orchest/lib-utils";
+import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { commaSeparatedString } from "@/utils/text";
 import {
@@ -150,11 +151,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   );
 };
 
-export interface IJobViewProps {
-  queryArgs?: { job_uuid: string };
-}
-
-const JobView: React.FC<IJobViewProps> = (props) => {
+const JobView: React.FC<TViewProps> = (props) => {
   const orchest = window.orchest;
 
   const { dispatch } = useOrchest();
@@ -460,7 +457,7 @@ const JobView: React.FC<IJobViewProps> = (props) => {
           css={{ marginBottom: "$5" }}
           items={[
             { term: "Name", details: state.job.name },
-            { term: "Pipeline", details: state.pipeline.name },
+            { term: "Pipeline", details: state.job.pipeline_name },
             { term: "Status", details: <JobStatus {...state.job} /> },
             {
               term: "Schedule",

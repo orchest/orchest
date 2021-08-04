@@ -9,13 +9,14 @@ import {
   PromiseManager,
   makeCancelable,
 } from "@orchest/lib-utils";
+import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import UpdateView from "@/views/UpdateView";
 import ManageUsersView from "@/views/ManageUsersView";
 import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
 
-const SettingsView: React.FC<any> = () => {
+const SettingsView: React.FC<TViewProps> = () => {
   const { orchest } = window;
 
   const context = useOrchest();
@@ -29,6 +30,7 @@ const SettingsView: React.FC<any> = () => {
     configJSON: undefined,
     version: undefined,
     unsavedChanges: false,
+    requiresRestart: false,
   });
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -41,6 +43,8 @@ const SettingsView: React.FC<any> = () => {
       setState((prevState) => ({ ...prevState, version: data }));
     });
   };
+
+  const REQUIRES_RESTART_ON_CHANGE = ["MAX_JOB_RUNS_PARALLELISM"];
 
   const getConfig = () => {
     let getConfigPromise = makeCancelable(
@@ -120,6 +124,9 @@ const SettingsView: React.FC<any> = () => {
         ...prevState,
         configJSON: joinedConfig,
         unsavedChanges: false,
+        requiresRestart: REQUIRES_RESTART_ON_CHANGE.some(
+          (key) => state.configJSON[key] != joinedConfig[key]
+        ),
       }));
 
       makeRequest("POST", "/async/user-config", {
@@ -194,6 +201,7 @@ const SettingsView: React.FC<any> = () => {
           ...prevState,
           restarting: true,
           status: "restarting",
+          requiresRestart: false,
         }));
 
         makeRequest("POST", "/async/restart")
@@ -312,6 +320,16 @@ const SettingsView: React.FC<any> = () => {
                           <div className="warning push-up">
                             <i className="material-icons">warning</i> Your input
                             is not valid JSON.
+                          </div>
+                        );
+                      }
+                    })()}
+                    {(() => {
+                      if (state.requiresRestart) {
+                        return (
+                          <div className="warning push-up">
+                            <i className="material-icons">info</i> Restart
+                            Orchest to have the changes take effect.
                           </div>
                         );
                       }

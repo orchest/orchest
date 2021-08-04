@@ -77,8 +77,12 @@ You can expect the build to finish in roughly 15 minutes.
    # Check out the version you would like to build.
    git checkout v2021.05.0
 
-   # Build all Docker containers from source (in parallel).
+   # Build Orchest's Docker containers from source (in parallel).
    scripts/build_container.sh
+
+   # Finish the Orchest installation by pulling additionally required
+   # images, e.g. postgres, and installing the Orchest Docker network.
+   ./orchest install
 
    # Verify the installation.
    ./orchest --help
