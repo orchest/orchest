@@ -23,6 +23,14 @@ from app.utils import (
 class CreatePipeline(TwoPhaseFunction):
     def _transaction(self, project_uuid: str, pipeline_name: str, pipeline_path: str):
 
+        if pipeline_path.startswith("/"):
+            pipeline_path = pipeline_path[1:]
+        # It is important to normalize the path because
+        # find_pipelines_in_dir will return normalized paths as well,
+        # which are used to detect pipelines that were deleted through
+        # the file system in SyncProjectPipelinesDBState.
+        pipeline_path = os.path.normpath(pipeline_path)
+
         # Reject creation if a pipeline with this path exists already.
         if (
             Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
