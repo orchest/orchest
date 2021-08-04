@@ -119,6 +119,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
               onClick={showJupyter.bind(this)}
               icon="science"
               label="Switch to JupyterLab"
+              data-test-id="switch-to-jupyterlab"
             />
           )}
 

@@ -262,6 +262,7 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
     );
 });
 
+//Assumes environment names are unique.
 Cypress.Commands.add(
   "getEnvironmentUUID",
   (projectUUID: string, environment: string) => {
@@ -296,7 +297,6 @@ Cypress.Commands.add(
     } else if (project !== undefined && environment !== undefined) {
       cy.getProjectUUID(project).then((proj_uuid) => {
         cy.getEnvironmentUUID(proj_uuid, environment).then((env_uuid) => {
-          console.log(env_uuid);
           return cy
             .exec(
               `docker images --filter "label=_orchest_environment_uuid=${env_uuid}" -q | wc -l`

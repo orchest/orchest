@@ -117,6 +117,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
         key="create"
         className="mdc-list-item"
         onClick={onCreateFile.bind(this)}
+        data-test-id="file-picker-new-file"
       >
         <i className="material-icons">add</i> New file
       </li>
@@ -270,6 +271,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
         iconTitle={props.iconTitle}
         ref={refManager.nrefs.filePathTextField}
         classNames={["fullwidth"]}
+        data-test-id="file-picker-file-path-textfield"
       />
       <div
         ref={refManager.nrefs.fileMenu}

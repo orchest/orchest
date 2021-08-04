@@ -72,6 +72,7 @@ const SessionToggleButton = React.forwardRef<
             }[session?.status] || "active",
           ]}
           icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
+          data-test-id="session-toggle-button"
         />
       )}
     </React.Fragment>
