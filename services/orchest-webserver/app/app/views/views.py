@@ -45,6 +45,8 @@ from app.utils import (
     get_session_counts,
     get_user_conf,
     get_user_conf_raw,
+    is_valid_project_relative_path,
+    normalize_project_relative_path,
     pipeline_set_notebook_kernels,
     project_entity_counts,
     project_exists,
@@ -747,6 +749,10 @@ def register_views(app, db):
             # Parse JSON.
             pipeline_json = json.loads(request.form.get("pipeline_json"))
 
+            # Normalize relative paths.
+            for step in pipeline_json["steps"].values():
+                step["file_path"] = normalize_project_relative_path(step["file_path"])
+
             errors = check_pipeline_correctness(pipeline_json)
             if errors:
                 msg = {}
@@ -915,11 +921,20 @@ def register_views(app, db):
     def create_project_file(project_uuid, pipeline_uuid, step_uuid):
         """Create project file in specified directory within project."""
 
-        project_dir = get_project_directory(project_uuid)
+        file_path = normalize_project_relative_path(request.json["file_path"])
+        if not is_valid_project_relative_path(project_uuid, file_path):
+            return (
+                jsonify(
+                    {"message": "New file points outside of the project directory."}
+                ),
+                409,
+            )
 
-        # Client sends absolute path relative to project root, hence the
-        # starting / character is removed.
-        file_path = os.path.join(project_dir, request.json["file_path"][1:])
+        project_dir = get_project_directory(project_uuid)
+        file_path = os.path.join(project_dir, file_path)
+        directories, _ = os.path.split(file_path)
+        if directories:
+            os.makedirs(directories, exist_ok=True)
 
         if os.path.isfile(file_path):
             return jsonify({"message": "File already exists."}), 409
@@ -942,7 +957,8 @@ def register_views(app, db):
         """Check whether file exists"""
 
         pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
-        file_path = os.path.join(pipeline_dir, request.json["relative_path"])
+        file_path = normalize_project_relative_path(request.json["relative_path"])
+        file_path = os.path.join(pipeline_dir, file_path)
 
         if os.path.isfile(file_path):
             return jsonify({"message": "File exists."})

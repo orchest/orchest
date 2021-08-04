@@ -15,21 +15,20 @@ from app.utils import (
     check_pipeline_correctness,
     get_pipeline_directory,
     get_pipeline_path,
-    get_project_directory,
     has_active_sessions,
+    is_valid_project_relative_path,
+    normalize_project_relative_path,
 )
 
 
 class CreatePipeline(TwoPhaseFunction):
     def _transaction(self, project_uuid: str, pipeline_name: str, pipeline_path: str):
 
-        if pipeline_path.startswith("/"):
-            pipeline_path = pipeline_path[1:]
         # It is important to normalize the path because
         # find_pipelines_in_dir will return normalized paths as well,
         # which are used to detect pipelines that were deleted through
         # the file system in SyncProjectPipelinesDBState.
-        pipeline_path = os.path.normpath(pipeline_path)
+        pipeline_path = normalize_project_relative_path(pipeline_path)
 
         # Reject creation if a pipeline with this path exists already.
         if (
@@ -53,10 +52,20 @@ class CreatePipeline(TwoPhaseFunction):
         self.collateral_kwargs["pipeline_path"] = pipeline_path
 
     def _collateral(
-        self, project_uuid: str, pipeline_uuid: str, pipeline_name: str, **kwargs
+        self,
+        project_uuid: str,
+        pipeline_uuid: str,
+        pipeline_name: str,
+        pipeline_path: str,
+        **kwargs,
     ):
         pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
         pipeline_json_path = get_pipeline_path(pipeline_uuid, project_uuid)
+
+        if not is_valid_project_relative_path(project_uuid, pipeline_path):
+            raise error.OutOfProjectError(
+                "New pipeline path points outside of the project directory."
+            )
 
         os.makedirs(pipeline_dir, exist_ok=True)
 
@@ -266,13 +275,13 @@ class MovePipeline(TwoPhaseFunction):
         if not new_project_relative_path.endswith(".orchest"):
             raise ValueError('Path must end with ".orchest".')
 
-        if new_project_relative_path.startswith("/"):
-            new_project_relative_path = new_project_relative_path[1:]
         # It is important to normalize the path because
         # find_pipelines_in_dir will return normalized paths as well,
         # which are used to detect pipelines that were deleted through
         # the file system in SyncProjectPipelinesDBState.
-        new_project_relative_path = os.path.normpath(new_project_relative_path)
+        new_project_relative_path = normalize_project_relative_path(
+            new_project_relative_path
+        )
 
         old_path = pipeline.path
         # This way it's not considered as if it was deleted on the FS.
@@ -297,15 +306,13 @@ class MovePipeline(TwoPhaseFunction):
     ):
         """Move a pipeline to another path, i.e. rename it."""
 
-        old_path = get_pipeline_path(None, project_uuid, pipeline_path=old_path)
-        new_path = get_pipeline_path(None, project_uuid, pipeline_path=new_path)
-
-        project_path = os.path.abspath(get_project_directory(project_uuid))
-        new_path_abs = os.path.abspath(new_path)
-        if not new_path_abs.startswith(project_path):
+        if not is_valid_project_relative_path(project_uuid, new_path):
             raise error.OutOfProjectError(
                 "New pipeline path points outside of the project directory."
             )
+
+        old_path = get_pipeline_path(None, project_uuid, pipeline_path=old_path)
+        new_path = get_pipeline_path(None, project_uuid, pipeline_path=new_path)
 
         if not os.path.exists(old_path):
             raise error.PipelineFileDoesNotExist()
