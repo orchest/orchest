@@ -59,6 +59,7 @@ const PipelineList: React.FC<any> = (props) => {
               onClick={() => {
                 onEditClick(pipeline.uuid, pipeline.path);
               }}
+              data-test-id="pipeline-edit-path"
             />
           </span>
         </span>,
@@ -433,6 +434,7 @@ const PipelineList: React.FC<any> = (props) => {
                     createPipelineName: value,
                   }));
                 }}
+                data-test-id="pipeline-name-textfield"
               />
               <MDCTextFieldReact
                 ref={refManager.nrefs.createPipelinePathField}
@@ -445,6 +447,7 @@ const PipelineList: React.FC<any> = (props) => {
                   }));
                 }}
                 value={state.createPipelinePath}
+                data-test-id="pipeline-path-textfield"
               />
             </React.Fragment>
           }
@@ -462,6 +465,7 @@ const PipelineList: React.FC<any> = (props) => {
                 label="Create pipeline"
                 submitButton
                 onClick={onSubmitModal.bind(this)}
+                data-test-id="pipeline-create-ok"
               />
             </React.Fragment>
           }
@@ -487,6 +491,7 @@ const PipelineList: React.FC<any> = (props) => {
                     editPipelinePath: value,
                   }));
                 }}
+                data-test-id="pipeline-edit-path-textfield"
               />
             </React.Fragment>
           }
@@ -505,6 +510,7 @@ const PipelineList: React.FC<any> = (props) => {
                 label="Save"
                 submitButton
                 onClick={onSubmitEditPipelinePathModal}
+                data-test-id="pipeline-edit-path-save"
               />
             </React.Fragment>
           }
@@ -518,6 +524,7 @@ const PipelineList: React.FC<any> = (props) => {
           icon="add"
           label="Create pipeline"
           onClick={onCreateClick.bind(this)}
+          data-test-id="pipeline-create"
         />
       </div>
       <div className={"pipeline-actions push-down"}>
@@ -526,6 +533,7 @@ const PipelineList: React.FC<any> = (props) => {
           tooltipText="Delete pipeline"
           disabled={state.isDeleting}
           onClick={onDeleteClick.bind(this)}
+          data-test-id="pipeline-delete"
         />
       </div>
 
@@ -536,6 +544,7 @@ const PipelineList: React.FC<any> = (props) => {
         classNames={["fullwidth"]}
         headers={["Pipeline", "Path", "Session"]}
         rows={state.listData}
+        data-test-id="pipelines-table"
       />
     </div>
   );

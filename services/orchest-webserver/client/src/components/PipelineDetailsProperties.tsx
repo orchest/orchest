@@ -339,6 +339,7 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
           disabled={props.readOnly}
           classNames={["fullwidth", "push-down"]}
           ref={refManager.nrefs.titleTextField}
+          data-test-id="step-title-textfield"
         />
 
         <div className="push-down">
@@ -348,6 +349,7 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
               label="File name"
               disabled={props.readOnly}
               classNames={["fullwidth", "push-down"]}
+              data-test-id="step-file-name-textfield"
             />
           ) : (
             <ProjectFilePicker

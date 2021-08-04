@@ -24,10 +24,12 @@ declare global {
         build?: boolean,
         waitBuild?: boolean
       ): Chainable<undefined>;
+      createPipeline(name: string, path?: string): Chainable<undefined>;
       createProject(name: string): Chainable<undefined>;
       cleanProjectsDir(): Chainable<undefined>;
       createUser(name: string, password: string): Chainable<undefined>;
       deleteAllEnvironments(): Chainable<undefined>;
+      deleteAllPipelines(): Chainable<undefined>;
       deleteAllUsers(): Chainable<undefined>;
       deleteUser(name: string): Chainable<undefined>;
       getEnvironmentUUID(
@@ -195,10 +197,43 @@ Cypress.Commands.add(
   }
 );
 
+Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
+  cy.visit("/pipelines");
+  cy.findByTestId(TEST_ID.PIPELINE_CREATE).should("be.visible").click();
+  cy.findByTestId(TEST_ID.PIPELINE_NAME_TEXTFIELD)
+    .should("be.visible")
+    .type("{selectall}{backspace}")
+    .type(name);
+  let expected_path = name.toLowerCase().replace(/[\W]/g, "_") + ".orchest";
+  cy.findByTestId(TEST_ID.PIPELINE_PATH_TEXTFIELD).should(
+    "have.value",
+    expected_path
+  );
+  if (path !== undefined) {
+    cy.findByTestId(TEST_ID.PIPELINE_PATH_TEXTFIELD)
+      .type("{selectall}{backspace}")
+      .type(path);
+  }
+  cy.findByTestId(TEST_ID.PIPELINE_CREATE_OK).click();
+  cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 1);
+});
+
+// Note: currently not idempotent.
 Cypress.Commands.add("deleteAllEnvironments", () => {
   cy.visit("/environments");
   cy.findByTestId(TEST_ID.ENVIRONMENTS_TOGGLE_ALL_ROWS).click();
   cy.findByTestId(TEST_ID.ENVIRONMENTS_DELETE).click();
+  cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
+  cy.wait("@allDeletes");
+});
+
+// Note: currently not idempotent.
+Cypress.Commands.add("deleteAllPipelines", () => {
+  cy.visit("/pipelines");
+  // se rows != 0 then deleta
+  cy.findByTestId(TEST_ID.PIPELINES_TABLE_TOGGLE_ALL_ROWS).click();
+  cy.findByTestId(TEST_ID.PIPELINES_TABLE_TOGGLE_ALL_ROWS).click();
+  cy.findByTestId(TEST_ID.PIPELINE_DELETE).click();
   cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
   cy.wait("@allDeletes");
 });
