@@ -38,7 +38,7 @@ export interface IJobListProps {
 
 const JobList: React.FC<IJobListProps> = (props) => {
   const [state, setState] = React.useState({
-    deleting: false,
+    isDeleting: false,
     jobs: undefined,
     pipelines: undefined,
     projectSnapshotSize: undefined,
@@ -115,10 +115,10 @@ const JobList: React.FC<IJobListProps> = (props) => {
   };
 
   const onDeleteClick = () => {
-    if (!state.deleting) {
+    if (!state.isDeleting) {
       setState((prevState) => ({
         ...prevState,
-        deleting: true,
+        isDeleting: true,
       }));
 
       // get job selection
@@ -126,6 +126,11 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
       if (selectedRows.length == 0) {
         orchest.alert("Error", "You haven't selected any jobs.");
+
+        setState((prevState) => ({
+          ...prevState,
+          isDeleting: true,
+        }));
         return;
       }
 
@@ -148,23 +153,32 @@ const JobList: React.FC<IJobListProps> = (props) => {
             );
           }
 
-          Promise.all(promises).then(() => {
-            fetchList();
-            refManager.refs.jobTable.setSelectedRowIds([]);
-          });
+          Promise.all(promises)
+            .then(() => {
+              setState((prevState) => ({
+                ...prevState,
+                isDeleting: false,
+              }));
 
-          setState((prevState) => ({
-            ...prevState,
-            deleting: false,
-          }));
+              fetchList();
+              refManager.refs.jobTable.setSelectedRowIds([]);
+            })
+            .catch(() => {
+              setState((prevState) => ({
+                ...prevState,
+                isDeleting: false,
+              }));
+            });
         },
         () => {
           setState((prevState) => ({
             ...prevState,
-            deleting: false,
+            isDeleting: false,
           }));
         }
       );
+    } else {
+      console.error("Delete UI in progress.");
     }
   };
 
@@ -534,6 +548,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
             <MDCIconButtonToggleReact
               icon="delete"
               tooltipText="Delete job"
+              disabled={state.isDeleting}
               onClick={onDeleteClick.bind(this)}
             />
           </div>

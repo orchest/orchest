@@ -29,6 +29,7 @@ const PipelineList: React.FC<any> = (props) => {
 
   const [state, setState] = React.useState({
     loading: true,
+    isDeleting: false,
     createModal: false,
     createPipelineName: INITIAL_PIPELINE_NAME,
     createPipelinePath: INITIAL_PIPELINE_PATH,
@@ -135,44 +136,74 @@ const PipelineList: React.FC<any> = (props) => {
   };
 
   const onDeleteClick = () => {
-    let selectedIndices = refManager.refs.pipelineListView.getSelectedRowIndices();
+    if (!state.isDeleting) {
+      setState((prevState) => ({
+        ...prevState,
+        isDeleting: true,
+      }));
 
-    if (selectedIndices.length === 0) {
-      // @ts-ignore
-      orchest.alert("Error", "You haven't selected a pipeline.");
-      return;
-    }
+      let selectedIndices = refManager.refs.pipelineListView.getSelectedRowIndices();
 
-    // @ts-ignore
-    orchest.confirm(
-      "Warning",
-      "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
-      () => {
+      if (selectedIndices.length === 0) {
+        // @ts-ignore
+        orchest.alert("Error", "You haven't selected a pipeline.");
+
         setState((prevState) => ({
           ...prevState,
-          loading: true,
+          isDeleting: false,
         }));
 
-        selectedIndices.forEach((index) => {
-          let pipeline_uuid = state.pipelines[index].uuid;
-
-          // deleting the pipeline will also take care of running
-          // sessions, runs, jobs
-          makeRequest(
-            "DELETE",
-            `/async/pipelines/delete/${props.project_uuid}/${pipeline_uuid}`
-          ).then((_) => {
-            // reload list once removal succeeds
-            fetchList(() => {
-              setState((prevState) => ({
-                ...prevState,
-                loading: false,
-              }));
-            });
-          });
-        });
+        return;
       }
-    );
+
+      // @ts-ignore
+      orchest.confirm(
+        "Warning",
+        "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
+        () => {
+          setState((prevState) => ({
+            ...prevState,
+            loading: true,
+          }));
+
+          selectedIndices.forEach((index) => {
+            let pipeline_uuid = state.pipelines[index].uuid;
+
+            // deleting the pipeline will also take care of running
+            // sessions, runs, jobs
+            makeRequest(
+              "DELETE",
+              `/async/pipelines/delete/${props.project_uuid}/${pipeline_uuid}`
+            )
+              .then((_) => {
+                // reload list once removal succeeds
+                fetchList(() => {
+                  setState((prevState) => ({
+                    ...prevState,
+                    loading: false,
+                    isDeleting: false,
+                  }));
+                });
+              })
+              .catch(() => {
+                setState((prevState) => ({
+                  ...prevState,
+                  loading: false,
+                  isDeleting: false,
+                }));
+              });
+          });
+        },
+        () => {
+          setState((prevState) => ({
+            ...prevState,
+            isDeleting: false,
+          }));
+        }
+      );
+    } else {
+      console.error("Delete UI in progress.");
+    }
   };
 
   const onCloseEditPipelineModal = () => {
@@ -493,6 +524,7 @@ const PipelineList: React.FC<any> = (props) => {
         <MDCIconButtonToggleReact
           icon="delete"
           tooltipText="Delete pipeline"
+          disabled={state.isDeleting}
           onClick={onDeleteClick.bind(this)}
         />
       </div>

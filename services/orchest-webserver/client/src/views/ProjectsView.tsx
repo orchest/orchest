@@ -35,6 +35,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   const [state, setState] = React.useState({
     createModal: false,
     showImportModal: false,
+    isDeleting: false,
     loading: true,
     // import dialog
     import_url: "",
@@ -224,34 +225,57 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const onDeleteClick = () => {
-    let selectedIndices = refManager.refs.projectListView.getSelectedRowIndices();
+    if (!state.isDeleting) {
+      setState((prevState) => ({
+        ...prevState,
+        isDeleting: true,
+      }));
 
-    if (selectedIndices.length === 0) {
-      orchest.alert("Error", "You haven't selected a project.");
-      return;
-    }
+      let selectedIndices = refManager.refs.projectListView.getSelectedRowIndices();
 
-    orchest.confirm(
-      "Warning",
-      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
-      () => {
+      if (selectedIndices.length === 0) {
+        orchest.alert("Error", "You haven't selected a project.");
+
         setState((prevState) => ({
           ...prevState,
-          loading: true,
+          isDeleting: false,
         }));
 
-        let deletePromises = [];
-
-        selectedIndices.forEach((index) => {
-          let project_uuid = state.projects[index].uuid;
-          deletePromises.push(deleteProjectRequest(project_uuid));
-        });
-
-        Promise.all(deletePromises).then(() => {
-          fetchList();
-        });
+        return;
       }
-    );
+
+      orchest.confirm(
+        "Warning",
+        "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+        () => {
+          // Start actual delete
+          let deletePromises = [];
+
+          selectedIndices.forEach((index) => {
+            let project_uuid = state.projects[index].uuid;
+            deletePromises.push(deleteProjectRequest(project_uuid));
+          });
+
+          Promise.all(deletePromises).then(() => {
+            fetchList();
+
+            // Clear isDeleting
+            setState((prevState) => ({
+              ...prevState,
+              isDeleting: false,
+            }));
+          });
+        },
+        () => {
+          setState((prevState) => ({
+            ...prevState,
+            isDeleting: false,
+          }));
+        }
+      );
+    } else {
+      console.error("Delete UI in progress.");
+    }
   };
 
   const deleteProjectRequest = (project_uuid) => {
@@ -701,6 +725,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                 <div className={"pipeline-actions push-down"}>
                   <MDCIconButtonToggleReact
                     icon="delete"
+                    disabled={state.isDeleting}
                     tooltipText="Delete project"
                     onClick={onDeleteClick.bind(this)}
                     data-test-id="delete-project"
