@@ -26,6 +26,11 @@ declare global {
       ): Chainable<undefined>;
       createPipeline(name: string, path?: string): Chainable<undefined>;
       createProject(name: string): Chainable<undefined>;
+      createStep(
+        title: string,
+        createNewFile?: boolean,
+        fileName?: string
+      ): Chainable<undefined>;
       cleanProjectsDir(): Chainable<undefined>;
       createUser(name: string, password: string): Chainable<undefined>;
       deleteAllEnvironments(): Chainable<undefined>;
@@ -217,6 +222,35 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
   cy.findByTestId(TEST_ID.PIPELINE_CREATE_OK).click();
   cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 1);
 });
+
+// Assumes to be in the pipeline editor, in edit mode (not read-only).
+Cypress.Commands.add(
+  "createStep",
+  (title: string, createNewFile?: boolean, fileName?: string) => {
+    cy.findByTestId(TEST_ID.STEP_CREATE).click();
+    cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)
+      .type("{selectall}{backspace}")
+      .type(title);
+    cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).click();
+    if (createNewFile) {
+      cy.findByTestId(TEST_ID.FILE_PICKER_NEW_FILE).click();
+      cy.findByTestId(
+        TEST_ID.PROJECT_FILE_PICKER_CREATE_NEW_FILE_DIALOG
+      ).should("be.visible");
+      if (fileName !== undefined) {
+        cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_FILE_NAME_TEXTFIELD)
+          .type("{selectall}{backspace}")
+          .type(fileName);
+      }
+      cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_CREATE_FILE).click();
+    } else if (fileName !== undefined) {
+      cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD)
+        .type("{selectall}{backspace}")
+        .type(fileName);
+    }
+    cy.wait("@allPosts");
+  }
+);
 
 // Note: currently not idempotent.
 Cypress.Commands.add("deleteAllEnvironments", () => {

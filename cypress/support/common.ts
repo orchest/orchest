@@ -32,6 +32,7 @@ export enum TEST_ID {
   NEW_USER_PASSWORD = "new-user-password",
   ORCHEST_LOGO = "orchest-logo",
   PIPELINES_TABLE = "pipelines-table",
+  PIPELINE_STEP = "pipeline-step",
   PIPELINES_TABLE_ROW = "pipelines-table-row",
   PIPELINES_TABLE_TOGGLE_ALL_ROWS = "pipelines-table-toggle-all-rows",
   PIPELINE_CREATE = "pipeline-create",
@@ -67,6 +68,7 @@ export enum TEST_ID {
   STEP_VIEW_FILE = "step-view-file",
   STEP_VIEW_IN_JUPYTERLAB = "step-view-in-jupyterlab",
   SWITCH_TO_JUPYTERLAB = "switch-to-jupyterlab",
+  JUPYTERLAB_IFRAME = "jupyterlab-iframe",
 }
 
 export const LOCAL_STORAGE_KEY = "orchest.onboarding_completed";

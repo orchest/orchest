@@ -1,4 +1,3 @@
-import { QUICKSTART_URL } from "../support/common";
 import { TEST_ID, PROJECTS_DIR } from "../support/common";
 
 enum PROJECT_NAMES {
@@ -27,6 +26,12 @@ let pathTestCases = [
   ["b/c/../a", "b/a"],
   ["b/././a", "b/a"],
 ];
+
+function waitForJupyterlab() {
+  cy.getIframe(TEST_ID.JUPYTERLAB_IFRAME)
+    .contains("Kernel", { timeout: 20000 })
+    .should("be.visible");
+}
 
 describe("pipelines", () => {
   beforeEach(() => {
@@ -179,16 +184,7 @@ describe("pipelines", () => {
 
     it("creates a step, default file name", () => {
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
-      cy.findByTestId(TEST_ID.STEP_CREATE).click();
-      cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)
-        .type("{selectall}{backspace}")
-        .type(STEP_NAMES.ST1);
-      cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).click();
-      cy.findByTestId(TEST_ID.FILE_PICKER_NEW_FILE).click();
-      cy.findByTestId(
-        TEST_ID.PROJECT_FILE_PICKER_CREATE_NEW_FILE_DIALOG
-      ).should("be.visible");
-      cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_CREATE_FILE).focus().click();
+      cy.createStep(STEP_NAMES.ST1, true);
       cy.readFile(
         `${PROJECTS_DIR}/${PROJECT_NAMES.P1}/${STEP_NAMES.ST1}.ipynb`
       );
@@ -196,40 +192,40 @@ describe("pipelines", () => {
 
     it("creates a step, modifies the file name", () => {
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
-      cy.findByTestId(TEST_ID.STEP_CREATE).click();
-      cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)
-        .type("{selectall}{backspace}")
-        .type(STEP_NAMES.ST1);
-      cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).click();
-      cy.findByTestId(TEST_ID.FILE_PICKER_NEW_FILE).click();
-      cy.findByTestId(
-        TEST_ID.PROJECT_FILE_PICKER_CREATE_NEW_FILE_DIALOG
-      ).should("be.visible");
+      cy.createStep(STEP_NAMES.ST1, true, "my-test");
       let fileName = "my-test";
-      cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_FILE_NAME_TEXTFIELD)
-        .type("{selectall}{backspace}")
-        .type(fileName);
-      cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_CREATE_FILE).click();
       cy.readFile(`${PROJECTS_DIR}/${PROJECT_NAMES.P1}/${fileName}.ipynb`);
     });
 
     pathTestCases.forEach((input) => {
       it(`tests step file creation path normalization (${input[0]} to ${input[1]})`, () => {
         cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
-        cy.findByTestId(TEST_ID.STEP_CREATE).click();
-        cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)
-          .type("{selectall}{backspace}")
-          .type(STEP_NAMES.ST1);
-        cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).click();
-        cy.findByTestId(TEST_ID.FILE_PICKER_NEW_FILE).click();
-        cy.findByTestId(
-          TEST_ID.PROJECT_FILE_PICKER_CREATE_NEW_FILE_DIALOG
-        ).should("be.visible");
-        cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_FILE_NAME_TEXTFIELD)
-          .type("{selectall}{backspace}")
-          .type(input[0]);
-        cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_CREATE_FILE).click();
+        cy.createStep(input[0], true, input[1]);
         cy.readFile(`${PROJECTS_DIR}/${PROJECT_NAMES.P1}/${input[1]}.ipynb`);
+      });
+    });
+
+    context("requires a running session", () => {
+      beforeEach(() => {
+        cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
+        // Expect a running session.
+        cy.findAllByTestId(
+          TEST_ID.SESSION_TOGGLE_BUTTON
+        ).contains("Stop session", { timeout: 30000 });
+      });
+      it("tests getting into Jupyterlab", () => {
+        cy.findByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB).click();
+        waitForJupyterlab();
+      });
+
+      it("tests opening a step in Jupyterlab", () => {
+        cy.createStep(STEP_NAMES.ST1, true);
+        cy.get("body").trigger("keydown", { keyCode: 27 });
+        cy.get("body").trigger("keyup", { keyCode: 27 });
+        // Assumes unique step names.
+        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`).scrollIntoView().click();
+        cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).click();
+        waitForJupyterlab();
       });
     });
   });

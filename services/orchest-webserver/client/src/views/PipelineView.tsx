@@ -2119,7 +2119,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
           onConnect={makeConnection.bind(this)}
           onClick={onClickStepHandler.bind(this)}
           onDoubleClick={onDoubleClickStepHandler.bind(this)}
-          data-test-id={`pipeline-step-${uuid}`}
         />
       );
     }
