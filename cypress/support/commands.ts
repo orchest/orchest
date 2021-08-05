@@ -249,6 +249,10 @@ Cypress.Commands.add(
         .type(fileName);
     }
     cy.wait("@allPosts");
+    // Press ESC to close the step menu.
+    cy.get("body").trigger("keydown", { keyCode: 27 });
+    cy.wait(100);
+    cy.get("body").trigger("keyup", { keyCode: 27 });
   }
 );
 

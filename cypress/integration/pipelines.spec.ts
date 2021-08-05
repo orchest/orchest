@@ -220,8 +220,6 @@ describe("pipelines", () => {
 
       it("tests opening a step in Jupyterlab", () => {
         cy.createStep(STEP_NAMES.ST1, true);
-        cy.get("body").trigger("keydown", { keyCode: 27 });
-        cy.get("body").trigger("keyup", { keyCode: 27 });
         // Assumes unique step names.
         cy.get(`[data-test-title=${STEP_NAMES.ST1}]`).scrollIntoView().click();
         cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).click();

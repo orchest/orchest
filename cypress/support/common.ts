@@ -76,6 +76,18 @@ export const DATA_DIR = "userdir/data";
 export const PROJECTS_DIR = "userdir/projects";
 export const TESTS_DATA_DIR = DATA_DIR + "/integration-tests";
 
+const FIXTURE_STEPS_PATH = "cypress/fixtures/custom/steps/";
+const DEFAULT_STEP_TEST_OUT = "test-output.json";
+export const STEPS = {
+  DUMP_ENV_PARAMS: {
+    name: "dump-env-params.ipynb",
+    default_output_file: `${DATA_DIR}/${DEFAULT_STEP_TEST_OUT}`,
+    get_path: function () {
+      return `${FIXTURE_STEPS_PATH}/${this.name}`;
+    },
+  },
+};
+
 // This function is necessary because, as of now, cypress does not
 // support retry-ability of custom commands. It can hacked into but not
 // if you need to use cypress commands within the custom command. We
