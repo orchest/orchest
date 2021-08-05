@@ -800,47 +800,31 @@ def register_views(app, db):
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 
         elif request.method == "GET":
-            # Job pipeline json retrieval is done through the orchest
-            # API because there might be a mismatch between the pipeline
-            # path in the webserver DB and the actual path in the
-            # snapshot because of a pipeline rename/move.
-            if request.args.get("job_uuid") is not None:
-                job_uuid = request.args.get("job_uuid")
-                resp = requests.get(
-                    "http://"
-                    + app.config["ORCHEST_API_ADDRESS"]
-                    + f"/api/jobs/{job_uuid}",
+            pipeline_json_path = get_pipeline_path(
+                pipeline_uuid,
+                project_uuid,
+                request.args.get("job_uuid"),
+                request.args.get("pipeline_run_uuid"),
+            )
+
+            if not os.path.isfile(pipeline_json_path):
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "reason": ".orchest file doesn't exist at location %s"
+                            % pipeline_json_path,
+                        }
+                    ),
+                    404,
                 )
-                pipeline_json = resp.json()["pipeline_definition"]
+            else:
+                with open(pipeline_json_path, "r") as json_file:
+                    pipeline_json = json.load(json_file)
+
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
                 )
-            else:
-                pipeline_json_path = get_pipeline_path(
-                    pipeline_uuid,
-                    project_uuid,
-                    None,
-                    request.args.get("pipeline_run_uuid"),
-                )
-
-                if not os.path.isfile(pipeline_json_path):
-                    return (
-                        jsonify(
-                            {
-                                "success": False,
-                                "reason": ".orchest file doesn't exist at location %s"
-                                % pipeline_json_path,
-                            }
-                        ),
-                        404,
-                    )
-                else:
-                    with open(pipeline_json_path, "r") as json_file:
-                        pipeline_json = json.load(json_file)
-
-                    return jsonify(
-                        {"success": True, "pipeline_json": json.dumps(pipeline_json)}
-                    )
 
     @app.route(
         "/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>",
