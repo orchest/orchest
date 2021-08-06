@@ -53,7 +53,7 @@ jobs:
       - name: Build and Start Orchest
         run: |
           bash scripts/build_container.sh
-          ./orchest start --cloud
+          sudo ./orchest start --cloud
 
       # Can't use the action provided by cypress because of
       # https://github.com/cypress-io/github-action/issues/145.
