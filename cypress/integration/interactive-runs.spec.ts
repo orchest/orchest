@@ -75,18 +75,20 @@ describe("interactive runs", () => {
         cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
         cy.get(`[data-test-title=${STEP_NAMES.ST1}]`).scrollIntoView().click();
+        // Delete the current content.
         cy.get(".CodeMirror-line")
           .first()
           .click()
-          .type("{selectall}{backspace}");
+          // Note that doing a select all followed by a delete does not
+          // seem to work, it results in the parameters we are typing
+          // next being "mangled", i.e. initial chars randomly
+          // disappearing.
+          .type("{backspace}".repeat(20));
+        // Write our params.
         cy.get(".CodeMirror-line")
           .first()
           .click()
-          // NOTE: The spaces in front are required, otherwise there will
-          // be random breakage. I have investigated for some time without
-          // success. Seems to be related to the character {, but I might
-          // be wrong.
-          .type(`          ${JSON.stringify(parameters)}`, {
+          .type(`${JSON.stringify(parameters)}`, {
             parseSpecialCharSequences: false,
           });
         cy.wait("@allPosts");
