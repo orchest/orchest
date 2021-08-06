@@ -2428,6 +2428,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 onClick={openSettings.bind(this, undefined)}
                 label={"Settings"}
                 icon="tune"
+                data-test-id="pipeline-settings"
               />
 
               {state.eventVars.showServices && servicesAvailable() && (

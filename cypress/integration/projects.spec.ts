@@ -81,7 +81,7 @@ describe("projects", () => {
     });
 
     it("test adding a variable", () => {
-      cy.addProjectEnvVar(PROJECT_NAMES.P1, "v1", "v2");
+      cy.addProjectEnvVars(PROJECT_NAMES.P1, ["v1"], ["v2"]);
       cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE).should(
         "have.length",
         1
@@ -89,15 +89,12 @@ describe("projects", () => {
     });
 
     it("test multiple variables", () => {
-      let vars = [1, 2, 3, 4];
-      vars.forEach((v) => {
-        cy.findByTestId(TEST_ID.PROJECT_ENV_VAR_ADD).click();
-        cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_NAME).last().type(`v${v}`);
-        cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE)
-          .last()
-          .type(v.toString());
-      });
-      cy.findByTestId(TEST_ID.PROJECT_SETTINGS_SAVE).click();
+      let vars = ["1", "2", "3", "4"];
+      cy.addProjectEnvVars(
+        PROJECT_NAMES.P1,
+        vars,
+        vars.map((x) => `v${x}`)
+      );
       cy.reload();
       cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE).should(
         "have.length",

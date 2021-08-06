@@ -672,6 +672,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                   items={["Configuration", "Environment variables", "Services"]}
                   icons={["list", "view_comfy", "miscellaneous_services"]}
                   onChange={onSelectSubview.bind(this)}
+                  data-test-id="pipeline-settings"
                 />
               </div>
 
@@ -696,6 +697,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 label="Pipeline name"
                                 disabled={props.queryArgs.read_only === "true"}
                                 classNames={["push-down"]}
+                                data-test-id="pipeline-settings-configuration-pipeline-name"
                               />
                             </div>
                             <div className="clear"></div>
@@ -774,6 +776,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 label="Automatic memory eviction"
                                 disabled={props.queryArgs.read_only === "true"}
                                 classNames={["push-down", "push-up"]}
+                                data-test-id="pipeline-settings-configuration-memory-eviction"
                               />
 
                               {props.queryArgs.read_only !== "true" && (
@@ -794,6 +797,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   disabled={
                                     props.queryArgs.read_only === "true"
                                   }
+                                  data-test-id="pipeline-settings-configuration-memory-size"
                                 />
                               </div>
                               {(() => {
@@ -843,6 +847,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   icon="memory"
                                   classNames={["mdc-button--raised push-down"]}
                                   onClick={restartMemoryServer.bind(this)}
+                                  data-test-id="pipeline-settings-configuration-restart-memory-server"
                                 />
                               </div>
                             </div>
@@ -860,6 +865,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 <EnvVarList
                                   value={state.envVariables}
                                   readOnly={true}
+                                  data-test-id="pipeline-read-only"
                                 />
                               </>
                             );
@@ -872,6 +878,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 <EnvVarList
                                   value={state.projectEnvVariables}
                                   readOnly={true}
+                                  data-test-id="project-read-only"
                                 />
 
                                 <h3 className="push-down">
@@ -890,6 +897,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   onDelete={(idx) =>
                                     onEnvVariablesDeletion(idx)
                                   }
+                                  data-test-id="pipeline"
                                 />
                                 <p className="push-up">
                                   <i>
@@ -1008,6 +1016,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                   classNames={["close-button"]}
                   icon="close"
                   onClick={closeSettings.bind(this)}
+                  data-test-id="pipeline-settings-close"
                 />
               </div>
               {props.queryArgs.read_only !== "true" && (
@@ -1017,6 +1026,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                     classNames={["mdc-button--raised", "themed-secondary"]}
                     onClick={saveGeneralForm.bind(this)}
                     icon="save"
+                    data-test-id="pipeline-settings-save"
                   />
                 </div>
               )}

@@ -61,7 +61,10 @@ export class MDCTabBarReact extends React.Component<any, any> {
           className="mdc-tab"
           role="tab"
           aria-selected="true"
-          data-test-id={this.props["data-test-id"] + `-tab-${item}`}
+          data-test-id={
+            this.props["data-test-id"] +
+            `-tab-${item.toLowerCase().replace(/[\W]/g, "-")}`
+          }
         >
           <span className="mdc-tab__content">
             {(() => {

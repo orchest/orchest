@@ -256,6 +256,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   onDelete={(idx) => onDelete(idx)}
                   readOnly={false}
                   onAdd={addEnvPair.bind(this)}
+                  data-test-id="project"
                 />
               </div>
               <div className="bottom-buttons observe-overflow">

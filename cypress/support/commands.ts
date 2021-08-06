@@ -12,10 +12,15 @@ type TBooleanString = "true" | "false";
 declare global {
   namespace Cypress {
     interface Chainable {
-      addProjectEnvVar(
+      addPipelineEnvVars(
+        pipeline: string,
+        names: string[],
+        values: string[]
+      ): Chainable<undefined>;
+      addProjectEnvVars(
         project: string,
-        name: string,
-        value: string
+        names: string[],
+        values: string[]
       ): Chainable<undefined>;
       cleanDataDir(): Chainable<undefined>;
       createEnvironment(
@@ -95,15 +100,43 @@ Cypress.Commands.add("importProject", (url, name) => {
   cy.findByTestId(TEST_ID.IMPORT_PROJECT_OK).click();
 });
 
-Cypress.Commands.add("addProjectEnvVar", (project, name, value) => {
-  cy.visit("/projects");
-  cy.findByTestId(`settings-button-${project}`).click();
-  cy.findByTestId(TEST_ID.PROJECT_ENV_VAR_ADD).click();
-  // Would not support concurrent adds.
-  cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_NAME).last().type(name);
-  cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE).last().type(value);
-  cy.findByTestId(TEST_ID.PROJECT_SETTINGS_SAVE).click();
-});
+Cypress.Commands.add(
+  "addProjectEnvVars",
+  (project: string, names: string[], values: string[]) => {
+    assert(names.length == values.length);
+    cy.visit("/projects");
+    cy.findByTestId(`settings-button-${project}`).click();
+    for (let i = 0; i < names.length; i++) {
+      cy.findByTestId(TEST_ID.PROJECT_ENV_VAR_ADD).click();
+      // Would not support concurrent adds.
+      cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_NAME).last().type(names[i]);
+      cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE).last().type(values[i]);
+    }
+    cy.findByTestId(TEST_ID.PROJECT_SETTINGS_SAVE).click();
+    cy.wait("@allPuts");
+  }
+);
+
+Cypress.Commands.add(
+  "addPipelineEnvVars",
+  (pipeline: string, names: string[], values: string[]) => {
+    assert(names.length == values.length);
+    cy.visit("/pipelines");
+    cy.findByTestId(`pipeline-${pipeline}`).click();
+    cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
+    cy.findByTestId(
+      TEST_ID.PIPELINE_SETTINGS_TAB_ENVIRONMENT_VARIABLES
+    ).click();
+    for (let i = 0; i < names.length; i++) {
+      cy.findByTestId(TEST_ID.PIPELINE_ENV_VAR_ADD).click();
+      // Would not support concurrent adds.
+      cy.findAllByTestId(TEST_ID.PIPELINE_ENV_VAR_NAME).last().type(names[i]);
+      cy.findAllByTestId(TEST_ID.PIPELINE_ENV_VAR_VALUE).last().type(values[i]);
+    }
+    cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
+    cy.wait("@allPuts");
+  }
+);
 
 Cypress.Commands.add("createUser", (name, password) => {
   cy.visit("/settings");

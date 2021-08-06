@@ -50,7 +50,7 @@ const PipelineList: React.FC<any> = (props) => {
     for (let pipeline of pipelines) {
       // @TODO Get the current Project on the Pipelines page
       listData.push([
-        <span>{pipeline.name}</span>,
+        <span data-test-id={`pipeline-${pipeline.name}`}>{pipeline.name}</span>,
         <span className="mdc-icon-table-wrapper">
           {pipeline.path}{" "}
           <span className="consume-click">
