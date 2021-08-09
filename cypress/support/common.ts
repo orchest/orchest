@@ -82,6 +82,7 @@ export enum TEST_ID {
   PIPELINE_ENV_VAR_ADD = "pipeline-env-var-add",
   PIPELINE_ENV_VAR_NAME = "pipeline-env-var-name",
   PIPELINE_ENV_VAR_VALUE = "pipeline-env-var-value",
+  PIPELINE_CENTER = "pipeline-center",
 }
 
 export const LOCAL_STORAGE_KEY = "orchest.onboarding_completed";
@@ -90,13 +91,37 @@ export const PROJECTS_DIR = "userdir/projects";
 export const TESTS_DATA_DIR = DATA_DIR + "/integration-tests";
 
 const FIXTURE_STEPS_PATH = "cypress/fixtures/custom/steps/";
+const FIXTURE_PIPELINES_PATH = "cypress/fixtures/custom/pipelines/";
 const DEFAULT_STEP_TEST_OUT = "test-output.json";
 export const STEPS = {
+  // A step that dumps its environment variables, step and pipeline
+  // parameters in the data directory as a json file. The path of the
+  // file, relative to the data directory, can be set by passing the
+  // parameter test_output_file to the step, defaults to
+  // DEFAULT_STEP_TEST_OUT.
   DUMP_ENV_PARAMS: {
     name: "dump-env-params.ipynb",
     default_output_file: `${DATA_DIR}/${DEFAULT_STEP_TEST_OUT}`,
     get_path: function () {
       return `${FIXTURE_STEPS_PATH}/${this.name}`;
+    },
+  },
+};
+
+export const PIPELINES = {
+  // A pipeline composed of two steps, A and B. A looks into its step
+  // parameters for "input_data" and "input_data_name". input_data must
+  // be parseable to a json, input_data_name is optional. Given these 2
+  // parameters, the step will output (orchest.output(data, name)) the
+  // given data. Step B reads input data(orchest.get_input()) and dumps
+  // it as a json file in the data directory. The path of the file,
+  // relative to the data directory, can be set by passing the parameter
+  // test_output_file to the step, defaults to DEFAULT_STEP_TEST_OUT.
+  DATA_PASSING: {
+    name: "data-passing",
+    default_output_file: `${DATA_DIR}/${DEFAULT_STEP_TEST_OUT}`,
+    get_path: function () {
+      return `${FIXTURE_PIPELINES_PATH}/${this.name}`;
     },
   },
 };

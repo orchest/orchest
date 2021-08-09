@@ -2340,6 +2340,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 <MDCButtonReact
                   onClick={centerView.bind(this)}
                   icon="crop_free"
+                  data-test-id="pipeline-center"
                 />
                 <MDCButtonReact onClick={zoomOut.bind(this)} icon="remove" />
                 <MDCButtonReact onClick={zoomIn.bind(this)} icon="add" />

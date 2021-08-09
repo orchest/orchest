@@ -57,6 +57,7 @@ export class MDCCheckboxReact extends React.Component<any> {
             id={randomFor}
             disabled={this.props.disabled === true}
             ref={this.refManager.nrefs.nativeCheckbox}
+            data-test-id={this.props["data-test-id"]}
           />
           <div className="mdc-checkbox__background">
             <svg className="mdc-checkbox__checkmark" viewBox="0 0 24 24">

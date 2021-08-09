@@ -1,4 +1,4 @@
-import { TEST_ID, STEPS } from "../support/common";
+import { TEST_ID, STEPS, PIPELINES } from "../support/common";
 
 enum PROJECT_NAMES {
   P1 = "test-project-1",
@@ -15,13 +15,37 @@ enum STEP_NAMES {
   ST2 = "test-step-2",
 }
 
+// Function private to the file to  set the parameters of a step in the
+// editor.
+function setStepParameters(stepTitle, params) {
+  cy.get(`[data-test-title=${stepTitle}]`).scrollIntoView().click();
+
+  // Delete the current content.
+  cy.get(".CodeMirror-line")
+    .first()
+    .click()
+    // Note that doing a {selectall} followed by a {backspace} does not
+    // seem to work, it results in the parameters we are typing next
+    // being "mangled", i.e. initial chars randomly disappearing.
+    .type("{backspace}".repeat(20));
+  // Write our params.
+  cy.get(".CodeMirror-line")
+    .first()
+    .click()
+    .type(`${JSON.stringify(params)}`, {
+      parseSpecialCharSequences: false,
+    });
+  cy.wait("@allPosts");
+}
+
 describe("interactive runs", () => {
   beforeEach(() => {
     cy.setOnboardingCompleted("true");
     cy.createProject(PROJECT_NAMES.P1);
     cy.visit("/pipelines");
   });
-  context("requires a running session", () => {
+
+  context("requires an empty pipeline and a running session", () => {
     beforeEach(() => {
       cy.createPipeline(PIPELINE_NAMES.PL1);
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
@@ -51,7 +75,7 @@ describe("interactive runs", () => {
 
       cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
         .scrollIntoView()
-        .contains("Completed", { timeout: 10000 });
+        .contains("Completed", { timeout: 20000 });
       cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file);
     });
 
@@ -74,24 +98,8 @@ describe("interactive runs", () => {
         // Create the step and set the notebook.
         cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
-        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`).scrollIntoView().click();
-        // Delete the current content.
-        cy.get(".CodeMirror-line")
-          .first()
-          .click()
-          // Note that doing a select all followed by a delete does not
-          // seem to work, it results in the parameters we are typing
-          // next being "mangled", i.e. initial chars randomly
-          // disappearing.
-          .type("{backspace}".repeat(20));
-        // Write our params.
-        cy.get(".CodeMirror-line")
-          .first()
-          .click()
-          .type(`${JSON.stringify(parameters)}`, {
-            parseSpecialCharSequences: false,
-          });
-        cy.wait("@allPosts");
+        setStepParameters(STEP_NAMES.ST1, parameters);
+
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
           "not.exist"
         );
@@ -99,7 +107,7 @@ describe("interactive runs", () => {
 
         cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
           .scrollIntoView()
-          .contains("Completed", { timeout: 10000 });
+          .contains("Completed", { timeout: 20000 });
         cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file)
           .its("step_parameters")
           .should("deep.equal", parameters);
@@ -153,7 +161,7 @@ describe("interactive runs", () => {
 
         cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
           .scrollIntoView()
-          .contains("Completed", { timeout: 10000 });
+          .contains("Completed", { timeout: 20000 });
 
         cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file)
           .its("pipeline_parameters")
@@ -211,7 +219,7 @@ describe("interactive runs", () => {
 
           cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
             .scrollIntoView()
-            .contains("Completed", { timeout: 10000 });
+            .contains("Completed", { timeout: 20000 });
 
           let expectedEnv = {};
           // Note that we are overriding the proj env vars with pipeline
@@ -233,6 +241,186 @@ describe("interactive runs", () => {
               });
             });
         });
+      });
+    });
+  });
+
+  context("requires the data passing pipeline and a running session", () => {
+    beforeEach(() => {
+      // Copy the pipeline.
+      cy.exec(
+        `cp -r ${PIPELINES.DATA_PASSING.get_path()} userdir/projects/${
+          PROJECT_NAMES.P1
+        }/`
+      );
+      cy.visit("/pipelines");
+      cy.findByTestId(`pipeline-${PIPELINES.DATA_PASSING.name}`).click();
+      cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
+        "Stop session",
+        { timeout: 30000 }
+      );
+    });
+
+    [
+      {
+        input_data: {
+          a: 1,
+          b: ["2", "3"],
+          c: { d: { e: "hello" } },
+        },
+      },
+      {
+        input_data: {
+          a: 1,
+          b: ["2", "3"],
+          c: { d: { e: "hello" } },
+        },
+        input_data_name: "output_name",
+      },
+    ].forEach((paramsA) => {
+      it(`tests data passing - ${
+        paramsA.input_data_name === undefined ? "unnamed" : "named"
+      }`, () => {
+        cy.findByTestId(TEST_ID.PIPELINE_CENTER);
+
+        setStepParameters("A", paramsA);
+
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
+          "not.exist"
+        );
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
+
+        cy.get(`[data-test-title=${"A"}]`).contains("Completed", {
+          timeout: 20000,
+        });
+
+        // Press ESC to close the step menu.
+        cy.get("body").trigger("keydown", { keyCode: 27 });
+        cy.wait(100);
+        cy.get("body").trigger("keyup", { keyCode: 27 });
+
+        // Select and run B.
+        cy.wait(100);
+        cy.get(`[data-test-title=${"B"}]`).click();
+
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
+        cy.get(`[data-test-title=${"B"}]`).contains("Completed", {
+          timeout: 20000,
+        });
+
+        let expectedName =
+          paramsA.input_data_name === undefined
+            ? "unnamed"
+            : paramsA.input_data_name;
+        let expectedValue =
+          paramsA.input_data_name === undefined
+            ? [paramsA.input_data]
+            : paramsA.input_data;
+
+        cy.readFile(PIPELINES.DATA_PASSING.default_output_file)
+          .its(expectedName)
+          .should("deep.equal", expectedValue);
+      });
+    });
+
+    [
+      {
+        eviction: true,
+        stepParams: {
+          input_data: {
+            a: 1,
+            b: ["2", "3"],
+            c: { d: { e: "hello" } },
+          },
+        },
+      },
+      {
+        eviction: false,
+        stepParams: {
+          input_data: {
+            a: 1,
+            b: ["2", "3"],
+            c: { d: { e: "hello" } },
+          },
+        },
+      },
+    ].forEach((testData) => {
+      it(`tests memory eviction - unnamed - eviction=${testData.eviction})`, () => {
+        cy.findByTestId(TEST_ID.PIPELINE_CENTER);
+
+        // Activate memory eviction and restart the memory server.
+        if (testData.eviction) {
+          cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
+          cy.findByTestId(
+            TEST_ID.PIPELINE_SETTINGS_CONFIGURATION_MEMORY_EVICTION
+          )
+            .scrollIntoView()
+            .should("not.be.checked");
+          cy.findByTestId(
+            TEST_ID.PIPELINE_SETTINGS_CONFIGURATION_MEMORY_EVICTION
+          ).check();
+          cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
+          cy.findByTestId(
+            TEST_ID.PIPELINE_SETTINGS_CONFIGURATION_RESTART_MEMORY_SERVER
+          )
+            .scrollIntoView()
+            .should("be.visible")
+            .click();
+          cy.findByTestId(
+            TEST_ID.PIPELINE_SETTINGS_CONFIGURATION_RESTART_MEMORY_SERVER,
+            {
+              timeout: 20000,
+            }
+          ).should("be.enabled");
+          // Get back to the pipeline editor.
+          cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_CLOSE).click();
+        }
+
+        // Select and run A.
+        setStepParameters("A", testData.stepParams);
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
+          "not.exist"
+        );
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
+
+        cy.get(`[data-test-title=${"A"}]`).contains("Completed", {
+          timeout: 20000,
+        });
+
+        // Press ESC to close the step menu.
+        cy.get("body").trigger("keydown", { keyCode: 27 });
+        cy.wait(100);
+        cy.get("body").trigger("keyup", { keyCode: 27 });
+
+        // Select and run B.
+        cy.wait(100);
+        cy.get(`[data-test-title=${"B"}]`).click();
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
+        cy.get(`[data-test-title=${"B"}]`).contains("Completed", {
+          timeout: 20000,
+        });
+
+        let expectedName = "unnamed";
+        let expectedValue = [testData.stepParams.input_data];
+
+        cy.readFile(PIPELINES.DATA_PASSING.default_output_file)
+          .its(expectedName)
+          .should("deep.equal", expectedValue);
+        cy.exec(`rm -f ${PIPELINES.DATA_PASSING.default_output_file}`);
+
+        // Run B again, if memory eviction is enabled it should fail
+        // because no input from A can be found.
+        let expectedState = testData.eviction ? "Failure" : "Completed";
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
+        cy.get(`[data-test-title=${"B"}]`).contains(expectedState, {
+          timeout: 20000,
+        });
+
+        if (!testData.eviction) {
+          cy.readFile(PIPELINES.DATA_PASSING.default_output_file)
+            .its(expectedName)
+            .should("deep.equal", expectedValue);
+        }
       });
     });
   });
