@@ -2199,12 +2199,14 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         state.pendingRunUUIDs !== undefined &&
         state.pendingRunType !== undefined
       ) {
+        let uuids = state.pendingRunUUIDs;
+        let runType = state.pendingRunType;
+        setState({
+          pendingRunUUIDs: undefined,
+          pendingRunType: undefined,
+        });
         savePipeline(() => {
-          _runStepUUIDs(state.pendingRunUUIDs, state.pendingRunType);
-          setState({
-            pendingRunUUIDs: undefined,
-            pendingRunType: undefined,
-          });
+          _runStepUUIDs(uuids, runType);
         });
       } else {
         savePipeline();
