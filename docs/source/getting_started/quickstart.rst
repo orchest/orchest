@@ -148,12 +148,11 @@ Maybe you already noticed the imports in the previous step:
 
 These dependencies are satisfied by default, because the :ref:`environments <environment glossary>`
 are based on the `Jupyter Docker Stacks <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_
-which already contains a number of common data science packages. In this data exploration step
-however, we make use of `Vaex <https://github.com/vaexio/vaex>`_ to showcase how environments let
-you :ref:`install additional packages <install packages>`.
+which already contains a number of common data science packages.
 
-Go to *Environments* in the left pane menu and inspect the *Python 3* environment. Here you can see
-that ``pip install vaex`` is added to the *Environment set-up script*.
+If you need to add dependencies to customize your environments you can do so by
+:ref:`installing additional packages <install packages>`.
+
 
 Finalizing the pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~
